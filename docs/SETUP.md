@@ -38,23 +38,38 @@ docker-compose up -d
 
 ### 4. Create Admin Account
 
-1. Open `http://localhost:8090/_/` in your browser
+First, enable the PocketBase admin UI:
+
+```bash
+# Add to your .env
+ADMIN_ENABLED=true
+```
+
+Then restart and access the setup:
+
+1. Open `http://localhost:8080/_/` in your browser
 2. You'll see the PocketBase installer
 3. Create your superuser account (this is your admin login)
+
+After setup, you can disable the admin UI for security:
+```bash
+ADMIN_ENABLED=false
+```
 
 ### 5. Configure OAuth (Recommended)
 
 For secure admin login, set up OAuth:
 
-1. Go to `http://localhost:8090/_/` → Settings → Auth providers
-2. Enable Google and/or GitHub
-3. Enter your OAuth credentials (see below for how to get them)
+1. Ensure `ADMIN_ENABLED=true` in your .env
+2. Go to `http://localhost:8080/_/` -> Settings -> Auth providers
+3. Enable Google and/or GitHub
+4. Enter your OAuth credentials (see below for how to get them)
 
 ### 6. Access Your Profile
 
 - Public profile: `http://localhost:8080`
 - Admin dashboard: `http://localhost:8080/admin`
-- PocketBase admin: `http://localhost:8090/_/`
+- PocketBase admin: `http://localhost:8080/_/` (when ADMIN_ENABLED=true)
 
 ---
 
@@ -116,7 +131,7 @@ labels:
   - "traefik.enable=true"
   - "traefik.http.routers.meyaml.rule=Host(`profile.yourdomain.com`)"
   - "traefik.http.routers.meyaml.entrypoints=websecure"
-  - "traefik.http.services.meyaml.loadbalancer.server.port=3000"
+  - "traefik.http.services.meyaml.loadbalancer.server.port=8080"
 ```
 
 ---
@@ -125,14 +140,15 @@ labels:
 
 ### Using Docker Template
 
-1. Go to Docker → Add Container
+1. Go to Docker -> Add Container
 2. Set:
    - Name: me-yaml
    - Repository: ghcr.io/yourusername/me-yaml:latest
-   - Port Mappings: 8080 → 3000, 8090 → 8090
-   - Path: /mnt/user/appdata/me-yaml → /data
-   - Variable: ENCRYPTION_KEY → (your key)
-   - Variable: TRUST_PROXY → true
+   - Port Mappings: 8080 -> 8080 (single port)
+   - Path: /mnt/user/appdata/me-yaml -> /data
+   - Variable: ENCRYPTION_KEY -> (your key)
+   - Variable: APP_URL -> https://meyaml.yourdomain.com
+   - Variable: TRUST_PROXY -> true
 
 ### Using Docker Compose
 

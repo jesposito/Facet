@@ -209,5 +209,6 @@ export async function fetchSkills(): Promise<Skill[]> {
 export function getFileUrl(record: { id: string; collectionId?: string; collectionName?: string }, filename: string): string {
 	if (!filename) return '';
 	const collectionId = record.collectionId || record.collectionName;
-	return `${pbUrl}/api/files/${collectionId}/${record.id}/${filename}`;
+	// Use relative URL - works behind any reverse proxy
+	return `/api/files/${collectionId}/${record.id}/${filename}`;
 }

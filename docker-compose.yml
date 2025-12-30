@@ -1,4 +1,4 @@
-# me.yaml Production Docker Compose
+# Me.yaml Production Docker Compose
 # Single container, single port
 
 version: '3.8'
@@ -15,11 +15,16 @@ services:
     volumes:
       - ${DATA_PATH:-./data}:/data
     environment:
+      # Backend
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
       - TRUST_PROXY=${TRUST_PROXY:-false}
       - APP_URL=${APP_URL:-http://localhost:8080}
       - ADMIN_ENABLED=${ADMIN_ENABLED:-false}
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
+      # Frontend (SvelteKit) - for proper URL generation behind reverse proxy
+      - ORIGIN=${APP_URL:-http://localhost:8080}
+      - PROTOCOL_HEADER=X-Forwarded-Proto
+      - HOST_HEADER=X-Forwarded-Host
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
