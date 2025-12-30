@@ -35,7 +35,7 @@ func main() {
 	cryptoService := services.NewCryptoService(encryptionKey)
 	githubService := services.NewGitHubService()
 	aiService := services.NewAIService(cryptoService)
-	shareService := services.NewShareService()
+	shareService := services.NewShareService(cryptoService)
 
 	// Register migrations
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
@@ -44,10 +44,11 @@ func main() {
 
 	// Register custom hooks
 	hooks.RegisterHealthCheck(app)
-	hooks.RegisterGitHubHooks(app, githubService, aiService)
+	hooks.RegisterAdminAuth(app)
+	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
-	hooks.RegisterShareHooks(app, shareService)
-	hooks.RegisterPasswordHooks(app)
+	hooks.RegisterShareHooks(app, shareService, cryptoService)
+	hooks.RegisterPasswordHooks(app, cryptoService)
 	hooks.RegisterViewHooks(app)
 
 	// Serve static files and SvelteKit app

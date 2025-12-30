@@ -3,8 +3,10 @@ package services
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"io"
@@ -14,14 +16,19 @@ import (
 
 // CryptoService handles encryption/decryption of sensitive data
 type CryptoService struct {
-	key []byte
+	key     []byte
+	hmacKey []byte
 }
 
 // NewCryptoService creates a new crypto service with the given key
 func NewCryptoService(key string) *CryptoService {
-	// Ensure key is exactly 32 bytes for AES-256
-	hash := sha256.Sum256([]byte(key))
-	return &CryptoService{key: hash[:]}
+	// Derive separate keys for encryption and HMAC
+	encKey := sha256.Sum256([]byte(key + ":encryption"))
+	hmacKey := sha256.Sum256([]byte(key + ":hmac"))
+	return &CryptoService{
+		key:     encKey[:],
+		hmacKey: hmacKey[:],
+	}
 }
 
 // Encrypt encrypts plaintext using AES-256-GCM
@@ -108,8 +115,16 @@ func (c *CryptoService) GenerateToken(length int) (string, error) {
 	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
-// HashToken creates a SHA-256 hash of a token for storage
-func (c *CryptoService) HashToken(token string) string {
-	hash := sha256.Sum256([]byte(token))
-	return base64.StdEncoding.EncodeToString(hash[:])
+// HMACToken creates an HMAC-SHA256 of a token for secure storage
+// Uses server secret as key, so DB leak doesn't allow offline verification
+func (c *CryptoService) HMACToken(token string) string {
+	h := hmac.New(sha256.New, c.hmacKey)
+	h.Write([]byte(token))
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+}
+
+// ValidateTokenHMAC compares a token against stored HMAC using constant-time comparison
+func (c *CryptoService) ValidateTokenHMAC(token, storedHMAC string) bool {
+	expectedHMAC := c.HMACToken(token)
+	return subtle.ConstantTimeCompare([]byte(expectedHMAC), []byte(storedHMAC)) == 1
 }

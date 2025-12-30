@@ -1,18 +1,17 @@
 package services
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/base64"
 	"time"
 )
 
 // ShareService handles share token operations
-type ShareService struct{}
+type ShareService struct {
+	crypto *CryptoService
+}
 
-// NewShareService creates a new share service
-func NewShareService() *ShareService {
-	return &ShareService{}
+// NewShareService creates a new share service with crypto for HMAC
+func NewShareService(crypto *CryptoService) *ShareService {
+	return &ShareService{crypto: crypto}
 }
 
 // ShareTokenValidation represents the result of token validation
@@ -25,20 +24,18 @@ type ShareTokenValidation struct {
 
 // GenerateToken generates a new share token (32 bytes, URL-safe base64)
 func (s *ShareService) GenerateToken() (string, error) {
-	crypto := &CryptoService{}
-	return crypto.GenerateToken(32)
+	return s.crypto.GenerateToken(32)
 }
 
-// HashToken creates a SHA-256 hash of a token for storage
-func (s *ShareService) HashToken(token string) string {
-	hash := sha256.Sum256([]byte(token))
-	return base64.StdEncoding.EncodeToString(hash[:])
+// HMACToken creates an HMAC of a token for secure storage
+// DB leaks won't allow offline verification without the server secret
+func (s *ShareService) HMACToken(token string) string {
+	return s.crypto.HMACToken(token)
 }
 
-// ValidateTokenHash compares a token against a stored hash using constant-time comparison
-func (s *ShareService) ValidateTokenHash(token, storedHash string) bool {
-	tokenHash := s.HashToken(token)
-	return subtle.ConstantTimeCompare([]byte(tokenHash), []byte(storedHash)) == 1
+// ValidateTokenHMAC compares a token against stored HMAC using constant-time comparison
+func (s *ShareService) ValidateTokenHMAC(token, storedHMAC string) bool {
+	return s.crypto.ValidateTokenHMAC(token, storedHMAC)
 }
 
 // IsTokenExpired checks if a token has expired

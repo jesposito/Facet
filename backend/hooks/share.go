@@ -11,7 +11,7 @@ import (
 )
 
 // RegisterShareHooks registers share token related endpoints
-func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService) {
+func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Validate a share token
 		se.Router.POST("/api/share/validate", func(e *core.RequestEvent) error {
@@ -27,27 +27,32 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "token required"})
 			}
 
-			// Hash the token for lookup
-			tokenHash := share.HashToken(req.Token)
-
-			// Find token record
-			records, err := app.FindRecordsByFilter(
+			// Find token record by iterating and comparing HMACs
+			// We iterate because HMAC lookup isn't direct - we need constant-time comparison
+			allTokens, err := app.FindRecordsByFilter(
 				"share_tokens",
-				"token_hash = {:hash} && is_active = true",
+				"is_active = true",
 				"-created",
-				1,
+				1000,
 				0,
-				map[string]interface{}{"hash": tokenHash},
+				nil,
 			)
 
-			if err != nil || len(records) == 0 {
+			var tokenRecord *core.Record
+			for _, record := range allTokens {
+				storedHMAC := record.GetString("token_hash")
+				if share.ValidateTokenHMAC(req.Token, storedHMAC) {
+					tokenRecord = record
+					break
+				}
+			}
+
+			if err != nil || tokenRecord == nil {
 				return e.JSON(http.StatusOK, services.ShareTokenValidation{
 					Valid: false,
 					Error: "invalid token",
 				})
 			}
-
-			tokenRecord := records[0]
 
 			// Check expiration
 			expiresAt := tokenRecord.GetDateTime("expires_at")
@@ -126,7 +131,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
 			}
 
-			tokenHash := share.HashToken(rawToken)
+			tokenHMAC := share.HMACToken(rawToken)
 
 			// Create token record
 			collection, err := app.FindCollectionByNameOrId("share_tokens")
@@ -136,7 +141,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 
 			record := core.NewRecord(collection)
 			record.Set("view_id", req.ViewID)
-			record.Set("token_hash", tokenHash)
+			record.Set("token_hash", tokenHMAC)
 			record.Set("name", req.Name)
 			record.Set("is_active", true)
 			record.Set("use_count", 0)

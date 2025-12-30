@@ -13,7 +13,7 @@ import (
 )
 
 // RegisterGitHubHooks registers GitHub-related API endpoints
-func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubService, ai *services.AIService) {
+func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubService, ai *services.AIService, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Parse and preview a GitHub repo
 		se.Router.POST("/api/github/preview", func(e *core.RequestEvent) error {
@@ -24,7 +24,6 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 
 			var req struct {
 				RepoURL string `json:"repo_url"`
-				Token   string `json:"token"` // Optional GitHub PAT
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -36,7 +35,10 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
-			metadata, err := github.FetchRepoMetadata(owner, repo, req.Token)
+			// Get GitHub token from settings (stored once, used for all imports)
+			token := getGitHubToken(app, crypto)
+
+			metadata, err := github.FetchRepoMetadata(owner, repo, token)
 			if err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
@@ -52,7 +54,6 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 
 			var req struct {
 				RepoURL      string `json:"repo_url"`
-				Token        string `json:"token"`
 				AIEnrich     bool   `json:"ai_enrich"`
 				AIProviderID string `json:"ai_provider_id"`
 				PrivacyMode  string `json:"privacy_mode"` // full, summary, none
@@ -67,8 +68,11 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
+			// Get GitHub token from settings (stored once, used for all imports)
+			token := getGitHubToken(app, crypto)
+
 			// Fetch metadata
-			metadata, err := github.FetchRepoMetadata(owner, repo, req.Token)
+			metadata, err := github.FetchRepoMetadata(owner, repo, token)
 			if err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
@@ -211,11 +215,8 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
-			// Get token if stored (encrypted)
-			token := ""
-			if tokenEnc := sourceRecord.GetString("github_token"); tokenEnc != "" {
-				token, _ = ai.DecryptAPIKey(tokenEnc)
-			}
+			// Get GitHub token from settings (stored once, used for all imports)
+			token := getGitHubToken(app, crypto)
 
 			metadata, err := github.FetchRepoMetadata(owner, repo, token)
 			if err != nil {
@@ -337,4 +338,38 @@ func calculateDiff(existing, proposed map[string]interface{}) map[string]interfa
 		}
 	}
 	return diff
+}
+
+// getGitHubToken retrieves the GitHub PAT from settings (stored once, used for all imports)
+func getGitHubToken(app *pocketbase.PocketBase, crypto *services.CryptoService) string {
+	records, err := app.FindRecordsByFilter(
+		"settings",
+		"key = 'github_token'",
+		"",
+		1,
+		0,
+		nil,
+	)
+	if err != nil || len(records) == 0 {
+		return ""
+	}
+
+	// Value is stored as JSON with encrypted token
+	valueJSON := records[0].GetString("value")
+	var value map[string]string
+	if err := json.Unmarshal([]byte(valueJSON), &value); err != nil {
+		return ""
+	}
+
+	encryptedToken, ok := value["token_encrypted"]
+	if !ok || encryptedToken == "" {
+		return ""
+	}
+
+	token, err := crypto.Decrypt(encryptedToken)
+	if err != nil {
+		return ""
+	}
+
+	return token
 }
