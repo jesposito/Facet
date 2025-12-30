@@ -1,0 +1,50 @@
+# OwnProfile Development Docker Compose
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    container_name: ownprofile-backend-dev
+    working_dir: /app/backend
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/data
+      - go-cache:/go/pkg/mod
+    ports:
+      - "8090:8090"
+    environment:
+      - DATA_DIR=/data
+      - ENCRYPTION_KEY=dev-only-key-change-in-production
+      - LOG_LEVEL=debug
+    command: >
+      sh -c "
+        go mod download &&
+        air -c .air.toml
+      "
+
+  frontend:
+    image: node:20-alpine
+    container_name: ownprofile-frontend-dev
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - node-modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - POCKETBASE_URL=http://backend:8090
+    command: >
+      sh -c "
+        npm install &&
+        npm run dev -- --host
+      "
+    depends_on:
+      - backend
+
+volumes:
+  go-cache:
+  node-modules:

@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/build/
+frontend/.svelte-kit/
+backend/tmp/
+
+# Data (keep in volume, not repo)
+data/
+pb_data/
+
+# Environment (contains secrets)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+*.cover
+
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+dist/
+
+# Backup files
+backups/
+*.tar.gz
+*.zip
+
+# Temp files
+tmp/
+temp/

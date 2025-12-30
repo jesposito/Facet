@@ -1,0 +1,50 @@
+{
+  "name": "OwnProfile Development",
+  "dockerComposeFile": "../docker-compose.dev.yml",
+  "service": "frontend",
+  "workspaceFolder": "/app",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "svelte.svelte-vscode",
+        "golang.go",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "sh",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[svelte]": {
+          "editor.defaultFormatter": "svelte.svelte-vscode"
+        },
+        "[go]": {
+          "editor.defaultFormatter": "golang.go"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 5173, 8090],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (Production)",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Frontend (Dev)",
+      "onAutoForward": "openBrowser"
+    },
+    "8090": {
+      "label": "PocketBase API/Admin",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "npm install",
+  "postStartCommand": "echo 'Run npm run dev to start the frontend. Backend starts automatically.'",
+
+  "remoteUser": "node"
+}

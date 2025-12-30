@@ -1,0 +1,29 @@
+# OwnProfile Development Dockerfile
+# Includes hot-reload for both backend and frontend
+
+FROM golang:1.22-alpine
+
+# Install dependencies
+RUN apk add --no-cache \
+    nodejs \
+    npm \
+    gcc \
+    musl-dev \
+    git \
+    curl
+
+# Install air for Go hot reload
+RUN go install github.com/air-verse/air@latest
+
+WORKDIR /app
+
+# Environment
+ENV CGO_ENABLED=1 \
+    DATA_DIR=/data \
+    POCKETBASE_URL=http://localhost:8090
+
+# Expose ports
+EXPOSE 8090 3000 5173
+
+# Default command
+CMD ["sh", "-c", "echo 'Use docker-compose.dev.yml to start development'"]

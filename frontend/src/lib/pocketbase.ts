@@ -1,0 +1,213 @@
+import PocketBase from 'pocketbase';
+import { writable } from 'svelte/store';
+import { browser } from '$app/environment';
+
+// Initialize PocketBase client
+const pbUrl = browser ? window.location.origin : (process.env.POCKETBASE_URL || 'http://localhost:8090');
+export const pb = new PocketBase(pbUrl);
+
+// Auth store
+export const currentUser = writable(pb.authStore.model);
+
+// Update store when auth changes
+pb.authStore.onChange((token, model) => {
+	currentUser.set(model);
+});
+
+// Types
+export interface Profile {
+	id: string;
+	name: string;
+	headline?: string;
+	location?: string;
+	summary?: string;
+	hero_image?: string;
+	avatar?: string;
+	contact_email?: string;
+	contact_links?: ContactLink[];
+	visibility: 'public' | 'unlisted' | 'private';
+}
+
+export interface ContactLink {
+	type: string;
+	url: string;
+	label?: string;
+}
+
+export interface Experience {
+	id: string;
+	company: string;
+	title: string;
+	location?: string;
+	start_date?: string;
+	end_date?: string;
+	description?: string;
+	bullets?: string[];
+	skills?: string[];
+	media?: string[];
+	visibility: 'public' | 'unlisted' | 'private' | 'password';
+	is_draft: boolean;
+	sort_order: number;
+}
+
+export interface Project {
+	id: string;
+	title: string;
+	slug?: string;
+	summary?: string;
+	description?: string;
+	tech_stack?: string[];
+	links?: ProjectLink[];
+	media?: string[];
+	cover_image?: string;
+	categories?: string[];
+	visibility: 'public' | 'unlisted' | 'private' | 'password';
+	is_draft: boolean;
+	is_featured: boolean;
+	sort_order: number;
+	source_id?: string;
+	field_locks?: Record<string, boolean>;
+}
+
+export interface ProjectLink {
+	type: string;
+	url: string;
+}
+
+export interface Education {
+	id: string;
+	institution: string;
+	degree?: string;
+	field?: string;
+	start_date?: string;
+	end_date?: string;
+	description?: string;
+	visibility: 'public' | 'unlisted' | 'private';
+	is_draft: boolean;
+	sort_order: number;
+}
+
+export interface Skill {
+	id: string;
+	name: string;
+	category?: string;
+	proficiency?: 'expert' | 'proficient' | 'familiar';
+	visibility: 'public' | 'unlisted' | 'private';
+	sort_order: number;
+}
+
+export interface View {
+	id: string;
+	name: string;
+	slug: string;
+	description?: string;
+	visibility: 'public' | 'unlisted' | 'private' | 'password';
+	hero_headline?: string;
+	hero_summary?: string;
+	cta_text?: string;
+	cta_url?: string;
+	sections?: ViewSection[];
+	is_active: boolean;
+}
+
+export interface ViewSection {
+	section: string;
+	enabled: boolean;
+	items?: string[];
+}
+
+export interface AIProvider {
+	id: string;
+	name: string;
+	type: 'openai' | 'anthropic' | 'ollama' | 'custom';
+	base_url?: string;
+	model?: string;
+	is_default: boolean;
+	is_active: boolean;
+	test_status?: string;
+	last_test?: string;
+}
+
+export interface Source {
+	id: string;
+	type: 'github';
+	identifier: string;
+	project_id?: string;
+	last_sync?: string;
+	sync_status?: 'pending' | 'success' | 'error';
+	sync_log?: string;
+}
+
+export interface ImportProposal {
+	id: string;
+	source_id: string;
+	project_id?: string;
+	proposed_data: Record<string, unknown>;
+	diff?: Record<string, { type: string; old?: unknown; new?: unknown }>;
+	ai_enriched: boolean;
+	status: 'pending' | 'applied' | 'rejected';
+}
+
+// API helpers
+export async function fetchProfile(): Promise<Profile | null> {
+	try {
+		const records = await pb.collection('profile').getList(1, 1);
+		return records.items[0] as unknown as Profile;
+	} catch {
+		return null;
+	}
+}
+
+export async function fetchExperience(): Promise<Experience[]> {
+	try {
+		const records = await pb.collection('experience').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: '-sort_order,-start_date'
+		});
+		return records.items as unknown as Experience[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchProjects(): Promise<Project[]> {
+	try {
+		const records = await pb.collection('projects').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: '-is_featured,-sort_order'
+		});
+		return records.items as unknown as Project[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchEducation(): Promise<Education[]> {
+	try {
+		const records = await pb.collection('education').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: '-sort_order,-end_date'
+		});
+		return records.items as unknown as Education[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchSkills(): Promise<Skill[]> {
+	try {
+		const records = await pb.collection('skills').getList(1, 200, {
+			filter: "visibility != 'private'",
+			sort: 'category,sort_order'
+		});
+		return records.items as unknown as Skill[];
+	} catch {
+		return [];
+	}
+}
+
+export function getFileUrl(record: { id: string; collectionId?: string; collectionName?: string }, filename: string): string {
+	if (!filename) return '';
+	const collectionId = record.collectionId || record.collectionName;
+	return `${pbUrl}/api/files/${collectionId}/${record.id}/${filename}`;
+}
