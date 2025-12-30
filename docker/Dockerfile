@@ -1,4 +1,4 @@
-# me.yaml Production Dockerfile
+# Me.yaml Production Dockerfile
 # Single container with Caddy reverse proxy
 
 # ============================================

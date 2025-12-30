@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "Starting me.yaml..."
+echo "Starting Me.yaml..."
 
 # Start PocketBase backend (internal only, bound to localhost)
 ./me-yaml serve --http=127.0.0.1:8090 --dir=/data &
@@ -26,7 +26,7 @@ caddy run --config ./Caddyfile &
 CADDY_PID=$!
 
 echo ""
-echo "me.yaml is running on port 8080"
+echo "Me.yaml is running on port 8080"
 if [ "$ADMIN_ENABLED" = "true" ]; then
     echo "PocketBase admin available at /_/"
 fi

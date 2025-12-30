@@ -1,12 +1,12 @@
 #!/bin/bash
-# me.yaml Development Startup Script
+# Me.yaml Development Startup Script
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo ""
-echo "  me.yaml - Your profile, expressed as data."
+echo "  Me.yaml - Your profile, expressed as data."
 echo ""
 
 # Environment

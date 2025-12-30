@@ -1,11 +1,11 @@
-# me.yaml Makefile
+# Me.yaml Makefile
 # Common commands for development and deployment
 
 .PHONY: help dev build test clean docker-build docker-run
 
 # Default target
 help:
-	@echo "me.yaml - Your profile, expressed as data."
+	@echo "Me.yaml - Your profile, expressed as data."
 	@echo ""
 	@echo "Usage:"
 	@echo "  make dev          Start dev environment with demo data"

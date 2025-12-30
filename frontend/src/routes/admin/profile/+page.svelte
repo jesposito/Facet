@@ -190,9 +190,9 @@
 				<div>
 					<label for="visibility" class="label">Profile Visibility</label>
 					<select id="visibility" bind:value={visibility} class="input">
-						<option value="public">Public — Anyone can view</option>
-						<option value="unlisted">Unlisted — Only accessible via direct link or views</option>
-						<option value="private">Private — Only you can view (admin only)</option>
+						<option value="public">Public - Anyone can view</option>
+						<option value="unlisted">Unlisted - Only accessible via direct link or views</option>
+						<option value="private">Private - Only you can view (admin only)</option>
 					</select>
 				</div>
 			</div>

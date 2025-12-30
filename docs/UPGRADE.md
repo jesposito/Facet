@@ -1,4 +1,4 @@
-# Upgrading me.yaml
+# Upgrading Me.yaml
 
 ## Standard Upgrade
 

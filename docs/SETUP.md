@@ -1,6 +1,6 @@
-# me.yaml Setup Guide
+# Me.yaml Setup Guide
 
-This guide walks you through setting up me.yaml for the first time.
+This guide walks you through setting up Me.yaml for the first time.
 
 ## Prerequisites
 
@@ -75,7 +75,7 @@ For secure admin login, set up OAuth:
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click "New OAuth App"
 3. Fill in:
-   - Application name: me.yaml
+   - Application name: Me.yaml
    - Homepage URL: https://yourdomain.com
    - Authorization callback URL: `https://yourdomain.com/api/oauth2-redirect`
 4. Copy Client ID and Client Secret to PocketBase

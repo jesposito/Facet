@@ -102,7 +102,7 @@
 							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 								<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/v/{view.slug}</code>
 								{#if view.description}
-									— {view.description}
+									- {view.description}
 								{/if}
 							</p>
 						</div>

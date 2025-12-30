@@ -1,4 +1,4 @@
-# me.yaml
+# Me.yaml
 
 **Your profile, expressed as data.**
 
@@ -11,16 +11,16 @@ A self-hosted profile and portfolio. One container, one port, one volume.
 Own your professional identity. Experience, projects, skills, and story stored as data you control.
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   me.yaml                       │
-├─────────────────────────────────────────────────┤
-│  Public Profile    │    Admin Dashboard        │
-│  ────────────────  │    ───────────────────    │
-│  • Experience      │    • Edit everything      │
-│  • Projects        │    • Import from GitHub   │
-│  • Education       │    • Create Views         │
-│  • Skills          │    • Generate share links │
-└─────────────────────────────────────────────────┘
++--------------------------------------------------+
+|                    Me.yaml                       |
++--------------------------------------------------+
+|  Public Profile    |    Admin Dashboard         |
+|  ----------------  |    --------------------    |
+|  - Experience      |    - Edit everything       |
+|  - Projects        |    - Import from GitHub    |
+|  - Education       |    - Create Views          |
+|  - Skills          |    - Generate share links  |
++--------------------------------------------------+
 ```
 
 ---
@@ -88,7 +88,7 @@ Visit `http://localhost:8080`
 ### Planned
 
 - [ ] Scheduled GitHub sync
-- [ ] me.yaml export/import
+- [ ] Me.yaml export/import
 - [ ] Theme customization
 - [ ] Resume PDF export
 
@@ -99,21 +99,21 @@ Visit `http://localhost:8080`
 Single container with internal Caddy reverse proxy:
 
 ```
-┌────────────────────────────────────────────┐
-│              Docker Container              │
-│                                            │
-│   :8080 ─► Caddy ─┬─► /api/*  ─► PocketBase│
-│                   │                        │
-│                   └─► /*      ─► SvelteKit │
-│                                            │
-│   Internal only:                           │
-│   - PocketBase :8090 (localhost)           │
-│   - SvelteKit  :3000 (localhost)           │
-│                                            │
-│   ┌────────────────────────────────────┐   │
-│   │   SQLite + Uploads (/data)         │   │
-│   └────────────────────────────────────┘   │
-└────────────────────────────────────────────┘
++--------------------------------------------+
+|              Docker Container              |
+|                                            |
+|   :8080 -> Caddy -+-> /api/*  -> PocketBase|
+|                   |                        |
+|                   +-> /*      -> SvelteKit |
+|                                            |
+|   Internal only:                           |
+|   - PocketBase :8090 (localhost)           |
+|   - SvelteKit  :3000 (localhost)           |
+|                                            |
+|   +------------------------------------+   |
+|   |   SQLite + Uploads (/data)         |   |
+|   +------------------------------------+   |
++--------------------------------------------+
 ```
 
 One port exposed. One volume to backup.
