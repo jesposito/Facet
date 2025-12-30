@@ -1,8 +1,12 @@
 {
-  "name": "OwnProfile Development",
-  "dockerComposeFile": "../docker-compose.dev.yml",
-  "service": "frontend",
-  "workspaceFolder": "/app",
+  "name": "me.yaml",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
 
   "customizations": {
     "vscode": {
@@ -10,41 +14,29 @@
         "svelte.svelte-vscode",
         "golang.go",
         "bradlc.vscode-tailwindcss",
-        "esbenp.prettier-vscode",
-        "dbaeumer.vscode-eslint"
+        "esbenp.prettier-vscode"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "sh",
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "[svelte]": {
-          "editor.defaultFormatter": "svelte.svelte-vscode"
-        },
-        "[go]": {
-          "editor.defaultFormatter": "golang.go"
-        }
+        "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
   },
 
-  "forwardPorts": [3000, 5173, 8090],
+  "forwardPorts": [5173, 8090],
   "portsAttributes": {
-    "3000": {
-      "label": "Frontend (Production)",
-      "onAutoForward": "notify"
-    },
     "5173": {
-      "label": "Frontend (Dev)",
+      "label": "me.yaml (Frontend)",
       "onAutoForward": "openBrowser"
     },
     "8090": {
-      "label": "PocketBase API/Admin",
-      "onAutoForward": "notify"
+      "label": "PocketBase API",
+      "onAutoForward": "silent"
     }
   },
 
-  "postCreateCommand": "npm install",
-  "postStartCommand": "echo 'Run npm run dev to start the frontend. Backend starts automatically.'",
+  "postCreateCommand": "cd frontend && npm install && cd ../backend && go mod download",
+  "postStartCommand": "chmod +x scripts/start-dev.sh && scripts/start-dev.sh",
 
-  "remoteUser": "node"
+  "remoteUser": "vscode"
 }

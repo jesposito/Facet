@@ -50,6 +50,7 @@ func main() {
 	hooks.RegisterShareHooks(app, shareService, cryptoService)
 	hooks.RegisterPasswordHooks(app, cryptoService)
 	hooks.RegisterViewHooks(app)
+	hooks.RegisterSeedHook(app)
 
 	// Serve static files and SvelteKit app
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {

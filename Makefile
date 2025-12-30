@@ -5,32 +5,33 @@
 
 # Default target
 help:
-	@echo "me.yaml - A self-hosted, human-readable profile and portfolio"
+	@echo "me.yaml - Your profile, expressed as data."
 	@echo ""
 	@echo "Usage:"
-	@echo "  make dev          Start development environment"
-	@echo "  make build        Build production images"
+	@echo "  make dev          Start dev environment with demo data"
+	@echo "  make build        Build production Docker image"
 	@echo "  make test         Run tests"
 	@echo "  make clean        Clean build artifacts"
-	@echo "  make docker-build Build Docker image"
-	@echo "  make docker-run   Run Docker container"
 	@echo ""
 	@echo "Development:"
-	@echo "  make backend      Start backend only"
+	@echo "  make backend      Start backend only (with seed data)"
 	@echo "  make frontend     Start frontend only"
-	@echo "  make lint         Run linters"
-	@echo "  make fmt          Format code"
+	@echo "  make deps         Install all dependencies"
 	@echo ""
 
-# Development
+# Development - uses script for coordinated startup
 dev:
+	./scripts/start-dev.sh
+
+# Docker-based dev (alternative)
+dev-docker:
 	docker-compose -f docker-compose.dev.yml up
 
 dev-down:
 	docker-compose -f docker-compose.dev.yml down
 
 backend:
-	cd backend && go run .
+	cd backend && SEED_DATA=true go run . serve
 
 frontend:
 	cd frontend && npm run dev
