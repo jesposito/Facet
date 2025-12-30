@@ -1,0 +1,34 @@
+# me.yaml Caddy Configuration
+# Single entry point that routes to internal services
+
+:8080 {
+    # API and PocketBase routes go to backend
+    handle /api/* {
+        reverse_proxy localhost:8090
+    }
+
+    handle /_/* {
+        # PocketBase admin - only allow if ADMIN_ENABLED=true
+        # By default, return 404 for security
+        @admin_disabled expression `{env.ADMIN_ENABLED} != "true"`
+        respond @admin_disabled "Not Found" 404
+
+        reverse_proxy localhost:8090
+    }
+
+    # OAuth callback
+    handle /api/oauth2-redirect {
+        reverse_proxy localhost:8090
+    }
+
+    # Everything else goes to SvelteKit frontend
+    handle {
+        reverse_proxy localhost:3000
+    }
+
+    # Logging
+    log {
+        output stdout
+        format console
+    }
+}

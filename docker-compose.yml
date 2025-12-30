@@ -1,46 +1,28 @@
-# OwnProfile Production Docker Compose
-# Usage: docker-compose up -d
+# me.yaml Production Docker Compose
+# Single container, single port
 
 version: '3.8'
 
 services:
-  ownprofile:
+  me-yaml:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    container_name: ownprofile
+    container_name: me-yaml
     restart: unless-stopped
     ports:
-      - "${PORT:-8080}:3000"      # Frontend (main access point)
-      - "${ADMIN_PORT:-8090}:8090" # PocketBase Admin (optional, can be removed for security)
+      - "${PORT:-8080}:8080"
     volumes:
       - ${DATA_PATH:-./data}:/data
     environment:
-      # Required
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
-
-      # Optional - Reverse Proxy
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
       - TRUST_PROXY=${TRUST_PROXY:-false}
       - APP_URL=${APP_URL:-http://localhost:8080}
-
-      # Optional - Logging
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-
+      - ADMIN_ENABLED=${ADMIN_ENABLED:-false}
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
-
-    # Resource limits (adjust for your system)
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 128M
-
-# For persistent data
-volumes:
-  data:
+      start_period: 15s
