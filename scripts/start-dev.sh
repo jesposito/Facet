@@ -37,10 +37,11 @@ echo "[startup] Starting backend..."
 "$SCRIPT_DIR/dev-backend.sh" &
 BACKEND_PID=$!
 
-# Wait for backend health (max 60 seconds)
-echo "[startup] Waiting for backend..."
+# Wait for backend health (max 180 seconds for first build)
+# First build compiles PocketBase + all dependencies, which takes time
+echo "[startup] Waiting for backend (first build may take 2-3 minutes)..."
 READY=false
-for i in {1..60}; do
+for i in {1..180}; do
     if curl -s http://localhost:8090/api/health > /dev/null 2>&1; then
         READY=true
         break
@@ -50,11 +51,15 @@ for i in {1..60}; do
         echo "[startup] ERROR: Backend process exited unexpectedly"
         exit 1
     fi
+    # Show progress every 30 seconds
+    if (( i % 30 == 0 )); then
+        echo "[startup] Still waiting... ($i seconds)"
+    fi
     sleep 1
 done
 
 if [ "$READY" = false ]; then
-    echo "[startup] ERROR: Backend failed to start after 60 seconds"
+    echo "[startup] ERROR: Backend failed to start after 180 seconds"
     kill $BACKEND_PID 2>/dev/null || true
     exit 1
 fi
