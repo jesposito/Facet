@@ -15,8 +15,8 @@ This guide covers development setup for Me.yaml, a PocketBase + SvelteKit applic
 
 | Admin Panel | URL | Email | Password |
 |-------------|-----|-------|----------|
+| Me.yaml Admin | http://localhost:5173/admin | `admin@example.com` | `changeme123` |
 | PocketBase Admin | http://localhost:8090/_/ | `admin@localhost.dev` | `admin123` |
-| Frontend Admin | (coming soon) | `admin@example.com` | `changeme123` |
 
 If credentials don't work, reset the database: `rm -rf pb_data && ./scripts/start-dev.sh`
 
@@ -287,3 +287,27 @@ Key variables:
 ```
 
 For detailed architecture, see [ARCHITECTURE.md](../ARCHITECTURE.md).
+
+## Development Phases
+
+### Phase A: Identity Polish (Complete)
+
+*Tag: `phase-identity-polish`*
+
+Focused exclusively on language, voice, and identity. No functional changes.
+
+Changes:
+- All page titles updated from "X | Admin" to "X | Me.yaml"
+- Removed "Admin" badge from header
+- Login copy: "Sign in to manage your profile"
+- Footer fallback: "OwnProfile" → "Me.yaml"
+- Import button: "Create Import Proposal" → "Review & Import"
+- Removed "(admin only)" from visibility dropdown
+
+### Phase B: First-Run Warmth (Planned)
+
+Empty states, gentle guidance for new users.
+
+### Phase C: Visual Calm (Planned)
+
+Icon consistency, spacing, hierarchy refinements.

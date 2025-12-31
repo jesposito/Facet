@@ -67,14 +67,14 @@
 </script>
 
 <svelte:head>
-	<title>Login | Admin</title>
+	<title>Sign In | Me.yaml</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
 	<div class="card p-8 max-w-md w-full">
 		<div class="text-center mb-8">
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Me.yaml Admin</h1>
-			<p class="text-gray-600 dark:text-gray-400 mt-2">Sign in to manage your profile</p>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sign in to manage your profile</h1>
+			<p class="text-gray-600 dark:text-gray-400 mt-2">Me.yaml — You, human-readable.</p>
 		</div>
 
 		{#if error}

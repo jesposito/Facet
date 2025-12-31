@@ -53,7 +53,7 @@
 </script>
 
 <svelte:head>
-	<title>Views | Admin</title>
+	<title>Views | Me.yaml</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

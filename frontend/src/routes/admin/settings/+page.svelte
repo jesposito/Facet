@@ -123,7 +123,7 @@
 </script>
 
 <svelte:head>
-	<title>Settings | Admin</title>
+	<title>Settings | Me.yaml</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

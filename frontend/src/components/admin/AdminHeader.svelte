@@ -29,9 +29,6 @@
 
 			<a href="/admin" class="flex items-center gap-2">
 				<span class="text-xl font-bold text-gray-900 dark:text-white">Me.yaml</span>
-				<span class="px-2 py-0.5 text-xs font-medium bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded">
-					Admin
-				</span>
 			</a>
 		</div>
 

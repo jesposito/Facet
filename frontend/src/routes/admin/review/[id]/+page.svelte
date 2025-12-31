@@ -136,7 +136,7 @@
 </script>
 
 <svelte:head>
-	<title>Review Import | Admin</title>
+	<title>Review Import | Me.yaml</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
