@@ -35,7 +35,7 @@
     }
   },
 
-  "postCreateCommand": "cd frontend && npm install && cd ../backend && go mod tidy",
+  "postCreateCommand": "cd frontend && npm install && npx svelte-kit sync && cd ../backend && go mod tidy",
   "postStartCommand": "chmod +x scripts/start-dev.sh && scripts/start-dev.sh",
 
   "remoteUser": "vscode"
