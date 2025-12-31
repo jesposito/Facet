@@ -4,7 +4,7 @@
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.23-alpine AS backend-builder
+FROM golang:1.22-alpine AS backend-builder
 
 WORKDIR /build
 RUN apk add --no-cache gcc musl-dev
