@@ -1,5 +1,5 @@
 #!/bin/bash
-# Me.yaml Development Startup Script
+# Me.yaml Development Startup Script with Hot Reloading
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,17 +15,24 @@ export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!
 export SEED_DATA="true"
 
 mkdir -p "$DATA_DIR"
+mkdir -p "$PROJECT_ROOT/tmp"
 
-# Build backend first (so we see compilation progress)
-echo "Building backend..."
-cd "$PROJECT_ROOT/backend"
-go build -o ../pb_data/me-yaml .
-cd "$PROJECT_ROOT"
+# Check if air is available for hot reloading
+if command -v air &> /dev/null; then
+    echo "Starting backend with hot reload (air)..."
+    air &
+    BACKEND_PID=$!
+else
+    # Fallback: build and run directly
+    echo "Building backend..."
+    cd "$PROJECT_ROOT/backend"
+    go build -o ../pb_data/me-yaml .
+    cd "$PROJECT_ROOT"
 
-# Start backend
-echo "Starting backend..."
-"$PROJECT_ROOT/pb_data/me-yaml" serve --http=0.0.0.0:8090 --dir="$DATA_DIR" &
-BACKEND_PID=$!
+    echo "Starting backend..."
+    "$PROJECT_ROOT/pb_data/me-yaml" serve --http=0.0.0.0:8090 --dir="$DATA_DIR" &
+    BACKEND_PID=$!
+fi
 
 # Wait for backend (up to 60 seconds)
 echo "Waiting for backend..."
@@ -46,7 +53,7 @@ fi
 
 echo "Backend ready!"
 
-# Start frontend
+# Start frontend (Vite already has HMR)
 echo "Starting frontend..."
 cd "$PROJECT_ROOT/frontend"
 npm run dev -- --host &
@@ -54,11 +61,13 @@ FRONTEND_PID=$!
 cd "$PROJECT_ROOT"
 
 echo ""
-echo "Ready!"
+echo "Ready! (with hot reload)"
 echo ""
-echo "  Frontend:  http://localhost:5173"
-echo "  API:       http://localhost:8090"
+echo "  Frontend:  http://localhost:5173  (auto-reloads on save)"
+echo "  API:       http://localhost:8090  (auto-rebuilds on save)"
 echo "  PB Admin:  http://localhost:8090/_/"
+echo ""
+echo "  Admin login: admin@example.com / changeme123"
 echo ""
 echo "  Demo profile: Alex Chen"
 echo "  Curated view: http://localhost:5173/v/recruiters"
