@@ -15,6 +15,7 @@
     "@sveltejs/adapter-node": "^5.0.0",
     "@sveltejs/kit": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.10.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^9.0.0",
