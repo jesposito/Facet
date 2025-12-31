@@ -5,6 +5,7 @@
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
 	import SkillsSection from '$components/public/SkillsSection.svelte';
+	import PostsSection from '$components/public/PostsSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
@@ -82,6 +83,10 @@
 
 			{#if data.skills.length > 0}
 				<SkillsSection items={data.skills} />
+			{/if}
+
+			{#if data.posts && data.posts.length > 0}
+				<PostsSection items={data.posts} />
 			{/if}
 		{/if}
 	</main>

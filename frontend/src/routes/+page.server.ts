@@ -58,6 +58,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						projects: viewData.sections?.projects || [],
 						education: viewData.sections?.education || [],
 						skills: viewData.sections?.skills || [],
+						posts: viewData.sections?.posts || [],
 						// Indicate this is a view-based homepage
 						isDefaultView: true
 					};
@@ -76,6 +77,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				projects: [],
 				education: [],
 				skills: [],
+				posts: [],
 				error: 'Failed to load profile'
 			};
 		}
@@ -90,6 +92,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				projects: [],
 				education: [],
 				skills: [],
+				posts: [],
 				error: 'Profile is private'
 			};
 		}
@@ -108,12 +111,18 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			cover_image: p.cover_image_url || null
 		}));
 
+		const posts = (data.posts || []).map((p: Record<string, unknown>) => ({
+			...p,
+			cover_image: p.cover_image_url || null
+		}));
+
 		return {
 			profile,
 			experience: data.experience || [],
 			projects,
 			education: data.education || [],
 			skills: data.skills || [],
+			posts,
 			// Indicate this is legacy homepage mode
 			isDefaultView: false
 		};
@@ -125,6 +134,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			projects: [],
 			education: [],
 			skills: [],
+			posts: [],
 			error: 'Failed to load profile'
 		};
 	}

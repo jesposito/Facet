@@ -24,6 +24,7 @@ var ReservedSlugs = map[string]bool{
 	"s":        true,
 	"v":        true,
 	"projects": true,
+	"posts":    true,
 	// SvelteKit internal
 	"_app": true,
 	"_":    true,
@@ -447,6 +448,28 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["skills"] = serializeRecords(skillRecords)
 			}
 
+			// Fetch posts - only public items appear on homepage
+			postRecords, err := app.FindRecordsByFilter(
+				"posts",
+				"visibility = 'public' && is_draft = false",
+				"-published_at",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				posts := serializeRecords(postRecords)
+				// Add file URLs for cover images
+				for i, p := range posts {
+					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+						if id, ok := p["id"].(string); ok {
+							posts[i]["cover_image_url"] = "/api/files/posts/" + id + "/" + coverImage
+						}
+					}
+				}
+				response["posts"] = posts
+			}
+
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -579,6 +602,119 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "rejected"})
 		}).Bind(apis.RequireAuth())
+
+		// Get public post by slug
+		// Rate limited: normal tier (60/min)
+		// Returns 404 for private, unlisted, draft, or non-existent posts
+		se.Router.GET("/api/post/{slug}", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			slug := e.Request.PathValue("slug")
+
+			if slug == "" {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "post not found"})
+			}
+
+			// Find post by slug
+			records, err := app.FindRecordsByFilter(
+				"posts",
+				"slug = {:slug}",
+				"",
+				1,
+				0,
+				map[string]interface{}{"slug": slug},
+			)
+
+			if err != nil || len(records) == 0 {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "post not found"})
+			}
+
+			post := records[0]
+
+			// Check visibility - only public, non-draft posts are accessible
+			visibility := post.GetString("visibility")
+			isDraft := post.GetBool("is_draft")
+
+			if visibility != "public" || isDraft {
+				// Return 404 to prevent discovery of private/unlisted/draft posts
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "post not found"})
+			}
+
+			// Build response with resolved file URLs
+			response := map[string]interface{}{
+				"id":           post.Id,
+				"title":        post.GetString("title"),
+				"slug":         post.GetString("slug"),
+				"excerpt":      post.GetString("excerpt"),
+				"content":      post.GetString("content"),
+				"tags":         post.Get("tags"),
+				"published_at": post.GetDateTime("published_at"),
+				"created":      post.GetDateTime("created"),
+				"updated":      post.GetDateTime("updated"),
+			}
+
+			// Resolve cover image URL
+			if coverImage := post.GetString("cover_image"); coverImage != "" {
+				response["cover_image_url"] = "/api/files/" + post.Collection().Id + "/" + post.Id + "/" + coverImage
+			}
+
+			// Fetch profile data for navigation context
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility = 'public'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				profile := profileRecords[0]
+				profileData := map[string]interface{}{
+					"id":       profile.Id,
+					"name":     profile.GetString("name"),
+					"headline": profile.GetString("headline"),
+				}
+				if avatar := profile.GetString("avatar"); avatar != "" {
+					profileData["avatar_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + avatar
+				}
+				response["profile"] = profileData
+			}
+
+			// Fetch previous and next posts for navigation
+			// Previous post (published before this one)
+			prevRecords, err := app.FindRecordsByFilter(
+				"posts",
+				"visibility = 'public' && is_draft = false && published_at < {:published_at}",
+				"-published_at",
+				1,
+				0,
+				map[string]interface{}{"published_at": post.GetDateTime("published_at").String()},
+			)
+			if err == nil && len(prevRecords) > 0 {
+				prev := prevRecords[0]
+				response["prev_post"] = map[string]interface{}{
+					"slug":  prev.GetString("slug"),
+					"title": prev.GetString("title"),
+				}
+			}
+
+			// Next post (published after this one)
+			nextRecords, err := app.FindRecordsByFilter(
+				"posts",
+				"visibility = 'public' && is_draft = false && published_at > {:published_at}",
+				"published_at",
+				1,
+				0,
+				map[string]interface{}{"published_at": post.GetDateTime("published_at").String()},
+			)
+			if err == nil && len(nextRecords) > 0 {
+				next := nextRecords[0]
+				response["next_post"] = map[string]interface{}{
+					"slug":  next.GetString("slug"),
+					"title": next.GetString("title"),
+				}
+			}
+
+			return e.JSON(http.StatusOK, response)
+		}))
 
 		// Get public project by slug
 		// Rate limited: normal tier (60/min)

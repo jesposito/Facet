@@ -96,6 +96,19 @@ export interface Skill {
 	sort_order: number;
 }
 
+export interface Post {
+	id: string;
+	title: string;
+	slug?: string;
+	excerpt?: string;
+	content?: string;
+	cover_image?: string;
+	tags?: string[];
+	visibility: 'public' | 'unlisted' | 'private';
+	is_draft: boolean;
+	published_at?: string;
+}
+
 export interface View {
 	id: string;
 	name: string;
@@ -201,6 +214,18 @@ export async function fetchSkills(): Promise<Skill[]> {
 			sort: 'category,sort_order'
 		});
 		return records.items as unknown as Skill[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchPosts(): Promise<Post[]> {
+	try {
+		const records = await pb.collection('posts').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: '-published_at'
+		});
+		return records.items as unknown as Post[];
 	} catch {
 		return [];
 	}

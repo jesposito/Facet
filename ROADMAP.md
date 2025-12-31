@@ -49,13 +49,14 @@ None (this is the starting phase)
 - [ ] Related projects (same categories) — Deferred to Phase 2.5
 - [x] Meta tags for sharing (Open Graph)
 
-#### 1.2 Posts/Blog System
-- [ ] Route: `/posts/<slug>`
-- [ ] Markdown rendering with syntax highlighting
-- [ ] Cover images
-- [ ] Tags with filtering
-- [ ] Previous/next navigation
-- [ ] Admin: Rich editor for posts
+#### 1.2 Posts/Blog System (Complete)
+- [x] Route: `/posts/<slug>`
+- [x] Markdown rendering with syntax highlighting
+- [x] Cover images
+- [x] Tags with filtering
+- [x] Previous/next navigation
+- [x] Admin: Full CRUD for posts
+- [ ] Rich text editor — Deferred (basic markdown sufficient)
 
 #### 1.3 Talks Section
 - [ ] Public display in profile
