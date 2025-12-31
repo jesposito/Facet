@@ -12,10 +12,11 @@ import (
 )
 
 // RegisterPasswordHooks registers password protection endpoints (view-level only)
-func RegisterPasswordHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+func RegisterPasswordHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Check password for protected view
-		se.Router.POST("/api/password/check", func(e *core.RequestEvent) error {
+		// Rate limited: strict tier (5/min) to prevent brute force attacks
+		se.Router.POST("/api/password/check", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
 			var req struct {
 				ViewID   string `json:"view_id"`
 				Password string `json:"password"`
@@ -57,7 +58,7 @@ func RegisterPasswordHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				"access_token": accessToken,
 				"expires_in":   expiresIn,
 			})
-		})
+		}))
 
 		// Set password for view (admin only)
 		se.Router.POST("/api/password/set", func(e *core.RequestEvent) error {
