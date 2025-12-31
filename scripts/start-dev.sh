@@ -1,13 +1,28 @@
 #!/bin/bash
-# Me.yaml Development Startup Script with Hot Reloading
+# Me.yaml Development Startup Script
+# Starts both frontend and backend with hot reloading
+#
+# Usage: ./scripts/start-dev.sh
+#
+# This script:
+# 1. Uses lockfile-hash caching to skip unnecessary installs
+# 2. Starts backend with air for Go hot reload
+# 3. Starts frontend with Vite HMR
+# 4. Waits for backend to be ready before starting frontend
+
 set -e
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 cd "$PROJECT_ROOT"
 
 echo ""
 echo "  Me.yaml - Your profile, expressed as data."
 echo ""
+
+# Ensure scripts are executable
+chmod +x "$SCRIPT_DIR/dev-backend.sh" "$SCRIPT_DIR/dev-frontend.sh" 2>/dev/null || true
 
 # Environment
 export DATA_DIR="${DATA_DIR:-$PROJECT_ROOT/pb_data}"
@@ -17,67 +32,66 @@ export SEED_DATA="true"
 mkdir -p "$DATA_DIR"
 mkdir -p "$PROJECT_ROOT/tmp"
 
-# Check if air is available for hot reloading
-if command -v air &> /dev/null; then
-    echo "Starting backend with hot reload (air)..."
-    air &
-    BACKEND_PID=$!
-else
-    # Fallback: build and run directly
-    echo "Building backend..."
-    cd "$PROJECT_ROOT/backend"
-    go build -o ../pb_data/me-yaml .
-    cd "$PROJECT_ROOT"
+# Start backend
+echo "[startup] Starting backend..."
+"$SCRIPT_DIR/dev-backend.sh" &
+BACKEND_PID=$!
 
-    echo "Starting backend..."
-    "$PROJECT_ROOT/pb_data/me-yaml" serve --http=0.0.0.0:8090 --dir="$DATA_DIR" &
-    BACKEND_PID=$!
-fi
-
-# Wait for backend (up to 60 seconds)
-echo "Waiting for backend..."
+# Wait for backend health (max 60 seconds)
+echo "[startup] Waiting for backend..."
 READY=false
 for i in {1..60}; do
     if curl -s http://localhost:8090/api/health > /dev/null 2>&1; then
         READY=true
         break
     fi
+    # Check if backend process died
+    if ! kill -0 $BACKEND_PID 2>/dev/null; then
+        echo "[startup] ERROR: Backend process exited unexpectedly"
+        exit 1
+    fi
     sleep 1
 done
 
 if [ "$READY" = false ]; then
-    echo "ERROR: Backend failed to start after 60 seconds"
+    echo "[startup] ERROR: Backend failed to start after 60 seconds"
     kill $BACKEND_PID 2>/dev/null || true
     exit 1
 fi
 
-echo "Backend ready!"
+echo "[startup] Backend ready!"
 
-# Start frontend (Vite already has HMR)
-echo "Starting frontend..."
-cd "$PROJECT_ROOT/frontend"
-npm run dev -- --host &
+# Start frontend
+echo "[startup] Starting frontend..."
+"$SCRIPT_DIR/dev-frontend.sh" &
 FRONTEND_PID=$!
-cd "$PROJECT_ROOT"
 
 echo ""
-echo "Ready! (with hot reload)"
+echo "  Ready! (with hot reload)"
 echo ""
 echo "  Frontend:  http://localhost:5173  (auto-reloads on save)"
 echo "  API:       http://localhost:8090  (auto-rebuilds on save)"
 echo "  PB Admin:  http://localhost:8090/_/"
 echo ""
-echo "  Admin login: admin@example.com / changeme123"
-echo ""
-echo "  Demo profile: Alex Chen"
-echo "  Curated view: http://localhost:5173/v/recruiters"
+echo "  Press Ctrl+C to stop all services"
 echo ""
 
+# Cleanup handler
 cleanup() {
+    echo ""
+    echo "[startup] Shutting down..."
     kill $FRONTEND_PID 2>/dev/null || true
     kill $BACKEND_PID 2>/dev/null || true
+    # Kill any child processes
+    pkill -P $$ 2>/dev/null || true
     exit 0
 }
 
-trap cleanup SIGINT SIGTERM
-wait
+trap cleanup SIGINT SIGTERM EXIT
+
+# Wait for either process to exit
+wait -n $BACKEND_PID $FRONTEND_PID 2>/dev/null || true
+
+# If we get here, one of them died
+echo "[startup] A service exited unexpectedly"
+cleanup
