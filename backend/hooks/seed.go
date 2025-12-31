@@ -35,6 +35,30 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 
 	log.Println("Seeding demo data...")
 
+	// Create PocketBase superuser for /_/ admin access (dev mode only)
+	superusers := app.SuperusersCollection()
+	if superusers != nil {
+		superuserCount, _ := app.CountRecords(superusers.Name)
+		if superuserCount == 0 {
+			su := core.NewRecord(superusers)
+			su.SetEmail("admin@localhost.dev")
+			su.SetPassword("admin123")
+			if err := app.Save(su); err != nil {
+				log.Printf("Warning: Could not create dev superuser: %v", err)
+			} else {
+				log.Println("")
+				log.Println("========================================")
+				log.Println("  DEV MODE: PocketBase Admin Created")
+				log.Println("========================================")
+				log.Println("  URL:      http://localhost:8090/_/")
+				log.Println("  Email:    admin@localhost.dev")
+				log.Println("  Password: admin123")
+				log.Println("========================================")
+				log.Println("")
+			}
+		}
+	}
+
 	// Create default user for frontend admin
 	users, err := app.FindCollectionByNameOrId("users")
 	if err == nil {
@@ -48,7 +72,7 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 			if err := app.Save(admin); err != nil {
 				log.Printf("Warning: Could not create default admin user: %v", err)
 			} else {
-				log.Println("Created default admin account:")
+				log.Println("Created default frontend admin account:")
 				log.Println("  Email: admin@example.com")
 				log.Println("  Password: changeme123")
 				log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
