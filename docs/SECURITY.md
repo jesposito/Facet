@@ -113,9 +113,12 @@ Share tokens provide access to unlisted views. They are required for any `visibi
 2. User: GET /api/view/{slug}/access
    Response: { "requires_token": true, "id": "..." }
 
-3. User: GET /api/view/{slug}/data?token=<raw-token>
-   or: Header: Authorization: Bearer <raw-token>
-   or: Header: X-Share-Token: <raw-token>
+3. User: GET /api/view/{slug}/data
+   Header: Authorization: Bearer <raw-token>  (RECOMMENDED)
+   -- or --
+   Header: X-Share-Token: <raw-token>         (alternative)
+   -- or --
+   GET /api/view/{slug}/data?token=<raw-token> (legacy, see warning below)
    Response: { view data }
 ```
 
@@ -138,13 +141,14 @@ This achieves O(1) database lookup instead of O(n) scanning, while maintaining s
 
 ### Security Properties
 
-- **HMAC storage:** Raw tokens never stored; DB leak doesn't reveal tokens
+- **HMAC storage:** Raw tokens never stored; DB leak doesn't reveal usable tokens
 - **Constant-time comparison:** Prevents timing attacks on HMAC verification
-- **Prefix indexing:** Only reveals 12 chars (~72 bits) of token structure
+- **Prefix is non-secret:** The 12-char prefix is a lookup optimization only; security relies entirely on HMAC verification of the full token and the underlying 256-bit token randomness
 - **View-bound:** Each token is tied to a specific view ID
 - **Expiry support:** Tokens can have optional expiration dates
 - **Usage limits:** Tokens can have optional max usage counts
 - **Revocation:** Admin can deactivate tokens at any time
+- **Non-leaky errors:** All validation failures return the same generic error to prevent oracle attacks
 
 ### Token Properties
 
@@ -160,15 +164,18 @@ This achieves O(1) database lookup instead of O(n) scanning, while maintaining s
 ### Token Transport
 
 Tokens can be sent via:
-1. `Authorization: Bearer <token>` (preferred)
-2. `X-Share-Token: <token>` (header alternative)
-3. `?token=<token>` (query parameter for link sharing)
+1. `Authorization: Bearer <token>` — **RECOMMENDED** for API clients
+2. `X-Share-Token: <token>` — Alternative header for programmatic access
+3. `?token=<token>` — **LEGACY/COMPAT** for shareable links only
+
+> ⚠️ **Security Warning:** Query parameter tokens (`?token=...`) are logged in server access logs, stored in browser history, and may leak via HTTP Referer headers. Use header-based transport whenever possible. Consider the query parameter method only for human-shareable links where header transport is impractical.
 
 ### Limitations
 
 - **No token refresh:** Expired tokens require admin to generate new one
 - **Prefix collision:** Rare but possible; mitigated by HMAC verification
 - **No per-use logging:** Usage count tracked, but not individual accesses
+- **URL token leakage:** Tokens in query strings may leak (see warning above)
 
 ## API Security
 
