@@ -211,15 +211,49 @@
 ## Remaining Work
 
 ### High Priority
-1. Full accessibility audit
+1. **Item-level overrides for views** (Phase 2.2) - Enable per-view customization of job titles, descriptions, bullets
+2. Full accessibility audit
 
 ### Medium Priority
-2. Drag-drop reordering for views (Phase 2.2)
-3. Media library (Phase 7)
-4. Additional frontend tests
+3. Drag-drop section/item reordering for views (Phase 2.2)
+4. Media library (Phase 7)
+5. Additional frontend tests
 
 ### Low Priority
-5. SETUP.md and UPGRADE.md documentation
-6. AI provider mock tests
-7. Integration tests
-8. View access log / audit logging (Phase 8)
+6. SETUP.md and UPGRADE.md documentation
+7. AI provider mock tests
+8. Integration tests
+9. View access log / audit logging (Phase 8)
+
+---
+
+## Phase 2.2: Item-Level Overrides (Detailed)
+
+This phase enables audience-specific framing of the same content. Key use case: career pivoters who need to present the same job differently to different audiences.
+
+### Backend Changes
+- [ ] Update view data endpoint to merge itemConfig.overrides with source records
+- [ ] Add validation for overridable fields per collection type
+
+### Frontend Changes
+- [ ] Add "Edit for this view" button on each item in view editor
+- [ ] Create override editor modal with:
+  - [ ] Original value display (read-only)
+  - [ ] Override input field
+  - [ ] "Use original" / "Override" toggle per field
+  - [ ] Reset button
+- [ ] Add override indicator badges to items in view editor
+- [ ] Update view preview to show overridden values
+
+### Overridable Fields
+| Collection | Fields |
+|------------|--------|
+| Experience | title, description, bullets |
+| Projects | title, summary, description |
+| Education | degree, field, description |
+| Talks | title, description |
+
+### Not Overridable (Factual Data)
+- Company names, dates, institutions
+- URLs, credential IDs
+- Skills, certifications (include/exclude only)

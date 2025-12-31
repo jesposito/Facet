@@ -96,11 +96,34 @@ None (this is the starting phase)
 - [ ] Drag-and-drop section ordering — Deferred (requires library)
 - [ ] Preview pane showing live result — Deferred to Phase 2.2
 
-#### 2.2 Section Customization
+#### 2.2 Section & Item Customization
+- [ ] Drag-and-drop section reordering
+- [ ] Drag-and-drop item reordering within sections
+- [ ] **Item-level field overrides** (see below)
 - [ ] Custom section headings per view
 - [ ] Show/hide section titles
 - [ ] Section layout options (list, grid, compact)
-- [ ] Drag-and-drop section/item reordering
+
+##### Item-Level Overrides (Key Feature)
+
+Enable per-view customization of individual items without modifying source records:
+
+| Collection | Overridable Fields |
+|------------|-------------------|
+| Experience | title, description, bullets |
+| Projects | title, summary, description |
+| Education | degree, field, description |
+| Talks | title, description |
+
+**Use Case**: Career pivoter has one job record but presents it differently:
+- "UX Designer" view → emphasizes user research, prototyping
+- "Instructional Designer" view → emphasizes learning design, curriculum
+
+**UI Requirements**:
+- Expand item to edit override fields
+- Visual indicator showing which fields are overridden
+- "Reset to original" button per field
+- Side-by-side preview of original vs. override
 
 #### 2.3 Default View Management (Complete)
 - [x] Clear UI for setting default view (checkbox in editor)
