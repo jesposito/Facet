@@ -304,9 +304,20 @@ Changes:
 - Import button: "Create Import Proposal" → "Review & Import"
 - Removed "(admin only)" from visibility dropdown
 
-### Phase B: First-Run Warmth (Planned)
+### Phase B: First-Run Warmth (Complete)
 
-Empty states, gentle guidance for new users.
+*Tag: `phase-first-run-warmth`*
+
+Improved empty states and first-run experience. No wizards or progress trackers.
+
+Changes:
+- Dashboard: "This is your space" welcome message when empty (replaces 0/0/0/0 stats)
+- Activity: "Nothing here yet — and that's okay" empty state
+- Profile hero: Removed "?" avatar fallback when no profile
+- Profile hero: Removed "Welcome" heading when no name set
+- Views: Descriptive empty state explaining what views do
+- Contact links: "Add links to help people reach you"
+- AI providers: Gentle guidance about optional enrichment
 
 ### Phase C: Visual Calm (Planned)
 

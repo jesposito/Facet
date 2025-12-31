@@ -227,7 +227,7 @@
 			<div class="animate-pulse text-center py-4">Loading providers...</div>
 		{:else if providers.length === 0}
 			<p class="text-gray-500 dark:text-gray-400 text-center py-8">
-				No AI providers configured yet. Add one to enable project enrichment.
+				AI providers help generate project descriptions during import. Add one when you're ready.
 			</p>
 		{:else}
 			<div class="space-y-3">

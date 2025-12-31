@@ -27,16 +27,18 @@
 					alt={profile.name}
 					class="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white/20 shadow-xl object-cover"
 				/>
-			{:else}
+			{:else if profile?.name}
 				<div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-600 flex items-center justify-center text-4xl font-bold border-4 border-white/20">
-					{profile?.name?.charAt(0) || '?'}
+					{profile.name.charAt(0)}
 				</div>
 			{/if}
 
 			<div class="text-center sm:text-left flex-1">
-				<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
-					{profile?.name || 'Welcome'}
-				</h1>
+				{#if profile?.name}
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
+						{profile.name}
+					</h1>
+				{/if}
 
 				{#if profile?.headline}
 					<p class="text-xl sm:text-2xl text-gray-300 mb-4">
