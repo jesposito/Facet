@@ -1,8 +1,8 @@
 import type { PageServerLoad, Actions } from './$types';
-import { error } from '@sveltejs/kit';
-import { getShareToken, getPasswordToken, setPasswordToken, buildTokenHeaders } from '$lib/tokens';
+import { error, redirect } from '@sveltejs/kit';
+import { getShareToken, getPasswordToken, setPasswordToken, setShareToken, buildTokenHeaders } from '$lib/tokens';
 
-export const load: PageServerLoad = async ({ params, cookies, url }) => {
+export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 
@@ -10,9 +10,29 @@ export const load: PageServerLoad = async ({ params, cookies, url }) => {
 	const shareToken = getShareToken(cookies);
 	const passwordToken = getPasswordToken(cookies);
 
-	// Also check for legacy URL token (for backwards compatibility, will be cleaned client-side)
+	// Check for URL token (legacy ?t= parameter)
+	// If present, validate and redirect to clean URL
 	const urlToken = url.searchParams.get('t');
-	const effectiveShareToken = shareToken || urlToken;
+	if (urlToken) {
+		// Validate the token via API
+		const validateResponse = await fetch(`${pbUrl}/api/share/validate`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ token: urlToken })
+		});
+
+		if (validateResponse.ok) {
+			const result = await validateResponse.json();
+			if (result.valid) {
+				// Store token in cookie and redirect to clean URL
+				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60);
+				throw redirect(302, `/v/${slug}`);
+			}
+		}
+		// If token invalid, continue without it (will fail below if needed)
+	}
+
+	const effectiveShareToken = shareToken;
 
 	try {
 		// Get view access info
