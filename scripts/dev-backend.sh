@@ -61,16 +61,18 @@ needs_download() {
 echo "[backend] Checking Go modules..."
 
 if reason=$(needs_download); then
-    echo "[backend] Downloading modules ($reason)..."
+    echo "[backend] Updating modules ($reason)..."
     cd "$BACKEND_DIR"
-    go mod download
+    # Use go mod tidy to ensure go.sum is complete (not just go mod download)
+    # This fixes "missing go.sum entry" errors when go.sum is incomplete
+    go mod tidy
     cd "$PROJECT_ROOT"
 
-    # Save hash after successful download
+    # Save hash after successful update
     get_gomod_hash > "$HASH_FILE"
-    echo "[backend] Modules downloaded and hash cached"
+    echo "[backend] Modules updated and hash cached"
 else
-    echo "[backend] Modules up to date (skipping go mod download)"
+    echo "[backend] Modules up to date (skipping go mod tidy)"
 fi
 
 # Check if air is available
