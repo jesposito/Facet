@@ -190,6 +190,24 @@ export interface ImportProposal {
 	status: 'pending' | 'applied' | 'rejected';
 }
 
+export interface ShareToken {
+	id: string;
+	view_id: string;
+	token_hash: string;
+	token_prefix?: string;
+	name?: string;
+	expires_at?: string;
+	max_uses?: number;
+	use_count: number;
+	is_active: boolean;
+	last_used_at?: string;
+	created: string;
+	updated: string;
+	expand?: {
+		view_id?: View;
+	};
+}
+
 // API helpers
 export async function fetchProfile(): Promise<Profile | null> {
 	try {
