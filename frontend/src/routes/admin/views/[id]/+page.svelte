@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS } from '$lib/pocketbase';
+	import { pb, currentUser, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
@@ -20,6 +20,7 @@
 	let loading = true;
 	let saving = false;
 	let view: View | null = null;
+	let hasLoaded = false;
 
 	// Form fields
 	let name = '';
@@ -62,14 +63,28 @@
 
 	$: viewId = $page.params.id as string;
 
-	onMount(async () => {
+	// Wait for auth to be ready before loading
+	$: if ($currentUser && viewId && !hasLoaded) {
+		initAndLoad();
+	}
+
+	async function initAndLoad() {
 		if (!viewId) {
 			toasts.add('error', 'Invalid view ID');
 			goto('/admin/views');
 			return;
 		}
+		hasLoaded = true;
 		await loadView();
 		await loadSectionItems();
+	}
+
+	onMount(() => {
+		// If auth is already valid, load immediately
+		if (pb.authStore.isValid && viewId) {
+			initAndLoad();
+		}
+		// Otherwise, the reactive statement above will handle it
 	});
 
 	async function loadView() {
@@ -690,13 +705,6 @@
 				</div>
 			</div>
 
-			<!-- Form Actions (Mobile) -->
-			<div class="flex justify-end gap-3 md:hidden">
-				<a href="/admin/views" class="btn btn-secondary">Cancel</a>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
-					{saving ? 'Saving...' : 'Save Changes'}
-				</button>
-			</div>
 		</form>
 	{/if}
 </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { pb, currentUser } from '$lib/pocketbase';
@@ -9,12 +9,33 @@
 
 	let loading = true;
 	let authorized = false;
+	let mounted = false;
 
 	// Check if we're on the login page (don't require auth there)
 	$: isLoginPage = $page.url.pathname === '/admin/login';
 
-	onMount(async () => {
-		// Check path directly (reactive var may not be set yet)
+	// Reactively handle auth state changes
+	$: if (mounted && !isLoginPage) {
+		if ($currentUser) {
+			authorized = true;
+			loading = false;
+		} else if (!pb.authStore.isValid) {
+			// Only redirect if we're sure auth is not valid
+			// Give a small delay for auth store to hydrate
+			loading = false;
+			authorized = false;
+		}
+	}
+
+	// Handle login page - always stop loading
+	$: if (isLoginPage) {
+		loading = false;
+	}
+
+	onMount(() => {
+		mounted = true;
+
+		// Check path directly
 		const onLoginPage = window.location.pathname === '/admin/login';
 
 		// Login page doesn't require authentication
@@ -23,14 +44,31 @@
 			return;
 		}
 
-		// Check if user is authenticated
-		if (!pb.authStore.isValid) {
-			goto('/admin/login');
-			return;
-		}
+		// Small delay to allow auth store to hydrate from cookies/localStorage
+		// This is especially important in Codespaces/SSR environments
+		const checkAuth = () => {
+			if (pb.authStore.isValid) {
+				authorized = true;
+				loading = false;
+			} else {
+				// Not authenticated, redirect to login
+				authorized = false;
+				loading = false;
+				goto('/admin/login');
+			}
+		};
 
-		authorized = true;
-		loading = false;
+		// Give auth store time to load from storage
+		if (pb.authStore.isValid) {
+			checkAuth();
+		} else {
+			// Wait a tick for auth store to hydrate
+			setTimeout(checkAuth, 50);
+		}
+	});
+
+	onDestroy(() => {
+		mounted = false;
 	});
 </script>
 

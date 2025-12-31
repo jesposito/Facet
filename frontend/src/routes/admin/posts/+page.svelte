@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { pb, type Post } from '$lib/pocketbase';
+	import { pb, currentUser, type Post } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 
@@ -8,6 +8,7 @@
 	let loading = true;
 	let showForm = false;
 	let editingPost: Post | null = null;
+	let loadError = false;
 
 	// Form fields
 	let title = '';
@@ -21,10 +22,22 @@
 	let publishedAt = '';
 	let saving = false;
 
-	onMount(loadPosts);
+	// Wait for auth to be ready before loading
+	$: if ($currentUser && loading && !loadError) {
+		loadPosts();
+	}
+
+	onMount(() => {
+		// If auth is already valid, load immediately
+		if (pb.authStore.isValid) {
+			loadPosts();
+		}
+		// Otherwise, the reactive statement above will handle it
+	});
 
 	async function loadPosts() {
 		loading = true;
+		loadError = false;
 		try {
 			const records = await pb.collection('posts').getList(1, 100, {
 				sort: '-created'
@@ -32,7 +45,12 @@
 			posts = records.items as unknown as Post[];
 		} catch (err) {
 			console.error('Failed to load posts:', err);
-			toasts.add('error', 'Failed to load posts');
+			loadError = true;
+			// Only show toast if it's not an auth error (auth errors are handled by layout)
+			const error = err as { status?: number };
+			if (error.status !== 401 && error.status !== 403) {
+				toasts.add('error', 'Failed to load posts');
+			}
 		} finally {
 			loading = false;
 		}
