@@ -1,6 +1,8 @@
 # Me.yaml
 
-**Your profile, expressed as data.**
+**You, human-readable.**
+
+Own your profile. Structure your story. Share it on your terms.
 
 A self-hosted profile and portfolio. One container, one port, one volume.
 

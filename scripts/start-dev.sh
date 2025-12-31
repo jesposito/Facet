@@ -18,7 +18,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo ""
-echo "  Me.yaml - Your profile, expressed as data."
+echo "  Me.yaml — You, human-readable."
 echo ""
 
 # Ensure scripts are executable
