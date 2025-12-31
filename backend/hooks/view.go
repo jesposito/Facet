@@ -324,7 +324,7 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 	var result []map[string]interface{}
 	for _, record := range records {
 		item := make(map[string]interface{})
-		for key, value := range record.ColumnValueMap() {
+		for key, value := range record.FieldsData() {
 			// Skip sensitive fields
 			if key == "password_hash" {
 				continue
