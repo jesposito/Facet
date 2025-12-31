@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import { icon } from '$lib/icons';
 
 	let loading = true;
 	let views: Array<Record<string, unknown>> = [];
@@ -108,13 +109,13 @@
 							</p>
 						</div>
 
-						<div class="flex items-center gap-2">
+						<div class="flex items-center gap-1">
 							<button
 								class="btn btn-sm btn-ghost"
-								on:click={() => copyViewUrl(view.slug as string)}
+								on:click={() => copyViewUrl(String(view.slug))}
 								title="Copy URL"
 							>
-								📋
+								{@html icon('copy')}
 							</button>
 							<a
 								href="/v/{view.slug}"
@@ -122,7 +123,7 @@
 								class="btn btn-sm btn-ghost"
 								title="Preview"
 							>
-								👁
+								{@html icon('eye')}
 							</a>
 							<a href="/admin/views/{view.id}" class="btn btn-sm btn-secondary">
 								Edit
@@ -132,13 +133,14 @@
 								on:click={() => toggleActive(view)}
 								title={view.is_active ? 'Deactivate' : 'Activate'}
 							>
-								{view.is_active ? '🔴' : '🟢'}
+								{@html view.is_active ? icon('toggleOn') : icon('toggleOff')}
 							</button>
 							<button
-								class="btn btn-sm btn-ghost text-red-600"
-								on:click={() => deleteView(view.id as string)}
+								class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+								on:click={() => deleteView(String(view.id))}
+								title="Delete"
 							>
-								🗑
+								{@html icon('trash')}
 							</button>
 						</div>
 					</div>

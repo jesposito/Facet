@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import { icon } from '$lib/icons';
 
 	let profile: Record<string, unknown> | null = null;
 	let loading = true;
@@ -172,10 +173,11 @@
 									/>
 									<button
 										type="button"
-										class="btn btn-ghost text-red-500"
+										class="btn btn-ghost text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
 										on:click={() => removeContactLink(i)}
+										title="Remove link"
 									>
-										×
+										{@html icon('x')}
 									</button>
 								</div>
 							{/each}

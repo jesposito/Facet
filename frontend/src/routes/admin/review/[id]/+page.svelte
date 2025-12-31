@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import { icon } from '$lib/icons';
 
 	let loading = true;
 	let applying = false;
@@ -133,6 +134,14 @@
 		}
 		return String(value || '-');
 	}
+
+	function getArrayValue(field: string): string {
+		const val = fieldEdits[field];
+		if (Array.isArray(val)) {
+			return val.join(', ');
+		}
+		return '';
+	}
 </script>
 
 <svelte:head>
@@ -203,13 +212,13 @@
 								Ignore
 							</button>
 							<button
-								class="px-3 py-1 text-sm rounded {fieldDecisions[field] === 'lock'
+								class="px-3 py-1 text-sm rounded inline-flex items-center gap-1 {fieldDecisions[field] === 'lock'
 									? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
 									: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}"
 								on:click={() => (fieldDecisions[field] = 'lock')}
 								title="Apply and lock (won't be overwritten on refresh)"
 							>
-								🔒 Lock
+								{@html icon('lock')} Lock
 							</button>
 						</div>
 					</div>
@@ -240,7 +249,7 @@
 								<input
 									type="text"
 									class="input mt-1"
-									value={fieldEdits[field] ? (fieldEdits[field] as string[]).join(', ') : ''}
+									value={getArrayValue(field)}
 									on:input={(e) => (fieldEdits[field] = e.currentTarget.value.split(',').map((s) => s.trim()))}
 								/>
 							{:else if typeof value === 'string' && value.length > 100}

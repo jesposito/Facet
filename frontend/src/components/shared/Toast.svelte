@@ -1,17 +1,18 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { icon } from '$lib/icons';
 	import type { Toast } from '$lib/stores';
 
 	export let toast: Toast;
 
 	const dispatch = createEventDispatcher();
 
-	const icons = {
-		success: '✓',
-		error: '✕',
-		info: 'ℹ',
-		warning: '⚠'
-	};
+	const iconMap = {
+		success: 'check',
+		error: 'x',
+		info: 'info',
+		warning: 'warning'
+	} as const;
 
 	const colors = {
 		success: 'bg-green-500',
@@ -26,16 +27,16 @@
 	role="alert"
 >
 	<span
-		class="{colors[toast.type]} text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold"
+		class="{colors[toast.type]} text-white w-6 h-6 rounded-full flex items-center justify-center"
 	>
-		{icons[toast.type]}
+		{@html icon(iconMap[toast.type])}
 	</span>
 	<span class="flex-1 text-gray-900 dark:text-gray-100">{toast.message}</span>
 	<button
-		class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+		class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
 		on:click={() => dispatch('dismiss')}
 		aria-label="Dismiss"
 	>
-		✕
+		{@html icon('x')}
 	</button>
 </div>
