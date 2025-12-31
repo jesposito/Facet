@@ -239,6 +239,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					continue
 				}
 
+				// Extract itemConfig for overrides
+				itemConfig := make(map[string]map[string]interface{})
+				if itemConfigRaw, ok := section["itemConfig"].(map[string]interface{}); ok {
+					for itemID, config := range itemConfigRaw {
+						if configMap, ok := config.(map[string]interface{}); ok {
+							itemConfig[itemID] = configMap
+						}
+					}
+				}
+
 				if ok && len(items) > 0 {
 					// Fetch specific items
 					var itemRecords []*core.Record
@@ -250,7 +260,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							}
 						}
 					}
-					sectionData[sectionName] = serializeRecords(itemRecords)
+					sectionData[sectionName] = serializeRecordsWithOverrides(itemRecords, itemConfig, sectionName)
 				} else {
 					// Fetch all visible items from section
 					records, err := app.FindRecordsByFilter(
@@ -262,7 +272,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						nil,
 					)
 					if err == nil {
-						sectionData[sectionName] = serializeRecords(records)
+						sectionData[sectionName] = serializeRecordsWithOverrides(records, itemConfig, sectionName)
 					}
 				}
 			}
@@ -878,6 +888,65 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 		result = append(result, item)
 	}
 	return result
+}
+
+// serializeRecordsWithOverrides serializes records and applies view-specific field overrides
+func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string]map[string]interface{}, sectionName string) []map[string]interface{} {
+	var result []map[string]interface{}
+	overridableFields := getOverridableFields(sectionName)
+
+	for _, record := range records {
+		item := make(map[string]interface{})
+		for key, value := range record.FieldsData() {
+			// Skip sensitive fields
+			if key == "password_hash" {
+				continue
+			}
+			item[key] = value
+		}
+		item["id"] = record.Id
+
+		// Apply overrides if present for this item
+		if config, exists := itemConfig[record.Id]; exists {
+			if overrides, ok := config["overrides"].(map[string]interface{}); ok {
+				for field, value := range overrides {
+					// Only apply overrides for allowed fields
+					if containsString(overridableFields, field) {
+						item[field] = value
+					}
+				}
+			}
+		}
+
+		result = append(result, item)
+	}
+	return result
+}
+
+// getOverridableFields returns the list of fields that can be overridden per section
+func getOverridableFields(sectionName string) []string {
+	switch sectionName {
+	case "experience":
+		return []string{"title", "description", "bullets"}
+	case "projects":
+		return []string{"title", "summary", "description"}
+	case "education":
+		return []string{"degree", "field", "description"}
+	case "talks":
+		return []string{"title", "description"}
+	default:
+		return []string{}
+	}
+}
+
+// containsString checks if a string slice contains a specific string
+func containsString(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }
 
 // extractPasswordToken extracts the password access token from request headers

@@ -96,15 +96,15 @@ None (this is the starting phase)
 - [ ] Drag-and-drop section ordering — Deferred (requires library)
 - [ ] Preview pane showing live result — Deferred to Phase 2.2
 
-#### 2.2 Section & Item Customization
+#### 2.2 Section & Item Customization (Partial)
 - [ ] Drag-and-drop section reordering
 - [ ] Drag-and-drop item reordering within sections
-- [ ] **Item-level field overrides** (see below)
+- [x] **Item-level field overrides** ✅ Complete
 - [ ] Custom section headings per view
 - [ ] Show/hide section titles
 - [ ] Section layout options (list, grid, compact)
 
-##### Item-Level Overrides (Key Feature)
+##### Item-Level Overrides ✅ Complete
 
 Enable per-view customization of individual items without modifying source records:
 
@@ -119,11 +119,11 @@ Enable per-view customization of individual items without modifying source recor
 - "UX Designer" view → emphasizes user research, prototyping
 - "Instructional Designer" view → emphasizes learning design, curriculum
 
-**UI Requirements**:
-- Expand item to edit override fields
-- Visual indicator showing which fields are overridden
-- "Reset to original" button per field
-- Side-by-side preview of original vs. override
+**Implementation** (Complete):
+- [x] "Customize" button on selected items in view editor
+- [x] Override editor modal with original value preview
+- [x] Override count badges on items with customizations
+- [x] Backend merges overrides when serving view data
 
 #### 2.3 Default View Management (Complete)
 - [x] Clear UI for setting default view (checkbox in editor)
@@ -441,6 +441,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Phase 1 complete - certifications added | All core content types now have public display and admin CRUD |
 | 2025-12-31 | Admin CRUD pages complete | All admin routes now functional: experience, projects, education, skills |
 | 2025-12-31 | Phase 3 complete - token management UI | Full token list, create, copy URL, revoke, status badges, usage stats |
+| 2025-12-31 | Phase 2.2 item-level overrides complete | Career pivoters can present same job differently per view; overrides stored in sections JSON |
 
 ---
 
