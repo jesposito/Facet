@@ -27,9 +27,16 @@
 
 	onMount(async () => {
 		try {
-			proposal = await pb.collection('import_proposals').getOne($page.params.id);
+			const proposalId = $page.params.id;
+			if (!proposalId) {
+				toasts.add('error', 'Missing proposal ID');
+				goto('/admin/proposals');
+				return;
+			}
 
-			if (proposal.status !== 'pending') {
+			proposal = await pb.collection('import_proposals').getOne(proposalId);
+
+			if (!proposal || proposal.status !== 'pending') {
 				toasts.add('info', 'This proposal has already been processed');
 				goto('/admin/proposals');
 				return;
@@ -244,7 +251,7 @@
 					<!-- Editable if applying -->
 					{#if fieldDecisions[field] === 'apply' || fieldDecisions[field] === 'lock'}
 						<div class="mt-3">
-							<label class="text-xs text-gray-500 dark:text-gray-400">Edit before applying:</label>
+							<span class="text-xs text-gray-500 dark:text-gray-400">Edit before applying:</span>
 							{#if Array.isArray(value)}
 								<input
 									type="text"

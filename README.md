@@ -201,6 +201,19 @@ docker-compose up -d
 
 ---
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [README.md](README.md) | Quick start and overview (this file) |
+| [DESIGN.md](DESIGN.md) | Complete design document and architecture |
+| [ROADMAP.md](ROADMAP.md) | Feature roadmap and development phases |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture details |
+| [docs/DEV.md](docs/DEV.md) | Development setup and guidelines |
+| [docs/SECURITY.md](docs/SECURITY.md) | Security model and practices |
+
+---
+
 ## License
 
 MIT

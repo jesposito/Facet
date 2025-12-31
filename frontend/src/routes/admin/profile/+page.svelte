@@ -139,7 +139,7 @@
 
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label class="label mb-0">Contact Links</label>
+						<span class="label mb-0">Contact Links</span>
 						<button type="button" class="btn btn-sm btn-secondary" on:click={addContactLink}>
 							+ Add Link
 						</button>
