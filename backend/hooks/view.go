@@ -43,7 +43,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			visibility := view.GetString("visibility")
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"id":                 view.Id,
+				"view_id":            view.Id,
+				"view_name":          view.GetString("name"),
 				"slug":               slug,
 				"visibility":         visibility,
 				"requires_password":  visibility == "password",
@@ -199,6 +200,141 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			response["sections"] = sectionData
+
+			// Fetch profile data for the view
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility != 'private'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				profile := profileRecords[0]
+				profileData := map[string]interface{}{
+					"id":            profile.Id,
+					"name":          profile.GetString("name"),
+					"headline":      profile.GetString("headline"),
+					"location":      profile.GetString("location"),
+					"summary":       profile.GetString("summary"),
+					"contact_email": profile.GetString("contact_email"),
+					"contact_links": profile.Get("contact_links"),
+					"visibility":    profile.GetString("visibility"),
+				}
+
+				// Include file URLs if present
+				if heroImage := profile.GetString("hero_image"); heroImage != "" {
+					profileData["hero_image_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + heroImage
+				}
+				if avatar := profile.GetString("avatar"); avatar != "" {
+					profileData["avatar_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + avatar
+				}
+
+				response["profile"] = profileData
+			}
+
+			return e.JSON(http.StatusOK, response)
+		}))
+
+		// Get homepage data (public content aggregation)
+		// Rate limited: normal tier (60/min) to prevent scraping
+		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			response := make(map[string]interface{})
+
+			// Fetch profile
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility != 'private'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				profile := profileRecords[0]
+				profileData := map[string]interface{}{
+					"id":            profile.Id,
+					"name":          profile.GetString("name"),
+					"headline":      profile.GetString("headline"),
+					"location":      profile.GetString("location"),
+					"summary":       profile.GetString("summary"),
+					"contact_email": profile.GetString("contact_email"),
+					"contact_links": profile.Get("contact_links"),
+					"visibility":    profile.GetString("visibility"),
+				}
+
+				// Include file URLs if present
+				if heroImage := profile.GetString("hero_image"); heroImage != "" {
+					profileData["hero_image_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + heroImage
+				}
+				if avatar := profile.GetString("avatar"); avatar != "" {
+					profileData["avatar_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + avatar
+				}
+
+				response["profile"] = profileData
+			}
+
+			// Fetch experience
+			experienceRecords, err := app.FindRecordsByFilter(
+				"experience",
+				"visibility != 'private' && is_draft = false",
+				"-sort_order,-start_date",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				response["experience"] = serializeRecords(experienceRecords)
+			}
+
+			// Fetch projects
+			projectRecords, err := app.FindRecordsByFilter(
+				"projects",
+				"visibility != 'private' && is_draft = false",
+				"-is_featured,-sort_order",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				projects := serializeRecords(projectRecords)
+				// Add file URLs for cover images
+				for i, p := range projects {
+					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+						if id, ok := p["id"].(string); ok {
+							projects[i]["cover_image_url"] = "/api/files/projects/" + id + "/" + coverImage
+						}
+					}
+				}
+				response["projects"] = projects
+			}
+
+			// Fetch education
+			educationRecords, err := app.FindRecordsByFilter(
+				"education",
+				"visibility != 'private' && is_draft = false",
+				"-sort_order,-end_date",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				response["education"] = serializeRecords(educationRecords)
+			}
+
+			// Fetch skills
+			skillRecords, err := app.FindRecordsByFilter(
+				"skills",
+				"visibility != 'private'",
+				"category,sort_order",
+				200,
+				0,
+				nil,
+			)
+			if err == nil {
+				response["skills"] = serializeRecords(skillRecords)
+			}
 
 			return e.JSON(http.StatusOK, response)
 		}))

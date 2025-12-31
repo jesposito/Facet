@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 
-	export let type: 'view' | 'project' | 'experience';
-	export let id: string;
+	export let viewId: string;
 
-	const dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher<{
+		verified: { token: string; expiresIn: number };
+	}>();
 
 	let password = '';
 	let error = '';
@@ -23,7 +24,7 @@
 			const response = await fetch('/api/password/check', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ type, id, password })
+				body: JSON.stringify({ view_id: viewId, password })
 			});
 
 			if (!response.ok) {
@@ -32,7 +33,13 @@
 				return;
 			}
 
-			dispatch('verified');
+			const data = await response.json();
+
+			// Dispatch with token so parent can set cookie and reload
+			dispatch('verified', {
+				token: data.access_token,
+				expiresIn: data.expires_in
+			});
 		} catch (err) {
 			error = 'Failed to verify password';
 		} finally {
@@ -93,7 +100,7 @@
 
 		<div class="mt-6 text-center">
 			<a href="/" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-				← Back to main profile
+				Back to main profile
 			</a>
 		</div>
 	</div>
