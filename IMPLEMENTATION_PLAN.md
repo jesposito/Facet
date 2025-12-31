@@ -214,7 +214,7 @@
 1. Full accessibility audit
 
 ### Medium Priority
-2. Drag-drop reordering for views (Phase 2.2)
+2. Drag-drop section/item reordering for views (Phase 2.2 continued)
 3. Media library (Phase 7)
 4. Additional frontend tests
 
@@ -223,3 +223,37 @@
 6. AI provider mock tests
 7. Integration tests
 8. View access log / audit logging (Phase 8)
+
+---
+
+## Phase 2.2: Item-Level Overrides ✅ Complete
+
+This phase enables audience-specific framing of the same content. Key use case: career pivoters who need to present the same job differently to different audiences.
+
+### Backend Changes
+- [x] Update view data endpoint to merge itemConfig.overrides with source records
+- [x] Add validation for overridable fields per collection type
+- [x] `serializeRecordsWithOverrides()` function applies overrides
+- [x] `getOverridableFields()` defines allowed fields per section
+
+### Frontend Changes
+- [x] Add "Customize" button on each selected item in view editor
+- [x] Create override editor modal with:
+  - [x] Original value display (collapsible)
+  - [x] Override input fields (text, textarea, array)
+  - [x] "Reset to original" button per field
+- [x] Add override indicator badges showing count
+- [x] Public view automatically shows overridden values (backend applies)
+
+### Overridable Fields
+| Collection | Fields |
+|------------|--------|
+| Experience | title, description, bullets |
+| Projects | title, summary, description |
+| Education | degree, field, description |
+| Talks | title, description |
+
+### Not Overridable (Factual Data)
+- Company names, dates, institutions
+- URLs, credential IDs
+- Skills, certifications (include/exclude only)

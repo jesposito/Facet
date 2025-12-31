@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection } from '$lib/pocketbase';
+	import { pb, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import { icon } from '$lib/icons';
 
 	// Available sections - must match backend
 	const AVAILABLE_SECTIONS = [
@@ -32,11 +33,32 @@
 	let isActive = true;
 	let isDefault = false;
 
-	// Sections configuration
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean }> = {};
+	// Sections configuration with itemConfig support
+	let sections: Record<string, {
+		enabled: boolean;
+		items: string[];
+		expanded: boolean;
+		itemConfig: Record<string, ItemConfig>;
+	}> = {};
 
-	// Available items for each section
-	let sectionItems: Record<string, Array<{ id: string; label: string; visibility: string; is_draft?: boolean }>> = {};
+	// Available items for each section (full data for override editing)
+	let sectionItems: Record<string, Array<{
+		id: string;
+		label: string;
+		visibility: string;
+		is_draft?: boolean;
+		data: Record<string, unknown>;
+	}>> = {};
+
+	// Override editor state
+	let showOverrideEditor = false;
+	let editingOverride: {
+		sectionKey: string;
+		itemId: string;
+		itemLabel: string;
+		originalData: Record<string, unknown>;
+		overrides: Record<string, string | string[]>;
+	} | null = null;
 
 	$: viewId = $page.params.id as string;
 
@@ -88,7 +110,7 @@
 	function initializeSections(viewSections?: ViewSection[]) {
 		// Start with all sections disabled
 		for (const section of AVAILABLE_SECTIONS) {
-			sections[section.key] = { enabled: false, items: [], expanded: false };
+			sections[section.key] = { enabled: false, items: [], expanded: false, itemConfig: {} };
 		}
 
 		// Apply saved section configuration
@@ -97,6 +119,7 @@
 				if (sections[vs.section]) {
 					sections[vs.section].enabled = vs.enabled;
 					sections[vs.section].items = vs.items || [];
+					sections[vs.section].itemConfig = vs.itemConfig || {};
 				}
 			}
 		}
@@ -113,7 +136,8 @@
 					id: item.id,
 					label: getItemLabel(section.key, item),
 					visibility: (item as Record<string, unknown>).visibility as string || 'public',
-					is_draft: (item as Record<string, unknown>).is_draft as boolean || false
+					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					data: item as Record<string, unknown>
 				}));
 			} catch (err) {
 				console.error(`Failed to load ${section.key} items:`, err);
@@ -193,14 +217,31 @@
 
 		saving = true;
 		try {
-			// Build sections array
+			// Build sections array with itemConfig
 			const sectionsData: ViewSection[] = AVAILABLE_SECTIONS
 				.filter((s) => sections[s.key].enabled)
-				.map((s) => ({
-					section: s.key,
-					enabled: true,
-					items: sections[s.key].items
-				}));
+				.map((s) => {
+					const sectionData: ViewSection = {
+						section: s.key,
+						enabled: true,
+						items: sections[s.key].items
+					};
+					// Only include itemConfig if there are overrides
+					const itemConfig = sections[s.key].itemConfig;
+					if (itemConfig && Object.keys(itemConfig).length > 0) {
+						// Filter out empty configs
+						const filteredConfig: Record<string, ItemConfig> = {};
+						for (const [itemId, config] of Object.entries(itemConfig)) {
+							if (config.overrides && Object.keys(config.overrides).length > 0) {
+								filteredConfig[itemId] = config;
+							}
+						}
+						if (Object.keys(filteredConfig).length > 0) {
+							sectionData.itemConfig = filteredConfig;
+						}
+					}
+					return sectionData;
+				});
 
 			const data = {
 				name: name.trim(),
@@ -240,6 +281,95 @@
 
 	function previewView() {
 		window.open(`/${slug}`, '_blank');
+	}
+
+	// Override editor functions
+	function openOverrideEditor(sectionKey: string, itemId: string) {
+		const item = sectionItems[sectionKey]?.find(i => i.id === itemId);
+		if (!item) return;
+
+		const existingConfig = sections[sectionKey]?.itemConfig?.[itemId];
+		editingOverride = {
+			sectionKey,
+			itemId,
+			itemLabel: item.label,
+			originalData: item.data,
+			overrides: existingConfig?.overrides
+				? { ...existingConfig.overrides }
+				: {}
+		};
+		showOverrideEditor = true;
+	}
+
+	function closeOverrideEditor() {
+		showOverrideEditor = false;
+		editingOverride = null;
+	}
+
+	function saveOverrides() {
+		if (!editingOverride) return;
+
+		const { sectionKey, itemId, overrides } = editingOverride;
+
+		// Clean up empty overrides
+		const cleanedOverrides: Record<string, string | string[]> = {};
+		for (const [field, value] of Object.entries(overrides)) {
+			if (value && (typeof value === 'string' ? value.trim() : value.length > 0)) {
+				cleanedOverrides[field] = value;
+			}
+		}
+
+		// Update itemConfig
+		if (!sections[sectionKey].itemConfig) {
+			sections[sectionKey].itemConfig = {};
+		}
+
+		if (Object.keys(cleanedOverrides).length > 0) {
+			sections[sectionKey].itemConfig[itemId] = { overrides: cleanedOverrides };
+		} else {
+			delete sections[sectionKey].itemConfig[itemId];
+		}
+
+		sections = sections; // Trigger reactivity
+		closeOverrideEditor();
+		toasts.add('success', 'Overrides saved');
+	}
+
+	function clearOverride(field: string) {
+		if (!editingOverride) return;
+		delete editingOverride.overrides[field];
+		editingOverride = editingOverride; // Trigger reactivity
+	}
+
+	function hasOverrides(sectionKey: string, itemId: string): boolean {
+		const config = sections[sectionKey]?.itemConfig?.[itemId];
+		return !!(config?.overrides && Object.keys(config.overrides).length > 0);
+	}
+
+	function getOverrideCount(sectionKey: string, itemId: string): number {
+		const config = sections[sectionKey]?.itemConfig?.[itemId];
+		return config?.overrides ? Object.keys(config.overrides).length : 0;
+	}
+
+	function formatFieldValue(value: unknown): string {
+		if (Array.isArray(value)) {
+			return value.join('\n');
+		}
+		return String(value || '');
+	}
+
+	function parseFieldValue(field: string, value: string): string | string[] {
+		// bullets field should be an array
+		if (field === 'bullets') {
+			return value.split('\n').filter(line => line.trim());
+		}
+		return value;
+	}
+
+	function handleOverrideInput(field: string, event: Event) {
+		if (!editingOverride) return;
+		const target = event.target as HTMLInputElement | HTMLTextAreaElement;
+		editingOverride.overrides[field] = parseFieldValue(field, target.value);
 	}
 </script>
 
@@ -507,19 +637,30 @@
 										</div>
 									</div>
 
-									<div class="space-y-1 max-h-48 overflow-y-auto">
+									<div class="space-y-1 max-h-64 overflow-y-auto">
 										{#each items as item}
 											{@const isSelected = sectionConfig.items.includes(item.id)}
-											<label class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
-												<input
-													type="checkbox"
-													checked={isSelected}
-													on:change={() => toggleItem(section.key, item.id)}
-													class="w-4 h-4 text-primary-600 rounded border-gray-300"
-												/>
-												<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
-													{item.label}
-												</span>
+											{@const itemHasOverrides = hasOverrides(section.key, item.id)}
+											{@const overrideCount = getOverrideCount(section.key, item.id)}
+											{@const canOverride = OVERRIDABLE_FIELDS[section.key]?.length > 0}
+											<div class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
+												<label class="flex items-center gap-2 flex-1 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={isSelected}
+														on:change={() => toggleItem(section.key, item.id)}
+														class="w-4 h-4 text-primary-600 rounded border-gray-300"
+													/>
+													<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
+														{item.label}
+													</span>
+												</label>
+												{#if itemHasOverrides}
+													<span class="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded flex items-center gap-1">
+														{@html icon('zap')}
+														{overrideCount} override{overrideCount > 1 ? 's' : ''}
+													</span>
+												{/if}
 												{#if item.visibility !== 'public'}
 													<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
 														{item.visibility}
@@ -530,7 +671,16 @@
 														draft
 													</span>
 												{/if}
-											</label>
+												{#if isSelected && canOverride}
+													<button
+														type="button"
+														class="text-xs text-primary-600 hover:text-primary-700 hover:underline whitespace-nowrap"
+														on:click|stopPropagation={() => openOverrideEditor(section.key, item.id)}
+													>
+														{itemHasOverrides ? 'Edit' : 'Customize'}
+													</button>
+												{/if}
+											</div>
 										{/each}
 									</div>
 								</div>
@@ -550,3 +700,102 @@
 		</form>
 	{/if}
 </div>
+
+<!-- Override Editor Modal -->
+{#if showOverrideEditor && editingOverride}
+	{@const overridableFields = OVERRIDABLE_FIELDS[editingOverride.sectionKey] || []}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+		<div class="card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+			<div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+				<div>
+					<h2 class="text-lg font-bold text-gray-900 dark:text-white">Customize for this View</h2>
+					<p class="text-sm text-gray-500">{editingOverride.itemLabel}</p>
+				</div>
+				<button type="button" class="btn btn-ghost" on:click={closeOverrideEditor}>
+					{@html icon('x')}
+				</button>
+			</div>
+
+			<div class="p-4 space-y-6 overflow-y-auto flex-1">
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					Override fields below to customize how this item appears in this view. Leave fields empty to use the original value.
+				</p>
+
+				{#each overridableFields as field}
+					{@const originalValue = editingOverride.originalData[field]}
+					{@const hasOverride = field in editingOverride.overrides}
+					{@const isArrayField = field === 'bullets'}
+
+					<div class="space-y-2">
+						<div class="flex items-center justify-between">
+							<label for="override_{field}" class="label capitalize">{field.replace('_', ' ')}</label>
+							{#if hasOverride}
+								<button
+									type="button"
+									class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+									on:click={() => clearOverride(field)}
+								>
+									Reset to original
+								</button>
+							{/if}
+						</div>
+
+						<!-- Original value (collapsed) -->
+						<details class="text-sm">
+							<summary class="text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
+								View original value
+							</summary>
+							<div class="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 whitespace-pre-wrap text-xs">
+								{formatFieldValue(originalValue) || '(empty)'}
+							</div>
+						</details>
+
+						<!-- Override input -->
+						{#if isArrayField}
+							<textarea
+								id="override_{field}"
+								class="input min-h-[100px] font-mono text-sm"
+								placeholder="Enter one item per line..."
+								value={hasOverride ? formatFieldValue(editingOverride.overrides[field]) : ''}
+								on:input={(e) => handleOverrideInput(field, e)}
+							></textarea>
+							<p class="text-xs text-gray-500">Enter one bullet point per line</p>
+						{:else if field === 'description' || field === 'summary'}
+							<textarea
+								id="override_{field}"
+								class="input min-h-[100px]"
+								placeholder="Enter override value or leave empty for original..."
+								value={hasOverride ? String(editingOverride.overrides[field]) : ''}
+								on:input={(e) => handleOverrideInput(field, e)}
+							></textarea>
+						{:else}
+							<input
+								type="text"
+								id="override_{field}"
+								class="input"
+								placeholder="Enter override value or leave empty for original..."
+								value={hasOverride ? String(editingOverride.overrides[field]) : ''}
+								on:input={(e) => handleOverrideInput(field, e)}
+							/>
+						{/if}
+					</div>
+				{/each}
+
+				{#if overridableFields.length === 0}
+					<p class="text-gray-500 text-center py-8">
+						This section type does not support field overrides.
+					</p>
+				{/if}
+			</div>
+
+			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+				<button type="button" class="btn btn-ghost" on:click={closeOverrideEditor}>
+					Cancel
+				</button>
+				<button type="button" class="btn btn-primary" on:click={saveOverrides}>
+					Save Overrides
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

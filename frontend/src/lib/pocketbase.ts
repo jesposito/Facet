@@ -152,11 +152,26 @@ export interface View {
 	is_default?: boolean;
 }
 
+export interface ItemConfig {
+	order?: number;
+	overrides?: Record<string, string | string[]>;
+}
+
 export interface ViewSection {
 	section: string;
 	enabled: boolean;
 	items?: string[];
+	order?: number;
+	itemConfig?: Record<string, ItemConfig>;
 }
+
+// Define which fields can be overridden per collection
+export const OVERRIDABLE_FIELDS: Record<string, string[]> = {
+	experience: ['title', 'description', 'bullets'],
+	projects: ['title', 'summary', 'description'],
+	education: ['degree', 'field', 'description'],
+	talks: ['title', 'description']
+};
 
 export interface AIProvider {
 	id: string;

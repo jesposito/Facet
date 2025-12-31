@@ -307,7 +307,9 @@ Views provide **curated lenses** onto a single source of truth.
 |--------|------------------|---------------|
 | **Sections** | All visible sections | Explicit include/exclude |
 | **Items** | All visible items in section | Explicit item selection |
-| **Order** | sort_order field | Custom per-view ordering |
+| **Section Order** | Default order | Custom per-view section ordering |
+| **Item Order** | sort_order field | Custom per-view item ordering |
+| **Item Content** | Source record values | Per-item field overrides |
 | **Headline** | Profile headline | hero_headline override |
 | **Summary** | Profile summary | hero_summary override |
 | **CTA** | None | cta_text + cta_url |
@@ -324,17 +326,28 @@ Views store section configuration as JSON:
       "section": "experience",
       "enabled": true,
       "items": ["id1", "id2", "id3"],
-      "order": 1
+      "order": 1,
+      "itemConfig": {
+        "id1": {
+          "order": 0,
+          "overrides": {
+            "title": "Senior UX Designer",
+            "description": "Led user research initiatives..."
+          }
+        },
+        "id2": { "order": 1 },
+        "id3": { "order": 2 }
+      }
     },
     {
       "section": "projects",
       "enabled": true,
-      "items": [],  // empty = all visible items
+      "items": [],
       "order": 2
     },
     {
       "section": "education",
-      "enabled": false  // section hidden in this view
+      "enabled": false
     }
   ]
 }
@@ -342,7 +355,64 @@ Views store section configuration as JSON:
 
 **Design Decision**: Empty `items` array means "include all visible items" (filtered by visibility and draft status). This avoids manual updates when adding new content.
 
-### 4.4 Default View Behavior
+### 4.4 Item-Level Overrides
+
+Views can override specific fields on individual items without modifying the source record. This enables **audience-specific framing** of the same experience.
+
+#### Use Case: Career Pivot
+
+A product designer who straddles UX and Instructional Design can create two views from the same job history:
+
+```
+Source Record: "Product Designer @ Acme Corp"
+├── title: "Product Designer"
+├── description: "Designed products and training materials"
+├── bullets: ["Led design system", "Created onboarding", "User research"]
+
+View: "UX Designer"
+└── Overrides:
+    ├── title: "Senior UX Designer"
+    ├── description: "Led user-centered design initiatives..."
+    └── bullets: ["Led design system", "Conducted 50+ user interviews", ...]
+
+View: "Instructional Designer"
+└── Overrides:
+    ├── title: "Learning Experience Designer"
+    ├── description: "Created scalable training programs..."
+    └── bullets: ["Developed onboarding curriculum", "Built LMS integrations", ...]
+```
+
+#### Overridable Fields by Collection
+
+| Collection | Overridable Fields |
+|------------|-------------------|
+| **Experience** | title, description, bullets |
+| **Projects** | title, summary, description |
+| **Education** | degree, field, description |
+| **Skills** | (none - include/exclude only) |
+| **Certifications** | (none - include/exclude only) |
+| **Talks** | title, description |
+| **Posts** | (none - include/exclude only) |
+
+**Not Overridable**: Company names, dates, institutions, issuers, URLs. These are factual and should remain consistent across views.
+
+#### Override Inheritance
+
+```
+Render Priority (highest wins):
+1. View itemConfig.overrides → If field has override, use it
+2. Source record value → Otherwise, use original
+```
+
+#### UI Indicators
+
+The admin UI should clearly show:
+- Which items have overrides (visual badge)
+- Which specific fields are overridden (inline indicator)
+- "Reset to original" action to clear overrides
+- Side-by-side comparison of original vs. override
+
+### 4.5 Default View Behavior
 
 The homepage (`/`) renders the **default view**:
 
@@ -352,7 +422,7 @@ The homepage (`/`) renders the **default view**:
 
 **Invariant**: Only ONE view can have `is_default=true`. This is enforced by backend hooks that clear other defaults when setting a new one.
 
-### 4.5 View Inheritance Model
+### 4.6 View Inheritance Model
 
 Views **inherit** from the profile and **override** selectively:
 
