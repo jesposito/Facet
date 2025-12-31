@@ -7,8 +7,13 @@ import (
 
 func init() {
 	m.Register(func(app core.App) error {
+		// Helper for public read access (empty string = anyone can access)
+		publicRule := ""
+
 		// Create Profile collection (singleton)
 		profileCollection := core.NewBaseCollection("profile")
+		profileCollection.ListRule = &publicRule
+		profileCollection.ViewRule = &publicRule
 		profileCollection.Fields.Add(&core.TextField{Name: "name", Required: true, Max: 200})
 		profileCollection.Fields.Add(&core.TextField{Name: "headline", Max: 500})
 		profileCollection.Fields.Add(&core.TextField{Name: "location", Max: 200})
@@ -25,6 +30,8 @@ func init() {
 
 		// Create Experience collection
 		experienceCollection := core.NewBaseCollection("experience")
+		experienceCollection.ListRule = &publicRule
+		experienceCollection.ViewRule = &publicRule
 		experienceCollection.Fields.Add(&core.TextField{Name: "company", Required: true, Max: 200})
 		experienceCollection.Fields.Add(&core.TextField{Name: "title", Required: true, Max: 200})
 		experienceCollection.Fields.Add(&core.TextField{Name: "location", Max: 200})
@@ -44,6 +51,8 @@ func init() {
 
 		// Create Projects collection
 		projectsCollection := core.NewBaseCollection("projects")
+		projectsCollection.ListRule = &publicRule
+		projectsCollection.ViewRule = &publicRule
 		projectsCollection.Fields.Add(&core.TextField{Name: "title", Required: true, Max: 200})
 		projectsCollection.Fields.Add(&core.TextField{Name: "slug", Max: 200})
 		projectsCollection.Fields.Add(&core.TextField{Name: "summary", Max: 1000})
@@ -70,6 +79,8 @@ func init() {
 
 		// Create Education collection
 		educationCollection := core.NewBaseCollection("education")
+		educationCollection.ListRule = &publicRule
+		educationCollection.ViewRule = &publicRule
 		educationCollection.Fields.Add(&core.TextField{Name: "institution", Required: true, Max: 200})
 		educationCollection.Fields.Add(&core.TextField{Name: "degree", Max: 200})
 		educationCollection.Fields.Add(&core.TextField{Name: "field", Max: 200})
@@ -86,6 +97,8 @@ func init() {
 
 		// Create Certifications collection
 		certsCollection := core.NewBaseCollection("certifications")
+		certsCollection.ListRule = &publicRule
+		certsCollection.ViewRule = &publicRule
 		certsCollection.Fields.Add(&core.TextField{Name: "name", Required: true, Max: 200})
 		certsCollection.Fields.Add(&core.TextField{Name: "issuer", Max: 200})
 		certsCollection.Fields.Add(&core.DateField{Name: "issue_date"})
@@ -102,6 +115,8 @@ func init() {
 
 		// Create Skills collection
 		skillsCollection := core.NewBaseCollection("skills")
+		skillsCollection.ListRule = &publicRule
+		skillsCollection.ViewRule = &publicRule
 		skillsCollection.Fields.Add(&core.TextField{Name: "name", Required: true, Max: 100})
 		skillsCollection.Fields.Add(&core.TextField{Name: "category", Max: 100})
 		skillsCollection.Fields.Add(&core.SelectField{Name: "proficiency", Values: []string{"expert", "proficient", "familiar"}, MaxSelect: 1})
@@ -114,6 +129,8 @@ func init() {
 
 		// Create Posts collection
 		postsCollection := core.NewBaseCollection("posts")
+		postsCollection.ListRule = &publicRule
+		postsCollection.ViewRule = &publicRule
 		postsCollection.Fields.Add(&core.TextField{Name: "title", Required: true, Max: 500})
 		postsCollection.Fields.Add(&core.TextField{Name: "slug", Max: 200})
 		postsCollection.Fields.Add(&core.TextField{Name: "excerpt", Max: 1000})
@@ -132,6 +149,8 @@ func init() {
 
 		// Create Talks collection
 		talksCollection := core.NewBaseCollection("talks")
+		talksCollection.ListRule = &publicRule
+		talksCollection.ViewRule = &publicRule
 		talksCollection.Fields.Add(&core.TextField{Name: "title", Required: true, Max: 500})
 		talksCollection.Fields.Add(&core.TextField{Name: "event", Max: 200})
 		talksCollection.Fields.Add(&core.URLField{Name: "event_url"})
@@ -150,6 +169,8 @@ func init() {
 
 		// Create Views collection
 		viewsCollection := core.NewBaseCollection("views")
+		viewsCollection.ListRule = &publicRule
+		viewsCollection.ViewRule = &publicRule
 		viewsCollection.Fields.Add(&core.TextField{Name: "name", Required: true, Max: 200})
 		viewsCollection.Fields.Add(&core.TextField{Name: "slug", Required: true, Max: 100})
 		viewsCollection.Fields.Add(&core.TextField{Name: "description", Max: 500})
