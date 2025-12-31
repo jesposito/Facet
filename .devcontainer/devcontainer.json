@@ -48,7 +48,7 @@
     }
   },
 
-  "postCreateCommand": "chmod +x scripts/*.sh",
+  "postCreateCommand": "chmod +x scripts/*.sh && cd backend && go mod tidy",
   "postStartCommand": "./scripts/start-dev.sh",
 
   "remoteUser": "vscode"
