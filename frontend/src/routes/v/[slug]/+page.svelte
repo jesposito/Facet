@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
@@ -11,13 +13,44 @@
 
 	export let data: PageData;
 
-	let passwordVerified = false;
+	// Hidden form ref for setting password token cookie
+	let passwordForm: HTMLFormElement;
+	let tokenInput: HTMLInputElement;
+	let maxAgeInput: HTMLInputElement;
+
+	async function handlePasswordVerified(event: CustomEvent<{ token: string; expiresIn: number }>) {
+		const { token, expiresIn } = event.detail;
+
+		// Set form values and submit to set cookie via server action
+		tokenInput.value = token;
+		maxAgeInput.value = String(expiresIn);
+		passwordForm.requestSubmit();
+	}
 </script>
 
 <svelte:head>
 	<title>{data.view?.name || 'View'} | {data.profile?.name || 'Profile'}</title>
 	<meta name="description" content={data.view?.hero_headline || data.profile?.headline || ''} />
 </svelte:head>
+
+<!-- Hidden form for setting password token cookie -->
+<form
+	bind:this={passwordForm}
+	method="POST"
+	action="?/setPasswordToken"
+	class="hidden"
+	use:enhance={() => {
+		return async ({ result }) => {
+			if (result.type === 'success') {
+				// Reload page to fetch data with the new token
+				await invalidateAll();
+			}
+		};
+	}}
+>
+	<input bind:this={tokenInput} type="hidden" name="token" value="" />
+	<input bind:this={maxAgeInput} type="hidden" name="maxAge" value="3600" />
+</form>
 
 {#if data.error}
 	<div class="min-h-screen flex items-center justify-center">
@@ -27,11 +60,10 @@
 			<a href="/" class="mt-4 inline-block btn btn-primary">Go Home</a>
 		</div>
 	</div>
-{:else if data.requiresPassword && !passwordVerified}
+{:else if data.requiresPassword}
 	<PasswordPrompt
-		type="view"
-		id={data.view?.id || ''}
-		on:verified={() => (passwordVerified = true)}
+		viewId={data.view?.id || ''}
+		on:verified={handlePasswordVerified}
 	/>
 {:else}
 	<div class="min-h-screen">
