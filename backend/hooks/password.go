@@ -44,20 +44,18 @@ func RegisterPasswordHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "incorrect password"})
 			}
 
-			// Generate a short-lived access token
-			accessToken, err := crypto.GenerateToken(16)
+			// Generate signed JWT for view access (1 hour expiry)
+			accessToken, expiresAt, err := crypto.GenerateViewAccessJWT(req.ViewID, 1*time.Hour)
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
 			}
 
-			// Token expires in 1 hour
-			expiresAt := time.Now().Add(1 * time.Hour)
+			// Calculate expires_in for client convenience
+			expiresIn := int(time.Until(expiresAt).Seconds())
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"access_token": accessToken,
-				"expires_at":   expiresAt,
-				"view_id":      req.ViewID,
-				"view_slug":    record.GetString("slug"),
+				"expires_in":   expiresIn,
 			})
 		})
 
