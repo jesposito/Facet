@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
@@ -9,7 +10,16 @@
 	let loading = true;
 	let authorized = false;
 
+	// Check if we're on the login page (don't require auth there)
+	$: isLoginPage = $page.url.pathname === '/admin/login';
+
 	onMount(async () => {
+		// Login page doesn't require authentication
+		if (isLoginPage) {
+			loading = false;
+			return;
+		}
+
 		// Check if user is authenticated
 		if (!pb.authStore.isValid) {
 			goto('/admin/login');
@@ -33,6 +43,9 @@
 			<p class="text-gray-600 dark:text-gray-400">Loading admin...</p>
 		</div>
 	</div>
+{:else if isLoginPage}
+	<!-- Login page renders without admin chrome -->
+	<slot />
 {:else if authorized}
 	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 		<AdminHeader />
