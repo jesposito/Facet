@@ -791,8 +791,8 @@ Based on codebase analysis, these features are incomplete or missing:
 | ~~**Post/blog pages**~~ | ~~Collection exists, no public UI~~ | ✅ Complete: `/posts/{slug}` |
 | ~~**Talks section**~~ | ~~Collection exists, no UI~~ | ✅ Complete: Public display with video embeds |
 | ~~**Certifications section**~~ | ~~Collection exists, no UI~~ | ✅ Complete: Public display with issuer grouping |
+| ~~**View editor**~~ | ~~Basic, no drag-drop~~ | ✅ Complete: Full editor with section/item selection |
 | **Media library** | No implementation | Cannot manage uploaded files |
-| **View editor** | Basic, no drag-drop | Limited section/item ordering |
 | **Share token management UI** | Listed in views page, no full UI | Cannot manage tokens easily |
 | **Scheduled GitHub sync** | Not implemented | Manual refresh only |
 | **Resume PDF export** | Not implemented | Cannot generate printable resume |
@@ -802,13 +802,14 @@ Based on codebase analysis, these features are incomplete or missing:
 ### 13.2 Proposed Priority Order
 
 1. ~~**Core content pages**: Project details, posts, talks, certifications~~ ✅ Complete
-2. **View editor improvements**: Drag-drop ordering, better section config
-3. **Share token management**: Full CRUD UI with usage stats
-4. **Resume export**: Generate PDF from profile/view
-5. **Theme system**: Light/dark modes, color customization
-6. **Scheduled sync**: Cron-based GitHub refresh
-7. **Media library**: Upload management, image optimization
-8. **Audit log**: Access history for share tokens
+2. ~~**View editor core**: Section toggles, item selection, hero overrides~~ ✅ Complete
+3. **View editor improvements**: Drag-drop ordering, preview pane
+4. **Share token management**: Full CRUD UI with usage stats
+5. **Resume export**: Generate PDF from profile/view
+6. **Theme system**: Light/dark modes, color customization
+7. **Scheduled sync**: Cron-based GitHub refresh
+8. **Media library**: Upload management, image optimization
+9. **Audit log**: Access history for share tokens
 
 ---
 
