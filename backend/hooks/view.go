@@ -25,6 +25,7 @@ var ReservedSlugs = map[string]bool{
 	"v":        true,
 	"projects": true,
 	"posts":    true,
+	"talks":    true,
 	// SvelteKit internal
 	"_app": true,
 	"_":    true,
@@ -468,6 +469,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 				response["posts"] = posts
+			}
+
+			// Fetch talks - only public items appear on homepage
+			talkRecords, err := app.FindRecordsByFilter(
+				"talks",
+				"visibility = 'public' && is_draft = false",
+				"-sort_order,-date",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				response["talks"] = serializeRecords(talkRecords)
 			}
 
 			return e.JSON(http.StatusOK, response)
