@@ -14,8 +14,11 @@
 	$: isLoginPage = $page.url.pathname === '/admin/login';
 
 	onMount(async () => {
+		// Check path directly (reactive var may not be set yet)
+		const onLoginPage = window.location.pathname === '/admin/login';
+
 		// Login page doesn't require authentication
-		if (isLoginPage) {
+		if (onLoginPage) {
 			loading = false;
 			return;
 		}
