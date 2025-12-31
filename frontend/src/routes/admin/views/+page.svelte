@@ -1,29 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { pb, currentUser } from '$lib/pocketbase';
+	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
 	let loading = true;
 	let views: Array<Record<string, unknown>> = [];
-	let hasLoaded = false;
 
-	// Wait for auth to be ready before loading
-	$: if ($currentUser && !hasLoaded) {
-		loadViews();
-	}
-
-	onMount(() => {
-		// If auth is already valid, load immediately
-		if (pb.authStore.isValid) {
-			loadViews();
-		}
-		// Otherwise, the reactive statement above will handle it
-	});
+	// Simple pattern - admin layout handles auth
+	onMount(loadViews);
 
 	async function loadViews() {
-		if (hasLoaded && views.length > 0) return; // Prevent duplicate loads
-		hasLoaded = true;
 		loading = true;
 		try {
 			const result = await pb.collection('views').getList(1, 50, {
@@ -32,7 +19,7 @@
 			views = result.items;
 		} catch (err) {
 			console.error('Failed to load views:', err);
-			hasLoaded = false; // Allow retry
+			toasts.add('error', 'Failed to load views');
 		} finally {
 			loading = false;
 		}
@@ -43,7 +30,6 @@
 			await pb.collection('views').update(view.id as string, {
 				is_active: !view.is_active
 			});
-			hasLoaded = false; // Force reload
 			await loadViews();
 		} catch (err) {
 			toasts.add('error', 'Failed to update view');
@@ -55,7 +41,6 @@
 		try {
 			await pb.collection('views').delete(id);
 			toasts.add('success', 'View deleted');
-			hasLoaded = false; // Force reload
 			await loadViews();
 		} catch (err) {
 			toasts.add('error', 'Failed to delete view');
