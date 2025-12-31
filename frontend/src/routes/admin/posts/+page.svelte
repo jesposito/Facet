@@ -27,12 +27,27 @@
 	async function loadPosts() {
 		loading = true;
 		try {
+			// Debug: log auth state
+			console.log('loadPosts - auth state:', {
+				isValid: pb.authStore.isValid,
+				token: pb.authStore.token ? 'present' : 'missing',
+				model: pb.authStore.record?.email
+			});
+
 			const records = await pb.collection('posts').getList(1, 100, {
 				sort: '-created'
 			});
 			posts = records.items as unknown as Post[];
-		} catch (err) {
-			console.error('Failed to load posts:', err);
+			console.log('loadPosts - success:', posts.length, 'posts');
+		} catch (err: unknown) {
+			const error = err as { status?: number; message?: string; data?: unknown; response?: unknown };
+			console.error('Failed to load posts:', {
+				status: error.status,
+				message: error.message,
+				data: error.data,
+				response: error.response,
+				fullError: err
+			});
 			toasts.add('error', 'Failed to load posts');
 		} finally {
 			loading = false;
