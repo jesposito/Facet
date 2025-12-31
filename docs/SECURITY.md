@@ -227,7 +227,79 @@ Authenticated users (admin OAuth allowlist) can still:
 
 ### Rate Limiting
 
-*(Planned - not yet implemented)*
+Me.yaml implements per-IP rate limiting using the [token bucket algorithm](https://pkg.go.dev/golang.org/x/time/rate) to protect against brute force and abuse.
+
+#### Rate Limit Tiers
+
+| Tier | Limit | Burst | Endpoints |
+|------|-------|-------|-----------|
+| Strict | 5/min | 3 | `POST /api/password/check` |
+| Moderate | 10/min | 5 | `POST /api/share/validate` |
+| Normal | 60/min | 10 | `GET /api/view/{slug}/access`, `GET /api/view/{slug}/data` |
+
+#### Response Headers
+
+When rate limited, the server returns:
+- **Status:** `429 Too Many Requests`
+- **Headers:**
+  - `Retry-After: <seconds>` — Time until next request allowed
+  - `X-RateLimit-Limit: <rate>` — The rate limit for this endpoint
+  - `X-RateLimit-Remaining: 0` — No requests remaining
+- **Body:** `{"error": "too many requests"}` (uniform, non-leaky)
+
+#### Configuration
+
+**Environment Variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TRUST_PROXY` | `false` | Set to `true` to trust proxy headers for client IP |
+
+**Client IP Detection (in order of priority when `TRUST_PROXY=true`):**
+1. `CF-Connecting-IP` — Cloudflare's original client IP header
+2. `X-Real-IP` — Common proxy header (nginx, etc.)
+3. `X-Forwarded-For` — Leftmost IP from comma-separated list
+4. `RemoteAddr` — Direct connection IP (fallback)
+
+**Security Warning:** Only set `TRUST_PROXY=true` if:
+- Traffic arrives exclusively through a trusted proxy (Cloudflare, nginx, etc.)
+- The proxy is configured to set/overwrite these headers
+- Direct connections to the server are blocked
+
+Without proper proxy configuration, attackers can spoof their IP address.
+
+#### Cloudflare Setup
+
+When using Cloudflare Tunnel or proxy:
+1. Set `TRUST_PROXY=true`
+2. Ensure [Cloudflare IP ranges](https://www.cloudflare.com/ips/) are the only allowed source IPs
+3. The server will use `CF-Connecting-IP` for rate limiting
+
+#### Limitations
+
+- **In-memory storage:** Rate limit state does not persist across restarts
+- **Single-instance:** Each server instance has independent rate limit state
+- **No distributed coordination:** In multi-instance deployments, limits apply per-instance
+
+For production at scale, consider implementing Redis-backed rate limiting (Step 6B).
+
+#### Verification
+
+```bash
+# Test rate limiting on password endpoint (strict tier)
+for i in {1..6}; do
+  curl -s -o /dev/null -w "%{http_code}\n" \
+    -X POST http://localhost:8090/api/password/check \
+    -H "Content-Type: application/json" \
+    -d '{"view_id":"test","password":"wrong"}'
+done
+# Expected: 400, 400, 400, 429, 429, 429 (first 3 allowed, then rate limited)
+
+# Check Retry-After header
+curl -s -I -X POST http://localhost:8090/api/password/check \
+  -H "Content-Type: application/json" \
+  -d '{"view_id":"test","password":"wrong"}' | grep -i retry-after
+```
 
 ### CORS
 

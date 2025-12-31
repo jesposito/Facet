@@ -12,12 +12,13 @@ import (
 )
 
 // RegisterShareHooks registers share token related endpoints
-func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService, crypto *services.CryptoService) {
+func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService, crypto *services.CryptoService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Validate a share token
 		// NOTE: All failure cases return the same generic error to prevent oracle attacks.
 		// Specific error details (expired, wrong view, etc.) are not exposed to callers.
-		se.Router.POST("/api/share/validate", func(e *core.RequestEvent) error {
+		// Rate limited: moderate tier (10/min) to prevent token enumeration
+		se.Router.POST("/api/share/validate", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			// Generic error response - same for all failure modes to prevent information leakage
 			invalidResponse := services.ShareTokenValidation{
 				Valid: false,
@@ -116,7 +117,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				ViewID:   viewID,
 				ViewSlug: viewRecord.GetString("slug"),
 			})
-		})
+		}))
 
 		// Generate a new share token
 		se.Router.POST("/api/share/generate", func(e *core.RequestEvent) error {

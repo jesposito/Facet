@@ -33,6 +33,7 @@ func main() {
 	githubService := services.NewGitHubService()
 	aiService := services.NewAIService(cryptoService)
 	shareService := services.NewShareService(cryptoService)
+	rateLimitService := services.NewRateLimitService()
 
 	// Register migrations
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
@@ -45,9 +46,9 @@ func main() {
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
-	hooks.RegisterShareHooks(app, shareService, cryptoService)
-	hooks.RegisterPasswordHooks(app, cryptoService)
-	hooks.RegisterViewHooks(app, cryptoService, shareService)
+	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
+	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterSeedHook(app)
 
 	// Note: Trusted proxy headers are handled by Caddy in the Docker setup.

@@ -14,10 +14,11 @@ import (
 )
 
 // RegisterViewHooks registers view-related API endpoints
-func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService) {
+func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
-		se.Router.GET("/api/view/{slug}/access", func(e *core.RequestEvent) error {
+		// Rate limited: normal tier (60/min) to prevent enumeration
+		se.Router.GET("/api/view/{slug}/access", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
 
 			records, err := app.FindRecordsByFilter(
@@ -48,10 +49,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"requires_password":  visibility == "password",
 				"requires_token":     visibility == "unlisted",
 			})
-		})
+		}))
 
 		// Get full view data (with content filtering based on sections config)
-		se.Router.GET("/api/view/{slug}/data", func(e *core.RequestEvent) error {
+		// Rate limited: normal tier (60/min) to prevent scraping
+		se.Router.GET("/api/view/{slug}/data", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
 
 			records, err := app.FindRecordsByFilter(
@@ -199,7 +201,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["sections"] = sectionData
 
 			return e.JSON(http.StatusOK, response)
-		})
+		}))
 
 		// Apply import proposal
 		se.Router.POST("/api/proposals/{id}/apply", func(e *core.RequestEvent) error {
