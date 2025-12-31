@@ -35,6 +35,25 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 
 	log.Println("Seeding demo data...")
 
+	// Create default superuser for first-time setup
+	superusers, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
+	if err == nil {
+		superuserCount, _ := app.CountRecords(core.CollectionNameSuperusers)
+		if superuserCount == 0 {
+			admin := core.NewRecord(superusers)
+			admin.Set("email", "admin@localhost")
+			admin.SetPassword("changeme123")
+			if err := app.Save(admin); err != nil {
+				log.Printf("Warning: Could not create default admin: %v", err)
+			} else {
+				log.Println("Created default admin account:")
+				log.Println("  Email: admin@localhost")
+				log.Println("  Password: changeme123")
+				log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
+			}
+		}
+	}
+
 	// Create profile
 	profileColl, err := app.FindCollectionByNameOrId("profile")
 	if err != nil {
