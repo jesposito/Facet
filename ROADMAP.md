@@ -254,7 +254,16 @@ Server-side PDF generation and data export are deferred as browser print provide
 - [ ] Auto-create proposals for review
 - [ ] Email notification (optional)
 
-#### 5.4 Source Management UI
+#### 5.4 Credential & Badge Import
+- [ ] Credly badge import (via public profile URL or API)
+- [ ] Acclaim/Pearson badges support
+- [ ] Auto-map to certifications collection
+- [ ] Badge image/logo import
+- [ ] Verification URL extraction
+- [ ] Periodic refresh for expiry updates
+- [ ] Other badge platforms as demand emerges
+
+#### 5.5 Source Management UI
 - [ ] List all sources with sync status
 - [ ] Manual refresh button
 - [ ] Unlink source from project
