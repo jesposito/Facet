@@ -1,6 +1,9 @@
 {
   "name": "Me.yaml",
-  "image": "mcr.microsoft.com/devcontainers/go:1.23",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
 
   "features": {
     "ghcr.io/devcontainers/features/node:1": {

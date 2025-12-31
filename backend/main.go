@@ -35,7 +35,7 @@ func main() {
 	})
 
 	// Register custom hooks
-	hooks.RegisterHealthCheck(app)
+	// Note: PocketBase v0.23+ has a built-in /api/health endpoint
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
