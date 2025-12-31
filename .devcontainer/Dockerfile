@@ -4,8 +4,8 @@ FROM mcr.microsoft.com/devcontainers/go:1.23
 ENV GOPROXY=direct \
     GOSUMDB=off
 
-# Install air for hot reloading
-RUN go install github.com/air-verse/air@latest
+# Install air for hot reloading (pinned version compatible with Go 1.23)
+RUN go install github.com/air-verse/air@v1.61.7
 
 # Pre-download Go modules for faster startup
 WORKDIR /tmp/go-cache
