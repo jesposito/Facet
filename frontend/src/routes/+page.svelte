@@ -4,6 +4,7 @@
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
+	import CertificationsSection from '$components/public/CertificationsSection.svelte';
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
@@ -80,6 +81,10 @@
 
 			{#if data.education.length > 0}
 				<EducationSection items={data.education} />
+			{/if}
+
+			{#if data.certifications && data.certifications.length > 0}
+				<CertificationsSection items={data.certifications} />
 			{/if}
 
 			{#if data.skills.length > 0}
