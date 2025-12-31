@@ -30,21 +30,21 @@ type AIProvider struct {
 
 // EnrichmentRequest represents a request to enrich project data
 type EnrichmentRequest struct {
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	README      string            `json:"readme"`
-	Languages   map[string]int    `json:"languages"`
-	Topics      []string          `json:"topics"`
-	PrivacyMode string            `json:"privacy_mode"` // full, summary, none
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	README      string         `json:"readme"`
+	Languages   map[string]int `json:"languages"`
+	Topics      []string       `json:"topics"`
+	PrivacyMode string         `json:"privacy_mode"` // full, summary, none
 }
 
 // EnrichmentResult represents AI-enriched project data
 type EnrichmentResult struct {
-	Summary         string   `json:"summary"`
-	Bullets         []string `json:"bullets"`
-	Tags            []string `json:"tags"`
-	CaseStudy       string   `json:"case_study"`
-	TechHighlights  []string `json:"tech_highlights"`
+	Summary        string   `json:"summary"`
+	Bullets        []string `json:"bullets"`
+	Tags           []string `json:"tags"`
+	CaseStudy      string   `json:"case_study"`
+	TechHighlights []string `json:"tech_highlights"`
 }
 
 // NewAIService creates a new AI service

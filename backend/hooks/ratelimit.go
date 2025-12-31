@@ -41,4 +41,3 @@ func RateLimitMiddleware(rl *services.RateLimitService, tier string) func(func(*
 		}
 	}
 }
-

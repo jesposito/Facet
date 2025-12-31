@@ -77,6 +77,7 @@ Me.yaml/
 ├── frontend/          # SvelteKit application
 │   ├── src/
 │   │   ├── routes/    # SvelteKit routes
+│   │   ├── params/    # Param matchers (slug validation)
 │   │   └── lib/       # Shared components
 │   └── package.json
 ├── scripts/           # Development scripts
@@ -86,6 +87,55 @@ Me.yaml/
 ├── docker/            # Docker configurations
 ├── pb_data/           # PocketBase data (gitignored)
 └── docs/              # Documentation
+```
+
+## URL Routing Model
+
+Me.yaml uses a LinkedIn-style URL structure for public profiles:
+
+### Public Routes
+
+| Route | Purpose | Example |
+|-------|---------|---------|
+| `/` | Default profile view | Homepage |
+| `/<slug>` | Named view | `/recruiter`, `/investor` |
+| `/s/<token>` | Share link entry | Validates token, sets cookie, redirects to `/<slug>` |
+| `/v/<slug>` | Legacy route | 301 redirects to `/<slug>` |
+
+### Default View
+
+The homepage (`/`) renders the "default view", determined by:
+
+1. A view with `is_default=true` AND `is_active=true` AND `visibility='public'`
+2. Fallback: The first public active view (by creation date)
+3. Fallback: Legacy homepage aggregation (all public content)
+
+Only one view can be marked as default at a time (enforced by backend hook).
+
+### Reserved Slugs
+
+These slugs are protected and cannot be used for views:
+
+```
+admin, api, s, v, _app, _, assets, static,
+favicon.ico, robots.txt, sitemap.xml,
+health, healthz, ready,
+login, logout, auth, oauth, callback,
+home, index, default, profile
+```
+
+Protection is enforced at:
+- **Frontend**: `src/params/slug.ts` param matcher
+- **Backend**: Views collection create/update hooks
+
+### Share Link Flow
+
+```
+1. User receives: /s/<token>
+2. Server validates token (POST /api/share/validate)
+3. Sets httpOnly cookie (me_share_token, SameSite=Lax)
+4. 302 redirect to /<slug>
+5. Token NOT in final URL (security: no history/referer leakage)
 ```
 
 ## Development Workflow

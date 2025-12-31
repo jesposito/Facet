@@ -9,15 +9,21 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
 	export let data: PageData;
+
+	// Get headline and summary - use view overrides if this is a default view
+	$: headline = data.view?.hero_headline || data.profile?.headline;
+	$: summary = data.view?.hero_summary || data.profile?.summary;
 </script>
 
 <svelte:head>
 	<title>{data.profile?.name || 'Profile'} | Me.yaml</title>
-	<meta name="description" content={data.profile?.headline || 'Personal profile and portfolio'} />
-	{#if data.profile?.headline}
-		<meta property="og:title" content={data.profile.name} />
-		<meta property="og:description" content={data.profile.headline} />
+	<meta name="description" content={headline || 'Personal profile and portfolio'} />
+	{#if headline}
+		<meta property="og:title" content={data.profile?.name} />
+		<meta property="og:description" content={headline} />
 	{/if}
+	<!-- Canonical URL is always / for the homepage -->
+	<link rel="canonical" href="/" />
 </svelte:head>
 
 <div class="min-h-screen">
@@ -26,8 +32,31 @@
 		<ThemeToggle />
 	</div>
 
-	<!-- Hero section -->
-	<ProfileHero profile={data.profile} />
+	<!-- Hero section with possible view overrides -->
+	<ProfileHero
+		profile={{
+			...data.profile,
+			headline,
+			summary
+		}}
+	/>
+
+	<!-- CTA banner if this is a view with CTA configured -->
+	{#if data.view?.cta_text && data.view?.cta_url}
+		<div class="bg-primary-600 text-white py-4">
+			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+				<span class="font-medium">{data.view.cta_text}</span>
+				<a
+					href={data.view.cta_url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="btn bg-white text-primary-600 hover:bg-gray-100"
+				>
+					Learn More
+				</a>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Main content -->
 	<main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -323,8 +323,8 @@ func calculateDiff(existing, proposed map[string]interface{}) map[string]interfa
 		oldVal, exists := existing[key]
 		if !exists {
 			diff[key] = map[string]interface{}{
-				"type":  "added",
-				"new":   newVal,
+				"type": "added",
+				"new":  newVal,
 			}
 		} else {
 			oldJSON, _ := json.Marshal(oldVal)

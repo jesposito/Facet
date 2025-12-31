@@ -72,13 +72,13 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			}
 
 			var req struct {
-				ProviderID  string `json:"provider_id"`
-				Title       string `json:"title"`
-				Description string `json:"description"`
-				README      string `json:"readme"`
+				ProviderID  string         `json:"provider_id"`
+				Title       string         `json:"title"`
+				Description string         `json:"description"`
+				README      string         `json:"readme"`
 				Languages   map[string]int `json:"languages"`
-				Topics      []string `json:"topics"`
-				PrivacyMode string `json:"privacy_mode"`
+				Topics      []string       `json:"topics"`
+				PrivacyMode string         `json:"privacy_mode"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
