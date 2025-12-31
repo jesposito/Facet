@@ -199,9 +199,9 @@ func TestReservedSlugsProtection(t *testing.T) {
 // TestReservedSlugValidation verifies the isValidSlug function
 func TestReservedSlugValidation(t *testing.T) {
 	tests := []struct {
-		slug    string
-		valid   bool
-		reason  string
+		slug   string
+		valid  bool
+		reason string
 	}{
 		// Valid slugs
 		{"recruiter", true, "simple alphanumeric"},

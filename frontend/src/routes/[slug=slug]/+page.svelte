@@ -7,6 +7,7 @@
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
 	import SkillsSection from '$components/public/SkillsSection.svelte';
+	import PostsSection from '$components/public/PostsSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
@@ -114,6 +115,10 @@
 
 			{#if data.sections?.skills?.length > 0}
 				<SkillsSection items={data.sections.skills} />
+			{/if}
+
+			{#if data.sections?.posts?.length > 0}
+				<PostsSection items={data.sections.posts} />
 			{/if}
 		</main>
 
