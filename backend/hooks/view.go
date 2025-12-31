@@ -392,21 +392,29 @@ func extractPasswordToken(e *core.RequestEvent) string {
 	return e.Request.Header.Get("X-Password-Token")
 }
 
-// extractShareToken extracts the share token from request headers or query params
-// Accepts: Authorization: Bearer <token>, X-Share-Token: <token>, or ?token=<token>
+// extractShareToken extracts the share token from request headers or query params.
+//
+// Transport methods (in order of preference):
+//  1. Authorization: Bearer <token> - RECOMMENDED for API clients
+//  2. X-Share-Token: <token> - Alternative header for programmatic access
+//  3. ?token=<token> - LEGACY/COMPAT ONLY for shareable links
+//
+// SECURITY WARNING: Query parameter tokens are logged in server access logs,
+// browser history, and may leak via Referer headers. Use headers when possible.
 func extractShareToken(e *core.RequestEvent) string {
-	// Check Authorization header first (preferred)
+	// Check Authorization header first (preferred, most secure)
 	authHeader := e.Request.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		return strings.TrimPrefix(authHeader, "Bearer ")
 	}
 
-	// Check X-Share-Token header
+	// Check X-Share-Token header (alternative, also secure)
 	if shareToken := e.Request.Header.Get("X-Share-Token"); shareToken != "" {
 		return shareToken
 	}
 
-	// Check query parameter (for link sharing)
+	// LEGACY: Query parameter for shareable links
+	// WARNING: Tokens in URLs may leak via logs, Referer headers, browser history
 	return e.Request.URL.Query().Get("token")
 }
 

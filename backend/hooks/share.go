@@ -15,7 +15,15 @@ import (
 func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Validate a share token
+		// NOTE: All failure cases return the same generic error to prevent oracle attacks.
+		// Specific error details (expired, wrong view, etc.) are not exposed to callers.
 		se.Router.POST("/api/share/validate", func(e *core.RequestEvent) error {
+			// Generic error response - same for all failure modes to prevent information leakage
+			invalidResponse := services.ShareTokenValidation{
+				Valid: false,
+				Error: "invalid token",
+			}
+
 			var req struct {
 				Token  string `json:"token"`
 				ViewID string `json:"view_id"` // Optional: validate token is for specific view
@@ -66,54 +74,36 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			}
 
 			if err != nil || tokenRecord == nil {
-				return e.JSON(http.StatusOK, services.ShareTokenValidation{
-					Valid: false,
-					Error: "invalid token",
-				})
+				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
-			// Check expiration
+			// Check expiration - return same error to prevent timing oracle
 			expiresAt := tokenRecord.GetDateTime("expires_at")
 			if !expiresAt.IsZero() && time.Now().After(expiresAt.Time()) {
-				return e.JSON(http.StatusOK, services.ShareTokenValidation{
-					Valid: false,
-					Error: "token expired",
-				})
+				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
-			// Check max uses
+			// Check max uses - return same error to prevent oracle
 			useCount := tokenRecord.GetInt("use_count")
 			maxUses := tokenRecord.GetInt("max_uses")
 			if maxUses > 0 && useCount >= maxUses {
-				return e.JSON(http.StatusOK, services.ShareTokenValidation{
-					Valid: false,
-					Error: "token usage limit reached",
-				})
+				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
 			// Get view info
 			viewID := tokenRecord.GetString("view_id")
 			viewRecord, err := app.FindRecordById("views", viewID)
 			if err != nil {
-				return e.JSON(http.StatusOK, services.ShareTokenValidation{
-					Valid: false,
-					Error: "view not found",
-				})
+				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
 			if !viewRecord.GetBool("is_active") {
-				return e.JSON(http.StatusOK, services.ShareTokenValidation{
-					Valid: false,
-					Error: "view is not active",
-				})
+				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
 			// If a specific view_id was requested, verify the token is for that view
 			if req.ViewID != "" && req.ViewID != viewID {
-				return e.JSON(http.StatusOK, services.ShareTokenValidation{
-					Valid: false,
-					Error: "token not valid for this view",
-				})
+				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
 			// Update usage

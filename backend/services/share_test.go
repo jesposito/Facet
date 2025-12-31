@@ -241,3 +241,107 @@ func TestTokenPrefixWithRealToken(t *testing.T) {
 		t.Error("Full token HMAC validation should work")
 	}
 }
+
+// TestPrefixLookupStrategy verifies the prefix-based lookup design:
+// - Prefix is deterministic and extractable from any token
+// - Same prefix means potential match (requires HMAC verification)
+// - Different prefix means definite non-match (can skip HMAC check)
+func TestPrefixLookupStrategy(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+	share := NewShareService(crypto)
+
+	// Generate multiple tokens
+	tokens := make([]string, 10)
+	prefixes := make(map[string][]string) // prefix -> tokens with that prefix
+
+	for i := 0; i < 10; i++ {
+		token, err := share.GenerateToken()
+		if err != nil {
+			t.Fatalf("GenerateToken() error = %v", err)
+		}
+		tokens[i] = token
+		prefix := share.TokenPrefix(token)
+		prefixes[prefix] = append(prefixes[prefix], token)
+	}
+
+	// Most prefixes should be unique (collision is astronomically rare with 12 base64 chars)
+	// With 10 tokens and ~72 bits of prefix entropy, collisions are virtually impossible
+	uniquePrefixes := len(prefixes)
+	if uniquePrefixes < 10 {
+		t.Logf("Warning: Got %d unique prefixes from 10 tokens (collision detected)", uniquePrefixes)
+		// This is not an error - just very unlikely
+	}
+
+	// For each token, verify:
+	// 1. Its prefix can be used to locate it
+	// 2. HMAC verification confirms the match
+	for _, token := range tokens {
+		prefix := share.TokenPrefix(token)
+		hash := share.HMACToken(token)
+
+		// The prefix matches
+		if len(prefix) != TokenPrefixLength {
+			t.Errorf("Prefix length mismatch for token")
+		}
+
+		// HMAC verification works
+		if !share.ValidateTokenHMAC(token, hash) {
+			t.Error("HMAC verification failed for matching token")
+		}
+
+		// A token with different suffix but same prefix would fail HMAC
+		// (simulating a prefix collision scenario)
+		fakeToken := prefix + "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+		if share.ValidateTokenHMAC(fakeToken, hash) {
+			t.Error("HMAC should fail for fake token with same prefix")
+		}
+	}
+}
+
+// TestPrefixIsNonSecretLookupHelper verifies that prefix alone is insufficient
+// for authentication - HMAC verification is required for security
+func TestPrefixIsNonSecretLookupHelper(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+	share := NewShareService(crypto)
+
+	token, _ := share.GenerateToken()
+	prefix := share.TokenPrefix(token)
+	hash := share.HMACToken(token)
+
+	// Knowing the prefix is NOT sufficient to authenticate
+	// An attacker with the prefix cannot generate a valid token
+	for i := 0; i < 100; i++ {
+		// Generate random suffix attempts
+		attackToken := prefix + "attack-attempt-" + string(rune('0'+i))
+		if share.ValidateTokenHMAC(attackToken, hash) {
+			t.Fatal("CRITICAL: Prefix-only attack succeeded - this should never happen")
+		}
+	}
+
+	// Only the exact original token validates
+	if !share.ValidateTokenHMAC(token, hash) {
+		t.Error("Original token should validate")
+	}
+}
+
+// TestLegacyTokenWithoutPrefix simulates tokens created before prefix migration
+func TestLegacyTokenWithoutPrefix(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+	share := NewShareService(crypto)
+
+	// Simulate a legacy token (HMAC exists but no prefix stored)
+	legacyToken, _ := share.GenerateToken()
+	legacyHash := share.HMACToken(legacyToken)
+
+	// Legacy tokens can still be validated via HMAC comparison
+	// (the hooks layer handles the fallback query)
+	if !share.ValidateTokenHMAC(legacyToken, legacyHash) {
+		t.Error("Legacy token should still validate via HMAC")
+	}
+
+	// Prefix extraction still works for new lookups
+	prefix := share.TokenPrefix(legacyToken)
+	if len(prefix) != TokenPrefixLength {
+		t.Error("Prefix extraction should work on legacy tokens")
+	}
+}
