@@ -5,7 +5,7 @@
 
 # Default target
 help:
-	@echo "Me.yaml - Your profile, expressed as data."
+	@echo "Me.yaml — You, human-readable."
 	@echo ""
 	@echo "Development (Codespaces/Local):"
 	@echo "  make dev          Start dev environment with hot reload"
