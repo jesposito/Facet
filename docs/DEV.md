@@ -11,9 +11,14 @@ This guide covers development setup for Me.yaml, a PocketBase + SvelteKit applic
    - **Frontend**: http://localhost:5173
    - **PocketBase Admin**: http://localhost:8090/_/
 
-**Default credentials** (dev only):
-- Email: `admin@example.com`
-- Password: `changeme123`
+**Default credentials** (dev only, auto-created on first run):
+
+| Admin Panel | URL | Email | Password |
+|-------------|-----|-------|----------|
+| PocketBase Admin | http://localhost:8090/_/ | `admin@localhost.dev` | `admin123` |
+| Frontend Admin | (coming soon) | `admin@example.com` | `changeme123` |
+
+If credentials don't work, reset the database: `rm -rf pb_data && ./scripts/start-dev.sh`
 
 ## Quick Start (Local)
 
