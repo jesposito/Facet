@@ -123,36 +123,37 @@ None (this is the starting phase)
 
 ---
 
-## Phase 3: Share Token Management
+## Phase 3: Share Token Management (Complete)
 
 **Purpose**: Full control over share tokens with admin UI.
 
 ### Features
 
-#### 3.1 Token Management Page
-- [ ] Route: `/admin/tokens`
-- [ ] List all tokens with status, usage, expiry
-- [ ] Create new token (name, expiry, max uses)
-- [ ] Copy token URL to clipboard
-- [ ] Revoke/delete tokens
+#### 3.1 Token Management Page (Complete)
+- [x] Route: `/admin/tokens`
+- [x] List all tokens grouped by view with status, usage, expiry
+- [x] Create new token (name, expiry, max uses)
+- [x] Copy token URL to clipboard
+- [x] Revoke/delete tokens with confirmation
+- [x] Status badges (active, expired, revoked, max uses reached)
 
-#### 3.2 Token Analytics
-- [ ] Use count display
-- [ ] Last used timestamp
-- [ ] Usage history (recent accesses)
+#### 3.2 Token Analytics (Partial)
+- [x] Use count display
+- [x] Last used timestamp
+- [ ] Usage history (recent accesses) — Deferred to Phase 8
 
 #### 3.3 Batch Operations
-- [ ] Revoke all tokens for a view
-- [ ] Expire all tokens older than X days
-- [ ] Export token list (for auditing)
+- [ ] Revoke all tokens for a view — Deferred
+- [ ] Expire all tokens older than X days — Deferred
+- [ ] Export token list (for auditing) — Deferred
 
 #### 3.4 Token QR Codes
-- [ ] Generate QR code for share URL
-- [ ] Download as PNG
+- [ ] Generate QR code for share URL — Deferred
+- [ ] Download as PNG — Deferred
 - [ ] Useful for physical sharing (business cards, posters)
 
 ### Prerequisites
-- Phase 2 complete (views are stable)
+- Phase 2 complete (views are stable) ✅
 
 ### Risks
 - QR generation may need external library
@@ -416,6 +417,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Theming after core features | Premature optimization; default theme is sufficient |
 | 2025-12-31 | Phase 1 complete - certifications added | All core content types now have public display and admin CRUD |
 | 2025-12-31 | Admin CRUD pages complete | All admin routes now functional: experience, projects, education, skills |
+| 2025-12-31 | Phase 3 complete - token management UI | Full token list, create, copy URL, revoke, status badges, usage stats |
 
 ---
 

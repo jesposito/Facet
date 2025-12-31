@@ -93,21 +93,23 @@
   - [ ] Reusable FormField components - inline in pages
   - [ ] DragReorder - deferred
 
-### Milestone 6: Views & Share Tokens (Partial)
+### Milestone 6: Views & Share Tokens ✅ Complete
 - [x] Admin UI for views:
   - [x] `/admin/views` - List views
   - [x] `/admin/views/new` - Create view
   - [x] `/admin/views/[id]` - Edit view
-  - [ ] Section selector with drag ordering (deferred)
+  - [ ] Section selector with drag ordering (deferred to Phase 2.2)
   - [x] Item picker per section
   - [x] Override fields (headline, summary, CTA)
   - [x] Default view management
-- [ ] Share token management UI:
-  - [ ] Full token list page
-  - [ ] Generate token with options
-  - [ ] Copy shareable URL
-  - [ ] Revoke token UI
-  - [ ] View access log
+- [x] Share token management UI:
+  - [x] `/admin/tokens` - Full token list page
+  - [x] Generate token with name, expiry, max uses
+  - [x] Copy shareable URL to clipboard
+  - [x] Revoke token with confirmation
+  - [x] Token status badges (active, expired, revoked, max uses reached)
+  - [x] Usage stats (use count, last used timestamp)
+  - [ ] View access log (deferred to Phase 8 - Audit)
 - [x] Public view rendering:
   - [x] Apply section filters
   - [x] Apply item filters
@@ -197,7 +199,7 @@
 | 3. Backend Hooks | ✅ Complete | GitHub, AI, share, password |
 | 4. Public Site | ✅ Complete | All routes and components |
 | 5. Admin Dashboard | ✅ Complete | All CRUD pages |
-| 6. Views & Tokens | 🟡 Partial | Views done, token UI pending |
+| 6. Views & Tokens | ✅ Complete | Full token management UI |
 | 7. GitHub Importer | ✅ Complete | Import and review working |
 | 8. AI Settings | ✅ Complete | Full provider management |
 | 9. Docker | ✅ Complete | Production-ready |
@@ -209,15 +211,15 @@
 ## Remaining Work
 
 ### High Priority
-1. Share token management UI (Phase 3 in ROADMAP)
-2. Full accessibility audit
+1. Full accessibility audit
 
 ### Medium Priority
-3. Drag-drop reordering for views
-4. Media library
-5. Additional frontend tests
+2. Drag-drop reordering for views (Phase 2.2)
+3. Media library (Phase 7)
+4. Additional frontend tests
 
 ### Low Priority
-6. SETUP.md and UPGRADE.md documentation
-7. AI provider mock tests
-8. Integration tests
+5. SETUP.md and UPGRADE.md documentation
+6. AI provider mock tests
+7. Integration tests
+8. View access log / audit logging (Phase 8)
