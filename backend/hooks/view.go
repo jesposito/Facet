@@ -484,6 +484,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["talks"] = serializeRecords(talkRecords)
 			}
 
+			// Fetch certifications - only public items appear on homepage
+			certRecords, err := app.FindRecordsByFilter(
+				"certifications",
+				"visibility = 'public' && is_draft = false",
+				"issuer,sort_order,-issue_date",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				response["certifications"] = serializeRecords(certRecords)
+			}
+
 			return e.JSON(http.StatusOK, response)
 		}))
 

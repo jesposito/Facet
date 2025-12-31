@@ -36,7 +36,7 @@ None (this is the starting phase)
 
 ---
 
-## Phase 1: Content Completeness (Current)
+## Phase 1: Content Completeness (Complete)
 
 **Purpose**: Fill in missing content types and their public-facing pages.
 
@@ -64,11 +64,11 @@ None (this is the starting phase)
 - [x] Slides embed/download
 - [x] Admin: Full CRUD for talks
 
-#### 1.4 Certifications Section
-- [ ] Public display with verification links
-- [ ] Expiry date handling
-- [ ] Grouping by issuer
-- [ ] Admin: Full CRUD for certifications
+#### 1.4 Certifications Section (Complete)
+- [x] Public display with verification links
+- [x] Expiry date handling (shows expired/expiring soon badges)
+- [x] Grouping by issuer
+- [x] Admin: Full CRUD for certifications
 
 ### Prerequisites
 - Phase 0 complete
@@ -79,7 +79,7 @@ None (this is the starting phase)
 
 ---
 
-## Phase 2: View System Enhancement
+## Phase 2: View System Enhancement (Current)
 
 **Purpose**: Make views more powerful and easier to manage.
 
@@ -107,7 +107,7 @@ None (this is the starting phase)
 - [ ] No PII collected
 
 ### Prerequisites
-- Phase 1 complete (all content types have public pages)
+- Phase 1 complete
 
 ### Risks
 - Drag-drop complexity; may need library (svelte-dnd-action)
@@ -406,6 +406,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | No time estimates | Quality over speed; single-owner app |
 | 2025-12-31 | Content completeness before views | Need pages to link to before view improvements |
 | 2025-12-31 | Theming after core features | Premature optimization; default theme is sufficient |
+| 2025-12-31 | Phase 1 complete - certifications added | All core content types now have public display and admin CRUD |
 
 ---
 

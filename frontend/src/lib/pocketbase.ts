@@ -124,6 +124,19 @@ export interface Talk {
 	sort_order: number;
 }
 
+export interface Certification {
+	id: string;
+	name: string;
+	issuer?: string;
+	issue_date?: string;
+	expiry_date?: string;
+	credential_id?: string;
+	credential_url?: string;
+	visibility: 'public' | 'unlisted' | 'private';
+	is_draft: boolean;
+	sort_order: number;
+}
+
 export interface View {
 	id: string;
 	name: string;
@@ -253,6 +266,18 @@ export async function fetchTalks(): Promise<Talk[]> {
 			sort: '-sort_order,-date'
 		});
 		return records.items as unknown as Talk[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchCertifications(): Promise<Certification[]> {
+	try {
+		const records = await pb.collection('certifications').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: 'issuer,sort_order,-issue_date'
+		});
+		return records.items as unknown as Certification[];
 	} catch {
 		return [];
 	}
