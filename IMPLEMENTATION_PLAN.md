@@ -91,20 +91,20 @@
 - [ ] Ensure accessibility (a11y)
 
 ### Milestone 5: Frontend - Admin Dashboard
-- [ ] Set up admin layout with sidebar
-- [ ] Implement OAuth login flow
-- [ ] Create admin routes:
-  - [ ] `/admin` - Dashboard overview
-  - [ ] `/admin/profile` - Edit profile
-  - [ ] `/admin/experience` - CRUD experience
-  - [ ] `/admin/projects` - CRUD projects
-  - [ ] `/admin/education` - CRUD education
-  - [ ] `/admin/certifications` - CRUD certs
-  - [ ] `/admin/skills` - CRUD skills
-  - [ ] `/admin/posts` - CRUD posts
-  - [ ] `/admin/talks` - CRUD talks
-  - [ ] `/admin/media` - Media library
-  - [ ] `/admin/settings` - AI providers
+- [x] Set up admin layout with sidebar
+- [x] Implement OAuth login flow
+- [x] Create admin routes:
+  - [x] `/admin` - Dashboard overview
+  - [x] `/admin/profile` - Edit profile
+  - [x] `/admin/experience` - CRUD experience
+  - [x] `/admin/projects` - CRUD projects
+  - [x] `/admin/education` - CRUD education
+  - [x] `/admin/certifications` - CRUD certs
+  - [x] `/admin/skills` - CRUD skills
+  - [x] `/admin/posts` - CRUD posts
+  - [x] `/admin/talks` - CRUD talks
+  - [ ] `/admin/media` - Media library (deferred to Phase 7)
+  - [x] `/admin/settings` - AI providers
 - [ ] Create admin components:
   - [ ] DataTable (sortable, filterable)
   - [ ] FormField (text, textarea, date, file, JSON)
@@ -116,13 +116,13 @@
   - [ ] Toast notifications
 
 ### Milestone 6: Views & Share Tokens
-- [ ] Admin UI for views:
-  - [ ] `/admin/views` - List views
-  - [ ] `/admin/views/new` - Create view
-  - [ ] `/admin/views/[id]` - Edit view
-  - [ ] Section selector with drag ordering
-  - [ ] Item picker per section
-  - [ ] Override fields (headline, summary, CTA)
+- [x] Admin UI for views:
+  - [x] `/admin/views` - List views
+  - [x] `/admin/views/new` - Create view
+  - [x] `/admin/views/[id]` - Edit view
+  - [ ] Section selector with drag ordering (deferred)
+  - [x] Item picker per section
+  - [x] Override fields (headline, summary, CTA)
 - [ ] Share token management:
   - [ ] Generate token button
   - [ ] Copy shareable URL

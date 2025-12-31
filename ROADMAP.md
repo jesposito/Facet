@@ -415,6 +415,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Content completeness before views | Need pages to link to before view improvements |
 | 2025-12-31 | Theming after core features | Premature optimization; default theme is sufficient |
 | 2025-12-31 | Phase 1 complete - certifications added | All core content types now have public display and admin CRUD |
+| 2025-12-31 | Admin CRUD pages complete | All admin routes now functional: experience, projects, education, skills |
 
 ---
 
