@@ -9,7 +9,6 @@ import (
 	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
 	_ "ownprofile/migrations"
@@ -17,12 +16,6 @@ import (
 
 func main() {
 	app := pocketbase.New()
-
-	// Configure data directory from environment
-	dataDir := os.Getenv("DATA_DIR")
-	if dataDir == "" {
-		dataDir = "./pb_data"
-	}
 
 	// Initialize services
 	encryptionKey := os.Getenv("ENCRYPTION_KEY")
