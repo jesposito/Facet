@@ -73,8 +73,8 @@
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
 	<div class="card p-8 max-w-md w-full">
 		<div class="text-center mb-8">
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sign in to manage your profile</h1>
-			<p class="text-gray-600 dark:text-gray-400 mt-2">Me.yaml — You, human-readable.</p>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sign in to Me.yaml</h1>
+			<p class="text-gray-600 dark:text-gray-400 mt-2">A simple home for your story.</p>
 		</div>
 
 		{#if error}

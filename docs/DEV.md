@@ -319,6 +319,26 @@ Changes:
 - Contact links: "Add links to help people reach you"
 - AI providers: Gentle guidance about optional enrichment
 
-### Phase C: Visual Calm (Planned)
+### Phase C: Visual Calm (Complete)
 
-Icon consistency, spacing, hierarchy refinements.
+*Tag: `phase-visual-calm`*
+
+Consistent icons, refined button styles, and improved tagline. No emoji icons in UI.
+
+Changes:
+- Created `$lib/icons.ts` with consistent SVG icons (check, x, info, warning, eye, trash, copy, lock, download, star, gitFork, brain, zap, toggleOn, toggleOff)
+- Replaced all emoji icons across admin pages with SVG icons
+- Added `btn-danger` and `btn-danger-ghost` styles for destructive actions
+- Login tagline: "A simple home for your story." (replaces tech-focused copy)
+- Improved hover states on destructive action buttons
+
+Files modified:
+- `frontend/src/lib/icons.ts` (new)
+- `frontend/src/app.css`
+- `frontend/src/components/shared/Toast.svelte`
+- `frontend/src/routes/admin/views/+page.svelte`
+- `frontend/src/routes/admin/import/+page.svelte`
+- `frontend/src/routes/admin/review/[id]/+page.svelte`
+- `frontend/src/routes/admin/settings/+page.svelte`
+- `frontend/src/routes/admin/profile/+page.svelte`
+- `frontend/src/routes/admin/login/+page.svelte`

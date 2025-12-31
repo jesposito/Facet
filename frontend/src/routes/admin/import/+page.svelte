@@ -2,6 +2,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { goto } from '$app/navigation';
+	import { icon } from '$lib/icons';
 
 	let step = 1;
 	let loading = false;
@@ -77,6 +78,13 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	function getLanguages(): string {
+		if (preview?.languages && typeof preview.languages === 'object') {
+			return Object.keys(preview.languages).join(', ');
+		}
+		return '';
 	}
 
 	async function handleImport() {
@@ -214,14 +222,20 @@
 
 				<div class="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
 					{#if preview.stargazers_count}
-						<span>⭐ {preview.stargazers_count} stars</span>
+						<span class="inline-flex items-center gap-1">
+							{@html icon('star')}
+							{preview.stargazers_count} stars
+						</span>
 					{/if}
 					{#if preview.forks_count}
-						<span>🍴 {preview.forks_count} forks</span>
+						<span class="inline-flex items-center gap-1">
+							{@html icon('gitFork')}
+							{preview.forks_count} forks
+						</span>
 					{/if}
 				</div>
 
-				{#if preview.topics && (preview.topics as string[]).length > 0}
+				{#if preview.topics && Array.isArray(preview.topics) && preview.topics.length > 0}
 					<div class="flex flex-wrap gap-1 mt-3">
 						{#each preview.topics as topic}
 							<span class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded">
@@ -235,7 +249,7 @@
 					<div class="mt-3">
 						<span class="text-sm font-medium">Languages: </span>
 						<span class="text-sm text-gray-600 dark:text-gray-400">
-							{Object.keys(preview.languages as object).join(', ')}
+							{getLanguages()}
 						</span>
 					</div>
 				{/if}

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import { icon } from '$lib/icons';
 
 	let loading = true;
 	let providers: Array<Record<string, unknown>> = [];
@@ -247,9 +248,9 @@
 								{:else if provider.type === 'anthropic'}
 									<span class="text-lg font-bold">A</span>
 								{:else if provider.type === 'ollama'}
-									<span class="text-lg">🦙</span>
+									{@html icon('brain')}
 								{:else}
-									<span class="text-lg">⚡</span>
+									{@html icon('zap')}
 								{/if}
 							</div>
 							<div>
@@ -278,7 +279,7 @@
 						<div class="flex items-center gap-2">
 							<button
 								class="btn btn-sm btn-secondary"
-								on:click={() => testConnection(provider.id as string)}
+								on:click={() => testConnection(String(provider.id))}
 								disabled={testing === provider.id}
 							>
 								{#if testing === provider.id}
@@ -293,14 +294,14 @@
 							{#if !provider.is_default}
 								<button
 									class="btn btn-sm btn-secondary"
-									on:click={() => setDefault(provider.id as string)}
+									on:click={() => setDefault(String(provider.id))}
 								>
 									Set Default
 								</button>
 							{/if}
 							<button
 								class="btn btn-sm btn-ghost text-red-600"
-								on:click={() => deleteProvider(provider.id as string)}
+								on:click={() => deleteProvider(String(provider.id))}
 							>
 								Delete
 							</button>
@@ -317,8 +318,9 @@
 		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 			Export your profile data in a portable format.
 		</p>
-		<button class="btn btn-secondary">
-			📥 Download me.yaml
+		<button class="btn btn-secondary inline-flex items-center gap-2">
+			{@html icon('download')}
+			Download me.yaml
 		</button>
 	</div>
 </div>
