@@ -161,9 +161,5 @@
 				</button>
 			</form>
 		{/if}
-
-		<p class="mt-6 text-center text-xs text-gray-500 dark:text-gray-400">
-			Configure OAuth providers in PocketBase admin at <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/_/</code>
-		</p>
 	</div>
 </div>

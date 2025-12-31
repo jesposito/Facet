@@ -82,17 +82,59 @@ func NewRateLimitService() *RateLimitService {
 	return svc
 }
 
+// RateLimitInfo contains rate limit state for header generation
+type RateLimitInfo struct {
+	Allowed   bool  // Whether the request is allowed
+	Limit     int   // Maximum requests per window (burst size)
+	Remaining int   // Remaining requests in current window
+	Reset     int64 // Unix timestamp when bucket will be full
+	RetryAfter int  // Seconds until next request allowed (only if !Allowed)
+}
+
 // Allow checks if a request should be allowed for the given tier
 // Returns (allowed, retryAfter) where retryAfter is seconds until next allowed request
 func (s *RateLimitService) Allow(r *http.Request, tier string) (bool, int) {
+	info := s.AllowWithInfo(r, tier)
+	return info.Allowed, info.RetryAfter
+}
+
+// AllowWithInfo checks if a request should be allowed and returns detailed rate limit info
+// This enables setting rate limit headers on all responses (not just 429s)
+func (s *RateLimitService) AllowWithInfo(r *http.Request, tier string) RateLimitInfo {
 	ip := s.getClientIP(r)
 	limiter := s.getLimiter(ip, tier)
+	tierConfig := s.getTierConfig(tier)
 
+	now := time.Now()
+
+	// Try to consume a token
 	if limiter.Allow() {
-		return true, 0
+		// Request allowed - calculate remaining tokens
+		// TokensAt gives us the token count at a given time
+		remaining := int(limiter.Tokens())
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		// Calculate when bucket will be full again
+		// Time to refill = (burst - current) / rate
+		tokensNeeded := float64(tierConfig.Burst) - limiter.Tokens()
+		if tokensNeeded < 0 {
+			tokensNeeded = 0
+		}
+		refillDuration := time.Duration(tokensNeeded / float64(tierConfig.Rate) * float64(time.Second))
+		resetTime := now.Add(refillDuration).Unix()
+
+		return RateLimitInfo{
+			Allowed:    true,
+			Limit:      tierConfig.Burst,
+			Remaining:  remaining,
+			Reset:      resetTime,
+			RetryAfter: 0,
+		}
 	}
 
-	// Calculate retry-after (time until next token available)
+	// Request denied - calculate retry-after
 	reservation := limiter.Reserve()
 	delay := reservation.Delay()
 	reservation.Cancel() // Don't actually consume the token
@@ -102,7 +144,24 @@ func (s *RateLimitService) Allow(r *http.Request, tier string) (bool, int) {
 		retryAfter = 1
 	}
 
-	return false, retryAfter
+	// Reset time is when next token becomes available
+	resetTime := now.Add(delay).Unix()
+
+	return RateLimitInfo{
+		Allowed:    false,
+		Limit:      tierConfig.Burst,
+		Remaining:  0,
+		Reset:      resetTime,
+		RetryAfter: retryAfter,
+	}
+}
+
+// getTierConfig returns the tier configuration, defaulting to normal
+func (s *RateLimitService) getTierConfig(tier string) RateLimitTier {
+	if config, ok := s.tiers[tier]; ok {
+		return config
+	}
+	return TierNormal
 }
 
 // getLimiter returns or creates a limiter for the given IP and tier

@@ -11,16 +11,25 @@ import (
 
 // RateLimitMiddleware creates a rate-limiting wrapper for endpoint handlers
 // tier: "strict", "moderate", or "normal"
+//
+// Sets standard rate limit headers on ALL responses (RFC 6585, draft-ietf-httpapi-ratelimit-headers):
+//   - X-RateLimit-Limit: Maximum requests allowed per window
+//   - X-RateLimit-Remaining: Remaining requests in current window
+//   - X-RateLimit-Reset: Unix timestamp when the rate limit resets
+//   - Retry-After: Seconds until next request allowed (only on 429)
 func RateLimitMiddleware(rl *services.RateLimitService, tier string) func(func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 	return func(handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 		return func(e *core.RequestEvent) error {
-			allowed, retryAfter := rl.Allow(e.Request, tier)
+			info := rl.AllowWithInfo(e.Request, tier)
 
-			if !allowed {
-				// Set standard rate limit headers
-				e.Response.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
-				e.Response.Header().Set("X-RateLimit-Limit", tierToLimit(tier))
-				e.Response.Header().Set("X-RateLimit-Remaining", "0")
+			// Always set rate limit headers (allows clients to monitor quota)
+			e.Response.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", info.Limit))
+			e.Response.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", info.Remaining))
+			e.Response.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", info.Reset))
+
+			if !info.Allowed {
+				// Additional header for 429 responses
+				e.Response.Header().Set("Retry-After", fmt.Sprintf("%d", info.RetryAfter))
 
 				// Return uniform 429 response (non-leaky)
 				return e.JSON(http.StatusTooManyRequests, map[string]string{
@@ -33,16 +42,3 @@ func RateLimitMiddleware(rl *services.RateLimitService, tier string) func(func(*
 	}
 }
 
-// tierToLimit returns a human-readable limit description
-func tierToLimit(tier string) string {
-	switch tier {
-	case "strict":
-		return "5/min"
-	case "moderate":
-		return "10/min"
-	case "normal":
-		return "60/min"
-	default:
-		return "60/min"
-	}
-}
