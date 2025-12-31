@@ -67,14 +67,3 @@ type AdminDeniedError struct {
 func (e *AdminDeniedError) Error() string {
 	return e.Message
 }
-
-// RequireAuth returns a middleware that requires authentication
-func RequireAuth(app *pocketbase.PocketBase) func(e *core.RequestEvent) error {
-	return func(e *core.RequestEvent) error {
-		info, _ := e.RequestInfo()
-		if info != nil && info.Auth != nil {
-			e.Auth = info.Auth
-		}
-		return e.Next()
-	}
-}

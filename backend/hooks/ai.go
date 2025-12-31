@@ -8,6 +8,7 @@ import (
 	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -62,7 +63,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"success": true,
 			})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		// Enrich project content with AI
 		se.Router.POST("/api/ai/enrich", func(e *core.RequestEvent) error {
@@ -127,7 +128,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			}
 
 			return e.JSON(http.StatusOK, result)
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})

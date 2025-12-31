@@ -7,6 +7,7 @@ import (
 	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -162,7 +163,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				"token": rawToken, // Only returned once!
 				"name":  req.Name,
 			})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		// Revoke a share token
 		se.Router.POST("/api/share/revoke/{id}", func(e *core.RequestEvent) error {
@@ -182,7 +183,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "revoked"})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})

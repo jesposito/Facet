@@ -7,6 +7,7 @@ import (
 	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -93,7 +94,7 @@ func RegisterPasswordHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "password set"})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})
