@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"ownprofile/services"
 
@@ -13,7 +14,7 @@ import (
 )
 
 // RegisterViewHooks registers view-related API endpoints
-func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
 		se.Router.GET("/api/view/{slug}/access", func(e *core.RequestEvent) error {
@@ -95,8 +96,25 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 
 			case "unlisted":
-				// Unlisted views are accessible via direct link (no additional auth for now)
-				// TODO: Step 3 will add share token requirement here
+				// Unlisted views require a valid share token
+				shareToken := extractShareToken(e)
+				if shareToken == "" {
+					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "share token required"})
+				}
+
+				// Validate the share token
+				valid, tokenRecord := validateShareToken(app, share, shareToken, view.Id)
+				if !valid {
+					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
+				}
+
+				// Update token usage (fire-and-forget, don't block request)
+				if tokenRecord != nil {
+					useCount := tokenRecord.GetInt("use_count")
+					tokenRecord.Set("use_count", useCount+1)
+					tokenRecord.Set("last_used_at", time.Now())
+					app.Save(tokenRecord)
+				}
 
 			case "public":
 				// Public views are accessible to everyone
@@ -372,4 +390,89 @@ func extractPasswordToken(e *core.RequestEvent) string {
 
 	// Fallback to X-Password-Token header (legacy/UI convenience)
 	return e.Request.Header.Get("X-Password-Token")
+}
+
+// extractShareToken extracts the share token from request headers or query params
+// Accepts: Authorization: Bearer <token>, X-Share-Token: <token>, or ?token=<token>
+func extractShareToken(e *core.RequestEvent) string {
+	// Check Authorization header first (preferred)
+	authHeader := e.Request.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	// Check X-Share-Token header
+	if shareToken := e.Request.Header.Get("X-Share-Token"); shareToken != "" {
+		return shareToken
+	}
+
+	// Check query parameter (for link sharing)
+	return e.Request.URL.Query().Get("token")
+}
+
+// validateShareToken validates a share token for a specific view
+// Returns (valid, tokenRecord) - tokenRecord is returned for usage tracking
+func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService, token string, viewID string) (bool, *core.Record) {
+	if token == "" {
+		return false, nil
+	}
+
+	// O(1) lookup using token_prefix index
+	prefix := share.TokenPrefix(token)
+
+	// Query by prefix for efficient lookup (indexed)
+	candidates, err := app.FindRecordsByFilter(
+		"share_tokens",
+		"token_prefix = {:prefix} && is_active = true",
+		"-created",
+		10,
+		0,
+		map[string]interface{}{"prefix": prefix},
+	)
+
+	// Fallback to legacy lookup if no prefix-based results
+	if err != nil || len(candidates) == 0 {
+		candidates, err = app.FindRecordsByFilter(
+			"share_tokens",
+			"(token_prefix = '' || token_prefix IS NULL) && is_active = true",
+			"-created",
+			100,
+			0,
+			nil,
+		)
+	}
+
+	// Find matching token using constant-time HMAC comparison
+	var tokenRecord *core.Record
+	for _, record := range candidates {
+		storedHMAC := record.GetString("token_hash")
+		if share.ValidateTokenHMAC(token, storedHMAC) {
+			tokenRecord = record
+			break
+		}
+	}
+
+	if err != nil || tokenRecord == nil {
+		return false, nil
+	}
+
+	// Verify token is for this specific view
+	if tokenRecord.GetString("view_id") != viewID {
+		return false, nil
+	}
+
+	// Check expiration
+	expiresAt := tokenRecord.GetDateTime("expires_at")
+	if !expiresAt.IsZero() && time.Now().After(expiresAt.Time()) {
+		return false, nil
+	}
+
+	// Check max uses
+	useCount := tokenRecord.GetInt("use_count")
+	maxUses := tokenRecord.GetInt("max_uses")
+	if maxUses > 0 && useCount >= maxUses {
+		return false, nil
+	}
+
+	return true, tokenRecord
 }

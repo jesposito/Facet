@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+// TokenPrefixLength is the number of characters to store for indexed lookup
+// 12 chars of base64 = ~72 bits of entropy, sufficient for narrowing to 1-2 candidates
+const TokenPrefixLength = 12
+
 // ShareService handles share token operations
 type ShareService struct {
 	crypto *CryptoService
@@ -52,4 +56,13 @@ func (s *ShareService) CanUseToken(useCount int, maxUses *int) bool {
 		return true // Unlimited uses
 	}
 	return useCount < *maxUses
+}
+
+// TokenPrefix extracts the prefix from a raw token for indexed lookup
+// This is stored unencrypted for O(1) database queries
+func (s *ShareService) TokenPrefix(token string) string {
+	if len(token) < TokenPrefixLength {
+		return token
+	}
+	return token[:TokenPrefixLength]
 }

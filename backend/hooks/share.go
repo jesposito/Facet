@@ -17,7 +17,8 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 		// Validate a share token
 		se.Router.POST("/api/share/validate", func(e *core.RequestEvent) error {
 			var req struct {
-				Token string `json:"token"`
+				Token  string `json:"token"`
+				ViewID string `json:"view_id"` // Optional: validate token is for specific view
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -28,19 +29,35 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "token required"})
 			}
 
-			// Find token record by iterating and comparing HMACs
-			// We iterate because HMAC lookup isn't direct - we need constant-time comparison
-			allTokens, err := app.FindRecordsByFilter(
+			// O(1) lookup using token_prefix index
+			prefix := share.TokenPrefix(req.Token)
+
+			// Query by prefix for efficient lookup (indexed)
+			candidates, err := app.FindRecordsByFilter(
 				"share_tokens",
-				"is_active = true",
+				"token_prefix = {:prefix} && is_active = true",
 				"-created",
-				1000,
+				10, // Prefix collisions are rare; limit for safety
 				0,
-				nil,
+				map[string]interface{}{"prefix": prefix},
 			)
 
+			// Fallback to legacy lookup if no prefix-based results (for tokens created before migration)
+			if err != nil || len(candidates) == 0 {
+				// Try legacy O(n) scan for old tokens without prefix
+				candidates, err = app.FindRecordsByFilter(
+					"share_tokens",
+					"(token_prefix = '' || token_prefix IS NULL) && is_active = true",
+					"-created",
+					100,
+					0,
+					nil,
+				)
+			}
+
+			// Find the matching token using constant-time HMAC comparison
 			var tokenRecord *core.Record
-			for _, record := range allTokens {
+			for _, record := range candidates {
 				storedHMAC := record.GetString("token_hash")
 				if share.ValidateTokenHMAC(req.Token, storedHMAC) {
 					tokenRecord = record
@@ -91,6 +108,14 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				})
 			}
 
+			// If a specific view_id was requested, verify the token is for that view
+			if req.ViewID != "" && req.ViewID != viewID {
+				return e.JSON(http.StatusOK, services.ShareTokenValidation{
+					Valid: false,
+					Error: "token not valid for this view",
+				})
+			}
+
 			// Update usage
 			tokenRecord.Set("use_count", useCount+1)
 			tokenRecord.Set("last_used_at", time.Now())
@@ -133,6 +158,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			}
 
 			tokenHMAC := share.HMACToken(rawToken)
+			tokenPrefix := share.TokenPrefix(rawToken)
 
 			// Create token record
 			collection, err := app.FindCollectionByNameOrId("share_tokens")
@@ -143,6 +169,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			record := core.NewRecord(collection)
 			record.Set("view_id", req.ViewID)
 			record.Set("token_hash", tokenHMAC)
+			record.Set("token_prefix", tokenPrefix) // For O(1) indexed lookup
 			record.Set("name", req.Name)
 			record.Set("is_active", true)
 			record.Set("use_count", 0)
