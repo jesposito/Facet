@@ -20,8 +20,13 @@ func main() {
 	// Initialize services
 	encryptionKey := os.Getenv("ENCRYPTION_KEY")
 	if encryptionKey == "" {
-		log.Println("WARNING: ENCRYPTION_KEY not set. API tokens will not be encrypted properly.")
-		encryptionKey = "default-dev-key-change-in-prod!!" // 32 bytes for dev
+		log.Fatal("FATAL: ENCRYPTION_KEY environment variable is required.\n" +
+			"This key is used to encrypt sensitive data (API tokens, credentials).\n" +
+			"Generate one with: openssl rand -hex 32")
+	}
+	if len(encryptionKey) < 32 {
+		log.Fatal("FATAL: ENCRYPTION_KEY must be at least 32 characters.\n" +
+			"Generate one with: openssl rand -hex 32")
 	}
 
 	cryptoService := services.NewCryptoService(encryptionKey)
