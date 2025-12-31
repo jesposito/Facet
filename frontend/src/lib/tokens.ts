@@ -70,16 +70,22 @@ export function clearPasswordToken(cookies: Cookies) {
 
 /**
  * Build headers for API requests with available tokens
+ *
+ * Token transport:
+ * - Password JWT: Authorization: Bearer <jwt> (standards compliant)
+ * - Share token: X-Share-Token: <token> (custom header, avoids Authorization conflict)
  */
 export function buildTokenHeaders(shareToken: string | null, passwordToken: string | null): Record<string, string> {
 	const headers: Record<string, string> = {};
 
+	// Share tokens use a custom header to avoid conflict with password JWT
 	if (shareToken) {
 		headers['X-Share-Token'] = shareToken;
 	}
 
+	// Password JWT uses standard Bearer authentication
 	if (passwordToken) {
-		headers['Authorization'] = passwordToken;
+		headers['Authorization'] = `Bearer ${passwordToken}`;
 	}
 
 	return headers;

@@ -76,9 +76,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Check access based on visibility
 			switch visibility {
 			case "private":
-				// Private views require admin authentication
+				// Private views return 404 to prevent leaking existence
+				// Only authenticated admin users can access private views
 				if e.Auth == nil {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+					return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 				}
 
 			case "password":
@@ -242,10 +243,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			response := make(map[string]interface{})
 
-			// Fetch profile
+			// Fetch profile - only public profiles appear on homepage
 			profileRecords, err := app.FindRecordsByFilter(
 				"profile",
-				"visibility != 'private'",
+				"visibility = 'public'",
 				"",
 				1,
 				0,
@@ -275,10 +276,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["profile"] = profileData
 			}
 
-			// Fetch experience
+			// Fetch experience - only public items appear on homepage
 			experienceRecords, err := app.FindRecordsByFilter(
 				"experience",
-				"visibility != 'private' && is_draft = false",
+				"visibility = 'public' && is_draft = false",
 				"-sort_order,-start_date",
 				100,
 				0,
@@ -288,10 +289,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["experience"] = serializeRecords(experienceRecords)
 			}
 
-			// Fetch projects
+			// Fetch projects - only public items appear on homepage
 			projectRecords, err := app.FindRecordsByFilter(
 				"projects",
-				"visibility != 'private' && is_draft = false",
+				"visibility = 'public' && is_draft = false",
 				"-is_featured,-sort_order",
 				100,
 				0,
@@ -310,10 +311,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["projects"] = projects
 			}
 
-			// Fetch education
+			// Fetch education - only public items appear on homepage
 			educationRecords, err := app.FindRecordsByFilter(
 				"education",
-				"visibility != 'private' && is_draft = false",
+				"visibility = 'public' && is_draft = false",
 				"-sort_order,-end_date",
 				100,
 				0,
@@ -323,10 +324,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["education"] = serializeRecords(educationRecords)
 			}
 
-			// Fetch skills
+			// Fetch skills - only public items appear on homepage
 			skillRecords, err := app.FindRecordsByFilter(
 				"skills",
-				"visibility != 'private'",
+				"visibility = 'public'",
 				"category,sort_order",
 				200,
 				0,
@@ -533,20 +534,16 @@ func extractPasswordToken(e *core.RequestEvent) string {
 // extractShareToken extracts the share token from request headers or query params.
 //
 // Transport methods (in order of preference):
-//  1. Authorization: Bearer <token> - RECOMMENDED for API clients
-//  2. X-Share-Token: <token> - Alternative header for programmatic access
-//  3. ?token=<token> - LEGACY/COMPAT ONLY for shareable links
+//  1. X-Share-Token: <token> - Primary header for share tokens
+//  2. ?token=<token> - LEGACY/COMPAT ONLY for shareable links
+//
+// NOTE: Authorization header is NOT checked here because it's reserved for
+// password JWTs. This prevents conflicts when both tokens are present.
 //
 // SECURITY WARNING: Query parameter tokens are logged in server access logs,
 // browser history, and may leak via Referer headers. Use headers when possible.
 func extractShareToken(e *core.RequestEvent) string {
-	// Check Authorization header first (preferred, most secure)
-	authHeader := e.Request.Header.Get("Authorization")
-	if strings.HasPrefix(authHeader, "Bearer ") {
-		return strings.TrimPrefix(authHeader, "Bearer ")
-	}
-
-	// Check X-Share-Token header (alternative, also secure)
+	// Check X-Share-Token header (primary method)
 	if shareToken := e.Request.Header.Get("X-Share-Token"); shareToken != "" {
 		return shareToken
 	}
