@@ -8,7 +8,7 @@ This roadmap outlines the feature development plan for Me.yaml, organized into l
 
 ---
 
-## Phase 0: Foundation Stabilization (Current)
+## Phase 0: Foundation Stabilization (Complete)
 
 **Purpose**: Ensure the existing foundation is solid before adding new features.
 
@@ -36,18 +36,18 @@ None (this is the starting phase)
 
 ---
 
-## Phase 1: Content Completeness
+## Phase 1: Content Completeness (Current)
 
 **Purpose**: Fill in missing content types and their public-facing pages.
 
 ### Features
 
-#### 1.1 Project Detail Pages
-- [ ] Route: `/projects/<slug>`
-- [ ] Full project page with description, tech stack, media gallery
-- [ ] Links to GitHub, demo, etc.
-- [ ] Related projects (same categories)
-- [ ] Meta tags for sharing
+#### 1.1 Project Detail Pages (Complete)
+- [x] Route: `/projects/<slug>`
+- [x] Full project page with description, tech stack, media gallery
+- [x] Links to GitHub, demo, etc.
+- [ ] Related projects (same categories) — Deferred to Phase 2.5
+- [x] Meta tags for sharing (Open Graph)
 
 #### 1.2 Posts/Blog System
 - [ ] Route: `/posts/<slug>`

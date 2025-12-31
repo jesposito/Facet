@@ -19,10 +19,11 @@ import (
 // SYNC WITH: frontend/src/params/slug.ts
 var ReservedSlugs = map[string]bool{
 	// Existing routes
-	"admin": true,
-	"api":   true,
-	"s":     true,
-	"v":     true,
+	"admin":    true,
+	"api":      true,
+	"s":        true,
+	"v":        true,
+	"projects": true,
 	// SvelteKit internal
 	"_app": true,
 	"_":    true,
@@ -578,6 +579,95 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "rejected"})
 		}).Bind(apis.RequireAuth())
+
+		// Get public project by slug
+		// Rate limited: normal tier (60/min)
+		// Returns 404 for private, unlisted, draft, or non-existent projects
+		se.Router.GET("/api/project/{slug}", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			slug := e.Request.PathValue("slug")
+
+			if slug == "" {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
+			}
+
+			// Find project by slug
+			records, err := app.FindRecordsByFilter(
+				"projects",
+				"slug = {:slug}",
+				"",
+				1,
+				0,
+				map[string]interface{}{"slug": slug},
+			)
+
+			if err != nil || len(records) == 0 {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
+			}
+
+			project := records[0]
+
+			// Check visibility - only public, non-draft projects are accessible
+			visibility := project.GetString("visibility")
+			isDraft := project.GetBool("is_draft")
+
+			if visibility != "public" || isDraft {
+				// Return 404 to prevent discovery of private/unlisted/draft projects
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
+			}
+
+			// Build response with resolved file URLs
+			response := map[string]interface{}{
+				"id":          project.Id,
+				"title":       project.GetString("title"),
+				"slug":        project.GetString("slug"),
+				"summary":     project.GetString("summary"),
+				"description": project.GetString("description"),
+				"tech_stack":  project.Get("tech_stack"),
+				"links":       project.Get("links"),
+				"categories":  project.Get("categories"),
+				"is_featured": project.GetBool("is_featured"),
+			}
+
+			// Resolve cover image URL
+			if coverImage := project.GetString("cover_image"); coverImage != "" {
+				response["cover_image_url"] = "/api/files/" + project.Collection().Id + "/" + project.Id + "/" + coverImage
+			}
+
+			// Resolve media URLs
+			if mediaField := project.Get("media"); mediaField != nil {
+				if mediaFiles, ok := mediaField.([]string); ok && len(mediaFiles) > 0 {
+					var mediaURLs []string
+					for _, file := range mediaFiles {
+						mediaURLs = append(mediaURLs, "/api/files/"+project.Collection().Id+"/"+project.Id+"/"+file)
+					}
+					response["media_urls"] = mediaURLs
+				}
+			}
+
+			// Fetch profile data for navigation context
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility = 'public'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				profile := profileRecords[0]
+				profileData := map[string]interface{}{
+					"id":       profile.Id,
+					"name":     profile.GetString("name"),
+					"headline": profile.GetString("headline"),
+				}
+				if avatar := profile.GetString("avatar"); avatar != "" {
+					profileData["avatar_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + avatar
+				}
+				response["profile"] = profileData
+			}
+
+			return e.JSON(http.StatusOK, response)
+		}))
 
 		return se.Next()
 	})

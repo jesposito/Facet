@@ -787,7 +787,7 @@ Based on codebase analysis, these features are incomplete or missing:
 
 | Gap | Current State | Impact |
 |-----|---------------|--------|
-| **Project detail pages** | Route exists, no implementation | Cannot deep-link to projects |
+| ~~**Project detail pages**~~ | ~~Route exists, no implementation~~ | ✅ Complete: `/projects/{slug}` |
 | **Post/blog pages** | Collection exists, no public UI | Cannot publish articles |
 | **Talks section** | Collection exists, no UI | Cannot showcase speaking |
 | **Certifications section** | Collection exists, no UI | Cannot show credentials |
@@ -801,7 +801,7 @@ Based on codebase analysis, these features are incomplete or missing:
 
 ### 13.2 Proposed Priority Order
 
-1. **Core content pages**: Project details, posts, talks, certifications
+1. **Core content pages**: ~~Project details~~, posts, talks, certifications
 2. **View editor improvements**: Drag-drop ordering, better section config
 3. **Share token management**: Full CRUD UI with usage stats
 4. **Resume export**: Generate PDF from profile/view
@@ -821,6 +821,7 @@ Based on codebase analysis, these features are incomplete or missing:
 | GET | `/api/default-view` | Normal | Get default view slug |
 | GET | `/api/view/{slug}/access` | Normal | Get view access requirements |
 | GET | `/api/view/{slug}/data` | Normal | Get view content |
+| GET | `/api/project/{slug}` | Normal | Get public project details |
 | GET | `/api/homepage` | Normal | Legacy aggregated content |
 | POST | `/api/share/validate` | Moderate | Validate share token |
 | POST | `/api/password/check` | Strict | Validate view password |

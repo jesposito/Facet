@@ -43,7 +43,7 @@
 					<div class="flex items-start justify-between gap-2">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 							{#if project.slug}
-								<a href="/p/{project.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+								<a href="/projects/{project.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
 									{project.title}
 								</a>
 							{:else}
