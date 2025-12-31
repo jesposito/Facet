@@ -229,7 +229,23 @@ No explicit CORS configuration - all endpoints are same-origin behind the Caddy 
 
 ### Security Headers
 
-*(Planned - to be added via Caddyfile)*
+The following headers are set on all responses via Caddy:
+
+| Header | Value | Purpose |
+|--------|-------|---------|
+| `X-Content-Type-Options` | `nosniff` | Prevents MIME type sniffing attacks |
+| `X-Frame-Options` | `DENY` | Prevents clickjacking by blocking iframes |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits referrer leakage on cross-origin requests |
+| `Permissions-Policy` | `geolocation=(), microphone=()...` | Disables unnecessary browser APIs |
+| `Server` | *(removed)* | Hides server software identity |
+
+**HSTS:** Strict-Transport-Security is commented out by default. Enable it only if:
+1. You're serving directly over HTTPS (not behind a proxy that handles TLS), AND
+2. You're committed to HTTPS permanently for this domain
+
+If using Cloudflare Tunnel or similar, configure HSTS at the edge.
+
+**Content-Security-Policy:** Not configured by default as it requires tuning for your deployment. Consider adding a CSP at the edge proxy if needed.
 
 ## File Access
 

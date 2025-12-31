@@ -3,6 +3,30 @@
 # Designed for use behind reverse proxies (Cloudflare Tunnel, nginx, etc.)
 
 :8080 {
+    # Security headers applied to all responses
+    header {
+        # Prevent MIME type sniffing
+        X-Content-Type-Options "nosniff"
+
+        # Prevent clickjacking
+        X-Frame-Options "DENY"
+
+        # Control referrer information
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # Disable unnecessary browser features
+        Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+
+        # Remove server identification
+        -Server
+
+        # Note: HSTS should be configured at the edge proxy (Cloudflare, etc.)
+        # for production deployments. Uncomment below ONLY if:
+        # 1. You're serving directly over HTTPS, AND
+        # 2. You're certain you want to commit to HTTPS permanently
+        # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
     # API and PocketBase routes go to backend
     handle /api/* {
         reverse_proxy localhost:8090 {
