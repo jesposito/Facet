@@ -205,3 +205,85 @@ func TestRateLimitService_IPv6(t *testing.T) {
 		t.Errorf("Expected IPv6 address, got: %s", ip)
 	}
 }
+
+func TestRateLimitService_AllowWithInfo(t *testing.T) {
+	svc := NewRateLimitService()
+
+	req := httptest.NewRequest("POST", "/api/test", nil)
+	req.RemoteAddr = "192.168.1.100:12345"
+
+	// First request on normal tier (burst=10)
+	info := svc.AllowWithInfo(req, "normal")
+
+	if !info.Allowed {
+		t.Error("First request should be allowed")
+	}
+	if info.Limit != 10 {
+		t.Errorf("Limit should be 10 (burst size), got %d", info.Limit)
+	}
+	// After consuming 1 token from burst of 10, remaining should be around 9
+	// (might vary slightly due to timing, so we use a range)
+	if info.Remaining < 7 || info.Remaining > 10 {
+		t.Errorf("Remaining should be around 8-10 after first request, got %d", info.Remaining)
+	}
+	if info.Reset <= 0 {
+		t.Error("Reset timestamp should be positive")
+	}
+	if info.RetryAfter != 0 {
+		t.Errorf("RetryAfter should be 0 for allowed request, got %d", info.RetryAfter)
+	}
+}
+
+func TestRateLimitService_AllowWithInfo_Denied(t *testing.T) {
+	svc := NewRateLimitService()
+
+	req := httptest.NewRequest("POST", "/api/test", nil)
+	req.RemoteAddr = "192.168.1.101:12345"
+
+	// Exhaust strict tier burst (3)
+	for i := 0; i < 5; i++ {
+		svc.Allow(req, "strict")
+	}
+
+	// Next request should be denied with proper info
+	info := svc.AllowWithInfo(req, "strict")
+
+	if info.Allowed {
+		t.Error("Request should be denied after burst exhausted")
+	}
+	if info.Limit != 3 {
+		t.Errorf("Limit should be 3 (strict burst size), got %d", info.Limit)
+	}
+	if info.Remaining != 0 {
+		t.Errorf("Remaining should be 0 when denied, got %d", info.Remaining)
+	}
+	if info.RetryAfter < 1 {
+		t.Error("RetryAfter should be at least 1 second when denied")
+	}
+	if info.Reset <= 0 {
+		t.Error("Reset timestamp should be positive")
+	}
+}
+
+func TestRateLimitService_AllowWithInfo_ResetTime(t *testing.T) {
+	svc := NewRateLimitService()
+
+	req := httptest.NewRequest("POST", "/api/test", nil)
+	req.RemoteAddr = "192.168.1.102:12345"
+
+	now := time.Now().Unix()
+
+	// First request
+	info := svc.AllowWithInfo(req, "normal")
+
+	// Reset time should be in the future (when bucket is full again)
+	if info.Reset < now {
+		t.Error("Reset time should be now or in the future")
+	}
+
+	// Reset time should be reasonable (within a minute for normal tier)
+	maxReset := now + 120 // Allow 2 minutes max
+	if info.Reset > maxReset {
+		t.Errorf("Reset time too far in future. Got %d, max expected %d", info.Reset, maxReset)
+	}
+}
