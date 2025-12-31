@@ -49,7 +49,7 @@
       "onAutoForward": "openBrowser"
     },
     "8090": {
-      "label": "PocketBase API",
+      "label": "Me.yaml API",
       "onAutoForward": "silent"
     }
   },
