@@ -10,6 +10,15 @@ func init() {
 		// Helper for public read access (empty string = anyone can access)
 		publicRule := ""
 
+		// Create Users auth collection for frontend admin
+		usersCollection := core.NewAuthCollection("users")
+		usersCollection.Fields.Add(&core.TextField{Name: "name", Max: 200})
+		usersCollection.Fields.Add(&core.BoolField{Name: "is_admin"})
+
+		if err := app.Save(usersCollection); err != nil {
+			return err
+		}
+
 		// Create Profile collection (singleton)
 		profileCollection := core.NewBaseCollection("profile")
 		profileCollection.ListRule = &publicRule
@@ -268,7 +277,7 @@ func init() {
 		collections := []string{
 			"settings", "import_proposals", "ai_providers", "sources",
 			"share_tokens", "views", "talks", "posts", "skills",
-			"certifications", "education", "projects", "experience", "profile",
+			"certifications", "education", "projects", "experience", "profile", "users",
 		}
 
 		for _, name := range collections {
