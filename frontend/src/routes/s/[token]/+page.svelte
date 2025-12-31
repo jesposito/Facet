@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Shared Link | OwnProfile</title>
+	<title>Shared Link | Me.yaml</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

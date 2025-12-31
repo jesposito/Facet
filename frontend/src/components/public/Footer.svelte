@@ -44,7 +44,7 @@
 
 		<div class="mt-4 text-center">
 			<p class="text-xs text-gray-500 dark:text-gray-500">
-				Powered by <a href="https://github.com" class="hover:underline">OwnProfile</a>
+				Powered by <a href="https://github.com/jesposito/Me.yaml" class="hover:underline">Me.yaml</a>
 			</p>
 		</div>
 	</div>

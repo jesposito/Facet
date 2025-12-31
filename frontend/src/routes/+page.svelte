@@ -12,7 +12,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.profile?.name || 'Profile'} | OwnProfile</title>
+	<title>{data.profile?.name || 'Profile'} | Me.yaml</title>
 	<meta name="description" content={data.profile?.headline || 'Personal profile and portfolio'} />
 	{#if data.profile?.headline}
 		<meta property="og:title" content={data.profile.name} />
