@@ -85,21 +85,29 @@ None (this is the starting phase)
 
 ### Features
 
-#### 2.1 View Editor Overhaul
-- [ ] Drag-and-drop section ordering
-- [ ] Per-section item selection with checkboxes
-- [ ] Preview pane showing live result
-- [ ] Item reordering within sections
+#### 2.1 View Editor Core (Complete)
+- [x] View editor page (`/admin/views/[id]`)
+- [x] View create page (`/admin/views/new`)
+- [x] Per-section toggle controls (enable/disable sections)
+- [x] Per-section item selection with checkboxes
+- [x] Hero overrides (custom headline, summary per view)
+- [x] CTA configuration (button text and URL)
+- [x] Visibility settings (public, unlisted, password, private)
+- [ ] Drag-and-drop section ordering — Deferred (requires library)
+- [ ] Preview pane showing live result — Deferred to Phase 2.2
 
 #### 2.2 Section Customization
 - [ ] Custom section headings per view
 - [ ] Show/hide section titles
 - [ ] Section layout options (list, grid, compact)
+- [ ] Drag-and-drop section/item reordering
 
-#### 2.3 Default View Management
-- [ ] Clear UI for setting default view
-- [ ] Warning when changing default
-- [ ] Preview of how homepage will look
+#### 2.3 Default View Management (Complete)
+- [x] Clear UI for setting default view (checkbox in editor)
+- [x] Default view badge in views list
+- [x] Only one view can be default (enforced)
+- [ ] Warning when changing default — Minor, deferred
+- [ ] Preview of how homepage will look — Deferred to 2.2
 
 #### 2.4 View Analytics (Minimal)
 - [ ] View count per view (opt-in)

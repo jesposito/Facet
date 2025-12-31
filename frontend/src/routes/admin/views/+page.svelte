@@ -14,7 +14,7 @@
 	async function loadViews() {
 		try {
 			const result = await pb.collection('views').getList(1, 50, {
-				sort: '-created'
+				sort: '-is_default,-created'
 			});
 			views = result.items;
 		} catch (err) {
@@ -47,7 +47,7 @@
 	}
 
 	function copyViewUrl(slug: string) {
-		const url = `${window.location.origin}/v/${slug}`;
+		const url = `${window.location.origin}/${slug}`;
 		navigator.clipboard.writeText(url);
 		toasts.add('success', 'URL copied to clipboard');
 	}
@@ -83,8 +83,13 @@
 				<div class="card p-4">
 					<div class="flex items-start justify-between">
 						<div class="flex-1">
-							<div class="flex items-center gap-2">
+							<div class="flex items-center gap-2 flex-wrap">
 								<h3 class="font-medium text-gray-900 dark:text-white">{view.name}</h3>
+								{#if view.is_default}
+									<span class="px-2 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded font-medium">
+										Default
+									</span>
+								{/if}
 								{#if !view.is_active}
 									<span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
 										Inactive
@@ -102,7 +107,7 @@
 								</span>
 							</div>
 							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-								<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/v/{view.slug}</code>
+								<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/{view.slug}</code>
 								{#if view.description}
 									- {view.description}
 								{/if}
@@ -118,7 +123,7 @@
 								{@html icon('copy')}
 							</button>
 							<a
-								href="/v/{view.slug}"
+								href="/{view.slug}"
 								target="_blank"
 								class="btn btn-sm btn-ghost"
 								title="Preview"

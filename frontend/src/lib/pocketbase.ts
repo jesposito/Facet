@@ -149,6 +149,7 @@ export interface View {
 	cta_url?: string;
 	sections?: ViewSection[];
 	is_active: boolean;
+	is_default?: boolean;
 }
 
 export interface ViewSection {
