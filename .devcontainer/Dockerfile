@@ -1,4 +1,8 @@
-FROM mcr.microsoft.com/devcontainers/go:1.22
+FROM mcr.microsoft.com/devcontainers/go:1.23
+
+# Allow builds in environments that block access to the default Go proxies
+ENV GOPROXY=direct \
+    GOSUMDB=off
 
 # Pre-download Go modules for faster startup
 WORKDIR /tmp/go-cache
@@ -7,7 +11,7 @@ COPY backend/go.sum* ./
 RUN go mod download || true
 
 # Fix permissions so vscode user can use the module cache
-RUN chmod -R 777 /go/pkg/mod/cache || true
+RUN mkdir -p /go/pkg/mod/cache /go/pkg/sumdb && chmod -R 777 /go/pkg || true
 
 # Reset working directory
 WORKDIR /workspaces
