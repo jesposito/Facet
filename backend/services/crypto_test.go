@@ -2,6 +2,7 @@ package services
 
 import (
 	"testing"
+	"time"
 )
 
 func TestEncryptDecrypt(t *testing.T) {
@@ -140,5 +141,161 @@ func TestHashToken(t *testing.T) {
 	hash3 := crypto.HashToken("different-token")
 	if hash1 == hash3 {
 		t.Error("Different tokens should produce different hashes")
+	}
+}
+
+// JWT Tests for password-protected view access
+
+func TestGenerateViewAccessJWT(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	viewID := "test_view_123"
+	duration := 1 * time.Hour
+
+	token, expiresAt, err := crypto.GenerateViewAccessJWT(viewID, duration)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if token == "" {
+		t.Fatal("Expected non-empty token")
+	}
+
+	if expiresAt.Before(time.Now()) {
+		t.Fatal("Expected expiry in the future")
+	}
+
+	// Expiry should be approximately 1 hour from now
+	expectedExpiry := time.Now().Add(duration)
+	if expiresAt.Sub(expectedExpiry) > time.Second {
+		t.Fatalf("Expected expiry around %v, got %v", expectedExpiry, expiresAt)
+	}
+}
+
+func TestValidateViewAccessJWT_Valid(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	viewID := "test_view_123"
+	token, _, err := crypto.GenerateViewAccessJWT(viewID, 1*time.Hour)
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+
+	validatedViewID, err := crypto.ValidateViewAccessJWT(token)
+	if err != nil {
+		t.Fatalf("Expected valid token, got error: %v", err)
+	}
+
+	if validatedViewID != viewID {
+		t.Fatalf("Expected view ID %s, got %s", viewID, validatedViewID)
+	}
+}
+
+func TestValidateViewAccessJWT_NoToken(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	_, err := crypto.ValidateViewAccessJWT("")
+	if err == nil {
+		t.Fatal("Expected error for empty token")
+	}
+	if err.Error() != "token required" {
+		t.Fatalf("Expected 'token required' error, got: %v", err)
+	}
+}
+
+func TestValidateViewAccessJWT_Malformed(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	_, err := crypto.ValidateViewAccessJWT("not-a-valid-jwt")
+	if err == nil {
+		t.Fatal("Expected error for malformed token")
+	}
+	if err.Error() != "invalid token" {
+		t.Fatalf("Expected 'invalid token' error, got: %v", err)
+	}
+}
+
+func TestValidateViewAccessJWT_Tampered(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	token, _, err := crypto.GenerateViewAccessJWT("test_view", 1*time.Hour)
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+
+	// Tamper with the token (modify last character)
+	tamperedToken := token[:len(token)-1] + "X"
+
+	_, err = crypto.ValidateViewAccessJWT(tamperedToken)
+	if err == nil {
+		t.Fatal("Expected error for tampered token")
+	}
+}
+
+func TestValidateViewAccessJWT_WrongKey(t *testing.T) {
+	crypto1 := NewCryptoService("first-encryption-key-32-chars!!")
+	crypto2 := NewCryptoService("second-encryption-key-32-chars!")
+
+	token, _, err := crypto1.GenerateViewAccessJWT("test_view", 1*time.Hour)
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+
+	// Try to validate with different key (different CryptoService)
+	_, err = crypto2.ValidateViewAccessJWT(token)
+	if err == nil {
+		t.Fatal("Expected error when validating with different key")
+	}
+}
+
+func TestValidateViewAccessJWT_Expired(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	// Generate token that expires immediately (negative duration)
+	token, _, err := crypto.GenerateViewAccessJWT("test_view", -1*time.Second)
+	if err != nil {
+		t.Fatalf("Failed to generate token: %v", err)
+	}
+
+	// Wait a moment to ensure expiry
+	time.Sleep(10 * time.Millisecond)
+
+	_, err = crypto.ValidateViewAccessJWT(token)
+	if err == nil {
+		t.Fatal("Expected error for expired token")
+	}
+}
+
+func TestValidateViewAccessJWT_WrongViewID(t *testing.T) {
+	crypto := NewCryptoService("test-encryption-key-32-chars-ok!")
+
+	// Generate tokens for two different views
+	token1, _, _ := crypto.GenerateViewAccessJWT("view_1", 1*time.Hour)
+	token2, _, _ := crypto.GenerateViewAccessJWT("view_2", 1*time.Hour)
+
+	// Validate each returns correct view ID
+	viewID1, err := crypto.ValidateViewAccessJWT(token1)
+	if err != nil || viewID1 != "view_1" {
+		t.Fatalf("Expected view_1, got %s (err: %v)", viewID1, err)
+	}
+
+	viewID2, err := crypto.ValidateViewAccessJWT(token2)
+	if err != nil || viewID2 != "view_2" {
+		t.Fatalf("Expected view_2, got %s (err: %v)", viewID2, err)
+	}
+
+	// Token for view_1 should not return view_2
+	if viewID1 == "view_2" {
+		t.Fatal("Token for view_1 should not validate as view_2")
+	}
+}
+
+func TestJWTConstants(t *testing.T) {
+	if JWTIssuer != "me.yaml" {
+		t.Fatalf("Expected issuer 'me.yaml', got '%s'", JWTIssuer)
+	}
+	if JWTAudience != "view-access" {
+		t.Fatalf("Expected audience 'view-access', got '%s'", JWTAudience)
 	}
 }

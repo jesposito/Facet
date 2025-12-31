@@ -3,6 +3,9 @@ package hooks
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -10,7 +13,7 @@ import (
 )
 
 // RegisterViewHooks registers view-related API endpoints
-func RegisterViewHooks(app *pocketbase.PocketBase) {
+func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
 		se.Router.GET("/api/view/{slug}/access", func(e *core.RequestEvent) error {
@@ -67,15 +70,36 @@ func RegisterViewHooks(app *pocketbase.PocketBase) {
 			visibility := view.GetString("visibility")
 
 			// Check access based on visibility
-			// For public views, allow access
-			// For unlisted, check for valid token in header or query
-			// For password, check for access token in header
-			// For private, require admin auth
-
-			if visibility == "private" {
+			switch visibility {
+			case "private":
+				// Private views require admin authentication
 				if e.Auth == nil {
 					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
 				}
+
+			case "password":
+				// Password-protected views require valid JWT
+				token := extractPasswordToken(e)
+				if token == "" {
+					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "password token required"})
+				}
+
+				viewID, err := crypto.ValidateViewAccessJWT(token)
+				if err != nil {
+					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired token"})
+				}
+
+				// Ensure token is for this specific view
+				if viewID != view.Id {
+					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "token not valid for this view"})
+				}
+
+			case "unlisted":
+				// Unlisted views are accessible via direct link (no additional auth for now)
+				// TODO: Step 3 will add share token requirement here
+
+			case "public":
+				// Public views are accessible to everyone
 			}
 
 			// Build view response
@@ -335,4 +359,17 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 		result = append(result, item)
 	}
 	return result
+}
+
+// extractPasswordToken extracts the password access token from request headers
+// Accepts: Authorization: Bearer <token> (preferred) or X-Password-Token: <token>
+func extractPasswordToken(e *core.RequestEvent) string {
+	// Check Authorization header first (preferred)
+	authHeader := e.Request.Header.Get("Authorization")
+	if strings.HasPrefix(authHeader, "Bearer ") {
+		return strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	// Fallback to X-Password-Token header (legacy/UI convenience)
+	return e.Request.Header.Get("X-Password-Token")
 }

@@ -47,7 +47,7 @@ func main() {
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
 	hooks.RegisterShareHooks(app, shareService, cryptoService)
 	hooks.RegisterPasswordHooks(app, cryptoService)
-	hooks.RegisterViewHooks(app)
+	hooks.RegisterViewHooks(app, cryptoService)
 	hooks.RegisterSeedHook(app)
 
 	// Note: Trusted proxy headers are handled by Caddy in the Docker setup.
