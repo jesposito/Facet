@@ -46,6 +46,18 @@ docker-compose up -d
 
 Visit `http://localhost:8080`
 
+### First Login
+
+| Environment | Email | Password |
+|-------------|-------|----------|
+| Development | `admin@example.com` | `changeme123` |
+| Production | Set via OAuth or `ADMIN_EMAILS` | — |
+
+In development mode, a demo admin account is created automatically.
+**Change the password immediately** if deploying beyond localhost.
+
+OAuth (Google/GitHub) is the recommended authentication method for production.
+
 ---
 
 ## Features
@@ -151,9 +163,9 @@ Point Cloudflare Tunnel to `http://container-ip:8080`.
 
 ## Development
 
-### Codespaces (one-click)
+### Codespaces (One-Click)
 
-Open in GitHub Codespaces. Includes demo profile.
+Open in GitHub Codespaces. Includes demo profile and admin account.
 
 ### Local
 
@@ -166,6 +178,16 @@ Development uses separate ports for hot reload:
 - API calls proxy to backend automatically
 
 Production uses single port 8080 for everything.
+
+### Default Credentials (Development Only)
+
+| Login | Email | Password |
+|-------|-------|----------|
+| Me.yaml Admin | `admin@example.com` | `changeme123` |
+| PocketBase Admin | `admin@localhost.dev` | `admin123` |
+
+The PocketBase admin panel (`/_/`) is disabled by default in production.
+Set `ADMIN_ENABLED=true` only for debugging.
 
 ---
 

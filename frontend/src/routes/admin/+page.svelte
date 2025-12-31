@@ -67,7 +67,7 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard | Admin</title>
+	<title>Dashboard | Me.yaml</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">

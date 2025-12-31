@@ -117,7 +117,7 @@
 </script>
 
 <svelte:head>
-	<title>Import from GitHub | Admin</title>
+	<title>Import from GitHub | Me.yaml</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">
@@ -308,7 +308,7 @@
 						</svg>
 						Importing…
 					{:else}
-						Create Import Proposal
+						Review & Import
 					{/if}
 				</button>
 			</div>

@@ -74,7 +74,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Profile | Admin</title>
+	<title>Edit Profile | Me.yaml</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">
@@ -192,7 +192,7 @@
 					<select id="visibility" bind:value={visibility} class="input">
 						<option value="public">Public - Anyone can view</option>
 						<option value="unlisted">Unlisted - Only accessible via direct link or views</option>
-						<option value="private">Private - Only you can view (admin only)</option>
+						<option value="private">Private - Only you can view</option>
 					</select>
 				</div>
 			</div>
