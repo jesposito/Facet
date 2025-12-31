@@ -72,8 +72,9 @@
 		</div>
 	{:else if views.length === 0}
 		<div class="card p-8 text-center">
-			<p class="text-gray-500 dark:text-gray-400 mb-4">No views created yet</p>
-			<a href="/admin/views/new" class="btn btn-primary">Create Your First View</a>
+			<p class="text-gray-600 dark:text-gray-400 mb-2">You haven't created any views yet.</p>
+			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">Views let you show different versions of your profile to different audiences.</p>
+			<a href="/admin/views/new" class="btn btn-primary">Create a View</a>
 		</div>
 	{:else}
 		<div class="space-y-4">

@@ -145,7 +145,7 @@
 					</div>
 
 					{#if contactLinks.length === 0}
-						<p class="text-gray-500 dark:text-gray-400 text-sm">No contact links added</p>
+						<p class="text-gray-500 dark:text-gray-400 text-sm">Add links to help people reach you.</p>
 					{:else}
 						<div class="space-y-3">
 							{#each contactLinks as link, i}
