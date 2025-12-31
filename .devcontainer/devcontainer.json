@@ -31,6 +31,10 @@
     }
   },
 
+  "containerEnv": {
+    "ENCRYPTION_KEY": "devcontainer-only-key-do-not-use-in-production!!"
+  },
+
   "mounts": [
     "source=meyaml-node-modules,target=${containerWorkspaceFolder}/frontend/node_modules,type=volume",
     "source=meyaml-go-cache,target=/go/pkg/mod,type=volume"

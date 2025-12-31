@@ -22,7 +22,9 @@ services:
       - "8090:8090"
     environment:
       - DATA_DIR=/app/pb_data
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-change-in-production}
+      # DEV ONLY: This key is for local development. Never use in production.
+      # Production requires a unique key: openssl rand -hex 32
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!}
       - SEED_DATA=true
       - LOG_LEVEL=debug
     command: /app/scripts/dev-backend.sh

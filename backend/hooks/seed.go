@@ -36,9 +36,9 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 	log.Println("Seeding demo data...")
 
 	// Create PocketBase superuser for /_/ admin access (dev mode only)
-	superusers := app.SuperusersCollection()
-	if superusers != nil {
-		superuserCount, _ := app.CountRecords(superusers.Name)
+	superusers, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
+	if err == nil && superusers != nil {
+		superuserCount, _ := app.CountRecords(core.CollectionNameSuperusers)
 		if superuserCount == 0 {
 			su := core.NewRecord(superusers)
 			su.SetEmail("admin@localhost.dev")
