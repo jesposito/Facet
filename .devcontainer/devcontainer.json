@@ -21,10 +21,20 @@
       ],
       "settings": {
         "editor.formatOnSave": true,
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/pb_data/**": true,
+          "**/.git/**": true
+        }
       }
     }
   },
+
+  "mounts": [
+    "source=meyaml-node-modules,target=${containerWorkspaceFolder}/frontend/node_modules,type=volume",
+    "source=meyaml-go-cache,target=/go/pkg/mod,type=volume"
+  ],
 
   "forwardPorts": [5173, 8090],
   "portsAttributes": {
@@ -38,8 +48,8 @@
     }
   },
 
-  "postCreateCommand": "cd frontend && npm install && npx svelte-kit sync && cd ../backend && go mod tidy && go build -o ../pb_data/me-yaml .",
-  "postStartCommand": "chmod +x scripts/start-dev.sh && scripts/start-dev.sh",
+  "postCreateCommand": "chmod +x scripts/*.sh",
+  "postStartCommand": "./scripts/start-dev.sh",
 
   "remoteUser": "vscode"
 }

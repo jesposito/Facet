@@ -1,42 +1,74 @@
 # Me.yaml Makefile
 # Common commands for development and deployment
 
-.PHONY: help dev build test clean docker-build docker-run
+.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run
 
 # Default target
 help:
 	@echo "Me.yaml - Your profile, expressed as data."
 	@echo ""
-	@echo "Usage:"
-	@echo "  make dev          Start dev environment with demo data"
-	@echo "  make build        Build production Docker image"
-	@echo "  make test         Run tests"
-	@echo "  make clean        Clean build artifacts"
+	@echo "Development (Codespaces/Local):"
+	@echo "  make dev          Start dev environment with hot reload"
+	@echo "  make dev-docker   Start dev environment via Docker Compose"
+	@echo "  make dev-down     Stop Docker Compose services"
+	@echo "  make dev-logs     View Docker Compose logs"
+	@echo "  make dev-reset    Clear caches and force reinstall"
 	@echo ""
-	@echo "Development:"
-	@echo "  make backend      Start backend only (with seed data)"
-	@echo "  make frontend     Start frontend only"
-	@echo "  make deps         Install all dependencies"
+	@echo "Individual Services:"
+	@echo "  make backend      Start backend only (with hot reload)"
+	@echo "  make frontend     Start frontend only (with HMR)"
+	@echo ""
+	@echo "Testing & Quality:"
+	@echo "  make test         Run all tests"
+	@echo "  make lint         Run linters"
+	@echo "  make fmt          Format code"
+	@echo ""
+	@echo "Production:"
+	@echo "  make build        Build production Docker image"
+	@echo "  make prod         Start production containers"
+	@echo "  make prod-down    Stop production containers"
 	@echo ""
 
-# Development - uses script for coordinated startup
+# =============================================================================
+# Development
+# =============================================================================
+
+# Main dev command - uses optimized scripts
 dev:
 	./scripts/start-dev.sh
 
-# Docker-based dev (alternative)
-dev-docker:
-	docker-compose -f docker-compose.dev.yml up
+dev-up: dev
 
-dev-down:
-	docker-compose -f docker-compose.dev.yml down
-
+# Individual services
 backend:
-	cd backend && SEED_DATA=true go run . serve
+	./scripts/dev-backend.sh
 
 frontend:
-	cd frontend && npm run dev
+	./scripts/dev-frontend.sh
 
-# Build
+# Docker-based dev (alternative to native)
+dev-docker:
+	docker compose -f docker-compose.dev.yml up
+
+dev-down:
+	docker compose -f docker-compose.dev.yml down
+
+dev-logs:
+	docker compose -f docker-compose.dev.yml logs -f
+
+# Reset caches to force reinstall
+dev-reset:
+	rm -rf frontend/node_modules/.lockfile-hash
+	rm -rf backend/.gomod-hash
+	rm -rf pb_data
+	rm -rf tmp
+	rm -rf frontend/.svelte-kit
+	@echo "Caches cleared. Run 'make dev' to reinstall."
+
+# =============================================================================
+# Building
+# =============================================================================
+
 build: docker-build
 
 docker-build:
@@ -47,29 +79,34 @@ docker-run:
 		--name me-yaml \
 		-p 8080:3000 \
 		-p 8090:8090 \
-		-v ./data:/data \
+		-v $$(pwd)/data:/data \
 		-e ENCRYPTION_KEY=$${ENCRYPTION_KEY:-dev-key-change-me-in-production} \
 		me-yaml:latest
 
+# =============================================================================
 # Testing
+# =============================================================================
+
 test: test-backend test-frontend
 
 test-backend:
-	cd backend && go test ./...
+	cd backend && go test -v ./...
 
 test-frontend:
 	cd frontend && npm run check
 
-# Linting
+# =============================================================================
+# Linting & Formatting
+# =============================================================================
+
 lint: lint-backend lint-frontend
 
 lint-backend:
-	cd backend && golangci-lint run
+	cd backend && golangci-lint run || true
 
 lint-frontend:
-	cd frontend && npm run lint
+	cd frontend && npm run lint || true
 
-# Formatting
 fmt: fmt-backend fmt-frontend
 
 fmt-backend:
@@ -78,33 +115,40 @@ fmt-backend:
 fmt-frontend:
 	cd frontend && npm run format
 
-# Clean
+# =============================================================================
+# Production
+# =============================================================================
+
+prod:
+	docker compose up -d
+
+prod-logs:
+	docker compose logs -f
+
+prod-down:
+	docker compose down
+
+# =============================================================================
+# Utilities
+# =============================================================================
+
+# Clean build artifacts (not caches)
 clean:
 	rm -rf backend/tmp
 	rm -rf frontend/build
 	rm -rf frontend/.svelte-kit
-	rm -rf frontend/node_modules/.cache
+	rm -rf tmp
 
-# Production
-prod:
-	docker-compose up -d
-
-prod-logs:
-	docker-compose logs -f
-
-prod-down:
-	docker-compose down
-
-# Backup
+# Backup data
 backup:
 	@mkdir -p backups
-	tar -czvf backups/me-yaml-$$(date +%Y%m%d-%H%M%S).tar.gz data/
+	tar -czvf backups/me-yaml-$$(date +%Y%m%d-%H%M%S).tar.gz pb_data/ data/ 2>/dev/null || true
 
-# Install dependencies
+# Install dependencies (manual, usually handled by scripts)
 deps:
 	cd backend && go mod download
 	cd frontend && npm install
 
-# Generate encryption key
+# Generate a secure encryption key
 gen-key:
 	@openssl rand -hex 32

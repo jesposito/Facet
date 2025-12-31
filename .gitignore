@@ -16,12 +16,16 @@ pb_data/
 .env.local
 .env.*.local
 
-# IDE
-.vscode/
+# IDE (keep .vscode/tasks.json for shared dev tasks)
+.vscode/*
+!.vscode/tasks.json
 .idea/
 *.swp
 *.swo
 *~
+
+# Dev cache hashes (auto-generated)
+backend/.gomod-hash
 
 # OS
 .DS_Store

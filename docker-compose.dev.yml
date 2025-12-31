@@ -1,50 +1,59 @@
-# OwnProfile Development Docker Compose
-# Usage: docker-compose -f docker-compose.dev.yml up
-
-version: '3.8'
+# Me.yaml Development Docker Compose
+# Usage: docker compose -f docker-compose.dev.yml up
+#
+# This configuration uses hash-based caching to skip unnecessary installs.
+# Named volumes persist node_modules and Go modules across restarts.
 
 services:
   backend:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
-    container_name: ownprofile-backend-dev
-    working_dir: /app/backend
+    container_name: meyaml-backend-dev
+    working_dir: /app
     volumes:
-      - ./backend:/app/backend
-      - ./data:/data
+      - ./backend:/app/backend:cached
+      - ./scripts:/app/scripts:cached
+      - ./.air.toml:/app/.air.toml:cached
+      - ./pb_data:/app/pb_data
       - go-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
     ports:
       - "8090:8090"
     environment:
-      - DATA_DIR=/data
-      - ENCRYPTION_KEY=dev-only-key-change-in-production
+      - DATA_DIR=/app/pb_data
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-change-in-production}
+      - SEED_DATA=true
       - LOG_LEVEL=debug
-    command: >
-      sh -c "
-        go mod download &&
-        air -c .air.toml
-      "
+    command: /app/scripts/dev-backend.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
 
   frontend:
     image: node:20-alpine
-    container_name: ownprofile-frontend-dev
+    container_name: meyaml-frontend-dev
     working_dir: /app
     volumes:
-      - ./frontend:/app
-      - node-modules:/app/node_modules
+      - ./frontend:/app:cached
+      - ./scripts:/scripts:cached
+      - frontend-node-modules:/app/node_modules
     ports:
       - "5173:5173"
     environment:
       - POCKETBASE_URL=http://backend:8090
-    command: >
-      sh -c "
-        npm install &&
-        npm run dev -- --host
-      "
+    command: sh -c "chmod +x /scripts/dev-frontend.sh && /scripts/dev-frontend.sh"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
 volumes:
   go-cache:
-  node-modules:
+    name: meyaml-go-cache
+  go-build-cache:
+    name: meyaml-go-build-cache
+  frontend-node-modules:
+    name: meyaml-frontend-node-modules

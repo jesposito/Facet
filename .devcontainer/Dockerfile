@@ -1,20 +1,33 @@
+# Me.yaml Development Container
+# https://containers.dev/implementors/json_reference/
+#
+# This Dockerfile is optimized for fast startup:
+# - Go modules are pre-downloaded during build (cached layer)
+# - Air is pre-installed
+# - Runtime dependency installation is handled by scripts with hash caching
+
 FROM mcr.microsoft.com/devcontainers/go:1.23
 
-# Allow builds in environments that block access to the default Go proxies
-ENV GOPROXY=direct \
-    GOSUMDB=off
+# Build-time only: allow builds in restricted environments
+ARG GOPROXY=direct
+ARG GOSUMDB=off
 
-# Install air for hot reloading (pinned version compatible with Go 1.23)
+# Install air for Go hot reloading
+# Ref: https://github.com/air-verse/air/releases
 RUN go install github.com/air-verse/air@v1.61.7
 
-# Pre-download Go modules for faster startup
+# Pre-download Go modules for faster first startup
+# This layer is cached and only rebuilt when go.mod/go.sum change
 WORKDIR /tmp/go-cache
-COPY backend/go.mod ./
-COPY backend/go.sum* ./
-RUN go mod download || true
+COPY backend/go.mod backend/go.sum* ./
+RUN go mod download 2>/dev/null || true
 
-# Fix permissions so vscode user can use the module cache
-RUN mkdir -p /go/pkg/mod/cache /go/pkg/sumdb && chmod -R 777 /go/pkg || true
+# Fix permissions for module cache (vscode user runs as non-root)
+RUN mkdir -p /go/pkg/mod/cache /go/pkg/sumdb \
+    && chmod -R 777 /go/pkg || true
 
 # Reset working directory
 WORKDIR /workspaces
+
+# Note: Node.js is installed via devcontainer features, not here
+# Note: npm dependencies are installed by scripts/dev-frontend.sh with hash caching
