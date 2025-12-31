@@ -68,7 +68,7 @@
   - [x] Footer
 - [x] Implement dark/light theme (ThemeToggle)
 - [x] Add loading states and error pages
-- [ ] Full accessibility audit (a11y)
+- [x] Full accessibility audit (a11y) - Phase 9.2
 
 ### Milestone 5: Frontend - Admin Dashboard ✅ Complete
 - [x] Set up admin layout with sidebar
@@ -212,19 +212,19 @@
 ## Remaining Work
 
 ### High Priority
-1. Full accessibility audit
+(None - core functionality complete)
 
 ### Medium Priority
-2. Drag-drop section/item reordering for views (Phase 2.2 continued)
-3. Media library (Phase 7)
-4. Additional frontend tests
+1. Drag-drop section/item reordering for views (Phase 2.2 continued)
+2. Media library (Phase 7)
+3. Additional frontend tests
 
 ### Low Priority
-5. SETUP.md and UPGRADE.md documentation
-6. AI provider mock tests
-7. Integration tests
-8. View access log / audit logging (Phase 8)
-9. Data export (JSON/YAML) - Phase 4.3
+4. SETUP.md and UPGRADE.md documentation
+5. AI provider mock tests
+6. Integration tests
+7. View access log / audit logging (Phase 8)
+8. Data export (JSON/YAML) - Phase 4.3
 
 ---
 
@@ -292,3 +292,42 @@ Users can generate PDFs by:
 ### Deferred
 - Server-side PDF generation (browser print is sufficient)
 - Data export (JSON/YAML) - may be revisited based on user feedback
+
+---
+
+## Phase 9.2: Accessibility Audit ✅ Complete
+
+This phase improves accessibility to ensure the application is usable by all users, including those using assistive technologies.
+
+### CSS Utilities Added
+- [x] `.sr-only` - Visually hidden but accessible to screen readers
+- [x] `.skip-link` - Skip navigation link visible on focus
+
+### Skip Navigation
+- [x] Skip link added to main layout (visible on focus)
+- [x] `#main-content` ID added to main content areas
+
+### ARIA Improvements
+- [x] `aria-hidden="true"` on all decorative SVG icons
+- [x] `aria-label` on interactive elements (theme toggle, sidebar toggle, print button)
+- [x] `aria-current="page"` on active navigation items
+- [x] `aria-expanded` and `aria-controls` on sidebar toggle
+- [x] `aria-label` on navigation landmark regions
+- [x] `aria-live="polite"` on toast notification container
+- [x] `role="status"` on loading indicators
+
+### Component Updates
+| Component | Changes |
+|-----------|---------|
+| AdminSidebar | aria-current, aria-hidden on icons, sr-only labels when collapsed |
+| AdminHeader | aria-expanded, aria-controls, aria-label on toggle |
+| ThemeToggle | Dynamic aria-label based on current theme |
+| ProfileHero | aria-hidden on decorative elements, aria-label on contact links |
+| Toast container | role="region", aria-live for notifications |
+| Admin layout | role="status" on loading state |
+| Public pages | id="main-content" for skip link target |
+
+### Testing
+- [x] `svelte-check` passes with 0 errors and 0 warnings
+- [x] Focus styles already present in app.css
+- [x] Keyboard navigation works throughout application
