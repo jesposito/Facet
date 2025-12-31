@@ -1,6 +1,6 @@
 {
   "name": "Me.yaml",
-  "image": "mcr.microsoft.com/devcontainers/go:1.22",
+  "image": "mcr.microsoft.com/devcontainers/go:1.23",
 
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
