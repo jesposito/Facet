@@ -210,6 +210,12 @@ With deny-by-default:
 2. Only authenticated admins can access raw collection data
 3. Visibility and draft filtering is guaranteed
 
+### Security Boundary
+
+**PocketBase collection API rules protect HTTP access only.** Internal application queries (via `app.FindRecordsByFilter()` and similar methods) run with server authority and bypass these rules by design.
+
+Custom API endpoints (e.g., `/api/view/{slug}/data`) are responsible for enforcing visibility and draft rules in application code. This separation is intentional: collection rules block external enumeration, while application code handles business logic.
+
 ### Authenticated Access
 
 Authenticated users (admin OAuth allowlist) can still:
@@ -229,7 +235,11 @@ No explicit CORS configuration - all endpoints are same-origin behind the Caddy 
 
 ### Security Headers
 
-The following headers are set on all responses via Caddy:
+Me.yaml implements security headers in two phases. Phase 5A is deployed by default; Phase 5B requires manual configuration after testing.
+
+#### Phase 5A: Deployed Headers
+
+These headers are safe for all deployments and applied via `docker/Caddyfile`:
 
 | Header | Value | Purpose |
 |--------|-------|---------|
@@ -239,13 +249,66 @@ The following headers are set on all responses via Caddy:
 | `Permissions-Policy` | `geolocation=(), microphone=()...` | Disables unnecessary browser APIs |
 | `Server` | *(removed)* | Hides server software identity |
 
-**HSTS:** Strict-Transport-Security is commented out by default. Enable it only if:
-1. You're serving directly over HTTPS (not behind a proxy that handles TLS), AND
-2. You're committed to HTTPS permanently for this domain
+**Intentionally Omitted:**
 
-If using Cloudflare Tunnel or similar, configure HSTS at the edge.
+| Header | Reason |
+|--------|--------|
+| `X-XSS-Protection` | Deprecated since 2023; can introduce vulnerabilities in modern browsers |
+| `Strict-Transport-Security` | TLS terminates at edge proxy (Cloudflare), not at Caddy |
 
-**Content-Security-Policy:** Not configured by default as it requires tuning for your deployment. Consider adding a CSP at the edge proxy if needed.
+#### Phase 5B: Optional Stricter Headers
+
+These require testing before deployment and may break functionality:
+
+| Header | Recommendation |
+|--------|----------------|
+| `Content-Security-Policy` | Start with `Content-Security-Policy-Report-Only` to identify violations before enforcing. SvelteKit may require `'unsafe-inline'` for styles. |
+| `Content-Security-Policy: frame-ancestors 'none'` | Supersedes X-Frame-Options; add when CSP is configured |
+| `Strict-Transport-Security` | Only if Caddy terminates TLS directly (not behind proxy). Use `max-age=31536000; includeSubDomains` |
+| `Cross-Origin-Opener-Policy` | May break OAuth popups; test thoroughly |
+| `Cross-Origin-Embedder-Policy` | May break external image loading; test thoroughly |
+
+**References:**
+- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)
+- [OWASP HTTP Headers Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html)
+- [MDN Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy)
+
+#### Cloudflare Configuration
+
+If deploying behind Cloudflare Tunnel, configure these at Cloudflare instead of Caddy:
+
+1. **HSTS:** SSL/TLS → Edge Certificates → Enable "Always Use HTTPS" and configure HSTS
+2. **Security Headers:** Rules → Transform Rules → Modify Response Headers
+3. **CSP:** Consider Cloudflare's CSP reporting if using their proxy
+
+#### Verification
+
+Test that security headers are applied (requires Docker deployment):
+
+```bash
+# Frontend routes
+curl -sI http://localhost:8080/ | grep -E '^(X-Content-Type|X-Frame|Referrer|Permissions)'
+
+# API endpoints
+curl -sI http://localhost:8080/api/health | grep -E '^(X-Content-Type|X-Frame|Referrer|Permissions)'
+
+# PocketBase admin (when ADMIN_ENABLED=true)
+curl -sI http://localhost:8080/_/ | grep -E '^(X-Content-Type|X-Frame|Referrer|Permissions)'
+```
+
+Expected output for each:
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+```
+
+Verify `Server` header is removed:
+```bash
+curl -sI http://localhost:8080/ | grep -i '^server:'
+# Should return nothing (header removed)
+```
 
 ## File Access
 

@@ -3,28 +3,32 @@
 # Designed for use behind reverse proxies (Cloudflare Tunnel, nginx, etc.)
 
 :8080 {
-    # Security headers applied to all responses
+    # =========================================================================
+    # PHASE 5A: Minimal safe security headers
+    # See docs/SECURITY.md for rationale and Phase 5B options
+    # Ref: https://owasp.org/www-project-secure-headers/
+    # =========================================================================
     header {
-        # Prevent MIME type sniffing
+        # Prevent MIME type sniffing (universal, no risk)
         X-Content-Type-Options "nosniff"
 
-        # Prevent clickjacking
+        # Prevent clickjacking (will migrate to CSP frame-ancestors in Phase 5B)
         X-Frame-Options "DENY"
 
-        # Control referrer information
+        # Control referrer information - safe default per OWASP
         Referrer-Policy "strict-origin-when-cross-origin"
 
-        # Disable unnecessary browser features
+        # Disable browser features not used by Me.yaml
         Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
 
         # Remove server identification
         -Server
 
-        # Note: HSTS should be configured at the edge proxy (Cloudflare, etc.)
-        # for production deployments. Uncomment below ONLY if:
-        # 1. You're serving directly over HTTPS, AND
-        # 2. You're certain you want to commit to HTTPS permanently
-        # Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        # INTENTIONALLY OMITTED:
+        # - X-XSS-Protection: Deprecated since 2023, can cause vulnerabilities
+        # - HSTS: TLS terminates at edge proxy (Cloudflare), not here
+        # - COOP/COEP/CORP: Phase 5B - requires testing with frontend
+        # - CSP: Phase 5B - requires report-only rollout first
     }
 
     # API and PocketBase routes go to backend
