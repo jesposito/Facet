@@ -467,6 +467,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Phase 2.2 item-level overrides complete | Career pivoters can present same job differently per view; overrides stored in sections JSON |
 | 2025-12-31 | Phase 4.2 print stylesheet complete | Browser-based PDF via print is sufficient; server-side PDF deferred |
 | 2025-12-31 | Phase 9.2 accessibility audit complete | Skip link, aria attributes, screen reader support added; 0 svelte-check warnings |
+| 2025-12-31 | Admin loading pattern standardized | All admin pages use simple `onMount(loadData)` pattern; layout handles auth gating. Fixes Codespaces race conditions. |
 
 ---
 

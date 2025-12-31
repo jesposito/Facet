@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { pb, currentUser, type Post } from '$lib/pocketbase';
+	import { pb, type Post } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 
@@ -8,7 +8,6 @@
 	let loading = true;
 	let showForm = false;
 	let editingPost: Post | null = null;
-	let loadAttempted = false;
 
 	// Form fields
 	let title = '';
@@ -22,24 +21,11 @@
 	let publishedAt = '';
 	let saving = false;
 
-	// Wait for auth to be ready before loading (only attempt once)
-	$: if ($currentUser && !loadAttempted) {
-		loadAttempted = true;
-		loadPosts();
-	}
-
-	onMount(() => {
-		// If auth is already valid, load immediately
-		if (pb.authStore.isValid && !loadAttempted) {
-			loadAttempted = true;
-			loadPosts();
-		}
-		// Otherwise, the reactive statement above will handle it
-	});
+	// Simple pattern - admin layout handles auth
+	onMount(loadPosts);
 
 	async function loadPosts() {
 		loading = true;
-
 		try {
 			const records = await pb.collection('posts').getList(1, 100, {
 				sort: '-created'
@@ -47,16 +33,7 @@
 			posts = records.items as unknown as Post[];
 		} catch (err) {
 			console.error('Failed to load posts:', err);
-			// Check if it's an auto-cancellation (not a real error)
-			const error = err as { isAbort?: boolean; status?: number };
-			if (error.isAbort) {
-				// Ignore auto-cancellation errors
-				return;
-			}
-			// Only show toast if it's not an auth error
-			if (error.status !== 401 && error.status !== 403) {
-				toasts.add('error', 'Failed to load posts');
-			}
+			toasts.add('error', 'Failed to load posts');
 		} finally {
 			loading = false;
 		}

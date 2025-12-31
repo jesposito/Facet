@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { pb, currentUser, type ViewSection } from '$lib/pocketbase';
+	import { pb, type ViewSection } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 
 	// Available sections - must match backend
@@ -17,7 +17,6 @@
 
 	let loading = true;
 	let saving = false;
-	let hasLoaded = false;
 
 	// Form fields
 	let name = '';
@@ -37,24 +36,11 @@
 	// Available items for each section
 	let sectionItems: Record<string, Array<{ id: string; label: string; visibility: string; is_draft?: boolean }>> = {};
 
-	// Wait for auth to be ready before loading section items
-	$: if ($currentUser && !hasLoaded) {
-		initAndLoad();
-	}
-
-	async function initAndLoad() {
-		hasLoaded = true;
+	// Simple pattern - admin layout handles auth
+	onMount(async () => {
 		initializeSections();
 		await loadSectionItems();
 		loading = false;
-	}
-
-	onMount(() => {
-		// If auth is already valid, load immediately
-		if (pb.authStore.isValid) {
-			initAndLoad();
-		}
-		// Otherwise, the reactive statement above will handle it
 	});
 
 	function initializeSections() {

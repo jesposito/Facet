@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, currentUser, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS } from '$lib/pocketbase';
+	import { pb, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
@@ -20,7 +20,6 @@
 	let loading = true;
 	let saving = false;
 	let view: View | null = null;
-	let hasLoaded = false;
 
 	// Form fields
 	let name = '';
@@ -63,28 +62,15 @@
 
 	$: viewId = $page.params.id as string;
 
-	// Wait for auth to be ready before loading
-	$: if ($currentUser && viewId && !hasLoaded) {
-		initAndLoad();
-	}
-
-	async function initAndLoad() {
+	// Simple pattern - admin layout handles auth
+	onMount(async () => {
 		if (!viewId) {
 			toasts.add('error', 'Invalid view ID');
 			goto('/admin/views');
 			return;
 		}
-		hasLoaded = true;
 		await loadView();
 		await loadSectionItems();
-	}
-
-	onMount(() => {
-		// If auth is already valid, load immediately
-		if (pb.authStore.isValid && viewId) {
-			initAndLoad();
-		}
-		// Otherwise, the reactive statement above will handle it
 	});
 
 	async function loadView() {
