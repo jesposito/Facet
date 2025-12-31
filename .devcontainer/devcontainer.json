@@ -1,5 +1,5 @@
 {
-  "name": "me.yaml",
+  "name": "Me.yaml",
   "image": "mcr.microsoft.com/devcontainers/go:1.22",
 
   "features": {
@@ -26,7 +26,7 @@
   "forwardPorts": [5173, 8090],
   "portsAttributes": {
     "5173": {
-      "label": "me.yaml (Frontend)",
+      "label": "Me.yaml (Frontend)",
       "onAutoForward": "openBrowser"
     },
     "8090": {
@@ -35,7 +35,7 @@
     }
   },
 
-  "postCreateCommand": "cd frontend && npm install && cd ../backend && go mod download",
+  "postCreateCommand": "cd frontend && npm install && cd ../backend && go mod tidy",
   "postStartCommand": "chmod +x scripts/start-dev.sh && scripts/start-dev.sh",
 
   "remoteUser": "vscode"
