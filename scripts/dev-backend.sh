@@ -76,7 +76,9 @@ needs_update() {
 
 echo "[backend] Checking Go modules..."
 
+FIRST_RUN=false
 if reason=$(needs_update); then
+    FIRST_RUN=true
     echo "[backend] Running go mod tidy ($reason)..."
     echo "[backend] This may take a few minutes on first run..."
 
@@ -94,6 +96,14 @@ if reason=$(needs_update); then
     echo "[backend] Modules updated, hash saved to $HASH_FILE"
 else
     echo "[backend] Modules up to date (skipping go mod tidy)"
+fi
+
+# On first run, clean the Go build cache to ensure fresh compilation
+# This prevents stale compiled code from being used
+if [[ "$FIRST_RUN" == "true" ]]; then
+    echo "[backend] First run detected - cleaning build cache for fresh compilation..."
+    rm -rf "$PROJECT_ROOT/tmp/me-yaml" 2>/dev/null || true
+    go clean -cache 2>/dev/null || true
 fi
 
 # Check if air is available

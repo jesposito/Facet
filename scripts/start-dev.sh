@@ -32,9 +32,12 @@ export SEED_DATA="true"
 mkdir -p "$DATA_DIR"
 mkdir -p "$PROJECT_ROOT/tmp"
 
-# Start backend
+# Log file for capturing backend output
+BACKEND_LOG="$PROJECT_ROOT/tmp/backend.log"
+
+# Start backend with output captured to log
 echo "[startup] Starting backend..."
-"$SCRIPT_DIR/dev-backend.sh" &
+"$SCRIPT_DIR/dev-backend.sh" 2>&1 | tee "$BACKEND_LOG" &
 BACKEND_PID=$!
 
 # Wait for backend health (max 180 seconds for first build)
@@ -60,6 +63,23 @@ done
 
 if [ "$READY" = false ]; then
     echo "[startup] ERROR: Backend failed to start after 180 seconds"
+
+    # Check for common errors in the log
+    if grep -q "Collection name must be unique" "$BACKEND_LOG" 2>/dev/null; then
+        echo ""
+        echo "[startup] DETECTED: Migration error - duplicate collections"
+        echo "[startup] This can happen if pb_data has stale data from a previous run."
+        echo "[startup] To fix, run: rm -rf pb_data && ./scripts/start-dev.sh"
+        echo ""
+    fi
+
+    if grep -q "missing go.sum entry" "$BACKEND_LOG" 2>/dev/null; then
+        echo ""
+        echo "[startup] DETECTED: Missing go.sum entries"
+        echo "[startup] To fix, run: cd backend && go mod tidy"
+        echo ""
+    fi
+
     kill $BACKEND_PID 2>/dev/null || true
     exit 1
 fi
