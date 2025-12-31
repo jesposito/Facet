@@ -1,15 +1,26 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { pb } from '$lib/pocketbase';
+	import { pb, currentUser } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 
 	let loading = false;
 	let error = '';
+	let redirecting = false;
+
+	// Reactively redirect when user becomes authenticated
+	$: if ($currentUser && !redirecting) {
+		redirecting = true;
+		// Small delay to ensure auth state is fully propagated
+		setTimeout(() => {
+			goto('/admin', { replaceState: true });
+		}, 100);
+	}
 
 	onMount(() => {
 		// If already logged in, redirect to admin
-		if (pb.authStore.isValid) {
-			goto('/admin');
+		if (pb.authStore.isValid && pb.authStore.model) {
+			redirecting = true;
+			goto('/admin', { replaceState: true });
 		}
 	});
 
@@ -18,11 +29,10 @@
 		error = '';
 		try {
 			await pb.collection('users').authWithOAuth2({ provider: 'google' });
-			goto('/admin');
+			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = 'Failed to login with Google';
 			console.error(err);
-		} finally {
 			loading = false;
 		}
 	}
@@ -32,11 +42,10 @@
 		error = '';
 		try {
 			await pb.collection('users').authWithOAuth2({ provider: 'github' });
-			goto('/admin');
+			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = 'Failed to login with GitHub';
 			console.error(err);
-		} finally {
 			loading = false;
 		}
 	}
@@ -56,11 +65,10 @@
 		error = '';
 		try {
 			await pb.collection('users').authWithPassword(email, password);
-			goto('/admin');
+			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = 'Invalid email or password';
 			console.error(err);
-		} finally {
 			loading = false;
 		}
 	}

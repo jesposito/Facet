@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { pb, type ViewSection } from '$lib/pocketbase';
+	import { pb, currentUser, type ViewSection } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 
 	// Available sections - must match backend
@@ -17,6 +17,7 @@
 
 	let loading = true;
 	let saving = false;
+	let hasLoaded = false;
 
 	// Form fields
 	let name = '';
@@ -36,10 +37,24 @@
 	// Available items for each section
 	let sectionItems: Record<string, Array<{ id: string; label: string; visibility: string; is_draft?: boolean }>> = {};
 
-	onMount(async () => {
+	// Wait for auth to be ready before loading section items
+	$: if ($currentUser && !hasLoaded) {
+		initAndLoad();
+	}
+
+	async function initAndLoad() {
+		hasLoaded = true;
 		initializeSections();
 		await loadSectionItems();
 		loading = false;
+	}
+
+	onMount(() => {
+		// If auth is already valid, load immediately
+		if (pb.authStore.isValid) {
+			initAndLoad();
+		}
+		// Otherwise, the reactive statement above will handle it
 	});
 
 	function initializeSections() {
@@ -500,13 +515,6 @@
 				</div>
 			</div>
 
-			<!-- Form Actions (Mobile) -->
-			<div class="flex justify-end gap-3 md:hidden">
-				<a href="/admin/views" class="btn btn-secondary">Cancel</a>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
-					{saving ? 'Creating...' : 'Create View'}
-				</button>
-			</div>
-		</form>
+			</form>
 	{/if}
 </div>

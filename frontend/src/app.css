@@ -139,189 +139,301 @@
 /* ==========================================================================
    Print Stylesheet
    Optimizes public views for printing and browser-based PDF generation.
-   Designed for ATS-friendly resume output.
+   Designed for ATS-friendly, professional resume output.
    ========================================================================== */
 
 @media print {
-	/* Force color printing for elements that need it */
+	/* Force color printing and reset base styles */
 	* {
 		color-adjust: exact !important;
 		-webkit-print-color-adjust: exact !important;
 		print-color-adjust: exact !important;
+		box-shadow: none !important;
 	}
 
 	/* ==========================================================================
-	   Typography
+	   Page Setup - Professional resume margins
+	   ========================================================================== */
+
+	@page {
+		margin: 0.5in 0.6in;
+		size: letter;
+	}
+
+	/* ==========================================================================
+	   Typography - Clean, professional fonts
 	   ========================================================================== */
 
 	html {
-		font-size: 11pt;
+		font-size: 10pt;
 	}
 
 	body {
-		font-family: Georgia, 'Times New Roman', Times, serif;
-		line-height: 1.5;
+		font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+		line-height: 1.4;
 		color: #000 !important;
 		background: #fff !important;
+		margin: 0;
+		padding: 0;
 	}
 
 	h1, h2, h3, h4, h5, h6 {
 		font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 		color: #000 !important;
 		page-break-after: avoid;
+		margin-top: 0;
 	}
 
-	h1 { font-size: 24pt; }
-	h2 { font-size: 16pt; margin-top: 1.5em; }
-	h3 { font-size: 13pt; }
+	h1 {
+		font-size: 20pt;
+		font-weight: 700;
+		margin-bottom: 0.25rem;
+	}
+
+	h2 {
+		font-size: 12pt;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		border-bottom: 1.5pt solid #333;
+		padding-bottom: 0.15rem;
+		margin-top: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	h3 {
+		font-size: 11pt;
+		font-weight: 600;
+		margin-bottom: 0.1rem;
+	}
 
 	p, li {
 		orphans: 3;
 		widows: 3;
+		font-size: 10pt;
+		margin-bottom: 0.2rem;
 	}
 
 	/* ==========================================================================
-	   Hidden Elements (UI controls, decorative elements)
+	   Hidden Elements - Remove all UI chrome
 	   ========================================================================== */
 
-	/* Hide theme toggle, print button, and other UI controls */
+	/* Hide all UI controls, navigation, and decorative elements */
 	.print\:hidden,
 	[class*="ThemeToggle"],
-	.fixed.top-4.right-4 {
-		display: none !important;
-	}
-
-	/* Hide decorative hero background images and gradients */
-	header .absolute {
+	.fixed,
+	nav,
+	button,
+	.btn,
+	header .absolute,
+	.animate-pulse,
+	[aria-hidden="true"] {
 		display: none !important;
 	}
 
 	/* ==========================================================================
-	   Layout Adjustments
+	   Layout - Full width, minimal spacing
 	   ========================================================================== */
 
-	/* Remove max-width constraints for full-page printing */
+	/* Remove all max-width constraints */
 	.max-w-5xl,
 	.max-w-4xl,
 	.max-w-3xl,
+	.max-w-2xl,
+	.container,
 	main {
 		max-width: 100% !important;
-		padding-left: 0 !important;
-		padding-right: 0 !important;
+		width: 100% !important;
+		padding: 0 !important;
+		margin: 0 !important;
 	}
 
-	/* Reduce overall padding */
-	.px-4, .px-6, .px-8 {
-		padding-left: 0.5rem !important;
-		padding-right: 0.5rem !important;
+	/* Reset all padding classes */
+	.px-4, .px-6, .px-8, .py-4, .py-6, .py-8,
+	.py-12, .py-16, .py-24, .p-4, .p-6, .p-8 {
+		padding: 0 !important;
 	}
 
-	.py-12, .py-16, .py-24 {
-		padding-top: 1rem !important;
-		padding-bottom: 1rem !important;
+	/* Reset margins */
+	.my-4, .my-6, .my-8, .mb-4, .mb-6, .mb-8,
+	.mt-4, .mt-6, .mt-8, .m-4, .m-6, .m-8 {
+		margin: 0 !important;
 	}
 
 	/* ==========================================================================
-	   Hero Section
+	   Hero Section - Professional header layout
 	   ========================================================================== */
 
 	header {
-		background: #f8f9fa !important;
+		background: #fff !important;
 		color: #000 !important;
-		padding: 1rem !important;
+		padding: 0 0 0.5rem 0 !important;
+		margin-bottom: 0.5rem !important;
+		border-bottom: none !important;
 		page-break-inside: avoid;
+		text-align: center;
 	}
 
 	header * {
 		color: #000 !important;
 	}
 
-	header .text-gray-300,
-	header .text-gray-400 {
+	/* Name styling */
+	header h1 {
+		font-size: 22pt;
+		font-weight: 700;
+		margin-bottom: 0.1rem;
+		letter-spacing: 0.02em;
+	}
+
+	/* Headline/title styling */
+	header .text-xl,
+	header .text-2xl {
+		font-size: 11pt !important;
+		color: #444 !important;
+		margin-bottom: 0.3rem;
+	}
+
+	/* Hide avatar for cleaner resume look */
+	header img[class*="rounded-full"],
+	header .rounded-full {
+		display: none !important;
+	}
+
+	/* Contact info - inline format */
+	header .flex-wrap {
+		justify-content: center !important;
+		gap: 0.5rem !important;
+	}
+
+	header .flex-wrap a,
+	header .flex-wrap span {
+		font-size: 9pt;
 		color: #333 !important;
 	}
 
-	/* Avatar sizing for print */
-	header img[class*="rounded-full"] {
-		width: 80px !important;
-		height: 80px !important;
+	/* Show pipe separators between contact items */
+	header .flex-wrap > *:not(:last-child)::after {
+		content: " | ";
+		color: #999;
+		margin-left: 0.5rem;
 	}
 
-	/* Contact links - display URLs */
-	header a[href] {
-		text-decoration: none;
-		color: #000 !important;
+	/* Hide all icons in header */
+	header svg {
+		display: none !important;
 	}
 
-	header .flex-wrap.gap-3 a::after {
-		content: " (" attr(href) ")";
-		font-size: 8pt;
-		color: #666;
-	}
-
-	/* Hide link icons, show just text */
-	header .flex-wrap.gap-3 svg {
-		display: none;
+	/* Summary/bio text */
+	header .prose,
+	header .text-gray-300,
+	header .text-gray-400,
+	header .text-gray-600 {
+		font-size: 10pt !important;
+		color: #333 !important;
+		text-align: left;
+		max-width: 100%;
+		margin-top: 0.5rem;
 	}
 
 	/* ==========================================================================
-	   Cards and Sections
+	   Section Styling - Clean resume sections
+	   ========================================================================== */
+
+	section {
+		margin-bottom: 0.5rem !important;
+		padding: 0 !important;
+		page-break-inside: auto;
+	}
+
+	/* Section titles (Experience, Education, etc.) */
+	section > h2,
+	.section-title {
+		font-size: 11pt !important;
+		font-weight: 700 !important;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: #000 !important;
+		border-bottom: 1.5pt solid #000 !important;
+		padding-bottom: 0.1rem !important;
+		margin-bottom: 0.4rem !important;
+		margin-top: 0.6rem !important;
+		background: none !important;
+	}
+
+	/* ==========================================================================
+	   Cards - Remove card styling, keep content
 	   ========================================================================== */
 
 	.card {
-		box-shadow: none !important;
-		border: 1px solid #ddd !important;
-		background: #fff !important;
-		padding: 0.75rem !important;
-		margin-bottom: 0.75rem !important;
-	}
-
-	section {
+		background: transparent !important;
+		border: none !important;
+		padding: 0 !important;
+		margin-bottom: 0.4rem !important;
 		page-break-inside: avoid;
-		margin-bottom: 1.5rem !important;
-	}
-
-	article {
-		page-break-inside: avoid;
-	}
-
-	/* Section titles */
-	.section-title {
-		color: #000 !important;
-		border-bottom: 2px solid #000;
-		padding-bottom: 0.25rem;
-		margin-bottom: 0.75rem !important;
 	}
 
 	/* ==========================================================================
-	   Content-Specific Styles
+	   Experience/Education Items - Professional formatting
 	   ========================================================================== */
 
-	/* Experience items */
+	article {
+		page-break-inside: avoid;
+		margin-bottom: 0.5rem !important;
+		padding-bottom: 0.3rem !important;
+	}
+
+	/* Company/Institution and Title line */
+	article h3 {
+		font-size: 11pt;
+		font-weight: 600;
+		display: inline;
+	}
+
+	/* Date ranges - right-aligned */
+	article .text-gray-500,
+	article .text-sm {
+		font-size: 9pt !important;
+		color: #555 !important;
+	}
+
+	/* Job title / degree */
 	.text-primary-600,
-	.text-primary-400 {
-		color: #333 !important;
-	}
-
-	.text-gray-500,
-	.text-gray-400,
-	.text-gray-600,
-	.text-gray-300 {
-		color: #444 !important;
-	}
-
-	/* Skill badges */
-	.bg-gray-100,
-	.bg-gray-700,
-	[class*="rounded-full"] {
-		background: #f0f0f0 !important;
+	.text-primary-400,
+	.text-primary-500 {
 		color: #000 !important;
-		border: 1px solid #ccc !important;
+		font-weight: 500;
 	}
 
-	/* Bullets list styling */
+	/* Location text */
+	.text-gray-400,
+	.text-gray-500,
+	.text-gray-600 {
+		color: #555 !important;
+	}
+
+	/* ==========================================================================
+	   Bullet Points - Clean list formatting
+	   ========================================================================== */
+
+	ul {
+		margin: 0.2rem 0 !important;
+		padding-left: 1rem !important;
+	}
+
+	ul li {
+		margin-bottom: 0.15rem !important;
+		font-size: 10pt;
+		line-height: 1.35;
+	}
+
+	/* Bullet point markers */
+	ul li::marker {
+		color: #000;
+	}
+
 	ul.space-y-2 li {
-		margin-bottom: 0.25rem;
+		margin-bottom: 0.15rem !important;
 	}
 
 	ul.space-y-2 li span.text-primary-500 {
@@ -329,63 +441,134 @@
 	}
 
 	/* ==========================================================================
-	   CTA Banner - Hide for print (not relevant for resume)
+	   Skills Section - Compact inline format
 	   ========================================================================== */
 
-	.bg-primary-600.text-white.py-4 {
+	/* Skills badges - inline, minimal styling */
+	.bg-gray-100,
+	.bg-gray-700,
+	.bg-primary-50,
+	.bg-primary-100 {
+		background: transparent !important;
+		border: none !important;
+		padding: 0 !important;
+		display: inline !important;
+	}
+
+	/* Skills as comma-separated list */
+	.flex-wrap.gap-2 {
+		display: inline !important;
+	}
+
+	.flex-wrap.gap-2 > * {
+		display: inline !important;
+	}
+
+	.flex-wrap.gap-2 > *::after {
+		content: ", ";
+	}
+
+	.flex-wrap.gap-2 > *:last-child::after {
+		content: "";
+	}
+
+	/* Skill category headings */
+	.space-y-4 > div > h3 {
+		font-size: 10pt !important;
+		font-weight: 600;
+		display: inline;
+		margin-right: 0.3rem;
+	}
+
+	.space-y-4 > div > h3::after {
+		content: ": ";
+	}
+
+	/* ==========================================================================
+	   Projects Section - Compact format
+	   ========================================================================== */
+
+	/* Project titles */
+	article h3 a {
+		color: #000 !important;
+		text-decoration: none !important;
+	}
+
+	/* Tech stack */
+	.text-xs.text-gray-500,
+	.text-xs.text-gray-400 {
+		font-size: 9pt !important;
+		color: #555 !important;
+	}
+
+	/* ==========================================================================
+	   Posts/Talks - Hide from resume print
+	   ========================================================================== */
+
+	/* Optionally hide blog posts from resume */
+	section:has(h2:contains("Posts")),
+	section:has(h2:contains("Blog")) {
 		display: none !important;
 	}
 
 	/* ==========================================================================
-	   Footer - Simplified for print
+	   Links - Clean URL display
 	   ========================================================================== */
 
-	footer {
-		border-top: 1px solid #ddd;
-		padding: 0.5rem 0 !important;
-		margin-top: 1rem;
-		font-size: 9pt;
-		color: #666 !important;
+	a {
+		color: #000 !important;
+		text-decoration: none !important;
 	}
 
-	footer * {
-		color: #666 !important;
-	}
-
-	/* ==========================================================================
-	   Links - Show URLs for external links
-	   ========================================================================== */
-
+	/* Show URLs for important links */
 	main a[href^="http"]:not([href*="localhost"])::after {
-		content: " [" attr(href) "]";
+		content: " (" attr(href) ")";
 		font-size: 8pt;
 		color: #666;
 		word-break: break-all;
 	}
 
-	/* Don't duplicate URLs for links that are just the URL text */
-	main a[href^="http"]:not([href*="localhost"])[href*="github.com"]::after,
-	main a[href^="http"]:not([href*="localhost"])[href*="linkedin.com"]::after {
-		content: "";
+	/* Don't duplicate for common platforms */
+	main a[href*="github.com"]::after,
+	main a[href*="linkedin.com"]::after,
+	main a[href*="twitter.com"]::after {
+		content: "" !important;
+	}
+
+	/* ==========================================================================
+	   CTA Banner - Hide
+	   ========================================================================== */
+
+	.bg-primary-600,
+	.bg-primary-700 {
+		display: none !important;
+	}
+
+	/* ==========================================================================
+	   Footer - Minimal or hidden
+	   ========================================================================== */
+
+	footer {
+		display: none !important;
 	}
 
 	/* ==========================================================================
 	   Dark Mode Override - Force light colors
 	   ========================================================================== */
 
+	.dark,
 	.dark body,
 	.dark main,
 	.dark header,
-	.dark footer,
-	.dark .card,
 	.dark section,
-	.dark article {
+	.dark article,
+	.dark .card {
 		background: #fff !important;
 		color: #000 !important;
 	}
 
-	.dark h1, .dark h2, .dark h3,
-	.dark p, .dark span, .dark li {
+	.dark h1, .dark h2, .dark h3, .dark h4,
+	.dark p, .dark span, .dark li, .dark a {
 		color: #000 !important;
 	}
 
@@ -397,15 +580,25 @@
 	}
 
 	/* ==========================================================================
-	   Page Setup
+	   Page Breaks - Smart content flow
 	   ========================================================================== */
 
-	@page {
-		margin: 0.75in;
-		size: letter;
+	/* Avoid breaking inside key elements */
+	h1, h2, h3 {
+		page-break-after: avoid;
 	}
 
-	@page :first {
-		margin-top: 0.5in;
+	article, .card, section {
+		page-break-inside: avoid;
+	}
+
+	/* Allow breaks in long sections */
+	section > div {
+		page-break-inside: auto;
+	}
+
+	/* Keep headers with content */
+	h2 + *, h3 + * {
+		page-break-before: avoid;
 	}
 }
