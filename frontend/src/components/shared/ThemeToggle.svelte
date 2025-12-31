@@ -5,10 +5,10 @@
 <button
 	class="btn btn-ghost p-2 rounded-full"
 	on:click={() => theme.toggle()}
-	aria-label="Toggle theme"
+	aria-label={$theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
 >
 	{#if $theme === 'dark'}
-		<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+		<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -17,7 +17,7 @@
 			/>
 		</svg>
 	{:else}
-		<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+		<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"

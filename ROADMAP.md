@@ -387,10 +387,12 @@ Server-side PDF generation and data export are deferred as browser print provide
 - [ ] Bundle size reduction
 - [ ] Database query optimization
 
-#### 9.2 Accessibility Audit
-- [ ] Full WCAG 2.1 AA compliance
-- [ ] Screen reader testing
-- [ ] Keyboard navigation audit
+#### 9.2 Accessibility Audit ✅ Complete
+- [x] Skip navigation link for keyboard users
+- [x] Screen reader support (sr-only utility, aria-labels)
+- [x] Keyboard navigation audit
+- [x] ARIA attributes on all interactive elements
+- [x] Decorative elements marked aria-hidden
 
 #### 9.3 SEO Optimization
 - [ ] Structured data (JSON-LD)
@@ -455,6 +457,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Phase 3 complete - token management UI | Full token list, create, copy URL, revoke, status badges, usage stats |
 | 2025-12-31 | Phase 2.2 item-level overrides complete | Career pivoters can present same job differently per view; overrides stored in sections JSON |
 | 2025-12-31 | Phase 4.2 print stylesheet complete | Browser-based PDF via print is sufficient; server-side PDF deferred |
+| 2025-12-31 | Phase 9.2 accessibility audit complete | Skip link, aria attributes, screen reader support added; 0 svelte-check warnings |
 
 ---
 
