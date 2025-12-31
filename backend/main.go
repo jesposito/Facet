@@ -9,7 +9,6 @@ import (
 	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
@@ -52,15 +51,9 @@ func main() {
 	hooks.RegisterViewHooks(app)
 	hooks.RegisterSeedHook(app)
 
-	// Serve static files and SvelteKit app
-	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		// Trust proxy headers for reverse proxy setups
-		if os.Getenv("TRUST_PROXY") == "true" {
-			se.Router.Use(apis.TrustedProxyHeaders())
-		}
-
-		return se.Next()
-	})
+	// Note: Trusted proxy headers are handled by Caddy in the Docker setup.
+	// For standalone deployments, configure your reverse proxy to set
+	// X-Forwarded-For, X-Forwarded-Proto, and X-Forwarded-Host headers.
 
 	// Start the server
 	if err := app.Start(); err != nil {
