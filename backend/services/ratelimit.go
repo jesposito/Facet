@@ -84,11 +84,11 @@ func NewRateLimitService() *RateLimitService {
 
 // RateLimitInfo contains rate limit state for header generation
 type RateLimitInfo struct {
-	Allowed   bool  // Whether the request is allowed
-	Limit     int   // Maximum requests per window (burst size)
-	Remaining int   // Remaining requests in current window
-	Reset     int64 // Unix timestamp when bucket will be full
-	RetryAfter int  // Seconds until next request allowed (only if !Allowed)
+	Allowed    bool  // Whether the request is allowed
+	Limit      int   // Maximum requests per window (burst size)
+	Remaining  int   // Remaining requests in current window
+	Reset      int64 // Unix timestamp when bucket will be full
+	RetryAfter int   // Seconds until next request allowed (only if !Allowed)
 }
 
 // Allow checks if a request should be allowed for the given tier

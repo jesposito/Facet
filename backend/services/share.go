@@ -20,10 +20,10 @@ func NewShareService(crypto *CryptoService) *ShareService {
 
 // ShareTokenValidation represents the result of token validation
 type ShareTokenValidation struct {
-	Valid     bool   `json:"valid"`
-	ViewID    string `json:"view_id"`
-	ViewSlug  string `json:"view_slug"`
-	Error     string `json:"error,omitempty"`
+	Valid    bool   `json:"valid"`
+	ViewID   string `json:"view_id"`
+	ViewSlug string `json:"view_slug"`
+	Error    string `json:"error,omitempty"`
 }
 
 // GenerateToken generates a new share token (32 bytes, URL-safe base64)

@@ -17,24 +17,24 @@ type GitHubService struct {
 
 // RepoMetadata represents GitHub repository metadata
 type RepoMetadata struct {
-	Name            string            `json:"name"`
-	FullName        string            `json:"full_name"`
-	Description     string            `json:"description"`
-	Homepage        string            `json:"homepage"`
-	HTMLURL         string            `json:"html_url"`
-	CloneURL        string            `json:"clone_url"`
-	StargazersCount int               `json:"stargazers_count"`
-	ForksCount      int               `json:"forks_count"`
-	OpenIssuesCount int               `json:"open_issues_count"`
-	DefaultBranch   string            `json:"default_branch"`
-	Topics          []string          `json:"topics"`
-	Languages       map[string]int    `json:"languages"`
-	License         *LicenseInfo      `json:"license"`
-	CreatedAt       time.Time         `json:"created_at"`
-	UpdatedAt       time.Time         `json:"updated_at"`
-	PushedAt        time.Time         `json:"pushed_at"`
-	README          string            `json:"readme"`
-	Owner           string            `json:"owner_login"`
+	Name            string         `json:"name"`
+	FullName        string         `json:"full_name"`
+	Description     string         `json:"description"`
+	Homepage        string         `json:"homepage"`
+	HTMLURL         string         `json:"html_url"`
+	CloneURL        string         `json:"clone_url"`
+	StargazersCount int            `json:"stargazers_count"`
+	ForksCount      int            `json:"forks_count"`
+	OpenIssuesCount int            `json:"open_issues_count"`
+	DefaultBranch   string         `json:"default_branch"`
+	Topics          []string       `json:"topics"`
+	Languages       map[string]int `json:"languages"`
+	License         *LicenseInfo   `json:"license"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	PushedAt        time.Time      `json:"pushed_at"`
+	README          string         `json:"readme"`
+	Owner           string         `json:"owner_login"`
 }
 
 // LicenseInfo represents license information
