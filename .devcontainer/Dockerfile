@@ -8,8 +8,9 @@
 
 FROM mcr.microsoft.com/devcontainers/go:1.23
 
-# Build-time only: allow builds in restricted environments
-ARG GOPROXY=direct
+# Build-time only: use goproxy.cn as fallback for restricted environments
+# (proxy.golang.org redirects to storage.googleapis.com which may be blocked)
+ARG GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
 ARG GOSUMDB=off
 
 # Install air for Go hot reloading

@@ -138,6 +138,51 @@ make fmt   # Format code
 make build  # Build Docker image
 ```
 
+## Codespaces Networking Limitations
+
+Some Codespaces environments have network restrictions that block access to `storage.googleapis.com`, which is used by the default Go module proxy (`proxy.golang.org`).
+
+**Symptoms:**
+- `go mod tidy` times out with DNS lookup errors for `storage.googleapis.com`
+- `go build` fails with "missing go.sum entry" errors
+- Downloads hang indefinitely
+
+**Solution (already configured):**
+
+The devcontainer is configured to use `goproxy.cn` as a fallback proxy:
+
+```bash
+# Set in devcontainer.json containerEnv
+GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
+GOSUMDB=off
+```
+
+If you're running outside the devcontainer and encounter these issues:
+
+```bash
+# Set environment variables
+export GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
+export GOSUMDB=off
+
+# Then run your go commands
+go mod tidy
+go build ./...
+```
+
+**Alternative: Vendor dependencies (offline-first)**
+
+For truly offline development, you can vendor all dependencies:
+
+```bash
+# In backend/
+go mod vendor
+
+# Build with vendored deps
+go build -mod=vendor ./...
+```
+
+Note: Vendoring adds ~50MB to the repository but guarantees zero network dependencies after clone.
+
 ## Troubleshooting
 
 ### "air: command not found"
