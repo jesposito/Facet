@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -739,10 +740,7 @@ func registerViewsValidation(app *pocketbase.PocketBase) {
 
 		// Validate slug is not reserved
 		if !isValidSlug(slug) {
-			return &apis.ApiError{
-				Message: "Invalid or reserved slug. Slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc.",
-				Status:  http.StatusBadRequest,
-			}
+			return fmt.Errorf("invalid or reserved slug: slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc")
 		}
 
 		// If this view is being set as default, clear other defaults
@@ -761,10 +759,7 @@ func registerViewsValidation(app *pocketbase.PocketBase) {
 
 		// Validate slug is not reserved
 		if !isValidSlug(slug) {
-			return &apis.ApiError{
-				Message: "Invalid or reserved slug. Slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc.",
-				Status:  http.StatusBadRequest,
-			}
+			return fmt.Errorf("invalid or reserved slug: slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc")
 		}
 
 		// If this view is being set as default, clear other defaults
