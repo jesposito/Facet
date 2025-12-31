@@ -159,8 +159,11 @@ Open in GitHub Codespaces. Includes demo profile.
 make dev
 ```
 
-- Frontend: http://localhost:5173
-- Backend: http://localhost:8090
+Development uses separate ports for hot reload:
+- http://localhost:5173 (Vite dev server with HMR)
+- API calls proxy to backend automatically
+
+Production uses single port 8080 for everything.
 
 ---
 
