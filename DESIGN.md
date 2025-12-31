@@ -21,6 +21,7 @@
 11. [Extensibility Boundaries](#11-extensibility-boundaries)
 12. [Known Tradeoffs](#12-known-tradeoffs)
 13. [Feature Gaps & Future Work](#13-feature-gaps--future-work)
+14. [Print & Export System](#14-print--export-system)
 
 ---
 
@@ -863,9 +864,9 @@ Based on codebase analysis, these features are incomplete or missing:
 | ~~**Certifications section**~~ | ~~Collection exists, no UI~~ | ✅ Complete: Public display with issuer grouping |
 | ~~**View editor**~~ | ~~Basic, no drag-drop~~ | ✅ Complete: Full editor with section/item selection |
 | **Media library** | No implementation | Cannot manage uploaded files |
-| **Share token management UI** | Listed in views page, no full UI | Cannot manage tokens easily |
+| ~~**Share token management UI**~~ | ~~Listed in views page, no full UI~~ | ✅ Complete: `/admin/tokens` with full CRUD |
 | **Scheduled GitHub sync** | Not implemented | Manual refresh only |
-| **Resume PDF export** | Not implemented | Cannot generate printable resume |
+| ~~**Resume PDF export**~~ | ~~Not implemented~~ | ✅ Complete: Print stylesheet + print button |
 | **Theme customization** | Not implemented | Single theme only |
 | **Audit logging** | Minimal | Cannot review access history |
 
@@ -874,12 +875,97 @@ Based on codebase analysis, these features are incomplete or missing:
 1. ~~**Core content pages**: Project details, posts, talks, certifications~~ ✅ Complete
 2. ~~**View editor core**: Section toggles, item selection, hero overrides~~ ✅ Complete
 3. **View editor improvements**: Drag-drop ordering, preview pane
-4. **Share token management**: Full CRUD UI with usage stats
-5. **Resume export**: Generate PDF from profile/view
+4. ~~**Share token management**: Full CRUD UI with usage stats~~ ✅ Complete
+5. ~~**Resume export**: Generate PDF from profile/view~~ ✅ Complete (print stylesheet + button)
 6. **Theme system**: Light/dark modes, color customization
 7. **Scheduled sync**: Cron-based GitHub refresh
 8. **Media library**: Upload management, image optimization
 9. **Audit log**: Access history for share tokens
+
+---
+
+## 14. Print & Export System
+
+### 14.1 Print Stylesheet
+
+Me.yaml includes a comprehensive print stylesheet that optimizes public views for printing and PDF generation via the browser's native Print function (Ctrl+P / Cmd+P).
+
+#### Design Goals
+
+| Goal | Implementation |
+|------|----------------|
+| **ATS-friendly** | Clean text, minimal formatting, semantic structure |
+| **One-click print** | Print button visible on public views |
+| **Readable** | Optimized typography, appropriate spacing |
+| **Complete** | All visible content printed, nothing hidden |
+| **No dark mode** | Forces light colors for printing |
+
+#### Print Optimizations
+
+1. **Hidden Elements**
+   - Theme toggle button
+   - Print button itself
+   - Interactive elements (hover states)
+   - Background gradients and decorative images
+
+2. **Typography Adjustments**
+   - Serif font for body text (better for printing)
+   - Slightly smaller base font size
+   - Increased line height for readability
+   - Black text on white background
+
+3. **Layout Changes**
+   - Full-width content (no max-width constraints)
+   - Reduced padding and margins
+   - Cards rendered without shadows/borders
+   - Page breaks avoided inside sections
+
+4. **Link Handling**
+   - URLs displayed after link text
+   - Contact links shown with full URLs
+   - External links marked appropriately
+
+#### CSS Structure
+
+```css
+@media print {
+  /* Force light mode colors */
+  * { color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+  /* Hide UI elements */
+  .print\\:hidden { display: none !important; }
+
+  /* Typography */
+  body { font-family: Georgia, serif; font-size: 11pt; }
+
+  /* Layout */
+  main { max-width: 100%; padding: 0; }
+  .card { box-shadow: none; border: 1px solid #e5e7eb; }
+
+  /* Page breaks */
+  section { page-break-inside: avoid; }
+  article { page-break-inside: avoid; }
+}
+```
+
+### 14.2 Print Button
+
+A print button is displayed on public view pages (not admin). The button:
+- Appears in a non-intrusive location (top-right, near theme toggle)
+- Has a printer icon for clarity
+- Triggers `window.print()` on click
+- Is hidden when printing (class `print:hidden`)
+
+### 14.3 Future Enhancements
+
+These export features are planned for future phases:
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| **Server-side PDF** | Deferred | Would require headless browser or Go PDF library |
+| **Data export (JSON)** | Deferred | Export all profile data for backup |
+| **Data export (YAML)** | Deferred | Export in Me.yaml format |
+| **Static HTML snapshot** | Deferred | Self-contained offline version |
 
 ---
 

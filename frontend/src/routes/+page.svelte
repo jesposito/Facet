@@ -30,8 +30,19 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	<!-- Theme toggle -->
-	<div class="fixed top-4 right-4 z-40">
+	<!-- Theme toggle and print button -->
+	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+		<!-- Print Button -->
+		<button
+			on:click={() => window.print()}
+			class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+			title="Print / Save as PDF"
+			aria-label="Print or save as PDF"
+		>
+			<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+			</svg>
+		</button>
 		<ThemeToggle />
 	</div>
 

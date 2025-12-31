@@ -184,39 +184,51 @@ Enable per-view customization of individual items without modifying source recor
 
 ---
 
-## Phase 4: Export & Print
+## Phase 4: Export & Print (Partial)
 
 **Purpose**: Enable offline access and traditional resume formats.
 
 ### Features
 
-#### 4.1 Resume PDF Generation
-- [ ] Generate PDF from view content
-- [ ] Clean, ATS-friendly layout
-- [ ] Include/exclude sections based on view config
-- [ ] Download button on admin
+#### 4.1 Resume PDF Generation (Deferred)
+- [ ] Server-side PDF generation from view content — Deferred (browser print sufficient)
+- [x] Clean, ATS-friendly layout — Via print stylesheet
+- [x] Include/exclude sections based on view config — Via view system
+- [ ] Download button on admin — Deferred
 
-#### 4.2 Print Stylesheet
-- [ ] Optimized CSS for printing
-- [ ] Page breaks at section boundaries
-- [ ] Hide navigation, show content
-- [ ] Print button on public pages
+#### 4.2 Print Stylesheet ✅ Complete
+- [x] Optimized CSS for printing
+- [x] Page breaks at section boundaries
+- [x] Hide navigation and UI controls
+- [x] Print button on public pages
+- [x] ATS-friendly typography (serif body, sans-serif headers)
+- [x] Force light mode colors
+- [x] Display URLs after links
+- [x] Proper page margins
 
-#### 4.3 Data Export
-- [ ] Export all data as JSON
-- [ ] Export as YAML (for backup)
-- [ ] Include uploaded files in archive
+#### 4.3 Data Export (Deferred)
+- [ ] Export all data as JSON — Deferred
+- [ ] Export as YAML (for backup) — Deferred
+- [ ] Include uploaded files in archive — Deferred
 
-#### 4.4 View Snapshot
-- [ ] Generate static HTML of a view
-- [ ] Self-contained (inline CSS/images)
-- [ ] Useful for offline sharing
+#### 4.4 View Snapshot (Deferred)
+- [ ] Generate static HTML of a view — Deferred
+- [ ] Self-contained (inline CSS/images) — Deferred
+- [ ] Useful for offline sharing — Deferred
 
 ### Prerequisites
-- Phase 3 complete
+- Phase 3 complete ✅
+
+### Completed
+- Print stylesheet enables browser-based PDF generation via Print (Ctrl+P / Cmd+P)
+- Print button added to homepage and all view pages
+- Clean, professional output suitable for resumes
+
+### Deferred Items
+Server-side PDF generation and data export are deferred as browser print provides sufficient functionality for the primary use case (resume generation). These may be revisited based on user feedback.
 
 ### Risks
-- PDF generation may require headless browser or Go library
+- ~~PDF generation may require headless browser or Go library~~ — Mitigated by browser print
 - Static snapshot may break with complex layouts
 
 ---
@@ -442,6 +454,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Admin CRUD pages complete | All admin routes now functional: experience, projects, education, skills |
 | 2025-12-31 | Phase 3 complete - token management UI | Full token list, create, copy URL, revoke, status badges, usage stats |
 | 2025-12-31 | Phase 2.2 item-level overrides complete | Career pivoters can present same job differently per view; overrides stored in sections JSON |
+| 2025-12-31 | Phase 4.2 print stylesheet complete | Browser-based PDF via print is sufficient; server-side PDF deferred |
 
 ---
 

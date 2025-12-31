@@ -96,3 +96,277 @@
 		}
 	}
 }
+
+/* ==========================================================================
+   Print Stylesheet
+   Optimizes public views for printing and browser-based PDF generation.
+   Designed for ATS-friendly resume output.
+   ========================================================================== */
+
+@media print {
+	/* Force color printing for elements that need it */
+	* {
+		color-adjust: exact !important;
+		-webkit-print-color-adjust: exact !important;
+		print-color-adjust: exact !important;
+	}
+
+	/* ==========================================================================
+	   Typography
+	   ========================================================================== */
+
+	html {
+		font-size: 11pt;
+	}
+
+	body {
+		font-family: Georgia, 'Times New Roman', Times, serif;
+		line-height: 1.5;
+		color: #000 !important;
+		background: #fff !important;
+	}
+
+	h1, h2, h3, h4, h5, h6 {
+		font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+		color: #000 !important;
+		page-break-after: avoid;
+	}
+
+	h1 { font-size: 24pt; }
+	h2 { font-size: 16pt; margin-top: 1.5em; }
+	h3 { font-size: 13pt; }
+
+	p, li {
+		orphans: 3;
+		widows: 3;
+	}
+
+	/* ==========================================================================
+	   Hidden Elements (UI controls, decorative elements)
+	   ========================================================================== */
+
+	/* Hide theme toggle, print button, and other UI controls */
+	.print\:hidden,
+	[class*="ThemeToggle"],
+	.fixed.top-4.right-4 {
+		display: none !important;
+	}
+
+	/* Hide decorative hero background images and gradients */
+	header .absolute {
+		display: none !important;
+	}
+
+	/* ==========================================================================
+	   Layout Adjustments
+	   ========================================================================== */
+
+	/* Remove max-width constraints for full-page printing */
+	.max-w-5xl,
+	.max-w-4xl,
+	.max-w-3xl,
+	main {
+		max-width: 100% !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	/* Reduce overall padding */
+	.px-4, .px-6, .px-8 {
+		padding-left: 0.5rem !important;
+		padding-right: 0.5rem !important;
+	}
+
+	.py-12, .py-16, .py-24 {
+		padding-top: 1rem !important;
+		padding-bottom: 1rem !important;
+	}
+
+	/* ==========================================================================
+	   Hero Section
+	   ========================================================================== */
+
+	header {
+		background: #f8f9fa !important;
+		color: #000 !important;
+		padding: 1rem !important;
+		page-break-inside: avoid;
+	}
+
+	header * {
+		color: #000 !important;
+	}
+
+	header .text-gray-300,
+	header .text-gray-400 {
+		color: #333 !important;
+	}
+
+	/* Avatar sizing for print */
+	header img[class*="rounded-full"] {
+		width: 80px !important;
+		height: 80px !important;
+	}
+
+	/* Contact links - display URLs */
+	header a[href] {
+		text-decoration: none;
+		color: #000 !important;
+	}
+
+	header .flex-wrap.gap-3 a::after {
+		content: " (" attr(href) ")";
+		font-size: 8pt;
+		color: #666;
+	}
+
+	/* Hide link icons, show just text */
+	header .flex-wrap.gap-3 svg {
+		display: none;
+	}
+
+	/* ==========================================================================
+	   Cards and Sections
+	   ========================================================================== */
+
+	.card {
+		box-shadow: none !important;
+		border: 1px solid #ddd !important;
+		background: #fff !important;
+		padding: 0.75rem !important;
+		margin-bottom: 0.75rem !important;
+	}
+
+	section {
+		page-break-inside: avoid;
+		margin-bottom: 1.5rem !important;
+	}
+
+	article {
+		page-break-inside: avoid;
+	}
+
+	/* Section titles */
+	.section-title {
+		color: #000 !important;
+		border-bottom: 2px solid #000;
+		padding-bottom: 0.25rem;
+		margin-bottom: 0.75rem !important;
+	}
+
+	/* ==========================================================================
+	   Content-Specific Styles
+	   ========================================================================== */
+
+	/* Experience items */
+	.text-primary-600,
+	.text-primary-400 {
+		color: #333 !important;
+	}
+
+	.text-gray-500,
+	.text-gray-400,
+	.text-gray-600,
+	.text-gray-300 {
+		color: #444 !important;
+	}
+
+	/* Skill badges */
+	.bg-gray-100,
+	.bg-gray-700,
+	[class*="rounded-full"] {
+		background: #f0f0f0 !important;
+		color: #000 !important;
+		border: 1px solid #ccc !important;
+	}
+
+	/* Bullets list styling */
+	ul.space-y-2 li {
+		margin-bottom: 0.25rem;
+	}
+
+	ul.space-y-2 li span.text-primary-500 {
+		color: #000 !important;
+	}
+
+	/* ==========================================================================
+	   CTA Banner - Hide for print (not relevant for resume)
+	   ========================================================================== */
+
+	.bg-primary-600.text-white.py-4 {
+		display: none !important;
+	}
+
+	/* ==========================================================================
+	   Footer - Simplified for print
+	   ========================================================================== */
+
+	footer {
+		border-top: 1px solid #ddd;
+		padding: 0.5rem 0 !important;
+		margin-top: 1rem;
+		font-size: 9pt;
+		color: #666 !important;
+	}
+
+	footer * {
+		color: #666 !important;
+	}
+
+	/* ==========================================================================
+	   Links - Show URLs for external links
+	   ========================================================================== */
+
+	main a[href^="http"]:not([href*="localhost"])::after {
+		content: " [" attr(href) "]";
+		font-size: 8pt;
+		color: #666;
+		word-break: break-all;
+	}
+
+	/* Don't duplicate URLs for links that are just the URL text */
+	main a[href^="http"]:not([href*="localhost"])[href*="github.com"]::after,
+	main a[href^="http"]:not([href*="localhost"])[href*="linkedin.com"]::after {
+		content: "";
+	}
+
+	/* ==========================================================================
+	   Dark Mode Override - Force light colors
+	   ========================================================================== */
+
+	.dark body,
+	.dark main,
+	.dark header,
+	.dark footer,
+	.dark .card,
+	.dark section,
+	.dark article {
+		background: #fff !important;
+		color: #000 !important;
+	}
+
+	.dark h1, .dark h2, .dark h3,
+	.dark p, .dark span, .dark li {
+		color: #000 !important;
+	}
+
+	.dark .text-white,
+	.dark .text-gray-100,
+	.dark .text-gray-200,
+	.dark .text-gray-300 {
+		color: #000 !important;
+	}
+
+	/* ==========================================================================
+	   Page Setup
+	   ========================================================================== */
+
+	@page {
+		margin: 0.75in;
+		size: letter;
+	}
+
+	@page :first {
+		margin-top: 0.5in;
+	}
+}

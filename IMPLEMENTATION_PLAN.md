@@ -205,6 +205,7 @@
 | 9. Docker | ✅ Complete | Production-ready |
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
+| 12. Print & Export | 🟡 Partial | Print stylesheet complete, data export deferred |
 
 ---
 
@@ -223,6 +224,7 @@
 6. AI provider mock tests
 7. Integration tests
 8. View access log / audit logging (Phase 8)
+9. Data export (JSON/YAML) - Phase 4.3
 
 ---
 
@@ -257,3 +259,36 @@ This phase enables audience-specific framing of the same content. Key use case: 
 - Company names, dates, institutions
 - URLs, credential IDs
 - Skills, certifications (include/exclude only)
+
+---
+
+## Phase 4.2: Print Stylesheet ✅ Complete
+
+This phase enables browser-based PDF generation for resumes and profile printing.
+
+### Implementation
+- [x] Comprehensive print stylesheet in `app.css`
+- [x] Print button on homepage (`/`)
+- [x] Print button on all view pages (`/[slug]`)
+- [x] Hidden UI elements during print (theme toggle, print button, CTA banner)
+
+### Print Optimizations
+- [x] ATS-friendly typography (Georgia for body, Helvetica for headers)
+- [x] Force light mode colors for all elements
+- [x] Page breaks avoided inside sections and articles
+- [x] Proper page margins (0.75in, letter size)
+- [x] URLs displayed after link text
+- [x] Reduced padding and margins for space efficiency
+- [x] Cards rendered without shadows, with subtle borders
+- [x] Hero section simplified (no background images/gradients)
+
+### Usage
+Users can generate PDFs by:
+1. Navigate to any public view or homepage
+2. Click the print button (printer icon) in the top-right
+3. Use browser's Print dialog (Ctrl+P / Cmd+P)
+4. Select "Save as PDF" as the destination
+
+### Deferred
+- Server-side PDF generation (browser print is sufficient)
+- Data export (JSON/YAML) - may be revisited based on user feedback
