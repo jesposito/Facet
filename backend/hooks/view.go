@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -268,7 +269,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase) {
 				"project_id": project.Id,
 				"status":     "applied",
 			})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		// Reject import proposal
 		se.Router.POST("/api/proposals/{id}/reject", func(e *core.RequestEvent) error {
@@ -286,7 +287,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase) {
 			app.Save(proposal)
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "rejected"})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})

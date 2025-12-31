@@ -9,6 +9,7 @@ import (
 	"ownprofile/services"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -44,7 +45,7 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 			}
 
 			return e.JSON(http.StatusOK, metadata)
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		// Import a GitHub repo as a project
 		se.Router.POST("/api/github/import", func(e *core.RequestEvent) error {
@@ -195,7 +196,7 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				"ai_enriched": aiResult != nil,
 				"metadata":    metadata,
 			})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		// Refresh an existing source
 		se.Router.POST("/api/github/refresh/{id}", func(e *core.RequestEvent) error {
@@ -281,7 +282,7 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				"diff":        diff,
 				"proposed":    proposedData,
 			})
-		}).Bind(RequireAuth(app))
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})
