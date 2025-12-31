@@ -8,7 +8,8 @@
 	let loading = true;
 	let showForm = false;
 	let editingPost: Post | null = null;
-	let loadError = false;
+	let hasLoaded = false;
+	let isLoadingPosts = false;
 
 	// Form fields
 	let title = '';
@@ -23,7 +24,7 @@
 	let saving = false;
 
 	// Wait for auth to be ready before loading
-	$: if ($currentUser && loading && !loadError) {
+	$: if ($currentUser && !hasLoaded) {
 		loadPosts();
 	}
 
@@ -35,9 +36,15 @@
 		// Otherwise, the reactive statement above will handle it
 	});
 
-	async function loadPosts() {
+	async function loadPosts(force = false) {
+		// Prevent concurrent/duplicate loads (causes PocketBase auto-cancellation)
+		if (isLoadingPosts) return;
+		if (hasLoaded && !force) return;
+
+		isLoadingPosts = true;
+		hasLoaded = true;
 		loading = true;
-		loadError = false;
+
 		try {
 			const records = await pb.collection('posts').getList(1, 100, {
 				sort: '-created'
@@ -45,14 +52,20 @@
 			posts = records.items as unknown as Post[];
 		} catch (err) {
 			console.error('Failed to load posts:', err);
-			loadError = true;
-			// Only show toast if it's not an auth error (auth errors are handled by layout)
-			const error = err as { status?: number };
+			// Check if it's an auto-cancellation (not a real error)
+			const error = err as { isAbort?: boolean; status?: number };
+			if (error.isAbort) {
+				// Ignore auto-cancellation errors
+				return;
+			}
+			hasLoaded = false; // Allow retry on real errors
+			// Only show toast if it's not an auth error
 			if (error.status !== 401 && error.status !== 403) {
 				toasts.add('error', 'Failed to load posts');
 			}
 		} finally {
 			loading = false;
+			isLoadingPosts = false;
 		}
 	}
 
@@ -150,7 +163,7 @@
 			}
 
 			closeForm();
-			await loadPosts();
+			await loadPosts(true);
 		} catch (err: unknown) {
 			console.error('Failed to save post:', err);
 			const error = err as { data?: { data?: { slug?: { message?: string } } } };
@@ -172,7 +185,7 @@
 		try {
 			await pb.collection('posts').delete(post.id);
 			toasts.add('success', 'Post deleted');
-			await loadPosts();
+			await loadPosts(true);
 		} catch (err) {
 			console.error('Failed to delete post:', err);
 			toasts.add('error', 'Failed to delete post');
@@ -187,7 +200,7 @@
 				published_at: newDraftState ? null : (post.published_at || new Date().toISOString())
 			});
 			toasts.add('success', newDraftState ? 'Post unpublished' : 'Post published');
-			await loadPosts();
+			await loadPosts(true);
 		} catch (err) {
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update post');
