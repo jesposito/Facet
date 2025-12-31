@@ -177,6 +177,46 @@ Tokens can be sent via:
 - **No per-use logging:** Usage count tracked, but not individual accesses
 - **URL token leakage:** Tokens in query strings may leak (see warning above)
 
+## Collection Access Control
+
+### Deny-by-Default Model
+
+All PocketBase collections require authentication for direct access via `/api/collections/{name}/records`. This prevents bypassing visibility and draft rules.
+
+**Public data flows through custom API endpoints:**
+- `/api/view/{slug}/access` — Returns view metadata (visibility, requirements)
+- `/api/view/{slug}/data` — Returns view content with visibility rules enforced
+
+These endpoints use server-side database calls that bypass collection rules, allowing them to serve public content while maintaining access control.
+
+### Collection Categories
+
+| Category | Collections | Direct Access |
+|----------|-------------|---------------|
+| Content | profile, experience, projects, education, certifications, skills, posts, talks, views | Auth required |
+| Sensitive | share_tokens, sources, ai_providers, import_proposals, settings | Auth required |
+| Auth | users | Managed by PocketBase |
+
+### Why This Matters
+
+Without these restrictions, an attacker could:
+1. Enumerate all records via `/api/collections/projects/records`
+2. Access draft content (`is_draft=true`)
+3. Access private content (`visibility=private`)
+4. Bypass share token requirements for unlisted views
+
+With deny-by-default:
+1. Public visitors use `/api/view/{slug}/data` which enforces visibility
+2. Only authenticated admins can access raw collection data
+3. Visibility and draft filtering is guaranteed
+
+### Authenticated Access
+
+Authenticated users (admin OAuth allowlist) can still:
+- Use the admin dashboard to manage content
+- Access collections directly via PocketBase API
+- Use the `/_/` admin UI (if enabled)
+
 ## API Security
 
 ### Rate Limiting
