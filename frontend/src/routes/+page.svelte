@@ -31,20 +31,29 @@
 
 	<!-- Main content -->
 	<main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-		{#if data.experience.length > 0}
-			<ExperienceSection items={data.experience} />
-		{/if}
+		{#if !data.profile?.name && data.experience.length === 0 && data.projects.length === 0}
+			<!-- Empty profile state -->
+			<div class="text-center py-16">
+				<p class="text-gray-500 dark:text-gray-400 text-lg">
+					This profile is being set up.
+				</p>
+			</div>
+		{:else}
+			{#if data.experience.length > 0}
+				<ExperienceSection items={data.experience} />
+			{/if}
 
-		{#if data.projects.length > 0}
-			<ProjectsSection items={data.projects} />
-		{/if}
+			{#if data.projects.length > 0}
+				<ProjectsSection items={data.projects} />
+			{/if}
 
-		{#if data.education.length > 0}
-			<EducationSection items={data.education} />
-		{/if}
+			{#if data.education.length > 0}
+				<EducationSection items={data.education} />
+			{/if}
 
-		{#if data.skills.length > 0}
-			<SkillsSection items={data.skills} />
+			{#if data.skills.length > 0}
+				<SkillsSection items={data.skills} />
+			{/if}
 		{/if}
 	</main>
 

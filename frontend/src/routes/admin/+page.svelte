@@ -73,7 +73,13 @@
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
-	{#if isEmpty}
+	{#if loading}
+		<!-- Loading state -->
+		<div class="card p-8 mb-8 animate-pulse">
+			<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-4"></div>
+			<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96"></div>
+		</div>
+	{:else if isEmpty}
 		<!-- Welcome state for first-time users -->
 		<div class="card p-8 mb-8">
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">This is your space.</h1>
