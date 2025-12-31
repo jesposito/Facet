@@ -1,6 +1,5 @@
 <script lang="ts">
-	import type { PageData } from './$types';
-	import { pb } from '$lib/pocketbase';
+	import { pb, currentUser } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 
 	let stats = {
@@ -12,8 +11,25 @@
 
 	let recentActivity: Array<{ type: string; title: string; date: string }> = [];
 	let loading = true;
+	let hasLoaded = false;
 
-	onMount(async () => {
+	// Wait for auth to be ready before loading
+	$: if ($currentUser && !hasLoaded) {
+		loadDashboard();
+	}
+
+	onMount(() => {
+		// If auth is already valid, load immediately
+		if (pb.authStore.isValid) {
+			loadDashboard();
+		}
+		// Otherwise, the reactive statement above will handle it
+	});
+
+	async function loadDashboard() {
+		if (hasLoaded) return; // Prevent duplicate loads
+		hasLoaded = true;
+
 		try {
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
 				pb.collection('projects').getList(1, 1),
@@ -51,10 +67,11 @@
 				.slice(0, 5);
 		} catch (err) {
 			console.error('Failed to load dashboard stats:', err);
+			hasLoaded = false; // Allow retry
 		} finally {
 			loading = false;
 		}
-	});
+	}
 
 	function formatDate(dateString: string): string {
 		return new Date(dateString).toLocaleDateString('en-US', {
