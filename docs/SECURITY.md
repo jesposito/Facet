@@ -38,7 +38,7 @@ Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated
 | Visibility | Access Control |
 |------------|----------------|
 | `public` | Anyone |
-| `unlisted` | Anyone with the link (share tokens planned) |
+| `unlisted` | Valid share token required |
 | `password` | Anyone with the correct password → receives JWT |
 | `private` | Admin only |
 
@@ -100,21 +100,75 @@ Tokens can be sent via:
 
 ## Share Tokens
 
-Share tokens provide access to unlisted views.
+Share tokens provide access to unlisted views. They are required for any `visibility=unlisted` view.
 
-### Storage
+### Flow
 
-Share tokens are stored as HMAC-SHA256 hashes:
-- Raw token is returned to user once
-- Server stores only the HMAC
-- Constant-time comparison prevents timing attacks
+```
+1. Admin: POST /api/share/generate (authenticated)
+   Body: { "view_id": "...", "name": "For recruiters", "expires_at": null, "max_uses": 0 }
+   Response: { "id": "...", "token": "<raw-token>", "name": "..." }
+   ⚠️ Raw token is returned ONLY ONCE - store it securely
 
-### Properties
+2. User: GET /api/view/{slug}/access
+   Response: { "requires_token": true, "id": "..." }
 
-- Cryptographically random (32 bytes)
-- Optional expiration date
-- Optional usage limit
-- Can be revoked by admin
+3. User: GET /api/view/{slug}/data?token=<raw-token>
+   or: Header: Authorization: Bearer <raw-token>
+   or: Header: X-Share-Token: <raw-token>
+   Response: { view data }
+```
+
+### Storage Architecture
+
+Share tokens use a two-part storage strategy for O(1) lookup:
+
+1. **token_prefix** (first 12 chars): Stored in plaintext for indexed queries
+2. **token_hash**: HMAC-SHA256 of the full token
+
+**Lookup algorithm:**
+```
+1. Extract prefix from provided token (first 12 chars)
+2. Query: SELECT * FROM share_tokens WHERE token_prefix = ? AND is_active = true
+3. For each candidate (typically 1), verify full HMAC
+4. Validate: view_id matches, not expired, under max_uses
+```
+
+This achieves O(1) database lookup instead of O(n) scanning, while maintaining security.
+
+### Security Properties
+
+- **HMAC storage:** Raw tokens never stored; DB leak doesn't reveal tokens
+- **Constant-time comparison:** Prevents timing attacks on HMAC verification
+- **Prefix indexing:** Only reveals 12 chars (~72 bits) of token structure
+- **View-bound:** Each token is tied to a specific view ID
+- **Expiry support:** Tokens can have optional expiration dates
+- **Usage limits:** Tokens can have optional max usage counts
+- **Revocation:** Admin can deactivate tokens at any time
+
+### Token Properties
+
+| Property | Description |
+|----------|-------------|
+| Length | 32 bytes, URL-safe base64 encoded (~43 chars) |
+| Prefix | First 12 characters stored for indexed lookup |
+| HMAC | Full token hashed with server's HMAC key |
+| Expiry | Optional, enforced server-side |
+| Max uses | Optional, 0 = unlimited |
+| Use count | Tracked per-token |
+
+### Token Transport
+
+Tokens can be sent via:
+1. `Authorization: Bearer <token>` (preferred)
+2. `X-Share-Token: <token>` (header alternative)
+3. `?token=<token>` (query parameter for link sharing)
+
+### Limitations
+
+- **No token refresh:** Expired tokens require admin to generate new one
+- **Prefix collision:** Rare but possible; mitigated by HMAC verification
+- **No per-use logging:** Usage count tracked, but not individual accesses
 
 ## API Security
 
