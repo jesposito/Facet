@@ -1,7 +1,6 @@
 package services
 
 import (
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"

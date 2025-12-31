@@ -125,12 +125,12 @@ func TestGenerateToken(t *testing.T) {
 	}
 }
 
-func TestHashToken(t *testing.T) {
-	crypto := NewCryptoService("")
+func TestHMACToken(t *testing.T) {
+	crypto := NewCryptoService("test-key")
 
 	token := "my-share-token"
-	hash1 := crypto.HashToken(token)
-	hash2 := crypto.HashToken(token)
+	hash1 := crypto.HMACToken(token)
+	hash2 := crypto.HMACToken(token)
 
 	// Same token should produce same hash
 	if hash1 != hash2 {
@@ -138,9 +138,17 @@ func TestHashToken(t *testing.T) {
 	}
 
 	// Different token should produce different hash
-	hash3 := crypto.HashToken("different-token")
+	hash3 := crypto.HMACToken("different-token")
 	if hash1 == hash3 {
 		t.Error("Different tokens should produce different hashes")
+	}
+
+	// Validate constant-time comparison works
+	if !crypto.ValidateTokenHMAC(token, hash1) {
+		t.Error("ValidateTokenHMAC should return true for correct token")
+	}
+	if crypto.ValidateTokenHMAC("wrong-token", hash1) {
+		t.Error("ValidateTokenHMAC should return false for wrong token")
 	}
 }
 

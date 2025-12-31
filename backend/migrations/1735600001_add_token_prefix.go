@@ -10,7 +10,9 @@ func init() {
 		// Add token_prefix field to share_tokens for O(1) lookup
 		collection, err := app.FindCollectionByNameOrId("share_tokens")
 		if err != nil {
-			return err
+			// Collection doesn't exist yet - skip (will be created by init migration)
+			// This can happen on fresh DB if migrations run before init
+			return nil
 		}
 
 		// Check if field already exists
@@ -35,7 +37,8 @@ func init() {
 		// Rollback: remove token_prefix field
 		collection, err := app.FindCollectionByNameOrId("share_tokens")
 		if err != nil {
-			return err
+			// Collection doesn't exist - nothing to rollback
+			return nil
 		}
 
 		field := collection.Fields.GetByName("token_prefix")
