@@ -27,6 +27,7 @@ const RESERVED_SLUGS = new Set([
 	'v',
 	'projects',
 	'posts',
+	'talks',
 	// SvelteKit internal
 	'_app',
 	'_',

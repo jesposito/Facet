@@ -59,6 +59,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						education: viewData.sections?.education || [],
 						skills: viewData.sections?.skills || [],
 						posts: viewData.sections?.posts || [],
+						talks: viewData.sections?.talks || [],
 						// Indicate this is a view-based homepage
 						isDefaultView: true
 					};
@@ -78,6 +79,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				education: [],
 				skills: [],
 				posts: [],
+				talks: [],
 				error: 'Failed to load profile'
 			};
 		}
@@ -93,6 +95,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				education: [],
 				skills: [],
 				posts: [],
+				talks: [],
 				error: 'Profile is private'
 			};
 		}
@@ -123,6 +126,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			education: data.education || [],
 			skills: data.skills || [],
 			posts,
+			talks: data.talks || [],
 			// Indicate this is legacy homepage mode
 			isDefaultView: false
 		};
@@ -135,6 +139,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			education: [],
 			skills: [],
 			posts: [],
+			talks: [],
 			error: 'Failed to load profile'
 		};
 	}

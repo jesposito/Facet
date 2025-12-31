@@ -58,11 +58,11 @@ None (this is the starting phase)
 - [x] Admin: Full CRUD for posts
 - [ ] Rich text editor — Deferred (basic markdown sufficient)
 
-#### 1.3 Talks Section
-- [ ] Public display in profile
-- [ ] Embedded video players (YouTube, Vimeo)
-- [ ] Slides embed/download
-- [ ] Admin: Full CRUD for talks
+#### 1.3 Talks Section (Complete)
+- [x] Public display in profile
+- [x] Embedded video players (YouTube, Vimeo)
+- [x] Slides embed/download
+- [x] Admin: Full CRUD for talks
 
 #### 1.4 Certifications Section
 - [ ] Public display with verification links

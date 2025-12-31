@@ -109,6 +109,21 @@ export interface Post {
 	published_at?: string;
 }
 
+export interface Talk {
+	id: string;
+	title: string;
+	event?: string;
+	event_url?: string;
+	date?: string;
+	location?: string;
+	description?: string;
+	slides_url?: string;
+	video_url?: string;
+	visibility: 'public' | 'unlisted' | 'private';
+	is_draft: boolean;
+	sort_order: number;
+}
+
 export interface View {
 	id: string;
 	name: string;
@@ -226,6 +241,18 @@ export async function fetchPosts(): Promise<Post[]> {
 			sort: '-published_at'
 		});
 		return records.items as unknown as Post[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchTalks(): Promise<Talk[]> {
+	try {
+		const records = await pb.collection('talks').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: '-sort_order,-date'
+		});
+		return records.items as unknown as Talk[];
 	} catch {
 		return [];
 	}

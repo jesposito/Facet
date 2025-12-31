@@ -8,6 +8,7 @@
 	import EducationSection from '$components/public/EducationSection.svelte';
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
+	import TalksSection from '$components/public/TalksSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
@@ -119,6 +120,10 @@
 
 			{#if data.sections?.posts?.length > 0}
 				<PostsSection items={data.sections.posts} />
+			{/if}
+
+			{#if data.sections?.talks?.length > 0}
+				<TalksSection items={data.sections.talks} />
 			{/if}
 		</main>
 
