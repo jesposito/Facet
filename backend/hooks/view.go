@@ -13,8 +13,71 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// Reserved slugs that cannot be used for views
+// These correspond to existing routes or system paths
+// SYNC WITH: frontend/src/params/slug.ts
+var ReservedSlugs = map[string]bool{
+	// Existing routes
+	"admin": true,
+	"api":   true,
+	"s":     true,
+	"v":     true,
+	// SvelteKit internal
+	"_app": true,
+	"_":    true,
+	// Static assets
+	"assets": true,
+	"static": true,
+	// Standard web files
+	"favicon.ico": true,
+	"robots.txt":  true,
+	"sitemap.xml": true,
+	// System endpoints
+	"health":  true,
+	"healthz": true,
+	"ready":   true,
+	// Common reserved paths
+	"login":    true,
+	"logout":   true,
+	"auth":     true,
+	"oauth":    true,
+	"callback": true,
+	// Prevent confusion
+	"home":    true,
+	"index":   true,
+	"default": true,
+	"profile": true,
+}
+
+// isValidSlug checks if a slug is valid (not reserved and proper format)
+func isValidSlug(slug string) bool {
+	if slug == "" {
+		return false
+	}
+	// Check reserved
+	if ReservedSlugs[strings.ToLower(slug)] {
+		return false
+	}
+	// Check format (alphanumeric, hyphens, underscores, starts with letter/number)
+	if len(slug) > 100 {
+		return false
+	}
+	if slug[0] == '_' || slug[0] == '-' {
+		return false
+	}
+	for _, c := range slug {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
+}
+
 // RegisterViewHooks registers view-related API endpoints
 func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
+	// Register views collection hooks for validation
+	registerViewsValidation(app)
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
 		// Rate limited: normal tier (60/min) to prevent enumeration
@@ -43,12 +106,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			visibility := view.GetString("visibility")
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"view_id":            view.Id,
-				"view_name":          view.GetString("name"),
-				"slug":               slug,
-				"visibility":         visibility,
-				"requires_password":  visibility == "password",
-				"requires_token":     visibility == "unlisted",
+				"view_id":           view.Id,
+				"view_name":         view.GetString("name"),
+				"slug":              slug,
+				"visibility":        visibility,
+				"requires_password": visibility == "password",
+				"requires_token":    visibility == "unlisted",
 			})
 		}))
 
@@ -126,10 +189,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Build view response
 			response := map[string]interface{}{
-				"id":           view.Id,
-				"slug":         slug,
-				"name":         view.GetString("name"),
-				"visibility":   visibility,
+				"id":         view.Id,
+				"slug":       slug,
+				"name":       view.GetString("name"),
+				"visibility": visibility,
 			}
 
 			// Apply overrides if present
@@ -238,7 +301,52 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, response)
 		}))
 
+		// Get default view slug/data
+		// This endpoint returns the slug of the default view for the homepage
+		// Rate limited: normal tier (60/min)
+		se.Router.GET("/api/default-view", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			// Find the default view (is_default = true, is_active = true, visibility = public)
+			records, err := app.FindRecordsByFilter(
+				"views",
+				"is_default = true && is_active = true && visibility = 'public'",
+				"",
+				1,
+				0,
+				nil,
+			)
+
+			if err != nil || len(records) == 0 {
+				// Fallback: find the first public active view by creation date
+				records, err = app.FindRecordsByFilter(
+					"views",
+					"is_active = true && visibility = 'public'",
+					"created",
+					1,
+					0,
+					nil,
+				)
+			}
+
+			if err != nil || len(records) == 0 {
+				// No default view configured - return indicator
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"has_default": false,
+					"fallback":    "homepage",
+				})
+			}
+
+			view := records[0]
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"has_default": true,
+				"slug":        view.GetString("slug"),
+				"view_id":     view.Id,
+				"name":        view.GetString("name"),
+			})
+		}))
+
 		// Get homepage data (public content aggregation)
+		// DEPRECATED: Use /api/default-view + /api/view/{slug}/data instead
+		// Kept for backwards compatibility during migration
 		// Rate limited: normal tier (60/min) to prevent scraping
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			response := make(map[string]interface{})
@@ -357,9 +465,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			var req struct {
-				AppliedFields map[string]bool `json:"applied_fields"` // field -> should apply
-				LockedFields  []string        `json:"locked_fields"`  // fields to lock
-				Edits         map[string]interface{} `json:"edits"` // manual edits
+				AppliedFields map[string]bool        `json:"applied_fields"` // field -> should apply
+				LockedFields  []string               `json:"locked_fields"`  // fields to lock
+				Edits         map[string]interface{} `json:"edits"`          // manual edits
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -618,4 +726,84 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 	}
 
 	return true, tokenRecord
+}
+
+// registerViewsValidation registers hooks for views collection validation
+// This enforces:
+// 1. Reserved slug protection - prevents creating views with reserved slugs
+// 2. Single default view - ensures only one view can be marked as default
+func registerViewsValidation(app *pocketbase.PocketBase) {
+	// Validate on create
+	app.OnRecordCreate("views").BindFunc(func(e *core.RecordEvent) error {
+		slug := e.Record.GetString("slug")
+
+		// Validate slug is not reserved
+		if !isValidSlug(slug) {
+			return &apis.ApiError{
+				Message: "Invalid or reserved slug. Slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc.",
+				Status:  http.StatusBadRequest,
+			}
+		}
+
+		// If this view is being set as default, clear other defaults
+		if e.Record.GetBool("is_default") {
+			if err := clearOtherDefaults(app, ""); err != nil {
+				return err
+			}
+		}
+
+		return e.Next()
+	})
+
+	// Validate on update
+	app.OnRecordUpdate("views").BindFunc(func(e *core.RecordEvent) error {
+		slug := e.Record.GetString("slug")
+
+		// Validate slug is not reserved
+		if !isValidSlug(slug) {
+			return &apis.ApiError{
+				Message: "Invalid or reserved slug. Slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc.",
+				Status:  http.StatusBadRequest,
+			}
+		}
+
+		// If this view is being set as default, clear other defaults
+		if e.Record.GetBool("is_default") {
+			if err := clearOtherDefaults(app, e.Record.Id); err != nil {
+				return err
+			}
+		}
+
+		return e.Next()
+	})
+}
+
+// clearOtherDefaults removes is_default from all views except the one with excludeID
+func clearOtherDefaults(app *pocketbase.PocketBase, excludeID string) error {
+	filter := "is_default = true"
+	if excludeID != "" {
+		filter += " && id != {:id}"
+	}
+
+	records, err := app.FindRecordsByFilter(
+		"views",
+		filter,
+		"",
+		100,
+		0,
+		map[string]interface{}{"id": excludeID},
+	)
+
+	if err != nil {
+		return err
+	}
+
+	for _, record := range records {
+		record.Set("is_default", false)
+		if err := app.Save(record); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

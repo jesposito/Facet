@@ -35,12 +35,38 @@ Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated
 
 ### View Access Levels
 
-| Visibility | Access Control |
-|------------|----------------|
-| `public` | Anyone |
-| `unlisted` | Valid share token required |
-| `password` | Anyone with the correct password → receives JWT |
-| `private` | Admin only |
+| Visibility | Access Control | HTTP Response |
+|------------|----------------|---------------|
+| `public` | Anyone | 200 OK |
+| `unlisted` | Valid share token required | 200 with token, 404 without |
+| `password` | Valid password JWT required | 200 with JWT, password prompt without |
+| `private` | Admin only | 404 (not 401 - prevents discovery) |
+
+### URL Routing Model
+
+Me.yaml uses LinkedIn-style canonical URLs:
+
+| Route | Purpose | Notes |
+|-------|---------|-------|
+| `/` | Default public profile | Renders view with `is_default=true` |
+| `/<slug>` | Named view (canonical) | e.g., `/recruiter`, `/investor` |
+| `/s/<token>` | Share link entry | Sets cookie, redirects to `/<slug>` |
+| `/v/<slug>` | Legacy route | 301 redirects to `/<slug>` |
+
+### Reserved Slug Protection
+
+View slugs cannot collide with system routes. These are protected:
+
+```
+admin, api, s, v, _app, _, assets, static,
+favicon.ico, robots.txt, sitemap.xml,
+health, healthz, ready, login, logout,
+auth, oauth, callback, home, index, default, profile
+```
+
+**Enforcement layers:**
+1. **Frontend param matcher**: `src/params/slug.ts` - invalid slugs don't route
+2. **Backend hook**: Returns HTTP 400 when creating/updating views with reserved slugs
 
 ## Password-Protected Views
 
@@ -102,7 +128,9 @@ Tokens can be sent via:
 
 Share tokens provide access to unlisted views. They are required for any `visibility=unlisted` view.
 
-### Flow
+### Share Link Flow
+
+The recommended way to share unlisted views is via `/s/<token>` URLs:
 
 ```
 1. Admin: POST /api/share/generate (authenticated)
@@ -110,15 +138,36 @@ Share tokens provide access to unlisted views. They are required for any `visibi
    Response: { "id": "...", "token": "<raw-token>", "name": "..." }
    ⚠️ Raw token is returned ONLY ONCE - store it securely
 
-2. User: GET /api/view/{slug}/access
+2. Admin shares URL: https://example.com/s/<token>
+
+3. User visits /s/<token>:
+   - Server validates token (POST /api/share/validate)
+   - Sets httpOnly cookie (me_share_token, SameSite=Lax)
+   - 302 redirect to /<slug> (canonical URL)
+   - Token is NOT in the final URL
+
+4. User's browser requests /<slug>:
+   - SvelteKit reads token from cookie
+   - Sends X-Share-Token header to backend
+   - Backend validates and returns view data
+```
+
+This flow ensures:
+- Token never appears in browser history
+- Token never leaks via Referer headers
+- Clean canonical URLs are displayed
+- Cookie is httpOnly (no JavaScript access)
+
+### Direct API Flow (for programmatic access)
+
+```
+1. GET /api/view/{slug}/access
    Response: { "requires_token": true, "id": "..." }
 
-3. User: GET /api/view/{slug}/data
-   Header: Authorization: Bearer <raw-token>  (RECOMMENDED)
+2. GET /api/view/{slug}/data
+   Header: X-Share-Token: <raw-token>         (RECOMMENDED)
    -- or --
-   Header: X-Share-Token: <raw-token>         (alternative)
-   -- or --
-   GET /api/view/{slug}/data?token=<raw-token> (legacy, see warning below)
+   Header: Authorization: Bearer <raw-token>  (alternative)
    Response: { view data }
 ```
 

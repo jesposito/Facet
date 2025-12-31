@@ -34,11 +34,11 @@ func TestVisibilityLevels(t *testing.T) {
 // TestPrivateViewsMustReturn404 documents that private views should return 404, not 401/403
 func TestPrivateViewsMustReturn404(t *testing.T) {
 	tests := []struct {
-		name             string
-		visibility       string
-		authenticated    bool
-		expectedStatus   int
-		reason           string
+		name           string
+		visibility     string
+		authenticated  bool
+		expectedStatus int
+		reason         string
 	}{
 		{
 			name:           "private view, unauthenticated",
@@ -105,10 +105,10 @@ func TestUnlistedViewRequiresToken(t *testing.T) {
 // TestPasswordViewRequiresJWT documents password-protected view behavior
 func TestPasswordViewRequiresJWT(t *testing.T) {
 	tests := []struct {
-		name            string
-		hasPasswordJWT  bool
-		expectedStatus  int
-		reason          string
+		name           string
+		hasPasswordJWT bool
+		expectedStatus int
+		reason         string
 	}{
 		{
 			name:           "password view without JWT",
@@ -135,9 +135,9 @@ func TestPasswordViewRequiresJWT(t *testing.T) {
 // TestHomepageOnlyIncludesPublic documents homepage aggregation rules
 func TestHomepageOnlyIncludesPublic(t *testing.T) {
 	tests := []struct {
-		visibility      string
+		visibility        string
 		appearsOnHomepage bool
-		reason          string
+		reason            string
 	}{
 		{
 			visibility:        "public",
@@ -210,12 +210,13 @@ func TestTokenTransportMethods(t *testing.T) {
 // TestURLTokenCleanup documents that URL tokens must be cleaned up via redirect
 func TestURLTokenCleanup(t *testing.T) {
 	t.Run("share link flow", func(t *testing.T) {
-		t.Log("/s/<token> → validates token → sets httpOnly cookie → redirects to /v/<slug>")
+		t.Log("/s/<token> → validates token → sets httpOnly cookie → redirects to /<slug>")
 		t.Log("Token never appears in browser history or URL bar after redirect")
+		t.Log("Note: /<slug> is the canonical URL (not /v/<slug>)")
 	})
 
 	t.Run("legacy query param flow", func(t *testing.T) {
-		t.Log("/v/<slug>?t=<token> → validates token → sets httpOnly cookie → redirects to /v/<slug>")
+		t.Log("/<slug>?t=<token> → validates token → sets httpOnly cookie → redirects to /<slug>")
 		t.Log("This cleans up legacy URLs that may have been bookmarked")
 	})
 
