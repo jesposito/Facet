@@ -15,20 +15,29 @@ if (browser) {
 pb.beforeSend = function (url, options) {
 	const token = pb.authStore.token;
 
-	// Use Headers API for proper header handling
-	const headers = new Headers(options.headers as HeadersInit);
+	// Get existing headers as plain object
+	const existingHeaders = options.headers || {};
+	const headersObj: Record<string, string> = {};
 
+	// Convert existing headers to plain object (handles both Headers and plain objects)
+	if (existingHeaders instanceof Headers) {
+		existingHeaders.forEach((value, key) => {
+			headersObj[key] = value;
+		});
+	} else if (typeof existingHeaders === 'object') {
+		Object.assign(headersObj, existingHeaders);
+	}
+
+	// Set Authorization with Bearer prefix
 	if (token) {
-		// Always set with Bearer prefix
-		const authValue = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-		headers.set('Authorization', authValue);
+		headersObj['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
 	}
 
 	return {
 		url,
 		options: {
 			...options,
-			headers
+			headers: headersObj
 		}
 	};
 };
