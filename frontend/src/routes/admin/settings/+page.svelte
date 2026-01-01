@@ -41,7 +41,7 @@
 
 	const defaultModels: Record<string, string> = {
 		openai: 'gpt-4o-mini',
-		anthropic: 'claude-3-haiku-20240307',
+		anthropic: 'claude-sonnet-4-20250514',
 		ollama: 'llama3.2',
 		custom: ''
 	};

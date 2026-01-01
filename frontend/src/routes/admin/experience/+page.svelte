@@ -3,6 +3,7 @@
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
+	import AIImproveButton from '$components/admin/AIImproveButton.svelte';
 
 	let experiences: Experience[] = [];
 	let loading = true;
@@ -272,22 +273,53 @@
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Details</h2>
 
 				<div>
-					<label for="description" class="label">Description</label>
+					<div class="flex items-center justify-between">
+						<label for="description" class="label mb-0">Description</label>
+						<AIImproveButton
+							contentType="description"
+							content={description}
+							context={{ role: title, company, location }}
+							action={description ? 'improve' : 'generate'}
+							label={description ? 'Improve' : 'Generate'}
+							on:result={(e) => (description = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="description"
 						bind:value={description}
-						class="input min-h-[100px]"
+						class="input min-h-[100px] mt-1"
 						placeholder="Brief overview of your role and responsibilities..."
 					></textarea>
 					<p class="text-xs text-gray-500 mt-1">Markdown supported</p>
 				</div>
 
 				<div>
-					<label for="bullets" class="label">Key Achievements</label>
+					<div class="flex items-center justify-between">
+						<label for="bullets" class="label mb-0">Key Achievements</label>
+						<AIImproveButton
+							contentType="bullets"
+							content={bulletsText}
+							context={{ role: title, company, description }}
+							action={bulletsText ? 'improve' : 'generate'}
+							label={bulletsText ? 'Improve' : 'Generate'}
+							on:result={(e) => {
+								try {
+									const parsed = JSON.parse(e.detail.content);
+									if (Array.isArray(parsed)) {
+										bulletsText = parsed.join('\n');
+									} else {
+										bulletsText = e.detail.content;
+									}
+								} catch {
+									bulletsText = e.detail.content;
+								}
+							}}
+						/>
+					</div>
 					<textarea
 						id="bullets"
 						bind:value={bulletsText}
-						class="input min-h-[120px]"
+						class="input min-h-[120px] mt-1"
 						placeholder="Led migration to microservices architecture&#10;Reduced API response times by 40%&#10;Mentored junior developers"
 					></textarea>
 					<p class="text-xs text-gray-500 mt-1">One achievement per line</p>
