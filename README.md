@@ -271,6 +271,7 @@ Me.yaml/
 ## Tech Stack
 
 **Backend:**
+- Go 1.23 — backend language
 - [PocketBase](https://pocketbase.io/) v0.23.4 — Go-based backend framework
 - SQLite — embedded database
 - AES-256-GCM — encryption for sensitive data
