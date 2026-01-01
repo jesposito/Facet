@@ -206,6 +206,7 @@
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
 | 12. Print & Export | 🟡 Partial | Print stylesheet complete, data export deferred |
+| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) complete |
 
 ---
 
@@ -216,15 +217,18 @@
 
 ### Medium Priority
 1. ~~Drag-drop section/item reordering for views (Phase 2.2 continued)~~ ✅ Complete
-2. Media library (Phase 7)
-3. Additional frontend tests
+2. ~~Live preview pane for view editor (Phase 6.2)~~ ✅ Complete
+3. Media library (Phase 7)
+4. Additional frontend tests
 
 ### Low Priority
-4. SETUP.md and UPGRADE.md documentation
-5. AI provider mock tests
-6. Integration tests
-7. View access log / audit logging (Phase 8)
-8. Data export (JSON/YAML) - Phase 4.3
+5. SETUP.md and UPGRADE.md documentation
+6. AI provider mock tests
+7. Integration tests
+8. View access log / audit logging (Phase 8)
+9. Data export (JSON/YAML) - Phase 4.4
+10. Section width & columns (Phase 6.3)
+11. Mobile preview mode (Phase 6.2.2)
 
 ---
 
@@ -456,3 +460,67 @@ Users can now select different layout styles for each section in the view editor
 3. Layout dropdown appears next to the expand button
 4. Select desired layout preset
 5. Save view - layout is applied on public view
+
+---
+
+## Phase 6.2: Live Preview Pane ✅ Complete
+
+This phase adds a side-by-side live preview in the view editor for immediate visual feedback when customizing views.
+
+### Overview
+Users can now see how their view will look while editing, without needing to save and navigate to the public page. The preview updates instantly as changes are made to sections, layouts, items, and overrides.
+
+### Features
+- [x] Split-pane layout: editor (~60%) and preview (~40%)
+- [x] Preview updates reactively on any editor change
+- [x] Preview reuses actual public section components (not mockups)
+- [x] Toggle button to hide/show preview for more editor space
+- [x] Responsive layout: side-by-side on desktop, stacked on mobile
+- [x] Profile data loaded and displayed in preview hero
+- [x] Hero overrides (headline, summary) shown in preview
+- [x] CTA banner shown when configured
+- [x] Section layouts applied in real-time
+- [x] Item-level overrides reflected in preview
+
+### Implementation
+
+#### New Component
+- `frontend/src/components/admin/ViewPreview.svelte`
+  - Reuses all public section components (ExperienceSection, ProjectsSection, etc.)
+  - Accepts editor state as props (profile, sections, sectionOrder, sectionItems, etc.)
+  - Filters items based on enabled sections and selected items
+  - Applies item-level overrides before rendering
+  - Scaled-down styling for compact preview display
+
+#### View Editor Changes
+- [x] Import ViewPreview component
+- [x] Add profile data loading on mount
+- [x] Add `showPreview` toggle state (default: true)
+- [x] Split layout with editor-pane and preview-pane
+- [x] Toggle button with eye icon in header
+- [x] Pass all editor state to ViewPreview component
+
+#### View Create Page Changes
+- [x] Same changes applied to `/admin/views/new`
+- [x] Preview works during initial view creation
+- [x] All sections enabled by default for new views
+
+### Files Changed
+- `frontend/src/components/admin/ViewPreview.svelte` (new)
+- `frontend/src/routes/admin/views/[id]/+page.svelte` - Split layout, preview toggle, profile loading
+- `frontend/src/routes/admin/views/new/+page.svelte` - Split layout, preview toggle, profile loading
+
+### Technical Details
+- Preview rendered in same page (not iframe) for simplicity
+- Svelte reactive bindings update preview instantly (no debouncing needed)
+- CSS scales down components for compact display
+- Responsive: preview appears above editor on mobile screens
+- Profile avatar URL resolved for preview display
+
+### Usage
+1. Navigate to View Editor (/admin/views/[id] or /admin/views/new)
+2. Preview appears on the right side (or top on mobile)
+3. Make any change: enable/disable sections, change layouts, select items, add overrides
+4. See changes reflected immediately in preview
+5. Click "Hide/Show Preview" button to toggle preview visibility
+6. Click "Open in Tab" to see full-size public view in new tab
