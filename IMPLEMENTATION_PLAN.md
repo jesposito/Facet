@@ -319,9 +319,30 @@ Users can generate PDFs by:
 3. Use browser's Print dialog (Ctrl+P / Cmd+P)
 4. Select "Save as PDF" as the destination
 
-### Deferred
-- Server-side PDF generation (browser print is sufficient)
-- Data export (JSON/YAML) - may be revisited based on user feedback
+### Current Status
+Phase 4.1 (Simple Print) is complete. See ROADMAP.md Phase 4 for the full two-tier design.
+
+---
+
+## Phase 4.3: AI Print (Planned)
+
+This phase adds AI-powered document generation for professional resumes.
+
+### Overview
+- Send view data to AI for content optimization
+- AI returns formatted markdown
+- Pandoc converts to DOCX and PDF
+- Generated files stored in `view_exports` collection
+
+### Key Components
+- [ ] `view_exports` collection (migration)
+- [ ] Resume prompt template
+- [ ] `/api/view/{slug}/generate` endpoint
+- [ ] Pandoc integration (Docker or binary)
+- [ ] Generate Resume button in view editor
+- [ ] Download buttons for generated files
+
+### See ROADMAP.md Phase 4.2 for full specification.
 
 ---
 

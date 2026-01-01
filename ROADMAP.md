@@ -184,52 +184,205 @@ Enable per-view customization of individual items without modifying source recor
 
 ---
 
-## Phase 4: Export & Print (Partial)
+## Phase 4: Export & Print System
 
-**Purpose**: Enable offline access and traditional resume formats.
+**Purpose**: Enable professional resume/CV generation with two tiers: simple browser print and AI-powered document generation.
+
+### Design Philosophy
+
+Two-tier approach addresses different needs:
+1. **Simple Print**: Fast, works offline, user controls final formatting via browser
+2. **AI Print**: Professional quality, AI optimizes content and formatting for target role/industry
 
 ### Features
 
-#### 4.1 Resume PDF Generation (Deferred)
-- [ ] Server-side PDF generation from view content — Deferred (browser print sufficient)
-- [x] Clean, ATS-friendly layout — Via print stylesheet
-- [x] Include/exclude sections based on view config — Via view system
-- [ ] Download button on admin — Deferred
+#### 4.1 Simple Print ✅ Complete
 
-#### 4.2 Print Stylesheet ✅ Complete
-- [x] Optimized CSS for printing
+Browser-based printing optimized for resumes. Zero setup required.
+
+- [x] Optimized print stylesheet in `app.css`
 - [x] Page breaks at section boundaries
-- [x] Hide navigation and UI controls
+- [x] Hide navigation, theme toggle, footer
 - [x] Print button on public pages
-- [x] ATS-friendly typography (serif body, sans-serif headers)
+- [x] ATS-friendly typography (Helvetica headers, Georgia body)
 - [x] Force light mode colors
 - [x] Display URLs after links
-- [x] Proper page margins
+- [x] Proper page margins (letter size, 0.5in × 0.6in)
 
-#### 4.3 Data Export (Deferred)
-- [ ] Export all data as JSON — Deferred
-- [ ] Export as YAML (for backup) — Deferred
-- [ ] Include uploaded files in archive — Deferred
+**Usage**: Navigate to any view → Click print button → Browser Print dialog (Ctrl+P) → Save as PDF
 
-#### 4.4 View Snapshot (Deferred)
-- [ ] Generate static HTML of a view — Deferred
-- [ ] Self-contained (inline CSS/images) — Deferred
-- [ ] Useful for offline sharing — Deferred
+#### 4.2 AI Print (New Feature)
+
+AI-powered document generation that creates polished, professionally formatted resumes.
+
+**How It Works:**
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  View Data  │ ──▶ │   AI API    │ ──▶ │   Pandoc    │ ──▶ │  DOCX/PDF   │
+│  (JSON)     │     │  (Optimize) │     │  (Convert)  │     │  (Storage)  │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+```
+
+1. **Collect**: Gather complete view data (profile, sections, overrides)
+2. **Optimize**: Send to AI with resume formatting prompt
+3. **Structure**: AI returns optimized markdown with resume-specific formatting
+4. **Convert**: [Pandoc](https://pandoc.org/MANUAL.html) converts markdown → DOCX and PDF
+5. **Store**: Files saved to PocketBase, linked to view
+6. **Download**: User downloads from view editor or public page
+
+**Schema Changes:**
+
+```typescript
+// New collection: view_exports
+interface ViewExport {
+  id: string;
+  view: string;           // Relation to views
+  format: 'pdf' | 'docx';
+  file: string;           // PocketBase file field
+  ai_provider?: string;   // Relation to ai_providers (null for non-AI)
+  generated_at: string;
+  generation_config?: {
+    target_role?: string;     // "Software Engineer at FAANG"
+    style?: 'chronological' | 'functional' | 'hybrid';
+    length?: 'one-page' | 'two-page' | 'full';
+    emphasis?: string[];      // ["leadership", "technical"]
+  };
+}
+
+// Addition to ViewSection (future)
+interface ViewSection {
+  // ... existing fields
+  ai_instructions?: string;  // Per-section AI guidance
+}
+```
+
+**AI Prompt Strategy:**
+
+The AI receives:
+- Complete view data as structured JSON
+- User's target role/industry (optional)
+- Resume style preferences
+- Length constraints
+
+The AI returns:
+- Optimized markdown formatted for Pandoc
+- Suggestions applied (better action verbs, quantified achievements)
+- Content prioritized for target role
+- Consistent formatting throughout
+
+**Implementation Tasks:**
+
+- [ ] Add `view_exports` collection via migration
+- [ ] Create resume prompt template (stored in backend)
+- [ ] Add `/api/view/{slug}/generate` endpoint
+- [ ] Integrate [Pandoc Docker image](https://github.com/pandoc/dockerfiles) or binary
+- [ ] Add reference DOCX template for consistent styling
+- [ ] Add "Generate Resume" button in view editor
+- [ ] Add generation config modal (target role, style, length)
+- [ ] Add download buttons for generated files
+- [ ] Add "Regenerate" button with spinner
+- [ ] Show generation timestamp and AI provider used
+
+**UX Flow:**
+
+1. User edits view, configures sections/overrides
+2. Clicks "Generate Resume" in view editor header
+3. Modal appears with options:
+   - Target role (text input, optional)
+   - Style: Chronological / Functional / Hybrid
+   - Length: One page / Two pages / Full
+   - AI Provider: (dropdown of configured providers)
+4. Clicks "Generate"
+5. Loading state shows progress
+6. On success, download buttons appear (PDF, DOCX)
+7. Files also accessible from public view page (if visibility allows)
+
+**Error Handling:**
+
+- No AI provider configured → Show setup prompt with link to /admin/settings
+- AI API failure → Show error, suggest retry
+- Pandoc failure → Log error, notify user
+- File too large → Warn user, suggest shorter view
+
+#### 4.3 Document Templates
+
+Pre-designed templates for consistent, professional output.
+
+- [ ] Default resume template (clean, ATS-friendly)
+- [ ] Academic CV template (publications, research focus)
+- [ ] Creative template (for design roles)
+- [ ] Template selection in generation config
+
+**Technical Approach:**
+- Templates are reference DOCX files with styles defined
+- Pandoc uses `--reference-doc` flag to apply template styling
+- Templates stored in `backend/templates/` directory
+
+#### 4.4 Data Export
+
+Export all data for backup or migration.
+
+- [ ] Export all data as JSON
+- [ ] Export as YAML (human-readable backup)
+- [ ] Include uploaded files in ZIP archive
+- [ ] Import from backup (restore)
+
+#### 4.5 Static Snapshot
+
+Generate self-contained HTML for offline sharing.
+
+- [ ] Generate static HTML of a view
+- [ ] Inline all CSS and base64 images
+- [ ] Single file output for email attachment
 
 ### Prerequisites
 - Phase 3 complete ✅
+- AI providers configured (for AI Print)
+- Pandoc available in Docker image (for document conversion)
 
-### Completed
-- Print stylesheet enables browser-based PDF generation via Print (Ctrl+P / Cmd+P)
-- Print button added to homepage and all view pages
-- Clean, professional output suitable for resumes
+### Technical Requirements
 
-### Deferred Items
-Server-side PDF generation and data export are deferred as browser print provides sufficient functionality for the primary use case (resume generation). These may be revisited based on user feedback.
+**Pandoc Integration:**
 
-### Risks
-- ~~PDF generation may require headless browser or Go library~~ — Mitigated by browser print
-- Static snapshot may break with complex layouts
+Option A: Include Pandoc in Docker image
+```dockerfile
+# Add to production Dockerfile
+RUN apt-get update && apt-get install -y pandoc
+```
+
+Option B: Use [pandoc/latex Docker image](https://hub.docker.com/r/pandoc/latex) as sidecar
+```yaml
+# docker-compose.yml
+services:
+  pandoc:
+    image: pandoc/latex
+    volumes:
+      - ./temp:/data
+```
+
+Option C: Shell exec to host Pandoc (if installed)
+```go
+cmd := exec.Command("pandoc", "-f", "markdown", "-o", "output.docx", "input.md")
+```
+
+**Recommended**: Option A for simplicity, Option B for full LaTeX support (better PDF quality)
+
+### Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| AI returns poorly formatted content | Validate markdown structure, fallback to simple format |
+| Pandoc not available | Graceful degradation to browser print |
+| Large documents timeout | Set reasonable limits, show progress |
+| Template styling inconsistent | Test templates thoroughly, provide preview |
+| AI costs | Show estimated cost, require confirmation for long docs |
+
+### Research References
+- [Pandoc User's Guide](https://pandoc.org/MANUAL.html) - Comprehensive conversion documentation
+- [Pandoc Docker Images](https://hub.docker.com/r/pandoc/latex) - Pre-built containers with LaTeX
+- [Simple Markdown Resume Workflow](https://sdsawtelle.github.io/blog/output/simple-markdown-resume-with-pandoc-and-wkhtmltopdf.html) - End-to-end example
+- [LaTeX Résumé AI](https://medium.com/institute-for-applied-computational-science/latex-r%C3%A9sum%C3%A9-ai-an-ai-powered-cv-creation-tool-and-natural-language-document-editor-7cbfe52f846f) - AI-powered CV creation approach
 
 ---
 
@@ -590,6 +743,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Admin loading pattern standardized | All admin pages use simple `onMount(loadData)` pattern; layout handles auth gating. Fixes Codespaces race conditions. |
 | 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
 | 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
+| 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
 
 ---
 
