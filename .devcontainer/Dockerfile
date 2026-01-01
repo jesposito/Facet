@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-base \
     texlive-fonts-recommended \
     texlive-latex-extra \
+    lmodern \
     && rm -rf /var/lib/apt/lists/*
 
 # Pre-download Go modules for faster first startup

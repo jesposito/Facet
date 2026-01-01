@@ -40,7 +40,8 @@ RUN apk add --no-cache \
     caddy \
     pandoc \
     texlive \
-    texmf-dist-latexextra
+    texmf-dist-latexextra \
+    texmf-dist-fontsextra
 
 # Create non-root user
 RUN addgroup -g 1000 facet && \
