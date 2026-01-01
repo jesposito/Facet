@@ -23,19 +23,18 @@ func RegisterSeedHook(app *pocketbase.PocketBase) {
 	}
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		go func() {
-			var err error
-			switch seedMode {
-			case "dev":
-				err = seedDevData(app)
-			default:
-				log.Printf("Unknown SEED_DATA value: %s (only 'dev' is supported for auto-seeding)", seedMode)
-				return
-			}
-			if err != nil {
-				log.Printf("Seed warning: %v", err)
-			}
-		}()
+		// Run seed synchronously - goroutine causes app.Save() to fail silently
+		// due to PocketBase v0.23 context handling
+		var err error
+		switch seedMode {
+		case "dev":
+			err = seedDevData(app)
+		default:
+			log.Printf("Unknown SEED_DATA value: %s (only 'dev' is supported for auto-seeding)", seedMode)
+		}
+		if err != nil {
+			log.Printf("Seed warning: %v", err)
+		}
 		return se.Next()
 	})
 }
