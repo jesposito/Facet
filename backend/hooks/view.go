@@ -546,17 +546,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft posts for the index page
 		se.Router.GET("/api/posts", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			// Fetch non-private, non-draft posts
+			// Fetch non-private, non-draft posts (public and unlisted)
+			// Use explicit OR to handle NULL visibility values
 			postRecords, err := app.FindRecordsByFilter(
 				"posts",
-				"visibility != 'private' && is_draft = false",
+				"(visibility = 'public' || visibility = 'unlisted') && is_draft = false",
 				"-published_at,-created",
 				100,
 				0,
 				nil,
 			)
 			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts: " + err.Error()})
 			}
 
 			posts := serializeRecords(postRecords)
@@ -598,17 +599,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft talks for the index page
 		se.Router.GET("/api/talks", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			// Fetch non-private, non-draft talks
+			// Fetch non-private, non-draft talks (public and unlisted)
+			// Use explicit OR to handle NULL visibility values
 			talkRecords, err := app.FindRecordsByFilter(
 				"talks",
-				"visibility != 'private' && is_draft = false",
+				"(visibility = 'public' || visibility = 'unlisted') && is_draft = false",
 				"-date,-sort_order",
 				100,
 				0,
 				nil,
 			)
 			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks: " + err.Error()})
 			}
 
 			talks := serializeRecords(talkRecords)

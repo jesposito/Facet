@@ -149,11 +149,11 @@
 			{/if}
 
 			{#if data.posts && data.posts.length > 0}
-				<PostsSection items={data.posts} />
+				<PostsSection items={data.posts} viewSlug={data.view?.slug || ''} />
 			{/if}
 
 			{#if data.talks && data.talks.length > 0}
-				<TalksSection items={data.talks} />
+				<TalksSection items={data.talks} viewSlug={data.view?.slug || ''} />
 			{/if}
 		{/if}
 	</main>
