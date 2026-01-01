@@ -4,6 +4,15 @@
 >
 > This prompt is explicitly written to prevent premature solutioning, doc drift, and "looks done" phases. It forces deliberate reasoning and verification.
 
+> ⚠️ **CRITICAL: Roadmap Maintenance Required**
+>
+> The [ROADMAP.md](ROADMAP.md) MUST be kept up-to-date with all development progress. When completing any phase or feature:
+> 1. Mark it as complete with `✅` in the roadmap
+> 2. Update any related status indicators
+> 3. Add any new features discovered during implementation
+>
+> **The roadmap is the source of truth for project status.**
+
 ---
 
 ## 0. Claude-Specific Operating Rules
@@ -49,8 +58,7 @@ Before selecting a phase, you **MUST**:
 2. Read **all** existing docs:
    - `DESIGN.md`
    - `ARCHITECTURE.md`
-   - `ROADMAP.md`
-   - `IMPLEMENTATION_PLAN.md`
+   - `ROADMAP.md` (includes implementation milestones and status)
    - `SECURITY.md`
    - `DEV.md`
 3. Review recent commits and phase completion notes
@@ -180,7 +188,6 @@ Update whichever are affected:
 - `DESIGN.md`
 - `ARCHITECTURE.md`
 - `ROADMAP.md`
-- `IMPLEMENTATION_PLAN.md`
 - `SECURITY.md`
 - `DEV.md`
 

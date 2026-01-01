@@ -1,4 +1,6 @@
-# OwnProfile Research Document
+# Facet Research Document
+
+> **Note**: This research was conducted when the project was named "OwnProfile" (later "Me.yaml", now "Facet"). The technical decisions remain relevant.
 
 ## Research Summary (Phase 0)
 
@@ -93,7 +95,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         OwnProfile                               │
+│                           Facet                                  │
 ├─────────────────────────────────────────────────────────────────┤
 │  Frontend: SvelteKit                                            │
 │  ├── Public Profile Pages (SSR, fast, SEO-friendly)             │

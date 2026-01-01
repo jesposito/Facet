@@ -29,7 +29,7 @@ docker-compose pull
 
 ### 3. Check Release Notes
 
-Before starting, check the [release notes](https://github.com/yourusername/me-yaml/releases) for:
+Before starting, check the [release notes](https://github.com/jesposito/Facet/releases) for:
 - Breaking changes
 - Required migration steps
 - New environment variables
@@ -58,7 +58,7 @@ docker-compose down
 
 # Restore backup
 rm -rf ./data/*
-tar -xzvf me-yaml-backup-YYYYMMDD.tar.gz
+tar -xzvf facet-backup-YYYYMMDD.tar.gz
 
 # Start with old version (if you have it)
 # Or: checkout previous git tag and rebuild
@@ -91,7 +91,7 @@ PocketBase handles schema migrations automatically. When you upgrade:
 If you need to run migrations manually:
 
 ```bash
-docker-compose exec me-yaml ./me-yaml migrate up
+docker-compose exec facet ./facet migrate up
 ```
 
 ---

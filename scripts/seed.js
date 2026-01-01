@@ -1,4 +1,4 @@
-// Seed script for me.yaml
+// Seed script for Facet
 // Run this after first setup to create demo data
 //
 // Usage: node scripts/seed.js

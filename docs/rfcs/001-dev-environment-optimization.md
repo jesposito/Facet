@@ -10,7 +10,7 @@ The current dev environment has two critical issues:
 
 1. **Air fails in Codespaces**: Running `air` from the repo root fails with:
    ```
-   go: cannot find main module, but found .git/config in /workspaces/Me.yaml
+   go: cannot find main module, but found .git/config in /workspaces/Facet
    ```
    This happens because `go.mod` is in `./backend/`, not the repo root.
 
@@ -39,7 +39,7 @@ The current dev environment has two critical issues:
 The root `.air.toml` has:
 ```toml
 root = "."
-cmd = "go build -o ./tmp/me-yaml ./backend"
+cmd = "go build -o ./tmp/facet ./backend"
 ```
 
 When `air` runs from repo root, Go looks for `go.mod` in the current directory.
@@ -52,7 +52,7 @@ still requires `go.mod` in the working directory or parent.
 
 Current `postCreateCommand`:
 ```json
-"postCreateCommand": "cd frontend && npm install && npx svelte-kit sync && cd ../backend && go mod tidy && go build -o ../pb_data/me-yaml ."
+"postCreateCommand": "cd frontend && npm install && npx svelte-kit sync && cd ../backend && go mod tidy && go build -o ../pb_data/facet ."
 ```
 
 This runs EVERY time, even when dependencies haven't changed.

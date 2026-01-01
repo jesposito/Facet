@@ -1,4 +1,4 @@
-# Me.yaml Development Dockerfile
+# Facet Development Dockerfile
 # Includes hot-reload for both backend and frontend
 
 FROM golang:1.23-alpine

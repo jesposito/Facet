@@ -110,16 +110,16 @@ seed-clear: kill
 build: docker-build
 
 docker-build:
-	docker build -t me-yaml:latest -f docker/Dockerfile .
+	docker build -t facet:latest -f docker/Dockerfile .
 
 docker-run:
 	docker run -d \
-		--name me-yaml \
+		--name facet \
 		-p 8080:3000 \
 		-p 8090:8090 \
 		-v $$(pwd)/data:/data \
 		-e ENCRYPTION_KEY=$${ENCRYPTION_KEY:-dev-key-change-me-in-production} \
-		me-yaml:latest
+		facet:latest
 
 # =============================================================================
 # Testing
@@ -180,7 +180,7 @@ clean:
 # Backup data
 backup:
 	@mkdir -p backups
-	tar -czvf backups/me-yaml-$$(date +%Y%m%d-%H%M%S).tar.gz pb_data/ data/ 2>/dev/null || true
+	tar -czvf backups/facet-$$(date +%Y%m%d-%H%M%S).tar.gz pb_data/ data/ 2>/dev/null || true
 
 # Install dependencies (manual, usually handled by scripts)
 deps:
