@@ -288,6 +288,37 @@ rm -rf pb_data
 make dev  # Will recreate with seed data
 ```
 
+### PocketBase API 400 Errors with Sort Parameters
+
+**Symptoms:**
+- `ClientResponseError 400: Something went wrong while processing your request`
+- Error occurs on `getList()` calls with `sort` parameter
+- Manual fetch without sort works, but SDK calls with sort fail
+
+**Cause:**
+PocketBase collections in this setup do NOT have automatic `created` or `updated` fields. Attempting to sort by these non-existent fields causes a 400 error.
+
+**Solution:**
+Use fields that actually exist on the collection:
+
+```javascript
+// ❌ Wrong - 'created' field doesn't exist
+pb.collection('posts').getList(1, 100, { sort: '-created' })
+
+// ✅ Correct - use existing fields or '-id' (time-ordered)
+pb.collection('posts').getList(1, 100, { sort: '-published_at' })
+pb.collection('views').getList(1, 50, { sort: '-id' })
+```
+
+**Debugging tip:** Check what fields exist on a collection:
+```javascript
+pb.collection('posts').getList(1, 1).then(d => {
+  console.log('Fields:', Object.keys(d.items[0]));
+});
+```
+
+**Note:** PocketBase record IDs are time-ordered (like ULIDs), so `sort: '-id'` gives newest-first ordering and always works.
+
 ## VS Code Tasks
 
 The project includes VS Code tasks (`.vscode/tasks.json`):
@@ -302,6 +333,38 @@ Available tasks:
 - `dev:reset` - Clear caches
 - `test` - Run all tests
 - `build:docker` - Build production image
+
+## Dependency Versions
+
+### PocketBase Version Compatibility
+
+**Critical:** The frontend SDK version must be compatible with the backend PocketBase version.
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| Backend (Go) | PocketBase v0.23.4 | Set in `backend/go.mod` |
+| Frontend SDK | pocketbase ^0.21.0 | Set in `frontend/package.json` |
+
+**Why this matters:**
+- SDK v0.22+ renamed `authStore.model` → `authStore.record`
+- SDK v0.26+ is designed for PocketBase v0.34+ and uses incompatible request formats
+- Using mismatched versions causes 400 errors on authenticated requests
+
+**If upgrading PocketBase backend:**
+1. Check the [PocketBase JS SDK releases](https://github.com/pocketbase/js-sdk/releases) for compatible SDK version
+2. Update `frontend/package.json` to match
+3. If upgrading past v0.22, change `authStore.model` → `authStore.record` in:
+   - `frontend/src/lib/pocketbase.ts`
+   - `frontend/src/routes/admin/login/+page.svelte`
+
+### Other Key Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| SvelteKit | ^2.0.0 | Frontend framework |
+| Svelte | ^4.2.0 | Component framework |
+| Vite | ^5.0.0 | Build tool |
+| Tailwind CSS | ^3.4.0 | Styling |
 
 ## Environment Variables
 
