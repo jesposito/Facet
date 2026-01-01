@@ -3,11 +3,20 @@
 	import { formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import Footer from '$components/public/Footer.svelte';
+	import { onMount } from 'svelte';
 
 	export let data: PageData;
 
 	// Compute back navigation URL based on where user came from
 	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
+
+	onMount(() => {
+		console.log('[POSTS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
+	});
+
+	function handleBackClick() {
+		console.log('[POSTS PAGE CLIENT] Back button clicked, navigating to:', backUrl);
+	}
 </script>
 
 <svelte:head>
@@ -30,6 +39,7 @@
 			<!-- Back navigation -->
 			<a
 				href={backUrl}
+				on:click={handleBackClick}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

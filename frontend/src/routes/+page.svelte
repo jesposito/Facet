@@ -43,6 +43,15 @@
 	}
 
 	onMount(() => {
+		console.log('[ROOT PAGE CLIENT] Page mounted', {
+			hasProfile: !!data.profile,
+			profileName: data.profile?.name,
+			viewSlug: data.view?.slug,
+			isDefaultView: data.isDefaultView,
+			postsCount: data.posts?.length || 0,
+			talksCount: data.talks?.length || 0
+		});
+
 		// View accent color takes priority over profile accent color
 		// (default view may have its own accent color override)
 		const accentColor = data.view?.accent_color || data.profile?.accent_color;
