@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS } from '$lib/pocketbase';
+	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
@@ -264,6 +264,10 @@
 
 	function updateSectionLayout(sectionKey: string, layout: string) {
 		sections[sectionKey].layout = layout;
+		// Auto-reset width to 'full' if current width is not valid for new layout
+		if (!isWidthValidForLayout(sectionKey, layout, sections[sectionKey].width)) {
+			sections[sectionKey].width = 'full';
+		}
 		updateSections();
 	}
 
@@ -774,31 +778,34 @@
 								<div class="flex items-center gap-2">
 									<!-- Width Selector with visual indicator -->
 									{#if sectionConfig.enabled}
-										<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
-											<!-- Width icon indicator -->
-											<div class="flex gap-0.5">
-												{#if sectionConfig.width === 'half'}
-													<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
-													<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-												{:else if sectionConfig.width === 'third'}
-													<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
-													<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-												{:else}
-													<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
-												{/if}
+										{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
+										{#if validWidths.length > 1}
+											<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
+												<!-- Width icon indicator -->
+												<div class="flex gap-0.5">
+													{#if sectionConfig.width === 'half'}
+														<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+														<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+													{:else if sectionConfig.width === 'third'}
+														<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+													{:else}
+														<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+													{/if}
+												</div>
+												<select
+													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+													value={sectionConfig.width}
+													on:change={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+													on:click|stopPropagation
+												>
+													{#each validWidths as widthOption}
+														<option value={widthOption.value}>{widthOption.label}</option>
+													{/each}
+												</select>
 											</div>
-											<select
-												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-												value={sectionConfig.width}
-												on:change={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
-												on:click|stopPropagation
-											>
-												{#each VALID_WIDTHS as widthOption}
-													<option value={widthOption.value}>{widthOption.label}</option>
-												{/each}
-											</select>
-										</div>
+										{/if}
 									{/if}
 
 									<!-- Layout Selector -->
