@@ -32,6 +32,33 @@ export const load: PageServerLoad = async ({ fetch }) => {
 					// Return data in a format compatible with both view and homepage layouts
 					const profile = viewData.profile || null;
 
+					// Get posts and talks from view sections
+					let posts = viewData.sections?.posts || [];
+					let talks = viewData.sections?.talks || [];
+
+					// If posts/talks aren't in the view's sections, fetch them from the homepage API
+					// This ensures posts/talks always appear on the profile even if the view
+					// doesn't explicitly include them as sections
+					if (posts.length === 0 || talks.length === 0) {
+						try {
+							const homepageResponse = await fetch(`${pbUrl}/api/homepage`);
+							if (homepageResponse.ok) {
+								const homepageData = await homepageResponse.json();
+								if (posts.length === 0 && homepageData.posts) {
+									posts = homepageData.posts.map((p: Record<string, unknown>) => ({
+										...p,
+										cover_image: p.cover_image_url || null
+									}));
+								}
+								if (talks.length === 0 && homepageData.talks) {
+									talks = homepageData.talks;
+								}
+							}
+						} catch {
+							// Ignore errors - posts/talks are optional
+						}
+					}
+
 					return {
 						// View-specific data
 						view: {
@@ -59,8 +86,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						education: viewData.sections?.education || [],
 						certifications: viewData.sections?.certifications || [],
 						skills: viewData.sections?.skills || [],
-						posts: viewData.sections?.posts || [],
-						talks: viewData.sections?.talks || [],
+						posts,
+						talks,
 						// Indicate this is a view-based homepage
 						isDefaultView: true
 					};
