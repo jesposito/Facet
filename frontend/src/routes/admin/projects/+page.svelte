@@ -216,7 +216,7 @@
 </script>
 
 <svelte:head>
-	<title>Projects | Me.yaml Admin</title>
+	<title>Projects | Facet Admin</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

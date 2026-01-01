@@ -53,7 +53,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.profile?.name || 'Profile'} | Me.yaml</title>
+	<title>{data.profile?.name || 'Profile'} | Facet</title>
 	<meta name="description" content={headline || 'Personal profile and portfolio'} />
 	{#if headline}
 		<meta property="og:title" content={data.profile?.name} />

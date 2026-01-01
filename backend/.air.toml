@@ -8,14 +8,14 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  bin = "./tmp/me-yaml"
-  cmd = "go build -o ./tmp/me-yaml ."
+  bin = "./tmp/facet"
+  cmd = "go build -o ./tmp/facet ."
   delay = 1000
   exclude_dir = ["tmp", "vendor", "node_modules"]
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  full_bin = "DATA_DIR=../pb_data ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=true ./tmp/me-yaml serve --http=0.0.0.0:8090 --dir=../pb_data"
+  full_bin = "DATA_DIR=../pb_data ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=true ./tmp/facet serve --http=0.0.0.0:8090 --dir=../pb_data"
   include_ext = ["go", "tpl", "tmpl", "html"]
   kill_delay = "2s"
   log = "build-errors.log"

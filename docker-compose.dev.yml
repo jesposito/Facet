@@ -1,4 +1,4 @@
-# Me.yaml Development Docker Compose
+# Facet Development Docker Compose
 # Usage: docker compose -f docker-compose.dev.yml up
 #
 # This configuration uses hash-based caching to skip unnecessary installs.
@@ -9,7 +9,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
-    container_name: meyaml-backend-dev
+    container_name: facet-backend-dev
     working_dir: /app
     volumes:
       - ./backend:/app/backend:cached
@@ -37,7 +37,7 @@ services:
 
   frontend:
     image: node:20-alpine
-    container_name: meyaml-frontend-dev
+    container_name: facet-frontend-dev
     working_dir: /app
     volumes:
       - ./frontend:/app:cached
@@ -54,8 +54,8 @@ services:
 
 volumes:
   go-cache:
-    name: meyaml-go-cache
+    name: facet-go-cache
   go-build-cache:
-    name: meyaml-go-build-cache
+    name: facet-go-build-cache
   frontend-node-modules:
-    name: meyaml-frontend-node-modules
+    name: facet-frontend-node-modules

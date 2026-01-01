@@ -1,4 +1,4 @@
-# Me.yaml Production Dockerfile
+# Facet Production Dockerfile
 # Single container with Caddy reverse proxy
 
 # ============================================
@@ -13,7 +13,7 @@ COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 COPY backend/ ./
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o /me-yaml .
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o /facet .
 
 # ============================================
 # Stage 2: Build SvelteKit frontend
@@ -40,13 +40,13 @@ RUN apk add --no-cache \
     caddy
 
 # Create non-root user
-RUN addgroup -g 1000 meyaml && \
-    adduser -u 1000 -G meyaml -s /bin/sh -D meyaml
+RUN addgroup -g 1000 facet && \
+    adduser -u 1000 -G facet -s /bin/sh -D facet
 
 WORKDIR /app
 
 # Copy backend binary
-COPY --from=backend-builder /me-yaml ./me-yaml
+COPY --from=backend-builder /facet ./facet
 
 # Copy frontend build
 COPY --from=frontend-builder /build/build ./frontend/build
@@ -59,7 +59,7 @@ COPY docker/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
 # Create data directory
-RUN mkdir -p /data && chown -R meyaml:meyaml /data /app
+RUN mkdir -p /data && chown -R facet:facet /data /app
 
 # Environment
 ENV DATA_DIR=/data \
@@ -76,6 +76,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-USER meyaml
+USER facet
 VOLUME ["/data"]
 CMD ["./start.sh"]

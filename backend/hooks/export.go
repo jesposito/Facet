@@ -78,7 +78,7 @@ func collectExportData(app *pocketbase.PocketBase) (*ExportData, error) {
 		Meta: ExportMeta{
 			Version:    "1.0.0",
 			ExportedAt: time.Now().UTC().Format(time.RFC3339),
-			App:        "Me.yaml",
+			App:        "Facet",
 		},
 	}
 

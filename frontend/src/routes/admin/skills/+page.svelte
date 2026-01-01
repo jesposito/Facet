@@ -173,7 +173,7 @@
 </script>
 
 <svelte:head>
-	<title>Skills | Me.yaml Admin</title>
+	<title>Skills | Facet Admin</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

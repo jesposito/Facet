@@ -278,7 +278,7 @@
 </script>
 
 <svelte:head>
-	<title>Settings | Me.yaml</title>
+	<title>Settings | Facet</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

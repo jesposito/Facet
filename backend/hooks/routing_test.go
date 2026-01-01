@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// TestPublicRoutingContract documents the public routing model for Me.yaml.
+// TestPublicRoutingContract documents the public routing model for Facet.
 //
 // URL MODEL (LinkedIn-style):
 // - /           → Default public profile view

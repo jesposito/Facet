@@ -228,7 +228,7 @@
 </script>
 
 <svelte:head>
-	<title>Share Tokens | Me.yaml</title>
+	<title>Share Tokens | Facet</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

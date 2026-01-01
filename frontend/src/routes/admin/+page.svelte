@@ -71,7 +71,7 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard | Me.yaml</title>
+	<title>Dashboard | Facet</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">

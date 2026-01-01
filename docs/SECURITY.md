@@ -1,4 +1,4 @@
-# Me.yaml Security
+# Facet Security
 
 This document describes security features, authentication flows, and known limitations.
 
@@ -44,7 +44,7 @@ Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated
 
 ### URL Routing Model
 
-Me.yaml uses LinkedIn-style canonical URLs:
+Facet uses LinkedIn-style canonical URLs:
 
 | Route | Purpose | Notes |
 |-------|---------|-------|
@@ -96,7 +96,7 @@ Password-protected views use signed JWTs for access control.
 | Claim | Description |
 |-------|-------------|
 | `vid` | View ID |
-| `iss` | Issuer: `me.yaml` |
+| `iss` | Issuer: `facet` |
 | `aud` | Audience: `view-access` |
 | `iat` | Issued at timestamp |
 | `exp` | Expiration timestamp |
@@ -277,7 +277,7 @@ Authenticated users (admin OAuth allowlist) can still:
 
 ### Rate Limiting
 
-Me.yaml implements per-IP rate limiting using the [token bucket algorithm](https://pkg.go.dev/golang.org/x/time/rate) to protect against brute force and abuse.
+Facet implements per-IP rate limiting using the [token bucket algorithm](https://pkg.go.dev/golang.org/x/time/rate) to protect against brute force and abuse.
 
 #### Rate Limit Tiers
 
@@ -357,7 +357,7 @@ No explicit CORS configuration - all endpoints are same-origin behind the Caddy 
 
 ### Security Headers
 
-Me.yaml implements security headers in two phases. Phase 5A is deployed by default; Phase 5B requires manual configuration after testing.
+Facet implements security headers in two phases. Phase 5A is deployed by default; Phase 5B requires manual configuration after testing.
 
 #### Phase 5A: Deployed Headers
 

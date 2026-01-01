@@ -1,4 +1,4 @@
-# Me.yaml Caddy Configuration
+# Facet Caddy Configuration
 # Single entry point that routes to internal services
 # Designed for use behind reverse proxies (Cloudflare Tunnel, nginx, etc.)
 
@@ -18,7 +18,7 @@
         # Control referrer information - safe default per OWASP
         Referrer-Policy "strict-origin-when-cross-origin"
 
-        # Disable browser features not used by Me.yaml
+        # Disable browser features not used by Facet
         Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
 
         # Remove server identification

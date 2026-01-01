@@ -55,7 +55,7 @@
 </script>
 
 <svelte:head>
-	<title>Views | Me.yaml</title>
+	<title>Views | Facet</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

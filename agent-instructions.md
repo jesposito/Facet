@@ -1,4 +1,4 @@
-# Me.yaml Agent Instructions
+# Facet Agent Instructions
 
 > **Reusable Phase Execution Prompt — Claude-Tuned**
 >
@@ -71,7 +71,7 @@ Select one phase that:
 - Delivers **real user value**
 - Builds on **existing architecture**
 - Does **NOT** require a rewrite
-- Aligns with Me.yaml's **core purpose**
+- Aligns with Facet's **core purpose**
 
 Before implementation, you **MUST** explain:
 

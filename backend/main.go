@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"ownprofile/hooks"
-	"ownprofile/services"
+	"facet/hooks"
+	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
-	_ "ownprofile/migrations"
+	_ "facet/migrations"
 )
 
 func main() {

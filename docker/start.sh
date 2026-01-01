@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-echo "Starting Me.yaml..."
+echo "Starting Facet..."
 
 # Start PocketBase backend (internal only, bound to localhost)
-./me-yaml serve --http=127.0.0.1:8090 --dir=/data &
+./facet serve --http=127.0.0.1:8090 --dir=/data &
 BACKEND_PID=$!
 
 # Wait for backend
@@ -26,7 +26,7 @@ caddy run --config ./Caddyfile &
 CADDY_PID=$!
 
 echo ""
-echo "Me.yaml is running on port 8080"
+echo "Facet is running on port 8080"
 if [ "$ADMIN_ENABLED" = "true" ]; then
     echo "PocketBase admin available at /_/"
 fi

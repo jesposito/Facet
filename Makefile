@@ -1,11 +1,11 @@
-# Me.yaml Makefile
+# Facet Makefile
 # Common commands for development and deployment
 
 .PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-dev seed-clear kill stop
 
 # Default target
 help:
-	@echo "Me.yaml — You, human-readable."
+	@echo "Facet — Every side of you. Your way."
 	@echo ""
 	@echo "Development (Codespaces/Local):"
 	@echo "  make dev          Start dev environment with hot reload"
@@ -78,7 +78,7 @@ dev-reset:
 kill:
 	@echo "Stopping dev processes..."
 	@-pkill -9 -f "air" 2>/dev/null || true
-	@-pkill -9 -f "ownprofile" 2>/dev/null || true
+	@-pkill -9 -f "facet" 2>/dev/null || true
 	@-pkill -9 -f "pocketbase" 2>/dev/null || true
 	@-pkill -9 -f "vite" 2>/dev/null || true
 	@-pkill -9 -f "node.*5173" 2>/dev/null || true

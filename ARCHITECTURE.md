@@ -1,4 +1,4 @@
-# Me.yaml Architecture Document
+# Facet Architecture Document
 
 > **See Also**: For the complete design document including vision, principles, and detailed specifications, see [DESIGN.md](DESIGN.md). For the feature roadmap, see [ROADMAP.md](ROADMAP.md).
 
