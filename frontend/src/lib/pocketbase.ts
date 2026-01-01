@@ -14,13 +14,17 @@ if (browser) {
 // Force Bearer prefix on auth header (required for PocketBase 0.23+)
 pb.beforeSend = function (url, options) {
 	const token = pb.authStore.token;
-	console.log('[PB beforeSend]', { url, hasToken: !!token, headers: options.headers });
-	if (token) {
-		// Always set Authorization header with Bearer prefix
-		options.headers = Object.assign({}, options.headers, {
-			'Authorization': 'Bearer ' + token
-		});
-		console.log('[PB beforeSend] Added Bearer header');
+	if (token && options.headers) {
+		// Directly modify the existing headers object (don't create new one)
+		const headers = options.headers as Record<string, string>;
+		const currentAuth = headers['Authorization'] || '';
+		if (currentAuth && !currentAuth.startsWith('Bearer ')) {
+			headers['Authorization'] = 'Bearer ' + currentAuth;
+			console.log('[PB beforeSend] Prefixed Bearer to existing header');
+		} else if (!currentAuth) {
+			headers['Authorization'] = 'Bearer ' + token;
+			console.log('[PB beforeSend] Added new Bearer header');
+		}
 	}
 	return { url, options };
 };
