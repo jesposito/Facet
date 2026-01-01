@@ -166,14 +166,25 @@ export interface ItemConfig {
 // Layout types for each section
 export type SectionLayout = string;
 
+// Width options for sections (Phase 6.3)
+export type SectionWidth = 'full' | 'half' | 'third';
+
 export interface ViewSection {
 	section: string;
 	enabled: boolean;
 	items?: string[];
 	order?: number;
 	layout?: SectionLayout;
+	width?: SectionWidth;
 	itemConfig?: Record<string, ItemConfig>;
 }
+
+// Valid width options with labels
+export const VALID_WIDTHS: { value: SectionWidth; label: string }[] = [
+	{ value: 'full', label: 'Full Width' },
+	{ value: 'half', label: 'Half Width' },
+	{ value: 'third', label: 'Third Width' }
+];
 
 // Valid layouts per section type (curated presets)
 export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string; labels: Record<string, string> }> = {

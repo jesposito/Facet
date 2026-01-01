@@ -130,6 +130,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 			sections: viewData.sections || {},
 			sectionOrder: viewData.section_order || [],
 			sectionLayouts: viewData.section_layouts || {},
+			sectionWidths: viewData.section_widths || {},
 			requiresPassword: false
 		};
 	} catch (err) {

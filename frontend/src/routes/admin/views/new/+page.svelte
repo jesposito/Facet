@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { pb, type ViewSection, type Profile, VALID_LAYOUTS } from '$lib/pocketbase';
+	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
@@ -42,8 +42,8 @@
 	let isActive = true;
 	let isDefault = false;
 
-	// Sections configuration with layout support (itemConfig empty for new views)
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }> }> = {};
+	// Sections configuration with layout and width support (itemConfig empty for new views)
+	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }> }> = {};
 
 	// Section order for drag-drop
 	let sectionOrder: Array<{ id: string; key: string }> = [];
@@ -86,10 +86,10 @@
 	}
 
 	function initializeSections() {
-		// Start with all sections enabled by default for new views, with default layout
+		// Start with all sections enabled by default for new views, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout, itemConfig: {} };
+			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
 		}
 		// Initialize section order
 		sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
@@ -232,13 +232,14 @@
 
 		saving = true;
 		try {
-			// Build sections array in current order with layout
+			// Build sections array in current order with layout and width
 			const sectionsData: ViewSection[] = sectionOrder
 				.map(({ key }) => ({
 					section: key,
 					enabled: sections[key]?.enabled || false,
 					items: sections[key]?.items || [],
-					layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default'
+					layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default',
+					width: sections[key]?.width || 'full'
 				}));
 
 			const data = {
@@ -542,6 +543,34 @@
 								</div>
 
 								<div class="flex items-center gap-2">
+									<!-- Width Selector with visual indicator -->
+									{#if sectionConfig.enabled}
+										<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
+											<!-- Width icon indicator -->
+											<div class="flex gap-0.5">
+												{#if sectionConfig.width === 'half'}
+													<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+													<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+												{:else if sectionConfig.width === 'third'}
+													<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+													<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+													<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+												{:else}
+													<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+												{/if}
+											</div>
+											<select
+												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+												bind:value={sections[sectionKey].width}
+												on:click|stopPropagation
+											>
+												{#each VALID_WIDTHS as widthOption}
+													<option value={widthOption.value}>{widthOption.label}</option>
+												{/each}
+											</select>
+										</div>
+									{/if}
+
 									<!-- Layout Selector -->
 									{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
 										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}

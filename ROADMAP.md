@@ -639,7 +639,7 @@ Add side-by-side preview in the view editor for immediate visual feedback.
 - Responsive layout: side-by-side on desktop, stacked on mobile
 - Preview scales down content for compact display
 
-#### 6.3 Section Width & Columns (Phase C - Advanced)
+#### 6.3 Section Width & Columns (Phase C - Complete) ✅
 
 Enable sections to share horizontal space (side-by-side layouts).
 
@@ -648,16 +648,19 @@ Enable sections to share horizontal space (side-by-side layouts).
 - `half` - 50% width (pairs with another half)
 - `third` - 33% width (triplets)
 
-**Behavior:**
-- Consecutive sections with compatible widths render side-by-side
-- CSS Grid handles responsive collapse (side-by-side on desktop, stacked on mobile)
-- Visual indicator in editor shows which sections will pair
+**Implementation:**
+- [x] Width dropdown in view editor (both create and edit pages)
+- [x] Visual column indicator icons showing layout
+- [x] CSS Grid with 6-column structure on public view
+- [x] Responsive collapse to full-width on mobile (< 768px)
+- [x] Live preview reflects width settings in real-time
+- [x] Backend returns `section_widths` map in API response
 
 **Schema Addition:**
 ```typescript
 interface ViewSection {
   // ... existing fields
-  width?: 'full' | 'half' | 'third';  // NEW
+  width?: 'full' | 'half' | 'third';  // Added
 }
 ```
 

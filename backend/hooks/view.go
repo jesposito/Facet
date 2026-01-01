@@ -226,6 +226,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			var sectionOrder []string
 			// Track layouts for each section
 			sectionLayouts := make(map[string]string)
+			// Track widths for each section (Phase 6.3)
+			sectionWidths := make(map[string]string)
 
 			for _, section := range sections {
 				sectionName, ok := section["section"].(string)
@@ -244,6 +246,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					sectionLayouts[sectionName] = layout
 				} else {
 					sectionLayouts[sectionName] = getDefaultLayout(sectionName)
+				}
+
+				// Extract width (default to "full" if not specified)
+				if width, ok := section["width"].(string); ok && width != "" {
+					sectionWidths[sectionName] = width
+				} else {
+					sectionWidths[sectionName] = "full"
 				}
 
 				items, ok := section["items"].([]interface{})
@@ -293,6 +302,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["sections"] = sectionData
 			response["section_order"] = sectionOrder
 			response["section_layouts"] = sectionLayouts
+			response["section_widths"] = sectionWidths
 
 			// Fetch profile data for the view
 			profileRecords, err := app.FindRecordsByFilter(
