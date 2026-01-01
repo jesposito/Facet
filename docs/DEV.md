@@ -330,6 +330,49 @@ _, err := app.DB().NewQuery(query).Bind(dbx.Params{
 
 See: `backend/hooks/ai.go:240-280` for a working implementation.
 
+### PocketBase Record Hooks Must Call `e.Next()`
+
+**Symptoms:**
+- Record create/update appears to succeed (API returns 200 with record data)
+- But the record is not actually persisted to the database
+- Listing records shows empty results
+- Getting record by ID returns 404
+
+**Cause:**
+In PocketBase v0.23+, record hooks using `BindFunc` must explicitly call `e.Next()` to continue the hook chain and complete the operation. Without this call, the record modification process silently stops.
+
+**Solution:**
+Always return `e.Next()` at the end of your hook handlers:
+
+```go
+// ✅ CORRECT - calls e.Next() to continue
+app.OnRecordCreate("my_collection").BindFunc(func(e *core.RecordEvent) error {
+    // Your logic here
+    if err := doSomething(e.Record); err != nil {
+        return err  // Return error to abort
+    }
+    return e.Next()  // REQUIRED: continue the hook chain
+})
+
+// ❌ WRONG - returns nil instead of e.Next()
+app.OnRecordCreate("my_collection").BindFunc(func(e *core.RecordEvent) error {
+    doSomething(e.Record)
+    return nil  // This silently aborts the save!
+})
+```
+
+**Applies to these hook types:**
+- `OnRecordCreate`
+- `OnRecordUpdate`
+- `OnRecordDelete`
+- `OnRecordAuthWithPasswordRequest`
+- `OnRecordAuthWithOAuth2Request`
+- Any other `BindFunc` hooks
+
+**Note:** Router hooks (like `OnServe`) also need `se.Next()`, but for different reasons (to continue the middleware chain).
+
+See: `backend/hooks/ai.go:201-214` and `backend/hooks/view.go:1232-1267` for correct implementations.
+
 ### PocketBase API 400 Errors with Sort Parameters
 
 **Symptoms:**
