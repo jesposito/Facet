@@ -2,9 +2,28 @@
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { beforeNavigate, afterNavigate } from '$app/navigation';
 	import { theme, toasts } from '$lib/stores';
 	import Toast from '$components/shared/Toast.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
+
+	// Debug navigation in development
+	beforeNavigate((navigation) => {
+		console.log('[NAVIGATION] Before navigate:', {
+			from: navigation.from?.url?.pathname,
+			to: navigation.to?.url?.pathname,
+			type: navigation.type,
+			willUnload: navigation.willUnload
+		});
+	});
+
+	afterNavigate((navigation) => {
+		console.log('[NAVIGATION] After navigate:', {
+			from: navigation.from?.url?.pathname,
+			to: navigation.to?.url?.pathname,
+			type: navigation.type
+		});
+	});
 
 	let themeColor = '#0ea5e9'; // Default sky-500
 
