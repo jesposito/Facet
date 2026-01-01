@@ -75,76 +75,85 @@
 			}
 		: null;
 
-	// Helper to get filtered and transformed items for a section
-	function getSectionData<T extends { id: string }>(
-		sectionKey: string
-	): T[] {
-		const config = sections[sectionKey];
-		const items = sectionItems[sectionKey] || [];
+	// Reactive computation of all section data - ensures updates when props change
+	$: computedSections = computeAllSections(sections, sectionItems);
 
-		if (!config?.enabled || items.length === 0) {
-			return [];
-		}
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function computeAllSections(
+		sectionsConfig: typeof sections,
+		items: typeof sectionItems
+	): Record<string, {
+		data: any[];
+		layout: string;
+		width: string;
+		widthClass: string;
+		visible: boolean;
+	}> {
+		const result: Record<string, {
+			data: any[];
+			layout: string;
+			width: string;
+			widthClass: string;
+			visible: boolean;
+		}> = {};
 
-		// Filter to selected items (or all public/non-draft if no selection)
-		const filteredItems =
-			config.items.length > 0
-				? items.filter((item) => config.items.includes(item.id))
-				: items.filter((item) => item.visibility !== 'private' && !item.is_draft);
+		for (const key of Object.keys(sectionsConfig)) {
+			const config = sectionsConfig[key];
+			const sectionItems = items[key] || [];
+			const layout = config?.layout || 'default';
+			const width = config?.width || 'full';
 
-		// Preserve order from config.items if specified
-		const orderedItems =
-			config.items.length > 0
-				? config.items
-						.map((id) => filteredItems.find((item) => item.id === id))
-						.filter(Boolean) as typeof filteredItems
-				: filteredItems;
+			let widthClass = 'preview-section section-full';
+			if (width === 'half') widthClass = 'preview-section section-half';
+			else if (width === 'third') widthClass = 'preview-section section-third';
 
-		// Apply overrides to items
-		return orderedItems.map((item) => {
-			const itemConfig = config.itemConfig?.[item.id];
-			const overrides = itemConfig?.overrides || {};
+			let data: unknown[] = [];
+			if (config?.enabled && sectionItems.length > 0) {
+				// Filter to selected items (or all public/non-draft if no selection)
+				const filteredItems =
+					config.items.length > 0
+						? sectionItems.filter((item) => config.items.includes(item.id))
+						: sectionItems.filter((item) => item.visibility !== 'private' && !item.is_draft);
 
-			// Deep clone and apply overrides
-			const transformedData = { ...item.data };
-			for (const [field, value] of Object.entries(overrides)) {
-				if (value !== undefined && value !== null && value !== '') {
-					transformedData[field] = value;
-				}
+				// Preserve order from config.items if specified
+				const orderedItems =
+					config.items.length > 0
+						? config.items
+								.map((id) => filteredItems.find((item) => item.id === id))
+								.filter(Boolean) as typeof filteredItems
+						: filteredItems;
+
+				// Apply overrides to items
+				data = orderedItems.map((item) => {
+					const itemConfig = config.itemConfig?.[item.id];
+					const overrides = itemConfig?.overrides || {};
+
+					// Deep clone and apply overrides
+					const transformedData = { ...item.data };
+					for (const [field, value] of Object.entries(overrides)) {
+						if (value !== undefined && value !== null && value !== '') {
+							transformedData[field] = value;
+						}
+					}
+
+					return transformedData;
+				});
 			}
 
-			return transformedData as T;
-		});
-	}
-
-	// Get layout for a section
-	function getSectionLayout(sectionKey: string): string {
-		return sections[sectionKey]?.layout || 'default';
-	}
-
-	// Get width for a section (Phase 6.3)
-	function getSectionWidth(sectionKey: string): string {
-		return sections[sectionKey]?.width || 'full';
-	}
-
-	// Get CSS class for section width
-	function getWidthClass(sectionKey: string): string {
-		const width = getSectionWidth(sectionKey);
-		switch (width) {
-			case 'half': return 'preview-section section-half';
-			case 'third': return 'preview-section section-third';
-			default: return 'preview-section section-full';
+			result[key] = {
+				data,
+				layout,
+				width,
+				widthClass,
+				visible: config?.enabled && data.length > 0
+			};
 		}
+
+		return result;
 	}
 
-	// Check if a section should be shown
-	function shouldShowSection(sectionKey: string): boolean {
-		const config = sections[sectionKey];
-		if (!config?.enabled) return false;
-
-		const data = getSectionData(sectionKey);
-		return data.length > 0;
-	}
+	// Reactive count of visible sections for empty state check
+	$: visibleSectionCount = sectionOrder.filter(s => computedSections[s.key]?.visible).length;
 </script>
 
 <div class="preview-container">
@@ -178,60 +187,61 @@
 	<div class="preview-content">
 		<div class="preview-sections-grid">
 			{#each sectionOrder as { key: sectionKey } (sectionKey)}
-				{#if sectionKey === 'experience' && shouldShowSection('experience')}
-					<div class={getWidthClass('experience')}>
+				{@const computed = computedSections[sectionKey]}
+				{#if sectionKey === 'experience' && computed?.visible}
+					<div class={computed.widthClass}>
 						<ExperienceSection
-							items={getSectionData('experience')}
-							layout={getSectionLayout('experience')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
-				{:else if sectionKey === 'projects' && shouldShowSection('projects')}
-					<div class={getWidthClass('projects')}>
+				{:else if sectionKey === 'projects' && computed?.visible}
+					<div class={computed.widthClass}>
 						<ProjectsSection
-							items={getSectionData('projects')}
-							layout={getSectionLayout('projects')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
-				{:else if sectionKey === 'education' && shouldShowSection('education')}
-					<div class={getWidthClass('education')}>
+				{:else if sectionKey === 'education' && computed?.visible}
+					<div class={computed.widthClass}>
 						<EducationSection
-							items={getSectionData('education')}
-							layout={getSectionLayout('education')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
-				{:else if sectionKey === 'certifications' && shouldShowSection('certifications')}
-					<div class={getWidthClass('certifications')}>
+				{:else if sectionKey === 'certifications' && computed?.visible}
+					<div class={computed.widthClass}>
 						<CertificationsSection
-							items={getSectionData('certifications')}
-							layout={getSectionLayout('certifications')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
-				{:else if sectionKey === 'skills' && shouldShowSection('skills')}
-					<div class={getWidthClass('skills')}>
+				{:else if sectionKey === 'skills' && computed?.visible}
+					<div class={computed.widthClass}>
 						<SkillsSection
-							items={getSectionData('skills')}
-							layout={getSectionLayout('skills')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
-				{:else if sectionKey === 'posts' && shouldShowSection('posts')}
-					<div class={getWidthClass('posts')}>
+				{:else if sectionKey === 'posts' && computed?.visible}
+					<div class={computed.widthClass}>
 						<PostsSection
-							items={getSectionData('posts')}
-							layout={getSectionLayout('posts')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
-				{:else if sectionKey === 'talks' && shouldShowSection('talks')}
-					<div class={getWidthClass('talks')}>
+				{:else if sectionKey === 'talks' && computed?.visible}
+					<div class={computed.widthClass}>
 						<TalksSection
-							items={getSectionData('talks')}
-							layout={getSectionLayout('talks')}
+							items={computed.data}
+							layout={computed.layout}
 						/>
 					</div>
 				{/if}
 			{/each}
 		</div>
 
-		{#if sectionOrder.filter(s => shouldShowSection(s.key)).length === 0}
+		{#if visibleSectionCount === 0}
 			<div class="flex flex-col items-center justify-center py-12 text-gray-400">
 				<svg class="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
