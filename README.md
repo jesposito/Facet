@@ -347,6 +347,8 @@ For complete security documentation, see **[Security Guide](docs/SECURITY.md)**.
 | **[Design Document](DESIGN.md)** | Vision, principles, and detailed specifications |
 | **[Roadmap](ROADMAP.md)** | Feature development phases |
 
+> ⚠️ **IMPORTANT FOR CONTRIBUTORS:** The [ROADMAP.md](ROADMAP.md) must be kept up-to-date with development progress. When completing features, mark them as done in the roadmap. When adding new features, add them to the appropriate phase. The roadmap is the source of truth for what is implemented vs. planned.
+
 ---
 
 ## Roadmap Highlights
@@ -357,16 +359,19 @@ For complete security documentation, see **[Security Guide](docs/SECURITY.md)**.
 - Share token management
 - GitHub import with AI enrichment
 - Print-optimized CSS for resume export
-
-**In Progress:**
 - Per-section layout presets
 - Live preview in view editor
+- Per-view theming with accent colors
+- Data export (JSON/YAML)
+- Content discovery (Posts & Talks index pages)
+
+**In Progress:**
+- AI-powered PDF resume generation
 
 **Planned:**
-- AI-powered PDF resume generation
 - Scheduled GitHub sync
-- Theme customization
 - Media library
+- Additional integrations
 
 See **[Roadmap](ROADMAP.md)** for the full development plan.
 

@@ -120,7 +120,7 @@ When implemented, the login screen will automatically show only the authenticati
 ### Cloudflare Tunnel
 
 1. Install cloudflared on your server
-2. Create a tunnel: `cloudflared tunnel create me-yaml`
+2. Create a tunnel: `cloudflared tunnel create facet`
 3. Configure tunnel to point to `localhost:8080`
 4. Set in `.env`:
    ```env
@@ -147,9 +147,9 @@ Add labels to `docker-compose.yml`:
 ```yaml
 labels:
   - "traefik.enable=true"
-  - "traefik.http.routers.meyaml.rule=Host(`profile.yourdomain.com`)"
-  - "traefik.http.routers.meyaml.entrypoints=websecure"
-  - "traefik.http.services.meyaml.loadbalancer.server.port=8080"
+  - "traefik.http.routers.facet.rule=Host(`profile.yourdomain.com`)"
+  - "traefik.http.routers.facet.entrypoints=websecure"
+  - "traefik.http.services.facet.loadbalancer.server.port=8080"
 ```
 
 ---
@@ -158,11 +158,11 @@ labels:
 
 ### Using Docker Compose
 
-1. Place files in `/mnt/user/appdata/me-yaml/`
+1. Place files in `/mnt/user/appdata/facet/`
 2. Edit `.env`:
    ```env
    ENCRYPTION_KEY=your-key-here
-   DATA_PATH=/mnt/user/appdata/me-yaml/data
+   DATA_PATH=/mnt/user/appdata/facet/data
    TRUST_PROXY=true
    APP_URL=https://profile.yourdomain.com
    ADMIN_EMAILS=you@gmail.com
@@ -192,7 +192,7 @@ Everything lives in one directory:
 ```bash
 # Stop, backup, restart
 docker-compose down
-tar -czvf me-yaml-backup-$(date +%Y%m%d).tar.gz ./data
+tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data
 docker-compose up -d
 ```
 
@@ -204,7 +204,7 @@ docker-compose up -d
 
 Check that the container started:
 ```bash
-docker-compose logs me-yaml
+docker-compose logs facet
 ```
 
 ### OAuth redirects failing

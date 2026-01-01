@@ -1,4 +1,4 @@
-# Me.yaml Development Container
+# Facet Development Container
 # https://containers.dev/implementors/json_reference/
 #
 # This Dockerfile is optimized for fast startup:

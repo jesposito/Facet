@@ -8,11 +8,11 @@ This roadmap outlines the feature development plan for Facet (formerly Me.yaml),
 
 ---
 
-## 🚨 Priority: Rebrand Me.yaml → Facet
+## ✅ Rebrand Me.yaml → Facet (Complete)
 
 **Purpose**: Rename the project from "Me.yaml" to "Facet" to improve market positioning, broaden appeal, and align the name with the core "Views as Facets" feature.
 
-**Status**: Not Started
+**Status**: ✅ Complete
 
 ### Strategic Rationale
 
@@ -47,7 +47,6 @@ All find-and-replace operations on user-facing text. No breaking changes.
 | `DESIGN.md` | 14 | "Me.yaml" → "Facet" |
 | `ROADMAP.md` | 3 | "Me.yaml" → "Facet" |
 | `ARCHITECTURE.md` | 1 | "Me.yaml" → "Facet" |
-| `IMPLEMENTATION_PLAN.md` | 2 | "Me.yaml" → "Facet" |
 | `agent-instructions.md` | 2 | "Me.yaml" → "Facet" |
 | `docs/SETUP.md` | 7 | "Me.yaml" → "Facet", URLs |
 | `docs/DEV.md` | 10 | "Me.yaml" → "Facet" |
@@ -398,46 +397,46 @@ If upgrading from `me-yaml` container:
 ### Summary: Complete Checklist
 
 **Pre-Flight (Do First):**
-- [ ] Secure domain
-- [ ] Check trademarks
-- [ ] Secure social handles
+- [x] Secure domain
+- [x] Check trademarks
+- [x] Secure social handles
 
-**Phase 1 - Documentation & Frontend (~45 min):**
-- [ ] 11 documentation files
-- [ ] 22 page title updates
-- [ ] 2 component updates
-- [ ] 7 script comment updates
+**Phase 1 - Documentation & Frontend:**
+- [x] 11 documentation files
+- [x] 22 page title updates
+- [x] 2 component updates
+- [x] 7 script comment updates
 
-**Phase 2 - Configuration (~30 min):**
-- [ ] package.json
-- [ ] 4 Docker files
-- [ ] 4 dev environment files
-- [ ] Makefile
+**Phase 2 - Configuration:**
+- [x] package.json
+- [x] 4 Docker files
+- [x] 4 dev environment files
+- [x] Makefile
 
-**Phase 3 - Backend (~1 hour):**
-- [ ] Go module rename (8 files)
-- [ ] JWT issuer constant
-- [ ] Export metadata
-- [ ] Seed data
-- [ ] All tests passing
+**Phase 3 - Backend:**
+- [x] Go module rename (8 files)
+- [x] JWT issuer constant (with legacy compatibility)
+- [x] Export metadata
+- [x] Seed data
+- [x] All tests passing
 
-**Phase 4 - External (~30 min):**
-- [ ] GitHub repo rename
-- [ ] Update clone URLs in docs
-- [ ] Domain examples
-- [ ] New favicon
+**Phase 4 - External:**
+- [x] GitHub repo rename
+- [x] Update clone URLs in docs
+- [x] Domain examples
+- [ ] New favicon (deferred - current is acceptable)
 
-**Phase 5 - Verification (~30 min):**
-- [ ] All builds pass
-- [ ] All tests pass
-- [ ] Manual functional testing
-- [ ] Grep verification
+**Phase 5 - Verification:**
+- [x] All builds pass
+- [x] All tests pass
+- [x] Manual functional testing
+- [x] Grep verification
 
 **Phase 6 - Announcement:**
-- [ ] Migration guide
-- [ ] Announce rebrand
+- [x] Migration guide
+- [ ] Announce rebrand (optional - repo is already named Facet)
 
-**Total Estimated Effort: 3-4 hours**
+**✅ Rebrand Complete**
 
 ### Risks & Mitigations
 
@@ -448,6 +447,115 @@ If upgrading from `me-yaml` container:
 | Orphaned "Me.yaml" references | Low | Grep verification step |
 | GitHub redirect expires | Low | Redirects last indefinitely for most operations |
 | SEO impact | Low | Keep "(formerly Me.yaml)" in README for transition period |
+
+---
+
+## Implementation Status Summary
+
+| Milestone | Status | Notes |
+|-----------|--------|-------|
+| 1. Scaffold | ✅ Complete | All files in place |
+| 2. Backend Core | ✅ Complete | PocketBase with all collections |
+| 3. Backend Hooks | ✅ Complete | GitHub, AI, share, password |
+| 4. Public Site | ✅ Complete | All routes and components |
+| 5. Admin Dashboard | ✅ Complete | All CRUD pages |
+| 6. Views & Tokens | ✅ Complete | Full token management UI |
+| 7. GitHub Importer | ✅ Complete | Import and review working |
+| 8. AI Settings | ✅ Complete | Full provider management |
+| 9. Docker | ✅ Complete | Production-ready |
+| 10. Documentation | 🟡 Partial | Core docs done |
+| 11. Testing | 🟡 Partial | Backend tests exist |
+| 12. Print & Export | 🟡 Partial | Print stylesheet + data export complete, AI print in progress |
+| 13. Visual Layout | ✅ Complete | Layout presets, live preview, section widths, accent colors, per-view theming |
+
+### Remaining Work
+
+**Medium Priority:**
+1. Media library (Phase 7)
+2. Additional frontend tests
+3. AI Print completion (Phase 4.3)
+
+**Low Priority:**
+1. AI provider mock tests
+2. Integration tests
+3. View access log / audit logging (Phase 8)
+
+---
+
+## Development Milestones (Detailed Checklists)
+
+### Milestone 1: Repository Scaffold ✅ Complete
+- [x] Initialize Git repository
+- [x] Create directory structure (backend/, frontend/, docker/)
+- [x] Create go.mod for backend
+- [x] Create package.json for frontend
+- [x] Create Makefile with common commands
+- [x] Create .env.example
+- [ ] Set up linting (golangci-lint, eslint, prettier)
+
+### Milestone 2: Backend - PocketBase Core ✅ Complete
+- [x] Set up PocketBase as Go framework
+- [x] Define all collections via migrations
+- [x] Configure OAuth providers (Google, GitHub)
+- [x] Set up collection rules (admin-only for most)
+- [x] Implement encryption service (AES-256-GCM)
+- [x] Add custom `/api/health` endpoint
+- [x] Test collection CRUD via API
+
+### Milestone 3: Backend - Custom Hooks ✅ Complete
+- [x] GitHub importer service (fetch repo metadata, README, languages, topics, create ImportProposal)
+- [x] AI enrichment service (OpenAI, Anthropic, Ollama, custom providers, encrypted keys)
+- [x] Share token service (generate, validate, track usage)
+- [x] Password protection service (hash, validate, session cookies)
+
+### Milestone 4: Frontend - Public Site ✅ Complete
+- [x] Set up SvelteKit project
+- [x] Create layout with SEO, Open Graph, responsive navigation
+- [x] Implement public routes (/, /[slug], /s/[token], /projects/[slug], /posts/[slug])
+- [x] Create all public components (ProfileHero, ExperienceSection, ProjectsSection, etc.)
+- [x] Implement dark/light theme
+- [x] Add loading states and error pages
+- [x] Full accessibility audit
+
+### Milestone 5: Frontend - Admin Dashboard ✅ Complete
+- [x] Set up admin layout with sidebar
+- [x] Implement OAuth login flow
+- [x] Create admin routes (/admin, /admin/profile, /admin/experience, etc.)
+- [x] Create admin components (AdminHeader, AdminSidebar, Toast)
+- [ ] `/admin/media` - Media library (deferred to Phase 7)
+
+### Milestone 6: Views & Share Tokens ✅ Complete
+- [x] Admin UI for views (list, create, edit, section selector, item picker, overrides)
+- [x] Share token management UI (generate, copy URL, revoke, status badges, usage stats)
+- [x] Public view rendering (section filters, item filters, overrides, password handling)
+
+### Milestone 7: GitHub Importer UI ✅ Complete
+- [x] `/admin/import` - Import wizard
+- [x] `/admin/review/[id]` - Review UI with per-field controls
+
+### Milestone 8: AI Provider Settings ✅ Complete
+- [x] `/admin/settings` - AI providers (add, test, set default, delete)
+- [x] Enrichment options in import (provider selector, privacy levels)
+
+### Milestone 9: Docker & Deployment ✅ Complete
+- [x] Production Dockerfile (multi-stage build)
+- [x] Development Dockerfile
+- [x] docker-compose.yml and docker-compose.dev.yml
+- [x] .env.example with all vars
+
+### Milestone 10: Documentation & Polish (Partial)
+- [x] README.md, DESIGN.md, ARCHITECTURE.md, ROADMAP.md
+- [x] DEV.md - Development setup
+- [x] Seed data for demo
+- [ ] Final testing pass
+- [ ] Performance check
+
+### Milestone 11: Testing (Partial)
+- [x] Backend tests (crypto, share token, rate limiting, routing, visibility, collection rules)
+- [ ] GitHub API mock tests
+- [ ] AI provider mock tests
+- [ ] Frontend tests (component, view access, form validation)
+- [ ] Integration tests (OAuth flow, import pipeline, review flow)
 
 ---
 
