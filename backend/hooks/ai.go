@@ -207,7 +207,17 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			return err
 		}
 		log.Printf("[AI] Hook completed successfully, calling e.Next()")
-		return e.Next()
+		log.Printf("[AI] Record before save: name=%s, type=%s, model=%s, api_key_encrypted_len=%d",
+			e.Record.GetString("name"),
+			e.Record.GetString("type"),
+			e.Record.GetString("model"),
+			len(e.Record.GetString("api_key_encrypted")))
+		if err := e.Next(); err != nil {
+			log.Printf("[AI] e.Next() returned error: %v", err)
+			return err
+		}
+		log.Printf("[AI] Record created successfully with ID: %s", e.Record.Id)
+		return nil
 	})
 
 	app.OnRecordUpdateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
