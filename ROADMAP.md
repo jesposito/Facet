@@ -184,52 +184,205 @@ Enable per-view customization of individual items without modifying source recor
 
 ---
 
-## Phase 4: Export & Print (Partial)
+## Phase 4: Export & Print System
 
-**Purpose**: Enable offline access and traditional resume formats.
+**Purpose**: Enable professional resume/CV generation with two tiers: simple browser print and AI-powered document generation.
+
+### Design Philosophy
+
+Two-tier approach addresses different needs:
+1. **Simple Print**: Fast, works offline, user controls final formatting via browser
+2. **AI Print**: Professional quality, AI optimizes content and formatting for target role/industry
 
 ### Features
 
-#### 4.1 Resume PDF Generation (Deferred)
-- [ ] Server-side PDF generation from view content — Deferred (browser print sufficient)
-- [x] Clean, ATS-friendly layout — Via print stylesheet
-- [x] Include/exclude sections based on view config — Via view system
-- [ ] Download button on admin — Deferred
+#### 4.1 Simple Print ✅ Complete
 
-#### 4.2 Print Stylesheet ✅ Complete
-- [x] Optimized CSS for printing
+Browser-based printing optimized for resumes. Zero setup required.
+
+- [x] Optimized print stylesheet in `app.css`
 - [x] Page breaks at section boundaries
-- [x] Hide navigation and UI controls
+- [x] Hide navigation, theme toggle, footer
 - [x] Print button on public pages
-- [x] ATS-friendly typography (serif body, sans-serif headers)
+- [x] ATS-friendly typography (Helvetica headers, Georgia body)
 - [x] Force light mode colors
 - [x] Display URLs after links
-- [x] Proper page margins
+- [x] Proper page margins (letter size, 0.5in × 0.6in)
 
-#### 4.3 Data Export (Deferred)
-- [ ] Export all data as JSON — Deferred
-- [ ] Export as YAML (for backup) — Deferred
-- [ ] Include uploaded files in archive — Deferred
+**Usage**: Navigate to any view → Click print button → Browser Print dialog (Ctrl+P) → Save as PDF
 
-#### 4.4 View Snapshot (Deferred)
-- [ ] Generate static HTML of a view — Deferred
-- [ ] Self-contained (inline CSS/images) — Deferred
-- [ ] Useful for offline sharing — Deferred
+#### 4.2 AI Print (New Feature)
+
+AI-powered document generation that creates polished, professionally formatted resumes.
+
+**How It Works:**
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  View Data  │ ──▶ │   AI API    │ ──▶ │   Pandoc    │ ──▶ │  DOCX/PDF   │
+│  (JSON)     │     │  (Optimize) │     │  (Convert)  │     │  (Storage)  │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+```
+
+1. **Collect**: Gather complete view data (profile, sections, overrides)
+2. **Optimize**: Send to AI with resume formatting prompt
+3. **Structure**: AI returns optimized markdown with resume-specific formatting
+4. **Convert**: [Pandoc](https://pandoc.org/MANUAL.html) converts markdown → DOCX and PDF
+5. **Store**: Files saved to PocketBase, linked to view
+6. **Download**: User downloads from view editor or public page
+
+**Schema Changes:**
+
+```typescript
+// New collection: view_exports
+interface ViewExport {
+  id: string;
+  view: string;           // Relation to views
+  format: 'pdf' | 'docx';
+  file: string;           // PocketBase file field
+  ai_provider?: string;   // Relation to ai_providers (null for non-AI)
+  generated_at: string;
+  generation_config?: {
+    target_role?: string;     // "Software Engineer at FAANG"
+    style?: 'chronological' | 'functional' | 'hybrid';
+    length?: 'one-page' | 'two-page' | 'full';
+    emphasis?: string[];      // ["leadership", "technical"]
+  };
+}
+
+// Addition to ViewSection (future)
+interface ViewSection {
+  // ... existing fields
+  ai_instructions?: string;  // Per-section AI guidance
+}
+```
+
+**AI Prompt Strategy:**
+
+The AI receives:
+- Complete view data as structured JSON
+- User's target role/industry (optional)
+- Resume style preferences
+- Length constraints
+
+The AI returns:
+- Optimized markdown formatted for Pandoc
+- Suggestions applied (better action verbs, quantified achievements)
+- Content prioritized for target role
+- Consistent formatting throughout
+
+**Implementation Tasks:**
+
+- [ ] Add `view_exports` collection via migration
+- [ ] Create resume prompt template (stored in backend)
+- [ ] Add `/api/view/{slug}/generate` endpoint
+- [ ] Integrate [Pandoc Docker image](https://github.com/pandoc/dockerfiles) or binary
+- [ ] Add reference DOCX template for consistent styling
+- [ ] Add "Generate Resume" button in view editor
+- [ ] Add generation config modal (target role, style, length)
+- [ ] Add download buttons for generated files
+- [ ] Add "Regenerate" button with spinner
+- [ ] Show generation timestamp and AI provider used
+
+**UX Flow:**
+
+1. User edits view, configures sections/overrides
+2. Clicks "Generate Resume" in view editor header
+3. Modal appears with options:
+   - Target role (text input, optional)
+   - Style: Chronological / Functional / Hybrid
+   - Length: One page / Two pages / Full
+   - AI Provider: (dropdown of configured providers)
+4. Clicks "Generate"
+5. Loading state shows progress
+6. On success, download buttons appear (PDF, DOCX)
+7. Files also accessible from public view page (if visibility allows)
+
+**Error Handling:**
+
+- No AI provider configured → Show setup prompt with link to /admin/settings
+- AI API failure → Show error, suggest retry
+- Pandoc failure → Log error, notify user
+- File too large → Warn user, suggest shorter view
+
+#### 4.3 Document Templates
+
+Pre-designed templates for consistent, professional output.
+
+- [ ] Default resume template (clean, ATS-friendly)
+- [ ] Academic CV template (publications, research focus)
+- [ ] Creative template (for design roles)
+- [ ] Template selection in generation config
+
+**Technical Approach:**
+- Templates are reference DOCX files with styles defined
+- Pandoc uses `--reference-doc` flag to apply template styling
+- Templates stored in `backend/templates/` directory
+
+#### 4.4 Data Export
+
+Export all data for backup or migration.
+
+- [ ] Export all data as JSON
+- [ ] Export as YAML (human-readable backup)
+- [ ] Include uploaded files in ZIP archive
+- [ ] Import from backup (restore)
+
+#### 4.5 Static Snapshot
+
+Generate self-contained HTML for offline sharing.
+
+- [ ] Generate static HTML of a view
+- [ ] Inline all CSS and base64 images
+- [ ] Single file output for email attachment
 
 ### Prerequisites
 - Phase 3 complete ✅
+- AI providers configured (for AI Print)
+- Pandoc available in Docker image (for document conversion)
 
-### Completed
-- Print stylesheet enables browser-based PDF generation via Print (Ctrl+P / Cmd+P)
-- Print button added to homepage and all view pages
-- Clean, professional output suitable for resumes
+### Technical Requirements
 
-### Deferred Items
-Server-side PDF generation and data export are deferred as browser print provides sufficient functionality for the primary use case (resume generation). These may be revisited based on user feedback.
+**Pandoc Integration:**
 
-### Risks
-- ~~PDF generation may require headless browser or Go library~~ — Mitigated by browser print
-- Static snapshot may break with complex layouts
+Option A: Include Pandoc in Docker image
+```dockerfile
+# Add to production Dockerfile
+RUN apt-get update && apt-get install -y pandoc
+```
+
+Option B: Use [pandoc/latex Docker image](https://hub.docker.com/r/pandoc/latex) as sidecar
+```yaml
+# docker-compose.yml
+services:
+  pandoc:
+    image: pandoc/latex
+    volumes:
+      - ./temp:/data
+```
+
+Option C: Shell exec to host Pandoc (if installed)
+```go
+cmd := exec.Command("pandoc", "-f", "markdown", "-o", "output.docx", "input.md")
+```
+
+**Recommended**: Option A for simplicity, Option B for full LaTeX support (better PDF quality)
+
+### Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| AI returns poorly formatted content | Validate markdown structure, fallback to simple format |
+| Pandoc not available | Graceful degradation to browser print |
+| Large documents timeout | Set reasonable limits, show progress |
+| Template styling inconsistent | Test templates thoroughly, provide preview |
+| AI costs | Show estimated cost, require confirmation for long docs |
+
+### Research References
+- [Pandoc User's Guide](https://pandoc.org/MANUAL.html) - Comprehensive conversion documentation
+- [Pandoc Docker Images](https://hub.docker.com/r/pandoc/latex) - Pre-built containers with LaTeX
+- [Simple Markdown Resume Workflow](https://sdsawtelle.github.io/blog/output/simple-markdown-resume-with-pandoc-and-wkhtmltopdf.html) - End-to-end example
+- [LaTeX Résumé AI](https://medium.com/institute-for-applied-computational-science/latex-r%C3%A9sum%C3%A9-ai-an-ai-powered-cv-creation-tool-and-natural-language-document-editor-7cbfe52f846f) - AI-powered CV creation approach
 
 ---
 
@@ -278,38 +431,158 @@ Server-side PDF generation and data export are deferred as browser print provide
 
 ---
 
-## Phase 6: Theming & Customization
+## Phase 6: Visual Layout System
 
-**Purpose**: Allow visual customization without code changes.
+**Purpose**: Enable per-section layout customization with guardrails that prevent bad design choices. Inspired by [SharePoint's flexible sections](https://learn.microsoft.com/en-us/sharepoint/dev/design/layout-patterns) but simpler - curated presets rather than freeform editing.
+
+### Design Principles
+
+1. **Guardrails for Non-Designers**: Only offer layouts proven to look good for each content type
+2. **Progressive Disclosure**: Defaults work without configuration; advanced options are optional
+3. **Responsive by Default**: All layouts must work on mobile - users can't break responsiveness
+4. **Instant Feedback**: Changes should preview immediately or with minimal friction
 
 ### Features
 
-#### 6.1 Color Themes
-- [ ] Light/dark mode toggle
-- [ ] Accent color picker
-- [ ] Preview in admin
+#### 6.1 Per-Section Layout Presets (Phase A - Foundation)
 
-#### 6.2 Layout Options
-- [ ] Section layout presets
-- [ ] Hero image position options
-- [ ] Avatar placement options
+Add a `layout` field to each section in the view editor. Each section type has its own curated set of valid layouts.
 
-#### 6.3 Custom CSS
+**Schema Change:**
+```typescript
+interface ViewSection {
+  section: string;
+  enabled: boolean;
+  items?: string[];
+  layout?: SectionLayout;      // NEW: 'default' | 'compact' | 'timeline' | etc.
+  layoutOptions?: {            // NEW: Future extensibility
+    columns?: 2 | 3;
+    showImages?: boolean;
+  };
+  itemConfig?: Record<string, ItemConfig>;
+}
+```
+
+**Layout Options by Section:**
+
+| Section | Available Layouts | Default | Notes |
+|---------|-------------------|---------|-------|
+| Experience | `default`, `timeline`, `compact` | default | Timeline emphasizes career progression |
+| Projects | `grid-3`, `grid-2`, `list`, `featured` | grid-3 | Featured shows 1 large + grid |
+| Education | `default`, `timeline` | default | Timeline connects education visually |
+| Certifications | `grouped`, `grid`, `timeline` | grouped | Grouped = by issuer (current) |
+| Skills | `grouped`, `cloud`, `bars`, `flat` | grouped | Cloud = size by proficiency |
+| Posts | `grid-3`, `grid-2`, `list`, `featured` | grid-3 | Same as projects |
+| Talks | `default`, `cards`, `list` | default | Default embeds video |
+
+**Implementation:**
+- [ ] Add `layout` field to ViewSection type in `pocketbase.ts`
+- [ ] Add `VALID_LAYOUTS` constant mapping section → allowed layouts
+- [ ] Add layout dropdown in view editor (in section header when expanded)
+- [ ] Backend passes layout through in `/api/view/:slug/data` response
+- [ ] Update section components to accept `layout` prop
+- [ ] Implement 2-3 layout variants per section (start with most valuable)
+
+**UX Flow:**
+1. User expands section in view editor
+2. Sees "Layout" dropdown next to section toggle (default: "Default")
+3. Options filtered to valid layouts for that section type
+4. Selection saves with view config
+5. Public view renders with selected layout
+
+#### 6.2 Live Preview Pane (Phase B - Feedback)
+
+Add side-by-side preview in the view editor for immediate visual feedback.
+
+- [ ] Split-pane layout: editor left (60%), preview right (40%)
+- [ ] Preview updates on any change (debounced 300ms)
+- [ ] Preview uses actual section components (not mockups)
+- [ ] Toggle to hide preview for more editor space
+- [ ] Mobile preview mode (preview shown at mobile width)
+
+**Technical Approach:**
+- Preview rendered in same page (not iframe) for simplicity
+- Pass current form state to preview components
+- Use Svelte stores for reactive updates
+- Consider iframe for true isolation (Phase C)
+
+#### 6.3 Section Width & Columns (Phase C - Advanced)
+
+Enable sections to share horizontal space (side-by-side layouts).
+
+**Width Options:**
+- `full` - 100% width (current default)
+- `half` - 50% width (pairs with another half)
+- `third` - 33% width (triplets)
+
+**Behavior:**
+- Consecutive sections with compatible widths render side-by-side
+- CSS Grid handles responsive collapse (side-by-side on desktop, stacked on mobile)
+- Visual indicator in editor shows which sections will pair
+
+**Schema Addition:**
+```typescript
+interface ViewSection {
+  // ... existing fields
+  width?: 'full' | 'half' | 'third';  // NEW
+}
+```
+
+**Example:**
+```
+[Experience: full]     → Full width row
+[Skills: half][Certs: half]  → Side-by-side row
+[Projects: full]       → Full width row
+```
+
+#### 6.4 Visual WYSIWYG Editor (Phase D - Future)
+
+Full drag-and-drop editing directly in the preview pane.
+
+- [ ] Drag sections to reorder in preview
+- [ ] Resize handles on section edges
+- [ ] Drop zones between sections
+- [ ] Inline editing of section titles
+- [ ] Mobile/tablet/desktop preview breakpoints
+
+**Deferred Rationale:** This requires significant interaction layer complexity. The phased approach (A→B→C) delivers 80% of the value with 20% of the complexity. WYSIWYG can be added later when the foundation is solid.
+
+### Color & Theme Customization
+
+#### 6.5 Accent Color
+- [ ] Color picker in admin settings
+- [ ] Applied via CSS custom properties
+- [ ] Affects buttons, links, badges, highlights
+
+#### 6.6 Theme Presets
+- [ ] Bundled themes: Minimal, Professional, Creative
+- [ ] One-click apply (sets colors, fonts, spacing)
+- [ ] Reset to default option
+
+#### 6.7 Custom CSS (Power Users)
 - [ ] Admin textarea for custom CSS
-- [ ] Scoped to public pages only
-- [ ] Syntax validation
-
-#### 6.4 Theme Presets
-- [ ] Bundled themes (minimal, professional, creative)
-- [ ] One-click apply
-- [ ] Reset to default
+- [ ] Scoped to public pages only (not admin)
+- [ ] Syntax validation and preview
+- [ ] Warning about responsiveness risks
 
 ### Prerequisites
-- Phase 5 complete
+- Phase 2.2 complete (drag-drop reordering) ✅
+- Section components already accept items prop
 
-### Risks
-- Custom CSS can break layout
-- Need good preview system
+### Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Layout variants multiply component complexity | Use conditional rendering, not separate files |
+| Users create ugly layouts | Curated presets only - no freeform |
+| Preview performance with large datasets | Debounce updates, limit preview items |
+| Mobile breakage | All layouts must be mobile-responsive by design |
+| Schema migration | Layout field is optional, defaults to 'default' |
+
+### Research References
+- [SharePoint Layout Patterns](https://learn.microsoft.com/en-us/sharepoint/dev/design/layout-patterns) - Grid, list, filmstrip patterns
+- [SharePoint Flexible Sections](https://www.sharepointdesigns.com/blog/how-to-use-flexible-sections-in-sharepoint-pages-a-simple-guide) - 12-cell grid approach
+- [Notion Portfolio Templates](https://super.so/create/how-to-create-a-portfolio-site-with-notion-and-super) - Clean section layouts
 
 ---
 
@@ -469,6 +742,8 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Phase 9.2 accessibility audit complete | Skip link, aria attributes, screen reader support added; 0 svelte-check warnings |
 | 2025-12-31 | Admin loading pattern standardized | All admin pages use simple `onMount(loadData)` pattern; layout handles auth gating. Fixes Codespaces race conditions. |
 | 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
+| 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
+| 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
 
 ---
 
