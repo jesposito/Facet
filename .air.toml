@@ -19,7 +19,7 @@ tmp_dir = "tmp"
   exclude_unchanged = false
   follow_symlink = false
   # Run from repo root with correct paths
-  full_bin = "DATA_DIR=./pb_data ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=true ./tmp/me-yaml serve --http=0.0.0.0:8090 --dir=./pb_data"
+  full_bin = "DATA_DIR=./pb_data ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=${SEED_DATA:-} ./tmp/me-yaml serve --http=0.0.0.0:8090 --dir=./pb_data"
   include_dir = ["backend"]
   include_ext = ["go", "tpl", "tmpl", "html"]
   include_file = []
