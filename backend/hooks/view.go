@@ -542,6 +542,102 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, response)
 		}))
 
+		// Public posts listing
+		// Rate limited: normal tier (60/min)
+		// Returns all non-private, non-draft posts for the index page
+		se.Router.GET("/api/posts", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			// Fetch non-private, non-draft posts
+			postRecords, err := app.FindRecordsByFilter(
+				"posts",
+				"visibility != 'private' && is_draft = false",
+				"-published_at,-created",
+				100,
+				0,
+				nil,
+			)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
+			}
+
+			posts := serializeRecords(postRecords)
+			// Add file URLs for cover images
+			for i, p := range posts {
+				if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+					if id, ok := p["id"].(string); ok {
+						posts[i]["cover_image_url"] = "/api/files/posts/" + id + "/" + coverImage
+					}
+				}
+			}
+
+			// Fetch profile data for page context
+			var profile map[string]interface{}
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility = 'public'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				p := profileRecords[0]
+				profile = map[string]interface{}{
+					"id":       p.Id,
+					"name":     p.GetString("name"),
+					"headline": p.GetString("headline"),
+				}
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"posts":   posts,
+				"profile": profile,
+			})
+		}))
+
+		// Public talks listing
+		// Rate limited: normal tier (60/min)
+		// Returns all non-private, non-draft talks for the index page
+		se.Router.GET("/api/talks", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			// Fetch non-private, non-draft talks
+			talkRecords, err := app.FindRecordsByFilter(
+				"talks",
+				"visibility != 'private' && is_draft = false",
+				"-date,-sort_order",
+				100,
+				0,
+				nil,
+			)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
+			}
+
+			talks := serializeRecords(talkRecords)
+
+			// Fetch profile data for page context
+			var profile map[string]interface{}
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility = 'public'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				p := profileRecords[0]
+				profile = map[string]interface{}{
+					"id":       p.Id,
+					"name":     p.GetString("name"),
+					"headline": p.GetString("headline"),
+				}
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"talks":   talks,
+				"profile": profile,
+			})
+		}))
+
 		// Apply import proposal
 		se.Router.POST("/api/proposals/{id}/apply", func(e *core.RequestEvent) error {
 			if e.Auth == nil {

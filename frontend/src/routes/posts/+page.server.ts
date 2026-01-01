@@ -2,7 +2,7 @@
  * Posts index route: /posts
  *
  * Lists all non-private, non-draft posts with tag filtering.
- * Only private and draft posts are excluded.
+ * Uses the custom /api/posts endpoint which bypasses collection access rules.
  */
 
 import type { PageServerLoad } from './$types';
@@ -10,59 +10,46 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const tag = url.searchParams.get('tag');
+	const fromView = url.searchParams.get('from');
 
 	try {
-		// Build filter for non-private, non-draft posts (matches profile behavior)
-		let filter = "visibility != 'private' && is_draft = false";
+		// Use custom API endpoint that bypasses collection access rules
+		const response = await fetch(`${pbUrl}/api/posts`);
 
-		// Fetch posts from PocketBase
-		const postsResponse = await fetch(
-			`${pbUrl}/api/collections/posts/records?filter=${encodeURIComponent(filter)}&sort=-published_at,-created`
-		);
-
-		// Fetch profile for page context
-		const profileResponse = await fetch(
-			`${pbUrl}/api/collections/profile/records?perPage=1`
-		);
-
-		let posts = [];
-		if (postsResponse.ok) {
-			const postsData = await postsResponse.json();
-			posts = postsData.items || [];
-
-			// If tag filter is specified, filter client-side (PocketBase JSON field filtering is limited)
-			if (tag) {
-				posts = posts.filter((post: { tags?: string[] }) =>
-					post.tags?.some((t: string) => t.toLowerCase() === tag.toLowerCase())
-				);
-			}
-
-			// Add cover image URLs
-			posts = posts.map((post: { id: string; collectionId: string; cover_image?: string }) => ({
-				...post,
-				cover_image_url: post.cover_image
-					? `/api/files/${post.collectionId}/${post.id}/${post.cover_image}`
-					: null
-			}));
+		if (!response.ok) {
+			console.error('Posts API error:', response.status);
+			return {
+				posts: [],
+				profile: null,
+				selectedTag: tag,
+				allTags: [],
+				fromView: fromView || null
+			};
 		}
 
-		let profile = null;
-		if (profileResponse.ok) {
-			const profileData = await profileResponse.json();
-			profile = profileData.items?.[0] || null;
+		const data = await response.json();
+		let posts = data.posts || [];
+		const profile = data.profile || null;
+
+		// If tag filter is specified, filter client-side
+		if (tag) {
+			posts = posts.filter((post: { tags?: string[] }) =>
+				post.tags?.some((t: string) => t.toLowerCase() === tag.toLowerCase())
+			);
 		}
 
 		// Get unique tags from all posts for filter UI
 		const allTags = new Set<string>();
-		posts.forEach((post: { tags?: string[] }) => {
-			post.tags?.forEach(t => allTags.add(t));
+		(data.posts || []).forEach((post: { tags?: string[] }) => {
+			post.tags?.forEach((t: string) => allTags.add(t));
 		});
 
 		return {
 			posts,
 			profile,
 			selectedTag: tag,
-			allTags: Array.from(allTags).sort()
+			allTags: Array.from(allTags).sort(),
+			fromView: fromView || null
 		};
 	} catch (err) {
 		console.error('Failed to load posts:', err);
@@ -70,7 +57,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			posts: [],
 			profile: null,
 			selectedTag: tag,
-			allTags: []
+			allTags: [],
+			fromView: fromView || null
 		};
 	}
 };

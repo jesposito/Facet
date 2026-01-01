@@ -10,8 +10,10 @@
 	$: publishedDate = data.post.published_at ? formatDate(data.post.published_at) : null;
 
 	// Determine back navigation URL and label
-	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
-	$: backLabel = data.fromView ? 'Back to Profile' : 'Back to Profile';
+	// If coming from a view (profile page), go back to that view
+	// Otherwise, go back to the posts index page
+	$: backUrl = data.fromView ? `/${data.fromView}` : '/posts';
+	$: backLabel = data.fromView ? 'Back to Profile' : 'Back to Posts';
 </script>
 
 <svelte:head>
