@@ -78,12 +78,16 @@ dev-reset:
 # Kill running dev processes
 kill:
 	@echo "Stopping dev processes..."
-	@-pkill -f "air" 2>/dev/null || true
-	@-pkill -f "pocketbase" 2>/dev/null || true
-	@-pkill -f "vite" 2>/dev/null || true
-	@-pkill -f "node.*5173" 2>/dev/null || true
-	@-pkill -f "node.*5174" 2>/dev/null || true
-	@sleep 1
+	@-pkill -9 -f "air" 2>/dev/null || true
+	@-pkill -9 -f "ownprofile" 2>/dev/null || true
+	@-pkill -9 -f "pocketbase" 2>/dev/null || true
+	@-pkill -9 -f "vite" 2>/dev/null || true
+	@-pkill -9 -f "node.*5173" 2>/dev/null || true
+	@-pkill -9 -f "node.*5174" 2>/dev/null || true
+	@-fuser -k 8090/tcp 2>/dev/null || true
+	@-fuser -k 5173/tcp 2>/dev/null || true
+	@-fuser -k 5174/tcp 2>/dev/null || true
+	@sleep 2
 	@echo "Done."
 
 stop: kill
