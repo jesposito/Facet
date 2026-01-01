@@ -377,10 +377,10 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {
 				log.Printf("[AI-PRINT] Pandoc retry failed: %v, stderr: %s", err, stderr.String())
-				return nil, fmt.Errorf("Pandoc conversion failed: %s", stderr.String())
+				return nil, r.formatPandocError(stderr.String())
 			}
 		} else {
-			return nil, fmt.Errorf("Pandoc conversion failed: %s", errMsg)
+			return nil, r.formatPandocError(errMsg)
 		}
 	}
 
@@ -395,4 +395,42 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 
 	log.Printf("[AI-PRINT] Output file size: %d bytes", len(output))
 	return output, nil
+}
+
+// formatPandocError converts raw Pandoc/LaTeX errors into user-friendly messages
+func (r *ResumeService) formatPandocError(errMsg string) error {
+	// Check for missing LaTeX packages
+	if strings.Contains(errMsg, ".sty' not found") || strings.Contains(errMsg, "File `") && strings.Contains(errMsg, "not found") {
+		// Extract the package name if possible
+		var pkgName string
+		if idx := strings.Index(errMsg, "File `"); idx != -1 {
+			end := strings.Index(errMsg[idx:], "'")
+			if end > 6 {
+				pkgName = errMsg[idx+6 : idx+end]
+			}
+		}
+
+		if pkgName != "" {
+			return fmt.Errorf("PDF generation requires LaTeX package '%s' which is not installed. Please rebuild your container or try DOCX format instead.", pkgName)
+		}
+		return fmt.Errorf("PDF generation requires additional LaTeX packages. Please rebuild your container or try DOCX format instead.")
+	}
+
+	// Check for missing pdflatex
+	if strings.Contains(errMsg, "pdflatex not found") || strings.Contains(errMsg, "pdflatex: not found") {
+		return fmt.Errorf("PDF generation requires pdflatex (LaTeX) which is not installed. Please rebuild your container or try DOCX format instead.")
+	}
+
+	// Check for font errors
+	if strings.Contains(errMsg, "Font") && (strings.Contains(errMsg, "not found") || strings.Contains(errMsg, "error")) {
+		return fmt.Errorf("PDF generation encountered a font error. Please try DOCX format or rebuild your container with full LaTeX font support.")
+	}
+
+	// Generic error with helpful suggestion
+	if strings.Contains(errMsg, "Error producing PDF") {
+		return fmt.Errorf("PDF generation failed. Try DOCX format instead, or check server logs for details.")
+	}
+
+	// Return the original message for unknown errors
+	return fmt.Errorf("Document conversion failed: %s", errMsg)
 }
