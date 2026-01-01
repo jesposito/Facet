@@ -263,7 +263,7 @@ func init() {
 			aiCollection := core.NewBaseCollection("ai_providers")
 			aiCollection.Fields.Add(&core.TextField{Name: "name", Required: true, Max: 200})
 			aiCollection.Fields.Add(&core.SelectField{Name: "type", Values: []string{"openai", "anthropic", "ollama", "custom"}, Required: true, MaxSelect: 1})
-			aiCollection.Fields.Add(&core.TextField{Name: "api_key", Hidden: true})
+			aiCollection.Fields.Add(&core.TextField{Name: "api_key"}) // NOT hidden - needs to be received in requests
 			aiCollection.Fields.Add(&core.TextField{Name: "api_key_encrypted", Hidden: true})
 			aiCollection.Fields.Add(&core.URLField{Name: "base_url"})
 			aiCollection.Fields.Add(&core.TextField{Name: "model", Max: 100})
