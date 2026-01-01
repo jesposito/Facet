@@ -321,8 +321,8 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 	view.Set("slug", "kingdoms")
 	view.Set("description", "Curated view for royal courts seeking technical advisors")
 	view.Set("visibility", "public")
-	view.Set("hero_headline", "Chief Wizard & Staff Engineer")
-	view.Set("hero_summary", "Centuries of experience guiding kingdoms through digital transformation. I specialise in prophecy-driven development, crystal ball observability, and mentoring future monarchs.")
+	// Don't set hero_headline/hero_summary - let them fall back to profile values
+	// This makes profile edits immediately visible on the public view
 	view.Set("cta_text", "Send Raven")
 	view.Set("cta_url", "mailto:merlin@camelot.gov.uk")
 	sectionsJSON, _ := json.Marshal([]map[string]interface{}{
@@ -766,8 +766,8 @@ func seedDevData(app *pocketbase.PocketBase) error {
 	view.Set("slug", "front-end-lead")
 	view.Set("description", "Curated view highlighting front-end leadership and product engineering experience")
 	view.Set("visibility", "public")
-	view.Set("hero_headline", "Front-End Lead | Product Engineering Lead")
-	view.Set("hero_summary", "Front-end–leaning product engineer and team lead with 16+ years building user-facing systems, tools, and digital platforms. I specialise in content-driven applications, admin-style interfaces, and workflow-heavy front ends where clarity, usability, and adoption matter more than novelty.")
+	// Don't set hero_headline/hero_summary - let them fall back to profile values
+	// This makes profile edits immediately visible on the public view
 	view.Set("cta_text", "View LinkedIn")
 	view.Set("cta_url", "https://linkedin.com/in/jedidiah-esposito")
 	sectionsJSON, _ := json.Marshal([]map[string]interface{}{
