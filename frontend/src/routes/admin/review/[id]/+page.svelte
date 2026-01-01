@@ -99,7 +99,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token
+					Authorization: `Bearer ${pb.authStore.token}`
 				},
 				body: JSON.stringify({
 					applied_fields: appliedFields,
@@ -128,7 +128,7 @@
 			const response = await fetch(`/api/proposals/${$page.params.id}/reject`, {
 				method: 'POST',
 				headers: {
-					Authorization: pb.authStore.token
+					Authorization: `Bearer ${pb.authStore.token}`
 				}
 			});
 
