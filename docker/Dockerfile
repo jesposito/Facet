@@ -37,7 +37,8 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     nodejs \
-    caddy
+    caddy \
+    pandoc
 
 # Create non-root user
 RUN addgroup -g 1000 facet && \

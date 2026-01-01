@@ -81,6 +81,30 @@
 		overrides: Record<string, string | string[]>;
 	} | null = null;
 
+	// AI Print state
+	let showGenerateModal = false;
+	let generating = false;
+	let aiPrintStatus = {
+		available: false,
+		pandoc_installed: false,
+		ai_configured: false
+	};
+	let generationConfig = {
+		format: 'pdf' as 'pdf' | 'docx',
+		target_role: '',
+		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
+		length: 'two-page' as 'one-page' | 'two-page' | 'full',
+		emphasis: [] as string[]
+	};
+	let exports: Array<{
+		id: string;
+		format: string;
+		status: string;
+		generated_at: string;
+		download_url?: string;
+		error_message?: string;
+	}> = [];
+
 	$: viewId = $page.params.id as string;
 
 	// Simple pattern - admin layout handles auth
@@ -93,9 +117,13 @@
 		await Promise.all([
 			loadView(),
 			loadSectionItems(),
-			loadProfile()
+			loadProfile(),
+			checkAIPrintStatus()
 		]);
 	});
+
+	// Load exports when slug is available
+	$: if (slug) loadExports();
 
 	async function loadProfile() {
 		try {
@@ -113,6 +141,103 @@
 		} catch (err) {
 			console.error('Failed to load profile:', err);
 			// Profile is optional for preview, don't show error
+		}
+	}
+
+	// AI Print functions
+	async function checkAIPrintStatus() {
+		try {
+			const response = await fetch('/api/ai-print/status', {
+				headers: { Authorization: pb.authStore.token || '' }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				aiPrintStatus = {
+					available: data.available,
+					pandoc_installed: data.pandoc_installed,
+					ai_configured: data.ai_configured
+				};
+			}
+		} catch (err) {
+			console.error('Failed to check AI Print status:', err);
+		}
+	}
+
+	async function loadExports() {
+		if (!slug) return;
+		try {
+			const response = await fetch(`/api/view/${slug}/exports`, {
+				headers: { Authorization: pb.authStore.token || '' }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				exports = data.exports || [];
+			}
+		} catch (err) {
+			console.error('Failed to load exports:', err);
+		}
+	}
+
+	async function generateResume() {
+		if (!slug) return;
+		generating = true;
+		try {
+			const response = await fetch(`/api/view/${slug}/generate`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify(generationConfig)
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Generation failed');
+			}
+
+			toasts.add('success', 'Resume generated successfully!');
+			showGenerateModal = false;
+
+			// Add new export to list
+			exports = [{
+				id: data.export_id,
+				format: data.format,
+				status: data.status,
+				generated_at: data.generated_at,
+				download_url: data.download_url
+			}, ...exports];
+
+			// Reset config for next time
+			generationConfig = {
+				format: 'pdf',
+				target_role: '',
+				style: 'chronological',
+				length: 'two-page',
+				emphasis: []
+			};
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Failed to generate resume';
+			toasts.add('error', message);
+		} finally {
+			generating = false;
+		}
+	}
+
+	async function deleteExport(exportId: string) {
+		if (!slug) return;
+		try {
+			const response = await fetch(`/api/view/${slug}/exports/${exportId}`, {
+				method: 'DELETE',
+				headers: { Authorization: pb.authStore.token || '' }
+			});
+			if (response.ok) {
+				exports = exports.filter(e => e.id !== exportId);
+				toasts.add('success', 'Export deleted');
+			}
+		} catch (err) {
+			toasts.add('error', 'Failed to delete export');
 		}
 	}
 
@@ -530,6 +655,19 @@
 				<button type="button" class="btn btn-secondary" on:click={previewView}>
 					Open in Tab
 				</button>
+				{#if aiPrintStatus.ai_configured}
+					<button
+						type="button"
+						class="btn btn-secondary flex items-center gap-2"
+						on:click={() => showGenerateModal = true}
+						title={aiPrintStatus.pandoc_installed ? "Generate AI-powered resume" : "Generate Resume (Pandoc not installed)"}
+					>
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+						</svg>
+						<span class="hidden sm:inline">Generate Resume</span>
+					</button>
+				{/if}
 				<button type="button" class="btn btn-primary" on:click={handleSubmit} disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -1147,6 +1285,121 @@
 				</button>
 				<button type="button" class="btn btn-primary" on:click={saveOverrides}>
 					Save Overrides
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Generate Resume Modal -->
+{#if showGenerateModal}
+	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click|self={() => showGenerateModal = false}>
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden">
+			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate Resume</h2>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+					AI will create a professional resume from this view's content.
+				</p>
+			</div>
+
+			<div class="p-4 space-y-4 overflow-y-auto">
+				<div>
+					<label for="format" class="label">Format</label>
+					<select id="format" bind:value={generationConfig.format} class="input">
+						<option value="pdf">PDF</option>
+						<option value="docx">Word Document (DOCX)</option>
+					</select>
+				</div>
+
+				<div>
+					<label for="target_role" class="label">Target Role (optional)</label>
+					<input
+						type="text"
+						id="target_role"
+						bind:value={generationConfig.target_role}
+						class="input"
+						placeholder="e.g., Senior Software Engineer at FAANG"
+					/>
+					<p class="text-xs text-gray-500 mt-1">AI will tailor content for this role</p>
+				</div>
+
+				<div>
+					<label for="style" class="label">Resume Style</label>
+					<select id="style" bind:value={generationConfig.style} class="input">
+						<option value="chronological">Chronological (most common)</option>
+						<option value="functional">Functional (skills-focused)</option>
+						<option value="hybrid">Hybrid (combination)</option>
+					</select>
+				</div>
+
+				<div>
+					<label for="length" class="label">Length</label>
+					<select id="length" bind:value={generationConfig.length} class="input">
+						<option value="one-page">One Page</option>
+						<option value="two-page">Two Pages</option>
+						<option value="full">Full (no limit)</option>
+					</select>
+				</div>
+
+				{#if exports.length > 0}
+					<div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+						<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Previous Exports</h3>
+						<div class="space-y-2 max-h-32 overflow-y-auto">
+							{#each exports as exp}
+								<div class="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-700/50 rounded p-2">
+									<div class="flex items-center gap-2">
+										<span class="uppercase text-xs font-medium px-1.5 py-0.5 rounded {exp.format === 'pdf' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}">
+											{exp.format}
+										</span>
+										<span class="text-gray-500 dark:text-gray-400">
+											{new Date(exp.generated_at).toLocaleDateString()}
+										</span>
+									</div>
+									<div class="flex items-center gap-2">
+										{#if exp.download_url}
+											<a
+												href={exp.download_url}
+												class="text-primary-600 hover:text-primary-700 dark:text-primary-400"
+												download
+											>
+												Download
+											</a>
+										{/if}
+										<button
+											type="button"
+											class="text-red-500 hover:text-red-700"
+											on:click={() => deleteExport(exp.id)}
+										>
+											Delete
+										</button>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+				<button type="button" class="btn btn-ghost" on:click={() => showGenerateModal = false}>
+					Cancel
+				</button>
+				<button
+					type="button"
+					class="btn btn-primary"
+					on:click={generateResume}
+					disabled={generating}
+				>
+					{#if generating}
+						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						Generating...
+					{:else}
+						Generate
+					{/if}
 				</button>
 			</div>
 		</div>
