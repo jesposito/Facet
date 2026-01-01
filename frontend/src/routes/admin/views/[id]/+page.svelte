@@ -83,7 +83,11 @@
 	// AI Print state
 	let showGenerateModal = false;
 	let generating = false;
-	let aiPrintAvailable = false;
+	let aiPrintStatus = {
+		available: false,
+		pandoc_installed: false,
+		ai_configured: false
+	};
 	let generationConfig = {
 		format: 'pdf' as 'pdf' | 'docx',
 		target_role: '',
@@ -147,11 +151,14 @@
 			});
 			if (response.ok) {
 				const data = await response.json();
-				aiPrintAvailable = data.available;
+				aiPrintStatus = {
+					available: data.available,
+					pandoc_installed: data.pandoc_installed,
+					ai_configured: data.ai_configured
+				};
 			}
 		} catch (err) {
 			console.error('Failed to check AI Print status:', err);
-			aiPrintAvailable = false;
 		}
 	}
 
@@ -647,12 +654,12 @@
 				<button type="button" class="btn btn-secondary" on:click={previewView}>
 					Open in Tab
 				</button>
-				{#if aiPrintAvailable}
+				{#if aiPrintStatus.ai_configured}
 					<button
 						type="button"
 						class="btn btn-secondary flex items-center gap-2"
 						on:click={() => showGenerateModal = true}
-						title="Generate AI-powered resume"
+						title={aiPrintStatus.pandoc_installed ? "Generate AI-powered resume" : "Generate Resume (Pandoc not installed)"}
 					>
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
