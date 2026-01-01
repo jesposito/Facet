@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Shared Link | Me.yaml</title>
+	<title>Shared Link | Facet</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

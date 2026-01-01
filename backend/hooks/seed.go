@@ -531,15 +531,15 @@ func seedDevData(app *pocketbase.PocketBase) error {
 	// Create projects
 	projColl, _ := app.FindCollectionByNameOrId("projects")
 
-	// Project 1: Me.yaml
+	// Project 1: Facet
 	proj1 := core.NewRecord(projColl)
-	proj1.Set("title", "Me.yaml")
-	proj1.Set("slug", "meyaml")
+	proj1.Set("title", "Facet")
+	proj1.Set("slug", "facet")
 	proj1.Set("summary", "Personal Publishing Platform | Active Development")
 	proj1.Set("description", "Designing and building a full-stack, content-driven web application.\n\n## Key Contributions\n- Own front-end architecture, routing, and UI implementation using SvelteKit\n- Built admin interfaces for creating and managing content\n- Implemented server-side data loading and structured routing patterns\n- Maintain clear architecture, design, and roadmap documentation")
 	proj1.Set("tech_stack", []string{"SvelteKit", "JavaScript", "TypeScript", "Docker", "REST APIs"})
 	proj1.Set("links", []map[string]string{
-		{"type": "github", "url": "https://github.com/jesposito/Me.yaml"},
+		{"type": "github", "url": "https://github.com/jesposito/Facet"},
 	})
 	proj1.Set("categories", []string{"full-stack", "personal-project"})
 	proj1.Set("visibility", "public")

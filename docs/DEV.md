@@ -1,6 +1,6 @@
-# Me.yaml Development Guide
+# Facet Development Guide
 
-This guide covers development setup for Me.yaml, a PocketBase + SvelteKit application.
+This guide covers development setup for Facet, a PocketBase + SvelteKit application.
 
 ## Quick Start (Codespaces)
 
@@ -15,7 +15,7 @@ This guide covers development setup for Me.yaml, a PocketBase + SvelteKit applic
 
 | Admin Panel | URL | Email | Password |
 |-------------|-----|-------|----------|
-| Me.yaml Admin | http://localhost:5173/admin | `admin@example.com` | `changeme123` |
+| Facet Admin | http://localhost:5173/admin | `admin@example.com` | `changeme123` |
 | PocketBase Admin | http://localhost:8090/_/ | `admin@localhost.dev` | `admin123` |
 
 If credentials don't work, reset the database: `rm -rf pb_data && ./scripts/start-dev.sh`
@@ -68,7 +68,7 @@ make dev-down
 ## Project Structure
 
 ```
-Me.yaml/
+Facet/
 ├── backend/           # Go + PocketBase hooks
 │   ├── hooks/         # PocketBase event hooks
 │   ├── services/      # Business logic
@@ -91,7 +91,7 @@ Me.yaml/
 
 ## URL Routing Model
 
-Me.yaml uses a LinkedIn-style URL structure for public profiles:
+Facet uses a LinkedIn-style URL structure for public profiles:
 
 ### Public Routes
 
@@ -247,7 +247,7 @@ go install github.com/air-verse/air@v1.61.7
 
 This occurs when air runs from the wrong directory. The root `.air.toml` is configured to handle this. Ensure you're running from the project root:
 ```bash
-cd /path/to/Me.yaml
+cd /path/to/Facet
 make dev
 ```
 
@@ -386,7 +386,7 @@ Key variables:
 
 ## Seed Data
 
-Me.yaml has two ways to load sample data:
+Facet has two ways to load sample data:
 
 ### Development Seed (Jedidiah Esposito)
 
@@ -394,7 +394,7 @@ For development and testing, use `make seed-dev` to load real-world profile data
 
 - **Role**: Front-End Lead | Product Engineering Lead
 - **Experience**: NZ Police, Ryman Healthcare, Okta, Amazon, ChefSteps
-- **Projects**: Me.yaml, MCP Servers, Voice Assistant, Home Infrastructure
+- **Projects**: Facet, MCP Servers, Voice Assistant, Home Infrastructure
 - **Skills**: SvelteKit, TypeScript, MCP, LLMs, Agile
 - **View**: `/front-end-lead` with LinkedIn CTA
 
@@ -451,10 +451,10 @@ For detailed architecture, see [ARCHITECTURE.md](../ARCHITECTURE.md).
 Focused exclusively on language, voice, and identity. No functional changes.
 
 Changes:
-- All page titles updated from "X | Admin" to "X | Me.yaml"
+- All page titles updated from "X | Admin" to "X | Facet"
 - Removed "Admin" badge from header
 - Login copy: "Sign in to manage your profile"
-- Footer fallback: "OwnProfile" → "Me.yaml"
+- Footer fallback: "OwnProfile" → "Facet"
 - Import button: "Create Import Proposal" → "Review & Import"
 - Removed "(admin only)" from visibility dropdown
 

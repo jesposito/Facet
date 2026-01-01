@@ -163,7 +163,7 @@
 </script>
 
 <svelte:head>
-	<title>Review Import | Me.yaml</title>
+	<title>Review Import | Facet</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

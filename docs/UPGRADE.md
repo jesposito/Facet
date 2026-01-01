@@ -1,4 +1,4 @@
-# Upgrading Me.yaml
+# Upgrading Facet
 
 ## Standard Upgrade
 
@@ -11,7 +11,7 @@ Always backup before upgrading:
 docker-compose down
 
 # Backup data directory
-tar -czvf me-yaml-backup-$(date +%Y%m%d).tar.gz ./data
+tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data
 
 # Keep backup somewhere safe!
 ```

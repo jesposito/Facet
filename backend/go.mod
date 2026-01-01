@@ -1,4 +1,4 @@
-module ownprofile
+module facet
 
 go 1.23
 

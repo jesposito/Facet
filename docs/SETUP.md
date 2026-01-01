@@ -1,6 +1,6 @@
-# Me.yaml Setup Guide
+# Facet Setup Guide
 
-This guide walks you through setting up Me.yaml for the first time.
+This guide walks you through setting up Facet for the first time.
 
 ## Prerequisites
 
@@ -13,8 +13,8 @@ This guide walks you through setting up Me.yaml for the first time.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/jesposito/me.yaml.git
-cd me.yaml
+git clone https://github.com/jesposito/Facet.git
+cd Facet
 ```
 
 ### 2. Configure Environment
@@ -39,7 +39,7 @@ ADMIN_EMAILS=you@example.com
 docker-compose up -d
 ```
 
-### 4. Access Me.yaml
+### 4. Access Facet
 
 - **Public profile**: `http://localhost:8080`
 - **Admin dashboard**: `http://localhost:8080/admin`
@@ -95,7 +95,7 @@ When implemented, the login screen will automatically show only the authenticati
 1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
 2. Click "New OAuth App"
 3. Fill in:
-   - Application name: Me.yaml
+   - Application name: Facet
    - Homepage URL: https://yourdomain.com
    - Authorization callback URL: `https://yourdomain.com/api/oauth2-redirect`
 4. Save your Client ID and Client Secret

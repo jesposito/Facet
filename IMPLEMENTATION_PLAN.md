@@ -1,4 +1,4 @@
-# Me.yaml Implementation Plan
+# Facet Implementation Plan
 
 ## Phase 2: Milestones & Checklists
 

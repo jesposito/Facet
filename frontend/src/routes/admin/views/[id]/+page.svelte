@@ -479,7 +479,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit View | Me.yaml</title>
+	<title>Edit View | Facet</title>
 </svelte:head>
 
 <div class="view-editor-container">

@@ -1,6 +1,6 @@
-# Me.yaml
+# Facet
 
-**You, human-readable.**
+**Every side of you. Your way.**
 
 Own your profile. Structure your story. Share it on your terms.
 
@@ -8,9 +8,9 @@ A self-hosted, privacy-respecting personal profile platform. Think LinkedIn prof
 
 ---
 
-## Why Me.yaml?
+## Why Facet?
 
-| Problem | Me.yaml Solution |
+| Problem | Facet Solution |
 |---------|------------------|
 | LinkedIn owns your professional identity | **You own everything** — data lives in SQLite you control |
 | One profile for all audiences | **Views** — curated versions for recruiters, clients, conferences |
@@ -37,14 +37,14 @@ A self-hosted, privacy-respecting personal profile platform. Think LinkedIn prof
 
 # For Users
 
-Everything you need to run your own Me.yaml instance.
+Everything you need to run your own Facet instance.
 
 ## Quick Start
 
 ```bash
 # Clone the repository
-git clone https://github.com/jesposito/me.yaml.git
-cd me.yaml
+git clone https://github.com/jesposito/Facet.git
+cd Facet
 
 # Generate encryption key (required)
 openssl rand -hex 32
@@ -188,7 +188,7 @@ For complete technical details, see **[Architecture](ARCHITECTURE.md)**.
 
 # For Developers
 
-Everything you need to contribute to Me.yaml.
+Everything you need to contribute to Facet.
 
 ## Development Setup
 
@@ -239,7 +239,7 @@ make dev-down     # Stop
 
 | Panel | Email | Password |
 |-------|-------|----------|
-| Me.yaml Admin | `admin@example.com` | `changeme123` |
+| Facet Admin | `admin@example.com` | `changeme123` |
 | PocketBase Admin | `admin@localhost.dev` | `admin123` |
 
 For complete development documentation, see **[Development Guide](docs/DEV.md)**.
@@ -249,7 +249,7 @@ For complete development documentation, see **[Development Guide](docs/DEV.md)**
 ## Project Structure
 
 ```
-Me.yaml/
+Facet/
 ├── backend/                 # Go + PocketBase
 │   ├── hooks/               # Custom event handlers
 │   ├── services/            # Business logic

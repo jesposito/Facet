@@ -300,8 +300,8 @@ func TestValidateViewAccessJWT_WrongViewID(t *testing.T) {
 }
 
 func TestJWTConstants(t *testing.T) {
-	if JWTIssuer != "me.yaml" {
-		t.Fatalf("Expected issuer 'me.yaml', got '%s'", JWTIssuer)
+	if JWTIssuer != "facet" {
+		t.Fatalf("Expected issuer 'facet', got '%s'", JWTIssuer)
 	}
 	if JWTAudience != "view-access" {
 		t.Fatalf("Expected audience 'view-access', got '%s'", JWTAudience)

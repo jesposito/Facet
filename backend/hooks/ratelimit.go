@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"ownprofile/services"
+	"facet/services"
 
 	"github.com/pocketbase/pocketbase/core"
 )

@@ -172,7 +172,7 @@
 </script>
 
 <svelte:head>
-	<title>Talks | Me.yaml Admin</title>
+	<title>Talks | Facet Admin</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

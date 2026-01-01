@@ -1,4 +1,4 @@
-# Me.yaml Design Document
+# Facet Design Document
 
 **Version:** 1.0
 **Status:** Active
@@ -27,9 +27,9 @@
 
 ## 1. Vision & Principles
 
-### 1.1 What Me.yaml Is
+### 1.1 What Facet Is
 
-Me.yaml is a **self-hosted, privacy-respecting, single-owner personal profile platform**. It is best understood as:
+Facet is a **self-hosted, privacy-respecting, single-owner personal profile platform**. It is best understood as:
 
 > "A self-hosted, fully owned alternative to LinkedIn profiles — with views, versions, and sharing — built for individuals, not networks."
 
@@ -47,7 +47,7 @@ Me.yaml is a **self-hosted, privacy-respecting, single-owner personal profile pl
 
 ### 1.3 Mental Model
 
-Think of Me.yaml as:
+Think of Facet as:
 
 - **LinkedIn profile** (the content part, not the network)
 - **Resume + portfolio + personal site** combined
@@ -64,7 +64,7 @@ This is something a thoughtful adult would host for themselves, not a SaaS produ
 
 ### 1.4 Explicit Non-Goals
 
-Me.yaml will **never** include:
+Facet will **never** include:
 
 - Social features (feeds, likes, comments, follows)
 - Messaging or notifications
@@ -79,14 +79,14 @@ Me.yaml will **never** include:
 
 ### 2.1 Profile
 
-The **Profile** is the singleton identity record. There is exactly one profile per Me.yaml instance. It contains:
+The **Profile** is the singleton identity record. There is exactly one profile per Facet instance. It contains:
 
 - **Identity**: Name, headline, location, avatar
 - **Narrative**: Summary (Markdown)
 - **Contact**: Email, links (GitHub, LinkedIn, etc.)
 - **Visibility**: Public, unlisted, or private
 
-The profile is the "global" identity that views inherit from and can override.
+The profile is the "global" identity that views (facets) inherit from and can override.
 
 ### 2.2 Content Collections
 
@@ -116,7 +116,7 @@ Each content item has:
 3. **What to override**: Per-view headline, summary, CTA
 4. **Who can access**: Visibility level and authentication
 
-Views are the core differentiator of Me.yaml. They enable:
+Views are the core differentiator of Facet. They enable:
 - Showing different content to recruiters vs. conference attendees
 - Tailoring messaging for different contexts
 - Sharing private content with specific people via tokens
@@ -448,7 +448,7 @@ View: "Recruiter"
 
 ### 5.1 URL Model
 
-Me.yaml uses **LinkedIn-style canonical URLs**:
+Facet uses **LinkedIn-style canonical URLs**:
 
 | Route | Purpose | Example |
 |-------|---------|---------|
@@ -569,7 +569,7 @@ A valid view slug must:
 ```json
 {
   "vid": "<view-id>",
-  "iss": "me.yaml",
+  "iss": "facet",
   "aud": "view-access",
   "iat": 1234567890,
   "exp": 1234571490,
@@ -741,7 +741,7 @@ When content is missing, show helpful guidance:
 
 ┌────────────────────────────────────────┐
 │              Footer                     │
-│  Contact links  •  Me.yaml              │
+│  Contact links  •  Facet                │
 └────────────────────────────────────────┘
 ```
 
@@ -821,7 +821,7 @@ From master `ENCRYPTION_KEY`:
 
 ### 11.3 Plugin Architecture
 
-Me.yaml does not currently support plugins. Future extensibility may include:
+Facet does not currently support plugins. Future extensibility may include:
 - Custom Go hooks in a designated directory
 - Theme packages (CSS + layout overrides)
 - Import adapters for new sources
@@ -889,7 +889,7 @@ Based on codebase analysis, these features are incomplete or missing:
 
 ### 14.1 Print Stylesheet
 
-Me.yaml includes a comprehensive print stylesheet that optimizes public views for printing and PDF generation via the browser's native Print function (Ctrl+P / Cmd+P).
+Facet includes a comprehensive print stylesheet that optimizes public views for printing and PDF generation via the browser's native Print function (Ctrl+P / Cmd+P).
 
 #### Design Goals
 
@@ -965,7 +965,7 @@ These export features are planned for future phases:
 |---------|--------|-------|
 | **Server-side PDF** | Deferred | Would require headless browser or Go PDF library |
 | **Data export (JSON)** | Deferred | Export all profile data for backup |
-| **Data export (YAML)** | Deferred | Export in Me.yaml format |
+| **Data export (YAML)** | Deferred | Export in Facet format |
 | **Static HTML snapshot** | Deferred | Self-contained offline version |
 
 ---
@@ -1017,4 +1017,4 @@ These export features are planned for future phases:
 
 ---
 
-*This document is the authoritative design reference for Me.yaml. Update it as the product evolves.*
+*This document is the authoritative design reference for Facet. Update it as the product evolves.*

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Me.yaml Development Startup Script
+# Facet Development Startup Script
 # Starts both frontend and backend with hot reloading
 #
 # Usage: ./scripts/start-dev.sh
@@ -18,7 +18,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 echo ""
-echo "  Me.yaml — You, human-readable."
+echo "  Facet — Every side of you. Your way."
 echo ""
 
 # Ensure scripts are executable

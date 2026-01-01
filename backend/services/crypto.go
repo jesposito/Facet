@@ -18,7 +18,7 @@ import (
 
 // JWT constants
 const (
-	JWTIssuer   = "me.yaml"
+	JWTIssuer   = "facet"
 	JWTAudience = "view-access"
 )
 

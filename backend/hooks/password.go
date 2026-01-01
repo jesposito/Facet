@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"ownprofile/services"
+	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"

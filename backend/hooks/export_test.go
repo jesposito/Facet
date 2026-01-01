@@ -11,7 +11,7 @@ func TestExportMeta(t *testing.T) {
 	meta := ExportMeta{
 		Version:    "1.0.0",
 		ExportedAt: "2026-01-01T00:00:00Z",
-		App:        "Me.yaml",
+		App:        "Facet",
 	}
 
 	// Test JSON marshaling
@@ -56,7 +56,7 @@ func TestExportDataStructure(t *testing.T) {
 		Meta: ExportMeta{
 			Version:    "1.0.0",
 			ExportedAt: "2026-01-01T00:00:00Z",
-			App:        "Me.yaml",
+			App:        "Facet",
 		},
 		Profile: map[string]interface{}{
 			"name":     "Test User",
@@ -81,7 +81,7 @@ func TestExportDataStructure(t *testing.T) {
 		t.Fatalf("Failed to unmarshal ExportData from JSON: %v", err)
 	}
 
-	if jsonExport.Meta.App != "Me.yaml" {
+	if jsonExport.Meta.App != "Facet" {
 		t.Errorf("Meta.App mismatch")
 	}
 	if jsonExport.Profile["name"] != "Test User" {
@@ -105,7 +105,7 @@ func TestExportDataStructure(t *testing.T) {
 		t.Fatalf("Failed to unmarshal ExportData from YAML: %v", err)
 	}
 
-	if yamlExport.Meta.App != "Me.yaml" {
+	if yamlExport.Meta.App != "Facet" {
 		t.Errorf("Meta.App mismatch in YAML")
 	}
 }
@@ -116,7 +116,7 @@ func TestExportDataOmitEmpty(t *testing.T) {
 		Meta: ExportMeta{
 			Version:    "1.0.0",
 			ExportedAt: "2026-01-01T00:00:00Z",
-			App:        "Me.yaml",
+			App:        "Facet",
 		},
 		// All other fields empty
 	}

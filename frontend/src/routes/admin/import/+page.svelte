@@ -125,7 +125,7 @@
 </script>
 
 <svelte:head>
-	<title>Import from GitHub | Me.yaml</title>
+	<title>Import from GitHub | Facet</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">

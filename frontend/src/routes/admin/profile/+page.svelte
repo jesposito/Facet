@@ -84,7 +84,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Profile | Me.yaml</title>
+	<title>Edit Profile | Facet</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">

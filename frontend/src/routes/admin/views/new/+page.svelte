@@ -300,7 +300,7 @@
 </script>
 
 <svelte:head>
-	<title>Create View | Me.yaml</title>
+	<title>Create View | Facet</title>
 </svelte:head>
 
 <div class="view-editor-container">
