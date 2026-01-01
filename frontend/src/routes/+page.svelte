@@ -107,6 +107,7 @@
 	{/if}
 
 	<!-- Profile navigation tabs -->
+	<!-- Note: Don't pass viewSlug here - we're on the root page, so back navigation should go to "/" -->
 	<ProfileNav
 		hasExperience={data.experience.length > 0}
 		hasProjects={data.projects.length > 0}
@@ -115,7 +116,7 @@
 		hasSkills={data.skills.length > 0}
 		hasPosts={data.posts && data.posts.length > 0}
 		hasTalks={data.talks && data.talks.length > 0}
-		viewSlug={data.view?.slug || ''}
+		viewSlug=""
 	/>
 
 	<!-- Main content -->
@@ -149,11 +150,13 @@
 			{/if}
 
 			{#if data.posts && data.posts.length > 0}
-				<PostsSection items={data.posts} viewSlug={data.view?.slug || ''} />
+				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+				<PostsSection items={data.posts} viewSlug="" />
 			{/if}
 
 			{#if data.talks && data.talks.length > 0}
-				<TalksSection items={data.talks} viewSlug={data.view?.slug || ''} />
+				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+				<TalksSection items={data.talks} viewSlug="" />
 			{/if}
 		{/if}
 	</main>
