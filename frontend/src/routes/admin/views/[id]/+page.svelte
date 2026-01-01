@@ -222,14 +222,19 @@
 		}
 	}
 
+	// Helper to trigger reactivity by creating a new object reference
+	function updateSections() {
+		sections = { ...sections };
+	}
+
 	function toggleSection(key: string) {
 		sections[key].enabled = !sections[key].enabled;
-		sections = sections; // Trigger reactivity
+		updateSections();
 	}
 
 	function toggleSectionExpand(key: string) {
 		sections[key].expanded = !sections[key].expanded;
-		sections = sections;
+		updateSections();
 	}
 
 	function toggleItem(sectionKey: string, itemId: string) {
@@ -239,17 +244,27 @@
 		} else {
 			sections[sectionKey].items.splice(idx, 1);
 		}
-		sections = sections;
+		updateSections();
 	}
 
 	function selectAllItems(sectionKey: string) {
 		sections[sectionKey].items = sectionItems[sectionKey]?.map((i) => i.id) || [];
-		sections = sections;
+		updateSections();
 	}
 
 	function clearAllItems(sectionKey: string) {
 		sections[sectionKey].items = [];
-		sections = sections;
+		updateSections();
+	}
+
+	function updateSectionWidth(sectionKey: string, width: string) {
+		sections[sectionKey].width = width as SectionWidth;
+		updateSections();
+	}
+
+	function updateSectionLayout(sectionKey: string, layout: string) {
+		sections[sectionKey].layout = layout;
+		updateSections();
 	}
 
 	function generateSlug(value: string): string {
@@ -389,7 +404,7 @@
 			delete sections[sectionKey].itemConfig[itemId];
 		}
 
-		sections = sections; // Trigger reactivity
+		updateSections();
 		closeOverrideEditor();
 		toasts.add('success', 'Overrides saved');
 	}
@@ -459,7 +474,7 @@
 		const selectedSet = new Set(sections[sectionKey].items);
 		// Reorder selected items to match display order
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
-		sections = sections; // Trigger reactivity
+		updateSections();
 	}
 </script>
 
@@ -775,7 +790,8 @@
 											</div>
 											<select
 												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-												bind:value={sections[sectionKey].width}
+												value={sectionConfig.width}
+												on:change={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
 												on:click|stopPropagation
 											>
 												{#each VALID_WIDTHS as widthOption}
@@ -790,7 +806,8 @@
 										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
 										<select
 											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-											bind:value={sections[sectionKey].layout}
+											value={sectionConfig.layout}
+											on:change={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
 											on:click|stopPropagation
 											title="Section layout"
 										>
