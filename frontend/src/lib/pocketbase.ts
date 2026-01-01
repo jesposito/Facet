@@ -11,18 +11,6 @@ if (browser) {
 	(window as unknown as { pb: PocketBase }).pb = pb;
 }
 
-// Debug: Log exactly what SDK is sending
-pb.beforeSend = function (url, options) {
-	console.log('=== SDK REQUEST DEBUG ===');
-	console.log('URL:', url);
-	console.log('Method:', options.method || 'GET');
-	console.log('Headers:', JSON.stringify(options.headers, null, 2));
-	console.log('Body:', options.body);
-	console.log('Full options:', options);
-	console.log('=========================');
-	return { url, options };
-};
-
 // Auth store (SDK 0.21.x uses 'model')
 export const currentUser = writable(pb.authStore.model);
 
