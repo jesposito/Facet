@@ -145,6 +145,10 @@
 
 	function formatValue(value: unknown): string {
 		if (Array.isArray(value)) {
+			// Handle arrays of objects (like links) differently
+			if (value.length > 0 && typeof value[0] === 'object') {
+				return JSON.stringify(value, null, 2);
+			}
 			return value.join(', ');
 		}
 		if (typeof value === 'object' && value !== null) {
@@ -156,6 +160,10 @@
 	function getArrayValue(field: string): string {
 		const val = fieldEdits[field];
 		if (Array.isArray(val)) {
+			// Handle arrays of objects (like links) differently
+			if (val.length > 0 && typeof val[0] === 'object') {
+				return JSON.stringify(val, null, 2);
+			}
 			return val.join(', ');
 		}
 		return '';
