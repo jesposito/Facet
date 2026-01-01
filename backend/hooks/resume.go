@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"facet/services"
@@ -15,15 +16,59 @@ import (
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
+// Simple rate limiter for AI resume generation
+type rateLimiter struct {
+	mu       sync.Mutex
+	requests map[string][]time.Time
+	limit    int           // max requests per window
+	window   time.Duration // time window
+}
+
+func newRateLimiter(limit int, window time.Duration) *rateLimiter {
+	return &rateLimiter{
+		requests: make(map[string][]time.Time),
+		limit:    limit,
+		window:   window,
+	}
+}
+
+func (rl *rateLimiter) allow(key string) bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	now := time.Now()
+	cutoff := now.Add(-rl.window)
+
+	// Clean old requests
+	var valid []time.Time
+	for _, t := range rl.requests[key] {
+		if t.After(cutoff) {
+			valid = append(valid, t)
+		}
+	}
+	rl.requests[key] = valid
+
+	// Check limit
+	if len(valid) >= rl.limit {
+		return false
+	}
+
+	// Add this request
+	rl.requests[key] = append(rl.requests[key], now)
+	return true
+}
+
 // RegisterResumeHooks registers AI Print (resume generation) endpoints
 func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	ai := services.NewAIService(crypto)
 	resume := services.NewResumeService(ai)
+	limiter := newRateLimiter(5, time.Hour) // 5 generations per hour per IP
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
 		// Check if AI Print is available (Pandoc installed + AI provider configured)
 		// GET /api/ai-print/status
+		// Public endpoint - just returns capability info, no sensitive data
 		se.Router.GET("/api/ai-print/status", func(e *core.RequestEvent) error {
 			pandocAvailable := resume.CheckPandocAvailable()
 
@@ -37,13 +82,25 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				"ai_configured":     aiAvailable,
 				"supported_formats": []string{"pdf", "docx"},
 			})
-		}).Bind(apis.RequireAuth())
+		}) // No auth required - public capability check
 
 		// Generate a resume from a view
 		// POST /api/view/{slug}/generate
+		// Public endpoint - allows recruiters to generate resumes from public views
 		se.Router.POST("/api/view/{slug}/generate", func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
 			log.Printf("[AI-PRINT] Generate request for view: %s", slug)
+
+			// Rate limit by IP (skip for authenticated users)
+			if e.Auth == nil {
+				clientIP := e.Request.RemoteAddr
+				if !limiter.allow(clientIP) {
+					log.Printf("[AI-PRINT] Rate limit exceeded for IP: %s", clientIP)
+					return e.JSON(http.StatusTooManyRequests, map[string]string{
+						"error": "Rate limit exceeded. Please try again later (max 5 generations per hour).",
+					})
+				}
+			}
 
 			// Find the view
 			views, err := app.FindRecordsByFilter("views", "slug = {:slug}", "", 1, 0, map[string]interface{}{"slug": slug})
@@ -52,6 +109,14 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 			}
 			view := views[0]
+
+			// Check view visibility - only allow public/unlisted views for unauthenticated users
+			visibility := view.GetString("visibility")
+			isAuthenticated := e.Auth != nil
+			if !isAuthenticated && visibility != "public" && visibility != "unlisted" {
+				log.Printf("[AI-PRINT] Unauthorized access to non-public view: %s", slug)
+				return e.JSON(http.StatusForbidden, map[string]string{"error": "this view requires authentication"})
+			}
 
 			// Parse request body
 			var req struct {
@@ -184,7 +249,7 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				"download_url": downloadURL,
 				"generated_at": exportRecord.Get("generated_at"),
 			})
-		}).Bind(apis.RequireAuth())
+		}) // Public - visibility check above handles authorization
 
 		// List exports for a view
 		// GET /api/view/{slug}/exports

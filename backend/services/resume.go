@@ -352,10 +352,13 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		"--standalone",
 	}
 
-	// For PDF, specify engine (use basic html->pdf if no LaTeX)
+	// For PDF, specify engine and font settings
 	if format == "pdf" {
-		// Try pdflatex first, fall back to wkhtmltopdf or weasyprint
-		args = append(args, "--pdf-engine=pdflatex")
+		args = append(args,
+			"--pdf-engine=pdflatex",
+			"-V", "fontfamily=helvet",    // Use Helvetica (always available)
+			"-V", "fontfamilyoptions=scaled", // Proper scaling
+		)
 	}
 
 	log.Printf("[AI-PRINT] Running Pandoc with args: %v", args)
