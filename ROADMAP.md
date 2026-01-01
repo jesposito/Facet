@@ -1,10 +1,450 @@
-# Me.yaml Roadmap
+# Facet Roadmap
 
 **Last Updated:** 2026-01-01
 
-This roadmap outlines the feature development plan for Me.yaml, organized into logical phases. Each phase is independently valuable and builds toward a complete personal profile platform.
+This roadmap outlines the feature development plan for Facet (formerly Me.yaml), organized into logical phases. Each phase is independently valuable and builds toward a complete personal profile platform.
 
 **Important**: This roadmap contains no time estimates. Each phase represents a coherent set of features, not a sprint or deadline. Phases should be completed in order, as later phases depend on earlier ones.
+
+---
+
+## 🚨 Priority: Rebrand Me.yaml → Facet
+
+**Purpose**: Rename the project from "Me.yaml" to "Facet" to improve market positioning, broaden appeal, and align the name with the core "Views as Facets" feature.
+
+**Status**: Not Started
+
+### Strategic Rationale
+
+| Aspect | Me.yaml | Facet |
+|--------|---------|-------|
+| **Audience** | Developers only | Developers + non-technical professionals |
+| **Clarity** | Requires YAML knowledge | Intuitive English word |
+| **Memorability** | Punctuation, file extension | Single word, easy to spell |
+| **Domain availability** | Limited | More options (facet.app, getfacet.io, etc.) |
+| **Feature alignment** | None | "Views = Facets" built into name |
+| **Word of mouth** | "Check out my me-dot-yaml" | "Check out my Facet" |
+
+### Pre-Flight Checklist
+
+Before starting technical work:
+
+- [ ] **Secure domain name** (facet.app, getfacet.io, facetprofile.com, etc.)
+- [ ] **Check trademark availability** ("Facet" is common—ensure no conflicts in software/SaaS)
+- [ ] **Secure social handles** (@facet, @getfacet on Twitter/X, GitHub org, etc.)
+- [ ] **Decide GitHub strategy**: Rename existing repo (recommended) vs. create new repo
+- [ ] **Notify any existing users** (if applicable)
+
+### Phase 1: Documentation & Frontend (Low Risk)
+
+All find-and-replace operations on user-facing text. No breaking changes.
+
+#### 1.1 Documentation Files
+
+| File | Occurrences | Pattern |
+|------|-------------|---------|
+| `README.md` | 13 | "Me.yaml" → "Facet", "me.yaml" → "facet" |
+| `DESIGN.md` | 14 | "Me.yaml" → "Facet" |
+| `ROADMAP.md` | 3 | "Me.yaml" → "Facet" |
+| `ARCHITECTURE.md` | 1 | "Me.yaml" → "Facet" |
+| `IMPLEMENTATION_PLAN.md` | 2 | "Me.yaml" → "Facet" |
+| `agent-instructions.md` | 2 | "Me.yaml" → "Facet" |
+| `docs/SETUP.md` | 7 | "Me.yaml" → "Facet", URLs |
+| `docs/DEV.md` | 10 | "Me.yaml" → "Facet" |
+| `docs/SECURITY.md` | 5 | "Me.yaml" → "Facet" |
+| `docs/UPGRADE.md` | 1 | "Me.yaml" → "Facet" |
+| `RESEARCH.md` | Multiple | "OwnProfile" → "Facet" (legacy) |
+
+**Tasks:**
+- [ ] Global find-replace "Me.yaml" → "Facet" in all `.md` files
+- [ ] Global find-replace "me.yaml" → "facet" in URLs/examples
+- [ ] Update LICENSE copyright: "me.yaml Contributors" → "Facet Contributors"
+- [ ] Review and update tagline: "You, human-readable" → new tagline TBD
+
+#### 1.2 Frontend Page Titles (22 files)
+
+All `<svelte:head><title>` tags containing "Me.yaml":
+
+| Route | Current Title |
+|-------|---------------|
+| `/` | `... \| Me.yaml` |
+| `/admin` | `Dashboard \| Me.yaml` |
+| `/admin/login` | `Sign In \| Me.yaml`, "Sign in to Me.yaml" |
+| `/admin/profile` | `Edit Profile \| Me.yaml` |
+| `/admin/experience` | `Experience \| Me.yaml Admin` |
+| `/admin/education` | `Education \| Me.yaml Admin` |
+| `/admin/certifications` | `Certifications \| Me.yaml Admin` |
+| `/admin/skills` | `Skills \| Me.yaml Admin` |
+| `/admin/projects` | `Projects \| Me.yaml Admin` |
+| `/admin/posts` | `Posts \| Me.yaml Admin` |
+| `/admin/talks` | `Talks \| Me.yaml Admin` |
+| `/admin/import` | `Import from GitHub \| Me.yaml` |
+| `/admin/views` | `Views \| Me.yaml` |
+| `/admin/views/new` | `Create View \| Me.yaml` |
+| `/admin/views/[id]` | `Edit View \| Me.yaml` |
+| `/admin/tokens` | `Share Tokens \| Me.yaml` |
+| `/admin/settings` | `Settings \| Me.yaml` |
+| `/admin/review/[id]` | `Review Import \| Me.yaml` |
+| `/s/[token]` | `Shared Link \| Me.yaml` |
+
+**Tasks:**
+- [ ] Find-replace `| Me.yaml` → `| Facet` in all route `+page.svelte` files
+- [ ] Update login page text: "Sign in to Me.yaml" → "Sign in to Facet"
+
+#### 1.3 Frontend Components
+
+| Component | Location | Change |
+|-----------|----------|--------|
+| `AdminHeader.svelte` | Line 33 | Brand text in header |
+| `Footer.svelte` | Lines 13, 47 | Footer branding, "Powered by" |
+
+**Tasks:**
+- [ ] Update `frontend/src/components/admin/AdminHeader.svelte`
+- [ ] Update `frontend/src/components/public/Footer.svelte`
+
+#### 1.4 Script Comments & Headers
+
+| File | Change |
+|------|--------|
+| `scripts/start-dev.sh` | Header comments |
+| `scripts/dev-backend.sh` | Header comments |
+| `scripts/dev-frontend.sh` | Header comments |
+| `scripts/seed.js` | File header comment |
+| `Makefile` | Header comment |
+| `docker/start.sh` | Startup messages ("Starting Me.yaml...") |
+| `docker/Caddyfile` | Header comment |
+
+**Tasks:**
+- [ ] Update all script headers and comments
+- [ ] Update startup/status messages in `docker/start.sh`
+
+---
+
+### Phase 2: Configuration & Build System (Medium Risk)
+
+Changes to build configuration, Docker, and development environment.
+
+#### 2.1 Package Names
+
+| File | Current | New |
+|------|---------|-----|
+| `frontend/package.json` | `"name": "me-yaml-frontend"` | `"name": "facet-frontend"` |
+
+**Tasks:**
+- [ ] Update `frontend/package.json` name field
+- [ ] Run `npm install` to update package-lock.json
+
+#### 2.2 Docker Configuration
+
+| File | Changes Needed |
+|------|----------------|
+| `docker-compose.yml` | Service name `me-yaml` → `facet` |
+| `docker-compose.dev.yml` | Container names: `meyaml-backend-dev` → `facet-backend-dev`, etc. |
+| `docker-compose.dev.yml` | Volume names: `meyaml-go-cache` → `facet-go-cache`, etc. |
+| `docker/Dockerfile` | Binary name `me-yaml` → `facet` |
+| `docker/Dockerfile` | User name `meyaml` → `facet` |
+| `docker/Dockerfile.dev` | Header comment |
+
+**Tasks:**
+- [ ] Update `docker-compose.yml`: service name, container name
+- [ ] Update `docker-compose.dev.yml`: all container and volume names (7 occurrences)
+- [ ] Update `docker/Dockerfile`: binary name, user name
+- [ ] Update `docker/Dockerfile.dev`: header comment
+- [ ] Test Docker build: `docker build -t facet:latest ./docker`
+
+#### 2.3 Development Environment
+
+| File | Changes Needed |
+|------|----------------|
+| `.air.toml` | Binary path `./tmp/me-yaml` → `./tmp/facet` |
+| `backend/.air.toml` | Binary path `./tmp/me-yaml` → `./tmp/facet` |
+| `.devcontainer/devcontainer.json` | Volume names, container labels |
+| `.devcontainer/Dockerfile` | Header comment |
+| `.env.example` | Domain examples `meyaml.yourdomain.com` → `facet.yourdomain.com` |
+
+**Tasks:**
+- [ ] Update `.air.toml` binary paths (2 files)
+- [ ] Update `.devcontainer/devcontainer.json` volume names and labels
+- [ ] Update `.devcontainer/Dockerfile` header
+- [ ] Update `.env.example` domain examples
+
+#### 2.4 Makefile
+
+| Line | Change |
+|------|--------|
+| Header | Comment update |
+| ~81 | `pkill -9 -f "ownprofile"` → `pkill -9 -f "facet"` |
+| ~113, 117 | Docker image tag `me-yaml:latest` → `facet:latest` |
+| ~183 | Additional Docker references |
+
+**Tasks:**
+- [ ] Update Makefile header comment
+- [ ] Update process kill command
+- [ ] Update Docker image tags
+- [ ] Test: `make dev`, `make build`, `make docker-build`
+
+---
+
+### Phase 3: Backend & API (Higher Risk)
+
+Changes that affect runtime behavior, tokens, and data formats.
+
+#### 3.1 Go Module Namespace (CRITICAL)
+
+The Go module is currently named `ownprofile` (legacy from original name). This should be updated to `facet`.
+
+| File | Current Import | New Import |
+|------|----------------|------------|
+| `backend/go.mod` | `module ownprofile` | `module facet` |
+| `backend/main.go` | `"ownprofile/hooks"`, etc. | `"facet/hooks"`, etc. |
+| `backend/hooks/password.go` | `"ownprofile/services"` | `"facet/services"` |
+| `backend/hooks/ratelimit.go` | `"ownprofile/services"` | `"facet/services"` |
+| `backend/hooks/share.go` | `"ownprofile/services"` | `"facet/services"` |
+| `backend/hooks/ai.go` | `"ownprofile/services"` | `"facet/services"` |
+| `backend/hooks/view.go` | `"ownprofile/services"` | `"facet/services"` |
+
+**Tasks:**
+- [ ] Update `backend/go.mod`: `module ownprofile` → `module facet`
+- [ ] Update `backend/main.go`: 3 import path changes
+- [ ] Update `backend/hooks/*.go`: 5 files with import changes
+- [ ] Run `cd backend && go mod tidy`
+- [ ] Run `cd backend && go build ./...` to verify
+- [ ] Run `cd backend && go test ./...` to verify all tests pass
+
+#### 3.2 JWT Token Issuer (SECURITY IMPACT)
+
+| File | Line | Current | New |
+|------|------|---------|-----|
+| `backend/services/crypto.go` | 21 | `JWTIssuer = "me.yaml"` | `JWTIssuer = "facet"` |
+| `backend/services/crypto_test.go` | 303-304 | Test assertion | Update assertion |
+
+**⚠️ Impact**: Existing password-protected view sessions will be invalidated. Users will need to re-enter passwords after upgrade.
+
+**Tasks:**
+- [ ] Update `JWTIssuer` constant in `crypto.go`
+- [ ] Update test assertions in `crypto_test.go`
+- [ ] Document in UPGRADE.md: "Sessions will be invalidated"
+
+#### 3.3 Export Metadata
+
+| File | Line | Current | New |
+|------|------|---------|-----|
+| `backend/hooks/export.go` | 81 | `App: "Me.yaml"` | `App: "Facet"` |
+| `backend/hooks/export_test.go` | Multiple | Test assertions | Update assertions |
+
+**Impact**: New exports will show `"app": "Facet"` in metadata. Old exports remain valid.
+
+**Tasks:**
+- [ ] Update `export.go` metadata field
+- [ ] Update `export_test.go` assertions (5 occurrences)
+
+#### 3.4 Seed Data
+
+| File | Line | Current | New |
+|------|------|---------|-----|
+| `backend/hooks/seed.go` | 534-542 | Sample project "Me.yaml" | Sample project "Facet" |
+
+**Tasks:**
+- [ ] Update seed data project title and GitHub URL
+- [ ] Consider if seed data should reference the new repo URL
+
+---
+
+### Phase 4: External References (Strategic Decisions Required)
+
+#### 4.1 GitHub Repository Rename
+
+**Recommended approach**: Rename existing repo in GitHub settings.
+
+GitHub will automatically redirect:
+- `github.com/jesposito/me.yaml` → `github.com/jesposito/facet`
+- `git clone https://github.com/jesposito/me.yaml.git` will still work (redirects)
+
+**Steps:**
+1. Go to repo Settings → General → Repository name
+2. Change `me.yaml` to `facet`
+3. Update local git remote: `git remote set-url origin https://github.com/jesposito/facet.git`
+
+**Tasks:**
+- [ ] Rename GitHub repository
+- [ ] Update local git remote URL
+- [ ] Update `README.md` clone URLs (2 occurrences)
+- [ ] Update `docs/SETUP.md` clone URLs (2 occurrences)
+- [ ] Update any CI/CD configuration referencing repo URL
+
+#### 4.2 Domain & Deployment Examples
+
+| File | Location | Change |
+|------|----------|--------|
+| `.env.example` | Lines 20, 56, 62, 69, 75 | `meyaml.yourdomain.com` → `facet.yourdomain.com` |
+| `docs/SETUP.md` | Lines 150-152 | Traefik routing examples |
+
+**Tasks:**
+- [ ] Update all domain examples in `.env.example`
+- [ ] Update Traefik/Caddy configuration examples in docs
+
+#### 4.3 Brand Assets
+
+| Asset | Location | Action |
+|-------|----------|--------|
+| Favicon | `frontend/static/favicon.png` | Design new favicon for "Facet" |
+| OG Image | (if exists) | Update social sharing image |
+
+**Tasks:**
+- [ ] Design new favicon (can be simple "F" or faceted gem icon)
+- [ ] Replace `frontend/static/favicon.png`
+- [ ] Create OG image for social sharing (optional)
+
+---
+
+### Phase 5: Verification & Testing
+
+#### 5.1 Build Verification
+
+```bash
+# Backend
+cd backend && go mod tidy && go build ./... && go test ./...
+
+# Frontend
+cd frontend && npm install && npm run check && npm run build
+
+# Docker
+docker build -t facet:latest ./docker
+docker run --rm facet:latest --help
+
+# Full stack
+make dev  # Should start without errors
+```
+
+**Tasks:**
+- [ ] Backend compiles with no errors
+- [ ] Backend tests pass (especially crypto and export tests)
+- [ ] Frontend builds with no errors
+- [ ] Frontend svelte-check passes
+- [ ] Docker image builds successfully
+- [ ] Development environment starts correctly
+- [ ] Production Docker container runs correctly
+
+#### 5.2 Functional Verification
+
+- [ ] Admin login works
+- [ ] All admin pages load with correct titles ("... | Facet")
+- [ ] Public profile renders correctly
+- [ ] Views render correctly
+- [ ] Password-protected views work (new tokens)
+- [ ] Share tokens work
+- [ ] Export generates with `"app": "Facet"` metadata
+- [ ] Print stylesheet works
+- [ ] GitHub import works
+
+#### 5.3 Search & Verify No Orphaned References
+
+```bash
+# Run these after all changes to verify no orphaned references
+grep -ri "me\.yaml" --include="*.go" --include="*.ts" --include="*.svelte" --include="*.md"
+grep -ri "meyaml" --include="*.go" --include="*.ts" --include="*.svelte" --include="*.yml" --include="*.json"
+grep -ri "me-yaml" --include="*.go" --include="*.ts" --include="*.svelte" --include="*.yml" --include="*.json"
+grep -ri "ownprofile" --include="*.go"
+```
+
+**Tasks:**
+- [ ] Run verification greps
+- [ ] Address any remaining occurrences
+- [ ] Commit final cleanup
+
+---
+
+### Phase 6: Announcement & Migration
+
+#### 6.1 Documentation Updates
+
+- [ ] Update README with "Facet (formerly Me.yaml)" for SEO continuity
+- [ ] Add migration note to UPGRADE.md for existing users
+- [ ] Update any external documentation or wikis
+
+#### 6.2 Migration Guide for Existing Users
+
+Add to `docs/UPGRADE.md`:
+
+```markdown
+## Upgrading from Me.yaml to Facet
+
+### Breaking Changes
+- **Sessions invalidated**: Password-protected view sessions will require re-authentication
+- **Export metadata**: New exports will show `"app": "Facet"` instead of `"app": "Me.yaml"`
+
+### Docker Users
+If upgrading from `me-yaml` container:
+1. Stop existing container
+2. Rename volume (optional): `docker volume create facet_data && docker run --rm -v me-yaml_data:/from -v facet_data:/to alpine cp -av /from/. /to/`
+3. Pull new image: `docker pull jesposito/facet:latest`
+4. Start with new container name
+
+### No Data Migration Required
+- Database schema unchanged
+- All content, views, tokens preserved
+- Only cosmetic/branding changes
+```
+
+**Tasks:**
+- [ ] Write migration guide in UPGRADE.md
+- [ ] Test upgrade path from "Me.yaml" Docker container
+
+---
+
+### Summary: Complete Checklist
+
+**Pre-Flight (Do First):**
+- [ ] Secure domain
+- [ ] Check trademarks
+- [ ] Secure social handles
+
+**Phase 1 - Documentation & Frontend (~45 min):**
+- [ ] 11 documentation files
+- [ ] 22 page title updates
+- [ ] 2 component updates
+- [ ] 7 script comment updates
+
+**Phase 2 - Configuration (~30 min):**
+- [ ] package.json
+- [ ] 4 Docker files
+- [ ] 4 dev environment files
+- [ ] Makefile
+
+**Phase 3 - Backend (~1 hour):**
+- [ ] Go module rename (8 files)
+- [ ] JWT issuer constant
+- [ ] Export metadata
+- [ ] Seed data
+- [ ] All tests passing
+
+**Phase 4 - External (~30 min):**
+- [ ] GitHub repo rename
+- [ ] Update clone URLs in docs
+- [ ] Domain examples
+- [ ] New favicon
+
+**Phase 5 - Verification (~30 min):**
+- [ ] All builds pass
+- [ ] All tests pass
+- [ ] Manual functional testing
+- [ ] Grep verification
+
+**Phase 6 - Announcement:**
+- [ ] Migration guide
+- [ ] Announce rebrand
+
+**Total Estimated Effort: 3-4 hours**
+
+### Risks & Mitigations
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Go module rename breaks build | High | Test thoroughly; atomic commit |
+| JWT issuer change breaks sessions | Medium | Document in upgrade guide; sessions can be re-established |
+| Orphaned "Me.yaml" references | Low | Grep verification step |
+| GitHub redirect expires | Low | Redirects last indefinitely for most operations |
+| SEO impact | Low | Keep "(formerly Me.yaml)" in README for transition period |
 
 ---
 
@@ -1106,7 +1546,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 - End users never need to access PocketBase admin UI
 - All configuration via environment variables / docker-compose
 - Enables Unraid template with OAuth fields
-- Clean "Me.yaml" branded experience throughout
+- Clean "Facet" branded experience throughout
 
 #### Distribution & Templates
 - [ ] One-line install script
