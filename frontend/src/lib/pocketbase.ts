@@ -11,35 +11,21 @@ if (browser) {
 	(window as unknown as { pb: PocketBase }).pb = pb;
 }
 
-// Force Bearer prefix on auth header (required for PocketBase 0.23+)
+// Ensure Bearer prefix on auth header for PocketBase 0.23+
 pb.beforeSend = function (url, options) {
 	const token = pb.authStore.token;
-
-	// Get existing headers as plain object
-	const existingHeaders = options.headers || {};
-	const headersObj: Record<string, string> = {};
-
-	// Convert existing headers to plain object (handles both Headers and plain objects)
-	if (existingHeaders instanceof Headers) {
-		existingHeaders.forEach((value, key) => {
-			headersObj[key] = value;
-		});
-	} else if (typeof existingHeaders === 'object') {
-		Object.assign(headersObj, existingHeaders);
-	}
-
-	// Set Authorization with Bearer prefix
 	if (token) {
-		headersObj['Authorization'] = token.startsWith('Bearer ') ? token : `Bearer ${token}`;
-	}
-
-	return {
-		url,
-		options: {
-			...options,
-			headers: headersObj
+		// SDK 0.23 sends just the token; ensure Bearer prefix is added
+		const headers = (options.headers || {}) as Record<string, string>;
+		const currentAuth = headers['Authorization'] || '';
+		if (currentAuth && !currentAuth.startsWith('Bearer ')) {
+			headers['Authorization'] = `Bearer ${currentAuth}`;
+		} else if (!currentAuth) {
+			headers['Authorization'] = `Bearer ${token}`;
 		}
-	};
+		options.headers = headers;
+	}
+	return { url, options };
 };
 
 // Auth store (SDK 0.22+ uses 'record' instead of 'model')
