@@ -1,7 +1,7 @@
 # Me.yaml Makefile
 # Common commands for development and deployment
 
-.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-demo seed-dev seed-clear kill stop
+.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-dev seed-clear kill stop
 
 # Default target
 help:
@@ -14,9 +14,8 @@ help:
 	@echo "  make dev-logs     View Docker Compose logs"
 	@echo "  make dev-reset    Clear caches and force reinstall"
 	@echo ""
-	@echo "Seed Data (switch demo profiles):"
-	@echo "  make seed-demo    Stop, reset & start with Merlin (wizard demo)"
-	@echo "  make seed-dev     Stop, reset & start with Jedidiah (real-world)"
+	@echo "Seed Data (development only):"
+	@echo "  make seed-dev     Stop, reset & start with dev data (Jedidiah)"
 	@echo "  make seed-clear   Stop & clear database (no restart)"
 	@echo "  make stop         Stop all running dev processes"
 	@echo ""
@@ -92,13 +91,8 @@ kill:
 
 stop: kill
 
-# Switch to demo profile (Merlin Ambrosius - fun Arthurian wizard)
-seed-demo: kill
-	@echo "Switching to demo seed (Merlin Ambrosius)..."
-	rm -rf pb_data
-	SEED_DATA=demo ./scripts/start-dev.sh
-
-# Switch to dev profile (Jedidiah Esposito - real-world example)
+# Switch to dev profile (Jedidiah Esposito - for development/testing)
+# Demo data (Merlin) is available via Admin > Settings > Demo Data
 seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data

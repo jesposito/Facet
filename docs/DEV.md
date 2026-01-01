@@ -383,28 +383,13 @@ Key variables:
 | `DATA_DIR` | `./pb_data` | PocketBase data directory |
 | `LOG_LEVEL` | `info` | Logging verbosity |
 
-## Seed Data Modes
+## Seed Data
 
-Me.yaml supports two seed data profiles for development and demonstration:
+Me.yaml has two ways to load sample data:
 
-| `SEED_DATA` Value | Profile | Use Case |
-|-------------------|---------|----------|
-| `demo` or `true` | **Merlin Ambrosius** | Fun Arthurian-themed demo for new users |
-| `dev` | **Jedidiah Esposito** | Real development/testing data |
-| (unset) | None | Production—no seeding |
+### Development Seed (Jedidiah Esposito)
 
-### Demo Profile (Merlin Ambrosius)
-
-A whimsical Arthurian-themed profile demonstrating all features:
-
-- **Role**: Chief Wizard & Staff Engineer at Court of Camelot
-- **Projects**: The Round Table (distributed consensus), Excalibur Auth (stone-based 2FA), Crystal Ball Observability
-- **Skills**: Prophecy, Transmutation, Distributed Systems, Python (familiar)
-- **View**: `/kingdoms` with "Send Raven" CTA
-
-### Development Profile (Jedidiah Esposito)
-
-Real-world profile for development and testing:
+For development and testing, use `make seed-dev` to load real-world profile data:
 
 - **Role**: Front-End Lead | Product Engineering Lead
 - **Experience**: NZ Police, Ryman Healthcare, Okta, Amazon, ChefSteps
@@ -412,34 +397,31 @@ Real-world profile for development and testing:
 - **Skills**: SvelteKit, TypeScript, MCP, LLMs, Agile
 - **View**: `/front-end-lead` with LinkedIn CTA
 
-### Switching Between Seed Modes
-
-Seed data only loads when the database is empty. Use make targets to switch:
-
 ```bash
-# Switch to Demo (Merlin Ambrosius - fun wizard)
-make seed-demo
-
-# Switch to Dev (Jedidiah Esposito - real-world)
+# Load dev seed data
 make seed-dev
 
 # Just clear database (no restart)
 make seed-clear
 ```
 
-These commands clear the database and restart with the selected profile.
+### Demo Data (Admin UI)
 
-### Manual Switching (alternative)
+New users can load demo data via **Admin > Settings > Demo Data**. This loads a fun
+Arthurian-themed profile (Merlin Ambrosius, Chief Wizard) to demonstrate all features.
 
-If you prefer manual control:
+The demo data can be loaded and cleared at any time from the admin settings page.
+This is useful for:
+- Seeing what a complete profile looks like
+- Testing views and layouts
+- Demonstrating the platform to others
 
-```bash
-# Clear and restart with specific seed
-rm -rf pb_data && SEED_DATA=demo make dev
-rm -rf pb_data && SEED_DATA=dev make dev
-```
+| `SEED_DATA` env | Behavior |
+|-----------------|----------|
+| `dev` | Auto-seeds Jedidiah Esposito profile (development) |
+| (unset) | No auto-seeding (production default) |
 
-**Note:** Switching modes clears all database data. Export any work you want to keep first.
+**Note:** The `SEED_DATA=demo` option has been removed. Demo data is now managed via the admin UI.
 
 ## Architecture Overview
 
