@@ -402,12 +402,61 @@ func (a *AIService) parseEnrichmentResponse(response string) (*EnrichmentResult,
 		response = response[start : end+1]
 	}
 
-	var result EnrichmentResult
-	if err := json.Unmarshal([]byte(response), &result); err != nil {
+	// Use flexible parsing to handle AI returning arrays for some fields
+	var rawResult map[string]interface{}
+	if err := json.Unmarshal([]byte(response), &rawResult); err != nil {
 		return nil, fmt.Errorf("failed to parse AI response: %w", err)
 	}
 
-	return &result, nil
+	result := &EnrichmentResult{}
+
+	// Extract summary (string)
+	if v, ok := rawResult["summary"].(string); ok {
+		result.Summary = v
+	}
+
+	// Extract bullets (array of strings)
+	if arr, ok := rawResult["bullets"].([]interface{}); ok {
+		for _, item := range arr {
+			if s, ok := item.(string); ok {
+				result.Bullets = append(result.Bullets, s)
+			}
+		}
+	}
+
+	// Extract tags (array of strings)
+	if arr, ok := rawResult["tags"].([]interface{}); ok {
+		for _, item := range arr {
+			if s, ok := item.(string); ok {
+				result.Tags = append(result.Tags, s)
+			}
+		}
+	}
+
+	// Extract case_study (can be string or array - convert to string)
+	switch v := rawResult["case_study"].(type) {
+	case string:
+		result.CaseStudy = v
+	case []interface{}:
+		var bullets []string
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				bullets = append(bullets, "• "+s)
+			}
+		}
+		result.CaseStudy = strings.Join(bullets, "\n")
+	}
+
+	// Extract tech_highlights (array of strings)
+	if arr, ok := rawResult["tech_highlights"].([]interface{}); ok {
+		for _, item := range arr {
+			if s, ok := item.(string); ok {
+				result.TechHighlights = append(result.TechHighlights, s)
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // DecryptAPIKey decrypts an encrypted API key
