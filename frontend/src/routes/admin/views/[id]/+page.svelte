@@ -26,6 +26,10 @@
 	let saving = false;
 	let view: View | null = null;
 
+	// Profile data (for showing what's being overridden)
+	let profileHeadline = '';
+	let profileSummary = '';
+
 	// Form fields
 	let name = '';
 	let slug = '';
@@ -81,7 +85,21 @@
 		}
 		await loadView();
 		await loadSectionItems();
+		await loadProfile();
 	});
+
+	async function loadProfile() {
+		try {
+			const records = await pb.collection('profile').getList(1, 1);
+			if (records.items.length > 0) {
+				const profile = records.items[0];
+				profileHeadline = (profile.headline as string) || '';
+				profileSummary = (profile.summary as string) || '';
+			}
+		} catch (err) {
+			console.error('Failed to load profile:', err);
+		}
+	}
 
 	async function loadView() {
 		if (!viewId) return;
@@ -519,7 +537,18 @@
 				<p class="text-sm text-gray-500 -mt-2">Override your profile headline and summary for this view</p>
 
 				<div>
-					<label for="hero_headline" class="label">Custom Headline</label>
+					<div class="flex items-center justify-between">
+						<label for="hero_headline" class="label">Custom Headline</label>
+						{#if heroHeadline}
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+								on:click={() => heroHeadline = ''}
+							>
+								Use profile value
+							</button>
+						{/if}
+					</div>
 					<input
 						type="text"
 						id="hero_headline"
@@ -527,16 +556,37 @@
 						class="input"
 						placeholder="Leave empty to use profile headline"
 					/>
+					{#if profileHeadline}
+						<p class="text-xs text-gray-500 mt-1">
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profileHeadline}</span>
+						</p>
+					{/if}
 				</div>
 
 				<div>
-					<label for="hero_summary" class="label">Custom Summary</label>
+					<div class="flex items-center justify-between">
+						<label for="hero_summary" class="label">Custom Summary</label>
+						{#if heroSummary}
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+								on:click={() => heroSummary = ''}
+							>
+								Use profile value
+							</button>
+						{/if}
+					</div>
 					<textarea
 						id="hero_summary"
 						bind:value={heroSummary}
 						class="input min-h-[120px]"
 						placeholder="Leave empty to use profile summary (Markdown supported)"
 					></textarea>
+					{#if profileSummary}
+						<p class="text-xs text-gray-500 mt-1">
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profileSummary.length > 100 ? profileSummary.substring(0, 100) + '...' : profileSummary}</span>
+						</p>
+					{/if}
 				</div>
 			</div>
 

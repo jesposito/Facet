@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { pb } from '$lib/pocketbase';
+	import { pb, type View } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
@@ -17,6 +17,10 @@
 	let contactLinks: Array<{ type: string; url: string; label: string }> = [];
 	let visibility = 'public';
 
+	// Views that override headline/summary
+	let viewsOverridingHeadline: View[] = [];
+	let viewsOverridingSummary: View[] = [];
+
 	onMount(async () => {
 		try {
 			const records = await pb.collection('profile').getList(1, 1);
@@ -30,6 +34,11 @@
 				contactLinks = (profile.contact_links as typeof contactLinks) || [];
 				visibility = (profile.visibility as string) || 'public';
 			}
+
+			// Check for views with overrides
+			const views = await pb.collection('views').getList(1, 100);
+			viewsOverridingHeadline = (views.items as unknown as View[]).filter(v => v.hero_headline);
+			viewsOverridingSummary = (views.items as unknown as View[]).filter(v => v.hero_summary);
 		} catch (err) {
 			console.error('Failed to load profile:', err);
 		} finally {
@@ -104,6 +113,16 @@
 						class="input"
 						placeholder="e.g., Senior Software Engineer at Company"
 					/>
+					{#if viewsOverridingHeadline.length > 0}
+						<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+							<p class="text-sm text-amber-800 dark:text-amber-200">
+								<strong>Note:</strong> {viewsOverridingHeadline.length === 1 ? 'This view has' : 'These views have'} a custom headline that overrides this value:
+								{#each viewsOverridingHeadline as view, i}
+									<a href="/admin/views/{view.id}" class="underline hover:no-underline">{view.name}</a>{i < viewsOverridingHeadline.length - 1 ? ', ' : ''}
+								{/each}
+							</p>
+						</div>
+					{/if}
 				</div>
 
 				<div>
@@ -126,6 +145,16 @@
 						placeholder="Tell your story... (Markdown supported)"
 					></textarea>
 					<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
+					{#if viewsOverridingSummary.length > 0}
+						<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+							<p class="text-sm text-amber-800 dark:text-amber-200">
+								<strong>Note:</strong> {viewsOverridingSummary.length === 1 ? 'This view has' : 'These views have'} a custom summary that overrides this value:
+								{#each viewsOverridingSummary as view, i}
+									<a href="/admin/views/{view.id}" class="underline hover:no-underline">{view.name}</a>{i < viewsOverridingSummary.length - 1 ? ', ' : ''}
+								{/each}
+							</p>
+						</div>
+					{/if}
 				</div>
 			</div>
 
