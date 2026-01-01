@@ -117,6 +117,7 @@ export interface Post {
 export interface Talk {
 	id: string;
 	title: string;
+	slug?: string;
 	event?: string;
 	event_url?: string;
 	date?: string;

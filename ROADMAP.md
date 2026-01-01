@@ -79,7 +79,7 @@ None (this is the starting phase)
 
 ---
 
-## Phase 1.5: Content Discovery & Navigation
+## Phase 1.5: Content Discovery & Navigation (Complete)
 
 **Purpose**: Improve discoverability of posts and talks by adding index pages and navigation tabs.
 
@@ -91,21 +91,21 @@ None (this is the starting phase)
 - [x] Admin CRUD complete
 - [x] Visibility settings (public/unlisted/private) and draft status
 - [x] View limiting via section selection already works
-- [ ] **Missing**: No index page at `/posts` to browse all posts
-- [ ] **Missing**: No navigation to jump directly to posts section
+- [x] Index page at `/posts` to browse all posts
+- [x] Navigation tabs to jump directly to posts section
 
 **Talks:**
 - [x] Talks section displays on profile with embedded videos
 - [x] Admin CRUD complete
 - [x] Visibility settings and draft status
 - [x] View limiting via section selection already works
-- [ ] **Missing**: No individual talk pages at `/talks/[slug]`
-- [ ] **Missing**: No index page at `/talks` to browse all talks
-- [ ] **Missing**: No navigation to jump directly to talks section
+- [x] Individual talk pages at `/talks/[slug]`
+- [x] Index page at `/talks` to browse all talks
+- [x] Navigation tabs to jump directly to talks section
 
 ### Features
 
-#### 1.5.1 Profile Navigation Tabs
+#### 1.5.1 Profile Navigation Tabs (Complete)
 
 Add a navigation bar that appears when the profile has multiple content types (posts, talks, projects).
 
@@ -113,78 +113,79 @@ Add a navigation bar that appears when the profile has multiple content types (p
 - Navigation tabs appear below the hero section
 - Only show tabs for sections that have visible content
 - Clicking a tab smooth-scrolls to that section
-- Sticky on scroll (optional)
+- Sticky on scroll (implemented)
 
 **Tabs to show (when content exists):**
 - Experience
 - Projects
-- Posts
-- Talks
+- Education
+- Certifications
+- Skills
+- Posts (links to /posts index)
+- Talks (links to /talks index)
 
 **Implementation:**
-- [ ] Create `ProfileNav.svelte` component
-- [ ] Compute visible sections from page data
-- [ ] Add smooth-scroll behavior with anchor links
-- [ ] Optional: Make nav sticky on scroll
-- [ ] Hide on print
+- [x] Create `ProfileNav.svelte` component
+- [x] Compute visible sections from page data
+- [x] Add smooth-scroll behavior with anchor links
+- [x] Make nav sticky on scroll
+- [x] Hide on print
 
-#### 1.5.2 Posts Index Page
+#### 1.5.2 Posts Index Page (Complete)
 
 Add `/posts` route to browse all published posts.
 
 **Features:**
-- Grid layout of post cards (same component as profile section)
+- Grid layout of post cards
 - Filter by tag (query param: `/posts?tag=go`)
 - Sort by date (newest first default)
-- Pagination for large collections
 - Meta tags for SEO
 - Link back to profile
 
 **Implementation:**
-- [ ] Create `/posts/+page.svelte` route
-- [ ] Create `/posts/+page.server.ts` to fetch all public, non-draft posts
-- [ ] Add tag filter UI
-- [ ] Add pagination
-- [ ] Update reserved slugs if needed
+- [x] Create `/posts/+page.svelte` route
+- [x] Create `/posts/+page.server.ts` to fetch all public, non-draft posts
+- [x] Add tag filter UI
+- [x] Update reserved slugs (already in place)
+- [ ] Add pagination (deferred - not needed for small collections)
 
-#### 1.5.3 Talks Index Page
+#### 1.5.3 Talks Index Page (Complete)
 
 Add `/talks` route to browse all talks.
 
 **Features:**
-- List/card layout of talk entries
-- Filter by year or event
+- List layout of talk entries with video thumbnails
+- Filter by year
 - Sort by date (newest first default)
 - Meta tags for SEO
 - Link back to profile
 
 **Implementation:**
-- [ ] Create `/talks/+page.svelte` route
-- [ ] Create `/talks/+page.server.ts` to fetch all public, non-draft talks
-- [ ] Add year/event filter UI
-- [ ] Update reserved slugs if needed
+- [x] Create `/talks/+page.svelte` route
+- [x] Create `/talks/+page.server.ts` to fetch all public, non-draft talks
+- [x] Add year filter UI
+- [x] Update reserved slugs (already in place)
 
-#### 1.5.4 Individual Talk Pages
+#### 1.5.4 Individual Talk Pages (Complete)
 
 Add `/talks/[slug]` route for detailed talk view.
 
-**Current**: Talks only appear in the profile section; no way to link to a specific talk.
-
 **Features:**
 - Full talk detail page similar to posts
-- Video embed (full width)
-- Slides embed or download link
+- Video embed (YouTube/Vimeo, full width)
+- Slides link
 - Event details and description (markdown rendered)
 - Previous/next talk navigation
 - Meta tags for SEO (Open Graph video support)
-- Back to profile link
+- Back to talks list link
 
 **Implementation:**
-- [ ] Add `slug` field to talks collection (migration)
-- [ ] Create `/talks/[slug]/+page.svelte` route
-- [ ] Create `/talks/[slug]/+page.server.ts`
-- [ ] Add admin UI for talk slug (auto-generate from title)
-- [ ] Update talk cards to link to detail page
+- [x] Add `slug` field to talks collection (migration 1735600005)
+- [x] Create `/talks/[slug]/+page.svelte` route
+- [x] Create `/talks/[slug]/+page.server.ts`
+- [x] Add `/api/talk/{slug}` backend endpoint
+- [x] Add admin UI for talk slug (auto-generate from title)
+- [x] Update talk cards to link to detail page when slug exists
 
 ### View Limiting Considerations
 

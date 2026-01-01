@@ -857,6 +857,123 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, response)
 		}))
 
+		// Get public talk by slug
+		// Rate limited: normal tier (60/min)
+		// Returns 404 for private, unlisted, draft, or non-existent talks
+		se.Router.GET("/api/talk/{slug}", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			slug := e.Request.PathValue("slug")
+
+			if slug == "" {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "talk not found"})
+			}
+
+			// Find talk by slug
+			records, err := app.FindRecordsByFilter(
+				"talks",
+				"slug = {:slug}",
+				"",
+				1,
+				0,
+				map[string]interface{}{"slug": slug},
+			)
+
+			if err != nil || len(records) == 0 {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "talk not found"})
+			}
+
+			talk := records[0]
+
+			// Check visibility - only public, non-draft talks are accessible
+			visibility := talk.GetString("visibility")
+			isDraft := talk.GetBool("is_draft")
+
+			if visibility != "public" || isDraft {
+				// Return 404 to prevent discovery of private/unlisted/draft talks
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "talk not found"})
+			}
+
+			// Build response
+			response := map[string]interface{}{
+				"id":          talk.Id,
+				"title":       talk.GetString("title"),
+				"slug":        talk.GetString("slug"),
+				"event":       talk.GetString("event"),
+				"event_url":   talk.GetString("event_url"),
+				"date":        talk.GetDateTime("date"),
+				"location":    talk.GetString("location"),
+				"description": talk.GetString("description"),
+				"slides_url":  talk.GetString("slides_url"),
+				"video_url":   talk.GetString("video_url"),
+				"created":     talk.GetDateTime("created"),
+				"updated":     talk.GetDateTime("updated"),
+			}
+
+			// Fetch profile data for navigation context
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility = 'public'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				profile := profileRecords[0]
+				profileData := map[string]interface{}{
+					"id":       profile.Id,
+					"name":     profile.GetString("name"),
+					"headline": profile.GetString("headline"),
+				}
+				if avatar := profile.GetString("avatar"); avatar != "" {
+					profileData["avatar_url"] = "/api/files/" + profile.Collection().Id + "/" + profile.Id + "/" + avatar
+				}
+				response["profile"] = profileData
+			}
+
+			// Fetch previous and next talks for navigation
+			// Previous talk (before this one by date)
+			if talkDate := talk.GetDateTime("date"); !talkDate.IsZero() {
+				prevRecords, err := app.FindRecordsByFilter(
+					"talks",
+					"visibility = 'public' && is_draft = false && date < {:date}",
+					"-date",
+					1,
+					0,
+					map[string]interface{}{"date": talkDate.String()},
+				)
+				if err == nil && len(prevRecords) > 0 {
+					prev := prevRecords[0]
+					if prevSlug := prev.GetString("slug"); prevSlug != "" {
+						response["prev_talk"] = map[string]interface{}{
+							"slug":  prevSlug,
+							"title": prev.GetString("title"),
+						}
+					}
+				}
+
+				// Next talk (after this one by date)
+				nextRecords, err := app.FindRecordsByFilter(
+					"talks",
+					"visibility = 'public' && is_draft = false && date > {:date}",
+					"date",
+					1,
+					0,
+					map[string]interface{}{"date": talkDate.String()},
+				)
+				if err == nil && len(nextRecords) > 0 {
+					next := nextRecords[0]
+					if nextSlug := next.GetString("slug"); nextSlug != "" {
+						response["next_talk"] = map[string]interface{}{
+							"slug":  nextSlug,
+							"title": next.GetString("title"),
+						}
+					}
+				}
+			}
+
+			return e.JSON(http.StatusOK, response)
+		}))
+
 		return se.Next()
 	})
 }
