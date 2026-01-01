@@ -1523,6 +1523,103 @@ interface SiteSettings {
 
 ---
 
+### View-Specific Content Curation (Posts & Talks)
+
+Enable views to show only specific posts/talks rather than all-or-nothing. Currently, enabling the "posts" section shows ALL public posts. This feature allows curating a subset per view.
+
+#### Use Cases
+
+| Persona | View | Posts/Talks Selection |
+|---------|------|----------------------|
+| Tech Lead | `/engineering` | Only technical blog posts, architecture talks |
+| Tech Lead | `/speaking` | All conference talks, exclude internal presentations |
+| Career Pivoter | `/ux-designer` | UX case studies, design thinking talks |
+| Career Pivoter | `/product` | Product strategy posts, PM-focused talks |
+
+#### Current Behavior
+
+- Views enable/disable entire posts/talks sections
+- When enabled, ALL public non-draft items appear
+- No way to select specific items for a view
+- The `?from=viewSlug` parameter is only for back navigation, not filtering
+
+#### Proposed Behavior
+
+**Default**: All public posts/talks appear (backwards compatible)
+**Optional**: Curate specific items per view using the existing section item selection UI
+
+#### Schema Changes
+
+The `sections` JSON in views already supports item selection for other content types:
+
+```typescript
+interface ViewSection {
+  section: 'posts' | 'talks' | ...;
+  enabled: boolean;
+  items?: string[];        // Already exists! Just needs UI for posts/talks
+  layout?: string;
+  itemConfig?: Record<string, ItemConfig>;
+}
+```
+
+The `items` array is already supported for sections like experience, projects, education. Posts and talks just need:
+1. UI to select items in view editor
+2. Backend filtering when serving view data
+
+#### Implementation Tasks
+
+**Backend:**
+- [ ] Update `/api/view/:slug/data` to filter posts/talks by `items` array when present
+- [ ] If `items` is empty/undefined, return all (backwards compatible default)
+- [ ] Ensure posts/talks respect the same visibility/draft filters
+
+**Frontend (View Editor):**
+- [ ] Add posts selection UI in view editor (same pattern as projects/experience)
+- [ ] Show post title, date, draft status in selection list
+- [ ] Add talks selection UI in view editor
+- [ ] Show talk title, event, date in selection list
+- [ ] Drag-drop reordering within selected items
+
+**UX Flow:**
+1. User creates/edits view
+2. Enables "Posts" section
+3. Clicks section to expand
+4. Sees list of all posts with checkboxes (like projects/experience)
+5. Selects specific posts for this view
+6. Saves → only selected posts appear on public view
+7. Empty selection = show all (default behavior preserved)
+
+#### Edge Cases
+
+| Scenario | Behavior |
+|----------|----------|
+| View has posts section enabled, no items selected | Show all public non-draft posts |
+| View has posts section enabled, 3 items selected | Show only those 3 posts |
+| View has posts section enabled, selected post becomes draft | Hide from view (respects draft status) |
+| View has posts section enabled, selected post deleted | Silently removed from view items list |
+| Index page `/posts` | Shows ALL public posts (not view-scoped) |
+| Individual post `/posts/slug` | Shows if visibility allows (not view-scoped) |
+
+#### Navigation Behavior
+
+When navigating FROM a view TO a post/talk, the `?from=viewSlug` parameter enables proper back navigation:
+
+```
+/my-view → /posts/my-post?from=my-view → Back button → /my-view
+```
+
+This already works with the current implementation.
+
+#### Prerequisites
+- Phase 2 complete (view section selection UI exists)
+- Posts/talks collections have stable schemas
+
+#### Risks
+- Users may not realize empty selection means "show all"
+- Need clear UI indicator: "Showing all posts" vs "Showing 3 selected posts"
+
+---
+
 ### Self-Hosting Improvements
 
 #### OAuth via Environment Variables (Priority)
