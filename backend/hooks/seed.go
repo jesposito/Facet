@@ -249,7 +249,7 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 	proj2.Set("slug", "automated-onboarding")
 	proj2.Set("summary", "Internal onboarding automation for Ryman Healthcare across New Zealand and Australia")
 	proj2.Set("description", "This was production platform work with real users and measurable outcomes.\n\n## Key Contributions\n- Owned end-to-end design and build of an internal onboarding automation\n- Designed user workflows and UI surfaces using Slack Canvas and automated task provisioning\n- Built orchestration flows integrating HR systems, Slack, and analytics using Power Automate\n- Delivered dashboards providing operational visibility to leaders\n- Eliminated manual handoffs and scaled the solution across multiple facilities")
-	proj2.Set("tech_stack", []string{"Power Automate", "Slack Canvas", "Analytics", "HR Integration"})
+	proj2.Set("tech_stack", []string{"Power Automate", "Slack Canvas", "Power BI", "Slack Workflows"})
 	proj2.Set("links", []map[string]string{})
 	proj2.Set("categories", []string{"enterprise", "automation"})
 	proj2.Set("visibility", "public")
@@ -257,6 +257,127 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 	proj2.Set("is_featured", true)
 	proj2.Set("sort_order", 2)
 	app.Save(proj2)
+
+	// Project 3: Custom MCP Server Ecosystem
+	proj3 := core.NewRecord(projColl)
+	proj3.Set("title", "Custom MCP Server Ecosystem")
+	proj3.Set("slug", "mcp-servers")
+	proj3.Set("summary", "Multiple Model Context Protocol servers for system management and automation")
+	proj3.Set("description", "Built multiple Model Context Protocol servers for system management and automation.\n\n## Servers\n- **Unraid Server Manager**: Container orchestration, filesystem operations, backup automation\n- **n8n Workflow Controller**: Workflow CRUD operations, execution monitoring, integration management\n- **System Monitoring Suite**: Cross-platform system info and diagnostic commands (Ubuntu, Pop-OS, Windows)")
+	proj3.Set("tech_stack", []string{"Python", "FastMCP", "Docker", "REST APIs", "SSH", "PowerShell", "systemd"})
+	proj3.Set("links", []map[string]string{})
+	proj3.Set("categories", []string{"automation", "ai-tooling"})
+	proj3.Set("visibility", "public")
+	proj3.Set("is_draft", false)
+	proj3.Set("is_featured", true)
+	proj3.Set("sort_order", 3)
+	app.Save(proj3)
+
+	// Project 4: Agentic Workflow Automation
+	proj4 := core.NewRecord(projColl)
+	proj4.Set("title", "Agentic Workflow Automation")
+	proj4.Set("slug", "agentic-workflows")
+	proj4.Set("summary", "Multi-agent workflows for complex decision-making and data processing using n8n")
+	proj4.Set("description", "Multi-agent workflows for complex decision-making and data processing using n8n.\n\n## Implementations\n- Property investment analysis workflows (NZ real estate data → LLM analysis → structured reports)\n- Document processing pipelines with RAG patterns\n- Multi-step reasoning flows with sub-agent delegation\n- API orchestration across multiple services (Anthropic, OpenAI, Google Drive, Gmail)")
+	proj4.Set("tech_stack", []string{"n8n", "Prompt Engineering", "RAG", "APIs", "LLMs"})
+	proj4.Set("links", []map[string]string{})
+	proj4.Set("categories", []string{"automation", "ai-tooling"})
+	proj4.Set("visibility", "public")
+	proj4.Set("is_draft", false)
+	proj4.Set("is_featured", false)
+	proj4.Set("sort_order", 4)
+	app.Save(proj4)
+
+	// Project 5: Mrs. Doubtfire Multi-Modal Voice Assistant
+	proj5 := core.NewRecord(projColl)
+	proj5.Set("title", "Mrs. Doubtfire Voice Assistant")
+	proj5.Set("slug", "mrs-doubtfire")
+	proj5.Set("summary", "Production voice assistant with natural language understanding and multi-modal capabilities")
+	proj5.Set("description", "Designed and implemented production voice assistant with natural language understanding.\n\n## Technical Implementation\n- LLM backend with hot-swappable providers (Claude Sonnet/Haiku, GPT-4o) based on task complexity\n- Custom MCP servers (Python/FastMCP) for system control, home automation, and data retrieval\n- ElevenLabs TTS with custom voice personality training (Scottish accent, conversational tone)\n- Wyoming protocol integration for distributed voice satellites (ESP32-S3-BOX hardware)\n- Home Assistant integration via REST API and WebSocket\n- Docker containerization for all services\n- Fallback logic and graceful degradation patterns\n- Memory management across conversation sessions")
+	proj5.Set("tech_stack", []string{"LLMs", "MCP", "ElevenLabs", "Wyoming Protocol", "Home Assistant", "Docker"})
+	proj5.Set("links", []map[string]string{})
+	proj5.Set("categories", []string{"voice-ui", "home-automation", "ai-tooling"})
+	proj5.Set("visibility", "public")
+	proj5.Set("is_draft", false)
+	proj5.Set("is_featured", true)
+	proj5.Set("sort_order", 5)
+	app.Save(proj5)
+
+	// Project 6: Production Home Infrastructure
+	proj6 := core.NewRecord(projColl)
+	proj6.Set("title", "Production Home Infrastructure")
+	proj6.Set("slug", "home-infrastructure")
+	proj6.Set("summary", "Comprehensive self-hosted infrastructure demonstrating enterprise-grade architecture patterns")
+	proj6.Set("description", "Built and maintain comprehensive self-hosted infrastructure demonstrating enterprise-grade architecture patterns.\n\n## Infrastructure\n- 20+ Docker services orchestrated on Unraid (Immich, Rocket.Chat, Emby, Home Assistant, n8n, AdGuard)\n- Cloudflare Zero Trust tunnels for secure external access without exposed ports\n- Nginx reverse proxy with SSL/TLS termination and domain routing\n- Tailscale mesh VPN for encrypted peer-to-peer connectivity\n- Federated identity management with OAuth integration across services\n- Custom DNS infrastructure (AdGuard + Unbound) with network-wide ad blocking\n- VLAN segmentation for IoT device isolation\n- ZFS storage management on Ubuntu with automated snapshots\n- Automated backup systems with 3-day retention and restore capabilities")
+	proj6.Set("tech_stack", []string{"Docker", "Unraid", "Cloudflare", "Nginx", "Tailscale", "OAuth", "ZFS"})
+	proj6.Set("links", []map[string]string{})
+	proj6.Set("categories", []string{"infrastructure", "self-hosted"})
+	proj6.Set("visibility", "public")
+	proj6.Set("is_draft", false)
+	proj6.Set("is_featured", false)
+	proj6.Set("sort_order", 6)
+	app.Save(proj6)
+
+	// Project 7: The Foodie Alexa Skill
+	proj7 := core.NewRecord(projColl)
+	proj7.Set("title", "The Foodie: A Conversational Alexa Skill")
+	proj7.Set("slug", "the-foodie")
+	proj7.Set("summary", "Conversational Alexa skill with associated training materials")
+	proj7.Set("description", "Worked extensively on both the design of the VUI (voice-user interface) for the skill and the associated eLearning course and in-person workshops on Conversational Design for Voice.\n\nThis project was associated with Amazon and included collaboration on technical enablement materials.")
+	proj7.Set("tech_stack", []string{"Alexa Skills", "Voice UI", "Conversational Design"})
+	proj7.Set("links", []map[string]string{})
+	proj7.Set("categories", []string{"voice-ui", "developer-education"})
+	proj7.Set("visibility", "public")
+	proj7.Set("is_draft", false)
+	proj7.Set("is_featured", false)
+	proj7.Set("sort_order", 7)
+	app.Save(proj7)
+
+	// Project 8: Alexa Developer Blogs
+	proj8 := core.NewRecord(projColl)
+	proj8.Set("title", "Alexa Developer Technical Blogs")
+	proj8.Set("slug", "alexa-blogs")
+	proj8.Set("summary", "Technical blog posts for the Alexa Developer Marketing team")
+	proj8.Set("description", "Published technical content for the Alexa Developer Marketing team covering voice UI design, skill development, and developer education.")
+	proj8.Set("tech_stack", []string{"Technical Writing", "Voice UI", "Developer Education"})
+	proj8.Set("links", []map[string]string{
+		{"type": "website", "url": "https://developer.amazon.com/search#q=jedidiah%20esposito&t=Alexa&sort=relevancy"},
+	})
+	proj8.Set("categories", []string{"technical-writing", "developer-education"})
+	proj8.Set("visibility", "public")
+	proj8.Set("is_draft", false)
+	proj8.Set("is_featured", false)
+	proj8.Set("sort_order", 8)
+	app.Save(proj8)
+
+	// Create education
+	eduColl, _ := app.FindCollectionByNameOrId("education")
+
+	// Education 1: Colorado Technical University
+	edu1 := core.NewRecord(eduColl)
+	edu1.Set("institution", "Colorado Technical University")
+	edu1.Set("degree", "Master of Science")
+	edu1.Set("field", "Information Technology Management")
+	edu1.Set("start_date", "2005-01-01")
+	edu1.Set("end_date", "2007-12-31")
+	edu1.Set("description", "Courses in Network Administration, Project Management Processes, Project Planning, Execution, and Closure, Schedule and Cost Control Techniques, Contracting, and Procurement. Focus on Learning Experience Design and Technical Enablement.")
+	edu1.Set("visibility", "public")
+	edu1.Set("is_draft", false)
+	edu1.Set("sort_order", 1)
+	app.Save(edu1)
+
+	// Education 2: Northern Arizona University
+	edu2 := core.NewRecord(eduColl)
+	edu2.Set("institution", "Northern Arizona University")
+	edu2.Set("degree", "Bachelor of Science")
+	edu2.Set("field", "Education")
+	edu2.Set("start_date", "2001-01-01")
+	edu2.Set("end_date", "2005-12-31")
+	edu2.Set("description", "Courses in Curriculum Development, Contemporary Developments in Education, Evaluation of Learning, Technology in the Classroom, School and Society, and Educational Psychology. Focus on Learning Experience Design.")
+	edu2.Set("visibility", "public")
+	edu2.Set("is_draft", false)
+	edu2.Set("sort_order", 2)
+	app.Save(edu2)
 
 	// Create certifications
 	certColl, _ := app.FindCollectionByNameOrId("certifications")
@@ -299,16 +420,27 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 		{"SvelteKit", "Technologies", "expert", 3},
 		{"JavaScript", "Technologies", "expert", 4},
 		{"TypeScript", "Technologies", "expert", 5},
-		{"Content-driven Applications", "Specialisations", "expert", 6},
-		{"Admin-style Interfaces", "Specialisations", "expert", 7},
-		{"API Integration", "Specialisations", "proficient", 8},
-		{"Data-driven UI", "Specialisations", "proficient", 9},
-		{"Docker", "Infrastructure", "proficient", 10},
-		{"Containerised Services", "Infrastructure", "proficient", 11},
-		{"Automation", "Tooling", "proficient", 12},
-		{"Workflow Tooling", "Tooling", "proficient", 13},
-		{"Agile Delivery", "Leadership", "expert", 14},
-		{"Technical Leadership", "Leadership", "expert", 15},
+		{"Python", "Technologies", "proficient", 6},
+		{"Content-driven Applications", "Specialisations", "expert", 7},
+		{"Admin-style Interfaces", "Specialisations", "expert", 8},
+		{"API Integration", "Specialisations", "proficient", 9},
+		{"Data-driven UI", "Specialisations", "proficient", 10},
+		{"Docker", "Infrastructure", "proficient", 11},
+		{"Containerised Services", "Infrastructure", "proficient", 12},
+		{"Linux", "Infrastructure", "proficient", 13},
+		{"Nginx", "Infrastructure", "proficient", 14},
+		{"Automation", "Tooling", "proficient", 15},
+		{"Workflow Tooling", "Tooling", "proficient", 16},
+		{"n8n", "Tooling", "proficient", 17},
+		{"Model Context Protocol (MCP)", "AI & Automation", "proficient", 18},
+		{"Large Language Models (LLM)", "AI & Automation", "proficient", 19},
+		{"Prompt Engineering", "AI & Automation", "proficient", 20},
+		{"Agentic Workflows", "AI & Automation", "proficient", 21},
+		{"RAG", "AI & Automation", "familiar", 22},
+		{"Voice User Interface Design", "Specialisations", "expert", 23},
+		{"Systems Integration", "Specialisations", "proficient", 24},
+		{"Agile Delivery", "Leadership", "expert", 25},
+		{"Technical Leadership", "Leadership", "expert", 26},
 	}
 
 	for _, s := range skills {
@@ -338,6 +470,7 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 		{"section": "projects", "enabled": true, "layout": "grid-2"},
 		{"section": "skills", "enabled": true, "layout": "grouped"},
 		{"section": "certifications", "enabled": true, "layout": "grouped"},
+		{"section": "education", "enabled": true, "layout": "default"},
 	})
 	view.Set("sections", string(sectionsJSON))
 	view.Set("is_active", true)
