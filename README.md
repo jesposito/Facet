@@ -182,20 +182,12 @@ Production uses single port 8080 for everything.
 
 ### Demo Data
 
-Me.yaml includes two seed profiles for development:
+For development, use `make seed-dev` to load test profile data.
 
-| Command | Profile |
-|---------|---------|
-| `make seed-demo` | Merlin Ambrosius (fun Arthurian wizard) |
-| `make seed-dev` | Jedidiah Esposito (real-world example) |
+New users can load demo data via **Admin > Settings > Demo Data** to see what a
+complete profile looks like (Merlin Ambrosius, a fun Arthurian-themed wizard profile).
 
-Switch between them anytime:
-```bash
-make seed-demo  # Reset & start with wizard demo
-make seed-dev   # Reset & start with real-world profile
-```
-
-See [docs/DEV.md](docs/DEV.md#seed-data-modes) for full details.
+See [docs/DEV.md](docs/DEV.md#seed-data) for details.
 
 ### Default Credentials (Development Only)
 

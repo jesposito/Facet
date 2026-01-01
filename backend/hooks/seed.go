@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 
@@ -9,11 +10,12 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// RegisterSeedHook seeds demo data on first run
+// RegisterSeedHook seeds data on first run (development only)
 // Environment variable SEED_DATA controls behavior:
-//   - "true" or "demo": Seeds fun demo data (Merlin Ambrosius) - DEFAULT for new users
 //   - "dev": Seeds development data (Jedidiah Esposito) - for development/testing
-//   - unset or other: No seeding
+//   - unset or other: No automatic seeding (production default)
+//
+// Demo data (Merlin Ambrosius) is available via admin UI toggle, not auto-seeded.
 func RegisterSeedHook(app *pocketbase.PocketBase) {
 	seedMode := os.Getenv("SEED_DATA")
 	if seedMode == "" {
@@ -26,10 +28,8 @@ func RegisterSeedHook(app *pocketbase.PocketBase) {
 			switch seedMode {
 			case "dev":
 				err = seedDevData(app)
-			case "true", "demo":
-				err = seedDemoData(app)
 			default:
-				log.Printf("Unknown SEED_DATA value: %s (use 'demo' or 'dev')", seedMode)
+				log.Printf("Unknown SEED_DATA value: %s (only 'dev' is supported for auto-seeding)", seedMode)
 				return
 			}
 			if err != nil {
@@ -40,14 +40,43 @@ func RegisterSeedHook(app *pocketbase.PocketBase) {
 	})
 }
 
-// seedDemoData seeds fun Arthurian-themed demo data for new users
-func seedDemoData(app *pocketbase.PocketBase) error {
-	// Check if already seeded
+// SeedDemoData seeds fun Arthurian-themed demo data (exported for admin API)
+// Returns error if data already exists
+func SeedDemoData(app *pocketbase.PocketBase) error {
 	count, _ := app.CountRecords("profile")
 	if count > 0 {
-		return nil
+		return fmt.Errorf("profile data already exists - clear first")
+	}
+	return seedDemoData(app)
+}
+
+// ClearAllData removes all user-created data (for demo reset)
+// This clears: profile, experience, projects, education, certifications, skills, posts, talks, views
+func ClearAllData(app *pocketbase.PocketBase) error {
+	collections := []string{
+		"views", "share_tokens", "posts", "talks",
+		"experience", "projects", "education", "certifications", "skills",
+		"profile",
 	}
 
+	for _, collName := range collections {
+		records, err := app.FindRecordsByFilter(collName, "1=1", "", 1000, 0, nil)
+		if err != nil {
+			continue // Collection might not exist
+		}
+		for _, record := range records {
+			if err := app.Delete(record); err != nil {
+				log.Printf("Warning: failed to delete %s record: %v", collName, err)
+			}
+		}
+	}
+
+	log.Println("All data cleared")
+	return nil
+}
+
+// seedDemoData seeds fun Arthurian-themed demo data for new users
+func seedDemoData(app *pocketbase.PocketBase) error {
 	log.Println("Seeding demo data (Merlin Ambrosius)...")
 
 	// Create default user for frontend admin
