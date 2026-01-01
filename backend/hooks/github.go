@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -101,13 +102,17 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 
 			// AI enrichment if requested
 			var aiResult *services.EnrichmentResult
+			log.Printf("[GitHub Import] AIEnrich=%v, AIProviderID=%q", req.AIEnrich, req.AIProviderID)
 			if req.AIEnrich && req.AIProviderID != "" {
 				// Fetch AI provider
 				providerRecord, err := app.FindRecordById("ai_providers", req.AIProviderID)
-				if err == nil {
+				if err != nil {
+					log.Printf("[GitHub Import] Failed to find provider: %v", err)
+				} else {
 					// Decrypt API key
 					apiKeyEnc := providerRecord.GetString("api_key_encrypted")
-					apiKey, _ := ai.DecryptAPIKey(apiKeyEnc)
+					apiKey, decryptErr := ai.DecryptAPIKey(apiKeyEnc)
+					log.Printf("[GitHub Import] Provider found, API key len=%d, decrypt err=%v", len(apiKey), decryptErr)
 
 					provider := &services.AIProvider{
 						ID:      providerRecord.Id,
@@ -125,15 +130,18 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 						Topics:      metadata.Topics,
 						PrivacyMode: req.PrivacyMode,
 					}
+					log.Printf("[GitHub Import] Calling AI enrichment (README len=%d)", len(metadata.README))
 
 					ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 					defer cancel()
 
 					aiResult, err = ai.EnrichProject(ctx, provider, enrichReq)
 					if err != nil {
-						// Log but don't fail - just skip enrichment
+						log.Printf("[GitHub Import] AI enrichment FAILED: %v", err)
 						app.Logger().Error("AI enrichment failed", "error", err)
 					} else {
+						log.Printf("[GitHub Import] AI SUCCESS: summary=%d, bullets=%d, tags=%d",
+							len(aiResult.Summary), len(aiResult.Bullets), len(aiResult.Tags))
 						// Apply AI enrichment
 						proposedData["summary"] = aiResult.Summary
 						if len(aiResult.Bullets) > 0 {
@@ -153,6 +161,8 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 						}
 					}
 				}
+			} else {
+				log.Printf("[GitHub Import] AI enrichment skipped (AIEnrich=%v, ProviderID=%q)", req.AIEnrich, req.AIProviderID)
 			}
 
 			// Create source record
