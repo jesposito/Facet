@@ -263,6 +263,49 @@ export function getSectionLayout(section: string, layout?: string): string {
 	return config.default;
 }
 
+// Layout-to-width restrictions: which layouts only work at full width
+// Layouts not listed here support all widths (full, half, third)
+export const FULL_WIDTH_ONLY_LAYOUTS: Record<string, string[]> = {
+	experience: ['timeline'],      // Timeline visual needs horizontal space
+	education: ['timeline'],       // Timeline visual needs horizontal space
+	certifications: ['timeline'],  // Timeline visual needs horizontal space
+	projects: ['featured'],        // Featured item takes full width
+	posts: ['featured'],           // Featured item takes full width
+	skills: ['cloud', 'bars'],     // Cloud/bars need space to look good
+	talks: []                      // All talks layouts work at any width
+};
+
+// Get valid widths for a given section and layout
+export function getValidWidthsForLayout(
+	sectionKey: string,
+	layout: string
+): { value: SectionWidth; label: string }[] {
+	const fullOnlyLayouts = FULL_WIDTH_ONLY_LAYOUTS[sectionKey] || [];
+
+	if (fullOnlyLayouts.includes(layout)) {
+		// Only full width is valid for this layout
+		return [{ value: 'full', label: 'Full Width' }];
+	}
+
+	// All widths are valid
+	return VALID_WIDTHS;
+}
+
+// Check if a width is valid for a given section and layout
+export function isWidthValidForLayout(
+	sectionKey: string,
+	layout: string,
+	width: SectionWidth
+): boolean {
+	const fullOnlyLayouts = FULL_WIDTH_ONLY_LAYOUTS[sectionKey] || [];
+
+	if (fullOnlyLayouts.includes(layout)) {
+		return width === 'full';
+	}
+
+	return true;
+}
+
 // Define which fields can be overridden per collection
 export const OVERRIDABLE_FIELDS: Record<string, string[]> = {
 	experience: ['title', 'description', 'bullets'],
