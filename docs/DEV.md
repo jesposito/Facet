@@ -117,7 +117,8 @@ Only one view can be marked as default at a time (enforced by backend hook).
 These slugs are protected and cannot be used for views:
 
 ```
-admin, api, s, v, _app, _, assets, static,
+admin, api, s, v, projects, posts, talks,
+_app, _, assets, static,
 favicon.ico, robots.txt, sitemap.xml,
 health, healthz, ready,
 login, logout, auth, oauth, callback,
@@ -379,7 +380,7 @@ Key variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ENCRYPTION_KEY` | (required in prod) | AES-256-GCM key for AI tokens |
-| `SEED_DATA` | — | Seed mode: `demo`, `dev`, or unset (see below) |
+| `SEED_DATA` | — | Seed mode: `dev` for dev profile, unset for no seeding |
 | `DATA_DIR` | `./pb_data` | PocketBase data directory |
 | `LOG_LEVEL` | `info` | Logging verbosity |
 

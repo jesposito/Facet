@@ -94,7 +94,7 @@ None (this is the starting phase)
 - [x] CTA configuration (button text and URL)
 - [x] Visibility settings (public, unlisted, password, private)
 - [x] Drag-and-drop section ordering (svelte-dnd-action)
-- [ ] Preview pane showing live result — Deferred
+- [x] Preview pane showing live result — Implemented in Phase 6.2
 
 #### 2.2 Section & Item Customization (Complete)
 - [x] Drag-and-drop section reordering
@@ -130,7 +130,7 @@ Enable per-view customization of individual items without modifying source recor
 - [x] Default view badge in views list
 - [x] Only one view can be default (enforced)
 - [ ] Warning when changing default — Minor, deferred
-- [ ] Preview of how homepage will look — Deferred to 2.2
+- [x] Preview of how homepage will look — Implemented in Phase 6.2
 
 #### 2.4 View Analytics (Minimal)
 - [ ] View count per view (opt-in)
@@ -490,21 +490,22 @@ interface ViewSection {
 4. Selection saves with view config
 5. Public view renders with selected layout
 
-#### 6.2 Live Preview Pane (Phase B - Feedback)
+#### 6.2 Live Preview Pane (Phase B - Feedback) ✅ Complete
 
 Add side-by-side preview in the view editor for immediate visual feedback.
 
-- [ ] Split-pane layout: editor left (60%), preview right (40%)
-- [ ] Preview updates on any change (debounced 300ms)
-- [ ] Preview uses actual section components (not mockups)
-- [ ] Toggle to hide preview for more editor space
-- [ ] Mobile preview mode (preview shown at mobile width)
+- [x] Split-pane layout: editor left (~60%), preview right (~40%)
+- [x] Preview updates on any change (reactive Svelte bindings)
+- [x] Preview uses actual section components (not mockups)
+- [x] Toggle button to hide preview for more editor space
+- [ ] Mobile preview mode (preview shown at mobile width) — Deferred
 
-**Technical Approach:**
+**Implementation Details:**
+- `ViewPreview.svelte` component reuses public section components
+- Reactive updates via Svelte props (no debouncing needed)
 - Preview rendered in same page (not iframe) for simplicity
-- Pass current form state to preview components
-- Use Svelte stores for reactive updates
-- Consider iframe for true isolation (Phase C)
+- Responsive layout: side-by-side on desktop, stacked on mobile
+- Preview scales down content for compact display
 
 #### 6.3 Section Width & Columns (Phase C - Advanced)
 
@@ -702,10 +703,41 @@ Full drag-and-drop editing directly in the preview pane.
 These are ideas that may be explored after the core roadmap is complete:
 
 ### Self-Hosting Improvements
-- One-line install script
-- Docker Compose with Caddy reverse proxy
-- Kubernetes Helm chart
-- Unraid app template
+
+#### OAuth via Environment Variables (Priority)
+
+Enable OAuth configuration without accessing PocketBase admin UI:
+
+```env
+# Google OAuth
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# GitHub OAuth
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
+```
+
+**Implementation:**
+- [ ] Read OAuth credentials from environment variables on startup
+- [ ] Programmatically configure PocketBase auth providers
+- [ ] Add `/api/auth/providers` endpoint to expose enabled methods
+- [ ] Update login page to fetch available providers dynamically
+- [ ] Only show OAuth buttons for configured providers
+- [ ] Show password login as primary when no OAuth configured
+- [ ] Add to `.env.example` with documentation
+
+**Benefits:**
+- End users never need to access PocketBase admin UI
+- All configuration via environment variables / docker-compose
+- Enables Unraid template with OAuth fields
+- Clean "Me.yaml" branded experience throughout
+
+#### Distribution & Templates
+- [ ] One-line install script
+- [ ] Docker Compose with Caddy reverse proxy
+- [ ] Kubernetes Helm chart
+- [ ] Unraid Community Apps template
 
 ### Integrations
 - Webhook notifications
@@ -744,6 +776,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
 | 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
 | 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
+| 2026-01-01 | OAuth config via env vars prioritized | End users should never see PocketBase; all config via environment variables. Login page should dynamically show only configured auth methods. Enables Unraid template distribution. |
 
 ---
 

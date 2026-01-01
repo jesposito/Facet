@@ -2,11 +2,12 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS, VALID_LAYOUTS } from '$lib/pocketbase';
+	import { pb, type View, type ViewSection, type ItemConfig, type Profile, OVERRIDABLE_FIELDS, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
+	import ViewPreview from '$components/admin/ViewPreview.svelte';
 
 	// Default section definitions - used to initialize and provide labels
 	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
@@ -26,9 +27,11 @@
 	let saving = false;
 	let view: View | null = null;
 
-	// Profile data (for showing what's being overridden)
-	let profileHeadline = '';
-	let profileSummary = '';
+	// Profile data for preview and showing overrides
+	let profile: Profile | null = null;
+
+	// Preview panel state
+	let showPreview = true;
 
 	// Form fields
 	let name = '';
@@ -83,21 +86,29 @@
 			goto('/admin/views');
 			return;
 		}
-		await loadView();
-		await loadSectionItems();
-		await loadProfile();
+		await Promise.all([
+			loadView(),
+			loadSectionItems(),
+			loadProfile()
+		]);
 	});
 
 	async function loadProfile() {
 		try {
 			const records = await pb.collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
-				const profile = records.items[0];
-				profileHeadline = (profile.headline as string) || '';
-				profileSummary = (profile.summary as string) || '';
+				const record = records.items[0] as unknown as Profile & { collectionId: string };
+				// Resolve avatar URL if exists
+				if (record.avatar) {
+					const avatarUrl = `/api/files/${record.collectionId}/${record.id}/${record.avatar}`;
+					profile = { ...record, avatar: avatarUrl };
+				} else {
+					profile = record;
+				}
 			}
 		} catch (err) {
 			console.error('Failed to load profile:', err);
+			// Profile is optional for preview, don't show error
 		}
 	}
 
@@ -453,24 +464,42 @@
 	<title>Edit View | Me.yaml</title>
 </svelte:head>
 
-<div class="max-w-4xl mx-auto">
+<div class="view-editor-container">
 	{#if loading}
-		<div class="card p-8 text-center">
+		<div class="card p-8 text-center max-w-4xl mx-auto">
 			<div class="animate-pulse">Loading view...</div>
 		</div>
 	{:else}
-		<div class="flex items-center justify-between mb-6">
+		<!-- Header -->
+		<div class="flex items-center justify-between mb-6 px-4">
 			<div class="flex items-center gap-4">
 				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
 				</a>
 				<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit View</h1>
 			</div>
 			<div class="flex items-center gap-2">
+				<!-- Preview Toggle -->
+				<button
+					type="button"
+					class="btn btn-ghost flex items-center gap-2"
+					on:click={() => showPreview = !showPreview}
+					title={showPreview ? 'Hide preview' : 'Show preview'}
+				>
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+						{#if showPreview}
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+						{:else}
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+						{/if}
+					</svg>
+					<span class="hidden sm:inline">{showPreview ? 'Hide' : 'Show'} Preview</span>
+				</button>
 				<button type="button" class="btn btn-secondary" on:click={previewView}>
-					Preview
+					Open in Tab
 				</button>
 				<button type="button" class="btn btn-primary" on:click={handleSubmit} disabled={saving}>
 					{#if saving}
@@ -479,11 +508,15 @@
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
 					{/if}
-					Save Changes
+					Save
 				</button>
 			</div>
 		</div>
 
+		<!-- Split Pane Layout -->
+		<div class="editor-layout" class:with-preview={showPreview}>
+			<!-- Editor Pane -->
+			<div class="editor-pane">
 		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
 			<!-- Basic Info -->
 			<div class="card p-6 space-y-4">
@@ -556,9 +589,9 @@
 						class="input"
 						placeholder="Leave empty to use profile headline"
 					/>
-					{#if profileHeadline}
+					{#if profile?.headline}
 						<p class="text-xs text-gray-500 mt-1">
-							Profile value: <span class="text-gray-700 dark:text-gray-300">{profileHeadline}</span>
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.headline}</span>
 						</p>
 					{/if}
 				</div>
@@ -582,9 +615,9 @@
 						class="input min-h-[120px]"
 						placeholder="Leave empty to use profile summary (Markdown supported)"
 					></textarea>
-					{#if profileSummary}
+					{#if profile?.summary}
 						<p class="text-xs text-gray-500 mt-1">
-							Profile value: <span class="text-gray-700 dark:text-gray-300">{profileSummary.length > 100 ? profileSummary.substring(0, 100) + '...' : profileSummary}</span>
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.summary.length > 100 ? profile.summary.substring(0, 100) + '...' : profile.summary}</span>
 						</p>
 					{/if}
 				</div>
@@ -850,6 +883,30 @@
 			</div>
 
 		</form>
+			</div>
+
+			<!-- Preview Pane -->
+			{#if showPreview}
+				<div class="preview-pane">
+					<div class="sticky top-4">
+						<div class="flex items-center justify-between mb-3 px-1">
+							<h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Live Preview</h2>
+							<span class="text-xs text-gray-400">Updates as you edit</span>
+						</div>
+						<ViewPreview
+							{profile}
+							{heroHeadline}
+							{heroSummary}
+							{ctaText}
+							{ctaUrl}
+							{sections}
+							{sectionOrder}
+							{sectionItems}
+						/>
+					</div>
+				</div>
+			{/if}
+		</div>
 	{/if}
 </div>
 
@@ -951,3 +1008,62 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.view-editor-container {
+		max-width: 100%;
+		padding: 0 1rem;
+	}
+
+	.editor-layout {
+		display: flex;
+		gap: 1.5rem;
+		align-items: flex-start;
+	}
+
+	.editor-pane {
+		flex: 1;
+		min-width: 0;
+		max-width: 48rem; /* max-w-3xl */
+	}
+
+	.editor-layout.with-preview .editor-pane {
+		flex: 3;
+		max-width: none;
+	}
+
+	.preview-pane {
+		flex: 2;
+		min-width: 320px;
+		max-width: 480px;
+	}
+
+	/* Hide preview on smaller screens */
+	@media (max-width: 1024px) {
+		.editor-layout {
+			flex-direction: column;
+		}
+
+		.editor-pane {
+			max-width: 100%;
+		}
+
+		.preview-pane {
+			width: 100%;
+			max-width: 100%;
+			order: -1; /* Show preview above editor on mobile */
+			margin-bottom: 1rem;
+		}
+	}
+
+	/* Large screens - show side by side */
+	@media (min-width: 1280px) {
+		.view-editor-container {
+			padding: 0 2rem;
+		}
+
+		.preview-pane {
+			max-width: 560px;
+		}
+	}
+</style>

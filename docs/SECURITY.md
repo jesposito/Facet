@@ -58,7 +58,8 @@ Me.yaml uses LinkedIn-style canonical URLs:
 View slugs cannot collide with system routes. These are protected:
 
 ```
-admin, api, s, v, _app, _, assets, static,
+admin, api, s, v, projects, posts, talks,
+_app, _, assets, static,
 favicon.ico, robots.txt, sitemap.xml,
 health, healthz, ready, login, logout,
 auth, oauth, callback, home, index, default, profile

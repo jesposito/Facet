@@ -28,9 +28,10 @@
 │  │                     │    │                                      ││
 │  │  Public Pages:      │    │  Collections:                        ││
 │  │  ├── /              │◄───┤  ├── profile                         ││
-│  │  ├── /v/:slug       │    │  ├── experience                      ││
+│  │  ├── /:slug         │    │  ├── experience                      ││
 │  │  ├── /s/:token      │    │  ├── projects                        ││
-│  │  └── /p/:project    │    │  ├── education                       ││
+│  │  ├── /projects/:slug│    │  ├── education                       ││
+│  │  └── /posts/:slug   │    │                                      ││
 │  │                     │    │  ├── certifications                  ││
 │  │  Admin Pages:       │    │  ├── skills                          ││
 │  │  ├── /admin         │───►│  ├── posts                           ││
@@ -315,12 +316,12 @@ import_proposals {
 
 | Route | Description | Auth |
 |-------|-------------|------|
-| `GET /` | Main public profile | Based on profile.visibility |
-| `GET /v/:slug` | View by slug | Based on view.visibility |
-| `GET /s/:token` | Share token access | Token validation |
-| `GET /p/:slug` | Project detail page | Based on project.visibility |
-| `GET /post/:slug` | Blog post page | Based on post.visibility |
-| `POST /api/password-check` | Validate password for protected content | None |
+| `GET /` | Default public view | Based on view.visibility |
+| `GET /:slug` | Named view (canonical) | Based on view.visibility |
+| `GET /v/:slug` | Legacy view route | 301 redirect to `/:slug` |
+| `GET /s/:token` | Share token access | Token validation, redirects to `/:slug` |
+| `GET /projects/:slug` | Project detail page | Based on project.visibility |
+| `GET /posts/:slug` | Blog post page | Based on post.visibility |
 
 #### Admin Routes (SvelteKit)
 
@@ -336,12 +337,13 @@ import_proposals {
 | `GET /admin/posts` | Manage posts | OAuth required |
 | `GET /admin/talks` | Manage talks | OAuth required |
 | `GET /admin/views` | Manage views | OAuth required |
+| `GET /admin/views/new` | Create new view | OAuth required |
 | `GET /admin/views/:id` | Edit specific view | OAuth required |
-| `GET /admin/sources` | Manage import sources | OAuth required |
+| `GET /admin/tokens` | Manage share tokens | OAuth required |
 | `GET /admin/import` | GitHub import wizard | OAuth required |
 | `GET /admin/review/:id` | Review import proposal | OAuth required |
 | `GET /admin/settings` | AI providers, app settings | OAuth required |
-| `GET /admin/media` | Media library | OAuth required |
+| `GET /admin/login` | Admin login | None |
 
 #### API Routes (PocketBase + Custom Hooks)
 
