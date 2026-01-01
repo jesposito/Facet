@@ -89,6 +89,61 @@ Facet/
 └── docs/              # Documentation
 ```
 
+## Development Best Practices
+
+### Verbose Logging for In-Development Features
+
+**REQUIREMENT**: All new features MUST include verbose debug logging during development.
+
+When implementing new features, especially those involving:
+- API integrations (AI providers, external services)
+- Data transformations (encryption, parsing, serialization)
+- Multi-step workflows (import pipelines, export generation)
+- PocketBase hooks and middleware
+
+Add logging at each step of the flow:
+
+```go
+// ✅ GOOD - Verbose logging during development
+func processData(input string) (string, error) {
+    log.Println("[DEBUG] processData called with input len:", len(input))
+
+    transformed, err := transform(input)
+    if err != nil {
+        log.Println("[ERROR] transform failed:", err)
+        return "", err
+    }
+    log.Println("[DEBUG] transform succeeded, output len:", len(transformed))
+
+    result, err := validate(transformed)
+    if err != nil {
+        log.Println("[ERROR] validate failed:", err)
+        return "", err
+    }
+    log.Println("[DEBUG] validate succeeded")
+
+    return result, nil
+}
+```
+
+**Why this matters**: Silent failures are the hardest bugs to track. During the AI integration work, we spent hours debugging issues that would have been immediately obvious with proper logging:
+
+- API keys not being received (PocketBase hidden field issue)
+- JSON parsing failures (AI returning arrays instead of strings)
+- Hook chain not continuing (`e.Next()` missing)
+
+**When to remove**: After a feature is stable and well-tested, verbose logging can be reduced. Keep error logging permanently.
+
+### Feature Development Checklist
+
+Before marking a feature complete:
+
+- [ ] Verbose logging added at each step of the flow
+- [ ] Error cases logged with context (input values, state)
+- [ ] Tested with real data (not just happy path)
+- [ ] Edge cases documented (e.g., "AI may return array or string")
+- [ ] Troubleshooting notes added to DEV.md if gotchas discovered
+
 ## URL Routing Model
 
 Facet uses a LinkedIn-style URL structure for public profiles:
@@ -440,6 +495,70 @@ IMPORTANT WRITING STYLE RULES:
 ```
 
 See: `backend/services/ai.go:buildPrompt()` and `backend/hooks/ai.go:buildImprovementPrompt()`
+
+**Lessons Learned (AI Debugging):**
+
+These issues caused significant debugging time and should be avoided in future AI work:
+
+1. **PocketBase Hidden Fields Block API Input**
+   - Fields with `Hidden: true` are NOT received in API requests
+   - We thought `Hidden` only affected API responses, but it blocks input too
+   - Solution: Use `OnRecordCreateRequest` hooks to access raw request body
+   - See: `backend/hooks/ai.go` for the correct pattern
+
+2. **AI Models Return Inconsistent Types**
+   - Asked for `case_study: string`, got `case_study: ["bullet 1", "bullet 2"]`
+   - Never assume AI will follow schema exactly
+   - Solution: Use flexible parsing with type switches (see `parseEnrichmentResponse`)
+
+3. **Silent Failures in Hook Chains**
+   - Missing `e.Next()` causes request to hang or fail silently
+   - No error message, no log output, just broken functionality
+   - Solution: ALWAYS call `e.Next()` in BindFunc hooks
+
+4. **Encryption Without Verification**
+   - API key was "encrypted" but we never logged that it was received
+   - Added logging revealed the key was never making it to the hook
+   - Solution: Log input AND output at each transformation step
+
+**AI Print Implementation Considerations:**
+
+When implementing AI Print (Phase 4.2), watch for these potential issues:
+
+| Concern | Risk | Mitigation |
+|---------|------|------------|
+| View data serialization | Large views may exceed token limits | Truncate sections, log payload size |
+| Resume prompt formatting | AI may not follow markdown structure | Validate markdown before Pandoc |
+| Pandoc conversion | May fail silently on malformed input | Log input/output, capture stderr |
+| File storage | PocketBase file upload may fail | Log file size, verify upload success |
+| Provider selection | User may not have AI configured | Check status before showing "Generate" button |
+| Timeout handling | Large resumes may exceed 60s timeout | Increase timeout, show progress indicator |
+
+**Required Logging for AI Print:**
+
+```go
+// Example of required verbose logging
+func (h *ViewHooks) generateResume(ctx context.Context, viewID string) error {
+    log.Printf("[AI-PRINT] Starting resume generation for view: %s", viewID)
+
+    viewData, err := h.getViewData(viewID)
+    if err != nil {
+        log.Printf("[AI-PRINT] Failed to get view data: %v", err)
+        return err
+    }
+    log.Printf("[AI-PRINT] View data retrieved, sections: %d, total size: %d bytes",
+        len(viewData.Sections), len(viewData.ToJSON()))
+
+    aiResponse, err := h.ai.GenerateResume(ctx, provider, viewData)
+    if err != nil {
+        log.Printf("[AI-PRINT] AI generation failed: %v", err)
+        return err
+    }
+    log.Printf("[AI-PRINT] AI response received, markdown length: %d", len(aiResponse))
+
+    // ... continue with Pandoc, file storage, etc.
+}
+```
 
 ### PocketBase API 400 Errors with Sort Parameters
 
