@@ -6,6 +6,9 @@
 
 	export let data: PageData;
 
+	// Compute back navigation URL based on where user came from
+	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
+
 	// Extract YouTube/Vimeo thumbnail
 	function getVideoThumbnail(url: string): string | null {
 		// YouTube
@@ -37,7 +40,7 @@
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			<!-- Back navigation -->
 			<a
-				href="/"
+				href={backUrl}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

@@ -115,6 +115,7 @@
 		hasSkills={data.skills.length > 0}
 		hasPosts={data.posts && data.posts.length > 0}
 		hasTalks={data.talks && data.talks.length > 0}
+		viewSlug={data.view?.slug || ''}
 	/>
 
 	<!-- Main content -->

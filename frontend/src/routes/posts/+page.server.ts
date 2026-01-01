@@ -10,6 +10,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const tag = url.searchParams.get('tag');
+	const fromView = url.searchParams.get('from');
 
 	try {
 		// Use custom API endpoint that bypasses collection access rules
@@ -21,7 +22,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				posts: [],
 				profile: null,
 				selectedTag: tag,
-				allTags: []
+				allTags: [],
+				fromView: fromView || null
 			};
 		}
 
@@ -46,7 +48,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			posts,
 			profile,
 			selectedTag: tag,
-			allTags: Array.from(allTags).sort()
+			allTags: Array.from(allTags).sort(),
+			fromView: fromView || null
 		};
 	} catch (err) {
 		console.error('Failed to load posts:', err);
@@ -54,7 +57,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			posts: [],
 			profile: null,
 			selectedTag: tag,
-			allTags: []
+			allTags: [],
+			fromView: fromView || null
 		};
 	}
 };

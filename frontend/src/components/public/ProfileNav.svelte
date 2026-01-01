@@ -8,6 +8,15 @@
 	export let hasSkills = false;
 	export let hasPosts = false;
 	export let hasTalks = false;
+	export let viewSlug: string = '';
+
+	// Build URL with optional from parameter for back navigation
+	function buildUrl(path: string): string {
+		if (viewSlug) {
+			return `${path}?from=${encodeURIComponent(viewSlug)}`;
+		}
+		return path;
+	}
 
 	// Track active section for highlighting
 	let activeSection = '';
@@ -47,8 +56,8 @@
 		{ id: 'education', label: 'Education', show: hasEducation },
 		{ id: 'certifications', label: 'Certifications', show: hasCertifications },
 		{ id: 'skills', label: 'Skills', show: hasSkills },
-		{ id: 'posts', label: 'Posts', href: '/posts', show: hasPosts },
-		{ id: 'talks', label: 'Talks', href: '/talks', show: hasTalks }
+		{ id: 'posts', label: 'Posts', href: buildUrl('/posts'), show: hasPosts },
+		{ id: 'talks', label: 'Talks', href: buildUrl('/talks'), show: hasTalks }
 	].filter((item) => item.show) as NavItem[];
 
 	function scrollToSection(id: string) {

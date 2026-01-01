@@ -10,6 +10,7 @@ import type { PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ fetch, url }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const year = url.searchParams.get('year');
+	const fromView = url.searchParams.get('from');
 
 	try {
 		// Use custom API endpoint that bypasses collection access rules
@@ -21,7 +22,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 				talks: [],
 				profile: null,
 				selectedYear: year,
-				allYears: []
+				allYears: [],
+				fromView: fromView || null
 			};
 		}
 
@@ -49,7 +51,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			talks,
 			profile,
 			selectedYear: year,
-			allYears: Array.from(allYears).sort((a, b) => parseInt(b) - parseInt(a)) // Descending
+			allYears: Array.from(allYears).sort((a, b) => parseInt(b) - parseInt(a)), // Descending
+			fromView: fromView || null
 		};
 	} catch (err) {
 		console.error('Failed to load talks:', err);
@@ -57,7 +60,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			talks: [],
 			profile: null,
 			selectedYear: year,
-			allYears: []
+			allYears: [],
+			fromView: fromView || null
 		};
 	}
 };
