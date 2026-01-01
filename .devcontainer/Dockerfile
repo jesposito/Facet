@@ -17,8 +17,12 @@ ARG GOSUMDB=off
 # Ref: https://github.com/air-verse/air/releases
 RUN go install github.com/air-verse/air@v1.61.7
 
-# Install Pandoc for AI Print feature (PDF/DOCX generation)
-RUN apt-get update && apt-get install -y --no-install-recommends pandoc \
+# Install Pandoc and LaTeX for AI Print feature (PDF/DOCX generation)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pandoc \
+    texlive-latex-base \
+    texlive-fonts-recommended \
+    texlive-latex-extra \
     && rm -rf /var/lib/apt/lists/*
 
 # Pre-download Go modules for faster first startup
