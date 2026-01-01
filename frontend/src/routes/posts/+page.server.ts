@@ -8,16 +8,28 @@
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ fetch, url }) => {
+	console.log('[POSTS PAGE] ========== LOAD START ==========');
+	console.log('[POSTS PAGE] URL:', url.toString());
+
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const tag = url.searchParams.get('tag');
 	const fromView = url.searchParams.get('from');
 
+	console.log('[POSTS PAGE] pbUrl:', pbUrl);
+	console.log('[POSTS PAGE] tag:', tag);
+	console.log('[POSTS PAGE] fromView:', fromView);
+
 	try {
 		// Use custom API endpoint that bypasses collection access rules
-		const response = await fetch(`${pbUrl}/api/posts`);
+		const apiUrl = `${pbUrl}/api/posts`;
+		console.log('[POSTS PAGE] Fetching:', apiUrl);
+
+		const response = await fetch(apiUrl);
+		console.log('[POSTS PAGE] Response status:', response.status);
 
 		if (!response.ok) {
-			console.error('Posts API error:', response.status);
+			const errorText = await response.text();
+			console.error('[POSTS PAGE] API error:', response.status, errorText);
 			return {
 				posts: [],
 				profile: null,
@@ -28,14 +40,21 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		}
 
 		const data = await response.json();
+		console.log('[POSTS PAGE] API response data:', JSON.stringify(data, null, 2));
+
 		let posts = data.posts || [];
 		const profile = data.profile || null;
 
+		console.log('[POSTS PAGE] Posts count:', posts.length);
+		console.log('[POSTS PAGE] Profile:', profile);
+
 		// If tag filter is specified, filter client-side
 		if (tag) {
+			const beforeFilter = posts.length;
 			posts = posts.filter((post: { tags?: string[] }) =>
 				post.tags?.some((t: string) => t.toLowerCase() === tag.toLowerCase())
 			);
+			console.log('[POSTS PAGE] Filtered by tag:', tag, 'from', beforeFilter, 'to', posts.length);
 		}
 
 		// Get unique tags from all posts for filter UI
@@ -44,15 +63,19 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			post.tags?.forEach((t: string) => allTags.add(t));
 		});
 
-		return {
+		const result = {
 			posts,
 			profile,
 			selectedTag: tag,
 			allTags: Array.from(allTags).sort(),
 			fromView: fromView || null
 		};
+		console.log('[POSTS PAGE] Returning:', JSON.stringify({ ...result, posts: `[${posts.length} items]` }));
+		console.log('[POSTS PAGE] ========== LOAD END ==========');
+
+		return result;
 	} catch (err) {
-		console.error('Failed to load posts:', err);
+		console.error('[POSTS PAGE] EXCEPTION:', err);
 		return {
 			posts: [],
 			profile: null,

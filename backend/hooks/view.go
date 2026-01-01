@@ -394,6 +394,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Kept for backwards compatibility during migration
 		// Rate limited: normal tier (60/min) to prevent scraping
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			fmt.Println("[API /api/homepage] ========== REQUEST START ==========")
 			response := make(map[string]interface{})
 
 			// Fetch profile - only public profiles appear on homepage
@@ -405,8 +406,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
+			fmt.Printf("[API /api/homepage] Profile query: found %d records, err=%v\n", len(profileRecords), err)
 			if err == nil && len(profileRecords) > 0 {
 				profile := profileRecords[0]
+				fmt.Printf("[API /api/homepage] Profile: id=%s name=%q visibility=%q\n",
+					profile.Id, profile.GetString("name"), profile.GetString("visibility"))
 				profileData := map[string]interface{}{
 					"id":            profile.Id,
 					"name":          profile.GetString("name"),
@@ -428,6 +432,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 
 				response["profile"] = profileData
+			} else {
+				fmt.Println("[API /api/homepage] No public profile found!")
 			}
 
 			// Fetch experience - only public items appear on homepage
@@ -500,7 +506,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
+			fmt.Printf("[API /api/homepage] Posts query: found %d records, err=%v\n", len(postRecords), err)
 			if err == nil {
+				for i, r := range postRecords {
+					fmt.Printf("[API /api/homepage]   Post[%d] id=%s title=%q visibility=%q is_draft=%v\n",
+						i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
+				}
 				posts := serializeRecords(postRecords)
 				// Add file URLs for cover images
 				for i, p := range posts {
@@ -511,6 +522,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 				response["posts"] = posts
+			} else {
+				fmt.Printf("[API /api/homepage] Posts query ERROR: %v\n", err)
 			}
 
 			// Fetch talks - only public items appear on homepage
@@ -522,8 +535,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
+			fmt.Printf("[API /api/homepage] Talks query: found %d records, err=%v\n", len(talkRecords), err)
 			if err == nil {
+				for i, r := range talkRecords {
+					fmt.Printf("[API /api/homepage]   Talk[%d] id=%s title=%q visibility=%q is_draft=%v\n",
+						i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
+				}
 				response["talks"] = serializeRecords(talkRecords)
+			} else {
+				fmt.Printf("[API /api/homepage] Talks query ERROR: %v\n", err)
 			}
 
 			// Fetch certifications - only public items appear on homepage
@@ -539,6 +559,39 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["certifications"] = serializeRecords(certRecords)
 			}
 
+			// Log final response summary
+			expLen := 0
+			projLen := 0
+			eduLen := 0
+			skillsLen := 0
+			postsLen := 0
+			talksLen := 0
+			certsLen := 0
+			if exp, ok := response["experience"].([]map[string]interface{}); ok {
+				expLen = len(exp)
+			}
+			if proj, ok := response["projects"].([]map[string]interface{}); ok {
+				projLen = len(proj)
+			}
+			if edu, ok := response["education"].([]map[string]interface{}); ok {
+				eduLen = len(edu)
+			}
+			if skills, ok := response["skills"].([]map[string]interface{}); ok {
+				skillsLen = len(skills)
+			}
+			if posts, ok := response["posts"].([]map[string]interface{}); ok {
+				postsLen = len(posts)
+			}
+			if talks, ok := response["talks"].([]map[string]interface{}); ok {
+				talksLen = len(talks)
+			}
+			if certs, ok := response["certifications"].([]map[string]interface{}); ok {
+				certsLen = len(certs)
+			}
+			fmt.Printf("[API /api/homepage] Response summary: profile=%v exp=%d proj=%d edu=%d skills=%d posts=%d talks=%d certs=%d\n",
+				response["profile"] != nil, expLen, projLen, eduLen, skillsLen, postsLen, talksLen, certsLen)
+			fmt.Println("[API /api/homepage] ========== REQUEST END ==========")
+
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -546,18 +599,30 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft posts for the index page
 		se.Router.GET("/api/posts", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			fmt.Println("[API /api/posts] ========== REQUEST START ==========")
+
 			// Fetch non-private, non-draft posts (public and unlisted)
 			// Use explicit OR to handle NULL visibility values
+			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
+			fmt.Printf("[API /api/posts] Using filter: %s\n", filter)
+
 			postRecords, err := app.FindRecordsByFilter(
 				"posts",
-				"(visibility = 'public' || visibility = 'unlisted') && is_draft = false",
+				filter,
 				"-published_at,-created",
 				100,
 				0,
 				nil,
 			)
 			if err != nil {
+				fmt.Printf("[API /api/posts] ERROR: FindRecordsByFilter failed: %v\n", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts: " + err.Error()})
+			}
+
+			fmt.Printf("[API /api/posts] Found %d post records\n", len(postRecords))
+			for i, r := range postRecords {
+				fmt.Printf("[API /api/posts]   [%d] id=%s title=%q visibility=%q is_draft=%v\n",
+					i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
 			}
 
 			posts := serializeRecords(postRecords)
@@ -580,6 +645,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
+			fmt.Printf("[API /api/posts] Profile query: found %d records, err=%v\n", len(profileRecords), err)
 			if err == nil && len(profileRecords) > 0 {
 				p := profileRecords[0]
 				profile = map[string]interface{}{
@@ -587,8 +653,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"name":     p.GetString("name"),
 					"headline": p.GetString("headline"),
 				}
+				fmt.Printf("[API /api/posts] Profile: id=%s name=%q\n", p.Id, p.GetString("name"))
+			} else {
+				fmt.Println("[API /api/posts] No public profile found")
 			}
 
+			fmt.Printf("[API /api/posts] Returning: posts=%d profile_exists=%v\n", len(posts), profile != nil)
+			fmt.Println("[API /api/posts] ========== REQUEST END ==========")
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"posts":   posts,
 				"profile": profile,
@@ -599,18 +670,30 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft talks for the index page
 		se.Router.GET("/api/talks", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			fmt.Println("[API /api/talks] ========== REQUEST START ==========")
+
 			// Fetch non-private, non-draft talks (public and unlisted)
 			// Use explicit OR to handle NULL visibility values
+			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
+			fmt.Printf("[API /api/talks] Using filter: %s\n", filter)
+
 			talkRecords, err := app.FindRecordsByFilter(
 				"talks",
-				"(visibility = 'public' || visibility = 'unlisted') && is_draft = false",
+				filter,
 				"-date,-sort_order",
 				100,
 				0,
 				nil,
 			)
 			if err != nil {
+				fmt.Printf("[API /api/talks] ERROR: FindRecordsByFilter failed: %v\n", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks: " + err.Error()})
+			}
+
+			fmt.Printf("[API /api/talks] Found %d talk records\n", len(talkRecords))
+			for i, r := range talkRecords {
+				fmt.Printf("[API /api/talks]   [%d] id=%s title=%q visibility=%q is_draft=%v\n",
+					i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
 			}
 
 			talks := serializeRecords(talkRecords)
@@ -625,6 +708,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
+			fmt.Printf("[API /api/talks] Profile query: found %d records, err=%v\n", len(profileRecords), err)
 			if err == nil && len(profileRecords) > 0 {
 				p := profileRecords[0]
 				profile = map[string]interface{}{
@@ -632,8 +716,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"name":     p.GetString("name"),
 					"headline": p.GetString("headline"),
 				}
+				fmt.Printf("[API /api/talks] Profile: id=%s name=%q\n", p.Id, p.GetString("name"))
+			} else {
+				fmt.Println("[API /api/talks] No public profile found")
 			}
 
+			fmt.Printf("[API /api/talks] Returning: talks=%d profile_exists=%v\n", len(talks), profile != nil)
+			fmt.Println("[API /api/talks] ========== REQUEST END ==========")
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"talks":   talks,
 				"profile": profile,
