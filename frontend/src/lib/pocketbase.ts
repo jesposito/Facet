@@ -11,29 +11,24 @@ if (browser) {
 	(window as unknown as { pb: PocketBase }).pb = pb;
 }
 
-// Ensure Bearer prefix on auth header for PocketBase 0.23+
+// Debug: Log exactly what SDK is sending
 pb.beforeSend = function (url, options) {
-	const token = pb.authStore.token;
-	if (token) {
-		// SDK 0.23 sends just the token; ensure Bearer prefix is added
-		const headers = (options.headers || {}) as Record<string, string>;
-		const currentAuth = headers['Authorization'] || '';
-		if (currentAuth && !currentAuth.startsWith('Bearer ')) {
-			headers['Authorization'] = `Bearer ${currentAuth}`;
-		} else if (!currentAuth) {
-			headers['Authorization'] = `Bearer ${token}`;
-		}
-		options.headers = headers;
-	}
+	console.log('=== SDK REQUEST DEBUG ===');
+	console.log('URL:', url);
+	console.log('Method:', options.method || 'GET');
+	console.log('Headers:', JSON.stringify(options.headers, null, 2));
+	console.log('Body:', options.body);
+	console.log('Full options:', options);
+	console.log('=========================');
 	return { url, options };
 };
 
-// Auth store (SDK 0.22+ uses 'record' instead of 'model')
-export const currentUser = writable(pb.authStore.record);
+// Auth store (SDK 0.21.x uses 'model')
+export const currentUser = writable(pb.authStore.model);
 
 // Update store when auth changes
-pb.authStore.onChange((token, record) => {
-	currentUser.set(record);
+pb.authStore.onChange((token, model) => {
+	currentUser.set(model);
 });
 
 // Types
