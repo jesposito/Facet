@@ -39,6 +39,14 @@
 		is_default: false
 	};
 
+	// Model options per provider type
+	const modelOptions: Record<string, string[]> = {
+		openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
+		anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
+		ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
+		custom: []
+	};
+
 	const defaultModels: Record<string, string> = {
 		openai: 'gpt-4o-mini',
 		anthropic: 'claude-sonnet-4-20250514',
@@ -46,7 +54,13 @@
 		custom: ''
 	};
 
-	$: newProvider.model = newProvider.model || defaultModels[newProvider.type] || '';
+	// Reset model when provider type changes
+	$: if (newProvider.type) {
+		const options = modelOptions[newProvider.type] || [];
+		if (!options.includes(newProvider.model)) {
+			newProvider.model = defaultModels[newProvider.type] || '';
+		}
+	}
 
 	onMount(async () => {
 		await Promise.all([loadProviders(), loadDemoStatus(), loadProfile()]);
@@ -161,14 +175,14 @@
 	async function handleAddProvider() {
 		try {
 			// Build payload, excluding empty optional fields that might fail validation
+			// Note: Don't send api_key_encrypted - it's a hidden field set by backend hook
 			const payload: Record<string, unknown> = {
 				name: newProvider.name,
 				type: newProvider.type,
 				api_key: newProvider.api_key,
 				model: newProvider.model,
 				is_active: newProvider.is_active,
-				is_default: newProvider.is_default,
-				api_key_encrypted: '' // Will be encrypted by hook
+				is_default: newProvider.is_default
 			};
 			// Only include base_url if it has a value (URLField rejects empty strings)
 			if (newProvider.base_url) {
@@ -189,10 +203,22 @@
 				is_default: false
 			};
 			await loadProviders();
-		} catch (err) {
+		} catch (err: unknown) {
 			console.error('Failed to add provider:', err);
-			// Show more detailed error if available
-			const message = err instanceof Error ? err.message : 'Failed to add provider';
+			// Extract detailed error from PocketBase ClientResponseError
+			let message = 'Failed to add provider';
+			if (err && typeof err === 'object' && 'data' in err) {
+				const pbErr = err as { data?: { data?: Record<string, { message: string }> } };
+				const fieldErrors = pbErr.data?.data;
+				if (fieldErrors) {
+					const details = Object.entries(fieldErrors)
+						.map(([field, info]) => `${field}: ${info.message}`)
+						.join(', ');
+					message = `Validation error: ${details}`;
+				}
+			} else if (err instanceof Error) {
+				message = err.message;
+			}
 			toasts.add('error', message);
 		}
 	}
@@ -459,13 +485,21 @@
 
 				<div>
 					<label for="model" class="label">Model</label>
-					<input
-						type="text"
-						id="model"
-						bind:value={newProvider.model}
-						class="input"
-						placeholder={defaultModels[newProvider.type]}
-					/>
+					{#if modelOptions[newProvider.type]?.length > 0}
+						<select id="model" bind:value={newProvider.model} class="input">
+							{#each modelOptions[newProvider.type] as model}
+								<option value={model}>{model}</option>
+							{/each}
+						</select>
+					{:else}
+						<input
+							type="text"
+							id="model"
+							bind:value={newProvider.model}
+							class="input"
+							placeholder="Enter model name"
+						/>
+					{/if}
 				</div>
 
 				<div class="flex items-center gap-4">
