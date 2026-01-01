@@ -894,9 +894,11 @@ Browser-based printing optimized for resumes. Zero setup required.
 
 **Usage**: Navigate to any view → Click print button → Browser Print dialog (Ctrl+P) → Save as PDF
 
-#### 4.2 AI Print (New Feature)
+#### 4.2 AI Print ✅ Complete
 
 AI-powered document generation that creates polished, professionally formatted resumes.
+
+> **📖 Full Documentation:** See [docs/AI_FEATURES.md](docs/AI_FEATURES.md) for complete AI feature documentation including API reference, provider setup, and troubleshooting.
 
 **How It Works:**
 
@@ -956,30 +958,31 @@ The AI returns:
 
 **Implementation Tasks:**
 
-- [ ] Add `view_exports` collection via migration
-- [ ] Create resume prompt template (stored in backend)
-- [ ] Add `/api/view/{slug}/generate` endpoint
-- [ ] Integrate [Pandoc Docker image](https://github.com/pandoc/dockerfiles) or binary
-- [ ] Add reference DOCX template for consistent styling
-- [ ] Add "Generate Resume" button in view editor
-- [ ] Add generation config modal (target role, style, length)
-- [ ] Add download buttons for generated files
-- [ ] Add "Regenerate" button with spinner
-- [ ] Show generation timestamp and AI provider used
+- [x] Add `view_exports` collection via migration
+- [x] Create resume prompt template (stored in backend)
+- [x] Add `/api/view/{slug}/generate` endpoint
+- [x] Integrate Pandoc in Docker image
+- [x] Add "AI Resume" option to print dropdown on public views
+- [x] Add generation config modal (format, style, length)
+- [x] Auto-download generated files
+- [x] Rate limiting for public access (5/hour per IP)
+- [x] Target role uses view's hero_headline (profile owner configured)
+- [ ] Add reference DOCX template for consistent styling — Deferred
+- [ ] Add "Regenerate" button with spinner in admin — Deferred
+- [ ] Show generation timestamp and AI provider used in admin — Deferred
 
 **UX Flow:**
 
-1. User edits view, configures sections/overrides
-2. Clicks "Generate Resume" in view editor header
+1. User visits public view page (or root page with default view)
+2. Clicks print dropdown, selects "AI Resume"
 3. Modal appears with options:
-   - Target role (text input, optional)
+   - Format: PDF / Word Document
    - Style: Chronological / Functional / Hybrid
    - Length: One page / Two pages / Full
-   - AI Provider: (dropdown of configured providers)
+   - Target role: Automatically uses view's hero_headline
 4. Clicks "Generate"
 5. Loading state shows progress
-6. On success, download buttons appear (PDF, DOCX)
-7. Files also accessible from public view page (if visibility allows)
+6. On success, file auto-downloads
 
 **Error Handling:**
 
