@@ -9,16 +9,30 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// RegisterSeedHook seeds demo data on first run (dev mode only)
+// RegisterSeedHook seeds demo data on first run
+// Environment variable SEED_DATA controls behavior:
+//   - "true" or "demo": Seeds fun demo data (Merlin Ambrosius) - DEFAULT for new users
+//   - "dev": Seeds development data (Jedidiah Esposito) - for development/testing
+//   - unset or other: No seeding
 func RegisterSeedHook(app *pocketbase.PocketBase) {
-	// Only seed in development
-	if os.Getenv("SEED_DATA") != "true" {
+	seedMode := os.Getenv("SEED_DATA")
+	if seedMode == "" {
 		return
 	}
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		go func() {
-			if err := seedDemoData(app); err != nil {
+			var err error
+			switch seedMode {
+			case "dev":
+				err = seedDevData(app)
+			case "true", "demo":
+				err = seedDemoData(app)
+			default:
+				log.Printf("Unknown SEED_DATA value: %s (use 'demo' or 'dev')", seedMode)
+				return
+			}
+			if err != nil {
 				log.Printf("Seed warning: %v", err)
 			}
 		}()
@@ -26,6 +40,7 @@ func RegisterSeedHook(app *pocketbase.PocketBase) {
 	})
 }
 
+// seedDemoData seeds fun Arthurian-themed demo data for new users
 func seedDemoData(app *pocketbase.PocketBase) error {
 	// Check if already seeded
 	count, _ := app.CountRecords("profile")
@@ -33,7 +48,284 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 		return nil
 	}
 
-	log.Println("Seeding demo data...")
+	log.Println("Seeding demo data (Merlin Ambrosius)...")
+
+	// Create default user for frontend admin
+	if err := createDefaultUser(app); err != nil {
+		log.Printf("Warning: %v", err)
+	}
+
+	// Create profile
+	profileColl, err := app.FindCollectionByNameOrId("profile")
+	if err != nil {
+		return err
+	}
+
+	profile := core.NewRecord(profileColl)
+	profile.Set("name", "Merlin Ambrosius")
+	profile.Set("headline", "Chief Wizard & Staff Engineer")
+	profile.Set("location", "Camelot, Britannia")
+	profile.Set("summary", "Seasoned enchanter and technical advisor with centuries of experience guiding kingdoms through digital transformation. I specialise in prophecy-driven development, crystal ball observability, and mentoring future monarchs.\n\nMy background spans advisory roles at the Court of Camelot, architectural work on the Round Table distributed system, and founding the Avalon School of Applied Wizardry. I bring ancient wisdom to modern problems, strong intuition for emerging threats, and experience working in high-stakes, sword-adjacent environments.")
+	profile.Set("contact_email", "merlin@camelot.gov.uk")
+	profile.Set("contact_links", []map[string]string{
+		{"type": "github", "url": "https://github.com/merlin-ambrosius"},
+		{"type": "website", "url": "https://avalon.edu"},
+	})
+	profile.Set("visibility", "public")
+	if err := app.Save(profile); err != nil {
+		return err
+	}
+
+	// Create experience
+	expColl, _ := app.FindCollectionByNameOrId("experience")
+
+	exp1 := core.NewRecord(expColl)
+	exp1.Set("company", "Court of Camelot")
+	exp1.Set("title", "Chief Wizard & Royal Technical Advisor")
+	exp1.Set("location", "Camelot, Britannia")
+	exp1.Set("start_date", "0500-01-01")
+	exp1.Set("description", "Principal advisor to King Arthur on all matters magical and technical. Architected the Round Table—a revolutionary distributed consensus system for knight coordination.")
+	exp1.Set("bullets", []string{
+		"Designed and implemented the Round Table distributed system, eliminating hierarchy bugs in knight coordination",
+		"Built Excalibur authentication system with stone-based 2FA (only rightful heir can extract credentials)",
+		"Established prophecy-driven development methodology, reducing surprise dragon attacks by 73%",
+		"Mentored Arthur from squire to king, demonstrating strong leadership development skills",
+	})
+	exp1.Set("skills", []string{"Prophecy", "Mentorship", "Distributed Systems", "Authentication"})
+	exp1.Set("visibility", "public")
+	exp1.Set("is_draft", false)
+	exp1.Set("sort_order", 1)
+	app.Save(exp1)
+
+	exp2 := core.NewRecord(expColl)
+	exp2.Set("company", "Avalon School of Applied Wizardry")
+	exp2.Set("title", "Founder & Headmaster")
+	exp2.Set("location", "Isle of Avalon")
+	exp2.Set("start_date", "0450-01-01")
+	exp2.Set("end_date", "0499-12-31")
+	exp2.Set("description", "Founded premier institution for magical education, training the next generation of court wizards and technical advisors.")
+	exp2.Set("bullets", []string{
+		"Developed comprehensive curriculum covering transmutation, divination, and basic Python",
+		"Graduated 200+ wizards now serving courts across Europe",
+		"Pioneered crystal ball technology for remote scrying and video conferencing",
+		"Established ethical guidelines for magic use that remain industry standard",
+	})
+	exp2.Set("skills", []string{"Education", "Curriculum Development", "Crystal Ball Tech"})
+	exp2.Set("visibility", "public")
+	exp2.Set("is_draft", false)
+	exp2.Set("sort_order", 2)
+	app.Save(exp2)
+
+	exp3 := core.NewRecord(expColl)
+	exp3.Set("company", "Vortigern's Kingdom")
+	exp3.Set("title", "Junior Seer")
+	exp3.Set("location", "Dinas Emrys, Wales")
+	exp3.Set("start_date", "0420-01-01")
+	exp3.Set("end_date", "0449-12-31")
+	exp3.Set("description", "Early career role providing prophetic consulting services. Notable achievement: diagnosed critical infrastructure issue (fighting dragons under castle foundation).")
+	exp3.Set("bullets", []string{
+		"Identified root cause of castle instability—two dragons in the basement (red vs white, classic merge conflict)",
+		"Provided accurate prophecy of Pendragon dynasty, establishing reputation for reliable foresight",
+		"Learned valuable lessons about working with difficult stakeholders",
+	})
+	exp3.Set("skills", []string{"Prophecy", "Debugging", "Stakeholder Management"})
+	exp3.Set("visibility", "public")
+	exp3.Set("is_draft", false)
+	exp3.Set("sort_order", 3)
+	app.Save(exp3)
+
+	// Create projects
+	projColl, _ := app.FindCollectionByNameOrId("projects")
+
+	proj1 := core.NewRecord(projColl)
+	proj1.Set("title", "The Round Table")
+	proj1.Set("slug", "round-table")
+	proj1.Set("summary", "Distributed consensus system for knight coordination with zero hierarchy")
+	proj1.Set("description", "Revolutionary table-based architecture eliminating the 'head of table' single point of failure.\n\n## Key Features\n- Circular topology ensures equal participation from all knights\n- Quest assignment through distributed voting\n- Built-in conflict resolution for Lancelot-related incidents\n- Seats 150 knights with sub-second consensus")
+	proj1.Set("tech_stack", []string{"Oak", "Distributed Systems", "Consensus Algorithms", "Carpentry"})
+	proj1.Set("links", []map[string]string{})
+	proj1.Set("categories", []string{"infrastructure", "distributed-systems"})
+	proj1.Set("visibility", "public")
+	proj1.Set("is_draft", false)
+	proj1.Set("is_featured", true)
+	proj1.Set("sort_order", 1)
+	app.Save(proj1)
+
+	proj2 := core.NewRecord(projColl)
+	proj2.Set("title", "Excalibur Auth")
+	proj2.Set("slug", "excalibur-auth")
+	proj2.Set("summary", "Stone-based authentication system with divine right verification")
+	proj2.Set("description", "Secure authentication framework combining physical challenge with lineage verification.\n\n## Security Features\n- Sword-from-stone 2FA (must physically extract to authenticate)\n- Divine right verification via Lady of the Lake API\n- Automatic succession handling\n- Immune to social engineering (you either pull it or you don't)")
+	proj2.Set("tech_stack", []string{"Enchanted Steel", "OAuth 0.1", "Divine APIs", "Stone"})
+	proj2.Set("links", []map[string]string{})
+	proj2.Set("categories", []string{"security", "authentication"})
+	proj2.Set("visibility", "public")
+	proj2.Set("is_draft", false)
+	proj2.Set("is_featured", true)
+	proj2.Set("sort_order", 2)
+	app.Save(proj2)
+
+	proj3 := core.NewRecord(projColl)
+	proj3.Set("title", "Crystal Ball Observability")
+	proj3.Set("slug", "crystal-ball")
+	proj3.Set("summary", "Real-time scrying platform for monitoring quests and kingdom health")
+	proj3.Set("description", "Enterprise-grade observability solution for medieval IT operations.\n\n## Capabilities\n- Real-time quest tracking across all knights\n- Dragon activity monitoring with early warning\n- Kingdom health dashboards\n- Prophecy-based alerting (issues detected before they occur)")
+	proj3.Set("tech_stack", []string{"Quartz", "Divination", "Real-time Scrying", "Prophecy Engine"})
+	proj3.Set("links", []map[string]string{})
+	proj3.Set("categories", []string{"observability", "monitoring"})
+	proj3.Set("visibility", "public")
+	proj3.Set("is_draft", false)
+	proj3.Set("is_featured", true)
+	proj3.Set("sort_order", 3)
+	app.Save(proj3)
+
+	proj4 := core.NewRecord(projColl)
+	proj4.Set("title", "Holy Grail Search")
+	proj4.Set("slug", "grail-search")
+	proj4.Set("summary", "Distributed search system for locating sacred artifacts")
+	proj4.Set("description", "Large-scale search infrastructure for the Quest for the Holy Grail.\n\n## Architecture\n- Distributed knight agents across Britannia\n- Fuzzy matching for grail-like objects\n- False positive handling (many cups, few grails)\n- Integration with Fisher King legacy systems")
+	proj4.Set("tech_stack", []string{"Quest Framework", "Distributed Search", "Faith-based Routing"})
+	proj4.Set("links", []map[string]string{})
+	proj4.Set("categories", []string{"search", "distributed-systems"})
+	proj4.Set("visibility", "public")
+	proj4.Set("is_draft", false)
+	proj4.Set("is_featured", false)
+	proj4.Set("sort_order", 4)
+	app.Save(proj4)
+
+	// Create education
+	eduColl, _ := app.FindCollectionByNameOrId("education")
+
+	edu1 := core.NewRecord(eduColl)
+	edu1.Set("institution", "Druids of Stonehenge")
+	edu1.Set("degree", "Master of Mystical Arts")
+	edu1.Set("field", "Applied Enchantment")
+	edu1.Set("start_date", "0380-01-01")
+	edu1.Set("end_date", "0400-12-31")
+	edu1.Set("description", "Comprehensive training in prophecy, transmutation, and astronomical computing. Thesis: 'Optimal Stone Placement for Solstice Calculations'.")
+	edu1.Set("visibility", "public")
+	edu1.Set("is_draft", false)
+	edu1.Set("sort_order", 1)
+	app.Save(edu1)
+
+	edu2 := core.NewRecord(eduColl)
+	edu2.Set("institution", "Bardic College of Wales")
+	edu2.Set("degree", "Bachelor of Incantations")
+	edu2.Set("field", "Verbal Spell Interfaces")
+	edu2.Set("start_date", "0370-01-01")
+	edu2.Set("end_date", "0379-12-31")
+	edu2.Set("description", "Focus on voice-activated magic, Latin incantations, and the emerging field of spoken-word programming.")
+	edu2.Set("visibility", "public")
+	edu2.Set("is_draft", false)
+	edu2.Set("sort_order", 2)
+	app.Save(edu2)
+
+	// Create certifications
+	certColl, _ := app.FindCollectionByNameOrId("certifications")
+
+	cert1 := core.NewRecord(certColl)
+	cert1.Set("name", "Certified Prophecy Professional (CPP)")
+	cert1.Set("issuer", "International Seers Guild")
+	cert1.Set("visibility", "public")
+	cert1.Set("is_draft", false)
+	cert1.Set("sort_order", 1)
+	app.Save(cert1)
+
+	cert2 := core.NewRecord(certColl)
+	cert2.Set("name", "Licensed Shapeshifter")
+	cert2.Set("issuer", "Britannia Magical Registry")
+	cert2.Set("visibility", "public")
+	cert2.Set("is_draft", false)
+	cert2.Set("sort_order", 2)
+	app.Save(cert2)
+
+	cert3 := core.NewRecord(certColl)
+	cert3.Set("name", "Dragon Handling Safety Certification")
+	cert3.Set("issuer", "Camelot Health & Safety")
+	cert3.Set("visibility", "public")
+	cert3.Set("is_draft", false)
+	cert3.Set("sort_order", 3)
+	app.Save(cert3)
+
+	// Create skills
+	skillsColl, _ := app.FindCollectionByNameOrId("skills")
+
+	skills := []struct {
+		name        string
+		category    string
+		proficiency string
+		order       int
+	}{
+		{"Prophecy", "Core Magic", "expert", 1},
+		{"Transmutation", "Core Magic", "expert", 2},
+		{"Enchantment", "Core Magic", "proficient", 3},
+		{"Shapeshifting", "Core Magic", "proficient", 4},
+		{"Latin", "Languages", "expert", 5},
+		{"Old Welsh", "Languages", "expert", 6},
+		{"Python", "Languages", "familiar", 7},
+		{"Crystal Ball Scrying", "Observability", "expert", 8},
+		{"Tea Leaf Reading", "Observability", "proficient", 9},
+		{"Distributed Systems", "Architecture", "expert", 10},
+		{"Consensus Algorithms", "Architecture", "proficient", 11},
+		{"Stone-based Auth", "Security", "expert", 12},
+		{"Dragon Handling", "Operations", "proficient", 13},
+		{"Mentorship", "Leadership", "expert", 14},
+		{"Royal Advising", "Leadership", "expert", 15},
+		{"Quest Planning", "Project Management", "expert", 16},
+	}
+
+	for _, s := range skills {
+		skill := core.NewRecord(skillsColl)
+		skill.Set("name", s.name)
+		skill.Set("category", s.category)
+		skill.Set("proficiency", s.proficiency)
+		skill.Set("visibility", "public")
+		skill.Set("sort_order", s.order)
+		app.Save(skill)
+	}
+
+	// Create view
+	viewsColl, _ := app.FindCollectionByNameOrId("views")
+
+	view := core.NewRecord(viewsColl)
+	view.Set("name", "For Kingdoms")
+	view.Set("slug", "kingdoms")
+	view.Set("description", "Curated view for royal courts seeking technical advisors")
+	view.Set("visibility", "public")
+	view.Set("hero_headline", "Chief Wizard & Staff Engineer")
+	view.Set("hero_summary", "Centuries of experience guiding kingdoms through digital transformation. I specialise in prophecy-driven development, crystal ball observability, and mentoring future monarchs.")
+	view.Set("cta_text", "Send Raven")
+	view.Set("cta_url", "mailto:merlin@camelot.gov.uk")
+	sectionsJSON, _ := json.Marshal([]map[string]interface{}{
+		{"section": "experience", "enabled": true, "layout": "default"},
+		{"section": "projects", "enabled": true, "layout": "grid-2"},
+		{"section": "skills", "enabled": true, "layout": "grouped"},
+		{"section": "certifications", "enabled": true, "layout": "grouped"},
+		{"section": "education", "enabled": true, "layout": "default"},
+	})
+	view.Set("sections", string(sectionsJSON))
+	view.Set("is_active", true)
+	view.Set("is_default", true)
+	app.Save(view)
+
+	log.Println("Demo data seeded successfully!")
+	log.Println("  Profile: Merlin Ambrosius")
+	log.Println("  View: /kingdoms")
+	log.Println("")
+	log.Println("  To use development data instead, set SEED_DATA=dev")
+
+	return nil
+}
+
+// seedDevData seeds development data (Jedidiah Esposito profile)
+func seedDevData(app *pocketbase.PocketBase) error {
+	// Check if already seeded
+	count, _ := app.CountRecords("profile")
+	if count > 0 {
+		return nil
+	}
+
+	log.Println("Seeding development data (Jedidiah Esposito)...")
 
 	// Create PocketBase superuser for /_/ admin access (dev mode only)
 	superusers, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
@@ -60,24 +352,8 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 	}
 
 	// Create default user for frontend admin
-	users, err := app.FindCollectionByNameOrId("users")
-	if err == nil {
-		userCount, _ := app.CountRecords("users")
-		if userCount == 0 {
-			admin := core.NewRecord(users)
-			admin.Set("email", "admin@example.com")
-			admin.Set("name", "Admin")
-			admin.Set("is_admin", true)
-			admin.SetPassword("changeme123")
-			if err := app.Save(admin); err != nil {
-				log.Printf("Warning: Could not create default admin user: %v", err)
-			} else {
-				log.Println("Created default frontend admin account:")
-				log.Println("  Email: admin@example.com")
-				log.Println("  Password: changeme123")
-				log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
-			}
-		}
+	if err := createDefaultUser(app); err != nil {
+		log.Printf("Warning: %v", err)
 	}
 
 	// Create profile
@@ -477,9 +753,38 @@ func seedDemoData(app *pocketbase.PocketBase) error {
 	view.Set("is_default", true)
 	app.Save(view)
 
-	log.Println("Demo data seeded successfully!")
+	log.Println("Development data seeded successfully!")
 	log.Println("  Profile: Jedidiah Esposito")
 	log.Println("  View: /front-end-lead")
+
+	return nil
+}
+
+// createDefaultUser creates the frontend admin user
+func createDefaultUser(app *pocketbase.PocketBase) error {
+	users, err := app.FindCollectionByNameOrId("users")
+	if err != nil {
+		return err
+	}
+
+	userCount, _ := app.CountRecords("users")
+	if userCount > 0 {
+		return nil
+	}
+
+	admin := core.NewRecord(users)
+	admin.Set("email", "admin@example.com")
+	admin.Set("name", "Admin")
+	admin.Set("is_admin", true)
+	admin.SetPassword("changeme123")
+	if err := app.Save(admin); err != nil {
+		return err
+	}
+
+	log.Println("Created default frontend admin account:")
+	log.Println("  Email: admin@example.com")
+	log.Println("  Password: changeme123")
+	log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
 
 	return nil
 }
