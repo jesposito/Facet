@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
@@ -11,12 +13,43 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 
 	export let data: PageData;
 
 	// Get headline and summary - use view overrides if this is a default view
 	$: headline = data.view?.hero_headline || data.profile?.headline;
 	$: summary = data.view?.hero_summary || data.profile?.summary;
+
+	// Apply view-specific accent color if default view has one
+	function applyAccentColor(colorName: AccentColor) {
+		if (!browser) return;
+
+		const color = ACCENT_COLORS[colorName];
+		if (!color) return;
+
+		const root = document.documentElement;
+		root.style.setProperty('--color-primary-50', color.scale[50]);
+		root.style.setProperty('--color-primary-100', color.scale[100]);
+		root.style.setProperty('--color-primary-200', color.scale[200]);
+		root.style.setProperty('--color-primary-300', color.scale[300]);
+		root.style.setProperty('--color-primary-400', color.scale[400]);
+		root.style.setProperty('--color-primary-500', color.scale[500]);
+		root.style.setProperty('--color-primary-600', color.scale[600]);
+		root.style.setProperty('--color-primary-700', color.scale[700]);
+		root.style.setProperty('--color-primary-800', color.scale[800]);
+		root.style.setProperty('--color-primary-900', color.scale[900]);
+		root.style.setProperty('--color-primary-950', color.scale[950]);
+	}
+
+	onMount(() => {
+		// View accent color takes priority over profile accent color
+		// (default view may have its own accent color override)
+		const accentColor = data.view?.accent_color || data.profile?.accent_color;
+		if (accentColor) {
+			applyAccentColor(accentColor as AccentColor);
+		}
+	});
 </script>
 
 <svelte:head>

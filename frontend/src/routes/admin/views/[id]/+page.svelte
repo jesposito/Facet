@@ -6,6 +6,7 @@
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
+	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
 	import { flip } from 'svelte/animate';
 	import ViewPreview from '$components/admin/ViewPreview.svelte';
 
@@ -44,6 +45,7 @@
 	let ctaUrl = '';
 	let isActive = true;
 	let isDefault = false;
+	let accentColor: AccentColor | null = null; // null = inherit from global
 
 	// Sections configuration with itemConfig, layout, and width support
 	let sections: Record<string, {
@@ -136,6 +138,9 @@
 				filter: 'is_default = true'
 			});
 			isDefault = defaultViews.items.length > 0 && defaultViews.items[0].id === viewId;
+
+			// Load accent color (null = inherit from global)
+			accentColor = (view.accent_color as AccentColor) || null;
 
 			// Initialize sections from view data
 			initializeSections(view.sections);
@@ -331,7 +336,8 @@
 				cta_text: ctaText.trim() || null,
 				cta_url: ctaUrl.trim() || null,
 				is_active: isActive,
-				sections: sectionsData
+				sections: sectionsData,
+				accent_color: accentColor || null
 			};
 
 			await pb.collection('views').update(viewId, data);
@@ -690,6 +696,64 @@
 					</div>
 				</div>
 
+				<!-- Accent Color Override -->
+				<div class="pt-2">
+					<span class="label mb-3 block">Accent Color</span>
+					<div class="flex flex-wrap items-center gap-3" role="group" aria-label="Select accent color">
+						<!-- Use Global Option -->
+						<button
+							type="button"
+							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+								{accentColor === null
+								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							on:click={() => accentColor = null}
+						>
+							<div class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"></div>
+							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use global</span>
+							{#if accentColor === null}
+								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							{/if}
+						</button>
+
+						<!-- Color Swatches -->
+						{#each ACCENT_COLOR_LIST as color}
+							{@const colorInfo = ACCENT_COLORS[color]}
+							<button
+								type="button"
+								class="relative group"
+								on:click={() => accentColor = color}
+								title="{colorInfo.label} - {colorInfo.description}"
+							>
+								<div
+									class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
+										{accentColor === color
+										? 'ring-2 ring-gray-900 dark:ring-white scale-110'
+										: 'hover:scale-105'}"
+									style="background-color: {colorInfo.scale[500]}"
+								>
+									{#if accentColor === color}
+										<div class="absolute inset-0 flex items-center justify-center">
+											<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+											</svg>
+										</div>
+									{/if}
+								</div>
+							</button>
+						{/each}
+					</div>
+					<p class="text-xs text-gray-500 mt-2">
+						{#if accentColor}
+							Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
+						{:else}
+							Inherits from global profile setting
+						{/if}
+					</p>
+				</div>
+
 				<div class="flex flex-col gap-3 pt-2">
 					<label class="flex items-center gap-3">
 						<input
@@ -957,6 +1021,7 @@
 							{sections}
 							{sectionOrder}
 							{sectionItems}
+							{accentColor}
 						/>
 					</div>
 				</div>

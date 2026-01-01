@@ -31,9 +31,11 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 
 	// Props from parent editor
 	export let profile: Profile | null = null;
+	export let accentColor: AccentColor | null = null; // View-specific accent color
 	export let heroHeadline: string = '';
 	export let heroSummary: string = '';
 	export let ctaText: string = '';
@@ -154,9 +156,31 @@
 
 	// Reactive count of visible sections for empty state check
 	$: visibleSectionCount = sectionOrder.filter(s => computedSections[s.key]?.visible).length;
+
+	// Compute effective accent color (view override or profile default)
+	$: effectiveAccentColor = accentColor || (profile?.accent_color as AccentColor) || null;
+
+	// Generate inline styles for accent color preview
+	$: accentStyles = effectiveAccentColor ? (() => {
+		const color = ACCENT_COLORS[effectiveAccentColor];
+		if (!color) return '';
+		return `
+			--color-primary-50: ${color.scale[50]};
+			--color-primary-100: ${color.scale[100]};
+			--color-primary-200: ${color.scale[200]};
+			--color-primary-300: ${color.scale[300]};
+			--color-primary-400: ${color.scale[400]};
+			--color-primary-500: ${color.scale[500]};
+			--color-primary-600: ${color.scale[600]};
+			--color-primary-700: ${color.scale[700]};
+			--color-primary-800: ${color.scale[800]};
+			--color-primary-900: ${color.scale[900]};
+			--color-primary-950: ${color.scale[950]};
+		`;
+	})() : '';
 </script>
 
-<div class="preview-container">
+<div class="preview-container" style={accentStyles}>
 	<!-- Mini Hero -->
 	{#if effectiveProfile}
 		<div class="preview-hero">

@@ -1214,7 +1214,7 @@ interface SiteSettings {
 - ❌ Freeform color picker (guardrails philosophy)
 - ❌ Custom font selection (deferred)
 
-#### 6.6 Per-View Theming & Presets
+#### 6.6 Per-View Theming & Presets ✅ Complete
 
 Enable different views to have different visual styles. A recruiter view might use professional Indigo, while a speaking/conference view uses energetic Rose.
 
@@ -1256,11 +1256,11 @@ interface View {
 
 **Implementation Tasks:**
 
-- [ ] Add `accent_color` field to views collection (migration)
-- [ ] Add accent color selector to view editor
-- [ ] Update view data API to include accent color
-- [ ] Frontend applies view accent color when rendering public view
-- [ ] Preview pane reflects view-specific accent color
+- [x] Add `accent_color` field to views collection (migration)
+- [x] Add accent color selector to view editor
+- [x] Update view data API to include accent color
+- [x] Frontend applies view accent color when rendering public view
+- [x] Preview pane reflects view-specific accent color
 
 **Theme Presets (Future):**
 
@@ -1596,6 +1596,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 | 2026-01-01 | Phase 4.4 data export complete | JSON and YAML export via /api/export endpoint. Admin-only, downloads full profile data for backup/migration. Media files and import deferred. |
 | 2026-01-01 | Phase 6.5 accent color design finalized | Curated palette approach (6 colors) instead of freeform picker. Maintains design guardrails while enabling personalization. Colors: Sky, Indigo, Emerald, Rose, Amber, Slate. Uses CSS custom properties for runtime theming. |
 | 2026-01-01 | Phase 6.5 accent color implementation complete | Full implementation: migration, color constants, Admin Settings UI with color swatches, live preview, CSS custom properties injection. Works in light/dark modes. |
+| 2026-01-01 | Phase 6.6 per-view theming complete | Views can now override global accent color. View editor has color selector with "Use global" option. Preview pane reflects view-specific color in real-time. |
 
 ---
 

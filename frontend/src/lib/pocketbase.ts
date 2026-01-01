@@ -157,6 +157,7 @@ export interface View {
 	sections?: ViewSection[];
 	is_active: boolean;
 	is_default?: boolean;
+	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
 }
 
 export interface ItemConfig {

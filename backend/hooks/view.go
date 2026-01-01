@@ -213,6 +213,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["cta_url"] = ctaURL
 			}
 
+			// Include view-specific accent color (null/empty means inherit from profile)
+			if accentColor := view.GetString("accent_color"); accentColor != "" {
+				response["accent_color"] = accentColor
+			}
+
 			// Get sections configuration
 			sectionsJSON := view.GetString("sections")
 			var sections []map[string]interface{}
