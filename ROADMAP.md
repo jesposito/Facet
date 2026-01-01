@@ -685,7 +685,7 @@ Full drag-and-drop editing directly in the preview pane.
 
 ### Color & Theme Customization
 
-#### 6.5 Accent Color (Curated Palette)
+#### 6.5 Accent Color (Curated Palette) ✅ Complete
 
 Enable users to customize their profile's accent color via Admin Settings. Uses a **curated palette approach** (not freeform color picker) to maintain design guardrails and accessibility.
 
@@ -760,15 +760,15 @@ interface SiteSettings {
 
 **Implementation Tasks:**
 
-- [ ] Add `accent_color` field to profile collection (migration)
-- [ ] Create color palette constants file with full scales
-- [ ] Add "Appearance" section to Admin Settings page
-- [ ] Create color swatch selector component with visual feedback
-- [ ] Add live preview showing button/link appearance
-- [ ] Inject CSS custom properties in root layout based on setting
-- [ ] Update `app.css` component classes to use CSS variables
-- [ ] Test all 6 colors across light and dark modes
-- [ ] Verify WCAG contrast ratios for all combinations
+- [x] Add `accent_color` field to profile collection (migration)
+- [x] Create color palette constants file with full scales
+- [x] Add "Appearance" section to Admin Settings page
+- [x] Create color swatch selector component with visual feedback
+- [x] Add live preview showing button/link appearance
+- [x] Inject CSS custom properties in root layout based on setting
+- [x] Update `app.css` component classes to use CSS variables
+- [x] Test all 6 colors across light and dark modes
+- [x] Verify WCAG contrast ratios for all combinations
 
 **Out of Scope (Intentionally):**
 - ❌ Freeform color picker (guardrails philosophy)
@@ -1155,6 +1155,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 | 2026-01-01 | Phase 1.5 added for content discovery | Posts and talks are buried at bottom of profile with no navigation. Adding: profile nav tabs, index pages (/posts, /talks), and individual talk pages (/talks/[slug]). View limiting already works via sections config. |
 | 2026-01-01 | Phase 4.4 data export complete | JSON and YAML export via /api/export endpoint. Admin-only, downloads full profile data for backup/migration. Media files and import deferred. |
 | 2026-01-01 | Phase 6.5 accent color design finalized | Curated palette approach (6 colors) instead of freeform picker. Maintains design guardrails while enabling personalization. Colors: Sky, Indigo, Emerald, Rose, Amber, Slate. Uses CSS custom properties for runtime theming. |
+| 2026-01-01 | Phase 6.5 accent color implementation complete | Full implementation: migration, color constants, Admin Settings UI with color swatches, live preview, CSS custom properties injection. Works in light/dark modes. |
 
 ---
 
