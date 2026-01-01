@@ -834,6 +834,108 @@ Full drag-and-drop editing directly in the preview pane.
 
 These are ideas that may be explored after the core roadmap is complete:
 
+### Homepage Privacy Control
+
+Enable users to hide their default public profile while still allowing access to specific views via tokens or direct links. This is useful for:
+- Job seekers who want to share tailored views with specific recruiters
+- Professionals who don't want a public presence but need shareable profile links
+- Users in transition who are "setting up" their profile
+
+#### Proposed UX
+
+**Admin Settings Panel:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Profile Visibility                                          │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                             │
+│ Public Homepage  [━━━━━━○    OFF]                           │
+│                                                             │
+│ When OFF, visitors to your root URL (/) will see a         │
+│ placeholder page. Views you create can still be accessed   │
+│ based on their individual visibility settings.             │
+│                                                             │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │ Landing Page Message (when homepage is off)             │ │
+│ │ ┌─────────────────────────────────────────────────────┐ │ │
+│ │ │ This profile is being set up.                       │ │ │
+│ │ │                                                     │ │ │
+│ │ └─────────────────────────────────────────────────────┘ │ │
+│ └─────────────────────────────────────────────────────────┘ │
+│                                                             │
+│ Your Views:                                                 │
+│ • /recruiter (unlisted) - Requires share token              │
+│ • /speaking (public) - Always accessible                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Behavior Matrix:**
+
+| Homepage Toggle | View Visibility | Accessible At | Notes |
+|-----------------|-----------------|---------------|-------|
+| ON | (any) | `/` | Normal homepage behavior |
+| OFF | public | `/<slug>` | Direct URL works |
+| OFF | unlisted | `/<slug>?token=...` or `/s/<token>` | Token required |
+| OFF | password | `/<slug>` (prompts) | Password required |
+| OFF | private | (admin only) | Not public |
+
+**Edge Cases:**
+
+| Scenario | Behavior |
+|----------|----------|
+| Homepage OFF, no views exist | Show landing page at `/` |
+| Homepage OFF, public view exists | `/` shows landing; `/<slug>` shows view |
+| Index pages (`/posts`, `/talks`) | Follow homepage toggle (hide when OFF) |
+| Individual posts/talks (`/posts/slug`) | Respect item's own visibility (not homepage toggle) |
+| SEO/robots.txt | Optionally block indexing when homepage OFF |
+
+#### Technical Implementation
+
+**Schema Changes:**
+```typescript
+// New settings collection or profile extension
+interface SiteSettings {
+  homepage_enabled: boolean;      // Toggle for public homepage
+  landing_page_message?: string;  // Custom message when OFF
+  landing_page_cta_url?: string;  // Optional "Request Access" link
+  block_indexing_when_private?: boolean;  // robots.txt control
+}
+```
+
+**Backend Changes:**
+- [ ] Add `site_settings` collection (or extend profile)
+- [ ] Modify `/api/homepage` to check `homepage_enabled`
+- [ ] Modify `/api/default-view` to return `homepage_disabled: true` when OFF
+- [ ] Fix view data endpoint to show profile regardless of profile visibility when view access is authenticated (unlisted token or password JWT validated)
+- [ ] Add `/api/site-settings` endpoint for frontend
+- [ ] Optionally serve dynamic `robots.txt` based on setting
+
+**Frontend Changes:**
+- [ ] Add prominent toggle in Admin Settings page
+- [ ] Landing page component for when homepage is disabled
+- [ ] Custom message textarea
+- [ ] Hide/show `/posts` and `/talks` index pages based on toggle
+- [ ] Show "Your views" summary in settings for quick reference
+
+**UX Considerations:**
+1. Toggle should be very prominent (top of Settings or Profile page)
+2. Clear explanation of what "OFF" means
+3. Show list of active views and their accessibility
+4. Warn if turning OFF with no shareable views configured
+5. Consider "Request Access" flow for landing page (link to email or form)
+
+#### Prerequisites
+- Phase 2 complete (view system)
+- Phase 3 complete (token management)
+
+#### Risks
+- Users may accidentally hide their profile
+- Need clear visual feedback on public vs private state
+- Index pages (`/posts`, `/talks`) decision affects content discoverability
+
+---
+
 ### Self-Hosting Improvements
 
 #### OAuth via Environment Variables (Priority)
