@@ -206,7 +206,7 @@
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
 | 12. Print & Export | 🟡 Partial | Print stylesheet + data export complete, AI print deferred |
-| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Section widths (6.3) + Accent color (6.5) complete |
+| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Section widths (6.3) + Accent color (6.5) + Per-view theming (6.6) complete |
 
 ---
 
@@ -836,3 +836,69 @@ Users can now select an accent color from the Admin Settings page. The color app
 - Admin settings page dispatches `accent-color-changed` event for instant updates
 - All 6 colors have full Tailwind-style scales (50-950) for consistent theming
 - Works correctly in both light and dark modes
+
+---
+
+## Phase 6.6: Per-View Theming ✅ Complete
+
+This phase enables different views to have different accent colors, allowing users to tailor each view's visual style to its audience.
+
+### Overview
+Each view can optionally override the global accent color. This enables:
+- **Recruiter view** → Indigo (professional, corporate)
+- **Speaking view** → Rose (energetic, memorable)
+- **Portfolio view** → Emerald (creative, fresh)
+- **Default view** → Uses global profile setting
+
+### Implementation
+
+#### Backend Changes
+- [x] Migration `1735600007_add_view_accent_color.go` adds optional `accent_color` field to views collection
+- [x] `/api/view/{slug}/data` endpoint includes `accent_color` in response (null = inherit)
+
+#### Frontend Type Changes
+- [x] Added `accent_color` field to `View` interface in `pocketbase.ts`
+
+#### View Editor UI
+- [x] Accent color selector in Settings section of view editor
+- [x] "Use global" option to inherit from profile setting
+- [x] Color swatches for override selection
+- [x] Visual feedback showing current selection
+- [x] Descriptive text indicating inheritance vs override
+
+#### Public View Rendering
+- [x] `+page.svelte` (homepage) applies view accent color if present
+- [x] `[slug=slug]/+page.svelte` applies view accent color if present
+- [x] View accent color takes priority over profile accent color
+
+#### Preview Pane
+- [x] ViewPreview component accepts accentColor prop
+- [x] Preview applies view-specific accent color via CSS custom properties
+- [x] Real-time updates as user changes accent color in editor
+
+### Files Added
+- `backend/migrations/1735600007_add_view_accent_color.go`
+
+### Files Modified
+- `backend/hooks/view.go` - Added accent_color to view data response
+- `frontend/src/lib/pocketbase.ts` - Added accent_color to View interface
+- `frontend/src/routes/+page.server.ts` - Added accent_color to view data
+- `frontend/src/routes/[slug=slug]/+page.server.ts` - Added accent_color to view data
+- `frontend/src/routes/+page.svelte` - Apply view accent color on homepage
+- `frontend/src/routes/[slug=slug]/+page.svelte` - Apply view accent color on public views
+- `frontend/src/routes/admin/views/[id]/+page.svelte` - Added accent color selector UI
+- `frontend/src/components/admin/ViewPreview.svelte` - Added accent color preview support
+
+### Usage
+1. Navigate to Admin > Views > [Edit View]
+2. Find "Accent Color" in the Settings section
+3. Click "Use global" to inherit from profile, or select a color to override
+4. Preview pane shows the accent color in real-time
+5. Save the view - accent color applies on public view
+6. Each view can have its own accent color independent of others
+
+### Technical Details
+- View accent color stored as nullable field (null = inherit from profile)
+- Priority: View accent color > Profile accent color > Default (sky)
+- CSS custom properties applied via inline styles in preview
+- Public pages apply accent color via onMount() hook
