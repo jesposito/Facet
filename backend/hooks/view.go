@@ -609,7 +609,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			postRecords, err := app.FindRecordsByFilter(
 				"posts",
 				filter,
-				"-published_at,-created",
+				"-published_at",
 				100,
 				0,
 				nil,
