@@ -205,16 +205,21 @@
 			await loadProviders();
 		} catch (err: unknown) {
 			console.error('Failed to add provider:', err);
+			// Log full error for debugging
+			console.error('[AI-PROVIDER] Full error object:', JSON.stringify(err, null, 2));
 			// Extract detailed error from PocketBase ClientResponseError
 			let message = 'Failed to add provider';
 			if (err && typeof err === 'object' && 'data' in err) {
-				const pbErr = err as { data?: { data?: Record<string, { message: string }> } };
+				const pbErr = err as { data?: { data?: Record<string, { message: string }>, message?: string } };
+				console.error('[AI-PROVIDER] Error data:', pbErr.data);
 				const fieldErrors = pbErr.data?.data;
-				if (fieldErrors) {
+				if (fieldErrors && Object.keys(fieldErrors).length > 0) {
 					const details = Object.entries(fieldErrors)
 						.map(([field, info]) => `${field}: ${info.message}`)
 						.join(', ');
 					message = `Validation error: ${details}`;
+				} else if (pbErr.data?.message) {
+					message = pbErr.data.message;
 				}
 			} else if (err instanceof Error) {
 				message = err.message;
