@@ -11,6 +11,7 @@ import (
 
 	"facet/services"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -18,41 +19,19 @@ import (
 
 // RegisterAIHooks registers AI-related API endpoints
 func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto *services.CryptoService) {
-	// Auto-configure AI providers from environment variables on app start
+	// Register API endpoints on serve
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		// Try to auto-configure Anthropic from environment
-		if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
-			if err := ensureEnvProvider(app, crypto, "anthropic", "Anthropic (Auto)", apiKey, "", "claude-sonnet-4-20250514"); err != nil {
-				log.Printf("Warning: Failed to auto-configure Anthropic provider: %v", err)
-			} else {
-				log.Println("AI: Auto-configured Anthropic provider from ANTHROPIC_API_KEY")
-			}
-		}
-
-		// Try to auto-configure OpenAI from environment
-		if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-			if err := ensureEnvProvider(app, crypto, "openai", "OpenAI (Auto)", apiKey, "", "gpt-4o-mini"); err != nil {
-				log.Printf("Warning: Failed to auto-configure OpenAI provider: %v", err)
-			} else {
-				log.Println("AI: Auto-configured OpenAI provider from OPENAI_API_KEY")
-			}
-		}
-
-		// Try to auto-configure Ollama from environment (no API key needed, just base URL)
-		if baseURL := os.Getenv("OLLAMA_BASE_URL"); baseURL != "" {
-			model := os.Getenv("OLLAMA_MODEL")
-			if model == "" {
-				model = "llama3.2"
-			}
-			if err := ensureEnvProvider(app, crypto, "ollama", "Ollama (Auto)", "", baseURL, model); err != nil {
-				log.Printf("Warning: Failed to auto-configure Ollama provider: %v", err)
-			} else {
-				log.Println("AI: Auto-configured Ollama provider from OLLAMA_BASE_URL")
-			}
-		}
-
 		// Check AI status endpoint - tells frontend if AI is available
+		// Also auto-configures from environment on first call if needed
 		se.Router.GET("/api/ai/status", func(e *core.RequestEvent) error {
+			// First check if any providers exist
+			allProviders, _ := app.FindRecordsByFilter("ai_providers", "1=1", "", 1, 0)
+
+			// If no providers exist at all, try to auto-configure from environment
+			if len(allProviders) == 0 {
+				autoConfigureFromEnv(app, crypto)
+			}
+
 			providers, err := app.FindRecordsByFilter("ai_providers", "is_active = true", "", 1, 0)
 			available := err == nil && len(providers) > 0
 
@@ -228,55 +207,85 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 	})
 }
 
-// ensureEnvProvider creates or updates an AI provider configured via environment variable
-func ensureEnvProvider(app *pocketbase.PocketBase, crypto *services.CryptoService, providerType, name, apiKey, baseURL, model string) error {
-	// Check if an env-configured provider of this type already exists
-	providers, err := app.FindRecordsByFilter("ai_providers", fmt.Sprintf("type = '%s' && name ~ '(Auto)'", providerType), "", 1, 0)
-	if err == nil && len(providers) > 0 {
-		// Update existing provider
-		record := providers[0]
-		if apiKey != "" {
-			encrypted, err := crypto.Encrypt(apiKey)
-			if err != nil {
-				return err
-			}
-			record.Set("api_key_encrypted", encrypted)
+// autoConfigureFromEnv creates AI providers from environment variables
+// Called from request context where saves work correctly
+func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+	isFirstProvider := true
+
+	// Check for Anthropic
+	if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
+		if err := createProviderFromEnv(app, crypto, "anthropic", "Claude (Auto)", apiKey, "", "claude-sonnet-4-20250514", isFirstProvider); err != nil {
+			log.Printf("[AI] Failed to auto-configure Anthropic: %v", err)
+		} else {
+			log.Printf("[AI] Auto-configured Anthropic Claude provider from environment")
+			isFirstProvider = false
 		}
-		if baseURL != "" {
-			record.Set("base_url", baseURL)
-		}
-		record.Set("model", model)
-		record.Set("is_active", true)
-		return app.Save(record)
 	}
 
-	// Create new provider
-	collection, err := app.FindCollectionByNameOrId("ai_providers")
-	if err != nil {
-		return err
+	// Check for OpenAI
+	if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
+		if err := createProviderFromEnv(app, crypto, "openai", "OpenAI (Auto)", apiKey, "", "gpt-4o", isFirstProvider); err != nil {
+			log.Printf("[AI] Failed to auto-configure OpenAI: %v", err)
+		} else {
+			log.Printf("[AI] Auto-configured OpenAI provider from environment")
+			isFirstProvider = false
+		}
 	}
 
-	record := core.NewRecord(collection)
-	record.Set("name", name)
-	record.Set("type", providerType)
-	record.Set("base_url", baseURL)
-	record.Set("model", model)
-	record.Set("is_active", true)
+	// Check for Ollama
+	if baseURL := os.Getenv("OLLAMA_BASE_URL"); baseURL != "" {
+		model := os.Getenv("OLLAMA_MODEL")
+		if model == "" {
+			model = "llama3.2"
+		}
+		if err := createProviderFromEnv(app, crypto, "ollama", "Ollama (Auto)", "", baseURL, model, isFirstProvider); err != nil {
+			log.Printf("[AI] Failed to auto-configure Ollama: %v", err)
+		} else {
+			log.Printf("[AI] Auto-configured Ollama provider from environment")
+		}
+	}
+}
 
-	// Check if any default exists, if not make this the default
-	defaults, _ := app.FindRecordsByFilter("ai_providers", "is_default = true", "", 1, 0)
-	record.Set("is_default", len(defaults) == 0)
+// createProviderFromEnv creates a single AI provider from environment config
+// Uses direct SQL insert since app.Save() doesn't work in GET request handlers
+func createProviderFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoService, providerType, name, apiKey, baseURL, model string, isDefault bool) error {
+	// Generate a unique ID
+	id := fmt.Sprintf("%s%d", providerType[:3], time.Now().UnixNano()%1000000000)
 
 	// Encrypt API key if provided
+	var encryptedKey string
 	if apiKey != "" {
-		encrypted, err := crypto.Encrypt(apiKey)
+		var err error
+		encryptedKey, err = crypto.Encrypt(apiKey)
 		if err != nil {
-			return err
+			return fmt.Errorf("encrypt: %w", err)
 		}
-		record.Set("api_key_encrypted", encrypted)
 	}
 
-	return app.Save(record)
+	// Use raw SQL insert since app.Save() doesn't work in GET handlers
+	isDefaultInt := 0
+	if isDefault {
+		isDefaultInt = 1
+	}
+
+	query := `INSERT INTO ai_providers (id, name, type, model, base_url, api_key_encrypted, is_active, is_default)
+	          VALUES ({:id}, {:name}, {:type}, {:model}, {:base_url}, {:api_key_encrypted}, 1, {:is_default})`
+
+	_, err := app.DB().NewQuery(query).Bind(dbx.Params{
+		"id":                id,
+		"name":              name,
+		"type":              providerType,
+		"model":             model,
+		"base_url":          baseURL,
+		"api_key_encrypted": encryptedKey,
+		"is_default":        isDefaultInt,
+	}).Execute()
+	if err != nil {
+		return fmt.Errorf("insert: %w", err)
+	}
+
+	log.Printf("[AI] Created provider via direct SQL: %s (id: %s)", name, id)
+	return nil
 }
 
 // getActiveProvider gets a provider by ID or returns the default active provider
