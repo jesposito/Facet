@@ -14,7 +14,7 @@
 		loading = true;
 		try {
 			const result = await pb.collection('views').getList(1, 50, {
-				sort: '-is_default,-created'
+				sort: '-is_default,-id'
 			});
 			views = result.items;
 		} catch (err) {

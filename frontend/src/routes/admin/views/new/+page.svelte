@@ -54,7 +54,7 @@
 		for (const section of AVAILABLE_SECTIONS) {
 			try {
 				const records = await pb.collection(section.collection).getList(1, 100, {
-					sort: '-created'
+					sort: '-id'
 				});
 
 				sectionItems[section.key] = records.items.map((item) => ({

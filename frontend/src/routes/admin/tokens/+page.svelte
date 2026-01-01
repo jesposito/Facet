@@ -28,7 +28,7 @@
 	async function loadTokens() {
 		try {
 			const result = await pb.collection('share_tokens').getList<ShareToken>(1, 100, {
-				sort: '-created',
+				sort: '-id',
 				expand: 'view_id'
 			});
 			tokens = result.items;

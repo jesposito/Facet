@@ -33,23 +33,23 @@
 
 			// Get recent projects and experience for activity feed
 			const [recentProjects, recentExperience] = await Promise.all([
-				pb.collection('projects').getList(1, 3, { sort: '-updated' }),
-				pb.collection('experience').getList(1, 3, { sort: '-updated' })
+				pb.collection('projects').getList(1, 3, { sort: '-id' }),
+				pb.collection('experience').getList(1, 3, { sort: '-id' })
 			]);
 
 			recentActivity = [
 				...recentProjects.items.map((p) => ({
 					type: 'project',
 					title: p.title,
-					date: p.updated
+					date: p.id
 				})),
 				...recentExperience.items.map((e) => ({
 					type: 'experience',
 					title: `${e.title} at ${e.company}`,
-					date: e.updated
+					date: e.id
 				}))
 			]
-				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+				.sort((a, b) => b.date.localeCompare(a.date))
 				.slice(0, 5);
 		} catch (err) {
 			console.error('Failed to load dashboard stats:', err);
