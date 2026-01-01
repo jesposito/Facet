@@ -25,7 +25,7 @@ services:
       # DEV ONLY: This key is for local development. Never use in production.
       # Production requires a unique key: openssl rand -hex 32
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!}
-      - SEED_DATA=true
+      - SEED_DATA=${SEED_DATA:-dev}  # 'dev' for dev profile, unset for no seeding
       - LOG_LEVEL=debug
     command: /app/scripts/dev-backend.sh
     healthcheck:

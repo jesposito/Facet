@@ -475,7 +475,8 @@ Me.yaml uses **LinkedIn-style canonical URLs**:
 These slugs cannot be used for views (enforced at frontend and backend):
 
 ```
-admin, api, s, v, _app, _, assets, static,
+admin, api, s, v, projects, posts, talks,
+_app, _, assets, static,
 favicon.ico, robots.txt, sitemap.xml,
 health, healthz, ready, login, logout,
 auth, oauth, callback, home, index, default, profile
@@ -1011,7 +1012,7 @@ These export features are planned for future phases:
 | `ADMIN_EMAILS` | No | — | Comma-separated admin allowlist |
 | `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin UI |
 | `DATA_PATH` | No | `./data` | Database and uploads path |
-| `SEED_DATA` | No | `true` (dev) | Create demo data on start |
+| `SEED_DATA` | No | — | Seed mode: `dev` for dev profile, unset for none |
 | `LOG_LEVEL` | No | `info` | Logging verbosity |
 
 ---

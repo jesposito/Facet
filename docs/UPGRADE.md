@@ -91,7 +91,7 @@ PocketBase handles schema migrations automatically. When you upgrade:
 If you need to run migrations manually:
 
 ```bash
-docker-compose exec ownprofile ./ownprofile migrate up
+docker-compose exec me-yaml ./me-yaml migrate up
 ```
 
 ---

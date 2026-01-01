@@ -177,9 +177,9 @@ labels:
 
 ### "Connection refused" errors
 
-Check that PocketBase started:
+Check that the container started:
 ```bash
-docker-compose logs ownprofile
+docker-compose logs me-yaml
 ```
 
 ### OAuth redirects failing
