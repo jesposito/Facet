@@ -334,6 +334,38 @@ Available tasks:
 - `test` - Run all tests
 - `build:docker` - Build production image
 
+## Dependency Versions
+
+### PocketBase Version Compatibility
+
+**Critical:** The frontend SDK version must be compatible with the backend PocketBase version.
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| Backend (Go) | PocketBase v0.23.4 | Set in `backend/go.mod` |
+| Frontend SDK | pocketbase ^0.21.0 | Set in `frontend/package.json` |
+
+**Why this matters:**
+- SDK v0.22+ renamed `authStore.model` → `authStore.record`
+- SDK v0.26+ is designed for PocketBase v0.34+ and uses incompatible request formats
+- Using mismatched versions causes 400 errors on authenticated requests
+
+**If upgrading PocketBase backend:**
+1. Check the [PocketBase JS SDK releases](https://github.com/pocketbase/js-sdk/releases) for compatible SDK version
+2. Update `frontend/package.json` to match
+3. If upgrading past v0.22, change `authStore.model` → `authStore.record` in:
+   - `frontend/src/lib/pocketbase.ts`
+   - `frontend/src/routes/admin/login/+page.svelte`
+
+### Other Key Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| SvelteKit | ^2.0.0 | Frontend framework |
+| Svelte | ^4.2.0 | Component framework |
+| Vite | ^5.0.0 | Build tool |
+| Tailwind CSS | ^3.4.0 | Styling |
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and customize:
