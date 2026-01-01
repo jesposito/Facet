@@ -1,8 +1,8 @@
 /**
  * Talks index route: /talks
  *
- * Lists all public, non-draft talks with year filtering.
- * Private/unlisted/draft talks are excluded.
+ * Lists all non-private, non-draft talks with year filtering.
+ * Only private and draft talks are excluded.
  */
 
 import type { PageServerLoad } from './$types';
@@ -12,8 +12,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const year = url.searchParams.get('year');
 
 	try {
-		// Build filter for public, non-draft talks
-		const filter = "visibility = 'public' && is_draft = false";
+		// Build filter for non-private, non-draft talks (matches profile behavior)
+		const filter = "visibility != 'private' && is_draft = false";
 
 		// Fetch talks from PocketBase
 		const talksResponse = await fetch(

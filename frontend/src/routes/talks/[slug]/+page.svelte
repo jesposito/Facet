@@ -38,6 +38,10 @@
 
 	$: videoEmbed = data.talk.video_url ? getVideoEmbed(data.talk.video_url) : null;
 	$: formattedDate = data.talk.date ? formatDate(data.talk.date, { month: 'long', day: 'numeric', year: 'numeric' }) : null;
+
+	// Determine back navigation URL and label
+	$: backUrl = data.fromView ? `/${data.fromView}` : '/talks';
+	$: backLabel = data.fromView ? 'Back to Profile' : 'All Talks';
 </script>
 
 <svelte:head>
@@ -76,13 +80,13 @@
 		<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 			<!-- Back navigation -->
 			<a
-				href="/talks"
+				href={backUrl}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>All Talks</span>
+				<span>{backLabel}</span>
 			</a>
 
 			<!-- Talk title -->

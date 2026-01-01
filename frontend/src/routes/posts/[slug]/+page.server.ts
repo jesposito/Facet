@@ -9,9 +9,10 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ params, fetch }) => {
+export const load: PageServerLoad = async ({ params, fetch, url }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
+	const fromView = url.searchParams.get('from');
 
 	try {
 		const response = await fetch(`${pbUrl}/api/post/${slug}`);
@@ -37,7 +38,8 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 			},
 			profile: post.profile || null,
 			prev_post: post.prev_post || null,
-			next_post: post.next_post || null
+			next_post: post.next_post || null,
+			fromView: fromView || null
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {

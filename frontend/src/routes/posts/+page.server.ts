@@ -1,8 +1,8 @@
 /**
  * Posts index route: /posts
  *
- * Lists all public, non-draft posts with tag filtering.
- * Private/unlisted/draft posts are excluded.
+ * Lists all non-private, non-draft posts with tag filtering.
+ * Only private and draft posts are excluded.
  */
 
 import type { PageServerLoad } from './$types';
@@ -12,8 +12,8 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const tag = url.searchParams.get('tag');
 
 	try {
-		// Build filter for public, non-draft posts
-		let filter = "visibility = 'public' && is_draft = false";
+		// Build filter for non-private, non-draft posts (matches profile behavior)
+		let filter = "visibility != 'private' && is_draft = false";
 
 		// Fetch posts from PocketBase
 		const postsResponse = await fetch(

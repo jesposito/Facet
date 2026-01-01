@@ -197,11 +197,11 @@
 						</div>
 					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('posts'))}>
-							<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} />
+							<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} viewSlug={data.view?.slug || ''} />
 						</div>
 					{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
 						<div class={getWidthClass(getSectionWidth('talks'))}>
-							<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} />
+							<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} />
 						</div>
 					{/if}
 				{/each}
