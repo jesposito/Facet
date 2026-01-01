@@ -95,13 +95,18 @@
 		generatedUrl = null;
 
 		try {
+			// Use the view's hero_headline as target role (configured by profile owner)
+			const config = {
+				...generationConfig,
+				target_role: data.view?.hero_headline || data.profile?.headline || ''
+			};
 			const response = await fetch(`/api/view/${slug}/generate`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: pb.authStore.token || ''
 				},
-				body: JSON.stringify(generationConfig)
+				body: JSON.stringify(config)
 			});
 
 			const result = await response.json();
@@ -303,17 +308,6 @@
 							<option value="pdf">PDF</option>
 							<option value="docx">Word Document</option>
 						</select>
-					</div>
-
-					<div>
-						<label for="target_role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Role (optional)</label>
-						<input
-							type="text"
-							id="target_role"
-							bind:value={generationConfig.target_role}
-							class="input"
-							placeholder="e.g., Senior Software Engineer"
-						/>
 					</div>
 
 					<div>
