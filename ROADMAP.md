@@ -769,17 +769,64 @@ interface SiteSettings {
 
 **Out of Scope (Intentionally):**
 - ❌ Freeform color picker (guardrails philosophy)
-- ❌ Per-view accent colors (deferred to 6.6)
 - ❌ Custom font selection (deferred)
 
-#### 6.6 Theme Presets
+#### 6.6 Per-View Theming & Presets
+
+Enable different views to have different visual styles. A recruiter view might use professional Indigo, while a speaking/conference view uses energetic Rose.
+
+**Per-View Accent Color Override:**
+
+Each view can optionally override the global accent color. This enables:
+- **Recruiter view** → Indigo (professional, corporate)
+- **Speaking view** → Rose (energetic, memorable)
+- **Portfolio view** → Emerald (creative, fresh)
+- **Default view** → Uses global setting
+
+**Schema Change:**
+```typescript
+interface ViewSection {
+  // ... existing fields
+}
+
+interface View {
+  // ... existing fields
+  accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
+  // null = inherit from global setting
+}
+```
+
+**UI Design (View Editor):**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ View Settings                                                │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                              │
+│ Accent Color                                                 │
+│ ○ Use global setting (Sky)                                  │
+│ ● Override for this view:                                   │
+│   [Sky ●] [Indigo ●] [Emerald ●] [Rose ●] [Amber ●] [Slate] │
+│              ✓                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Implementation Tasks:**
+
+- [ ] Add `accent_color` field to views collection (migration)
+- [ ] Add accent color selector to view editor
+- [ ] Update view data API to include accent color
+- [ ] Frontend applies view accent color when rendering public view
+- [ ] Preview pane reflects view-specific accent color
+
+**Theme Presets (Future):**
 
 Full theme presets that combine accent color with typography and spacing choices.
 
 - [ ] Bundled themes: Minimal, Professional, Creative
 - [ ] One-click apply (sets colors, fonts, spacing)
 - [ ] Reset to default option
-- [ ] Per-view theme override (optional)
+- [ ] Per-view theme preset selection
 
 #### 6.7 Custom CSS (Power Users)
 - [ ] Admin textarea for custom CSS
