@@ -39,13 +39,14 @@
 	export let ctaText: string = '';
 	export let ctaUrl: string = '';
 
-	// Section configuration from editor
+	// Section configuration from editor (with width support for Phase 6.3)
 	export let sections: Record<
 		string,
 		{
 			enabled: boolean;
 			items: string[];
 			layout: string;
+			width?: 'full' | 'half' | 'third';
 			itemConfig: Record<string, ItemConfig>;
 		}
 	> = {};
@@ -121,6 +122,21 @@
 		return sections[sectionKey]?.layout || 'default';
 	}
 
+	// Get width for a section (Phase 6.3)
+	function getSectionWidth(sectionKey: string): string {
+		return sections[sectionKey]?.width || 'full';
+	}
+
+	// Get CSS class for section width
+	function getWidthClass(sectionKey: string): string {
+		const width = getSectionWidth(sectionKey);
+		switch (width) {
+			case 'half': return 'preview-section section-half';
+			case 'third': return 'preview-section section-third';
+			default: return 'preview-section section-full';
+		}
+	}
+
 	// Check if a section should be shown
 	function shouldShowSection(sectionKey: string): boolean {
 		const config = sections[sectionKey];
@@ -158,60 +174,62 @@
 		</div>
 	{/if}
 
-	<!-- Sections Preview -->
+	<!-- Sections Preview (with grid layout for Phase 6.3) -->
 	<div class="preview-content">
-		{#each sectionOrder as { key: sectionKey } (sectionKey)}
-			{#if sectionKey === 'experience' && shouldShowSection('experience')}
-				<div class="preview-section">
-					<ExperienceSection
-						items={getSectionData('experience')}
-						layout={getSectionLayout('experience')}
-					/>
-				</div>
-			{:else if sectionKey === 'projects' && shouldShowSection('projects')}
-				<div class="preview-section">
-					<ProjectsSection
-						items={getSectionData('projects')}
-						layout={getSectionLayout('projects')}
-					/>
-				</div>
-			{:else if sectionKey === 'education' && shouldShowSection('education')}
-				<div class="preview-section">
-					<EducationSection
-						items={getSectionData('education')}
-						layout={getSectionLayout('education')}
-					/>
-				</div>
-			{:else if sectionKey === 'certifications' && shouldShowSection('certifications')}
-				<div class="preview-section">
-					<CertificationsSection
-						items={getSectionData('certifications')}
-						layout={getSectionLayout('certifications')}
-					/>
-				</div>
-			{:else if sectionKey === 'skills' && shouldShowSection('skills')}
-				<div class="preview-section">
-					<SkillsSection
-						items={getSectionData('skills')}
-						layout={getSectionLayout('skills')}
-					/>
-				</div>
-			{:else if sectionKey === 'posts' && shouldShowSection('posts')}
-				<div class="preview-section">
-					<PostsSection
-						items={getSectionData('posts')}
-						layout={getSectionLayout('posts')}
-					/>
-				</div>
-			{:else if sectionKey === 'talks' && shouldShowSection('talks')}
-				<div class="preview-section">
-					<TalksSection
-						items={getSectionData('talks')}
-						layout={getSectionLayout('talks')}
-					/>
-				</div>
-			{/if}
-		{/each}
+		<div class="preview-sections-grid">
+			{#each sectionOrder as { key: sectionKey } (sectionKey)}
+				{#if sectionKey === 'experience' && shouldShowSection('experience')}
+					<div class={getWidthClass('experience')}>
+						<ExperienceSection
+							items={getSectionData('experience')}
+							layout={getSectionLayout('experience')}
+						/>
+					</div>
+				{:else if sectionKey === 'projects' && shouldShowSection('projects')}
+					<div class={getWidthClass('projects')}>
+						<ProjectsSection
+							items={getSectionData('projects')}
+							layout={getSectionLayout('projects')}
+						/>
+					</div>
+				{:else if sectionKey === 'education' && shouldShowSection('education')}
+					<div class={getWidthClass('education')}>
+						<EducationSection
+							items={getSectionData('education')}
+							layout={getSectionLayout('education')}
+						/>
+					</div>
+				{:else if sectionKey === 'certifications' && shouldShowSection('certifications')}
+					<div class={getWidthClass('certifications')}>
+						<CertificationsSection
+							items={getSectionData('certifications')}
+							layout={getSectionLayout('certifications')}
+						/>
+					</div>
+				{:else if sectionKey === 'skills' && shouldShowSection('skills')}
+					<div class={getWidthClass('skills')}>
+						<SkillsSection
+							items={getSectionData('skills')}
+							layout={getSectionLayout('skills')}
+						/>
+					</div>
+				{:else if sectionKey === 'posts' && shouldShowSection('posts')}
+					<div class={getWidthClass('posts')}>
+						<PostsSection
+							items={getSectionData('posts')}
+							layout={getSectionLayout('posts')}
+						/>
+					</div>
+				{:else if sectionKey === 'talks' && shouldShowSection('talks')}
+					<div class={getWidthClass('talks')}>
+						<TalksSection
+							items={getSectionData('talks')}
+							layout={getSectionLayout('talks')}
+						/>
+					</div>
+				{/if}
+			{/each}
+		</div>
 
 		{#if sectionOrder.filter(s => shouldShowSection(s.key)).length === 0}
 			<div class="flex flex-col items-center justify-center py-12 text-gray-400">
@@ -299,9 +317,31 @@
 		padding: 1rem;
 	}
 
+	/* Grid layout for section widths (Phase 6.3) */
+	.preview-sections-grid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 0.75rem;
+	}
+
+	/* Full width: spans all 6 columns */
+	.section-full {
+		grid-column: span 6;
+	}
+
+	/* Half width: spans 3 columns (50%) */
+	.section-half {
+		grid-column: span 3;
+	}
+
+	/* Third width: spans 2 columns (33%) */
+	.section-third {
+		grid-column: span 2;
+	}
+
 	/* Scale down sections for preview */
 	.preview-section {
-		margin-bottom: 1rem;
+		margin-bottom: 0;
 	}
 
 	.preview-section :global(section) {

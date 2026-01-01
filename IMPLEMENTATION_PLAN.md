@@ -206,7 +206,7 @@
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
 | 12. Print & Export | 🟡 Partial | Print stylesheet + data export complete, AI print deferred |
-| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) complete |
+| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Section widths (6.3) complete |
 
 ---
 
@@ -227,7 +227,7 @@
 7. Integration tests
 8. View access log / audit logging (Phase 8)
 9. ~~Data export (JSON/YAML) - Phase 4.4~~ ✅ Complete
-10. Section width & columns (Phase 6.3)
+10. ~~Section width & columns (Phase 6.3)~~ ✅ Complete
 11. Mobile preview mode (Phase 6.2.2)
 
 ---
@@ -659,3 +659,90 @@ Users can download their entire profile in JSON or YAML format from the admin se
 - [ ] Include uploaded media files in ZIP archive
 - [ ] Import/restore from backup file
 - [ ] Export specific views only
+
+---
+
+## Phase 6.3: Section Width & Columns ✅ Complete
+
+This phase enables sections to share horizontal space, allowing side-by-side layouts for more compact and professional presentations.
+
+### Overview
+Users can now set each section's width (full, half, or third) in the view editor. Consecutive sections with compatible widths render side-by-side on desktop, automatically stacking on mobile for responsive design.
+
+### Features
+- [x] Width selector dropdown in view editor (both create and edit)
+- [x] Visual width indicator icons (column preview)
+- [x] CSS Grid layout on public view pages
+- [x] Responsive collapse to full-width on mobile (< 768px)
+- [x] Live preview reflects width settings in real-time
+- [x] Print stylesheet supports side-by-side layout
+
+### Width Options
+| Width | Grid Span | Use Case |
+|-------|-----------|----------|
+| Full | 6 columns | Default - section takes entire row |
+| Half | 3 columns | Side-by-side pairs (Skills + Certifications) |
+| Third | 2 columns | Triplets (rarely needed) |
+
+### Implementation
+
+#### Type Changes
+- `ViewSection.width?: 'full' | 'half' | 'third'` added to interface
+- `VALID_WIDTHS` constant with labels for dropdown
+- `SectionWidth` type alias for width values
+
+#### Backend Changes
+- Extract `width` from sections JSON in view data endpoint
+- Return `section_widths` map in API response
+- Default to `"full"` when width not specified
+
+#### View Editor Changes
+- Width dropdown appears next to layout dropdown (when section enabled)
+- Visual column indicator shows current width setting
+- Width saved in sections configuration
+
+#### Public View Changes
+- Grid container with 6-column layout
+- Sections wrapped in divs with width classes
+- CSS handles column spanning and responsive collapse
+
+#### ViewPreview Changes
+- Same grid layout as public view
+- Width classes applied in real-time preview
+
+### Files Changed
+- `frontend/src/lib/pocketbase.ts` - Added SectionWidth type, VALID_WIDTHS
+- `frontend/src/routes/admin/views/[id]/+page.svelte` - Width dropdown + indicator
+- `frontend/src/routes/admin/views/new/+page.svelte` - Width dropdown + indicator
+- `frontend/src/routes/[slug=slug]/+page.svelte` - Grid layout + width classes
+- `frontend/src/routes/[slug=slug]/+page.server.ts` - Pass sectionWidths
+- `frontend/src/components/admin/ViewPreview.svelte` - Grid layout support
+- `backend/hooks/view.go` - Extract and return section_widths
+
+### CSS Grid Structure
+```css
+.sections-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1.5rem;
+}
+
+.section-full { grid-column: span 6; }
+.section-half { grid-column: span 3; }
+.section-third { grid-column: span 2; }
+
+@media (max-width: 768px) {
+  .section-half, .section-third {
+    grid-column: span 6; /* Stack on mobile */
+  }
+}
+```
+
+### Usage
+1. Navigate to View Editor (/admin/views/[id])
+2. Enable desired sections
+3. Select width from dropdown (Full/Half/Third)
+4. Observe visual indicator showing column layout
+5. Preview pane shows sections side-by-side
+6. Save view - layout applies on public page
+7. Example: Set Skills to "Half" and Certifications to "Half" for side-by-side display

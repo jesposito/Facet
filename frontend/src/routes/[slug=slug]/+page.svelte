@@ -29,6 +29,20 @@
 		return data.sectionLayouts?.[sectionKey] || 'default';
 	}
 
+	// Get width for a section (from API response or default)
+	function getSectionWidth(sectionKey: string): string {
+		return data.sectionWidths?.[sectionKey] || 'full';
+	}
+
+	// Get CSS class for section width (using 6-column grid)
+	function getWidthClass(width: string): string {
+		switch (width) {
+			case 'half': return 'section-half';
+			case 'third': return 'section-third';
+			default: return 'section-full';
+		}
+	}
+
 	// Hidden form ref for setting password token cookie
 	let passwordForm: HTMLFormElement;
 	let tokenInput: HTMLInputElement;
@@ -127,25 +141,80 @@
 		{/if}
 
 		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-			{#each effectiveSectionOrder as sectionKey}
-				{#if sectionKey === 'experience' && data.sections?.experience?.length > 0}
-					<ExperienceSection items={data.sections.experience} layout={getSectionLayout('experience')} />
-				{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
-					<ProjectsSection items={data.sections.projects} layout={getSectionLayout('projects')} />
-				{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
-					<EducationSection items={data.sections.education} layout={getSectionLayout('education')} />
-				{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
-					<CertificationsSection items={data.sections.certifications} layout={getSectionLayout('certifications')} />
-				{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
-					<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} />
-				{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
-					<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} />
-				{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
-					<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} />
-				{/if}
-			{/each}
+			<div class="sections-grid">
+				{#each effectiveSectionOrder as sectionKey}
+					{#if sectionKey === 'experience' && data.sections?.experience?.length > 0}
+						<div class={getWidthClass(getSectionWidth('experience'))}>
+							<ExperienceSection items={data.sections.experience} layout={getSectionLayout('experience')} />
+						</div>
+					{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
+						<div class={getWidthClass(getSectionWidth('projects'))}>
+							<ProjectsSection items={data.sections.projects} layout={getSectionLayout('projects')} />
+						</div>
+					{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
+						<div class={getWidthClass(getSectionWidth('education'))}>
+							<EducationSection items={data.sections.education} layout={getSectionLayout('education')} />
+						</div>
+					{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
+						<div class={getWidthClass(getSectionWidth('certifications'))}>
+							<CertificationsSection items={data.sections.certifications} layout={getSectionLayout('certifications')} />
+						</div>
+					{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
+						<div class={getWidthClass(getSectionWidth('skills'))}>
+							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} />
+						</div>
+					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
+						<div class={getWidthClass(getSectionWidth('posts'))}>
+							<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} />
+						</div>
+					{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
+						<div class={getWidthClass(getSectionWidth('talks'))}>
+							<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} />
+						</div>
+					{/if}
+				{/each}
+			</div>
 		</main>
 
 		<Footer profile={data.profile} />
 	</div>
 {/if}
+
+<style>
+	/* Section grid layout (Phase 6.3) */
+	.sections-grid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 1.5rem;
+	}
+
+	/* Full width: spans all 6 columns */
+	.sections-grid :global(.section-full) {
+		grid-column: span 6;
+	}
+
+	/* Half width: spans 3 columns (50%) */
+	.sections-grid :global(.section-half) {
+		grid-column: span 3;
+	}
+
+	/* Third width: spans 2 columns (33%) */
+	.sections-grid :global(.section-third) {
+		grid-column: span 2;
+	}
+
+	/* Responsive: collapse to full width on mobile */
+	@media (max-width: 768px) {
+		.sections-grid :global(.section-half),
+		.sections-grid :global(.section-third) {
+			grid-column: span 6;
+		}
+	}
+
+	/* Print: allow side-by-side on wider paper */
+	@media print {
+		.sections-grid {
+			gap: 1rem;
+		}
+	}
+</style>

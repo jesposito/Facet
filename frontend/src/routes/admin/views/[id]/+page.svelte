@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, type Profile, OVERRIDABLE_FIELDS, VALID_LAYOUTS } from '$lib/pocketbase';
+	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
@@ -45,12 +45,13 @@
 	let isActive = true;
 	let isDefault = false;
 
-	// Sections configuration with itemConfig and layout support
+	// Sections configuration with itemConfig, layout, and width support
 	let sections: Record<string, {
 		enabled: boolean;
 		items: string[];
 		expanded: boolean;
 		layout: string;
+		width: SectionWidth;
 		itemConfig: Record<string, ItemConfig>;
 	}> = {};
 
@@ -148,10 +149,10 @@
 	}
 
 	function initializeSections(viewSections?: ViewSection[]) {
-		// Start with all sections disabled, with default layout
+		// Start with all sections disabled, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, itemConfig: {} };
+			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
 		}
 
 		// Apply saved section configuration and extract order
@@ -168,6 +169,7 @@
 					sections[vs.section].enabled = vs.enabled;
 					sections[vs.section].items = vs.items || [];
 					sections[vs.section].layout = vs.layout || VALID_LAYOUTS[vs.section]?.default || 'default';
+					sections[vs.section].width = vs.width || 'full';
 					sections[vs.section].itemConfig = vs.itemConfig || {};
 				}
 			}
@@ -270,7 +272,7 @@
 
 		saving = true;
 		try {
-			// Build sections array in current order with itemConfig and layout
+			// Build sections array in current order with itemConfig, layout, and width
 			// Important: We save ALL sections in order (enabled + disabled) so order is preserved
 			const sectionsData: ViewSection[] = sectionOrder
 				.map(({ key }) => {
@@ -280,7 +282,8 @@
 						section: key,
 						enabled: sectionConfig?.enabled || false,
 						items: sectionConfig?.items || [],
-						layout: sectionConfig?.layout || defaultLayout
+						layout: sectionConfig?.layout || defaultLayout,
+						width: sectionConfig?.width || 'full'
 					};
 					// Only include itemConfig if there are overrides
 					const itemConfig = sectionConfig?.itemConfig;
@@ -754,6 +757,34 @@
 								</div>
 
 								<div class="flex items-center gap-2">
+									<!-- Width Selector with visual indicator -->
+									{#if sectionConfig.enabled}
+										<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
+											<!-- Width icon indicator -->
+											<div class="flex gap-0.5">
+												{#if sectionConfig.width === 'half'}
+													<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+													<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+												{:else if sectionConfig.width === 'third'}
+													<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+													<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+													<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+												{:else}
+													<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+												{/if}
+											</div>
+											<select
+												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+												bind:value={sections[sectionKey].width}
+												on:click|stopPropagation
+											>
+												{#each VALID_WIDTHS as widthOption}
+													<option value={widthOption.value}>{widthOption.label}</option>
+												{/each}
+											</select>
+										</div>
+									{/if}
+
 									<!-- Layout Selector -->
 									{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
 										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
