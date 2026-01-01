@@ -94,7 +94,7 @@ None (this is the starting phase)
 - [x] CTA configuration (button text and URL)
 - [x] Visibility settings (public, unlisted, password, private)
 - [x] Drag-and-drop section ordering (svelte-dnd-action)
-- [ ] Preview pane showing live result — Deferred
+- [x] Preview pane showing live result — Implemented in Phase 6.2
 
 #### 2.2 Section & Item Customization (Complete)
 - [x] Drag-and-drop section reordering
@@ -130,7 +130,7 @@ Enable per-view customization of individual items without modifying source recor
 - [x] Default view badge in views list
 - [x] Only one view can be default (enforced)
 - [ ] Warning when changing default — Minor, deferred
-- [ ] Preview of how homepage will look — Deferred to 2.2
+- [x] Preview of how homepage will look — Implemented in Phase 6.2
 
 #### 2.4 View Analytics (Minimal)
 - [ ] View count per view (opt-in)
@@ -490,21 +490,22 @@ interface ViewSection {
 4. Selection saves with view config
 5. Public view renders with selected layout
 
-#### 6.2 Live Preview Pane (Phase B - Feedback)
+#### 6.2 Live Preview Pane (Phase B - Feedback) ✅ Complete
 
 Add side-by-side preview in the view editor for immediate visual feedback.
 
-- [ ] Split-pane layout: editor left (60%), preview right (40%)
-- [ ] Preview updates on any change (debounced 300ms)
-- [ ] Preview uses actual section components (not mockups)
-- [ ] Toggle to hide preview for more editor space
-- [ ] Mobile preview mode (preview shown at mobile width)
+- [x] Split-pane layout: editor left (~60%), preview right (~40%)
+- [x] Preview updates on any change (reactive Svelte bindings)
+- [x] Preview uses actual section components (not mockups)
+- [x] Toggle button to hide preview for more editor space
+- [ ] Mobile preview mode (preview shown at mobile width) — Deferred
 
-**Technical Approach:**
+**Implementation Details:**
+- `ViewPreview.svelte` component reuses public section components
+- Reactive updates via Svelte props (no debouncing needed)
 - Preview rendered in same page (not iframe) for simplicity
-- Pass current form state to preview components
-- Use Svelte stores for reactive updates
-- Consider iframe for true isolation (Phase C)
+- Responsive layout: side-by-side on desktop, stacked on mobile
+- Preview scales down content for compact display
 
 #### 6.3 Section Width & Columns (Phase C - Advanced)
 
