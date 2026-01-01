@@ -685,15 +685,151 @@ Full drag-and-drop editing directly in the preview pane.
 
 ### Color & Theme Customization
 
-#### 6.5 Accent Color
-- [ ] Color picker in admin settings
-- [ ] Applied via CSS custom properties
-- [ ] Affects buttons, links, badges, highlights
+#### 6.5 Accent Color (Curated Palette)
 
-#### 6.6 Theme Presets
+Enable users to customize their profile's accent color via Admin Settings. Uses a **curated palette approach** (not freeform color picker) to maintain design guardrails and accessibility.
+
+**Design Philosophy:**
+- Curated palette prevents ugly/inaccessible color combinations
+- All colors are pre-tested for WCAG contrast compliance
+- Simple UI with visual preview
+- Global setting (not per-view) for simplicity
+
+**Curated Color Palette:**
+
+| Name | Hex | CSS Variable | Use Case |
+|------|-----|--------------|----------|
+| **Sky** (default) | `#0ea5e9` | `--accent-sky` | Tech, software, professional |
+| **Indigo** | `#6366f1` | `--accent-indigo` | Creative, design, consulting |
+| **Emerald** | `#10b981` | `--accent-emerald` | Finance, sustainability, health |
+| **Rose** | `#f43f5e` | `--accent-rose` | Marketing, creative, personal branding |
+| **Amber** | `#f59e0b` | `--accent-amber` | Education, construction, energy |
+| **Slate** | `#64748b` | `--accent-slate` | Minimal, monochrome, conservative |
+
+**What Accent Color Affects:**
+- Primary buttons (`.btn-primary`)
+- Links and hover states
+- Profile hero gradient tint
+- Badges and tag highlights
+- Focus outlines for accessibility
+- Active states and selections
+
+**UI Design (Admin → Settings):**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Appearance                                                   │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                              │
+│ Accent Color                                                 │
+│ Choose a color for buttons, links, and highlights.          │
+│                                                              │
+│ [Sky ●] [Indigo ●] [Emerald ●] [Rose ●] [Amber ●] [Slate ●] │
+│    ✓                                                         │
+│                                                              │
+│ Preview:                                                     │
+│ ┌─────────────────────────────────────────────────────────┐ │
+│ │  [Primary Button]  [Secondary]  Link Example            │ │
+│ └─────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Technical Implementation:**
+
+1. **Schema Change:**
+```typescript
+// Add to profile collection (or new site_settings collection)
+interface SiteSettings {
+  accent_color: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
+}
+```
+
+2. **CSS Custom Properties:** Inject variables in `+layout.svelte`:
+```css
+:root {
+  --color-primary-50: var(--accent-50);
+  --color-primary-500: var(--accent-500);
+  --color-primary-600: var(--accent-600);
+  /* ... full scale 50-950 */
+}
+```
+
+3. **Color Scale Generation:** Each accent color has a full Tailwind-style scale (50-950) pre-defined in a constants file.
+
+4. **Component Updates:** Migrate hardcoded `primary-*` classes to use CSS variables where dynamic theming is needed.
+
+**Implementation Tasks:**
+
+- [ ] Add `accent_color` field to profile collection (migration)
+- [ ] Create color palette constants file with full scales
+- [ ] Add "Appearance" section to Admin Settings page
+- [ ] Create color swatch selector component with visual feedback
+- [ ] Add live preview showing button/link appearance
+- [ ] Inject CSS custom properties in root layout based on setting
+- [ ] Update `app.css` component classes to use CSS variables
+- [ ] Test all 6 colors across light and dark modes
+- [ ] Verify WCAG contrast ratios for all combinations
+
+**Out of Scope (Intentionally):**
+- ❌ Freeform color picker (guardrails philosophy)
+- ❌ Custom font selection (deferred)
+
+#### 6.6 Per-View Theming & Presets
+
+Enable different views to have different visual styles. A recruiter view might use professional Indigo, while a speaking/conference view uses energetic Rose.
+
+**Per-View Accent Color Override:**
+
+Each view can optionally override the global accent color. This enables:
+- **Recruiter view** → Indigo (professional, corporate)
+- **Speaking view** → Rose (energetic, memorable)
+- **Portfolio view** → Emerald (creative, fresh)
+- **Default view** → Uses global setting
+
+**Schema Change:**
+```typescript
+interface ViewSection {
+  // ... existing fields
+}
+
+interface View {
+  // ... existing fields
+  accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
+  // null = inherit from global setting
+}
+```
+
+**UI Design (View Editor):**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ View Settings                                                │
+│ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                              │
+│ Accent Color                                                 │
+│ ○ Use global setting (Sky)                                  │
+│ ● Override for this view:                                   │
+│   [Sky ●] [Indigo ●] [Emerald ●] [Rose ●] [Amber ●] [Slate] │
+│              ✓                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Implementation Tasks:**
+
+- [ ] Add `accent_color` field to views collection (migration)
+- [ ] Add accent color selector to view editor
+- [ ] Update view data API to include accent color
+- [ ] Frontend applies view accent color when rendering public view
+- [ ] Preview pane reflects view-specific accent color
+
+**Theme Presets (Future):**
+
+Full theme presets that combine accent color with typography and spacing choices.
+
 - [ ] Bundled themes: Minimal, Professional, Creative
 - [ ] One-click apply (sets colors, fonts, spacing)
 - [ ] Reset to default option
+- [ ] Per-view theme preset selection
 
 #### 6.7 Custom CSS (Power Users)
 - [ ] Admin textarea for custom CSS
@@ -714,6 +850,8 @@ Full drag-and-drop editing directly in the preview pane.
 | Preview performance with large datasets | Debounce updates, limit preview items |
 | Mobile breakage | All layouts must be mobile-responsive by design |
 | Schema migration | Layout field is optional, defaults to 'default' |
+| Accent colors fail contrast | Pre-test all colors for WCAG AA compliance |
+| CSS variable support | Modern browsers only; fallback to default sky |
 
 ### Research References
 - [SharePoint Layout Patterns](https://learn.microsoft.com/en-us/sharepoint/dev/design/layout-patterns) - Grid, list, filmstrip patterns
@@ -1016,6 +1154,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 | 2026-01-01 | OAuth config via env vars prioritized | End users should never see PocketBase; all config via environment variables. Login page should dynamically show only configured auth methods. Enables Unraid template distribution. |
 | 2026-01-01 | Phase 1.5 added for content discovery | Posts and talks are buried at bottom of profile with no navigation. Adding: profile nav tabs, index pages (/posts, /talks), and individual talk pages (/talks/[slug]). View limiting already works via sections config. |
 | 2026-01-01 | Phase 4.4 data export complete | JSON and YAML export via /api/export endpoint. Admin-only, downloads full profile data for backup/migration. Media files and import deferred. |
+| 2026-01-01 | Phase 6.5 accent color design finalized | Curated palette approach (6 colors) instead of freeform picker. Maintains design guardrails while enabling personalization. Colors: Sky, Indigo, Emerald, Rose, Amber, Slate. Uses CSS custom properties for runtime theming. |
 
 ---
 
