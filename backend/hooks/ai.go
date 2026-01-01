@@ -214,6 +214,11 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			len(e.Record.GetString("api_key_encrypted")))
 		if err := e.Next(); err != nil {
 			log.Printf("[AI] e.Next() returned error: %v", err)
+			log.Printf("[AI] Error type: %T", err)
+			// Try to get more details from the error
+			if apiErr, ok := err.(*apis.ApiError); ok {
+				log.Printf("[AI] ApiError: status=%d, message=%s, data=%v", apiErr.Code, apiErr.Message, apiErr.RawData())
+			}
 			return err
 		}
 		log.Printf("[AI] Record created successfully with ID: %s", e.Record.Id)
@@ -482,7 +487,9 @@ func encryptProviderKeyFromRequest(e *core.RecordRequestEvent, crypto *services.
 
 	log.Printf("[AI] Setting api_key_encrypted (length: %d)", len(encrypted))
 	e.Record.Set("api_key_encrypted", encrypted)
-	e.Record.Set("api_key", "") // Clear plaintext from record
+	// Don't clear api_key here - let PocketBase handle the record as-is
+	// The api_key field value will be stored but we use api_key_encrypted for actual operations
+	// TODO: Consider making api_key a transient/virtual field that doesn't persist
 
 	return nil
 }
