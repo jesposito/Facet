@@ -11,7 +11,7 @@ FROM mcr.microsoft.com/devcontainers/go:1.23
 # Build-time only: use goproxy.cn as fallback for restricted environments
 # (proxy.golang.org redirects to storage.googleapis.com which may be blocked)
 ARG GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
-ARG GOSUMDB=off
+# Note: GOSUMDB=off was removed to allow gopls installation at runtime
 
 # Install air for Go hot reloading
 # Ref: https://github.com/air-verse/air/releases
