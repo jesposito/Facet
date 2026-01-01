@@ -472,6 +472,56 @@ pb.collection('posts').getList(1, 1).then(d => {
 
 **Note:** PocketBase record IDs are time-ordered (like ULIDs), so `sort: '-id'` gives newest-first ordering and always works.
 
+### SvelteKit Client-Side Navigation 404 on Root Route
+
+**Symptoms:**
+- Clicking a link to `/` (root route) results in a 404 error
+- Full page loads to `/` work correctly (e.g., opening in new tab, browser refresh)
+- Server-side logs show the page loading successfully, but browser shows 404
+- Only affects client-side navigation (SvelteKit's internal routing)
+
+**Cause:**
+SvelteKit's client-side navigation to the root route (`/`) can fail in certain configurations, particularly when:
+- The root page has a complex server load function with multiple API calls
+- There are parameterized routes like `[slug=slug]` that might interfere
+- The root page uses default view resolution with fallback logic
+
+This appears to be related to how SvelteKit handles client-side data fetching for the root route. The server-side load function executes correctly (visible in server logs), but the client-side navigation fails to render the page.
+
+**What works vs. what doesn't:**
+
+| Navigation Type | Example | Works? |
+|-----------------|---------|--------|
+| Full page load | Browser refresh, `target="_blank"` link | ✅ Yes |
+| Direct URL entry | Typing `/` in address bar | ✅ Yes |
+| Client-side navigation | Regular `<a href="/">` link | ❌ 404 |
+| Client-side with reload | `<a href="/" data-sveltekit-reload>` | ✅ Yes |
+
+**Solution:**
+Use `data-sveltekit-reload` attribute on links that navigate to the root route:
+
+```svelte
+<!-- ❌ Client-side navigation - may 404 -->
+<a href="/">Back to Profile</a>
+
+<!-- ✅ Forces full page load - always works -->
+<a href="/" data-sveltekit-reload>Back to Profile</a>
+```
+
+**Implementation locations:**
+- `frontend/src/routes/posts/+page.svelte` - Back to Profile button
+- `frontend/src/routes/talks/+page.svelte` - Back to Profile button
+
+**Debugging:**
+Navigation events are logged to the browser console:
+- `[NAVIGATION] Before navigate:` - shows source and destination
+- `[NAVIGATION] After navigate:` - confirms successful navigation
+- `[ROOT PAGE CLIENT] Page mounted` - confirms root page rendered
+
+These logs are added via `beforeNavigate` and `afterNavigate` hooks in `+layout.svelte`.
+
+**Note:** This is a workaround, not a root cause fix. The `data-sveltekit-reload` attribute causes a full page reload instead of client-side navigation, which has slightly more overhead but works reliably. If you identify the root cause of the client-side navigation failure, please update this documentation.
+
 ## VS Code Tasks
 
 The project includes VS Code tasks (`.vscode/tasks.json`):
