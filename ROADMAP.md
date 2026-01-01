@@ -703,10 +703,41 @@ Full drag-and-drop editing directly in the preview pane.
 These are ideas that may be explored after the core roadmap is complete:
 
 ### Self-Hosting Improvements
-- One-line install script
-- Docker Compose with Caddy reverse proxy
-- Kubernetes Helm chart
-- Unraid app template
+
+#### OAuth via Environment Variables (Priority)
+
+Enable OAuth configuration without accessing PocketBase admin UI:
+
+```env
+# Google OAuth
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# GitHub OAuth
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
+```
+
+**Implementation:**
+- [ ] Read OAuth credentials from environment variables on startup
+- [ ] Programmatically configure PocketBase auth providers
+- [ ] Add `/api/auth/providers` endpoint to expose enabled methods
+- [ ] Update login page to fetch available providers dynamically
+- [ ] Only show OAuth buttons for configured providers
+- [ ] Show password login as primary when no OAuth configured
+- [ ] Add to `.env.example` with documentation
+
+**Benefits:**
+- End users never need to access PocketBase admin UI
+- All configuration via environment variables / docker-compose
+- Enables Unraid template with OAuth fields
+- Clean "Me.yaml" branded experience throughout
+
+#### Distribution & Templates
+- [ ] One-line install script
+- [ ] Docker Compose with Caddy reverse proxy
+- [ ] Kubernetes Helm chart
+- [ ] Unraid Community Apps template
 
 ### Integrations
 - Webhook notifications
@@ -745,6 +776,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
 | 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
 | 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
+| 2026-01-01 | OAuth config via env vars prioritized | End users should never see PocketBase; all config via environment variables. Login page should dynamically show only configured auth methods. Enables Unraid template distribution. |
 
 ---
 
