@@ -1,7 +1,7 @@
 # Me.yaml Makefile
 # Common commands for development and deployment
 
-.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run
+.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-demo seed-dev seed-clear
 
 # Default target
 help:
@@ -13,6 +13,11 @@ help:
 	@echo "  make dev-down     Stop Docker Compose services"
 	@echo "  make dev-logs     View Docker Compose logs"
 	@echo "  make dev-reset    Clear caches and force reinstall"
+	@echo ""
+	@echo "Seed Data (switch demo profiles):"
+	@echo "  make seed-demo    Reset & start with Merlin (fun wizard demo)"
+	@echo "  make seed-dev     Reset & start with Jedidiah (real-world dev)"
+	@echo "  make seed-clear   Clear database only (no restart)"
 	@echo ""
 	@echo "Individual Services:"
 	@echo "  make backend      Start backend only (with hot reload)"
@@ -64,6 +69,27 @@ dev-reset:
 	rm -rf tmp
 	rm -rf frontend/.svelte-kit
 	@echo "Caches cleared. Run 'make dev' to reinstall."
+
+# =============================================================================
+# Seed Data Switching
+# =============================================================================
+
+# Switch to demo profile (Merlin Ambrosius - fun Arthurian wizard)
+seed-demo:
+	@echo "Switching to demo seed (Merlin Ambrosius)..."
+	rm -rf pb_data
+	SEED_DATA=demo ./scripts/start-dev.sh
+
+# Switch to dev profile (Jedidiah Esposito - real-world example)
+seed-dev:
+	@echo "Switching to dev seed (Jedidiah Esposito)..."
+	rm -rf pb_data
+	SEED_DATA=dev ./scripts/start-dev.sh
+
+# Just clear database (no restart)
+seed-clear:
+	rm -rf pb_data
+	@echo "Database cleared. Run 'make dev', 'make seed-demo', or 'make seed-dev' to restart."
 
 # =============================================================================
 # Building

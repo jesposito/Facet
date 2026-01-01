@@ -145,6 +145,7 @@ One port exposed. One volume to backup.
 | `ADMIN_EMAILS` | No | - | Comma-separated allowlist |
 | `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin at `/_/` |
 | `DATA_PATH` | No | `./data` | Database and uploads |
+| `SEED_DATA` | No | - | Seed mode: `demo` (fun demo), `dev` (test data) |
 
 ### Unraid + Cloudflare Tunnel
 
@@ -178,6 +179,23 @@ Development uses separate ports for hot reload:
 - API calls proxy to backend automatically
 
 Production uses single port 8080 for everything.
+
+### Demo Data
+
+Me.yaml includes two seed profiles for development:
+
+| Command | Profile |
+|---------|---------|
+| `make seed-demo` | Merlin Ambrosius (fun Arthurian wizard) |
+| `make seed-dev` | Jedidiah Esposito (real-world example) |
+
+Switch between them anytime:
+```bash
+make seed-demo  # Reset & start with wizard demo
+make seed-dev   # Reset & start with real-world profile
+```
+
+See [docs/DEV.md](docs/DEV.md#seed-data-modes) for full details.
 
 ### Default Credentials (Development Only)
 
