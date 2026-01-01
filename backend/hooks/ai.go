@@ -329,10 +329,14 @@ func getActiveProvider(app *pocketbase.PocketBase, crypto *services.CryptoServic
 // getProviderFromRecord creates an AIProvider from a database record
 func getProviderFromRecord(record *core.Record, crypto *services.CryptoService) (*services.AIProvider, error) {
 	apiKeyEnc := record.GetString("api_key_encrypted")
+	log.Printf("[AI] getProviderFromRecord: api_key_encrypted len=%d", len(apiKeyEnc))
+
 	apiKey, err := crypto.Decrypt(apiKeyEnc)
 	if err != nil {
+		log.Printf("[AI] getProviderFromRecord: decrypt error: %v", err)
 		return nil, fmt.Errorf("failed to decrypt API key")
 	}
+	log.Printf("[AI] getProviderFromRecord: decrypted apiKey len=%d", len(apiKey))
 
 	return &services.AIProvider{
 		ID:      record.Id,
@@ -417,30 +421,49 @@ func buildImprovementPrompt(contentType, content string, ctx map[string]string, 
 // encryptProviderKeyFromRequest reads api_key from request body and encrypts it
 // Hidden fields aren't auto-populated into the record, so we read from request body
 func encryptProviderKeyFromRequest(e *core.RecordRequestEvent, crypto *services.CryptoService) error {
+	log.Printf("[AI] encryptProviderKeyFromRequest called")
+
 	// In PocketBase v0.23+, we access the request info to get the body
 	// because hidden fields (like api_key) aren't auto-populated into the record
 	info, err := e.RequestInfo()
 	if err != nil {
+		log.Printf("[AI] encryptProviderKeyFromRequest: RequestInfo error: %v", err)
 		return nil // No request info available
 	}
 
+	log.Printf("[AI] encryptProviderKeyFromRequest: Body keys: %v", getMapKeys(info.Body))
+
 	apiKeyRaw, ok := info.Body["api_key"]
 	if !ok {
+		log.Printf("[AI] encryptProviderKeyFromRequest: no api_key in body")
 		return nil // No api_key in request
 	}
 
 	apiKey, ok := apiKeyRaw.(string)
 	if !ok || apiKey == "" || apiKey == "********" {
+		log.Printf("[AI] encryptProviderKeyFromRequest: api_key empty or masked (type=%T)", apiKeyRaw)
 		return nil // Empty or masked key, skip encryption
 	}
 
+	log.Printf("[AI] encryptProviderKeyFromRequest: encrypting key (len=%d)", len(apiKey))
+
 	encrypted, err := crypto.Encrypt(apiKey)
 	if err != nil {
+		log.Printf("[AI] encryptProviderKeyFromRequest: encrypt error: %v", err)
 		return err
 	}
 
+	log.Printf("[AI] encryptProviderKeyFromRequest: encrypted (len=%d), setting on record", len(encrypted))
 	e.Record.Set("api_key_encrypted", encrypted)
 	e.Record.Set("api_key", "") // Clear plaintext from record
 
 	return nil
+}
+
+func getMapKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

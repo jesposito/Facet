@@ -160,6 +160,10 @@
 	function getArrayValue(field: string): string {
 		const val = fieldEdits[field];
 		if (Array.isArray(val)) {
+			// Handle arrays of objects (like links) differently
+			if (val.length > 0 && typeof val[0] === 'object') {
+				return JSON.stringify(val, null, 2);
+			}
 			return val.join(', ');
 		}
 		return '';
