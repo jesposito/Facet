@@ -160,10 +160,22 @@
 
 	async function handleAddProvider() {
 		try {
-			await pb.collection('ai_providers').create({
-				...newProvider,
+			// Build payload, excluding empty optional fields that might fail validation
+			const payload: Record<string, unknown> = {
+				name: newProvider.name,
+				type: newProvider.type,
+				api_key: newProvider.api_key,
+				model: newProvider.model,
+				is_active: newProvider.is_active,
+				is_default: newProvider.is_default,
 				api_key_encrypted: '' // Will be encrypted by hook
-			});
+			};
+			// Only include base_url if it has a value (URLField rejects empty strings)
+			if (newProvider.base_url) {
+				payload.base_url = newProvider.base_url;
+			}
+			console.log('[AI-PROVIDER] Creating provider with payload:', JSON.stringify(payload, null, 2));
+			await pb.collection('ai_providers').create(payload);
 
 			toasts.add('success', 'AI provider added');
 			showAddForm = false;
@@ -179,7 +191,9 @@
 			await loadProviders();
 		} catch (err) {
 			console.error('Failed to add provider:', err);
-			toasts.add('error', 'Failed to add provider');
+			// Show more detailed error if available
+			const message = err instanceof Error ? err.message : 'Failed to add provider';
+			toasts.add('error', message);
 		}
 	}
 

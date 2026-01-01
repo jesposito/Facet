@@ -33,8 +33,7 @@
 
   "containerEnv": {
     "ENCRYPTION_KEY": "devcontainer-only-key-do-not-use-in-production!!",
-    "GOPROXY": "https://goproxy.cn,https://proxy.golang.org,direct",
-    "GOSUMDB": "off"
+    "GOPROXY": "https://goproxy.cn,https://proxy.golang.org,direct"
   },
 
   "mounts": [
