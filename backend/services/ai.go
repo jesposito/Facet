@@ -120,6 +120,14 @@ func (a *AIService) buildPrompt(req *EnrichmentRequest) string {
 - Free of invented metrics, statistics, or claims not supported by the data
 - Concise and impactful
 
+IMPORTANT WRITING STYLE RULES:
+- Write like a human, not an AI. Be direct and natural.
+- NEVER use em dashes (—). Use commas, periods, or "and" instead.
+- NEVER use words like "delve", "leverage", "utilize", "spearheaded", "synergy", "cutting-edge"
+- Avoid corporate buzzwords and marketing speak
+- Don't start sentences with "This project..." - vary your sentence structure
+- Use simple, clear language over fancy vocabulary
+
 Project Information:
 `)
 
