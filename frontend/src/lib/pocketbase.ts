@@ -9,12 +9,11 @@ export const pb = new PocketBase(pbUrl);
 // Force Bearer prefix on auth header (required for PocketBase 0.23+)
 pb.beforeSend = function (url, options) {
 	const token = pb.authStore.token;
-	if (token && options.headers) {
-		// Ensure Bearer prefix is used
-		const headers = options.headers as Record<string, string>;
-		if (headers['Authorization'] && !headers['Authorization'].startsWith('Bearer ')) {
-			headers['Authorization'] = 'Bearer ' + headers['Authorization'];
-		}
+	if (token) {
+		// Always set Authorization header with Bearer prefix
+		options.headers = Object.assign({}, options.headers, {
+			'Authorization': 'Bearer ' + token
+		});
 	}
 	return { url, options };
 };
