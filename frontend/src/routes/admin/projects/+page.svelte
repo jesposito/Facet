@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import AIImproveButton from '$components/admin/AIImproveButton.svelte';
 
 	let projects: Project[] = [];
 	let loading = true;
@@ -282,22 +283,42 @@
 				</div>
 
 				<div>
-					<label for="summary" class="label">Summary</label>
+					<div class="flex items-center justify-between">
+						<label for="summary" class="label mb-0">Summary</label>
+						<AIImproveButton
+							contentType="summary"
+							content={summary}
+							context={{ project: title, technologies: techStackText }}
+							action={summary ? 'improve' : 'generate'}
+							label={summary ? 'Improve' : 'Generate'}
+							on:result={(e) => (summary = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="summary"
 						bind:value={summary}
-						class="input"
+						class="input mt-1"
 						rows="2"
 						placeholder="A brief one-liner about the project"
 					></textarea>
 				</div>
 
 				<div>
-					<label for="description" class="label">Description</label>
+					<div class="flex items-center justify-between">
+						<label for="description" class="label mb-0">Description</label>
+						<AIImproveButton
+							contentType="description"
+							content={description}
+							context={{ project: title, summary, technologies: techStackText }}
+							action={description ? 'improve' : 'generate'}
+							label={description ? 'Improve' : 'Generate'}
+							on:result={(e) => (description = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="description"
 						bind:value={description}
-						class="input min-h-[150px]"
+						class="input min-h-[150px] mt-1"
 						placeholder="Full project description with details about features, architecture, etc."
 					></textarea>
 					<p class="text-xs text-gray-500 mt-1">Markdown supported</p>

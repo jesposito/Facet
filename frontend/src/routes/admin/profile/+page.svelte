@@ -3,6 +3,7 @@
 	import { pb, type View } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import AIImproveButton from '$components/admin/AIImproveButton.svelte';
 
 	let profile: Record<string, unknown> | null = null;
 	let loading = true;
@@ -105,12 +106,22 @@
 				</div>
 
 				<div>
-					<label for="headline" class="label">Headline</label>
+					<div class="flex items-center justify-between">
+						<label for="headline" class="label mb-0">Headline</label>
+						<AIImproveButton
+							contentType="headline"
+							content={headline}
+							context={{ name, location }}
+							action={headline ? 'improve' : 'generate'}
+							label={headline ? 'Improve' : 'Generate'}
+							on:result={(e) => (headline = e.detail.content)}
+						/>
+					</div>
 					<input
 						type="text"
 						id="headline"
 						bind:value={headline}
-						class="input"
+						class="input mt-1"
 						placeholder="e.g., Senior Software Engineer at Company"
 					/>
 					{#if viewsOverridingHeadline.length > 0}
@@ -137,11 +148,21 @@
 				</div>
 
 				<div>
-					<label for="summary" class="label">Summary</label>
+					<div class="flex items-center justify-between">
+						<label for="summary" class="label mb-0">Summary</label>
+						<AIImproveButton
+							contentType="summary"
+							content={summary}
+							context={{ name, headline, location }}
+							action={summary ? 'improve' : 'generate'}
+							label={summary ? 'Improve' : 'Generate'}
+							on:result={(e) => (summary = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="summary"
 						bind:value={summary}
-						class="input min-h-[150px]"
+						class="input min-h-[150px] mt-1"
 						placeholder="Tell your story... (Markdown supported)"
 					></textarea>
 					<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>

@@ -28,6 +28,11 @@ type AIProvider struct {
 	IsActive bool   `json:"is_active"`
 }
 
+// ContentImprovementResult represents the result of content improvement
+type ContentImprovementResult struct {
+	Content string `json:"content"`
+}
+
 // EnrichmentRequest represents a request to enrich project data
 type EnrichmentRequest struct {
 	Title       string         `json:"title"`
@@ -89,6 +94,20 @@ func (a *AIService) TestConnection(ctx context.Context, provider *AIProvider) er
 		return err
 	default:
 		return fmt.Errorf("unsupported provider type: %s", provider.Type)
+	}
+}
+
+// ImproveContent improves content using the AI provider with a custom prompt
+func (a *AIService) ImproveContent(ctx context.Context, provider *AIProvider, prompt string) (string, error) {
+	switch provider.Type {
+	case "openai", "custom":
+		return a.callOpenAIRaw(ctx, provider, prompt)
+	case "anthropic":
+		return a.callAnthropicRaw(ctx, provider, prompt)
+	case "ollama":
+		return a.callOllamaRaw(ctx, provider, prompt)
+	default:
+		return "", fmt.Errorf("unsupported provider type: %s", provider.Type)
 	}
 }
 
@@ -239,7 +258,7 @@ func (a *AIService) callAnthropic(ctx context.Context, provider *AIProvider, pro
 func (a *AIService) callAnthropicRaw(ctx context.Context, provider *AIProvider, prompt string) (string, error) {
 	model := provider.Model
 	if model == "" {
-		model = "claude-3-haiku-20240307"
+		model = "claude-sonnet-4-20250514"
 	}
 
 	reqBody := map[string]interface{}{

@@ -289,6 +289,47 @@ rm -rf pb_data
 make dev  # Will recreate with seed data
 ```
 
+### PocketBase `app.Save()` Silently Fails in GET Handlers
+
+**Symptoms:**
+- `app.Save(record)` returns `nil` (success) but record is not persisted
+- Record gets an ID assigned, suggesting save worked
+- But database shows no new row (check with SQL logs or direct query)
+- Only happens in GET request handlers, works fine in POST handlers
+
+**Cause:**
+PocketBase v0.23+ has internal transaction/context behavior that prevents writes during GET requests. The `app.Save()` call appears to succeed but silently skips the actual INSERT.
+
+**Solution:**
+Use direct SQL inserts via `app.DB().NewQuery()`:
+
+```go
+import "github.com/pocketbase/dbx"
+
+// Instead of app.Save(record), use:
+query := `INSERT INTO my_table (id, name, value)
+          VALUES ({:id}, {:name}, {:value})`
+
+_, err := app.DB().NewQuery(query).Bind(dbx.Params{
+    "id":    "unique-id",
+    "name":  "example",
+    "value": 123,
+}).Execute()
+```
+
+**Important notes:**
+- Don't include `created` or `updated` columns - PocketBase manages these automatically
+- Use `dbx.Params{}` map for parameter binding (not variadic args)
+- This workaround is used in `backend/hooks/ai.go` for AI provider auto-configuration
+
+**Alternative approaches that DON'T work:**
+- `app.RunInTransaction()` - same silent failure
+- `app.SaveNoValidate()` - same behavior
+- Goroutine with delay - race conditions
+- `OnBootstrap` hook - different context, still fails
+
+See: `backend/hooks/ai.go:240-280` for a working implementation.
+
 ### PocketBase API 400 Errors with Sort Parameters
 
 **Symptoms:**
