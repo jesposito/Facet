@@ -205,7 +205,7 @@
 | 9. Docker | ✅ Complete | Production-ready |
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
-| 12. Print & Export | 🟡 Partial | Print stylesheet complete, data export deferred |
+| 12. Print & Export | 🟡 Partial | Print stylesheet + data export complete, AI print deferred |
 | 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) complete |
 
 ---
@@ -226,7 +226,7 @@
 6. AI provider mock tests
 7. Integration tests
 8. View access log / audit logging (Phase 8)
-9. Data export (JSON/YAML) - Phase 4.4
+9. ~~Data export (JSON/YAML) - Phase 4.4~~ ✅ Complete
 10. Section width & columns (Phase 6.3)
 11. Mobile preview mode (Phase 6.2.2)
 
@@ -594,3 +594,68 @@ Users can now see how their view will look while editing, without needing to sav
 4. See changes reflected immediately in preview
 5. Click "Hide/Show Preview" button to toggle preview visibility
 6. Click "Open in Tab" to see full-size public view in new tab
+
+---
+
+## Phase 4.4: Data Export ✅ Complete
+
+This phase enables users to export their complete profile data for backup or migration.
+
+### Overview
+Users can download their entire profile in JSON or YAML format from the admin settings page. The export includes all content (profile, experience, projects, education, certifications, skills, posts, talks, and views) but excludes sensitive data like password hashes and internal IDs.
+
+### Features
+- [x] Export all profile data as JSON
+- [x] Export all profile data as YAML
+- [x] Download as file with timestamp filename
+- [x] Admin-only access (requires authentication)
+- [x] Metadata includes version and export timestamp
+
+### Backend Implementation
+- `GET /api/export?format=json` - Returns JSON export file
+- `GET /api/export?format=yaml` - Returns YAML export file
+- Requires authentication via `apis.RequireAuth()` middleware
+
+### Export Schema
+```json
+{
+  "meta": {
+    "version": "1.0.0",
+    "exported_at": "2026-01-01T12:00:00Z",
+    "app": "Me.yaml"
+  },
+  "profile": { ... },
+  "experience": [ ... ],
+  "projects": [ ... ],
+  "education": [ ... ],
+  "certifications": [ ... ],
+  "skills": [ ... ],
+  "posts": [ ... ],
+  "talks": [ ... ],
+  "views": [ ... ]
+}
+```
+
+### Files Added/Modified
+- `backend/hooks/export.go` (new) - Export endpoint and data collection
+- `backend/hooks/export_test.go` (new) - Unit tests for export functionality
+- `backend/main.go` - Register export hooks
+- `backend/go.mod` - Added gopkg.in/yaml.v3 dependency
+- `frontend/src/routes/admin/settings/+page.svelte` - Export buttons UI
+
+### Security Considerations
+- Export requires admin authentication
+- Password hashes are stripped from view exports
+- Internal record IDs are included for reference but not sensitive
+- Files are served with proper Content-Disposition headers for download
+
+### Usage
+1. Navigate to Admin > Settings
+2. Scroll to "Data Export" section
+3. Click "Download YAML" or "Download JSON"
+4. File downloads with timestamped filename (e.g., `me-yaml-export-2026-01-01.yaml`)
+
+### Future Enhancements (Deferred)
+- [ ] Include uploaded media files in ZIP archive
+- [ ] Import/restore from backup file
+- [ ] Export specific views only

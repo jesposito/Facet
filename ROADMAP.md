@@ -451,14 +451,14 @@ Pre-designed templates for consistent, professional output.
 - Pandoc uses `--reference-doc` flag to apply template styling
 - Templates stored in `backend/templates/` directory
 
-#### 4.4 Data Export
+#### 4.4 Data Export ✅ Complete
 
 Export all data for backup or migration.
 
-- [ ] Export all data as JSON
-- [ ] Export as YAML (human-readable backup)
-- [ ] Include uploaded files in ZIP archive
-- [ ] Import from backup (restore)
+- [x] Export all data as JSON
+- [x] Export as YAML (human-readable backup)
+- [ ] Include uploaded files in ZIP archive — Deferred
+- [ ] Import from backup (restore) — Deferred
 
 #### 4.5 Static Snapshot
 
@@ -1012,6 +1012,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 | 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
 | 2026-01-01 | OAuth config via env vars prioritized | End users should never see PocketBase; all config via environment variables. Login page should dynamically show only configured auth methods. Enables Unraid template distribution. |
 | 2026-01-01 | Phase 1.5 added for content discovery | Posts and talks are buried at bottom of profile with no navigation. Adding: profile nav tabs, index pages (/posts, /talks), and individual talk pages (/talks/[slug]). View limiting already works via sections config. |
+| 2026-01-01 | Phase 4.4 data export complete | JSON and YAML export via /api/export endpoint. Admin-only, downloads full profile data for backup/migration. Media files and import deferred. |
 
 ---
 

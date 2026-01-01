@@ -14,6 +14,9 @@
 	let demoStatus = { has_data: false, profile: 0, experience: 0, projects: 0 };
 	$: hasData = demoStatus.has_data;
 
+	// Export state
+	let exporting: string | null = null;
+
 	// New provider form
 	let newProvider = {
 		name: '',
@@ -185,6 +188,46 @@
 			await loadProviders();
 		} catch (err) {
 			toasts.add('error', 'Failed to update default');
+		}
+	}
+
+	async function handleExport(format: 'json' | 'yaml') {
+		exporting = format;
+		try {
+			const response = await fetch(`/api/export?format=${format}`, {
+				headers: { Authorization: pb.authStore.token }
+			});
+
+			if (!response.ok) {
+				const error = await response.json();
+				throw new Error(error.error || 'Export failed');
+			}
+
+			// Get filename from Content-Disposition header or use default
+			const disposition = response.headers.get('Content-Disposition');
+			let filename = `me-yaml-export.${format}`;
+			if (disposition) {
+				const match = disposition.match(/filename="?([^"]+)"?/);
+				if (match) filename = match[1];
+			}
+
+			// Download the file
+			const blob = await response.blob();
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = filename;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+
+			toasts.add('success', `Export downloaded: ${filename}`);
+		} catch (err) {
+			console.error('Export failed:', err);
+			toasts.add('error', err instanceof Error ? err.message : 'Export failed');
+		} finally {
+			exporting = null;
 		}
 	}
 </script>
@@ -423,11 +466,43 @@
 	<div class="card p-6 mt-6">
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Export</h2>
 		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-			Export your profile data in a portable format.
+			Download your complete profile data for backup or migration. All your content (profile, experience,
+			projects, education, skills, posts, talks, and views) is included.
 		</p>
-		<button class="btn btn-secondary inline-flex items-center gap-2">
-			{@html icon('download')}
-			Download me.yaml
-		</button>
+		<div class="flex flex-wrap gap-3">
+			<button
+				class="btn btn-secondary inline-flex items-center gap-2"
+				on:click={() => handleExport('yaml')}
+				disabled={exporting !== null}
+			>
+				{#if exporting === 'yaml'}
+					<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					</svg>
+				{:else}
+					{@html icon('download')}
+				{/if}
+				Download YAML
+			</button>
+			<button
+				class="btn btn-secondary inline-flex items-center gap-2"
+				on:click={() => handleExport('json')}
+				disabled={exporting !== null}
+			>
+				{#if exporting === 'json'}
+					<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+					</svg>
+				{:else}
+					{@html icon('download')}
+				{/if}
+				Download JSON
+			</button>
+		</div>
+		<p class="text-gray-500 dark:text-gray-500 text-xs mt-3">
+			YAML is human-readable and easy to edit. JSON is useful for programmatic access.
+		</p>
 	</div>
 </div>
