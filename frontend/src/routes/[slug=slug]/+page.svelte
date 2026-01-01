@@ -24,6 +24,11 @@
 		? data.sectionOrder
 		: DEFAULT_SECTION_ORDER;
 
+	// Get layout for a section (from API response or default)
+	function getSectionLayout(sectionKey: string): string {
+		return data.sectionLayouts?.[sectionKey] || 'default';
+	}
+
 	// Hidden form ref for setting password token cookie
 	let passwordForm: HTMLFormElement;
 	let tokenInput: HTMLInputElement;
@@ -124,19 +129,19 @@
 		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			{#each effectiveSectionOrder as sectionKey}
 				{#if sectionKey === 'experience' && data.sections?.experience?.length > 0}
-					<ExperienceSection items={data.sections.experience} />
+					<ExperienceSection items={data.sections.experience} layout={getSectionLayout('experience')} />
 				{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
-					<ProjectsSection items={data.sections.projects} />
+					<ProjectsSection items={data.sections.projects} layout={getSectionLayout('projects')} />
 				{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
-					<EducationSection items={data.sections.education} />
+					<EducationSection items={data.sections.education} layout={getSectionLayout('education')} />
 				{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
-					<CertificationsSection items={data.sections.certifications} />
+					<CertificationsSection items={data.sections.certifications} layout={getSectionLayout('certifications')} />
 				{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
-					<SkillsSection items={data.sections.skills} />
+					<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} />
 				{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
-					<PostsSection items={data.sections.posts} />
+					<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} />
 				{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
-					<TalksSection items={data.sections.talks} />
+					<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} />
 				{/if}
 			{/each}
 		</main>

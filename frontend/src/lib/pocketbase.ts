@@ -162,12 +162,93 @@ export interface ItemConfig {
 	overrides?: Record<string, string | string[]>;
 }
 
+// Layout types for each section
+export type SectionLayout = string;
+
 export interface ViewSection {
 	section: string;
 	enabled: boolean;
 	items?: string[];
 	order?: number;
+	layout?: SectionLayout;
 	itemConfig?: Record<string, ItemConfig>;
+}
+
+// Valid layouts per section type (curated presets)
+export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string; labels: Record<string, string> }> = {
+	experience: {
+		layouts: ['default', 'timeline', 'compact'],
+		default: 'default',
+		labels: {
+			default: 'Default',
+			timeline: 'Timeline',
+			compact: 'Compact'
+		}
+	},
+	projects: {
+		layouts: ['grid-3', 'grid-2', 'list', 'featured'],
+		default: 'grid-3',
+		labels: {
+			'grid-3': '3-Column Grid',
+			'grid-2': '2-Column Grid',
+			list: 'List',
+			featured: 'Featured + Grid'
+		}
+	},
+	education: {
+		layouts: ['default', 'timeline'],
+		default: 'default',
+		labels: {
+			default: 'Default',
+			timeline: 'Timeline'
+		}
+	},
+	certifications: {
+		layouts: ['grouped', 'grid', 'timeline'],
+		default: 'grouped',
+		labels: {
+			grouped: 'Grouped by Issuer',
+			grid: 'Grid',
+			timeline: 'Timeline'
+		}
+	},
+	skills: {
+		layouts: ['grouped', 'cloud', 'bars', 'flat'],
+		default: 'grouped',
+		labels: {
+			grouped: 'Grouped by Category',
+			cloud: 'Tag Cloud',
+			bars: 'Skill Bars',
+			flat: 'Flat List'
+		}
+	},
+	posts: {
+		layouts: ['grid-3', 'grid-2', 'list', 'featured'],
+		default: 'grid-3',
+		labels: {
+			'grid-3': '3-Column Grid',
+			'grid-2': '2-Column Grid',
+			list: 'List',
+			featured: 'Featured + Grid'
+		}
+	},
+	talks: {
+		layouts: ['default', 'cards', 'list'],
+		default: 'default',
+		labels: {
+			default: 'Default',
+			cards: 'Cards',
+			list: 'List'
+		}
+	}
+};
+
+// Helper to get section layout with fallback to default
+export function getSectionLayout(section: string, layout?: string): string {
+	const config = VALID_LAYOUTS[section];
+	if (!config) return 'default';
+	if (layout && config.layouts.includes(layout)) return layout;
+	return config.default;
 }
 
 // Define which fields can be overridden per collection

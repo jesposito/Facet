@@ -129,6 +129,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 			} : null,
 			sections: viewData.sections || {},
 			sectionOrder: viewData.section_order || [],
+			sectionLayouts: viewData.section_layouts || {},
 			requiresPassword: false
 		};
 	} catch (err) {

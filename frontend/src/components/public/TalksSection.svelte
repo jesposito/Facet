@@ -3,6 +3,7 @@
 	import { formatDate, parseMarkdown } from '$lib/utils';
 
 	export let items: Talk[];
+	export let layout: string = 'default';
 
 	// Extract YouTube video ID from various URL formats
 	function getYouTubeId(url: string): string | null {

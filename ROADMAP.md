@@ -1,6 +1,6 @@
 # Me.yaml Roadmap
 
-**Last Updated:** 2025-12-31
+**Last Updated:** 2026-01-01
 
 This roadmap outlines the feature development plan for Me.yaml, organized into logical phases. Each phase is independently valuable and builds toward a complete personal profile platform.
 
@@ -444,7 +444,7 @@ cmd := exec.Command("pandoc", "-f", "markdown", "-o", "output.docx", "input.md")
 
 ### Features
 
-#### 6.1 Per-Section Layout Presets (Phase A - Foundation)
+#### 6.1 Per-Section Layout Presets (Phase A - Foundation) ✅ Complete
 
 Add a `layout` field to each section in the view editor. Each section type has its own curated set of valid layouts.
 
@@ -476,12 +476,12 @@ interface ViewSection {
 | Talks | `default`, `cards`, `list` | default | Default embeds video |
 
 **Implementation:**
-- [ ] Add `layout` field to ViewSection type in `pocketbase.ts`
-- [ ] Add `VALID_LAYOUTS` constant mapping section → allowed layouts
-- [ ] Add layout dropdown in view editor (in section header when expanded)
-- [ ] Backend passes layout through in `/api/view/:slug/data` response
-- [ ] Update section components to accept `layout` prop
-- [ ] Implement 2-3 layout variants per section (start with most valuable)
+- [x] Add `layout` field to ViewSection type in `pocketbase.ts`
+- [x] Add `VALID_LAYOUTS` constant mapping section → allowed layouts
+- [x] Add layout dropdown in view editor (in section header when expanded)
+- [x] Backend passes layout through in `/api/view/:slug/data` response
+- [x] Update section components to accept `layout` prop
+- [x] Implement 2-3 layout variants per section (start with most valuable)
 
 **UX Flow:**
 1. User expands section in view editor
