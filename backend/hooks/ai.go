@@ -198,16 +198,17 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 	})
 
 	// Hook to encrypt API keys before saving
-	// NOTE: Must call e.Next() to continue the hook chain in PocketBase v0.23+
-	app.OnRecordCreate("ai_providers").BindFunc(func(e *core.RecordEvent) error {
-		if err := encryptProviderKey(e.Record, crypto); err != nil {
+	// NOTE: Use OnRecordCreateRequest to access raw request body (hidden fields not auto-populated)
+	// Must call e.Next() to continue the hook chain in PocketBase v0.23+
+	app.OnRecordCreateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := encryptProviderKeyFromRequest(e, crypto); err != nil {
 			return err
 		}
 		return e.Next()
 	})
 
-	app.OnRecordUpdate("ai_providers").BindFunc(func(e *core.RecordEvent) error {
-		if err := encryptProviderKey(e.Record, crypto); err != nil {
+	app.OnRecordUpdateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
+		if err := encryptProviderKeyFromRequest(e, crypto); err != nil {
 			return err
 		}
 		return e.Next()
@@ -413,16 +414,33 @@ func buildImprovementPrompt(contentType, content string, ctx map[string]string, 
 	return sb.String()
 }
 
-func encryptProviderKey(record *core.Record, crypto *services.CryptoService) error {
-	// Check if there's a new API key to encrypt
-	apiKey := record.GetString("api_key")
-	if apiKey != "" && apiKey != "********" {
-		encrypted, err := crypto.Encrypt(apiKey)
-		if err != nil {
-			return err
-		}
-		record.Set("api_key_encrypted", encrypted)
-		record.Set("api_key", "") // Clear plaintext
+// encryptProviderKeyFromRequest reads api_key from request body and encrypts it
+// Hidden fields aren't auto-populated into the record, so we read from request body
+func encryptProviderKeyFromRequest(e *core.RecordRequestEvent, crypto *services.CryptoService) error {
+	// In PocketBase v0.23+, we access the request info to get the body
+	// because hidden fields (like api_key) aren't auto-populated into the record
+	info, err := e.RequestInfo()
+	if err != nil {
+		return nil // No request info available
 	}
+
+	apiKeyRaw, ok := info.Body["api_key"]
+	if !ok {
+		return nil // No api_key in request
+	}
+
+	apiKey, ok := apiKeyRaw.(string)
+	if !ok || apiKey == "" || apiKey == "********" {
+		return nil // Empty or masked key, skip encryption
+	}
+
+	encrypted, err := crypto.Encrypt(apiKey)
+	if err != nil {
+		return err
+	}
+
+	e.Record.Set("api_key_encrypted", encrypted)
+	e.Record.Set("api_key", "") // Clear plaintext from record
+
 	return nil
 }
