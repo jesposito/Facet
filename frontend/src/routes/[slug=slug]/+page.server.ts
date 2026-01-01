@@ -128,6 +128,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 				avatar: profile.avatar_url || null
 			} : null,
 			sections: viewData.sections || {},
+			sectionOrder: viewData.section_order || [],
 			requiresPassword: false
 		};
 	} catch (err) {

@@ -222,6 +222,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch content for each enabled section
 			sectionData := make(map[string]interface{})
+			// Track section order for frontend rendering
+			var sectionOrder []string
 
 			for _, section := range sections {
 				sectionName, ok := section["section"].(string)
@@ -232,6 +234,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if !ok || !enabled {
 					continue
 				}
+				// Add to order list
+				sectionOrder = append(sectionOrder, sectionName)
 
 				items, ok := section["items"].([]interface{})
 				collectionName := getCollectionName(sectionName)
@@ -278,6 +282,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			response["sections"] = sectionData
+			response["section_order"] = sectionOrder
 
 			// Fetch profile data for the view
 			profileRecords, err := app.FindRecordsByFilter(

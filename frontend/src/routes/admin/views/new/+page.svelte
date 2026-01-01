@@ -3,17 +3,22 @@
 	import { goto } from '$app/navigation';
 	import { pb, type ViewSection } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import { dndzone } from 'svelte-dnd-action';
+	import { flip } from 'svelte/animate';
 
-	// Available sections - must match backend
-	const AVAILABLE_SECTIONS = [
-		{ key: 'experience', label: 'Experience', collection: 'experience' },
-		{ key: 'projects', label: 'Projects', collection: 'projects' },
-		{ key: 'education', label: 'Education', collection: 'education' },
-		{ key: 'certifications', label: 'Certifications', collection: 'certifications' },
-		{ key: 'skills', label: 'Skills', collection: 'skills' },
-		{ key: 'posts', label: 'Posts', collection: 'posts' },
-		{ key: 'talks', label: 'Talks', collection: 'talks' }
-	];
+	// Default section definitions - used to initialize and provide labels
+	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
+		experience: { label: 'Experience', collection: 'experience' },
+		projects: { label: 'Projects', collection: 'projects' },
+		education: { label: 'Education', collection: 'education' },
+		certifications: { label: 'Certifications', collection: 'certifications' },
+		skills: { label: 'Skills', collection: 'skills' },
+		posts: { label: 'Posts', collection: 'posts' },
+		talks: { label: 'Talks', collection: 'talks' }
+	};
+
+	// Default section order
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks'];
 
 	let loading = true;
 	let saving = false;
@@ -33,6 +38,10 @@
 	// Sections configuration
 	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean }> = {};
 
+	// Section order for drag-drop
+	let sectionOrder: Array<{ id: string; key: string }> = [];
+	const flipDurationMs = 200;
+
 	// Available items for each section
 	let sectionItems: Record<string, Array<{ id: string; label: string; visibility: string; is_draft?: boolean }>> = {};
 
@@ -45,27 +54,30 @@
 
 	function initializeSections() {
 		// Start with all sections enabled by default for new views
-		for (const section of AVAILABLE_SECTIONS) {
-			sections[section.key] = { enabled: true, items: [], expanded: false };
+		for (const key of DEFAULT_SECTION_ORDER) {
+			sections[key] = { enabled: true, items: [], expanded: false };
 		}
+		// Initialize section order
+		sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
 	}
 
 	async function loadSectionItems() {
-		for (const section of AVAILABLE_SECTIONS) {
+		for (const key of DEFAULT_SECTION_ORDER) {
+			const def = SECTION_DEFS[key];
 			try {
-				const records = await pb.collection(section.collection).getList(1, 100, {
+				const records = await pb.collection(def.collection).getList(1, 100, {
 					sort: '-id'
 				});
 
-				sectionItems[section.key] = records.items.map((item) => ({
+				sectionItems[key] = records.items.map((item) => ({
 					id: item.id,
-					label: getItemLabel(section.key, item),
+					label: getItemLabel(key, item),
 					visibility: (item as Record<string, unknown>).visibility as string || 'public',
 					is_draft: (item as Record<string, unknown>).is_draft as boolean || false
 				}));
 			} catch (err) {
-				console.error(`Failed to load ${section.key} items:`, err);
-				sectionItems[section.key] = [];
+				console.error(`Failed to load ${key} items:`, err);
+				sectionItems[key] = [];
 			}
 		}
 	}
@@ -133,6 +145,33 @@
 		slug = generateSlug(name);
 	}
 
+	// Drag-drop handlers for section reordering
+	function handleSectionDndConsider(e: CustomEvent<{ items: typeof sectionOrder }>) {
+		sectionOrder = e.detail.items;
+	}
+
+	function handleSectionDndFinalize(e: CustomEvent<{ items: typeof sectionOrder }>) {
+		sectionOrder = e.detail.items;
+	}
+
+	// Drag-drop handlers for item reordering within a section
+	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean }> }>) {
+		sectionItems[sectionKey] = e.detail.items;
+		updateItemsOrderFromDisplay(sectionKey);
+	}
+
+	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean }> }>) {
+		sectionItems[sectionKey] = e.detail.items;
+		updateItemsOrderFromDisplay(sectionKey);
+	}
+
+	function updateItemsOrderFromDisplay(sectionKey: string) {
+		const displayOrder = sectionItems[sectionKey]?.map(i => i.id) || [];
+		const selectedSet = new Set(sections[sectionKey].items);
+		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
+		sections = sections;
+	}
+
 	async function handleSubmit() {
 		if (!name.trim()) {
 			toasts.add('error', 'Name is required');
@@ -158,13 +197,12 @@
 
 		saving = true;
 		try {
-			// Build sections array
-			const sectionsData: ViewSection[] = AVAILABLE_SECTIONS
-				.filter((s) => sections[s.key].enabled)
-				.map((s) => ({
-					section: s.key,
-					enabled: true,
-					items: sections[s.key].items
+			// Build sections array in current order
+			const sectionsData: ViewSection[] = sectionOrder
+				.map(({ key }) => ({
+					section: key,
+					enabled: sections[key]?.enabled || false,
+					items: sections[key]?.items || []
 				}));
 
 			const data = {
@@ -387,31 +425,51 @@
 
 			<!-- Sections -->
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
-				<p class="text-sm text-gray-500 -mt-2">Choose which sections to show in this view. Expand each section to select specific items.</p>
+				<div class="flex items-center justify-between">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
+						<p class="text-sm text-gray-500">Choose which sections to show and drag to reorder.</p>
+					</div>
+				</div>
 
-				<div class="space-y-3">
-					{#each AVAILABLE_SECTIONS as section}
-						{@const sectionConfig = sections[section.key] || { enabled: false, items: [], expanded: false }}
-						{@const items = sectionItems[section.key] || []}
+				<div
+					class="space-y-3"
+					use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'sections' }}
+					on:consider={handleSectionDndConsider}
+					on:finalize={handleSectionDndFinalize}
+				>
+					{#each sectionOrder as sectionItem (sectionItem.id)}
+						{@const sectionKey = sectionItem.key}
+						{@const sectionDef = SECTION_DEFS[sectionKey]}
+						{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false }}
+						{@const items = sectionItems[sectionKey] || []}
 						{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
 
-						<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+						<div
+							class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
+							animate:flip={{ duration: flipDurationMs }}
+						>
 							<!-- Section Header -->
 							<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
 								<div class="flex items-center gap-3">
+									<!-- Drag Handle -->
+									<div class="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" title="Drag to reorder">
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+										</svg>
+									</div>
 									<button
 										type="button"
 										class="w-10 h-6 rounded-full transition-colors relative
 											{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-										on:click={() => toggleSection(section.key)}
+										on:click={() => toggleSection(sectionKey)}
 									>
 										<span
 											class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
 												{sectionConfig.enabled ? 'left-5' : 'left-1'}"
 										></span>
 									</button>
-									<span class="font-medium text-gray-900 dark:text-white">{section.label}</span>
+									<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
 									<span class="text-xs text-gray-500">
 										{#if sectionConfig.items.length > 0}
 											{sectionConfig.items.length} selected
@@ -427,7 +485,7 @@
 									<button
 										type="button"
 										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-										on:click={() => toggleSectionExpand(section.key)}
+										on:click={() => toggleSectionExpand(sectionKey)}
 									>
 										<svg
 											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
@@ -447,40 +505,56 @@
 									<div class="flex items-center justify-between mb-2">
 										<p class="text-xs text-gray-500">
 											{sectionConfig.items.length === 0
-												? 'All public items will be shown. Select specific items below to customize.'
-												: `${sectionConfig.items.length} of ${publicItems.length} items selected`}
+												? 'All public items will be shown. Select and drag items to customize order.'
+												: `${sectionConfig.items.length} of ${publicItems.length} items selected. Drag to reorder.`}
 										</p>
 										<div class="flex gap-2">
 											<button
 												type="button"
 												class="text-xs text-primary-600 hover:underline"
-												on:click={() => selectAllItems(section.key)}
+												on:click={() => selectAllItems(sectionKey)}
 											>
 												Select All
 											</button>
 											<button
 												type="button"
 												class="text-xs text-gray-500 hover:underline"
-												on:click={() => clearAllItems(section.key)}
+												on:click={() => clearAllItems(sectionKey)}
 											>
 												Clear
 											</button>
 										</div>
 									</div>
 
-									<div class="space-y-1 max-h-48 overflow-y-auto">
-										{#each items as item}
+									<div
+										class="space-y-1 max-h-48 overflow-y-auto"
+										use:dndzone={{ items: sectionItems[sectionKey] || [], flipDurationMs, type: `items-${sectionKey}` }}
+										on:consider={(e) => handleItemDndConsider(sectionKey, e)}
+										on:finalize={(e) => handleItemDndFinalize(sectionKey, e)}
+									>
+										{#each items as item (item.id)}
 											{@const isSelected = sectionConfig.items.includes(item.id)}
-											<label class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer">
-												<input
-													type="checkbox"
-													checked={isSelected}
-													on:change={() => toggleItem(section.key, item.id)}
-													class="w-4 h-4 text-primary-600 rounded border-gray-300"
-												/>
-												<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
-													{item.label}
-												</span>
+											<div
+												class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+												animate:flip={{ duration: flipDurationMs }}
+											>
+												<!-- Drag Handle for Items -->
+												<div class="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 dark:hover:text-gray-400" title="Drag to reorder">
+													<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+													</svg>
+												</div>
+												<label class="flex items-center gap-2 flex-1 cursor-pointer">
+													<input
+														type="checkbox"
+														checked={isSelected}
+														on:change={() => toggleItem(sectionKey, item.id)}
+														class="w-4 h-4 text-primary-600 rounded border-gray-300"
+													/>
+													<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
+														{item.label}
+													</span>
+												</label>
 												{#if item.visibility !== 'public'}
 													<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
 														{item.visibility}
@@ -491,7 +565,7 @@
 														draft
 													</span>
 												{/if}
-											</label>
+											</div>
 										{/each}
 									</div>
 								</div>
