@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
+	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
@@ -71,6 +72,17 @@
 			</div>
 		</div>
 	{/if}
+
+	<!-- Profile navigation tabs -->
+	<ProfileNav
+		hasExperience={data.experience.length > 0}
+		hasProjects={data.projects.length > 0}
+		hasEducation={data.education.length > 0}
+		hasCertifications={data.certifications && data.certifications.length > 0}
+		hasSkills={data.skills.length > 0}
+		hasPosts={data.posts && data.posts.length > 0}
+		hasTalks={data.talks && data.talks.length > 0}
+	/>
 
 	<!-- Main content -->
 	<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

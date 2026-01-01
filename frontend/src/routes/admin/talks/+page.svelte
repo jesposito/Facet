@@ -11,6 +11,7 @@
 
 	// Form fields
 	let title = '';
+	let slug = '';
 	let event = '';
 	let eventUrl = '';
 	let date = '';
@@ -22,6 +23,23 @@
 	let isDraft = false;
 	let sortOrder = 0;
 	let saving = false;
+
+	// Generate slug from title
+	function generateSlug(text: string): string {
+		return text
+			.toLowerCase()
+			.replace(/[^a-z0-9\s-]/g, '')
+			.replace(/\s+/g, '-')
+			.replace(/-+/g, '-')
+			.slice(0, 100);
+	}
+
+	function handleTitleChange() {
+		// Only auto-generate slug for new talks or if slug is empty
+		if (!editingTalk || !slug) {
+			slug = generateSlug(title);
+		}
+	}
 
 	onMount(loadTalks);
 
@@ -42,6 +60,7 @@
 
 	function resetForm() {
 		title = '';
+		slug = '';
 		event = '';
 		eventUrl = '';
 		date = '';
@@ -63,6 +82,7 @@
 	function openEditForm(talk: Talk) {
 		editingTalk = talk;
 		title = talk.title;
+		slug = talk.slug || '';
 		event = talk.event || '';
 		eventUrl = talk.event_url || '';
 		date = talk.date ? talk.date.split('T')[0] : '';
@@ -91,6 +111,7 @@
 		try {
 			const data = {
 				title: title.trim(),
+				slug: slug.trim(),
 				event: event.trim(),
 				event_url: eventUrl.trim(),
 				date: date ? new Date(date).toISOString() : null,
@@ -187,10 +208,36 @@
 						type="text"
 						id="title"
 						bind:value={title}
+						on:input={handleTitleChange}
 						class="input"
 						placeholder="Building Scalable APIs with Go"
 						required
 					/>
+				</div>
+
+				<div>
+					<label for="slug" class="label">
+						Slug
+						<span class="font-normal text-gray-500">(for URL /talks/your-slug)</span>
+					</label>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							id="slug"
+							bind:value={slug}
+							class="input flex-1"
+							placeholder="building-scalable-apis-with-go"
+						/>
+						<button
+							type="button"
+							class="btn btn-secondary text-sm"
+							on:click={() => { slug = generateSlug(title); }}
+							title="Generate from title"
+						>
+							Generate
+						</button>
+					</div>
+					<p class="text-xs text-gray-500 mt-1">Leave empty to hide from public talks listing</p>
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -395,27 +442,33 @@
 								{/if}
 							</div>
 
-							{#if talk.video_url || talk.slides_url}
-								<div class="flex gap-3 mt-2">
-									{#if talk.video_url}
-										<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
-											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-											</svg>
-											Video
-										</a>
-									{/if}
-									{#if talk.slides_url}
-										<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
-											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-											</svg>
-											Slides
-										</a>
-									{/if}
-								</div>
-							{/if}
+							<div class="flex gap-3 mt-2">
+								{#if talk.slug}
+									<a href="/talks/{talk.slug}" target="_blank" rel="noopener noreferrer" class="text-xs text-gray-600 dark:text-gray-400 hover:underline flex items-center gap-1">
+										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+										</svg>
+										/talks/{talk.slug}
+									</a>
+								{/if}
+								{#if talk.video_url}
+									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+										</svg>
+										Video
+									</a>
+								{/if}
+								{#if talk.slides_url}
+									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+										</svg>
+										Slides
+									</a>
+								{/if}
+							</div>
 						</div>
 
 						<div class="flex items-center gap-2">

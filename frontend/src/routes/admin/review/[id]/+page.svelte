@@ -42,9 +42,20 @@
 				return;
 			}
 
-			proposedData = JSON.parse((proposal.proposed_data as string) || '{}');
+			// PocketBase returns JSON fields as parsed objects, not strings
+			// Handle both cases for safety
+			if (typeof proposal.proposed_data === 'string') {
+				proposedData = JSON.parse(proposal.proposed_data || '{}');
+			} else {
+				proposedData = (proposal.proposed_data as Record<string, unknown>) || {};
+			}
+
 			if (proposal.diff) {
-				diff = JSON.parse(proposal.diff as string);
+				if (typeof proposal.diff === 'string') {
+					diff = JSON.parse(proposal.diff);
+				} else {
+					diff = proposal.diff as Record<string, { type: string; old?: unknown; new?: unknown }>;
+				}
 			}
 
 			// Initialize decisions - default to apply for all fields

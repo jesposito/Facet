@@ -463,6 +463,76 @@ Users can now select different layout styles for each section in the view editor
 
 ---
 
+## Phase 1.5: Content Discovery & Navigation ✅ Complete
+
+This phase improves content discovery by adding navigation tabs and dedicated index pages for posts and talks.
+
+### Overview
+Previously, posts and talks were only visible at the bottom of the profile page with no easy way to browse them. This phase adds:
+- Profile navigation tabs for quick section jumping
+- Dedicated index pages for posts (`/posts`) and talks (`/talks`)
+- Individual talk detail pages (`/talks/[slug]`)
+
+### Features Implemented
+
+#### Profile Navigation Tabs
+- [x] `ProfileNav.svelte` component with sticky positioning
+- [x] Smooth scroll to sections on the same page
+- [x] Links to `/posts` and `/talks` index pages
+- [x] Active section highlighting based on scroll position
+- [x] Horizontal scrolling on mobile for many tabs
+- [x] Hidden during print
+
+#### Posts Index Page (`/posts`)
+- [x] Grid layout with post cards
+- [x] Cover image thumbnails (or gradient placeholder)
+- [x] Tag-based filtering
+- [x] Links to individual posts
+- [x] SEO meta tags
+
+#### Talks Index Page (`/talks`)
+- [x] List layout with video thumbnails (YouTube)
+- [x] Year-based filtering
+- [x] Event, date, and location metadata
+- [x] Links to video and slides
+- [x] Links to individual talk pages (when slug exists)
+
+#### Individual Talk Pages (`/talks/[slug]`)
+- [x] Video embed (YouTube/Vimeo)
+- [x] Full description with Markdown support
+- [x] Event, date, location metadata
+- [x] Links to slides and external video
+- [x] Previous/next talk navigation
+- [x] Profile context in footer
+
+#### Backend Changes
+- [x] Migration to add `slug` field to talks collection
+- [x] `/api/talk/{slug}` endpoint for individual talk data
+- [x] Previous/next talk navigation in API response
+
+#### Admin UI Updates
+- [x] Slug field in talks admin form
+- [x] Auto-generate slug from title
+- [x] Link to public talk page in list view
+
+### Files Added
+- `backend/migrations/1735600005_add_talks_slug.go`
+- `frontend/src/components/public/ProfileNav.svelte`
+- `frontend/src/routes/posts/+page.server.ts`
+- `frontend/src/routes/posts/+page.svelte`
+- `frontend/src/routes/talks/+page.server.ts`
+- `frontend/src/routes/talks/+page.svelte`
+- `frontend/src/routes/talks/[slug]/+page.server.ts`
+- `frontend/src/routes/talks/[slug]/+page.svelte`
+
+### Files Modified
+- `frontend/src/lib/pocketbase.ts` - Added slug to Talk interface
+- `frontend/src/routes/+page.svelte` - Added ProfileNav component
+- `frontend/src/routes/admin/talks/+page.svelte` - Added slug field to form
+- `backend/hooks/view.go` - Added `/api/talk/{slug}` endpoint
+
+---
+
 ## Phase 6.2: Live Preview Pane ✅ Complete
 
 This phase adds a side-by-side live preview in the view editor for immediate visual feedback when customizing views.
