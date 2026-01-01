@@ -198,12 +198,19 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 	})
 
 	// Hook to encrypt API keys before saving
+	// NOTE: Must call e.Next() to continue the hook chain in PocketBase v0.23+
 	app.OnRecordCreate("ai_providers").BindFunc(func(e *core.RecordEvent) error {
-		return encryptProviderKey(e.Record, crypto)
+		if err := encryptProviderKey(e.Record, crypto); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
 	app.OnRecordUpdate("ai_providers").BindFunc(func(e *core.RecordEvent) error {
-		return encryptProviderKey(e.Record, crypto)
+		if err := encryptProviderKey(e.Record, crypto); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 }
 
