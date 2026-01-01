@@ -6,12 +6,12 @@ import { browser } from '$app/environment';
 const pbUrl = browser ? window.location.origin : (process.env.POCKETBASE_URL || 'http://localhost:8090');
 export const pb = new PocketBase(pbUrl);
 
-// Auth store
-export const currentUser = writable(pb.authStore.model);
+// Auth store (SDK 0.22+ uses 'record' instead of 'model')
+export const currentUser = writable(pb.authStore.record);
 
 // Update store when auth changes
-pb.authStore.onChange((token, model) => {
-	currentUser.set(model);
+pb.authStore.onChange((token, record) => {
+	currentUser.set(record);
 });
 
 // Types

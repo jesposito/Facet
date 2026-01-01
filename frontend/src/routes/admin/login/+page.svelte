@@ -18,7 +18,7 @@
 
 	onMount(() => {
 		// If already logged in, redirect to admin
-		if (pb.authStore.isValid && pb.authStore.model) {
+		if (pb.authStore.isValid && pb.authStore.record) {
 			redirecting = true;
 			goto('/admin', { replaceState: true });
 		}
