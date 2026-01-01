@@ -113,7 +113,7 @@
     {
       "label": "build:docker",
       "type": "shell",
-      "command": "docker build -t me-yaml:latest -f docker/Dockerfile .",
+      "command": "docker build -t facet:latest -f docker/Dockerfile .",
       "group": "build",
       "presentation": {
         "reveal": "always"

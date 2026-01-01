@@ -29,6 +29,7 @@
 
 	// Preview panel state
 	let showPreview = true;
+	let previewMode: 'desktop' | 'mobile' = 'desktop'; // Phase 6.2.2
 
 	// Form fields
 	let name = '';
@@ -714,7 +715,29 @@
 					<div class="sticky top-4">
 						<div class="flex items-center justify-between mb-3 px-1">
 							<h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Live Preview</h2>
-							<span class="text-xs text-gray-400">Updates as you edit</span>
+							<!-- Phase 6.2.2: Desktop/Mobile toggle -->
+							<div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+								<button
+									type="button"
+									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+									on:click={() => previewMode = 'desktop'}
+									title="Desktop preview"
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+									</svg>
+								</button>
+								<button
+									type="button"
+									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+									on:click={() => previewMode = 'mobile'}
+									title="Mobile preview"
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+									</svg>
+								</button>
+							</div>
 						</div>
 						<ViewPreview
 							{profile}
@@ -725,6 +748,7 @@
 							{sections}
 							{sectionOrder}
 							{sectionItems}
+							{previewMode}
 						/>
 					</div>
 				</div>

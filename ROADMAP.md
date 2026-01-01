@@ -1073,7 +1073,7 @@ Add side-by-side preview in the view editor for immediate visual feedback.
 - [x] Preview updates on any change (reactive Svelte bindings)
 - [x] Preview uses actual section components (not mockups)
 - [x] Toggle button to hide preview for more editor space
-- [ ] Mobile preview mode (preview shown at mobile width) — Deferred
+- [x] Mobile preview mode (preview shown at mobile width) — Complete (Phase 6.2.2)
 
 **Implementation Details:**
 - `ViewPreview.svelte` component reuses public section components
@@ -1081,6 +1081,9 @@ Add side-by-side preview in the view editor for immediate visual feedback.
 - Preview rendered in same page (not iframe) for simplicity
 - Responsive layout: side-by-side on desktop, stacked on mobile
 - Preview scales down content for compact display
+- Desktop/Mobile toggle buttons in preview header (Phase 6.2.2)
+- Mobile preview constrains to 375px with phone frame styling
+- Section widths collapse to full-width in mobile mode
 
 #### 6.3 Section Width & Columns (Phase C - Complete) ✅
 
