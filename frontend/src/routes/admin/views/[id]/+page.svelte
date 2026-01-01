@@ -27,7 +27,7 @@
 	let saving = false;
 	let view: View | null = null;
 
-	// Profile data for preview
+	// Profile data for preview and showing overrides
 	let profile: Profile | null = null;
 
 	// Preview panel state
@@ -570,7 +570,18 @@
 				<p class="text-sm text-gray-500 -mt-2">Override your profile headline and summary for this view</p>
 
 				<div>
-					<label for="hero_headline" class="label">Custom Headline</label>
+					<div class="flex items-center justify-between">
+						<label for="hero_headline" class="label">Custom Headline</label>
+						{#if heroHeadline}
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+								on:click={() => heroHeadline = ''}
+							>
+								Use profile value
+							</button>
+						{/if}
+					</div>
 					<input
 						type="text"
 						id="hero_headline"
@@ -578,16 +589,37 @@
 						class="input"
 						placeholder="Leave empty to use profile headline"
 					/>
+					{#if profile?.headline}
+						<p class="text-xs text-gray-500 mt-1">
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.headline}</span>
+						</p>
+					{/if}
 				</div>
 
 				<div>
-					<label for="hero_summary" class="label">Custom Summary</label>
+					<div class="flex items-center justify-between">
+						<label for="hero_summary" class="label">Custom Summary</label>
+						{#if heroSummary}
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+								on:click={() => heroSummary = ''}
+							>
+								Use profile value
+							</button>
+						{/if}
+					</div>
 					<textarea
 						id="hero_summary"
 						bind:value={heroSummary}
 						class="input min-h-[120px]"
 						placeholder="Leave empty to use profile summary (Markdown supported)"
 					></textarea>
+					{#if profile?.summary}
+						<p class="text-xs text-gray-500 mt-1">
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.summary.length > 100 ? profile.summary.substring(0, 100) + '...' : profile.summary}</span>
+						</p>
+					{/if}
 				</div>
 			</div>
 
