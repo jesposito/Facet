@@ -40,8 +40,10 @@
 	$: formattedDate = data.talk.date ? formatDate(data.talk.date, { month: 'long', day: 'numeric', year: 'numeric' }) : null;
 
 	// Determine back navigation URL and label
+	// If coming from a view (profile page), go back to that view
+	// Otherwise, go back to the talks index page
 	$: backUrl = data.fromView ? `/${data.fromView}` : '/talks';
-	$: backLabel = data.fromView ? 'Back to Profile' : 'All Talks';
+	$: backLabel = data.fromView ? 'Back to Profile' : 'Back to Talks';
 </script>
 
 <svelte:head>
