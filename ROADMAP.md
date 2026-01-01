@@ -93,16 +93,16 @@ None (this is the starting phase)
 - [x] Hero overrides (custom headline, summary per view)
 - [x] CTA configuration (button text and URL)
 - [x] Visibility settings (public, unlisted, password, private)
-- [ ] Drag-and-drop section ordering — Deferred (requires library)
-- [ ] Preview pane showing live result — Deferred to Phase 2.2
+- [x] Drag-and-drop section ordering (svelte-dnd-action)
+- [ ] Preview pane showing live result — Deferred
 
-#### 2.2 Section & Item Customization (Partial)
-- [ ] Drag-and-drop section reordering
-- [ ] Drag-and-drop item reordering within sections
+#### 2.2 Section & Item Customization (Complete)
+- [x] Drag-and-drop section reordering
+- [x] Drag-and-drop item reordering within sections
 - [x] **Item-level field overrides** ✅ Complete
-- [ ] Custom section headings per view
-- [ ] Show/hide section titles
-- [ ] Section layout options (list, grid, compact)
+- [ ] Custom section headings per view — Deferred
+- [ ] Show/hide section titles — Deferred
+- [ ] Section layout options (list, grid, compact) — Deferred
 
 ##### Item-Level Overrides ✅ Complete
 
@@ -141,7 +141,7 @@ Enable per-view customization of individual items without modifying source recor
 - Phase 1 complete
 
 ### Risks
-- Drag-drop complexity; may need library (svelte-dnd-action)
+- ~~Drag-drop complexity; may need library (svelte-dnd-action)~~ — Resolved: svelte-dnd-action installed and working
 - View config schema changes require migration
 
 ---
@@ -468,6 +468,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Phase 4.2 print stylesheet complete | Browser-based PDF via print is sufficient; server-side PDF deferred |
 | 2025-12-31 | Phase 9.2 accessibility audit complete | Skip link, aria attributes, screen reader support added; 0 svelte-check warnings |
 | 2025-12-31 | Admin loading pattern standardized | All admin pages use simple `onMount(loadData)` pattern; layout handles auth gating. Fixes Codespaces race conditions. |
+| 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
 
 ---
 

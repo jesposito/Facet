@@ -16,6 +16,14 @@
 
 	export let data: PageData;
 
+	// Default section order (fallback when no custom order is specified)
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks'];
+
+	// Compute effective section order: use custom order if provided, otherwise use default
+	$: effectiveSectionOrder = (data.sectionOrder && data.sectionOrder.length > 0)
+		? data.sectionOrder
+		: DEFAULT_SECTION_ORDER;
+
 	// Hidden form ref for setting password token cookie
 	let passwordForm: HTMLFormElement;
 	let tokenInput: HTMLInputElement;
@@ -114,33 +122,23 @@
 		{/if}
 
 		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-			{#if data.sections?.experience?.length > 0}
-				<ExperienceSection items={data.sections.experience} />
-			{/if}
-
-			{#if data.sections?.projects?.length > 0}
-				<ProjectsSection items={data.sections.projects} />
-			{/if}
-
-			{#if data.sections?.education?.length > 0}
-				<EducationSection items={data.sections.education} />
-			{/if}
-
-			{#if data.sections?.certifications?.length > 0}
-				<CertificationsSection items={data.sections.certifications} />
-			{/if}
-
-			{#if data.sections?.skills?.length > 0}
-				<SkillsSection items={data.sections.skills} />
-			{/if}
-
-			{#if data.sections?.posts?.length > 0}
-				<PostsSection items={data.sections.posts} />
-			{/if}
-
-			{#if data.sections?.talks?.length > 0}
-				<TalksSection items={data.sections.talks} />
-			{/if}
+			{#each effectiveSectionOrder as sectionKey}
+				{#if sectionKey === 'experience' && data.sections?.experience?.length > 0}
+					<ExperienceSection items={data.sections.experience} />
+				{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
+					<ProjectsSection items={data.sections.projects} />
+				{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
+					<EducationSection items={data.sections.education} />
+				{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
+					<CertificationsSection items={data.sections.certifications} />
+				{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
+					<SkillsSection items={data.sections.skills} />
+				{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
+					<PostsSection items={data.sections.posts} />
+				{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
+					<TalksSection items={data.sections.talks} />
+				{/if}
+			{/each}
 		</main>
 
 		<Footer profile={data.profile} />

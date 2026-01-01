@@ -98,8 +98,8 @@
   - [x] `/admin/views` - List views
   - [x] `/admin/views/new` - Create view
   - [x] `/admin/views/[id]` - Edit view
-  - [ ] Section selector with drag ordering (deferred to Phase 2.2)
-  - [x] Item picker per section
+  - [x] Section selector with drag ordering (svelte-dnd-action)
+  - [x] Item picker per section with drag reordering
   - [x] Override fields (headline, summary, CTA)
   - [x] Default view management
 - [x] Share token management UI:
@@ -215,7 +215,7 @@
 (None - core functionality complete)
 
 ### Medium Priority
-1. Drag-drop section/item reordering for views (Phase 2.2 continued)
+1. ~~Drag-drop section/item reordering for views (Phase 2.2 continued)~~ ✅ Complete
 2. Media library (Phase 7)
 3. Additional frontend tests
 
@@ -225,6 +225,36 @@
 6. Integration tests
 7. View access log / audit logging (Phase 8)
 8. Data export (JSON/YAML) - Phase 4.3
+
+---
+
+## Phase 2.2: Drag-Drop Section & Item Reordering ✅ Complete
+
+This phase enables users to customize the order of sections and items within views using drag-and-drop.
+
+### Implementation
+- [x] Install `svelte-dnd-action` library for Svelte drag-drop
+- [x] Update view editor (`/admin/views/[id]`) with section drag handles
+- [x] Update view editor with item drag handles within expanded sections
+- [x] Update view create page (`/admin/views/new`) with same functionality
+- [x] Backend returns `section_order` array in view data API response
+- [x] Public view renders sections dynamically based on order
+
+### Technical Details
+- Section order stored as array position in `sections` JSON field (no schema change needed)
+- Item order within sections preserved by array position in `items` field
+- Backend iterates sections in order and returns `section_order` array
+- Frontend uses `{#each effectiveSectionOrder}` to render sections dynamically
+- Drag handles visible on all draggable elements
+- Smooth flip animation (200ms) during drag operations
+
+### Files Changed
+- `frontend/src/routes/admin/views/[id]/+page.svelte` - Section and item drag-drop
+- `frontend/src/routes/admin/views/new/+page.svelte` - Section and item drag-drop
+- `frontend/src/routes/[slug=slug]/+page.svelte` - Dynamic section rendering
+- `frontend/src/routes/[slug=slug]/+page.server.ts` - Pass sectionOrder to page
+- `backend/hooks/view.go` - Return section_order in API response
+- `frontend/package.json` - Added svelte-dnd-action dependency
 
 ---
 
