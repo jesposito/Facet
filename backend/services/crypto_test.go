@@ -303,6 +303,9 @@ func TestJWTConstants(t *testing.T) {
 	if JWTIssuer != "facet" {
 		t.Fatalf("Expected issuer 'facet', got '%s'", JWTIssuer)
 	}
+	if JWTIssuerLegacy != "me.yaml" {
+		t.Fatalf("Expected legacy issuer 'me.yaml', got '%s'", JWTIssuerLegacy)
+	}
 	if JWTAudience != "view-access" {
 		t.Fatalf("Expected audience 'view-access', got '%s'", JWTAudience)
 	}

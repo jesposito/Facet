@@ -18,8 +18,9 @@ import (
 
 // JWT constants
 const (
-	JWTIssuer   = "facet"
-	JWTAudience = "view-access"
+	JWTIssuer       = "facet"
+	JWTIssuerLegacy = "me.yaml" // Accept tokens from before rebrand
+	JWTAudience     = "view-access"
 )
 
 // ViewAccessClaims represents the JWT claims for password-protected view access
@@ -203,8 +204,8 @@ func (c *CryptoService) ValidateViewAccessJWT(tokenString string) (string, error
 		return "", errors.New("invalid token")
 	}
 
-	// Validate issuer
-	if claims.Issuer != JWTIssuer {
+	// Validate issuer (accept both current and legacy for backwards compatibility)
+	if claims.Issuer != JWTIssuer && claims.Issuer != JWTIssuerLegacy {
 		return "", errors.New("invalid issuer")
 	}
 

@@ -211,19 +211,20 @@ The Go module is currently named `ownprofile` (legacy from original name). This 
 - [ ] Run `cd backend && go build ./...` to verify
 - [ ] Run `cd backend && go test ./...` to verify all tests pass
 
-#### 3.2 JWT Token Issuer (SECURITY IMPACT)
+#### 3.2 JWT Token Issuer (BACKWARDS COMPATIBLE ✅)
 
 | File | Line | Current | New |
 |------|------|---------|-----|
-| `backend/services/crypto.go` | 21 | `JWTIssuer = "me.yaml"` | `JWTIssuer = "facet"` |
-| `backend/services/crypto_test.go` | 303-304 | Test assertion | Update assertion |
+| `backend/services/crypto.go` | 21 | `JWTIssuer = "me.yaml"` | `JWTIssuer = "facet"` + `JWTIssuerLegacy = "me.yaml"` |
+| `backend/services/crypto_test.go` | 303-308 | Test assertion | Verify both constants |
 
-**⚠️ Impact**: Existing password-protected view sessions will be invalidated. Users will need to re-enter passwords after upgrade.
+**✅ No Breaking Change**: Implemented backwards compatibility - the validation logic accepts both `"facet"` (new) and `"me.yaml"` (legacy) issuers. Existing password-protected view sessions remain valid after upgrade.
 
 **Tasks:**
-- [ ] Update `JWTIssuer` constant in `crypto.go`
-- [ ] Update test assertions in `crypto_test.go`
-- [ ] Document in UPGRADE.md: "Sessions will be invalidated"
+- [x] Update `JWTIssuer` constant in `crypto.go`
+- [x] Add `JWTIssuerLegacy` constant for backwards compatibility
+- [x] Update `ValidateViewAccessJWT` to accept both issuers
+- [x] Update test assertions in `crypto_test.go`
 
 #### 3.3 Export Metadata
 
@@ -370,8 +371,10 @@ Add to `docs/UPGRADE.md`:
 ## Upgrading from Me.yaml to Facet
 
 ### Breaking Changes
-- **Sessions invalidated**: Password-protected view sessions will require re-authentication
 - **Export metadata**: New exports will show `"app": "Facet"` instead of `"app": "Me.yaml"`
+
+### Non-Breaking Changes
+- **JWT sessions preserved**: Password-protected view sessions remain valid (legacy issuer accepted)
 
 ### Docker Users
 If upgrading from `me-yaml` container:
@@ -440,8 +443,8 @@ If upgrading from `me-yaml` container:
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Go module rename breaks build | High | Test thoroughly; atomic commit |
-| JWT issuer change breaks sessions | Medium | Document in upgrade guide; sessions can be re-established |
+| Go module rename breaks build | ~~High~~ None (dev-only) | Not user-facing; build verified, tests pass |
+| JWT issuer change breaks sessions | ~~Medium~~ None | Implemented legacy issuer support; sessions preserved |
 | Orphaned "Me.yaml" references | Low | Grep verification step |
 | GitHub redirect expires | Low | Redirects last indefinitely for most operations |
 | SEO impact | Low | Keep "(formerly Me.yaml)" in README for transition period |
