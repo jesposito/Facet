@@ -1,5 +1,5 @@
 {
-  "name": "Me.yaml",
+  "name": "Facet",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
@@ -38,18 +38,18 @@
   },
 
   "mounts": [
-    "source=meyaml-node-modules,target=${containerWorkspaceFolder}/frontend/node_modules,type=volume",
-    "source=meyaml-go-cache,target=/go/pkg/mod,type=volume"
+    "source=facet-node-modules,target=${containerWorkspaceFolder}/frontend/node_modules,type=volume",
+    "source=facet-go-cache,target=/go/pkg/mod,type=volume"
   ],
 
   "forwardPorts": [5173, 8090],
   "portsAttributes": {
     "5173": {
-      "label": "Me.yaml (Frontend)",
+      "label": "Facet (Frontend)",
       "onAutoForward": "openBrowser"
     },
     "8090": {
-      "label": "Me.yaml API",
+      "label": "Facet API",
       "onAutoForward": "silent"
     }
   },

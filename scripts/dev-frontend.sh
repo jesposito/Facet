@@ -1,5 +1,5 @@
 #!/bin/bash
-# Me.yaml Frontend Development Script
+# Facet Frontend Development Script
 # Optimized startup: only installs dependencies when lockfile changes
 #
 # Usage: ./scripts/dev-frontend.sh

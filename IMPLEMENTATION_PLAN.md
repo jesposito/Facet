@@ -206,7 +206,7 @@
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
 | 12. Print & Export | 🟡 Partial | Print stylesheet + data export complete, AI print deferred |
-| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Section widths (6.3) + Accent color (6.5) + Per-view theming (6.6) complete |
+| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Mobile preview (6.2.2) + Section widths (6.3) + Accent color (6.5) + Per-view theming (6.6) complete |
 
 ---
 
@@ -228,7 +228,7 @@
 8. View access log / audit logging (Phase 8)
 9. ~~Data export (JSON/YAML) - Phase 4.4~~ ✅ Complete
 10. ~~Section width & columns (Phase 6.3)~~ ✅ Complete
-11. Mobile preview mode (Phase 6.2.2)
+11. ~~Mobile preview mode (Phase 6.2.2)~~ ✅ Complete
 
 ---
 

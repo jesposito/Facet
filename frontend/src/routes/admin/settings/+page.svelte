@@ -250,7 +250,7 @@
 
 			// Get filename from Content-Disposition header or use default
 			const disposition = response.headers.get('Content-Disposition');
-			let filename = `me-yaml-export.${format}`;
+			let filename = `facet-export.${format}`;
 			if (disposition) {
 				const match = disposition.match(/filename="?([^"]+)"?/);
 				if (match) filename = match[1];

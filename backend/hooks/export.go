@@ -60,7 +60,7 @@ func RegisterExportHooks(app *pocketbase.PocketBase) {
 
 			// Generate filename with timestamp
 			timestamp := time.Now().Format("2006-01-02")
-			filename := fmt.Sprintf("me-yaml-export-%s.%s", timestamp, format)
+			filename := fmt.Sprintf("facet-export-%s.%s", timestamp, format)
 
 			if format == "yaml" {
 				return serveYAML(e, exportData, filename)

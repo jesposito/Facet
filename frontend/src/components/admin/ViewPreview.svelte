@@ -11,6 +11,7 @@
 	 * - Filters items based on selection
 	 * - Respects section order and layouts
 	 * - Scaled-down for side-by-side editing
+	 * - Desktop/Mobile preview mode toggle (Phase 6.2.2)
 	 */
 	import type {
 		Profile,
@@ -40,6 +41,7 @@
 	export let heroSummary: string = '';
 	export let ctaText: string = '';
 	export let ctaUrl: string = '';
+	export let previewMode: 'desktop' | 'mobile' = 'desktop'; // Phase 6.2.2: Desktop or mobile preview
 
 	// Section configuration from editor (with width support for Phase 6.3)
 	export let sections: Record<
@@ -180,7 +182,7 @@
 	})() : '';
 </script>
 
-<div class="preview-container" style={accentStyles}>
+<div class="preview-container" class:preview-mobile={previewMode === 'mobile'} style={accentStyles}>
 	<!-- Mini Hero -->
 	{#if effectiveProfile}
 		<div class="preview-hero">
@@ -285,10 +287,41 @@
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
 		max-height: calc(100vh - 200px);
 		overflow-y: auto;
+		transition: max-width 0.2s ease-in-out;
+	}
+
+	/* Phase 6.2.2: Mobile preview mode */
+	.preview-container.preview-mobile {
+		max-width: 375px;
+		margin-left: auto;
+		margin-right: auto;
+		border: 2px solid rgb(107 114 128); /* gray-500 */
+		border-radius: 1.5rem;
+		padding-top: 1rem;
+		padding-bottom: 0.5rem;
+	}
+
+	/* Phone notch simulation for mobile preview */
+	.preview-container.preview-mobile::before {
+		content: '';
+		display: block;
+		width: 120px;
+		height: 24px;
+		margin: 0 auto 0.5rem;
+		background: rgb(17 24 39);
+		border-radius: 12px;
 	}
 
 	:global(.dark) .preview-container {
 		background: rgb(17 24 39);
+	}
+
+	:global(.dark) .preview-container.preview-mobile {
+		border-color: rgb(75 85 99); /* gray-600 */
+	}
+
+	:global(.dark) .preview-container.preview-mobile::before {
+		background: rgb(31 41 55);
 	}
 
 	/* Scale down the hero for preview */
@@ -371,6 +404,23 @@
 	/* Third width: spans 2 columns (33%) */
 	.section-third {
 		grid-column: span 2;
+	}
+
+	/* Phase 6.2.2: Mobile preview forces all sections to full width */
+	.preview-mobile .section-half,
+	.preview-mobile .section-third {
+		grid-column: span 6;
+	}
+
+	/* Mobile preview: single-column grid layout */
+	.preview-mobile .preview-sections-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.preview-mobile .section-full,
+	.preview-mobile .section-half,
+	.preview-mobile .section-third {
+		grid-column: span 1;
 	}
 
 	/* Scale down sections for preview */

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Me.yaml Backend Development Script
+# Facet Backend Development Script
 # Optimized startup: only runs go mod tidy when go.mod/go.sum change
 #
 # Usage: ./scripts/dev-backend.sh
@@ -102,7 +102,7 @@ fi
 # This prevents stale compiled code from being used
 if [[ "$FIRST_RUN" == "true" ]]; then
     echo "[backend] First run detected - cleaning build cache for fresh compilation..."
-    rm -rf "$PROJECT_ROOT/tmp/me-yaml" 2>/dev/null || true
+    rm -rf "$PROJECT_ROOT/tmp/facet" 2>/dev/null || true
     go clean -cache 2>/dev/null || true
 fi
 
@@ -116,7 +116,7 @@ fi
 echo "[backend] Starting air with hot reload..."
 echo "[backend] Config: $PROJECT_ROOT/.air.toml"
 echo "[backend] Watching: $BACKEND_DIR"
-echo "[backend] Build output: $PROJECT_ROOT/tmp/me-yaml"
+echo "[backend] Build output: $PROJECT_ROOT/tmp/facet"
 echo "[backend] PocketBase data: $DATA_DIR"
 echo ""
 
