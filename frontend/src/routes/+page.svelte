@@ -14,12 +14,30 @@
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import { pb } from '$lib/pocketbase';
 
 	export let data: PageData;
 
 	// Get headline and summary - use view overrides if this is a default view
 	$: headline = data.view?.hero_headline || data.profile?.headline;
 	$: summary = data.view?.hero_summary || data.profile?.summary;
+
+	// Print menu state
+	let showPrintMenu = false;
+	let showGenerateModal = false;
+	let generating = false;
+	let aiPrintStatus = {
+		available: false,
+		ai_configured: false,
+		pandoc_installed: false
+	};
+	let generationConfig = {
+		format: 'pdf' as 'pdf' | 'docx',
+		target_role: '',
+		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
+		length: 'two-page' as 'one-page' | 'two-page' | 'full'
+	};
+	let generatedUrl: string | null = null;
 
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
@@ -49,7 +67,71 @@
 		if (accentColor) {
 			applyAccentColor(accentColor as AccentColor);
 		}
+
+		// Check AI Print availability
+		checkAIPrintStatus();
 	});
+
+	async function checkAIPrintStatus() {
+		try {
+			const response = await fetch('/api/ai-print/status');
+			if (response.ok) {
+				const result = await response.json();
+				aiPrintStatus = {
+					available: result.available,
+					ai_configured: result.ai_configured,
+					pandoc_installed: result.pandoc_installed
+				};
+			}
+		} catch (err) {
+			console.error('[AI-PRINT] Failed to check status:', err);
+		}
+	}
+
+	async function generateResume() {
+		const slug = data.view?.slug;
+		if (!slug) return;
+		generating = true;
+		generatedUrl = null;
+
+		try {
+			const response = await fetch(`/api/view/${slug}/generate`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify(generationConfig)
+			});
+
+			const result = await response.json();
+
+			if (!response.ok) {
+				throw new Error(result.error || 'Generation failed');
+			}
+
+			generatedUrl = result.download_url;
+
+			// Auto-download the file
+			if (generatedUrl) {
+				const link = document.createElement('a');
+				link.href = generatedUrl;
+				link.download = `resume.${generationConfig.format}`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+			}
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Failed to generate resume';
+			alert(message);
+		} finally {
+			generating = false;
+		}
+	}
+
+	function closePrintMenu() {
+		showPrintMenu = false;
+	}
 </script>
 
 <svelte:head>
@@ -64,19 +146,49 @@
 </svelte:head>
 
 <div class="min-h-screen">
-	<!-- Theme toggle and print button -->
+	<!-- Theme toggle and print menu -->
 	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
-		<!-- Print Button -->
-		<button
-			on:click={() => window.print()}
-			class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-			title="Print / Save as PDF"
-			aria-label="Print or save as PDF"
-		>
-			<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-			</svg>
-		</button>
+		<!-- Print Menu -->
+		<div class="relative">
+			<button
+				on:click={() => showPrintMenu = !showPrintMenu}
+				class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+				title="Print options"
+				aria-label="Print options"
+				aria-expanded={showPrintMenu}
+			>
+				<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+				</svg>
+			</button>
+
+			{#if showPrintMenu}
+				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+				<div class="fixed inset-0" on:click={closePrintMenu}></div>
+				<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+					<button
+						on:click={() => { window.print(); closePrintMenu(); }}
+						class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+					>
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+						</svg>
+						Simple Print
+					</button>
+					{#if aiPrintStatus.ai_configured && data.view?.slug}
+						<button
+							on:click={() => { showGenerateModal = true; closePrintMenu(); }}
+							class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+						>
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+							</svg>
+							AI Resume
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
 		<ThemeToggle />
 	</div>
 
@@ -159,3 +271,98 @@
 
 	<Footer profile={data.profile} />
 </div>
+
+<!-- AI Resume Generation Modal -->
+{#if showGenerateModal}
+	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" on:click|self={() => showGenerateModal = false}>
+		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
+			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate AI Resume</h2>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+					Create a professionally formatted resume from this view.
+				</p>
+			</div>
+
+			<div class="p-4 space-y-4">
+				{#if generatedUrl}
+					<div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
+						<p class="text-green-700 dark:text-green-300 mb-3">Resume generated successfully!</p>
+						<a
+							href={generatedUrl}
+							download
+							class="btn btn-primary"
+						>
+							Download Resume
+						</a>
+					</div>
+				{:else}
+					<div>
+						<label for="format" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
+						<select id="format" bind:value={generationConfig.format} class="input">
+							<option value="pdf">PDF</option>
+							<option value="docx">Word Document</option>
+						</select>
+					</div>
+
+					<div>
+						<label for="target_role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Role (optional)</label>
+						<input
+							type="text"
+							id="target_role"
+							bind:value={generationConfig.target_role}
+							class="input"
+							placeholder="e.g., Senior Software Engineer"
+						/>
+					</div>
+
+					<div>
+						<label for="style" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Style</label>
+						<select id="style" bind:value={generationConfig.style} class="input">
+							<option value="chronological">Chronological</option>
+							<option value="functional">Functional</option>
+							<option value="hybrid">Hybrid</option>
+						</select>
+					</div>
+
+					<div>
+						<label for="length" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Length</label>
+						<select id="length" bind:value={generationConfig.length} class="input">
+							<option value="one-page">One Page</option>
+							<option value="two-page">Two Pages</option>
+							<option value="full">Full</option>
+						</select>
+					</div>
+				{/if}
+			</div>
+
+			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+				<button
+					type="button"
+					class="btn btn-ghost"
+					on:click={() => { showGenerateModal = false; generatedUrl = null; }}
+				>
+					{generatedUrl ? 'Close' : 'Cancel'}
+				</button>
+				{#if !generatedUrl}
+					<button
+						type="button"
+						class="btn btn-primary"
+						on:click={generateResume}
+						disabled={generating}
+					>
+						{#if generating}
+							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+							Generating...
+						{:else}
+							Generate
+						{/if}
+					</button>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
