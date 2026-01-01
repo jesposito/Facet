@@ -79,6 +79,137 @@ None (this is the starting phase)
 
 ---
 
+## Phase 1.5: Content Discovery & Navigation
+
+**Purpose**: Improve discoverability of posts and talks by adding index pages and navigation tabs.
+
+### Current State Analysis
+
+**Posts:**
+- [x] Individual post pages at `/posts/[slug]`
+- [x] Posts section displays on profile with cards
+- [x] Admin CRUD complete
+- [x] Visibility settings (public/unlisted/private) and draft status
+- [x] View limiting via section selection already works
+- [ ] **Missing**: No index page at `/posts` to browse all posts
+- [ ] **Missing**: No navigation to jump directly to posts section
+
+**Talks:**
+- [x] Talks section displays on profile with embedded videos
+- [x] Admin CRUD complete
+- [x] Visibility settings and draft status
+- [x] View limiting via section selection already works
+- [ ] **Missing**: No individual talk pages at `/talks/[slug]`
+- [ ] **Missing**: No index page at `/talks` to browse all talks
+- [ ] **Missing**: No navigation to jump directly to talks section
+
+### Features
+
+#### 1.5.1 Profile Navigation Tabs
+
+Add a navigation bar that appears when the profile has multiple content types (posts, talks, projects).
+
+**Behavior:**
+- Navigation tabs appear below the hero section
+- Only show tabs for sections that have visible content
+- Clicking a tab smooth-scrolls to that section
+- Sticky on scroll (optional)
+
+**Tabs to show (when content exists):**
+- Experience
+- Projects
+- Posts
+- Talks
+
+**Implementation:**
+- [ ] Create `ProfileNav.svelte` component
+- [ ] Compute visible sections from page data
+- [ ] Add smooth-scroll behavior with anchor links
+- [ ] Optional: Make nav sticky on scroll
+- [ ] Hide on print
+
+#### 1.5.2 Posts Index Page
+
+Add `/posts` route to browse all published posts.
+
+**Features:**
+- Grid layout of post cards (same component as profile section)
+- Filter by tag (query param: `/posts?tag=go`)
+- Sort by date (newest first default)
+- Pagination for large collections
+- Meta tags for SEO
+- Link back to profile
+
+**Implementation:**
+- [ ] Create `/posts/+page.svelte` route
+- [ ] Create `/posts/+page.server.ts` to fetch all public, non-draft posts
+- [ ] Add tag filter UI
+- [ ] Add pagination
+- [ ] Update reserved slugs if needed
+
+#### 1.5.3 Talks Index Page
+
+Add `/talks` route to browse all talks.
+
+**Features:**
+- List/card layout of talk entries
+- Filter by year or event
+- Sort by date (newest first default)
+- Meta tags for SEO
+- Link back to profile
+
+**Implementation:**
+- [ ] Create `/talks/+page.svelte` route
+- [ ] Create `/talks/+page.server.ts` to fetch all public, non-draft talks
+- [ ] Add year/event filter UI
+- [ ] Update reserved slugs if needed
+
+#### 1.5.4 Individual Talk Pages
+
+Add `/talks/[slug]` route for detailed talk view.
+
+**Current**: Talks only appear in the profile section; no way to link to a specific talk.
+
+**Features:**
+- Full talk detail page similar to posts
+- Video embed (full width)
+- Slides embed or download link
+- Event details and description (markdown rendered)
+- Previous/next talk navigation
+- Meta tags for SEO (Open Graph video support)
+- Back to profile link
+
+**Implementation:**
+- [ ] Add `slug` field to talks collection (migration)
+- [ ] Create `/talks/[slug]/+page.svelte` route
+- [ ] Create `/talks/[slug]/+page.server.ts`
+- [ ] Add admin UI for talk slug (auto-generate from title)
+- [ ] Update talk cards to link to detail page
+
+### View Limiting Considerations
+
+**Already Working:**
+- Views can enable/disable posts and talks sections
+- Views can select specific posts/talks to include
+- Visibility (public/unlisted/private) filters content correctly
+- Draft status filters content correctly
+
+**To Consider:**
+- Index pages (`/posts`, `/talks`) should only show public, non-draft items
+- Index pages are NOT view-scoped (they show all public content)
+- Individual pages (`/posts/[slug]`, `/talks/[slug]`) respect visibility settings
+- Views continue to work as curated collections
+
+### Prerequisites
+- Phase 1 complete ✅
+
+### Risks
+- Adding `/posts` and `/talks` routes already reserved as slugs ✅
+- Talks need slug field added (migration required)
+- Navigation tabs add visual complexity
+
+---
+
 ## Phase 2: View System Enhancement (Current)
 
 **Purpose**: Make views more powerful and easier to manage.
@@ -777,6 +908,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 | 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
 | 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
 | 2026-01-01 | OAuth config via env vars prioritized | End users should never see PocketBase; all config via environment variables. Login page should dynamically show only configured auth methods. Enables Unraid template distribution. |
+| 2026-01-01 | Phase 1.5 added for content discovery | Posts and talks are buried at bottom of profile with no navigation. Adding: profile nav tabs, index pages (/posts, /talks), and individual talk pages (/talks/[slug]). View limiting already works via sections config. |
 
 ---
 
