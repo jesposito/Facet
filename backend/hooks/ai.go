@@ -38,6 +38,19 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			}
 		}
 
+		// Try to auto-configure Ollama from environment (no API key needed, just base URL)
+		if baseURL := os.Getenv("OLLAMA_BASE_URL"); baseURL != "" {
+			model := os.Getenv("OLLAMA_MODEL")
+			if model == "" {
+				model = "llama3.2"
+			}
+			if err := ensureEnvProvider(app, crypto, "ollama", "Ollama (Auto)", "", baseURL, model); err != nil {
+				log.Printf("Warning: Failed to auto-configure Ollama provider: %v", err)
+			} else {
+				log.Println("AI: Auto-configured Ollama provider from OLLAMA_BASE_URL")
+			}
+		}
+
 		// Check AI status endpoint - tells frontend if AI is available
 		se.Router.GET("/api/ai/status", func(e *core.RequestEvent) error {
 			providers, err := app.FindRecordsByFilter("ai_providers", "is_active = true", "", 1, 0)
@@ -222,11 +235,16 @@ func ensureEnvProvider(app *pocketbase.PocketBase, crypto *services.CryptoServic
 	if err == nil && len(providers) > 0 {
 		// Update existing provider
 		record := providers[0]
-		encrypted, err := crypto.Encrypt(apiKey)
-		if err != nil {
-			return err
+		if apiKey != "" {
+			encrypted, err := crypto.Encrypt(apiKey)
+			if err != nil {
+				return err
+			}
+			record.Set("api_key_encrypted", encrypted)
 		}
-		record.Set("api_key_encrypted", encrypted)
+		if baseURL != "" {
+			record.Set("base_url", baseURL)
+		}
 		record.Set("model", model)
 		record.Set("is_active", true)
 		return app.Save(record)
@@ -249,12 +267,14 @@ func ensureEnvProvider(app *pocketbase.PocketBase, crypto *services.CryptoServic
 	defaults, _ := app.FindRecordsByFilter("ai_providers", "is_default = true", "", 1, 0)
 	record.Set("is_default", len(defaults) == 0)
 
-	// Encrypt API key
-	encrypted, err := crypto.Encrypt(apiKey)
-	if err != nil {
-		return err
+	// Encrypt API key if provided
+	if apiKey != "" {
+		encrypted, err := crypto.Encrypt(apiKey)
+		if err != nil {
+			return err
+		}
+		record.Set("api_key_encrypted", encrypted)
 	}
-	record.Set("api_key_encrypted", encrypted)
 
 	return app.Save(record)
 }
