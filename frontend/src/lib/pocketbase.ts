@@ -6,14 +6,21 @@ import { browser } from '$app/environment';
 const pbUrl = browser ? window.location.origin : (process.env.POCKETBASE_URL || 'http://localhost:8090');
 export const pb = new PocketBase(pbUrl);
 
+// Expose for debugging
+if (browser) {
+	(window as unknown as { pb: PocketBase }).pb = pb;
+}
+
 // Force Bearer prefix on auth header (required for PocketBase 0.23+)
 pb.beforeSend = function (url, options) {
 	const token = pb.authStore.token;
+	console.log('[PB beforeSend]', { url, hasToken: !!token, headers: options.headers });
 	if (token) {
 		// Always set Authorization header with Bearer prefix
 		options.headers = Object.assign({}, options.headers, {
 			'Authorization': 'Bearer ' + token
 		});
+		console.log('[PB beforeSend] Added Bearer header');
 	}
 	return { url, options };
 };
