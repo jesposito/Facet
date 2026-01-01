@@ -406,6 +406,41 @@ app.OnRecordCreateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEve
 
 **Note:** This is used in `backend/hooks/ai.go` to encrypt API keys before saving to `api_key_encrypted`.
 
+### AI Integration
+
+Facet supports AI-powered content enrichment using configurable providers (OpenAI, Anthropic, Ollama, or custom).
+
+**AI Integration Points:**
+
+| Feature | Endpoint | Description |
+|---------|----------|-------------|
+| GitHub Import Enrichment | `/api/ai/enrich` | Generates summaries, bullets, and tags from README |
+| Content Improvement | `/api/ai/improve` | Improves headlines, summaries, descriptions, etc. |
+| Connection Test | `/api/ai/test/{id}` | Tests if an AI provider is configured correctly |
+
+**AI Response Parsing:**
+
+The AI may return JSON with varying types for certain fields. The parser in `backend/services/ai.go` handles this flexibly:
+
+- `case_study` can be string OR array (converted to bullet points)
+- Arrays are parsed item-by-item to handle mixed types
+- Markdown code blocks are stripped before parsing
+
+**AI Prompt Guidelines:**
+
+All AI prompts include these style rules to avoid AI-sounding language:
+
+```
+IMPORTANT WRITING STYLE RULES:
+- Write like a human, not an AI. Be direct and natural.
+- NEVER use em dashes (—). Use commas, periods, or "and" instead.
+- NEVER use words like "delve", "leverage", "utilize", "spearheaded", "synergy", "cutting-edge"
+- Avoid corporate buzzwords and marketing speak
+- Use simple, clear language over fancy vocabulary
+```
+
+See: `backend/services/ai.go:buildPrompt()` and `backend/hooks/ai.go:buildImprovementPrompt()`
+
 ### PocketBase API 400 Errors with Sort Parameters
 
 **Symptoms:**
