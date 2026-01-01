@@ -28,7 +28,7 @@
 		loading = true;
 		try {
 			const records = await pb.collection('posts').getList(1, 100, {
-				sort: '-created'
+				sort: '-published_at'
 			});
 			posts = records.items as unknown as Post[];
 		} catch (err) {
