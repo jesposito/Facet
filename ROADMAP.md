@@ -278,38 +278,158 @@ Server-side PDF generation and data export are deferred as browser print provide
 
 ---
 
-## Phase 6: Theming & Customization
+## Phase 6: Visual Layout System
 
-**Purpose**: Allow visual customization without code changes.
+**Purpose**: Enable per-section layout customization with guardrails that prevent bad design choices. Inspired by [SharePoint's flexible sections](https://learn.microsoft.com/en-us/sharepoint/dev/design/layout-patterns) but simpler - curated presets rather than freeform editing.
+
+### Design Principles
+
+1. **Guardrails for Non-Designers**: Only offer layouts proven to look good for each content type
+2. **Progressive Disclosure**: Defaults work without configuration; advanced options are optional
+3. **Responsive by Default**: All layouts must work on mobile - users can't break responsiveness
+4. **Instant Feedback**: Changes should preview immediately or with minimal friction
 
 ### Features
 
-#### 6.1 Color Themes
-- [ ] Light/dark mode toggle
-- [ ] Accent color picker
-- [ ] Preview in admin
+#### 6.1 Per-Section Layout Presets (Phase A - Foundation)
 
-#### 6.2 Layout Options
-- [ ] Section layout presets
-- [ ] Hero image position options
-- [ ] Avatar placement options
+Add a `layout` field to each section in the view editor. Each section type has its own curated set of valid layouts.
 
-#### 6.3 Custom CSS
+**Schema Change:**
+```typescript
+interface ViewSection {
+  section: string;
+  enabled: boolean;
+  items?: string[];
+  layout?: SectionLayout;      // NEW: 'default' | 'compact' | 'timeline' | etc.
+  layoutOptions?: {            // NEW: Future extensibility
+    columns?: 2 | 3;
+    showImages?: boolean;
+  };
+  itemConfig?: Record<string, ItemConfig>;
+}
+```
+
+**Layout Options by Section:**
+
+| Section | Available Layouts | Default | Notes |
+|---------|-------------------|---------|-------|
+| Experience | `default`, `timeline`, `compact` | default | Timeline emphasizes career progression |
+| Projects | `grid-3`, `grid-2`, `list`, `featured` | grid-3 | Featured shows 1 large + grid |
+| Education | `default`, `timeline` | default | Timeline connects education visually |
+| Certifications | `grouped`, `grid`, `timeline` | grouped | Grouped = by issuer (current) |
+| Skills | `grouped`, `cloud`, `bars`, `flat` | grouped | Cloud = size by proficiency |
+| Posts | `grid-3`, `grid-2`, `list`, `featured` | grid-3 | Same as projects |
+| Talks | `default`, `cards`, `list` | default | Default embeds video |
+
+**Implementation:**
+- [ ] Add `layout` field to ViewSection type in `pocketbase.ts`
+- [ ] Add `VALID_LAYOUTS` constant mapping section → allowed layouts
+- [ ] Add layout dropdown in view editor (in section header when expanded)
+- [ ] Backend passes layout through in `/api/view/:slug/data` response
+- [ ] Update section components to accept `layout` prop
+- [ ] Implement 2-3 layout variants per section (start with most valuable)
+
+**UX Flow:**
+1. User expands section in view editor
+2. Sees "Layout" dropdown next to section toggle (default: "Default")
+3. Options filtered to valid layouts for that section type
+4. Selection saves with view config
+5. Public view renders with selected layout
+
+#### 6.2 Live Preview Pane (Phase B - Feedback)
+
+Add side-by-side preview in the view editor for immediate visual feedback.
+
+- [ ] Split-pane layout: editor left (60%), preview right (40%)
+- [ ] Preview updates on any change (debounced 300ms)
+- [ ] Preview uses actual section components (not mockups)
+- [ ] Toggle to hide preview for more editor space
+- [ ] Mobile preview mode (preview shown at mobile width)
+
+**Technical Approach:**
+- Preview rendered in same page (not iframe) for simplicity
+- Pass current form state to preview components
+- Use Svelte stores for reactive updates
+- Consider iframe for true isolation (Phase C)
+
+#### 6.3 Section Width & Columns (Phase C - Advanced)
+
+Enable sections to share horizontal space (side-by-side layouts).
+
+**Width Options:**
+- `full` - 100% width (current default)
+- `half` - 50% width (pairs with another half)
+- `third` - 33% width (triplets)
+
+**Behavior:**
+- Consecutive sections with compatible widths render side-by-side
+- CSS Grid handles responsive collapse (side-by-side on desktop, stacked on mobile)
+- Visual indicator in editor shows which sections will pair
+
+**Schema Addition:**
+```typescript
+interface ViewSection {
+  // ... existing fields
+  width?: 'full' | 'half' | 'third';  // NEW
+}
+```
+
+**Example:**
+```
+[Experience: full]     → Full width row
+[Skills: half][Certs: half]  → Side-by-side row
+[Projects: full]       → Full width row
+```
+
+#### 6.4 Visual WYSIWYG Editor (Phase D - Future)
+
+Full drag-and-drop editing directly in the preview pane.
+
+- [ ] Drag sections to reorder in preview
+- [ ] Resize handles on section edges
+- [ ] Drop zones between sections
+- [ ] Inline editing of section titles
+- [ ] Mobile/tablet/desktop preview breakpoints
+
+**Deferred Rationale:** This requires significant interaction layer complexity. The phased approach (A→B→C) delivers 80% of the value with 20% of the complexity. WYSIWYG can be added later when the foundation is solid.
+
+### Color & Theme Customization
+
+#### 6.5 Accent Color
+- [ ] Color picker in admin settings
+- [ ] Applied via CSS custom properties
+- [ ] Affects buttons, links, badges, highlights
+
+#### 6.6 Theme Presets
+- [ ] Bundled themes: Minimal, Professional, Creative
+- [ ] One-click apply (sets colors, fonts, spacing)
+- [ ] Reset to default option
+
+#### 6.7 Custom CSS (Power Users)
 - [ ] Admin textarea for custom CSS
-- [ ] Scoped to public pages only
-- [ ] Syntax validation
-
-#### 6.4 Theme Presets
-- [ ] Bundled themes (minimal, professional, creative)
-- [ ] One-click apply
-- [ ] Reset to default
+- [ ] Scoped to public pages only (not admin)
+- [ ] Syntax validation and preview
+- [ ] Warning about responsiveness risks
 
 ### Prerequisites
-- Phase 5 complete
+- Phase 2.2 complete (drag-drop reordering) ✅
+- Section components already accept items prop
 
-### Risks
-- Custom CSS can break layout
-- Need good preview system
+### Risks & Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Layout variants multiply component complexity | Use conditional rendering, not separate files |
+| Users create ugly layouts | Curated presets only - no freeform |
+| Preview performance with large datasets | Debounce updates, limit preview items |
+| Mobile breakage | All layouts must be mobile-responsive by design |
+| Schema migration | Layout field is optional, defaults to 'default' |
+
+### Research References
+- [SharePoint Layout Patterns](https://learn.microsoft.com/en-us/sharepoint/dev/design/layout-patterns) - Grid, list, filmstrip patterns
+- [SharePoint Flexible Sections](https://www.sharepointdesigns.com/blog/how-to-use-flexible-sections-in-sharepoint-pages-a-simple-guide) - 12-cell grid approach
+- [Notion Portfolio Templates](https://super.so/create/how-to-create-a-portfolio-site-with-notion-and-super) - Clean section layouts
 
 ---
 
@@ -469,6 +589,7 @@ These are ideas that may be explored after the core roadmap is complete:
 | 2025-12-31 | Phase 9.2 accessibility audit complete | Skip link, aria attributes, screen reader support added; 0 svelte-check warnings |
 | 2025-12-31 | Admin loading pattern standardized | All admin pages use simple `onMount(loadData)` pattern; layout handles auth gating. Fixes Codespaces race conditions. |
 | 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
+| 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
 
 ---
 
