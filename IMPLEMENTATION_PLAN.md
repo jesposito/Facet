@@ -206,7 +206,7 @@
 | 10. Documentation | 🟡 Partial | Core docs done |
 | 11. Testing | 🟡 Partial | Backend tests exist |
 | 12. Print & Export | 🟡 Partial | Print stylesheet + data export complete, AI print deferred |
-| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Section widths (6.3) complete |
+| 13. Visual Layout | 🟡 Partial | Layout presets (6.1) + Live preview (6.2) + Section widths (6.3) + Accent color (6.5) complete |
 
 ---
 
@@ -746,3 +746,93 @@ Users can now set each section's width (full, half, or third) in the view editor
 5. Preview pane shows sections side-by-side
 6. Save view - layout applies on public page
 7. Example: Set Skills to "Half" and Certifications to "Half" for side-by-side display
+
+---
+
+## Phase 6.5: Accent Color (Curated Palette) ✅ Complete
+
+This phase enables users to customize their profile's accent color using a curated 6-color palette, providing personalization while maintaining design guardrails.
+
+### Overview
+Users can now select an accent color from the Admin Settings page. The color applies globally to buttons, links, badges, and focus states across the entire profile. Uses CSS custom properties for runtime theming without page reload.
+
+### Curated Color Palette
+
+| Name | Hex | Use Case |
+|------|-----|----------|
+| **Sky** (default) | `#0ea5e9` | Tech, software, professional |
+| **Indigo** | `#6366f1` | Creative, design, consulting |
+| **Emerald** | `#10b981` | Finance, sustainability, health |
+| **Rose** | `#f43f5e` | Marketing, creative, personal branding |
+| **Amber** | `#f59e0b` | Education, construction, energy |
+| **Slate** | `#64748b` | Minimal, monochrome, conservative |
+
+### Implementation
+
+#### Backend Changes
+- [x] Migration `1735600006_add_accent_color.go` adds `accent_color` field to profile collection
+- [x] `/api/homepage` endpoint includes `accent_color` in profile response
+- [x] `/api/view/{slug}/data` endpoint includes `accent_color` in profile response
+
+#### Frontend Type Changes
+- [x] Added `accent_color` field to `Profile` interface in `pocketbase.ts`
+- [x] Created `frontend/src/lib/colors.ts` with:
+  - `AccentColor` type
+  - `ACCENT_COLORS` constant with full color scales (50-950)
+  - `ACCENT_COLOR_LIST` for UI iteration
+  - `generateAccentCssVariables()` helper function
+
+#### Tailwind Configuration
+- [x] Updated `tailwind.config.js` to use CSS custom properties for primary colors
+- [x] All `primary-*` colors now reference `var(--color-primary-*)` variables
+
+#### CSS Variables
+- [x] Added default CSS custom properties in `app.css` `:root` selector
+- [x] Default values match Sky color palette (existing behavior preserved)
+
+#### Root Layout Changes
+- [x] `+layout.svelte` fetches profile accent color on mount
+- [x] `applyAccentColor()` function updates CSS custom properties
+- [x] Listens for `accent-color-changed` custom event for real-time updates
+- [x] Updates `theme-color` meta tag for browser chrome
+
+#### Admin Settings UI
+- [x] New "Appearance" section at top of Settings page
+- [x] Color swatch selector with visual checkmark on selected color
+- [x] Live preview showing button, link, and badge appearance
+- [x] Instant save on color selection (no save button needed)
+
+### What Accent Color Affects
+- Primary buttons (`.btn-primary`)
+- Links and hover states
+- Focus outlines (accessibility)
+- Badges and tag highlights
+- Input focus rings
+- Skip link styling
+
+### Files Added
+- `backend/migrations/1735600006_add_accent_color.go`
+- `frontend/src/lib/colors.ts`
+
+### Files Modified
+- `backend/hooks/view.go` - Added accent_color to API responses
+- `frontend/src/lib/pocketbase.ts` - Added accent_color to Profile interface
+- `frontend/tailwind.config.js` - Changed primary colors to CSS variables
+- `frontend/src/app.css` - Added CSS custom properties
+- `frontend/src/routes/+layout.svelte` - Added accent color loading and application
+- `frontend/src/routes/admin/settings/+page.svelte` - Added Appearance section
+
+### Usage
+1. Navigate to Admin > Settings
+2. Find the "Appearance" section at the top
+3. Click on any color swatch to select it
+4. Preview shows how buttons and links will look
+5. Color is saved immediately and applies site-wide
+6. Changes take effect on all pages without refresh
+
+### Technical Details
+- Uses CSS custom properties for zero-flicker runtime theming
+- Color is fetched from `/api/homepage` endpoint on initial load
+- Admin settings page dispatches `accent-color-changed` event for instant updates
+- All 6 colors have full Tailwind-style scales (50-950) for consistent theming
+- Works correctly in both light and dark modes

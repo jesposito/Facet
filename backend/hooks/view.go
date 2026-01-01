@@ -324,6 +324,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"contact_email": profile.GetString("contact_email"),
 					"contact_links": profile.Get("contact_links"),
 					"visibility":    profile.GetString("visibility"),
+					"accent_color":  profile.GetString("accent_color"),
 				}
 
 				// Include file URLs if present
@@ -410,6 +411,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"contact_email": profile.GetString("contact_email"),
 					"contact_links": profile.Get("contact_links"),
 					"visibility":    profile.GetString("visibility"),
+					"accent_color":  profile.GetString("accent_color"),
 				}
 
 				// Include file URLs if present

@@ -31,6 +31,7 @@ export interface Profile {
 	contact_email?: string;
 	contact_links?: ContactLink[];
 	visibility: 'public' | 'unlisted' | 'private';
+	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
 }
 
 export interface ContactLink {

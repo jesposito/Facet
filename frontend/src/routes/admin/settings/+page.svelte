@@ -1,8 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { pb } from '$lib/pocketbase';
+	import { pb, type Profile } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import {
+		ACCENT_COLORS,
+		ACCENT_COLOR_LIST,
+		DEFAULT_ACCENT_COLOR,
+		type AccentColor
+	} from '$lib/colors';
 
 	let loading = true;
 	let providers: Array<Record<string, unknown>> = [];
@@ -16,6 +22,11 @@
 
 	// Export state
 	let exporting: string | null = null;
+
+	// Appearance state
+	let profile: Profile | null = null;
+	let selectedAccentColor: AccentColor = DEFAULT_ACCENT_COLOR;
+	let savingAppearance = false;
 
 	// New provider form
 	let newProvider = {
@@ -38,8 +49,42 @@
 	$: newProvider.model = newProvider.model || defaultModels[newProvider.type] || '';
 
 	onMount(async () => {
-		await Promise.all([loadProviders(), loadDemoStatus()]);
+		await Promise.all([loadProviders(), loadDemoStatus(), loadProfile()]);
 	});
+
+	async function loadProfile() {
+		try {
+			const records = await pb.collection('profile').getList(1, 1);
+			if (records.items.length > 0) {
+				profile = records.items[0] as unknown as Profile;
+				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
+			}
+		} catch (err) {
+			console.error('Failed to load profile:', err);
+		}
+	}
+
+	async function saveAccentColor(color: AccentColor) {
+		if (!profile) return;
+
+		savingAppearance = true;
+		try {
+			await pb.collection('profile').update(profile.id, {
+				accent_color: color
+			});
+			selectedAccentColor = color;
+			profile.accent_color = color;
+			toasts.add('success', 'Accent color updated');
+
+			// Dispatch event to notify layout of color change
+			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: color }));
+		} catch (err) {
+			console.error('Failed to save accent color:', err);
+			toasts.add('error', 'Failed to update accent color');
+		} finally {
+			savingAppearance = false;
+		}
+	}
 
 	async function loadDemoStatus() {
 		try {
@@ -238,6 +283,97 @@
 
 <div class="max-w-4xl mx-auto">
 	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
+
+	<!-- Appearance Section -->
+	<div class="card p-6 mb-6">
+		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h2>
+		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+			Choose an accent color for buttons, links, and highlights across your profile.
+		</p>
+
+		{#if profile}
+			<!-- Color Swatches -->
+			<div class="mb-6">
+				<span class="label mb-3 block">Accent Color</span>
+				<div class="flex flex-wrap gap-3">
+					{#each ACCENT_COLOR_LIST as color}
+						{@const colorInfo = ACCENT_COLORS[color]}
+						<button
+							type="button"
+							class="relative group"
+							on:click={() => saveAccentColor(color)}
+							disabled={savingAppearance}
+							title={colorInfo.label}
+						>
+							<div
+								class="w-12 h-12 rounded-xl transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
+									{selectedAccentColor === color
+									? 'ring-2 ring-gray-900 dark:ring-white scale-110'
+									: 'hover:scale-105'}"
+								style="background-color: {colorInfo.scale[500]}"
+							>
+								{#if selectedAccentColor === color}
+									<div class="absolute inset-0 flex items-center justify-center">
+										<svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+										</svg>
+									</div>
+								{/if}
+							</div>
+							<span class="block text-xs text-center mt-1 text-gray-600 dark:text-gray-400">
+								{colorInfo.label}
+							</span>
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Preview Section -->
+			<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+				<span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium mb-3 block">
+					Preview
+				</span>
+				<div class="flex flex-wrap items-center gap-4">
+					<button
+						type="button"
+						class="px-4 py-2 rounded-lg font-medium text-white transition-colors"
+						style="background-color: {ACCENT_COLORS[selectedAccentColor].scale[600]}"
+					>
+						Primary Button
+					</button>
+					<button
+						type="button"
+						class="px-4 py-2 rounded-lg font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+					>
+						Secondary
+					</button>
+					<a
+						href="#appearance"
+						class="font-medium underline underline-offset-2"
+						style="color: {ACCENT_COLORS[selectedAccentColor].scale[600]}"
+					>
+						Link Example
+					</a>
+					<span
+						class="px-2 py-1 rounded text-sm font-medium"
+						style="background-color: {ACCENT_COLORS[selectedAccentColor].scale[100]}; color: {ACCENT_COLORS[selectedAccentColor].scale[700]}"
+					>
+						Badge
+					</span>
+				</div>
+				<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+					{ACCENT_COLORS[selectedAccentColor].description}
+				</p>
+			</div>
+		{:else}
+			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
+				<p>Create a profile first to customize appearance.</p>
+				<a href="/admin/profile" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
+					Go to Profile
+				</a>
+			</div>
+		{/if}
+	</div>
 
 	<!-- AI Providers -->
 	<div class="card p-6">
