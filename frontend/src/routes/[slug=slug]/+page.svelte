@@ -65,27 +65,30 @@
 			applyAccentColor(accentColor as AccentColor);
 		}
 
-		// Check AI Print availability (only if authenticated)
-		if (pb.authStore.isValid) {
-			checkAIPrintStatus();
-		}
+		// Check AI Print availability (always check - API handles auth)
+		checkAIPrintStatus();
 	});
 
 	async function checkAIPrintStatus() {
 		try {
+			console.log('[AI-PRINT] Checking status, auth valid:', pb.authStore.isValid);
 			const response = await fetch('/api/ai-print/status', {
 				headers: { Authorization: pb.authStore.token || '' }
 			});
+			console.log('[AI-PRINT] Status response:', response.status);
 			if (response.ok) {
 				const result = await response.json();
+				console.log('[AI-PRINT] Status result:', result);
 				aiPrintStatus = {
 					available: result.available,
 					ai_configured: result.ai_configured,
 					pandoc_installed: result.pandoc_installed
 				};
+			} else if (response.status === 401) {
+				console.log('[AI-PRINT] Not authenticated - AI Resume requires login');
 			}
 		} catch (err) {
-			console.error('Failed to check AI Print status:', err);
+			console.error('[AI-PRINT] Failed to check status:', err);
 		}
 	}
 
@@ -95,6 +98,7 @@
 		generatedUrl = null;
 
 		try {
+			console.log('[AI-PRINT] Starting generation for:', data.view.slug);
 			const response = await fetch(`/api/view/${data.view.slug}/generate`, {
 				method: 'POST',
 				headers: {
@@ -105,13 +109,26 @@
 			});
 
 			const result = await response.json();
+			console.log('[AI-PRINT] Generation result:', result);
 
 			if (!response.ok) {
 				throw new Error(result.error || 'Generation failed');
 			}
 
 			generatedUrl = result.download_url;
+
+			// Auto-download the file
+			if (generatedUrl) {
+				console.log('[AI-PRINT] Auto-downloading from:', generatedUrl);
+				const link = document.createElement('a');
+				link.href = generatedUrl;
+				link.download = `resume.${generationConfig.format}`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+			}
 		} catch (err) {
+			console.error('[AI-PRINT] Generation error:', err);
 			const message = err instanceof Error ? err.message : 'Failed to generate resume';
 			alert(message); // Simple alert for public page
 		} finally {

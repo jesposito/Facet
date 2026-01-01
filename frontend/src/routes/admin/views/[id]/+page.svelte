@@ -147,11 +147,14 @@
 	// AI Print functions
 	async function checkAIPrintStatus() {
 		try {
+			console.log('[AI-PRINT] Checking status...');
 			const response = await fetch('/api/ai-print/status', {
 				headers: { Authorization: pb.authStore.token || '' }
 			});
+			console.log('[AI-PRINT] Status response:', response.status);
 			if (response.ok) {
 				const data = await response.json();
+				console.log('[AI-PRINT] Status result:', data);
 				aiPrintStatus = {
 					available: data.available,
 					pandoc_installed: data.pandoc_installed,
@@ -159,7 +162,7 @@
 				};
 			}
 		} catch (err) {
-			console.error('Failed to check AI Print status:', err);
+			console.error('[AI-PRINT] Failed to check status:', err);
 		}
 	}
 
@@ -182,6 +185,7 @@
 		if (!slug) return;
 		generating = true;
 		try {
+			console.log('[AI-PRINT] Starting generation for:', slug);
 			const response = await fetch(`/api/view/${slug}/generate`, {
 				method: 'POST',
 				headers: {
@@ -192,6 +196,7 @@
 			});
 
 			const data = await response.json();
+			console.log('[AI-PRINT] Generation result:', data);
 
 			if (!response.ok) {
 				throw new Error(data.error || 'Generation failed');
@@ -209,6 +214,17 @@
 				download_url: data.download_url
 			}, ...exports];
 
+			// Auto-download the file
+			if (data.download_url) {
+				console.log('[AI-PRINT] Auto-downloading from:', data.download_url);
+				const link = document.createElement('a');
+				link.href = data.download_url;
+				link.download = `resume.${generationConfig.format}`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+			}
+
 			// Reset config for next time
 			generationConfig = {
 				format: 'pdf',
@@ -218,6 +234,7 @@
 				emphasis: []
 			};
 		} catch (err) {
+			console.error('[AI-PRINT] Generation error:', err);
 			const message = err instanceof Error ? err.message : 'Failed to generate resume';
 			toasts.add('error', message);
 		} finally {

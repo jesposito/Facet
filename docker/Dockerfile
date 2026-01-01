@@ -38,7 +38,9 @@ RUN apk add --no-cache \
     tzdata \
     nodejs \
     caddy \
-    pandoc
+    pandoc \
+    texlive \
+    texmf-dist-latexextra
 
 # Create non-root user
 RUN addgroup -g 1000 facet && \
