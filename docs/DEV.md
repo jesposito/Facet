@@ -379,9 +379,67 @@ Key variables:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `ENCRYPTION_KEY` | (required in prod) | AES-256-GCM key for AI tokens |
-| `SEED_DATA` | `true` in dev | Load demo data on startup |
+| `SEED_DATA` | — | Seed mode: `demo`, `dev`, or unset (see below) |
 | `DATA_DIR` | `./pb_data` | PocketBase data directory |
 | `LOG_LEVEL` | `info` | Logging verbosity |
+
+## Seed Data Modes
+
+Me.yaml supports two seed data profiles for development and demonstration:
+
+| `SEED_DATA` Value | Profile | Use Case |
+|-------------------|---------|----------|
+| `demo` or `true` | **Merlin Ambrosius** | Fun Arthurian-themed demo for new users |
+| `dev` | **Jedidiah Esposito** | Real development/testing data |
+| (unset) | None | Production—no seeding |
+
+### Demo Profile (Merlin Ambrosius)
+
+A whimsical Arthurian-themed profile demonstrating all features:
+
+- **Role**: Chief Wizard & Staff Engineer at Court of Camelot
+- **Projects**: The Round Table (distributed consensus), Excalibur Auth (stone-based 2FA), Crystal Ball Observability
+- **Skills**: Prophecy, Transmutation, Distributed Systems, Python (familiar)
+- **View**: `/kingdoms` with "Send Raven" CTA
+
+### Development Profile (Jedidiah Esposito)
+
+Real-world profile for development and testing:
+
+- **Role**: Front-End Lead | Product Engineering Lead
+- **Experience**: NZ Police, Ryman Healthcare, Okta, Amazon, ChefSteps
+- **Projects**: Me.yaml, MCP Servers, Voice Assistant, Home Infrastructure
+- **Skills**: SvelteKit, TypeScript, MCP, LLMs, Agile
+- **View**: `/front-end-lead` with LinkedIn CTA
+
+### Switching Between Seed Modes
+
+Seed data only loads when the database is empty. Use make targets to switch:
+
+```bash
+# Switch to Demo (Merlin Ambrosius - fun wizard)
+make seed-demo
+
+# Switch to Dev (Jedidiah Esposito - real-world)
+make seed-dev
+
+# Just clear database (no restart)
+make seed-clear
+```
+
+These commands clear the database and restart with the selected profile.
+
+### Manual Switching (alternative)
+
+If you prefer manual control:
+
+```bash
+# Clear and restart with specific seed
+rm -rf pb_data && SEED_DATA=demo make dev
+rm -rf pb_data && SEED_DATA=dev make dev
+```
+
+**Note:** Switching modes clears all database data. Export any work you want to keep first.
 
 ## Architecture Overview
 
