@@ -145,6 +145,10 @@
 
 	function formatValue(value: unknown): string {
 		if (Array.isArray(value)) {
+			// Handle arrays of objects (like links) differently
+			if (value.length > 0 && typeof value[0] === 'object') {
+				return JSON.stringify(value, null, 2);
+			}
 			return value.join(', ');
 		}
 		if (typeof value === 'object' && value !== null) {

@@ -373,6 +373,39 @@ app.OnRecordCreate("my_collection").BindFunc(func(e *core.RecordEvent) error {
 
 See: `backend/hooks/ai.go:201-214` and `backend/hooks/view.go:1232-1267` for correct implementations.
 
+### PocketBase Hidden Fields Not Accessible in Record Hooks
+
+**Symptoms:**
+- `record.GetString("my_hidden_field")` returns empty string in hooks
+- Field data was sent in the request body
+- Field is defined with `Hidden: true` in the schema
+
+**Cause:**
+In PocketBase v0.23+, fields marked as `Hidden: true` are not auto-populated into the record before hooks run. The `OnRecordCreate` and `OnRecordUpdate` hooks only receive fields that aren't hidden.
+
+**Solution:**
+Use `OnRecordCreateRequest` / `OnRecordUpdateRequest` hooks instead, which have access to the raw request body:
+
+```go
+// ❌ WRONG - hidden fields not available in RecordEvent
+app.OnRecordCreate("ai_providers").BindFunc(func(e *core.RecordEvent) error {
+    apiKey := e.Record.GetString("api_key")  // Always empty for hidden fields!
+    return e.Next()
+})
+
+// ✅ CORRECT - access request body directly
+app.OnRecordCreateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
+    info, _ := e.RequestInfo()
+    if apiKey, ok := info.Body["api_key"].(string); ok {
+        // Process the hidden field value
+        e.Record.Set("api_key_encrypted", encrypt(apiKey))
+    }
+    return e.Next()
+})
+```
+
+**Note:** This is used in `backend/hooks/ai.go` to encrypt API keys before saving to `api_key_encrypted`.
+
 ### PocketBase API 400 Errors with Sort Parameters
 
 **Symptoms:**
