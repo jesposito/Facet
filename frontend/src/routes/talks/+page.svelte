@@ -3,11 +3,20 @@
 	import { formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import Footer from '$components/public/Footer.svelte';
+	import { onMount } from 'svelte';
 
 	export let data: PageData;
 
 	// Compute back navigation URL based on where user came from
 	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
+
+	onMount(() => {
+		console.log('[TALKS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
+	});
+
+	function handleBackClick() {
+		console.log('[TALKS PAGE CLIENT] Back button clicked, navigating to:', backUrl);
+	}
 
 	// Extract YouTube/Vimeo thumbnail
 	function getVideoThumbnail(url: string): string | null {
@@ -39,8 +48,11 @@
 	<header class="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			<!-- Back navigation -->
+			<!-- Using data-sveltekit-reload to force full page load - workaround for client-side nav issue -->
 			<a
 				href={backUrl}
+				on:click={handleBackClick}
+				data-sveltekit-reload
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
