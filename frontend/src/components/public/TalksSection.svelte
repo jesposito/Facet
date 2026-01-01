@@ -4,6 +4,15 @@
 
 	export let items: Talk[];
 	export let layout: string = 'default';
+	export let viewSlug: string = '';
+
+	// Build the talk URL with optional from parameter for back navigation
+	function getTalkUrl(slug: string): string {
+		if (viewSlug) {
+			return `/talks/${slug}?from=${encodeURIComponent(viewSlug)}`;
+		}
+		return `/talks/${slug}`;
+	}
 
 	// Extract YouTube video ID from various URL formats
 	function getYouTubeId(url: string): string | null {

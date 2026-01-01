@@ -8,6 +8,10 @@
 
 	// Format the published date
 	$: publishedDate = data.post.published_at ? formatDate(data.post.published_at) : null;
+
+	// Determine back navigation URL and label
+	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
+	$: backLabel = data.fromView ? 'Back to Profile' : 'Back to Profile';
 </script>
 
 <svelte:head>
@@ -48,13 +52,13 @@
 		<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 			<!-- Back navigation -->
 			<a
-				href="/"
+				href={backUrl}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>Back to Profile</span>
+				<span>{backLabel}</span>
 			</a>
 
 			<!-- Post title -->

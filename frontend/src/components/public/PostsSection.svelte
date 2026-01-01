@@ -4,6 +4,15 @@
 
 	export let items: Post[];
 	export let layout: string = 'grid-3';
+	export let viewSlug: string = '';
+
+	// Build the post URL with optional from parameter for back navigation
+	function getPostUrl(slug: string): string {
+		if (viewSlug) {
+			return `/posts/${slug}?from=${encodeURIComponent(viewSlug)}`;
+		}
+		return `/posts/${slug}`;
+	}
 </script>
 
 <section id="posts" class="mb-16">
@@ -32,7 +41,7 @@
 					<div class="flex items-start justify-between gap-2">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 							{#if post.slug}
-								<a href="/posts/{post.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+								<a href={getPostUrl(post.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
 									{post.title}
 								</a>
 							{:else}
@@ -71,7 +80,7 @@
 					{#if post.slug}
 						<div class="mt-4">
 							<a
-								href="/posts/{post.slug}"
+								href={getPostUrl(post.slug)}
 								class="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
 							>
 								Read more
