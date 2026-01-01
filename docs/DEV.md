@@ -288,6 +288,37 @@ rm -rf pb_data
 make dev  # Will recreate with seed data
 ```
 
+### PocketBase API 400 Errors with Sort Parameters
+
+**Symptoms:**
+- `ClientResponseError 400: Something went wrong while processing your request`
+- Error occurs on `getList()` calls with `sort` parameter
+- Manual fetch without sort works, but SDK calls with sort fail
+
+**Cause:**
+PocketBase collections in this setup do NOT have automatic `created` or `updated` fields. Attempting to sort by these non-existent fields causes a 400 error.
+
+**Solution:**
+Use fields that actually exist on the collection:
+
+```javascript
+// ❌ Wrong - 'created' field doesn't exist
+pb.collection('posts').getList(1, 100, { sort: '-created' })
+
+// ✅ Correct - use existing fields or '-id' (time-ordered)
+pb.collection('posts').getList(1, 100, { sort: '-published_at' })
+pb.collection('views').getList(1, 50, { sort: '-id' })
+```
+
+**Debugging tip:** Check what fields exist on a collection:
+```javascript
+pb.collection('posts').getList(1, 1).then(d => {
+  console.log('Fields:', Object.keys(d.items[0]));
+});
+```
+
+**Note:** PocketBase record IDs are time-ordered (like ULIDs), so `sort: '-id'` gives newest-first ordering and always works.
+
 ## VS Code Tasks
 
 The project includes VS Code tasks (`.vscode/tasks.json`):
