@@ -3,6 +3,7 @@
 	import { formatDate } from '$lib/utils';
 
 	export let items: Certification[];
+	export let layout: string = 'grouped';
 
 	// Group certifications by issuer
 	function groupByIssuer(certs: Certification[]): Map<string, Certification[]> {

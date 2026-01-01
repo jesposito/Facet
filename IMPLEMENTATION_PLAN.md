@@ -382,3 +382,77 @@ This phase improves accessibility to ensure the application is usable by all use
 - [x] `svelte-check` passes with 0 errors and 0 warnings
 - [x] Focus styles already present in app.css
 - [x] Keyboard navigation works throughout application
+
+---
+
+## Phase 6.1: Per-Section Layout Presets ✅ Complete
+
+This phase enables users to customize how each section renders with curated layout presets.
+
+### Overview
+Users can now select different layout styles for each section in the view editor. This provides visual variety without requiring design expertise, using guardrails (curated presets) instead of freeform controls.
+
+### Available Layouts
+
+| Section | Layouts | Default |
+|---------|---------|---------|
+| Experience | default (cards), timeline, compact | default |
+| Projects | grid-3, grid-2, list, featured | grid-3 |
+| Education | default, timeline | default |
+| Certifications | grouped, grid, timeline | grouped |
+| Skills | grouped, cloud, bars, flat | grouped |
+| Posts | grid-3, grid-2, list, featured | grid-3 |
+| Talks | default, cards, list | default |
+
+### Implementation
+
+#### Backend Changes
+- [x] Add `section_layouts` map to `/api/view/{slug}/data` response
+- [x] Extract layout from sections JSON for each enabled section
+- [x] Add `getDefaultLayout()` helper function
+
+#### Frontend Type Changes
+- [x] Add `layout?: SectionLayout` to `ViewSection` interface
+- [x] Add `VALID_LAYOUTS` constant with section-to-layouts mapping
+- [x] Add `getSectionLayout()` helper function
+
+#### View Editor Changes
+- [x] Add layout dropdown to section headers (when section enabled)
+- [x] Include layout in saved sections data
+- [x] Updated both `/admin/views/[id]` and `/admin/views/new`
+
+#### Section Component Changes
+- [x] ExperienceSection: default, timeline, compact variants
+- [x] ProjectsSection: grid-3, grid-2, list, featured variants
+- [x] SkillsSection: grouped, cloud, bars, flat variants
+- [x] EducationSection: default, timeline variants
+- [x] CertificationsSection: layout prop added (grouped default)
+- [x] PostsSection: grid-3, grid-2, list support
+- [x] TalksSection: layout prop added (default)
+
+#### Public View Changes
+- [x] Page receives `sectionLayouts` from API
+- [x] Pass layout prop to each section component
+- [x] Components render appropriate variant based on layout
+
+### Files Changed
+- `backend/hooks/view.go` - Add section_layouts to response, getDefaultLayout()
+- `frontend/src/lib/pocketbase.ts` - Add layout field, VALID_LAYOUTS constant
+- `frontend/src/routes/admin/views/[id]/+page.svelte` - Layout dropdown UI
+- `frontend/src/routes/admin/views/new/+page.svelte` - Layout dropdown UI
+- `frontend/src/routes/[slug=slug]/+page.svelte` - Pass layouts to sections
+- `frontend/src/routes/[slug=slug]/+page.server.ts` - Include sectionLayouts
+- `frontend/src/components/public/ExperienceSection.svelte` - 3 layouts
+- `frontend/src/components/public/ProjectsSection.svelte` - 4 layouts
+- `frontend/src/components/public/SkillsSection.svelte` - 4 layouts
+- `frontend/src/components/public/EducationSection.svelte` - 2 layouts
+- `frontend/src/components/public/CertificationsSection.svelte` - layout prop
+- `frontend/src/components/public/PostsSection.svelte` - layout prop + grid variants
+- `frontend/src/components/public/TalksSection.svelte` - layout prop
+
+### Usage
+1. Navigate to View Editor (/admin/views/[id])
+2. Enable a section (toggle on)
+3. Layout dropdown appears next to the expand button
+4. Select desired layout preset
+5. Save view - layout is applied on public view

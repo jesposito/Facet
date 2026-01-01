@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { pb, type ViewSection } from '$lib/pocketbase';
+	import { pb, type ViewSection, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
@@ -35,8 +35,8 @@
 	let isActive = true;
 	let isDefault = false;
 
-	// Sections configuration
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean }> = {};
+	// Sections configuration with layout support
+	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string }> = {};
 
 	// Section order for drag-drop
 	let sectionOrder: Array<{ id: string; key: string }> = [];
@@ -53,9 +53,10 @@
 	});
 
 	function initializeSections() {
-		// Start with all sections enabled by default for new views
+		// Start with all sections enabled by default for new views, with default layout
 		for (const key of DEFAULT_SECTION_ORDER) {
-			sections[key] = { enabled: true, items: [], expanded: false };
+			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
+			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout };
 		}
 		// Initialize section order
 		sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
@@ -197,12 +198,13 @@
 
 		saving = true;
 		try {
-			// Build sections array in current order
+			// Build sections array in current order with layout
 			const sectionsData: ViewSection[] = sectionOrder
 				.map(({ key }) => ({
 					section: key,
 					enabled: sections[key]?.enabled || false,
-					items: sections[key]?.items || []
+					items: sections[key]?.items || [],
+					layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default'
 				}));
 
 			const data = {
@@ -481,22 +483,39 @@
 									</span>
 								</div>
 
-								{#if sectionConfig.enabled && items.length > 0}
-									<button
-										type="button"
-										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-										on:click={() => toggleSectionExpand(sectionKey)}
-									>
-										<svg
-											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
+								<div class="flex items-center gap-2">
+									<!-- Layout Selector -->
+									{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
+										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+										<select
+											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+											bind:value={sections[sectionKey].layout}
+											on:click|stopPropagation
+											title="Section layout"
 										>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-										</svg>
-									</button>
-								{/if}
+											{#each layoutConfig.layouts as layoutOption}
+												<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
+											{/each}
+										</select>
+									{/if}
+
+									{#if sectionConfig.enabled && items.length > 0}
+										<button
+											type="button"
+											class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+											on:click={() => toggleSectionExpand(sectionKey)}
+										>
+											<svg
+												class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+											>
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+											</svg>
+										</button>
+									{/if}
+								</div>
 							</div>
 
 							<!-- Section Items -->

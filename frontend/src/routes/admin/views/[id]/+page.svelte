@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS } from '$lib/pocketbase';
+	import { pb, type View, type ViewSection, type ItemConfig, OVERRIDABLE_FIELDS, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
@@ -38,11 +38,12 @@
 	let isActive = true;
 	let isDefault = false;
 
-	// Sections configuration with itemConfig support
+	// Sections configuration with itemConfig and layout support
 	let sections: Record<string, {
 		enabled: boolean;
 		items: string[];
 		expanded: boolean;
+		layout: string;
 		itemConfig: Record<string, ItemConfig>;
 	}> = {};
 
@@ -118,9 +119,10 @@
 	}
 
 	function initializeSections(viewSections?: ViewSection[]) {
-		// Start with all sections disabled
+		// Start with all sections disabled, with default layout
 		for (const key of DEFAULT_SECTION_ORDER) {
-			sections[key] = { enabled: false, items: [], expanded: false, itemConfig: {} };
+			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
+			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, itemConfig: {} };
 		}
 
 		// Apply saved section configuration and extract order
@@ -136,6 +138,7 @@
 				if (sections[vs.section]) {
 					sections[vs.section].enabled = vs.enabled;
 					sections[vs.section].items = vs.items || [];
+					sections[vs.section].layout = vs.layout || VALID_LAYOUTS[vs.section]?.default || 'default';
 					sections[vs.section].itemConfig = vs.itemConfig || {};
 				}
 			}
@@ -238,15 +241,17 @@
 
 		saving = true;
 		try {
-			// Build sections array in current order with itemConfig
+			// Build sections array in current order with itemConfig and layout
 			// Important: We save ALL sections in order (enabled + disabled) so order is preserved
 			const sectionsData: ViewSection[] = sectionOrder
 				.map(({ key }) => {
 					const sectionConfig = sections[key];
+					const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
 					const sectionData: ViewSection = {
 						section: key,
 						enabled: sectionConfig?.enabled || false,
-						items: sectionConfig?.items || []
+						items: sectionConfig?.items || [],
+						layout: sectionConfig?.layout || defaultLayout
 					};
 					// Only include itemConfig if there are overrides
 					const itemConfig = sectionConfig?.itemConfig;
@@ -665,22 +670,39 @@
 									</span>
 								</div>
 
-								{#if sectionConfig.enabled && items.length > 0}
-									<button
-										type="button"
-										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-										on:click={() => toggleSectionExpand(sectionKey)}
-									>
-										<svg
-											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
+								<div class="flex items-center gap-2">
+									<!-- Layout Selector -->
+									{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
+										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+										<select
+											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+											bind:value={sections[sectionKey].layout}
+											on:click|stopPropagation
+											title="Section layout"
 										>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-										</svg>
-									</button>
-								{/if}
+											{#each layoutConfig.layouts as layoutOption}
+												<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
+											{/each}
+										</select>
+									{/if}
+
+									{#if sectionConfig.enabled && items.length > 0}
+										<button
+											type="button"
+											class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+											on:click={() => toggleSectionExpand(sectionKey)}
+										>
+											<svg
+												class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+											>
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+											</svg>
+										</button>
+									{/if}
+								</div>
 							</div>
 
 							<!-- Section Items -->

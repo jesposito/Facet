@@ -224,6 +224,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			sectionData := make(map[string]interface{})
 			// Track section order for frontend rendering
 			var sectionOrder []string
+			// Track layouts for each section
+			sectionLayouts := make(map[string]string)
 
 			for _, section := range sections {
 				sectionName, ok := section["section"].(string)
@@ -236,6 +238,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 				// Add to order list
 				sectionOrder = append(sectionOrder, sectionName)
+
+				// Extract layout (default to "default" if not specified)
+				if layout, ok := section["layout"].(string); ok && layout != "" {
+					sectionLayouts[sectionName] = layout
+				} else {
+					sectionLayouts[sectionName] = getDefaultLayout(sectionName)
+				}
 
 				items, ok := section["items"].([]interface{})
 				collectionName := getCollectionName(sectionName)
@@ -283,6 +292,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			response["sections"] = sectionData
 			response["section_order"] = sectionOrder
+			response["section_layouts"] = sectionLayouts
 
 			// Fetch profile data for the view
 			profileRecords, err := app.FindRecordsByFilter(
@@ -869,6 +879,29 @@ func getCollectionName(section string) string {
 		return "talks"
 	default:
 		return ""
+	}
+}
+
+// getDefaultLayout returns the default layout for a section type
+// Sync with VALID_LAYOUTS in frontend/src/lib/pocketbase.ts
+func getDefaultLayout(section string) string {
+	switch section {
+	case "experience":
+		return "default"
+	case "projects":
+		return "grid-3"
+	case "education":
+		return "default"
+	case "certifications":
+		return "grouped"
+	case "skills":
+		return "grouped"
+	case "posts":
+		return "grid-3"
+	case "talks":
+		return "default"
+	default:
+		return "default"
 	}
 }
 

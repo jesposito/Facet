@@ -3,12 +3,13 @@
 	import { formatDate, truncate } from '$lib/utils';
 
 	export let items: Post[];
+	export let layout: string = 'grid-3';
 </script>
 
 <section id="posts" class="mb-16">
 	<h2 class="section-title">Posts</h2>
 
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+	<div class="grid grid-cols-1 {layout === 'grid-2' ? 'md:grid-cols-2' : layout === 'list' ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6">
 		{#each items as post (post.id)}
 			<article class="card overflow-hidden group animate-fade-in">
 				{#if post.cover_image}
