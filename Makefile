@@ -1,7 +1,7 @@
 # Me.yaml Makefile
 # Common commands for development and deployment
 
-.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-demo seed-dev seed-clear
+.PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-demo seed-dev seed-clear kill stop
 
 # Default target
 help:
@@ -15,9 +15,10 @@ help:
 	@echo "  make dev-reset    Clear caches and force reinstall"
 	@echo ""
 	@echo "Seed Data (switch demo profiles):"
-	@echo "  make seed-demo    Reset & start with Merlin (fun wizard demo)"
-	@echo "  make seed-dev     Reset & start with Jedidiah (real-world dev)"
-	@echo "  make seed-clear   Clear database only (no restart)"
+	@echo "  make seed-demo    Stop, reset & start with Merlin (wizard demo)"
+	@echo "  make seed-dev     Stop, reset & start with Jedidiah (real-world)"
+	@echo "  make seed-clear   Stop & clear database (no restart)"
+	@echo "  make stop         Stop all running dev processes"
 	@echo ""
 	@echo "Individual Services:"
 	@echo "  make backend      Start backend only (with hot reload)"
@@ -74,20 +75,33 @@ dev-reset:
 # Seed Data Switching
 # =============================================================================
 
+# Kill running dev processes
+kill:
+	@echo "Stopping dev processes..."
+	@-pkill -f "air" 2>/dev/null || true
+	@-pkill -f "pocketbase" 2>/dev/null || true
+	@-pkill -f "vite" 2>/dev/null || true
+	@-pkill -f "node.*5173" 2>/dev/null || true
+	@-pkill -f "node.*5174" 2>/dev/null || true
+	@sleep 1
+	@echo "Done."
+
+stop: kill
+
 # Switch to demo profile (Merlin Ambrosius - fun Arthurian wizard)
-seed-demo:
+seed-demo: kill
 	@echo "Switching to demo seed (Merlin Ambrosius)..."
 	rm -rf pb_data
 	SEED_DATA=demo ./scripts/start-dev.sh
 
 # Switch to dev profile (Jedidiah Esposito - real-world example)
-seed-dev:
+seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data
 	SEED_DATA=dev ./scripts/start-dev.sh
 
 # Just clear database (no restart)
-seed-clear:
+seed-clear: kill
 	rm -rf pb_data
 	@echo "Database cleared. Run 'make dev', 'make seed-demo', or 'make seed-dev' to restart."
 
