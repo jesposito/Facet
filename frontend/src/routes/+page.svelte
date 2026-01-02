@@ -284,7 +284,7 @@
 			{/if}
 
 			{#if data.projects.length > 0}
-				<ProjectsSection items={data.projects} />
+				<ProjectsSection items={data.projects} viewSlug={data.view?.slug || ''} />
 			{/if}
 
 			{#if data.education.length > 0}

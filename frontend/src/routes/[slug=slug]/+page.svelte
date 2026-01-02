@@ -308,7 +308,11 @@
 						</div>
 					{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
 						<div class={getWidthClass(getSectionWidth('projects'))}>
-							<ProjectsSection items={data.sections.projects} layout={getSectionLayout('projects')} />
+							<ProjectsSection
+								items={data.sections.projects}
+								layout={getSectionLayout('projects')}
+								viewSlug={data.view?.slug || ''}
+							/>
 						</div>
 					{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
 						<div class={getWidthClass(getSectionWidth('education'))}>
