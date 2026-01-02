@@ -101,6 +101,10 @@ function isActive(href: string): boolean {
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 								</svg>
+							{:else if item.icon === 'star'}
+								<svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+									<path d="M12 2.75c.28 0 .534.16.654.41l2.37 4.96 5.474.782a.75.75 0 01.416 1.282l-3.96 3.86.934 5.446a.75.75 0 01-1.088.79L12 17.945l-4.8 2.516a.75.75 0 01-1.087-.79l.934-5.446-3.96-3.86a.75.75 0 01.416-1.282l5.474-.782 2.37-4.96A.75.75 0 0112 2.75z" />
+								</svg>
 							{:else if item.icon === 'presentation'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />

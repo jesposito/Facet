@@ -29,12 +29,71 @@
 	let customCSS = '';
 	let lastCustomCSS = '';
 	let mounted = false;
-	let gaMeasurementId = '';
-	let gaInitialized = false;
-	let accentStyleEl: HTMLStyleElement | null = null;
+let gaMeasurementId = '';
+let gaInitialized = false;
+let accentStyleEl: HTMLStyleElement | null = null;
+let customPaletteLocked = false;
+
+function applyPaletteFromCSS(css: string) {
+	if (!browser || !css) return;
+
+	// Collect explicit primary tokens from user CSS
+	const matches = [...css.matchAll(/--color-primary-(50|100|200|300|400|500|600|700|800|900|950)\s*:\s*([^;]+);?/gi)];
+	const palette: Record<string, string> = {};
+	for (const [, token, value] of matches) {
+		palette[token] = value.trim();
+	}
+
+	if (Object.keys(palette).length === 0) return;
+
+	// If only 500 is provided, fan it out to all tokens
+	if (Object.keys(palette).length === 1 && palette['500']) {
+		const color = palette['500'];
+		for (const step of ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950']) {
+			palette[step] = color;
+		}
+		customPaletteLocked = true;
+		applyFlatAccent(color);
+	} else {
+		customPaletteLocked = true;
+	}
+
+	// Apply directly to :root so Tailwind classes pick up overrides immediately
+	for (const [token, value] of Object.entries(palette)) {
+		document.documentElement.style.setProperty(`--color-primary-${token}`, value);
+	}
+}
+
+function applyFlatAccent(color: string) {
+	if (!browser || !color) return;
+
+	if (!accentStyleEl) {
+		accentStyleEl = document.createElement('style');
+			accentStyleEl.id = 'accent-colors';
+			document.head.appendChild(accentStyleEl);
+		}
+
+		accentStyleEl.textContent = `
+:root {
+  --color-primary-50: ${color};
+  --color-primary-100: ${color};
+  --color-primary-200: ${color};
+  --color-primary-300: ${color};
+  --color-primary-400: ${color};
+  --color-primary-500: ${color};
+  --color-primary-600: ${color};
+  --color-primary-700: ${color};
+  --color-primary-800: ${color};
+  --color-primary-900: ${color};
+  --color-primary-950: ${color};
+}
+		`.trim();
+		themeColor = color;
+	}
 
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
+		if (customPaletteLocked) return;
 
 		const color = ACCENT_COLORS[colorName];
 		if (!color) return;
@@ -81,63 +140,90 @@
 		}
 	}
 
-	async function loadSiteSettings() {
-		try {
-			const response = await fetch('/api/site-settings');
-			if (response.ok) {
-				const data = await response.json();
-				customCSS = data.custom_css || '';
-				gaMeasurementId = data.ga_measurement_id || '';
-			}
-		} catch (err) {
-			console.debug('No custom CSS loaded');
+	function maybeDeriveAccentFromCustomCSS(css: string) {
+		// If user only set --color-primary-500, mirror it across the palette for convenience
+		const primary500 = css.match(/--color-primary-500\s*:\s*([^;]+);?/i);
+		if (!primary500) return;
+
+		// If they already set other palette tokens, don't override
+		const hasOtherTokens = /--color-primary-(50|100|200|300|400|600|700|800|900|950)\s*:/i.test(css);
+		if (hasOtherTokens) return;
+
+		const color = primary500[1].trim();
+		if (color) {
+			customPaletteLocked = true;
+			applyFlatAccent(color);
 		}
 	}
 
-	function applyCustomCSS(css: string) {
-		if (!browser) return;
-		lastCustomCSS = css;
-		const existing = document.getElementById('custom-css');
-		if (existing) {
-			existing.remove();
+async function loadSiteSettings() {
+	try {
+		const response = await fetch('/api/site-settings');
+		if (response.ok) {
+			const data = await response.json();
+			customCSS = data.custom_css || '';
+			gaMeasurementId = data.ga_measurement_id || '';
+			applyPaletteFromCSS(customCSS);
+			applyCustomCSS(customCSS);
 		}
-		if (!css) return;
-		const style = document.createElement('style');
-		style.id = 'custom-css';
-		style.textContent = css;
-		document.head.appendChild(style);
+	} catch (err) {
+		console.debug('No custom CSS loaded');
 	}
+}
 
-	onMount(() => {
-		mounted = true;
-		theme.initialize();
-		loadAccentColor();
-		loadSiteSettings();
+function applyCustomCSS(css: string) {
+	if (!browser) return;
+	lastCustomCSS = css;
+	applyPaletteFromCSS(css);
+	const existing = document.getElementById('custom-css');
+	if (existing) {
+		existing.remove();
+	}
+	if (!css) return;
+	const style = document.createElement('style');
+	style.id = 'custom-css';
+	style.textContent = css;
+	document.head.appendChild(style);
+}
 
-		// Listen for accent color changes from settings page
-		const handleColorChange = (event: CustomEvent<AccentColor>) => {
-			applyAccentColor(event.detail);
-		};
-		window.addEventListener('accent-color-changed', handleColorChange as EventListener);
-
-		return () => {
-			window.removeEventListener('accent-color-changed', handleColorChange as EventListener);
-		};
-	});
-
-	$: if (mounted) {
-		applyCustomCSS(customCSS);
-		if (!gaInitialized && gaMeasurementId) {
-			injectGA(gaMeasurementId);
-			gaInitialized = true;
+onMount(() => {
+	mounted = true;
+	theme.initialize();
+	(async () => {
+		await loadSiteSettings();
+		await loadAccentColor();
+		if (lastCustomCSS) {
+			applyCustomCSS(lastCustomCSS);
 		}
-	}
+	})();
 
-	// Ensure custom CSS stays last after accent updates
-	$: if (mounted && lastCustomCSS && accentStyleEl) {
-		// Re-append custom CSS to the end of head so it wins cascade against accent variables
-		applyCustomCSS(lastCustomCSS);
+	// Listen for accent color changes from settings page
+	const handleColorChange = (event: CustomEvent<AccentColor>) => {
+		applyAccentColor(event.detail);
+		if (lastCustomCSS) {
+			applyCustomCSS(lastCustomCSS);
+		}
+	};
+	window.addEventListener('accent-color-changed', handleColorChange as EventListener);
+
+	return () => {
+		window.removeEventListener('accent-color-changed', handleColorChange as EventListener);
+	};
+});
+
+$: if (mounted) {
+	applyCustomCSS(customCSS);
+	if (!gaInitialized && gaMeasurementId) {
+		injectGA(gaMeasurementId);
+		gaInitialized = true;
 	}
+}
+
+// Ensure custom CSS stays last after accent updates
+$: if (mounted && lastCustomCSS && accentStyleEl) {
+	// Re-append custom CSS to the end of head so it wins cascade against accent variables
+	applyCustomCSS(lastCustomCSS);
+}
 
 	function injectGA(id: string) {
 		if (!browser || !id) return;
