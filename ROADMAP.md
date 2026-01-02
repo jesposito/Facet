@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-01-02
 
 This roadmap outlines the feature development plan for Facet (formerly Me.yaml), organized into logical phases. Each phase is independently valuable and builds toward a complete personal profile platform.
 
@@ -471,7 +471,7 @@ If upgrading from `me-yaml` container:
 ### Remaining Work
 
 **Medium Priority:**
-1. Media library (Phase 7)
+1. ✅ Media library (Phase 7.1)
 2. Additional frontend tests
 3. AI Print completion (Phase 4.3)
 
@@ -522,7 +522,7 @@ If upgrading from `me-yaml` container:
 - [x] Implement OAuth login flow
 - [x] Create admin routes (/admin, /admin/profile, /admin/experience, etc.)
 - [x] Create admin components (AdminHeader, AdminSidebar, Toast)
-- [ ] `/admin/media` - Media library (deferred to Phase 7)
+- [x] `/admin/media` - Media library (Phase 7.1)
 
 ### Milestone 6: Views & Share Tokens ✅ Complete
 - [x] Admin UI for views (list, create, edit, section selector, item picker, overrides)
