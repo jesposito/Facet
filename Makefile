@@ -1,6 +1,8 @@
 # Facet Makefile
 # Common commands for development and deployment
 
+SHELL := /bin/bash
+
 .PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-dev seed-clear kill stop
 
 # Default target
@@ -96,7 +98,21 @@ stop: kill
 seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data
-	SEED_DATA=dev ./scripts/start-dev.sh
+	@APP_URL_DEFAULT=$${APP_URL:-$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}}; \
+	[ -z "$$APP_URL_DEFAULT" ] && APP_URL_DEFAULT="http://localhost:8080"; \
+	read -r -p "APP_URL [$$APP_URL_DEFAULT]: " APP_URL_INPUT; \
+	APP_URL_VALUE=$${APP_URL_INPUT:-$$APP_URL_DEFAULT}; \
+	ADMIN_DEFAULT=$${ADMIN_EMAILS:-admin@example.com}; \
+	read -r -p "Admin email for seed [$$ADMIN_DEFAULT]: " ADMIN_INPUT; \
+	ADMIN_VALUE=$${ADMIN_INPUT:-$$ADMIN_DEFAULT}; \
+	read -r -p "Google Client ID (optional): " GOOGLE_ID; \
+	GOOGLE_SECRET=""; \
+	if [ -n "$$GOOGLE_ID" ]; then read -r -s -p "Google Client Secret: " GOOGLE_SECRET; echo ""; fi; \
+	VARS="APP_URL=$$APP_URL_VALUE ADMIN_EMAILS=$$ADMIN_VALUE SEED_DATA=dev"; \
+	if [ -n "$$GOOGLE_ID" ] && [ -n "$$GOOGLE_SECRET" ]; then VARS="GOOGLE_CLIENT_ID=$$GOOGLE_ID GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET $$VARS"; fi; \
+	echo "Using APP_URL=$$APP_URL_VALUE"; \
+	echo "Admin email: $$ADMIN_VALUE"; \
+	sh -c "$$VARS ./scripts/start-dev.sh"
 
 # Just clear database (no restart)
 seed-clear: kill

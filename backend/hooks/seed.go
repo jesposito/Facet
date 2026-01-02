@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -361,7 +362,7 @@ func seedDevData(app *pocketbase.PocketBase) error {
 		superuserCount, _ := app.CountRecords(core.CollectionNameSuperusers)
 		if superuserCount == 0 {
 			su := core.NewRecord(superusers)
-			su.SetEmail("admin@localhost.dev")
+			su.SetEmail(getSeedAdminEmail("admin@localhost.dev"))
 			su.SetPassword("admin123")
 			if err := app.Save(su); err != nil {
 				log.Printf("Warning: Could not create dev superuser: %v", err)
@@ -371,7 +372,7 @@ func seedDevData(app *pocketbase.PocketBase) error {
 				log.Println("  DEV MODE: PocketBase Admin Created")
 				log.Println("========================================")
 				log.Println("  URL:      http://localhost:8090/_/")
-				log.Println("  Email:    admin@localhost.dev")
+				log.Printf("  Email:    %s\n", su.Email())
 				log.Println("  Password: admin123")
 				log.Println("========================================")
 				log.Println("")
@@ -801,7 +802,7 @@ func createDefaultUser(app *pocketbase.PocketBase) error {
 	}
 
 	admin := core.NewRecord(users)
-	admin.Set("email", "admin@example.com")
+	admin.Set("email", getSeedAdminEmail("admin@example.com"))
 	admin.Set("name", "Admin")
 	admin.Set("is_admin", true)
 	admin.SetPassword("changeme123")
@@ -810,9 +811,31 @@ func createDefaultUser(app *pocketbase.PocketBase) error {
 	}
 
 	log.Println("Created default frontend admin account:")
-	log.Println("  Email: admin@example.com")
+	log.Printf("  Email: %s\n", admin.Email())
 	log.Println("  Password: changeme123")
 	log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
 
 	return nil
+}
+
+// getSeedAdminEmail chooses the admin email for seeded accounts:
+// 1) first non-empty entry in ADMIN_EMAILS (comma-separated)
+// 2) DEV_ADMIN_EMAIL env var
+// 3) provided fallback
+func getSeedAdminEmail(fallback string) string {
+	if raw := strings.TrimSpace(os.Getenv("ADMIN_EMAILS")); raw != "" {
+		parts := strings.Split(raw, ",")
+		for _, part := range parts {
+			email := strings.TrimSpace(part)
+			if email != "" {
+				return email
+			}
+		}
+	}
+
+	if email := strings.TrimSpace(os.Getenv("DEV_ADMIN_EMAIL")); email != "" {
+		return email
+	}
+
+	return fallback
 }
