@@ -1771,6 +1771,37 @@ GITHUB_CLIENT_SECRET=your-client-secret
 - [ ] Kubernetes Helm chart
 - [ ] Unraid Community Apps template
 
+### Demo & Showcase Mode (New)
+
+Enable a production-safe, one-click demo persona so new users can see Facet’s value without running dev seeds or losing their own data.
+
+**Goals**
+- Default OFF; prominent toggle on the admin dashboard when not in dev/debug mode
+- Toggle ON loads a fully authored sci-fi/fantasy persona with humor and five faceted views
+- Toggle OFF restores the user’s data losslessly; warn before destructive actions
+
+**Persona & Views**
+- Persona: “The Doctor” (Doctor Who) — famous, multi-regeneration consultant with playful tone
+- Views (overlapping core profile + unique emphasis):
+  - “UNIT Scientific Advisor” — deep experience/tech stack, accent indigo, AI print-ready
+  - “Temporal PM” — delivery timelines & paradox mitigation, includes a share token example
+  - “Rogue Time Tourist” — playful/creative mashup, GitHub import sample artifacts
+  - “Diplomat-at-Large” — calm public-facing view plus password-protected variant
+  - “Curator of Impossible Artifacts” — projects/talks focused on odd finds, uses custom CSS
+
+**Feature Requirements**
+- Dashboard toggle component visible only when `NODE_ENV`/app mode ≠ dev; default off
+- When enabling: backup current data (JSON export or temp snapshot) and seed Nyx dataset (profile, experience, projects, posts, talks, certs, skills, views, share tokens, passwords where applicable)
+- When disabling: restore user snapshot; clear demo data; return to prior homepage/view settings
+- Clear status copy: “Demo mode is on/off”; CTA to exit demo; warnings before overwrite if backup fails
+- Ensure AI Print, accent colors, per-view overrides, share tokens/password-protected view, GitHub import sample repo, and custom CSS all have demo examples
+- Analytics-friendly hook: emit log/telemetry event (if enabled) when demo is toggled on/off
+
+**Prerequisites**
+- Reliable backup/restore of user data (reuse existing export endpoints or add snapshot service)
+- Seed script for Nyx Quasar with five views and overlapping records
+- Frontend dashboard surface for the toggle (admin home)
+
 ### Integrations
 - Webhook notifications
 - RSS feed for posts
