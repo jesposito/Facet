@@ -36,7 +36,7 @@
 	$: groupedCertifications = groupByIssuer(items);
 </script>
 
-<section id="certifications" class="mb-16">
+<section id="certifications" class="mb-16" data-layout={layout}>
 	<h2 class="section-title">Certifications & Credentials</h2>
 
 	<div class="space-y-8">

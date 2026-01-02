@@ -45,7 +45,7 @@
 	}
 </script>
 
-<section id="talks" class="mb-16">
+<section id="talks" class="mb-16" data-layout={layout}>
 	<h2 class="section-title">Talks & Presentations</h2>
 
 	<div class="space-y-8">
