@@ -2,10 +2,21 @@ import PocketBase from 'pocketbase';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
+function getBrowserPbUrl(): string {
+	if (import.meta.env.VITE_POCKETBASE_URL) {
+		return import.meta.env.VITE_POCKETBASE_URL as string;
+	}
+	const origin = new URL(window.location.origin);
+	// If running frontend dev server on 5173, talk to backend on 8090
+	if (origin.port === '5173') {
+		origin.port = '8090';
+		return origin.toString();
+	}
+	return origin.toString();
+}
+
 // Initialize PocketBase client
-const runtimePbUrl = browser
-	? (import.meta.env.VITE_POCKETBASE_URL as string) || window.location.origin
-	: process.env.POCKETBASE_URL || 'http://localhost:8090';
+const runtimePbUrl = browser ? getBrowserPbUrl() : process.env.POCKETBASE_URL || 'http://localhost:8090';
 export const pb = new PocketBase(runtimePbUrl);
 
 // Expose for debugging

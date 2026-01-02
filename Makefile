@@ -130,6 +130,7 @@ seed-dev: kill
 	    echo "GOOGLE_CLIENT_ID=$$GOOGLE_ID"; \
 	    echo "GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET"; \
 	  fi; \
+	  echo "VITE_POCKETBASE_URL=http://localhost:8090"; \
 	} > .env; \
 	sh -c "$$VARS ./scripts/start-dev.sh"
 
