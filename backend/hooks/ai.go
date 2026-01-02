@@ -201,28 +201,12 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 	// NOTE: Use OnRecordCreateRequest to access raw request body (hidden fields not auto-populated)
 	// Must call e.Next() to continue the hook chain in PocketBase v0.23+
 	app.OnRecordCreateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
-		log.Printf("[AI] OnRecordCreateRequest hook triggered for ai_providers")
+		log.Printf("[AI] OnRecordCreateRequest hook triggered")
 		if err := encryptProviderKeyFromRequest(e, crypto); err != nil {
-			log.Printf("[AI] Error in encryptProviderKeyFromRequest: %v", err)
+			log.Printf("[AI] Encryption error: %v", err)
 			return err
 		}
-		log.Printf("[AI] Hook completed successfully, calling e.Next()")
-		log.Printf("[AI] Record before save: name=%s, type=%s, model=%s, api_key_encrypted_len=%d",
-			e.Record.GetString("name"),
-			e.Record.GetString("type"),
-			e.Record.GetString("model"),
-			len(e.Record.GetString("api_key_encrypted")))
-		if err := e.Next(); err != nil {
-			log.Printf("[AI] e.Next() returned error: %v", err)
-			log.Printf("[AI] Error type: %T", err)
-			// Try to get more details from the error
-			if apiErr, ok := err.(*apis.ApiError); ok {
-				log.Printf("[AI] ApiError: status=%d, message=%s, data=%v", apiErr.Code, apiErr.Message, apiErr.RawData())
-			}
-			return err
-		}
-		log.Printf("[AI] Record created successfully with ID: %s", e.Record.Id)
-		return nil
+		return e.Next()
 	})
 
 	app.OnRecordUpdateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
@@ -487,9 +471,7 @@ func encryptProviderKeyFromRequest(e *core.RecordRequestEvent, crypto *services.
 
 	log.Printf("[AI] Setting api_key_encrypted (length: %d)", len(encrypted))
 	e.Record.Set("api_key_encrypted", encrypted)
-	// Don't clear api_key here - let PocketBase handle the record as-is
-	// The api_key field value will be stored but we use api_key_encrypted for actual operations
-	// TODO: Consider making api_key a transient/virtual field that doesn't persist
+	e.Record.Set("api_key", "") // Clear plaintext from record
 
 	return nil
 }
