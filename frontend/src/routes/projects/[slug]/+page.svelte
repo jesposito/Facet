@@ -1,14 +1,44 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { parseMarkdown } from '$lib/utils';
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import Footer from '$components/public/Footer.svelte';
 
 	export let data: PageData;
 
-	// Back navigation: return to originating view if provided, otherwise home
-	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
-	$: backLabel = data.fromView ? 'Back to Profile' : 'Back to Profile';
+	let referrerPath = '';
+
+	onMount(() => {
+		if (!browser) return;
+		try {
+			const ref = document.referrer;
+			if (ref) {
+				const refUrl = new URL(ref);
+				// Only use same-origin referrers
+				if (refUrl.origin === window.location.origin && refUrl.pathname !== window.location.pathname) {
+					referrerPath = refUrl.pathname + refUrl.search;
+				}
+			}
+		} catch {
+			// ignore
+		}
+	});
+
+	// Back navigation: prefer originating view, then referrer, then home
+	$: backUrl = data.fromView ? `/${data.fromView}` : referrerPath || '/';
+	$: backLabel = 'Back';
+
+	function handleBack(event: Event) {
+		event.preventDefault();
+		if (browser && window.history.length > 1) {
+			window.history.back();
+		} else {
+			goto(backUrl, { replaceState: true });
+		}
+	}
 
 	function getLinkIcon(type: string) {
 		switch (type.toLowerCase()) {
@@ -64,6 +94,7 @@
 			<!-- Back navigation -->
 			<a
 				href={backUrl}
+				on:click|preventDefault={handleBack}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -3,6 +3,8 @@
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
+	import { pb } from '$lib/pocketbase';
+	import { goto } from '$app/navigation';
 
 	type MediaItem = {
 		collection: string;
@@ -56,8 +58,15 @@
 			if (search.trim()) params.set('q', search.trim());
 			if (typeFilter === 'image') params.set('type', 'image');
 
-			const res = await fetch(`/api/media?${params.toString()}`);
+			const res = await fetch(`/api/media?${params.toString()}`, {
+				headers: pb.authStore.isValid ? { Authorization: pb.authStore.token } : {}
+			});
 			if (!res.ok) {
+				if (res.status === 401) {
+					toasts.add('error', 'Session expired. Please sign in again.');
+					goto('/admin/login');
+					return;
+				}
 				throw new Error(`Failed to load media (${res.status})`);
 			}
 			const data = await res.json();
@@ -84,7 +93,10 @@
 		try {
 			const res = await fetch('/api/media', {
 				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: pb.authStore.token } : {})
+				},
 				body: JSON.stringify({
 					collection_id: item.collection_id,
 					record_id: item.record_id,
@@ -93,6 +105,11 @@
 				})
 			});
 			if (!res.ok) {
+				if (res.status === 401) {
+					toasts.add('error', 'Session expired. Please sign in again.');
+					goto('/admin/login');
+					return;
+				}
 				const body = await res.json().catch(() => ({}));
 				throw new Error(body.error || 'Failed to delete file');
 			}
