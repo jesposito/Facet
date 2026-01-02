@@ -28,6 +28,8 @@
 	let themeColor = '#0ea5e9'; // Default sky-500
 	let customCSS = '';
 	let mounted = false;
+	let gaMeasurementId = '';
+	let gaInitialized = false;
 
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -68,12 +70,13 @@
 		}
 	}
 
-	async function loadCustomCSS() {
+	async function loadSiteSettings() {
 		try {
 			const response = await fetch('/api/site-settings');
 			if (response.ok) {
 				const data = await response.json();
 				customCSS = data.custom_css || '';
+				gaMeasurementId = data.ga_measurement_id || '';
 			}
 		} catch (err) {
 			console.debug('No custom CSS loaded');
@@ -97,7 +100,7 @@
 		mounted = true;
 		theme.initialize();
 		loadAccentColor();
-		loadCustomCSS();
+		loadSiteSettings();
 
 		// Listen for accent color changes from settings page
 		const handleColorChange = (event: CustomEvent<AccentColor>) => {
@@ -112,6 +115,31 @@
 
 	$: if (mounted) {
 		applyCustomCSS(customCSS);
+		if (!gaInitialized && gaMeasurementId) {
+			injectGA(gaMeasurementId);
+			gaInitialized = true;
+		}
+	}
+
+	function injectGA(id: string) {
+		if (!browser || !id) return;
+		if (document.getElementById('ga-script')) return;
+
+		// GA4 snippet (minimal)
+		const script = document.createElement('script');
+		script.id = 'ga-script';
+		script.async = true;
+		script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
+		document.head.appendChild(script);
+
+		const inline = document.createElement('script');
+		inline.textContent = `
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  gtag('config', '${id}');
+		`;
+		document.head.appendChild(inline);
 	}
 </script>
 
