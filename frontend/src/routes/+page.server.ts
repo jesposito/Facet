@@ -141,7 +141,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				skills: [],
 				posts: [],
 				talks: [],
-				error: 'Failed to load profile'
+				view: null,
+				error: 'Failed to load profile',
+				isDefaultView: false
 			};
 		}
 
@@ -168,7 +170,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				skills: [],
 				posts: [],
 				talks: [],
-				error: 'Profile is private'
+				view: null,
+				error: 'Profile is private',
+				isDefaultView: false
 			};
 		}
 
@@ -201,6 +205,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			posts,
 			talks: data.talks || [],
 			// Indicate this is legacy homepage mode
+			view: null,
 			isDefaultView: false
 		};
 		console.log('[ROOT PAGE] Returning LEGACY homepage data:');
@@ -223,7 +228,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			skills: [],
 			posts: [],
 			talks: [],
-			error: 'Failed to load profile'
+			view: null,
+			error: 'Failed to load profile',
+			isDefaultView: false
 		};
 	}
 };

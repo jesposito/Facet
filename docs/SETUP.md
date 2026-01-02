@@ -66,21 +66,26 @@ Password authentication works out of the box. Add your email to `ADMIN_EMAILS` t
 ADMIN_EMAILS=you@example.com
 ```
 
-### OAuth Login (Coming Soon)
+### OAuth Login (Google/GitHub)
 
-OAuth configuration via environment variables is planned for a future release. This will allow you to configure Google and/or GitHub login without any manual setup:
+Configure OAuth without opening the PocketBase admin UI by setting environment variables:
 
 ```env
-# Coming soon - not yet implemented
-# GOOGLE_CLIENT_ID=your-client-id
-# GOOGLE_CLIENT_SECRET=your-client-secret
-# GITHUB_CLIENT_ID=your-client-id
-# GITHUB_CLIENT_SECRET=your-client-secret
+# Required when enabling OAuth
+APP_URL=https://facet.yourdomain.com
+
+# Google
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# GitHub
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
 ```
 
-When implemented, the login screen will automatically show only the authentication methods you've configured.
+On startup, Facet will automatically enable the providers you configure and the login page will only show available buttons.
 
-#### Getting OAuth Credentials (For Future Use)
+#### Getting OAuth Credentials
 
 **Google OAuth:**
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)

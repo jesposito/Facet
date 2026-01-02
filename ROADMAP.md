@@ -1748,13 +1748,12 @@ GITHUB_CLIENT_SECRET=your-client-secret
 ```
 
 **Implementation:**
-- [ ] Read OAuth credentials from environment variables on startup
-- [ ] Programmatically configure PocketBase auth providers
-- [ ] Add `/api/auth/providers` endpoint to expose enabled methods
-- [ ] Update login page to fetch available providers dynamically
-- [ ] Only show OAuth buttons for configured providers
-- [ ] Show password login as primary when no OAuth configured
-- [ ] Add to `.env.example` with documentation
+- [x] Read OAuth credentials from environment variables on startup
+- [x] Programmatically configure PocketBase auth providers
+- [x] Update login page to fetch available providers dynamically
+- [x] Only show OAuth buttons for configured providers
+- [x] Show password login as primary when no OAuth configured
+- [x] Add to `.env.example` with documentation
 
 **Benefits:**
 - End users never need to access PocketBase admin UI

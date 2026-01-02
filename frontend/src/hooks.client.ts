@@ -22,7 +22,6 @@ export function handleError({ error, event, status, message }) {
 	});
 
 	return {
-		message: message || 'An error occurred',
-		status
+		message: message || 'An error occurred'
 	};
 }
