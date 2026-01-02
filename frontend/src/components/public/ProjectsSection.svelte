@@ -2,8 +2,14 @@
 	import type { Project } from '$lib/pocketbase';
 	import { truncate, parseMarkdown } from '$lib/utils';
 
-	export let items: Project[];
-	export let layout: string = 'grid-3';
+export let items: Project[];
+export let layout: string = 'grid-3';
+export let viewSlug: string = '';
+
+const projectHref = (slug: string | undefined) => {
+	if (!slug) return '#';
+	return viewSlug ? `/projects/${slug}?from=${encodeURIComponent(viewSlug)}` : `/projects/${slug}`;
+};
 
 	function getLinkIcon(type: string) {
 		switch (type.toLowerCase()) {
@@ -51,7 +57,7 @@
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
 								{#if featuredItem.slug}
-									<a href="/projects/{featuredItem.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+									<a href={projectHref(featuredItem.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{featuredItem.title}
 									</a>
 								{:else}
@@ -122,7 +128,7 @@
 							<div class="p-5">
 								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 									{#if project.slug}
-										<a href="/projects/{project.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+										<a href={projectHref(project.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
 											{project.title}
 										</a>
 									{:else}
@@ -260,7 +266,7 @@
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
 								{#if project.slug}
-									<a href="/projects/{project.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+									<a href={projectHref(project.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{project.title}
 									</a>
 								{:else}
@@ -340,7 +346,7 @@
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 								{#if project.slug}
-									<a href="/projects/{project.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+									<a href={projectHref(project.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{project.title}
 									</a>
 								{:else}
