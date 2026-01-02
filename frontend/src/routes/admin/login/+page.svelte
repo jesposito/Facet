@@ -3,15 +3,18 @@
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import type { PageData } from './$types';
+
+	export let data: PageData;
 
 	let loading = false;
 	let error = '';
 	let redirecting = false;
-	let authMethodsLoaded = false;
+	let authMethodsLoaded = data?.initialAuthLoaded ?? false;
 	let methodsError = '';
 
-	let oauthProviders: string[] = [];
-	let passwordAuthEnabled = true;
+	let oauthProviders: string[] = data?.oauthProviders ?? [];
+	let passwordAuthEnabled = data?.passwordAuthEnabled ?? true;
 	let redirectUrl = '';
 
 	// Reactively redirect when user becomes authenticated

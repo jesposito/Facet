@@ -100,6 +100,27 @@ seed-dev: kill
 	rm -rf pb_data
 	@LOCAL_DEFAULT="http://localhost:8080"; \
 	CODESPACES_DEFAULT=$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}; \
+	if [ -f .env ]; then set -a; source .env; set +a; fi; \
+	# Step 1: choose auth mode (password-only, Google, GitHub, both) \
+	AUTH_DEFAULT=1; \
+	if [ -n "$$GOOGLE_CLIENT_ID" ] && [ -n "$$GOOGLE_CLIENT_SECRET" ] && [ -n "$$GITHUB_CLIENT_ID" ] && [ -n "$$GITHUB_CLIENT_SECRET" ]; then AUTH_DEFAULT=4; \
+	elif [ -n "$$GOOGLE_CLIENT_ID" ] && [ -n "$$GOOGLE_CLIENT_SECRET" ]; then AUTH_DEFAULT=2; \
+	elif [ -n "$$GITHUB_CLIENT_ID" ] && [ -n "$$GITHUB_CLIENT_SECRET" ]; then AUTH_DEFAULT=3; fi; \
+	echo "Select auth setup:"; \
+	echo "  1) Password only"; \
+	echo "  2) Google"; \
+	echo "  3) GitHub"; \
+	echo "  4) Google + GitHub"; \
+	read -r -p "Choice [$${AUTH_DEFAULT}]: " AUTH_CHOICE_INPUT; \
+	AUTH_CHOICE=$${AUTH_CHOICE_INPUT:-$$AUTH_DEFAULT}; \
+	GOOGLE_ENABLE=false; GITHUB_ENABLE=false; \
+	case "$$AUTH_CHOICE" in \
+	  2) GOOGLE_ENABLE=true ;; \
+	  3) GITHUB_ENABLE=true ;; \
+	  4) GOOGLE_ENABLE=true; GITHUB_ENABLE=true ;; \
+	  *) AUTH_CHOICE=1 ;; \
+	esac; \
+	# Step 2: select APP_URL (default Codespaces if present, else localhost) \
 	BASE_DEFAULT=$${APP_URL:-$${CODESPACES_DEFAULT:-$$LOCAL_DEFAULT}}; \
 	if [ -n "$$CODESPACES_DEFAULT" ]; then \
 		echo "Detected Codespaces. Choose APP_URL:"; \
@@ -113,25 +134,58 @@ seed-dev: kill
 		read -r -p "APP_URL [$$BASE_DEFAULT]: " APP_URL_INPUT; \
 		APP_URL_VALUE=$${APP_URL_INPUT:-$$BASE_DEFAULT}; \
 	fi; \
+	# Step 3: admin email \
 	ADMIN_DEFAULT=$${ADMIN_EMAILS:-admin@example.com}; \
 	read -r -p "Admin email for seed [$$ADMIN_DEFAULT]: " ADMIN_INPUT; \
 	ADMIN_VALUE=$${ADMIN_INPUT:-$$ADMIN_DEFAULT}; \
-	read -r -p "Google Client ID (optional): " GOOGLE_ID; \
-	GOOGLE_SECRET=""; \
-	if [ -n "$$GOOGLE_ID" ]; then read -r -s -p "Google Client Secret: " GOOGLE_SECRET; echo ""; fi; \
+	# Step 4: provider creds (skip prompts if already present) \
+	GOOGLE_ID_INPUT="$$GOOGLE_CLIENT_ID"; GOOGLE_SECRET_INPUT="$$GOOGLE_CLIENT_SECRET"; \
+	if [ "$$GOOGLE_ENABLE" = true ]; then \
+		if [ -n "$$GOOGLE_ID_INPUT" ] && [ -n "$$GOOGLE_SECRET_INPUT" ]; then \
+			echo "Google credentials found in .env (reusing)."; \
+		else \
+			read -r -p "Google Client ID (optional): " GOOGLE_ID_INPUT; \
+			if [ -n "$$GOOGLE_ID_INPUT" ]; then read -r -s -p "Google Client Secret: " GOOGLE_SECRET_INPUT; echo ""; fi; \
+		fi; \
+	fi; \
+	GITHUB_ID_INPUT="$$GITHUB_CLIENT_ID"; GITHUB_SECRET_INPUT="$$GITHUB_CLIENT_SECRET"; \
+	if [ "$$GITHUB_ENABLE" = true ]; then \
+		if [ -n "$$GITHUB_ID_INPUT" ] && [ -n "$$GITHUB_SECRET_INPUT" ]; then \
+			echo "GitHub credentials found in .env (reusing)."; \
+		else \
+			read -r -p "GitHub Client ID (optional): " GITHUB_ID_INPUT; \
+			if [ -n "$$GITHUB_ID_INPUT" ]; then read -r -s -p "GitHub Client Secret: " GITHUB_SECRET_INPUT; echo ""; fi; \
+		fi; \
+	fi; \
+	if [ "$$GOOGLE_ENABLE" = true ] && { [ -z "$$GOOGLE_ID_INPUT" ] || [ -z "$$GOOGLE_SECRET_INPUT" ]; }; then \
+		echo "Google credentials missing; Google auth will be disabled for this run."; \
+		GOOGLE_ENABLE=false; \
+	fi; \
+	if [ "$$GITHUB_ENABLE" = true ] && { [ -z "$$GITHUB_ID_INPUT" ] || [ -z "$$GITHUB_SECRET_INPUT" ]; }; then \
+		echo "GitHub credentials missing; GitHub auth will be disabled for this run."; \
+		GITHUB_ENABLE=false; \
+	fi; \
+	# Build env for start-dev and persist to .env \
 	VARS="APP_URL=$$APP_URL_VALUE ADMIN_EMAILS=$$ADMIN_VALUE SEED_DATA=dev"; \
-	if [ -n "$$GOOGLE_ID" ] && [ -n "$$GOOGLE_SECRET" ]; then VARS="GOOGLE_CLIENT_ID=$$GOOGLE_ID GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET $$VARS"; fi; \
-	echo "Using APP_URL=$$APP_URL_VALUE"; \
-	echo "Admin email: $$ADMIN_VALUE"; \
 	{ \
 	  echo "APP_URL=$$APP_URL_VALUE"; \
 	  echo "ADMIN_EMAILS=$$ADMIN_VALUE"; \
-	  if [ -n "$$GOOGLE_ID" ] && [ -n "$$GOOGLE_SECRET" ]; then \
-	    echo "GOOGLE_CLIENT_ID=$$GOOGLE_ID"; \
-	    echo "GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET"; \
+	  if [ "$$GOOGLE_ENABLE" = true ] && [ -n "$$GOOGLE_ID_INPUT" ] && [ -n "$$GOOGLE_SECRET_INPUT" ]; then \
+	    VARS="GOOGLE_CLIENT_ID=$$GOOGLE_ID_INPUT GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET_INPUT $$VARS"; \
+	    echo "GOOGLE_CLIENT_ID=$$GOOGLE_ID_INPUT"; \
+	    echo "GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET_INPUT"; \
+	  fi; \
+	  if [ "$$GITHUB_ENABLE" = true ] && [ -n "$$GITHUB_ID_INPUT" ] && [ -n "$$GITHUB_SECRET_INPUT" ]; then \
+	    VARS="GITHUB_CLIENT_ID=$$GITHUB_ID_INPUT GITHUB_CLIENT_SECRET=$$GITHUB_SECRET_INPUT $$VARS"; \
+	    echo "GITHUB_CLIENT_ID=$$GITHUB_ID_INPUT"; \
+	    echo "GITHUB_CLIENT_SECRET=$$GITHUB_SECRET_INPUT"; \
 	  fi; \
 	  echo "VITE_POCKETBASE_URL=http://localhost:8090"; \
 	} > .env; \
+	echo "Using APP_URL=$$APP_URL_VALUE"; \
+	echo "Admin email: $$ADMIN_VALUE"; \
+	echo "Google enabled: $$GOOGLE_ENABLE"; \
+	echo "GitHub enabled: $$GITHUB_ENABLE"; \
 	sh -c "$$VARS ./scripts/start-dev.sh"
 
 # Just clear database (no restart)

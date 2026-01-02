@@ -711,7 +711,11 @@ Facet has two ways to load sample data:
 
 ### Development Seed (Jedidiah Esposito)
 
-For development and testing, use `make seed-dev` to load real-world profile data:
+For development and testing, use `make seed-dev` to load real-world profile data. The script now:
+- Lets you choose auth mode: password-only, Google, GitHub, or both.
+- Defaults APP_URL to your Codespace URL (if present) or localhost, with an option to override.
+- Reuses any existing `.env` values for APP_URL/ADMIN_EMAILS and Google/GitHub creds; only prompts for missing fields.
+- Writes the chosen values into `.env` and starts the dev stack with those env vars.
 
 - **Role**: Front-End Lead | Product Engineering Lead
 - **Experience**: NZ Police, Ryman Healthcare, Okta, Amazon, ChefSteps
@@ -722,6 +726,9 @@ For development and testing, use `make seed-dev` to load real-world profile data
 ```bash
 # Load dev seed data
 make seed-dev
+
+# Example: enable both Google and GitHub during the prompt; the script will store
+# APP_URL/ADMIN_EMAILS and the provider IDs/secrets into .env for reuse.
 
 # Just clear database (no restart)
 make seed-clear
