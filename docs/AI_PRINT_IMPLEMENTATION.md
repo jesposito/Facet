@@ -126,9 +126,10 @@ func convertMarkdownToPDF(markdown string) ([]byte, error) {
     cmd := exec.Command("pandoc",
         tmpIn.Name(),
         "-o", tmpOut,
-        "--pdf-engine=pdflatex",  // or wkhtmltopdf for simpler setup
+        "--pdf-engine=xelatex",  // prefer xelatex for font support; fallback handled in code
         "-V", "geometry:margin=0.75in",
         "-V", "fontsize=11pt",
+        "-V", "mainfont=Helvetica",
     )
 
     var stderr bytes.Buffer

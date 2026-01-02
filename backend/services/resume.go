@@ -25,11 +25,11 @@ type GenerationConfig struct {
 
 // ViewData represents the complete view data for resume generation
 type ViewData struct {
-	Profile      map[string]interface{}            `json:"profile"`
+	Profile      map[string]interface{}              `json:"profile"`
 	Sections     map[string][]map[string]interface{} `json:"sections"`
-	SectionOrder []string                          `json:"section_order"`
-	HeroHeadline string                            `json:"hero_headline,omitempty"`
-	HeroSummary  string                            `json:"hero_summary,omitempty"`
+	SectionOrder []string                            `json:"section_order"`
+	HeroHeadline string                              `json:"hero_headline,omitempty"`
+	HeroSummary  string                              `json:"hero_summary,omitempty"`
 }
 
 // NewResumeService creates a new resume service
@@ -352,10 +352,13 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		"--standalone",
 	}
 
-	// For PDF, use pdflatex with default fonts (Computer Modern)
-	// No custom fonts to avoid compatibility issues
+	// Prefer Helvetica for PDF output; try xelatex first (for font support),
+	// then fall back to pdflatex if unavailable.
 	if format == "pdf" {
-		args = append(args, "--pdf-engine=pdflatex")
+		args = append(args,
+			"-V", "mainfont=Helvetica",
+			"--pdf-engine=xelatex",
+		)
 	}
 
 	log.Printf("[AI-PRINT] Running Pandoc with args: %v", args)
@@ -368,10 +371,20 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		errMsg := stderr.String()
 		log.Printf("[AI-PRINT] Pandoc failed: %v, stderr: %s", err, errMsg)
 
-		// If pdflatex failed, try without specifying engine (uses default)
-		if format == "pdf" && strings.Contains(errMsg, "pdflatex") {
-			log.Printf("[AI-PRINT] pdflatex not available, trying without --pdf-engine")
-			args = args[:len(args)-1] // Remove --pdf-engine flag
+		// If xelatex failed, fall back to pdflatex; if pdflatex also fails, surface error.
+		if format == "pdf" && (strings.Contains(errMsg, "xelatex") || strings.Contains(errMsg, "xetex")) {
+			log.Printf("[AI-PRINT] xelatex not available, trying pdflatex fallback")
+
+			// Remove any existing pdf-engine flag
+			filtered := make([]string, 0, len(args))
+			for _, a := range args {
+				if strings.HasPrefix(a, "--pdf-engine=") {
+					continue
+				}
+				filtered = append(filtered, a)
+			}
+			args = append(filtered, "--pdf-engine=pdflatex")
+
 			cmd = exec.Command("pandoc", args...)
 			stderr.Reset()
 			cmd.Stderr = &stderr
