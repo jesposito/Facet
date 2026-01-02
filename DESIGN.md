@@ -869,6 +869,7 @@ Based on codebase analysis, these features are incomplete or missing:
 | **Scheduled GitHub sync** | Not implemented | Manual refresh only |
 | ~~**Resume PDF export**~~ | ~~Not implemented~~ | ✅ Complete: Print stylesheet + print button |
 | **Theme customization** | Not implemented | Single theme only |
+| **Demo mode** | Not implemented | Needs production-safe showcase toggle/persona |
 | **Audit logging** | Minimal | Cannot review access history |
 
 ### 13.2 Proposed Priority Order
@@ -880,7 +881,7 @@ Based on codebase analysis, these features are incomplete or missing:
 5. ~~**Resume export**: Generate PDF from profile/view~~ ✅ Complete (print stylesheet + button)
 6. **Theme system**: Light/dark modes, color customization
 7. **Scheduled sync**: Cron-based GitHub refresh
-8. **Media library**: Upload management, image optimization
+8. **Media library**: Image optimization (thumb/WebP/srcset), storage insights
 9. **Demo mode**: Production-safe showcase persona with multiple views
 10. **Audit log**: Access history for share tokens
 

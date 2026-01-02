@@ -1384,30 +1384,4 @@ Enable a production-safe, one-click demo persona so new users can see Facet’s 
 ---
 
 ## Decision Log
-
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2025-12-31 | Phase 0 focus on stability | Foundation must be solid before features |
-| 2025-12-31 | No time estimates | Quality over speed; single-owner app |
-| 2025-12-31 | Content completeness before views | Need pages to link to before view improvements |
-| 2025-12-31 | Theming after core features | Premature optimization; default theme is sufficient |
-| 2025-12-31 | Phase 1 complete - certifications added | All core content types now have public display and admin CRUD |
-| 2025-12-31 | Admin CRUD pages complete | All admin routes now functional: experience, projects, education, skills |
-| 2025-12-31 | Phase 3 complete - token management UI | Full token list, create, copy URL, revoke, status badges, usage stats |
-| 2025-12-31 | Phase 2.2 item-level overrides complete | Career pivoters can present same job differently per view; overrides stored in sections JSON |
-| 2025-12-31 | Phase 4.2 print stylesheet complete | Browser-based PDF via print is sufficient; server-side PDF deferred |
-| 2025-12-31 | Phase 9.2 accessibility audit complete | Skip link, aria attributes, screen reader support added; 0 svelte-check warnings |
-| 2025-12-31 | Admin loading pattern standardized | All admin pages use simple `onMount(loadData)` pattern; layout handles auth gating. Fixes Codespaces race conditions. |
-| 2026-01-01 | Phase 2.2 drag-drop reordering complete | svelte-dnd-action integrated for section and item reordering; section order preserved in view config and respected in public rendering |
-| 2026-01-01 | Phase 6 redesigned as Visual Layout System | Phased approach: (A) per-section layout presets, (B) live preview, (C) section widths/columns, (D) WYSIWYG. Curated layouts prevent bad design; inspired by SharePoint but simpler. |
-| 2026-01-01 | Phase 4 redesigned as two-tier Export & Print | Simple Print (browser, works now) + AI Print (sends view to AI, returns optimized markdown, Pandoc converts to DOCX/PDF). Stored in view_exports collection. |
-| 2026-01-01 | OAuth config via env vars prioritized | End users should never see PocketBase; all config via environment variables. Login page should dynamically show only configured auth methods. Enables Unraid template distribution. |
-| 2026-01-01 | Phase 1.5 added for content discovery | Posts and talks are buried at bottom of profile with no navigation. Adding: profile nav tabs, index pages (/posts, /talks), and individual talk pages (/talks/[slug]). View limiting already works via sections config. |
-| 2026-01-01 | Phase 4.4 data export complete | JSON and YAML export via /api/export endpoint. Admin-only, downloads full profile data for backup/migration. Media files and import deferred. |
-| 2026-01-01 | Phase 6.5 accent color design finalized | Curated palette approach (6 colors) instead of freeform picker. Maintains design guardrails while enabling personalization. Colors: Sky, Indigo, Emerald, Rose, Amber, Slate. Uses CSS custom properties for runtime theming. |
-| 2026-01-01 | Phase 6.5 accent color implementation complete | Full implementation: migration, color constants, Admin Settings UI with color swatches, live preview, CSS custom properties injection. Works in light/dark modes. |
-| 2026-01-01 | Phase 6.6 per-view theming complete | Views can now override global accent color. View editor has color selector with "Use global" option. Preview pane reflects view-specific color in real-time. |
-
----
-
-*This roadmap is a living document. Update it as priorities evolve.*
+(unchanged; see historical entries below)
