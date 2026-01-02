@@ -66,7 +66,7 @@ Open `http://localhost:8080` — you're live.
 | Development | `admin@example.com` | `changeme123` |
 | Production | Your email in `ADMIN_EMAILS` | Your password |
 
-**Coming soon:** OAuth login via environment variables. See [Setup Guide](docs/SETUP.md) for current options.
+**OAuth:** Google/GitHub via environment variables. See [Setup Guide](docs/SETUP.md).
 
 ---
 
