@@ -1,6 +1,8 @@
 # Facet Makefile
 # Common commands for development and deployment
 
+SHELL := /bin/bash
+
 .PHONY: help dev dev-up dev-down dev-logs dev-reset build test clean docker-build docker-run seed-dev seed-clear kill stop
 
 # Default target
@@ -96,7 +98,15 @@ stop: kill
 seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data
-	SEED_DATA=dev ./scripts/start-dev.sh
+	@APP_URL_DEFAULT=$${APP_URL:-$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}}; \
+	read -r -p "APP_URL [$$APP_URL_DEFAULT]: " APP_URL_INPUT; \
+	APP_URL_VALUE=$${APP_URL_INPUT:-$$APP_URL_DEFAULT}; \
+	read -r -p "Google Client ID: " GOOGLE_ID; \
+	read -r -s -p "Google Client Secret: " GOOGLE_SECRET; echo ""; \
+	if [ -z "$$APP_URL_VALUE" ]; then echo "APP_URL is required"; exit 1; fi; \
+	if [ -z "$$GOOGLE_ID" ] || [ -z "$$GOOGLE_SECRET" ]; then echo "Google Client ID/Secret are required"; exit 1; fi; \
+	echo "Using APP_URL=$$APP_URL_VALUE"; \
+	APP_URL=$$APP_URL_VALUE GOOGLE_CLIENT_ID=$$GOOGLE_ID GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET SEED_DATA=dev ./scripts/start-dev.sh
 
 # Just clear database (no restart)
 seed-clear: kill
