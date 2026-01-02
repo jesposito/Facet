@@ -75,6 +75,18 @@
 					by {data.profile.name}
 				</p>
 			{/if}
+
+			<div class="mt-6 flex flex-wrap gap-3">
+				<a
+					href="/rss.xml"
+					class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20"
+				>
+					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M4.5 14.5a1.5 1.5 0 10.001 3.001A1.5 1.5 0 004.5 14.5zM3 4a1 1 0 011-1c6.075 0 11 4.925 11 11a1 1 0 01-1 1h-1a1 1 0 01-1-1 9 9 0 00-9-9 1 1 0 01-1-1V4zm0 5a1 1 0 011-1c3.866 0 7 3.134 7 7a1 1 0 01-1 1h-1a1 1 0 01-1-1 5 5 0 00-5-5 1 1 0 01-1-1V9z" />
+					</svg>
+					<span class="text-sm font-medium">Subscribe to posts (RSS)</span>
+				</a>
+			</div>
 		</div>
 	</header>
 
