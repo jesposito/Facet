@@ -19,6 +19,11 @@ import (
 func RegisterMediaHooks(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		se.Router.GET("/api/media", func(e *core.RequestEvent) error {
+			// Auth is enforced by middleware; log principal
+			if e.Auth != nil {
+				app.Logger().Debug("media list auth ok", "id", e.Auth.Id, "email", e.Auth.Email())
+			}
+
 			items, err := collectMediaItems(app)
 			if err != nil {
 				app.Logger().Error("media list failed", "error", err)
@@ -158,16 +163,19 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error)
 	for _, name := range collections {
 		collection, err := app.FindCollectionByNameOrId(name)
 		if err != nil {
+			app.Logger().Warn("media: collection not found", "collection", name, "error", err)
 			continue
 		}
 
 		fileFields := fileFieldNames(collection)
 		if len(fileFields) == 0 {
+			app.Logger().Debug("media: no file fields", "collection", collection.Name)
 			continue
 		}
 
 		records, err := app.FindRecordsByFilter(collection.Name, "", "-created", 500, 0, nil)
 		if err != nil {
+			app.Logger().Warn("media: failed to load records", "collection", collection.Name, "error", err)
 			continue
 		}
 
@@ -179,6 +187,7 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error)
 				for _, filename := range values {
 					item, err := services.BuildMediaItem(dataDir, collection.Name, collection.Id, record.Id, field, filename, createdAt)
 					if err != nil {
+						app.Logger().Warn("media: failed to build item", "collection", collection.Name, "record", record.Id, "field", field, "file", filename, "error", err)
 						continue
 					}
 					all = append(all, item)
