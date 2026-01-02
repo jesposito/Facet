@@ -8,7 +8,7 @@ const navSections = [
 		items: [{ href: '/admin', label: 'Dashboard', icon: 'home' }]
 	},
 	{
-		title: 'Content',
+		title: 'All About You',
 		items: [
 			{ href: '/admin/profile', label: 'Profile', icon: 'user' },
 			{ href: '/admin/experience', label: 'Experience', icon: 'briefcase' },

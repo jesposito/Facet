@@ -35,6 +35,21 @@
 	onMount(() => {
 		mounted = true;
 
+		// Restore sidebar state from localStorage
+		try {
+			const saved = localStorage.getItem('adminSidebarOpen');
+			if (saved === 'false') {
+				adminSidebarOpen.set(false);
+			} else if (saved === 'true') {
+				adminSidebarOpen.set(true);
+			} else if (window.innerWidth < 1024) {
+				// default to collapsed on small screens
+				adminSidebarOpen.set(false);
+			}
+		} catch (err) {
+			console.warn('Failed to restore sidebar state', err);
+		}
+
 		// Check path directly
 		const onLoginPage = window.location.pathname === '/admin/login';
 
