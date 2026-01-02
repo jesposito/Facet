@@ -1425,9 +1425,9 @@ Full theme presets that combine accent color with typography and spacing choices
 ### Features
 
 #### 7.1 Media Library
-- [ ] Route: `/admin/media`
-- [ ] Grid view of all uploads
-- [ ] Filter by type, date, usage
+- [x] Route: `/admin/media`
+- [x] Grid/list view of all uploads
+- [x] Filter by type and search filename (date/usage shown per item)
 
 #### 7.2 Image Optimization
 - [ ] Auto-generate thumbnails

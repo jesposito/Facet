@@ -34,7 +34,10 @@ const navSections = [
 	},
 	{
 		title: 'System',
-		items: [{ href: '/admin/settings', label: 'Settings', icon: 'cog' }]
+		items: [
+			{ href: '/admin/media', label: 'Media', icon: 'image' },
+			{ href: '/admin/settings', label: 'Settings', icon: 'cog' }
+		]
 	}
 ];
 
@@ -121,6 +124,12 @@ function isActive(href: string): boolean {
 							{:else if item.icon === 'download'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+								</svg>
+							{:else if item.icon === 'image'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+									<circle cx="9" cy="9" r="2" />
+									<path d="m21 15-4-4a3 3 0 0 0-4.24 0L3 21" />
 								</svg>
 							{:else if item.icon === 'cog'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
