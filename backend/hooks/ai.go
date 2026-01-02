@@ -201,19 +201,29 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 	// NOTE: Use OnRecordCreateRequest to access raw request body (hidden fields not auto-populated)
 	// Must call e.Next() to continue the hook chain in PocketBase v0.23+
 	app.OnRecordCreateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
-		log.Printf("[AI] OnRecordCreateRequest hook triggered")
 		if err := encryptProviderKeyFromRequest(e, crypto); err != nil {
-			log.Printf("[AI] Encryption error: %v", err)
+			log.Printf("[AI] Provider create: encryption error: %v", err)
 			return err
 		}
-		return e.Next()
+		if err := e.Next(); err != nil {
+			log.Printf("[AI] Provider create failed: %v", err)
+			return err
+		}
+		log.Printf("[AI] Provider created: %s (id: %s)", e.Record.GetString("name"), e.Record.Id)
+		return nil
 	})
 
 	app.OnRecordUpdateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
 		if err := encryptProviderKeyFromRequest(e, crypto); err != nil {
+			log.Printf("[AI] Provider update: encryption error: %v", err)
 			return err
 		}
-		return e.Next()
+		if err := e.Next(); err != nil {
+			log.Printf("[AI] Provider update failed: %v", err)
+			return err
+		}
+		log.Printf("[AI] Provider updated: %s (id: %s)", e.Record.GetString("name"), e.Record.Id)
+		return nil
 	})
 }
 
@@ -436,40 +446,29 @@ func getMapKeys(m map[string]any) []string {
 }
 
 // encryptProviderKeyFromRequest reads api_key from request body and encrypts it
-// Hidden fields aren't auto-populated into the record, so we read from request body
+// The api_key field needs to be received from the request to encrypt, then cleared
 func encryptProviderKeyFromRequest(e *core.RecordRequestEvent, crypto *services.CryptoService) error {
-	log.Printf("[AI] encryptProviderKeyFromRequest called")
-
-	// In PocketBase v0.23+, we access the request info to get the body
-	// because hidden fields (like api_key) aren't auto-populated into the record
+	// Access the request info to get the body data
 	info, err := e.RequestInfo()
 	if err != nil {
-		log.Printf("[AI] No request info available: %v", err)
 		return nil // No request info available
 	}
 
-	log.Printf("[AI] Request body keys: %v", getMapKeys(info.Body))
-
 	apiKeyRaw, ok := info.Body["api_key"]
 	if !ok {
-		log.Printf("[AI] No api_key in request body")
 		return nil // No api_key in request
 	}
 
 	apiKey, ok := apiKeyRaw.(string)
 	if !ok || apiKey == "" || apiKey == "********" {
-		log.Printf("[AI] api_key is empty or masked, skipping encryption")
 		return nil // Empty or masked key, skip encryption
 	}
 
-	log.Printf("[AI] Encrypting api_key (length: %d)", len(apiKey))
 	encrypted, err := crypto.Encrypt(apiKey)
 	if err != nil {
-		log.Printf("[AI] Encryption failed: %v", err)
-		return err
+		return fmt.Errorf("encrypt api key: %w", err)
 	}
 
-	log.Printf("[AI] Setting api_key_encrypted (length: %d)", len(encrypted))
 	e.Record.Set("api_key_encrypted", encrypted)
 	e.Record.Set("api_key", "") // Clear plaintext from record
 
