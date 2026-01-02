@@ -11,6 +11,7 @@ import (
 type SiteSettings struct {
 	HomepageEnabled    bool
 	LandingPageMessage string
+	CustomCSS          string
 	Record             *core.Record
 }
 
@@ -54,6 +55,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 	return &SiteSettings{
 		HomepageEnabled:    record.GetBool("homepage_enabled"),
 		LandingPageMessage: record.GetString("landing_page_message"),
+		CustomCSS:          record.GetString("custom_css"),
 		Record:             record,
 	}, nil
 }
@@ -74,6 +76,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 	}
 	if msg, ok := updates["landing_page_message"].(string); ok {
 		settings.Record.Set("landing_page_message", msg)
+	}
+	if css, ok := updates["custom_css"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("custom_css") != nil {
+			settings.Record.Set("custom_css", css)
+		} else if logger != nil {
+			logger.Warn("custom_css field missing on site_settings, skipping update")
+		}
 	}
 
 	if err := app.Save(settings.Record); err != nil {

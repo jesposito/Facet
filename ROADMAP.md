@@ -571,6 +571,7 @@ If upgrading from `me-yaml` container:
 - [x] GitHub import pipeline
 - [x] AI enrichment (optional)
 - [x] Admin dashboard with CRUD for all content types
+- [x] Admin navigation grouped into labeled sections for clarity (Overview, All About You, Faceted Views & Sharing, AI & Imports, System) with collapsible sidebar
 - [x] Rate limiting on sensitive endpoints
 - [x] Reserved slug protection (frontend + backend)
 
@@ -1389,8 +1390,8 @@ Full theme presets that combine accent color with typography and spacing choices
 - [ ] Per-view theme preset selection
 
 #### 6.7 Custom CSS (Power Users)
-- [ ] Admin textarea for custom CSS
-- [ ] Scoped to public pages only (not admin)
+- [x] Admin textarea for custom CSS
+- [x] Scoped to public pages only (not admin)
 - [ ] Syntax validation and preview
 - [ ] Warning about responsiveness risks
 

@@ -26,6 +26,8 @@
 	});
 
 	let themeColor = '#0ea5e9'; // Default sky-500
+	let customCSS = '';
+	let mounted = false;
 
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -66,9 +68,36 @@
 		}
 	}
 
+	async function loadCustomCSS() {
+		try {
+			const response = await fetch('/api/site-settings');
+			if (response.ok) {
+				const data = await response.json();
+				customCSS = data.custom_css || '';
+			}
+		} catch (err) {
+			console.debug('No custom CSS loaded');
+		}
+	}
+
+	function applyCustomCSS(css: string) {
+		if (!browser) return;
+		const existing = document.getElementById('custom-css');
+		if (existing) {
+			existing.remove();
+		}
+		if (!css) return;
+		const style = document.createElement('style');
+		style.id = 'custom-css';
+		style.textContent = css;
+		document.head.appendChild(style);
+	}
+
 	onMount(() => {
+		mounted = true;
 		theme.initialize();
 		loadAccentColor();
+		loadCustomCSS();
 
 		// Listen for accent color changes from settings page
 		const handleColorChange = (event: CustomEvent<AccentColor>) => {
@@ -80,6 +109,10 @@
 			window.removeEventListener('accent-color-changed', handleColorChange as EventListener);
 		};
 	});
+
+	$: if (mounted) {
+		applyCustomCSS(customCSS);
+	}
 </script>
 
 <svelte:head>

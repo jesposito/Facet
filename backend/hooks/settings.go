@@ -27,6 +27,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]any{
 				"homepage_enabled":     settings.HomepageEnabled,
 				"landing_page_message": settings.LandingPageMessage,
+				"custom_css":           settings.CustomCSS,
 			})
 		})
 
@@ -39,6 +40,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			var req struct {
 				HomepageEnabled    *bool  `json:"homepage_enabled"`
 				LandingPageMessage string `json:"landing_page_message"`
+				CustomCSS          string `json:"custom_css"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -57,6 +59,13 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				}
 				updates["landing_page_message"] = msg
 			}
+			if req.CustomCSS != "" || req.CustomCSS == "" {
+				css := strings.TrimSpace(req.CustomCSS)
+				if len(css) > 20000 {
+					css = css[:20000]
+				}
+				updates["custom_css"] = css
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -66,6 +75,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]any{
 				"homepage_enabled":     settings.HomepageEnabled,
 				"landing_page_message": settings.LandingPageMessage,
+				"custom_css":           settings.CustomCSS,
 			})
 		})
 
