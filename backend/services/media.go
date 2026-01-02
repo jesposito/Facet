@@ -26,6 +26,7 @@ type MediaItem struct {
 	DisplayName   string    `json:"display_name,omitempty"`
 	RecordLabel   string    `json:"record_label,omitempty"`
 	CollectionKey string    `json:"collection_key,omitempty"`
+	Orphan        bool      `json:"orphan,omitempty"`
 }
 
 // FlattenFileValue normalizes PocketBase file field values (string or []string) into a slice.

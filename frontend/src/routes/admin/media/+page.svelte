@@ -16,6 +16,17 @@
 		size: number;
 		mime: string;
 		uploaded_at: string;
+		relative_path?: string;
+		orphan?: boolean;
+	};
+
+	type MediaStats = {
+		referencedFiles: number;
+		referencedSize: number;
+		orphanFiles: number;
+		orphanSize: number;
+		totalFiles: number;
+		totalSize: number;
 	};
 
 	let items: MediaItem[] = [];
@@ -26,7 +37,16 @@
 	let totalPages = 1;
 	let search = '';
 	let typeFilter: 'all' | 'image' = 'all';
+	let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
 	let error = '';
+	let stats: MediaStats = {
+		referencedFiles: 0,
+		referencedSize: 0,
+		orphanFiles: 0,
+		orphanSize: 0,
+		totalFiles: 0,
+		totalSize: 0
+	};
 
 	const humanSize = (bytes: number) => {
 		if (!bytes) return '0 B';
@@ -57,6 +77,11 @@
 			});
 			if (search.trim()) params.set('q', search.trim());
 			if (typeFilter === 'image') params.set('type', 'image');
+			if (statusFilter === 'orphans') {
+				params.set('orphans', '1');
+			} else if (statusFilter === 'all') {
+				params.set('includeOrphans', '1');
+			}
 
 			const res = await fetch(`/api/media?${params.toString()}`, {
 				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
@@ -73,6 +98,14 @@
 			items = data.items || [];
 			totalItems = data.totalItems || 0;
 			totalPages = data.totalPages || 1;
+			stats = data.stats || {
+				referencedFiles: 0,
+				referencedSize: 0,
+				orphanFiles: 0,
+				orphanSize: 0,
+				totalFiles: totalItems,
+				totalSize: 0
+			};
 		} catch (err) {
 			console.error(err);
 			error = 'Failed to load media';
@@ -91,18 +124,22 @@
 	async function deleteFile(item: MediaItem) {
 		if (!confirm(`Delete ${item.filename}? This cannot be undone.`)) return;
 		try {
+			const body =
+				item.orphan && item.relative_path
+					? { relative_path: item.relative_path }
+					: {
+							collection_id: item.collection_id,
+							record_id: item.record_id,
+							field: item.field,
+							filename: item.filename
+					  };
 			const res = await fetch('/api/media', {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
 					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 				},
-				body: JSON.stringify({
-					collection_id: item.collection_id,
-					record_id: item.record_id,
-					field: item.field,
-					filename: item.filename
-				})
+				body: JSON.stringify(body)
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
@@ -145,7 +182,7 @@
 	</div>
 
 	<div class="card p-4 mb-4">
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+		<div class="grid grid-cols-1 md:grid-cols-4 gap-3">
 			<div class="flex items-center gap-2">
 				<input
 					class="input"
@@ -162,8 +199,19 @@
 					<option value="image">Images</option>
 				</select>
 			</div>
-			<div class="flex items-center justify-end gap-2 text-sm text-gray-600 dark:text-gray-400">
-				<span>{totalItems} files</span>
+			<div class="flex items-center gap-2">
+				<label class="label mb-0" for="status-filter">Scope</label>
+				<select id="status-filter" class="input" bind:value={statusFilter} on:change={resetAndLoad}>
+					<option value="referenced">Referenced only</option>
+					<option value="all">Referenced + orphans</option>
+					<option value="orphans">Orphans only</option>
+				</select>
+			</div>
+			<div class="flex items-center justify-end gap-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
+				<span>{stats.totalFiles} files • {humanSize(stats.totalSize)}</span>
+				<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+					{stats.orphanFiles} orphan{stats.orphanFiles === 1 ? '' : 's'}
+				</span>
 				{#if totalPages > 1}
 					<span>Page {page} of {totalPages}</span>
 				{/if}
@@ -210,6 +258,11 @@
 										>
 											{item.filename}
 										</a>
+										{#if item.orphan}
+											<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+												Orphan
+											</span>
+										{/if}
 									</div>
 								</td>
 								<td class="px-4 py-3">
@@ -220,8 +273,14 @@
 								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{humanSize(item.size)}</td>
 								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{item.collection}</td>
 								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
-									<code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">{item.field}</code>
-									<span class="text-gray-500 dark:text-gray-400 ml-1">({item.record_id})</span>
+									{#if item.field}
+										<code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">{item.field}</code>
+									{:else}
+										<span class="text-gray-500 dark:text-gray-400">—</span>
+									{/if}
+									{#if item.record_id}
+										<span class="text-gray-500 dark:text-gray-400 ml-1">({item.record_id})</span>
+									{/if}
 								</td>
 								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
 									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric', year: 'numeric' })}

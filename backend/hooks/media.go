@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"facet/services"
 
@@ -24,19 +25,39 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				app.Logger().Debug("media list auth ok", "id", e.Auth.Id, "email", e.Auth.Email())
 			}
 
-			items, err := collectMediaItems(app)
+			query := e.Request.URL.Query()
+			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
+			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
+
+			items, referenced, referencedSize, err := collectMediaItems(app)
 			if err != nil {
 				app.Logger().Error("media list failed", "error", err)
 				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
 
-			query := e.Request.URL.Query()
+			var orphanItems []services.MediaItem
+			var orphanSize int64
+			if orphansOnly || includeOrphans {
+				orphanItems, orphanSize, err = collectOrphanMediaItems(app, referenced)
+				if err != nil {
+					app.Logger().Error("media orphan scan failed", "error", err)
+					return apis.NewBadRequestError("failed to enumerate media", err)
+				}
+			}
+
+			combined := items
+			if orphansOnly {
+				combined = orphanItems
+			} else if includeOrphans {
+				combined = append(combined, orphanItems...)
+			}
+
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
 			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image" or ""
 			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
 
-			filtered := make([]services.MediaItem, 0, len(items))
-			for _, item := range items {
+			filtered := make([]services.MediaItem, 0, len(combined))
+			for _, item := range combined {
 				if search != "" && !strings.Contains(strings.ToLower(item.Filename), search) {
 					continue
 				}
@@ -79,6 +100,14 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				"perPage":    perPage,
 				"totalItems": total,
 				"totalPages": (total + perPage - 1) / perPage,
+				"stats": map[string]interface{}{
+					"referencedFiles": len(items),
+					"referencedSize":  referencedSize,
+					"orphanFiles":     len(orphanItems),
+					"orphanSize":      orphanSize,
+					"totalFiles":      len(items) + len(orphanItems),
+					"totalSize":       referencedSize + orphanSize,
+				},
 			}
 
 			return e.JSON(http.StatusOK, response)
@@ -90,9 +119,33 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				RecordID     string `json:"record_id"`
 				Field        string `json:"field"`
 				Filename     string `json:"filename"`
+				RelativePath string `json:"relative_path"`
 			}
 			if err := e.BindBody(&req); err != nil {
 				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			// Orphan deletion path: delete by relative path under /storage
+			if req.RelativePath != "" && (req.CollectionID == "" || req.Field == "") {
+				dataDir := app.DataDir()
+				storageRoot := filepath.Join(dataDir, "storage")
+				clean := filepath.Clean(req.RelativePath)
+				if strings.Contains(clean, "..") {
+					return apis.NewBadRequestError("invalid path", nil)
+				}
+				clean = strings.TrimPrefix(clean, "/")
+				clean = strings.TrimPrefix(clean, "\\")
+				clean = strings.TrimPrefix(clean, "storage/")
+				clean = strings.TrimPrefix(clean, "storage\\")
+				target := filepath.Join(storageRoot, clean)
+				if !strings.HasPrefix(target, storageRoot) {
+					return apis.NewBadRequestError("invalid path", nil)
+				}
+				if err := os.Remove(target); err != nil {
+					app.Logger().Warn("media: failed to delete orphan file", "path", target, "error", err)
+					return apis.NewBadRequestError("failed to delete file", err)
+				}
+				return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 			}
 
 			if req.CollectionID == "" || req.RecordID == "" || req.Field == "" || req.Filename == "" {
@@ -143,7 +196,7 @@ func parseIntDefault(raw string, def int) int {
 	return v
 }
 
-func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error) {
+func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[string]struct{}, int64, error) {
 	dataDir := app.DataDir()
 
 	app.Logger().Info("media: collecting files")
@@ -161,6 +214,8 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error)
 	}
 
 	var all []services.MediaItem
+	referenced := make(map[string]struct{})
+	var totalSize int64
 
 	for _, name := range collections {
 		collection, err := app.FindCollectionByNameOrId(name)
@@ -196,12 +251,67 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error)
 						continue
 					}
 					all = append(all, item)
+					key := filepath.ToSlash(filepath.Join(collection.Id, record.Id, filename))
+					referenced[key] = struct{}{}
+					totalSize += item.Size
 				}
 			}
 		}
 	}
 
-	return all, nil
+	return all, referenced, totalSize, nil
+}
+
+func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, error) {
+	dataDir := app.DataDir()
+	storageRoot := filepath.Join(dataDir, "storage")
+	var orphans []services.MediaItem
+	var totalSize int64
+
+	err := filepath.WalkDir(storageRoot, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), ".attrs") {
+			return nil
+		}
+		rel, err := filepath.Rel(storageRoot, path)
+		if err != nil {
+			return nil
+		}
+		rel = filepath.ToSlash(rel)
+		if _, ok := referenced[rel]; ok {
+			return nil
+		}
+
+		parts := strings.Split(rel, "/")
+		if len(parts) < 3 {
+			return nil
+		}
+		collectionID := parts[0]
+		recordID := parts[1]
+		filename := strings.Join(parts[2:], "/")
+		collectionName := collectionID
+		if c, err := app.FindCollectionByNameOrId(collectionID); err == nil && c != nil {
+			collectionName = c.Name
+		}
+
+		item, buildErr := services.BuildMediaItem(dataDir, collectionName, collectionID, recordID, "orphan", filename, time.Time{})
+		if buildErr != nil {
+			app.Logger().Warn("media: failed to build orphan item", "path", rel, "error", buildErr)
+			return nil
+		}
+		item.Orphan = true
+		item.Field = "orphan"
+		orphans = append(orphans, item)
+		totalSize += item.Size
+		return nil
+	})
+
+	return orphans, totalSize, err
 }
 
 func fileFieldNames(c *core.Collection) []string {
