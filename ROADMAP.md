@@ -1754,6 +1754,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 - [x] Only show OAuth buttons for configured providers
 - [x] Show password login as primary when no OAuth configured
 - [x] Add to `.env.example` with documentation
+- [x] Seed/dev flow prompts for Google/GitHub/both and persists selections into `.env`
 
 **Benefits:**
 - End users never need to access PocketBase admin UI
