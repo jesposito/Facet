@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -18,6 +19,8 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 		se.Router.GET("/api/site-settings", func(e *core.RequestEvent) error {
 			settings, err := services.LoadSiteSettings(app)
 			if err != nil {
+				fmt.Printf("[API /api/site-settings] failed to load: %v\n", err)
+				app.Logger().Error("Failed to load site settings", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load site settings"})
 			}
 

@@ -29,7 +29,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 	records, err := app.FindRecordsByFilter(
 		collection.Name,
 		"",
-		"created",
+		"",
 		1,
 		0,
 		nil,
