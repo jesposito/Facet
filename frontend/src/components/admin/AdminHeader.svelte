@@ -5,7 +5,15 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
 	function toggleSidebar() {
-		adminSidebarOpen.update((v) => !v);
+		adminSidebarOpen.update((v) => {
+			const next = !v;
+			try {
+				localStorage.setItem('adminSidebarOpen', next ? 'true' : 'false');
+			} catch (err) {
+				console.warn('Failed to persist sidebar state', err);
+			}
+			return next;
+		});
 	}
 
 	async function logout() {
