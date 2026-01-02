@@ -141,6 +141,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			view := records[0]
 			visibility := view.GetString("visibility")
+			shouldCountView := e.Auth == nil
 
 			// Check access based on visibility
 			switch visibility {
@@ -191,6 +192,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			case "public":
 				// Public views are accessible to everyone
+			}
+
+			if shouldCountView {
+				// Increment view count and last_viewed_at in the background
+				go func(viewID string) {
+					record, err := app.FindRecordById("views", viewID)
+					if err != nil {
+						return
+					}
+					record.Set("view_count", record.GetInt("view_count")+1)
+					record.Set("last_viewed_at", time.Now())
+					if err := app.Save(record); err != nil {
+						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
+					}
+				}(view.Id)
 			}
 
 			// Build view response

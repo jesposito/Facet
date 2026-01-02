@@ -3,6 +3,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import { formatDate } from '$lib/utils';
 
 	let loading = true;
 	let views: Array<Record<string, unknown>> = [];
@@ -157,6 +158,21 @@
 							<span class="text-gray-900 dark:text-white ml-1">{view.hero_headline}</span>
 						</div>
 					{/if}
+
+					<div class="mt-3 flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-300">
+						<div class="flex items-center gap-1">
+							{@html icon('eye')}
+							<span>{(view.view_count ?? 0).toLocaleString()} views</span>
+						</div>
+						<div class="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+							{@html icon('clock')}
+							<span>
+								{view.last_viewed_at
+									? `Last viewed ${formatDate(String(view.last_viewed_at), { month: 'short', day: 'numeric', year: 'numeric' })}`
+									: 'Never viewed'}
+							</span>
+						</div>
+					</div>
 				</div>
 			{/each}
 		</div>
