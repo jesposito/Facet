@@ -21,6 +21,7 @@
 	let homepageEnabled = true;
 	let landingPageMessage = 'This profile is being set up.';
 	let customCSS = '';
+	let showCSSHelp = false;
 
 	// Demo data state
 	let demoLoading = false;
@@ -442,7 +443,13 @@
 					Optional styles applied to public pages. Keep it minimal; you own the result.
 				</p>
 			</div>
-			<span class="text-xs text-gray-500 dark:text-gray-400 mt-1">{customCSS.length}/20000</span>
+			<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
+				<span>{customCSS.length}/20000</span>
+				<button class="btn btn-ghost btn-sm px-2" on:click={() => (showCSSHelp = true)}>
+					{icon('info', 'w-4 h-4 mr-1')}
+					<span class="align-middle">Selectors</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="mt-4 space-y-3">
@@ -460,6 +467,58 @@
 			</div>
 		</div>
 	</div>
+
+	{#if showCSSHelp}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+			<div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700">
+				<div class="flex items-start justify-between gap-3 mb-4">
+					<div>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Public CSS hooks</h3>
+						<p class="text-sm text-gray-600 dark:text-gray-400">
+							These selectors match the public site (not the admin UI). Start small and test on mobile.
+						</p>
+					</div>
+					<button class="btn btn-ghost btn-sm px-2" on:click={() => (showCSSHelp = false)}>
+						{icon('x', 'w-4 h-4')}
+					</button>
+				</div>
+
+				<div class="space-y-3 text-sm text-gray-800 dark:text-gray-200">
+					<div>
+						<p class="font-semibold text-gray-900 dark:text-white">Base</p>
+						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
+							<li><code>:root</code> — accent palette vars <code>--color-primary-50..950</code></li>
+							<li><code>body</code>, <code>main</code>, <code>header</code>, <code>footer</code></li>
+							<li><code>h1</code>–<code>h4</code>, <code>p</code>, <code>a</code>, <code>ul</code>/<code>ol</code>, <code>li</code></li>
+						</ul>
+					</div>
+
+					<div>
+						<p class="font-semibold text-gray-900 dark:text-white">Components</p>
+						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
+							<li><code>.card</code> — section cards</li>
+							<li><code>.section-title</code> — section headings</li>
+							<li><code>.prose-custom</code> — rich text blocks (posts/talks)</li>
+							<li><code>.btn</code>, <code>.btn-primary</code>, <code>.btn-secondary</code></li>
+							<li><code>.input</code>, <code>.label</code></li>
+						</ul>
+					</div>
+
+					<div class="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200">
+						<pre class="whitespace-pre-wrap">{`:root { --color-primary-500: #6366f1; } /* swap accent */
+body { font-family: 'Inter', sans-serif; }
+.card { border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.section-title { letter-spacing: 0.01em; }
+.btn-primary { text-transform: uppercase; }`}</pre>
+					</div>
+
+					<p class="text-xs text-gray-500 dark:text-gray-400">
+						Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout.
+					</p>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Appearance Section -->
 	<div class="card p-6 mb-6">
