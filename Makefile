@@ -99,7 +99,7 @@ seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data
 	@APP_URL_DEFAULT=$${APP_URL:-$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}}; \
-	[ -z "$$APP_URL_DEFAULT" ] && APP_URL_DEFAULT="http://localhost:8080"; \
+	if [ -z "$$APP_URL_DEFAULT" ]; then APP_URL_DEFAULT="http://localhost:8080"; fi; \
 	read -r -p "APP_URL [$$APP_URL_DEFAULT]: " APP_URL_INPUT; \
 	APP_URL_VALUE=$${APP_URL_INPUT:-$$APP_URL_DEFAULT}; \
 	ADMIN_DEFAULT=$${ADMIN_EMAILS:-admin@example.com}; \
