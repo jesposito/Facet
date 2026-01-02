@@ -20,6 +20,7 @@
 	let siteSettingsSaving = false;
 	let homepageEnabled = true;
 	let landingPageMessage = 'This profile is being set up.';
+	let customCSS = '';
 
 	// Demo data state
 	let demoLoading = false;
@@ -185,6 +186,7 @@
 				const data = await response.json();
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
+				customCSS = data.custom_css || '';
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
@@ -204,7 +206,8 @@
 				},
 				body: JSON.stringify({
 					homepage_enabled: homepageEnabled,
-					landing_page_message: landingPageMessage
+					landing_page_message: landingPageMessage,
+					custom_css: customCSS
 				})
 			});
 
@@ -216,6 +219,7 @@
 
 			homepageEnabled = result.homepage_enabled !== false;
 			landingPageMessage = result.landing_page_message || '';
+			customCSS = result.custom_css || '';
 			toasts.add('success', 'Homepage visibility updated');
 		} catch (err) {
 			console.error('Failed to save site settings:', err);
@@ -421,6 +425,34 @@
 				></textarea>
 			</div>
 
+			<div class="flex justify-end">
+				<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+					{siteSettingsSaving ? 'Saving...' : 'Save'}
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Custom CSS -->
+	<div class="card p-6 mb-6">
+		<div class="flex items-start justify-between gap-3">
+			<div>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Custom CSS</h2>
+				<p class="text-gray-600 dark:text-gray-400 text-sm">
+					Optional styles applied to public pages. Keep it minimal; you own the result.
+				</p>
+			</div>
+			<span class="text-xs text-gray-500 dark:text-gray-400 mt-1">{customCSS.length}/20000</span>
+		</div>
+
+		<div class="mt-4 space-y-3">
+			<textarea
+				class="input font-mono text-sm h-48"
+				placeholder="/* Custom CSS (e.g., tweak fonts, spacing, colors) */"
+				bind:value={customCSS}
+				disabled={siteSettingsLoading || siteSettingsSaving}
+				maxlength="20000"
+			></textarea>
 			<div class="flex justify-end">
 				<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
 					{siteSettingsSaving ? 'Saving...' : 'Save'}
