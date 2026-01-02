@@ -49,6 +49,7 @@ func main() {
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterSiteSettingsHooks(app)
+	hooks.RegisterMediaHooks(app)
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)
 	hooks.RegisterAdminHooks(app)
