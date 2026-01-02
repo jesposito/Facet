@@ -78,6 +78,9 @@
 			return;
 		}
 
+		const parsedSort = Number(sortOrder);
+		const finalSort = Number.isFinite(parsedSort) ? parsedSort : 0;
+
 		saving = true;
 		try {
 			const data = {
@@ -88,7 +91,7 @@
 				url: url.trim(),
 				visibility,
 				is_draft: isDraft,
-				sort_order: sortOrder
+				sort_order: finalSort
 			};
 
 			if (editingAward) {
@@ -103,7 +106,12 @@
 			await loadAwards();
 		} catch (err) {
 			console.error('Failed to save award:', err);
-			toasts.add('error', 'Failed to save award');
+			const message =
+				(err as any)?.data?.data &&
+				Object.entries((err as any).data.data)
+					.map(([field, info]) => `${field}: ${(info as any).message}`)
+					.join(', ');
+			toasts.add('error', message || 'Failed to save award');
 		} finally {
 			saving = false;
 		}
