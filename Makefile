@@ -99,14 +99,20 @@ seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data
 	@APP_URL_DEFAULT=$${APP_URL:-$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}}; \
+	[ -z "$$APP_URL_DEFAULT" ] && APP_URL_DEFAULT="http://localhost:8080"; \
 	read -r -p "APP_URL [$$APP_URL_DEFAULT]: " APP_URL_INPUT; \
 	APP_URL_VALUE=$${APP_URL_INPUT:-$$APP_URL_DEFAULT}; \
-	read -r -p "Google Client ID: " GOOGLE_ID; \
-	read -r -s -p "Google Client Secret: " GOOGLE_SECRET; echo ""; \
-	if [ -z "$$APP_URL_VALUE" ]; then echo "APP_URL is required"; exit 1; fi; \
-	if [ -z "$$GOOGLE_ID" ] || [ -z "$$GOOGLE_SECRET" ]; then echo "Google Client ID/Secret are required"; exit 1; fi; \
+	ADMIN_DEFAULT=$${ADMIN_EMAILS:-admin@example.com}; \
+	read -r -p "Admin email for seed [$$ADMIN_DEFAULT]: " ADMIN_INPUT; \
+	ADMIN_VALUE=$${ADMIN_INPUT:-$$ADMIN_DEFAULT}; \
+	read -r -p "Google Client ID (optional): " GOOGLE_ID; \
+	GOOGLE_SECRET=""; \
+	if [ -n "$$GOOGLE_ID" ]; then read -r -s -p "Google Client Secret: " GOOGLE_SECRET; echo ""; fi; \
+	VARS="APP_URL=$$APP_URL_VALUE ADMIN_EMAILS=$$ADMIN_VALUE SEED_DATA=dev"; \
+	if [ -n "$$GOOGLE_ID" ] && [ -n "$$GOOGLE_SECRET" ]; then VARS="GOOGLE_CLIENT_ID=$$GOOGLE_ID GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET $$VARS"; fi; \
 	echo "Using APP_URL=$$APP_URL_VALUE"; \
-	APP_URL=$$APP_URL_VALUE GOOGLE_CLIENT_ID=$$GOOGLE_ID GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET SEED_DATA=dev ./scripts/start-dev.sh
+	echo "Admin email: $$ADMIN_VALUE"; \
+	sh -c "$$VARS ./scripts/start-dev.sh"
 
 # Just clear database (no restart)
 seed-clear: kill
