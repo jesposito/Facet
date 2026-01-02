@@ -372,21 +372,29 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		errMsg := stderr.String()
 		log.Printf("[AI-PRINT] Pandoc failed: %v, stderr: %s", err, errMsg)
 
-		// If xelatex failed, fall back to pdflatex; if pdflatex also fails, surface error.
-		if format == "pdf" && (strings.Contains(errMsg, "xelatex") || strings.Contains(errMsg, "xetex")) {
-			log.Printf("[AI-PRINT] xelatex not available, trying pdflatex fallback")
+		// If xelatex or font selection failed, fall back to pdflatex with helvet.
+		if format == "pdf" && (strings.Contains(errMsg, "xelatex") || strings.Contains(errMsg, "xetex") || strings.Contains(errMsg, "fontspec")) {
+			log.Printf("[AI-PRINT] xelatex/font selection failed, trying pdflatex fallback")
 
-			// Remove any existing pdf-engine flag
+			// Remove pdf-engine and mainfont flags
 			filtered := make([]string, 0, len(args))
-			for _, a := range args {
+			for i := 0; i < len(args); i++ {
+				a := args[i]
 				if strings.HasPrefix(a, "--pdf-engine=") {
 					continue
 				}
+				if a == "-V" && i+1 < len(args) {
+					val := args[i+1]
+					if strings.HasPrefix(val, "mainfont=") || strings.HasPrefix(val, "mainfontfallback=") {
+						i++ // skip the value as well
+						continue
+					}
+				}
 				filtered = append(filtered, a)
 			}
+
 			args = append(filtered,
 				"--pdf-engine=pdflatex",
-				// Use helvet package to keep sans-serif look with pdflatex
 				"-V", "fontfamily=helvet",
 				"-V", "fontfamilyoptions=scaled=0.95",
 			)
