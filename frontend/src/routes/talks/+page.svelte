@@ -86,6 +86,19 @@
 					by {data.profile.name}
 				</p>
 			{/if}
+
+			<div class="mt-6 flex flex-wrap gap-3">
+				<a
+					href="/talks.ics"
+					class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20"
+				>
+					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 15h.01M12 15h.01M16 15h.01" />
+					</svg>
+					<span class="text-sm font-medium">Subscribe to calendar (.ics)</span>
+				</a>
+			</div>
 		</div>
 	</header>
 
