@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { pb, type Post } from '$lib/pocketbase';
-	import { toasts } from '$lib/stores';
-	import { formatDate } from '$lib/utils';
+import { pb, type Post } from '$lib/pocketbase';
+import { toasts } from '$lib/stores';
+import { formatDate } from '$lib/utils';
 
-	let posts: Post[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingPost: Post | null = null;
+let posts: Post[] = [];
+let loading = true;
+let showForm = false;
+let editingPost: Post | null = null;
+let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
 
 	// Form fields
 	let title = '';
@@ -24,18 +25,25 @@
 	// Simple pattern - admin layout handles auth
 	onMount(loadPosts);
 
-	async function loadPosts() {
-		loading = true;
-		try {
-			const records = await pb.collection('posts').getList(1, 100, {
+async function loadPosts() {
+	loading = true;
+	try {
+		const [records, membershipResp] = await Promise.all([
+			pb.collection('posts').getList(1, 100, {
 				sort: '-published_at'
-			});
-			posts = records.items as unknown as Post[];
-		} catch (err) {
-			console.error('Failed to load posts:', err);
-			toasts.add('error', 'Failed to load posts');
-		} finally {
-			loading = false;
+			}),
+			fetch('/api/admin/view-memberships?collection=posts', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+		]);
+
+		posts = records.items as unknown as Post[];
+		memberships = (membershipResp.memberships as typeof memberships) || {};
+	} catch (err) {
+		console.error('Failed to load posts:', err);
+		toasts.add('error', 'Failed to load posts');
+	} finally {
+		loading = false;
 		}
 	}
 
@@ -381,6 +389,28 @@
 								<p class="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
 									{post.excerpt}
 								</p>
+							{/if}
+
+							{#if memberships[post.id]?.length}
+								<div class="flex flex-wrap gap-1 mb-2">
+									{#each memberships[post.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[post.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[post.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Not in any view</p>
 							{/if}
 
 							<div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
