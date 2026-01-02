@@ -22,10 +22,30 @@ let isDraft = false;
 let isFeatured = false;
 let sortOrder = 0;
 let coverImageFile: FileList | null = null;
+let mediaRefs: string[] = [];
+let mediaOptions: { id: string; title: string; provider?: string }[] = [];
 let saving = false;
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
 
 	onMount(loadProjects);
+	onMount(loadMediaOptions);
+
+	async function loadMediaOptions() {
+		try {
+			const res = await fetch('/api/media?perPage=200', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (!res.ok) return;
+			const data = await res.json();
+			mediaOptions = (data.items || []).map((item: any) => ({
+				id: item.record_id || item.relative_path || item.url,
+				title: item.display_name || item.filename || item.url,
+				provider: item.provider || (item.external ? 'external' : 'upload')
+			}));
+		} catch (err) {
+			console.error('Failed to load media options', err);
+		}
+	}
 
 async function loadProjects() {
 	loading = true;
@@ -61,8 +81,9 @@ async function loadProjects() {
 		isFeatured = false;
 		sortOrder = 0;
 		coverImageFile = null;
-		editingProject = null;
-	}
+	editingProject = null;
+	mediaRefs = [];
+}
 
 	function openNewForm() {
 		resetForm();
@@ -77,12 +98,13 @@ async function loadProjects() {
 		description = project.description || '';
 		techStackText = (project.tech_stack || []).join(', ');
 		links = project.links || [];
-		categoriesText = (project.categories || []).join(', ');
-		visibility = project.visibility;
-		isDraft = project.is_draft;
-		isFeatured = project.is_featured;
-		sortOrder = project.sort_order;
-		showForm = true;
+	categoriesText = (project.categories || []).join(', ');
+	mediaRefs = project.media_refs || [];
+	visibility = project.visibility;
+	isDraft = project.is_draft;
+	isFeatured = project.is_featured;
+	sortOrder = project.sort_order;
+	showForm = true;
 	}
 
 	function closeForm() {
@@ -136,6 +158,7 @@ async function loadProjects() {
 			formData.append('tech_stack', JSON.stringify(techStack));
 			formData.append('links', JSON.stringify(validLinks));
 			formData.append('categories', JSON.stringify(categories));
+			formData.append('media_refs', JSON.stringify(mediaRefs));
 			formData.append('visibility', visibility);
 			formData.append('is_draft', String(isDraft));
 			formData.append('is_featured', String(isFeatured));
@@ -418,6 +441,35 @@ async function loadProjects() {
 								class="w-20 h-20 object-cover rounded"
 							/>
 							<span class="text-sm text-gray-500">Current image</span>
+						</div>
+					{/if}
+				</div>
+
+			<div>
+				<p class="label">Attached media / embeds</p>
+					{#if mediaOptions.length === 0}
+						<p class="text-sm text-gray-500 dark:text-gray-400">Add external media in the Media Library first.</p>
+					{:else}
+						<div class="flex flex-wrap gap-2 mb-2">
+							{#each mediaOptions as opt}
+								<label
+									class={`inline-flex items-center gap-2 px-2 py-1 rounded border cursor-pointer ${
+										mediaRefs.includes(opt.id)
+											? 'bg-primary-50 border-primary-200 text-primary-700'
+											: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+									}`}
+								>
+									<input
+										type="checkbox"
+										class="w-4 h-4"
+										bind:group={mediaRefs}
+										value={opt.id}
+									/>
+									<span class="text-xs font-medium">
+										{opt.title}{opt.provider ? ` (${opt.provider})` : ''}
+									</span>
+								</label>
+							{/each}
 						</div>
 					{/if}
 				</div>

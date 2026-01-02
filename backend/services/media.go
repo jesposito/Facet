@@ -29,6 +29,8 @@ type MediaItem struct {
 	Orphan        bool      `json:"orphan,omitempty"`
 	ThumbnailURL  string    `json:"thumbnail_url,omitempty"`
 	External      bool      `json:"external,omitempty"`
+	Provider      string    `json:"provider,omitempty"`
+	EmbedURL      string    `json:"embed_url,omitempty"`
 }
 
 // FlattenFileValue normalizes PocketBase file field values (string or []string) into a slice.

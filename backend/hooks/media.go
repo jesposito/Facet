@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"facet/services"
+	"facet/services/mediaembed"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -39,13 +40,16 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			externalItems, err := collectExternalMediaItems(app)
 			if err != nil {
 				app.Logger().Error("media external scan failed", "error", err)
-				return apis.NewBadRequestError("failed to enumerate media", err)
+				externalItems = nil
 			}
 
 			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, referenced)
 			if err != nil {
 				app.Logger().Error("media orphan scan failed", "error", err)
-				return apis.NewBadRequestError("failed to enumerate media", err)
+				orphanItems = nil
+				orphanSize = 0
+				storageSize = 0
+				storageFiles = 0
 			}
 
 			combined := append(items, externalItems...)
@@ -343,6 +347,7 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 		if title == "" {
 			title = record.GetString("url")
 		}
+		normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
 		item := services.MediaItem{
 			Collection:    collection.Name,
 			CollectionID:  collection.Id,
@@ -353,8 +358,10 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 			DisplayName:   title,
 			RecordLabel:   title,
 			URL:           record.GetString("url"),
-			Mime:          record.GetString("mime"),
-			ThumbnailURL:  record.GetString("thumbnail_url"),
+			Mime:          normalized.Mime,
+			ThumbnailURL:  normalized.ThumbnailURL,
+			EmbedURL:      normalized.EmbedURL,
+			Provider:      normalized.Provider,
 			UploadedAt:    created,
 			External:      true,
 		}

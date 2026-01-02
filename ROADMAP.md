@@ -69,7 +69,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - 7.1 Media library: ✅ `/admin/media` listing, filters, search, delete; orphan detection
 - 7.2 Image optimization: ✅ thumbnails + responsive srcsets for posts/projects/homepage
 - 7.3 Cleanup UX: ✅ orphan detection + bulk delete + storage usage display
-- 7.4 External media: ✅ link-based entries (URL/title/mime/thumbnail) listed alongside uploads; deletion supported
+- 7.4 External media: ✅ link-based entries (URL/title/mime/thumbnail) listed alongside uploads; deletion supported; media_refs on projects/posts/talks
+- ⚠️ Media stability note: `/api/media` depends on file fields + `external_media`; run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`) after schema changes; see docs/MEDIA.md for details.
 
 ## Phase 8: Security & Audit (🔜 Planned)
 - Audit log of admin actions/share token/password attempts

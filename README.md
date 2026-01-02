@@ -31,6 +31,7 @@ A self-hosted, privacy-respecting personal profile platform. Think LinkedIn prof
 | **Self-host it** | [Setup Guide](docs/SETUP.md) |
 | **Contribute or develop** | [Developer Guide](#for-developers) |
 | **Understand the architecture** | [Architecture](ARCHITECTURE.md) |
+| **Media internals** | [Media System](docs/MEDIA.md) |
 | **Read the design philosophy** | [Design Document](DESIGN.md) |
 
 ---
