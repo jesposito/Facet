@@ -20,11 +20,13 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		se.Router.GET("/api/media", func(e *core.RequestEvent) error {
 			if e.Auth == nil {
+				app.Logger().Warn("media list unauthorized")
 				return apis.NewUnauthorizedError("authentication required", nil)
 			}
 
 			items, err := collectMediaItems(app)
 			if err != nil {
+				app.Logger().Error("media list failed", "error", err)
 				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
 
@@ -84,6 +86,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
 			if e.Auth == nil {
+				app.Logger().Warn("media delete unauthorized")
 				return apis.NewUnauthorizedError("authentication required", nil)
 			}
 
@@ -119,6 +122,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 
 			record.Set(req.Field, updated)
 			if err := app.Save(record); err != nil {
+				app.Logger().Error("media delete failed to update record", "error", err)
 				return apis.NewBadRequestError("failed to update record", err)
 			}
 
