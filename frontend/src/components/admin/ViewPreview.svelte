@@ -29,6 +29,7 @@
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
 	import CertificationsSection from '$components/public/CertificationsSection.svelte';
+	import AwardsSection from '$components/public/AwardsSection.svelte';
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
@@ -238,6 +239,13 @@
 				{:else if sectionKey === 'certifications' && computed?.visible}
 					<div class={computed.widthClass}>
 						<CertificationsSection
+							items={computed.data}
+							layout={computed.layout}
+						/>
+					</div>
+				{:else if sectionKey === 'awards' && computed?.visible}
+					<div class={computed.widthClass}>
+						<AwardsSection
 							items={computed.data}
 							layout={computed.layout}
 						/>

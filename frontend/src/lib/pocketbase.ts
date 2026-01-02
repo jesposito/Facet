@@ -157,6 +157,18 @@ export interface Certification {
 	sort_order: number;
 }
 
+export interface Award {
+	id: string;
+	title: string;
+	issuer?: string;
+	awarded_at?: string;
+	description?: string;
+	url?: string;
+	visibility: 'public' | 'unlisted' | 'private';
+	is_draft: boolean;
+	sort_order: number;
+}
+
 export interface View {
 	id: string;
 	name: string;
@@ -247,6 +259,15 @@ export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string;
 			cloud: 'Tag Cloud',
 			bars: 'Skill Bars',
 			flat: 'Flat List'
+		}
+	},
+	awards: {
+		layouts: ['grouped', 'timeline', 'grid'],
+		default: 'grouped',
+		labels: {
+			grouped: 'Grouped by Issuer',
+			timeline: 'Timeline',
+			grid: 'Grid'
 		}
 	},
 	posts: {

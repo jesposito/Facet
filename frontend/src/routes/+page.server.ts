@@ -53,19 +53,20 @@ export const load: PageServerLoad = async ({ fetch }) => {
 					// Get posts and talks from view sections
 					let posts = viewData.sections?.posts || [];
 					let talks = viewData.sections?.talks || [];
+					let awards = viewData.sections?.awards || [];
 					console.log('[ROOT PAGE] From view sections - posts:', posts.length, 'talks:', talks.length);
 
 					// If posts/talks aren't in the view's sections, fetch them from the homepage API
 					// This ensures posts/talks always appear on the profile even if the view
 					// doesn't explicitly include them as sections
-					if (posts.length === 0 || talks.length === 0) {
+					if (posts.length === 0 || talks.length === 0 || awards.length === 0) {
 						console.log('[ROOT PAGE] Posts/talks empty, fetching from homepage API...');
 						try {
 							const homepageResponse = await fetch(`${pbUrl}/api/homepage`);
 							console.log('[ROOT PAGE] homepage fallback response status:', homepageResponse.status);
 							if (homepageResponse.ok) {
 								const homepageData = await homepageResponse.json();
-								console.log('[ROOT PAGE] homepage data - posts:', (homepageData.posts || []).length, 'talks:', (homepageData.talks || []).length);
+								console.log('[ROOT PAGE] homepage data - posts:', (homepageData.posts || []).length, 'talks:', (homepageData.talks || []).length, 'awards:', (homepageData.awards || []).length);
 								if (posts.length === 0 && homepageData.posts) {
 									posts = homepageData.posts.map((p: Record<string, unknown>) => ({
 										...p,
@@ -76,6 +77,10 @@ export const load: PageServerLoad = async ({ fetch }) => {
 								if (talks.length === 0 && homepageData.talks) {
 									talks = homepageData.talks;
 									console.log('[ROOT PAGE] Populated talks from homepage:', talks.length);
+								}
+								if (awards.length === 0 && homepageData.awards) {
+									awards = homepageData.awards;
+									console.log('[ROOT PAGE] Populated awards from homepage:', awards.length);
 								}
 							}
 						} catch (fallbackErr) {
@@ -110,6 +115,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						projects: viewData.sections?.projects || [],
 						education: viewData.sections?.education || [],
 						certifications: viewData.sections?.certifications || [],
+						awards,
 						skills: viewData.sections?.skills || [],
 						posts,
 						talks,
@@ -137,7 +143,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		// Fallback: No default view or failed to load - use legacy homepage
 		console.log('[ROOT PAGE] No default view, using legacy homepage API...');
 		const response = await fetch(`${pbUrl}/api/homepage`);
-		console.log('[ROOT PAGE] homepage response status:', response.status);
+			console.log('[ROOT PAGE] homepage response status:', response.status);
 
 		if (!response.ok) {
 			const errorText = await response.text();
@@ -148,6 +154,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				projects: [],
 				education: [],
 				certifications: [],
+				awards: [],
 				skills: [],
 				posts: [],
 				talks: [],
@@ -169,6 +176,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				projects: [],
 				education: [],
 				certifications: [],
+				awards: [],
 				skills: [],
 				posts: [],
 				talks: [],
@@ -185,6 +193,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 		console.log('[ROOT PAGE]   posts:', (data.posts || []).length);
 		console.log('[ROOT PAGE]   talks:', (data.talks || []).length);
 		console.log('[ROOT PAGE]   certifications:', (data.certifications || []).length);
+		console.log('[ROOT PAGE]   awards:', (data.awards || []).length);
 
 		// Check if profile is private
 		if (!data.profile) {
@@ -195,6 +204,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				projects: [],
 				education: [],
 				certifications: [],
+				awards: [],
 				skills: [],
 				posts: [],
 				talks: [],
@@ -229,6 +239,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			projects,
 			education: data.education || [],
 			certifications: data.certifications || [],
+			awards: data.awards || [],
 			skills: data.skills || [],
 			posts,
 			talks: data.talks || [],
@@ -253,6 +264,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			projects: [],
 			education: [],
 			certifications: [],
+			awards: [],
 			skills: [],
 			posts: [],
 			talks: [],
