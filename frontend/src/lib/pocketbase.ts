@@ -3,8 +3,10 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 // Initialize PocketBase client
-const pbUrl = browser ? window.location.origin : (process.env.POCKETBASE_URL || 'http://localhost:8090');
-export const pb = new PocketBase(pbUrl);
+const runtimePbUrl = browser
+	? (import.meta.env.VITE_POCKETBASE_URL as string) || window.location.origin
+	: process.env.POCKETBASE_URL || 'http://localhost:8090';
+export const pb = new PocketBase(runtimePbUrl);
 
 // Expose for debugging
 if (browser) {
