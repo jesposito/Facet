@@ -98,10 +98,21 @@ stop: kill
 seed-dev: kill
 	@echo "Switching to dev seed (Jedidiah Esposito)..."
 	rm -rf pb_data
-	@APP_URL_DEFAULT=$${APP_URL:-$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}}; \
-	if [ -z "$$APP_URL_DEFAULT" ]; then APP_URL_DEFAULT="http://localhost:8080"; fi; \
-	read -r -p "APP_URL [$$APP_URL_DEFAULT]: " APP_URL_INPUT; \
-	APP_URL_VALUE=$${APP_URL_INPUT:-$$APP_URL_DEFAULT}; \
+	@LOCAL_DEFAULT="http://localhost:8080"; \
+	CODESPACES_DEFAULT=$${CODESPACE_NAME:+https://$${CODESPACE_NAME}-8080.app.github.dev}; \
+	BASE_DEFAULT=$${APP_URL:-$${CODESPACES_DEFAULT:-$$LOCAL_DEFAULT}}; \
+	if [ -n "$$CODESPACES_DEFAULT" ]; then \
+		echo "Detected Codespaces. Choose APP_URL:"; \
+		echo "  1) $$CODESPACES_DEFAULT (default)"; \
+		echo "  2) $$LOCAL_DEFAULT (use if connecting via localhost tunnel)"; \
+		read -r -p "Select [1/2] or enter custom [$$BASE_DEFAULT]: " APP_URL_CHOICE; \
+		if [ "$$APP_URL_CHOICE" = "2" ]; then APP_URL_VALUE="$$LOCAL_DEFAULT"; \
+		elif [ "$$APP_URL_CHOICE" = "1" ] || [ -z "$$APP_URL_CHOICE" ]; then APP_URL_VALUE="$$CODESPACES_DEFAULT"; \
+		else APP_URL_VALUE="$$APP_URL_CHOICE"; fi; \
+	else \
+		read -r -p "APP_URL [$$BASE_DEFAULT]: " APP_URL_INPUT; \
+		APP_URL_VALUE=$${APP_URL_INPUT:-$$BASE_DEFAULT}; \
+	fi; \
 	ADMIN_DEFAULT=$${ADMIN_EMAILS:-admin@example.com}; \
 	read -r -p "Admin email for seed [$$ADMIN_DEFAULT]: " ADMIN_INPUT; \
 	ADMIN_VALUE=$${ADMIN_INPUT:-$$ADMIN_DEFAULT}; \
