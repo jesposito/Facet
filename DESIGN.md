@@ -20,7 +20,7 @@
 10. [Security Invariants](#10-security-invariants)
 11. [Extensibility Boundaries](#11-extensibility-boundaries)
 12. [Known Tradeoffs](#12-known-tradeoffs)
-13. [Feature Gaps & Future Work](#13-feature-gaps--future-work)
+13. [Feature Gaps & Work](#13-feature-gaps--work)
 14. [Print & Export System](#14-print--export-system)
 
 ---
@@ -170,7 +170,7 @@ experience
 ├── description (Markdown), bullets (JSON), skills (JSON)
 ├── media (files)
 ├── visibility, is_draft, sort_order
-└── (password_hash - for item-level protection, future)
+└── (password_hash - for item-level protection)
 
 projects
 ├── title, slug (unique), summary
@@ -179,7 +179,7 @@ projects
 ├── categories (JSON)
 ├── visibility, is_draft, is_featured, sort_order
 ├── source_id (FK→sources), field_locks (JSON), last_sync
-└── (password_hash - future)
+└── (password_hash)
 
 education
 ├── institution, degree, field
@@ -215,7 +215,7 @@ views
 ├── cta_text, cta_url
 ├── sections (JSON: section configs with items)
 ├── is_active, is_default
-└── (future: theme, custom CSS)
+└── (theme, custom CSS)
 
 share_tokens
 ├── view_id (FK→views)
@@ -961,7 +961,7 @@ A print button is displayed on public view pages (not admin). The button:
 
 ### 14.3 Future Enhancements
 
-These export features are planned for future phases:
+These export features are planned for later phases:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
