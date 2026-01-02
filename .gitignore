@@ -54,3 +54,4 @@ backups/
 # Temp files
 tmp/
 temp/
+backend/facet
