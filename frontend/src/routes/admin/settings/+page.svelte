@@ -446,7 +446,7 @@
 			<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
 				<span>{customCSS.length}/20000</span>
 				<button class="btn btn-ghost btn-sm px-2" on:click={() => (showCSSHelp = true)}>
-					{icon('info', 'w-4 h-4 mr-1')}
+					{@html icon('info', 'w-4 h-4 mr-1')}
 					<span class="align-middle">Selectors</span>
 				</button>
 			</div>
@@ -479,7 +479,7 @@
 						</p>
 					</div>
 					<button class="btn btn-ghost btn-sm px-2" on:click={() => (showCSSHelp = false)}>
-						{icon('x', 'w-4 h-4')}
+						{@html icon('x', 'w-4 h-4')}
 					</button>
 				</div>
 
