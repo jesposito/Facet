@@ -77,7 +77,7 @@ Open `http://localhost:8080` — you're live.
 - **Experience, projects, education, skills, certifications, awards** — all the professional sections you'd expect
 - **Posts & talks** — share your writing and speaking engagements (RSS feed, iCal for talks)
 - **Views & theming** — per-view section curation, overrides, accent colors, and custom CSS
-- **Media library** — browse/search/delete uploads with orphan detection and responsive thumbnails
+- **Media library** — browse/search/delete uploads with orphan detection, responsive thumbnails, usage stats, bulk orphan cleanup, and external link entries (YouTube/Vimeo/images)
 - **View membership cues** — admin lists show which views a project/post belongs to (with links to edit)
 - **Exports** — JSON/YAML export, print-ready stylesheet, AI print/resume (beta)
 - **Markdown everywhere** — rich content without a heavy editor

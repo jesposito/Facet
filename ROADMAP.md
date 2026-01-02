@@ -68,8 +68,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 ## Phase 7: Media Management (🟡 Partially Complete)
 - 7.1 Media library: ✅ `/admin/media` listing, filters, search, delete; orphan detection
 - 7.2 Image optimization: ✅ thumbnails + responsive srcsets for posts/projects/homepage
-- 7.3 Cleanup UX: 🟡 orphan detection done; 🔜 bulk delete, storage usage display
-- 7.4 External media: 🔜 embed external URLs, YouTube/Vimeo thumbs, previews
+- 7.3 Cleanup UX: ✅ orphan detection + bulk delete + storage usage display
+- 7.4 External media: ✅ link-based entries (URL/title/mime/thumbnail) listed alongside uploads; deletion supported
 
 ## Phase 8: Security & Audit (🔜 Planned)
 - Audit log of admin actions/share token/password attempts

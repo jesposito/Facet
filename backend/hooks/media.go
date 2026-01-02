@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -35,17 +36,19 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
 
-			var orphanItems []services.MediaItem
-			var orphanSize int64
-			if orphansOnly || includeOrphans {
-				orphanItems, orphanSize, err = collectOrphanMediaItems(app, referenced)
-				if err != nil {
-					app.Logger().Error("media orphan scan failed", "error", err)
-					return apis.NewBadRequestError("failed to enumerate media", err)
-				}
+			externalItems, err := collectExternalMediaItems(app)
+			if err != nil {
+				app.Logger().Error("media external scan failed", "error", err)
+				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
 
-			combined := items
+			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, referenced)
+			if err != nil {
+				app.Logger().Error("media orphan scan failed", "error", err)
+				return apis.NewBadRequestError("failed to enumerate media", err)
+			}
+
+			combined := append(items, externalItems...)
 			if orphansOnly {
 				combined = orphanItems
 			} else if includeOrphans {
@@ -58,7 +61,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 
 			filtered := make([]services.MediaItem, 0, len(combined))
 			for _, item := range combined {
-				if search != "" && !strings.Contains(strings.ToLower(item.Filename), search) {
+				if search != "" && !strings.Contains(strings.ToLower(item.Filename), search) && !strings.Contains(strings.ToLower(item.DisplayName), search) {
 					continue
 				}
 				if collectionFilter != "" && strings.ToLower(item.Collection) != collectionFilter && strings.ToLower(item.CollectionKey) != collectionFilter {
@@ -101,16 +104,84 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				"totalItems": total,
 				"totalPages": (total + perPage - 1) / perPage,
 				"stats": map[string]interface{}{
-					"referencedFiles": len(items),
+					"referencedFiles": len(items) + len(externalItems),
 					"referencedSize":  referencedSize,
 					"orphanFiles":     len(orphanItems),
 					"orphanSize":      orphanSize,
-					"totalFiles":      len(items) + len(orphanItems),
+					"totalFiles":      len(items) + len(externalItems) + len(orphanItems),
 					"totalSize":       referencedSize + orphanSize,
+					"storageFiles":    storageFiles,
+					"storageSize":     storageSize,
 				},
 			}
 
 			return e.JSON(http.StatusOK, response)
+		}).Bind(apis.RequireAuth())
+
+		se.Router.POST("/api/media/external", func(e *core.RequestEvent) error {
+			var req struct {
+				URL          string `json:"url"`
+				Title        string `json:"title"`
+				Mime         string `json:"mime"`
+				ThumbnailURL string `json:"thumbnail_url"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+			if req.URL == "" {
+				return apis.NewBadRequestError("url is required", nil)
+			}
+			if _, err := validateURL(req.URL); err != nil {
+				return apis.NewBadRequestError("invalid url", err)
+			}
+			if req.ThumbnailURL != "" {
+				if _, err := validateURL(req.ThumbnailURL); err != nil {
+					return apis.NewBadRequestError("invalid thumbnail_url", err)
+				}
+			}
+
+			collection, err := app.FindCollectionByNameOrId("external_media")
+			if err != nil {
+				return apis.NewBadRequestError("external media not configured", err)
+			}
+
+			record := core.NewRecord(collection)
+			record.Set("url", req.URL)
+			if req.Title != "" {
+				record.Set("title", req.Title)
+			}
+			if req.Mime != "" {
+				record.Set("mime", req.Mime)
+			}
+			if req.ThumbnailURL != "" {
+				record.Set("thumbnail_url", req.ThumbnailURL)
+			}
+			if err := app.Save(record); err != nil {
+				return apis.NewBadRequestError("failed to save external media", err)
+			}
+			return e.JSON(http.StatusOK, map[string]string{
+				"id":  record.Id,
+				"url": req.URL,
+			})
+		}).Bind(apis.RequireAuth())
+
+		se.Router.DELETE("/api/media/external/{id}", func(e *core.RequestEvent) error {
+			id := e.Request.PathValue("id")
+			if id == "" {
+				return apis.NewBadRequestError("missing id", nil)
+			}
+			collection, err := app.FindCollectionByNameOrId("external_media")
+			if err != nil {
+				return apis.NewBadRequestError("external media not configured", err)
+			}
+			record, err := app.FindRecordById(collection.Name, id)
+			if err != nil {
+				return apis.NewNotFoundError("not found", err)
+			}
+			if err := app.Delete(record); err != nil {
+				return apis.NewBadRequestError("failed to delete external media", err)
+			}
+			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
@@ -129,17 +200,9 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			if req.RelativePath != "" && (req.CollectionID == "" || req.Field == "") {
 				dataDir := app.DataDir()
 				storageRoot := filepath.Join(dataDir, "storage")
-				clean := filepath.Clean(req.RelativePath)
-				if strings.Contains(clean, "..") {
-					return apis.NewBadRequestError("invalid path", nil)
-				}
-				clean = strings.TrimPrefix(clean, "/")
-				clean = strings.TrimPrefix(clean, "\\")
-				clean = strings.TrimPrefix(clean, "storage/")
-				clean = strings.TrimPrefix(clean, "storage\\")
-				target := filepath.Join(storageRoot, clean)
-				if !strings.HasPrefix(target, storageRoot) {
-					return apis.NewBadRequestError("invalid path", nil)
+				target, err := resolveStoragePath(storageRoot, req.RelativePath)
+				if err != nil {
+					return apis.NewBadRequestError("invalid path", err)
 				}
 				if err := os.Remove(target); err != nil {
 					app.Logger().Warn("media: failed to delete orphan file", "path", target, "error", err)
@@ -262,11 +325,51 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 	return all, referenced, totalSize, nil
 }
 
-func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, error) {
+func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error) {
+	collection, err := app.FindCollectionByNameOrId("external_media")
+	if err != nil {
+		return nil, nil
+	}
+
+	records, err := app.FindRecordsByFilter(collection.Name, "", "-created", 500, 0, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []services.MediaItem
+	for _, record := range records {
+		created := record.GetDateTime("created").Time()
+		title := record.GetString("title")
+		if title == "" {
+			title = record.GetString("url")
+		}
+		item := services.MediaItem{
+			Collection:    collection.Name,
+			CollectionID:  collection.Id,
+			CollectionKey: "external",
+			RecordID:      record.Id,
+			Field:         "external",
+			Filename:      title,
+			DisplayName:   title,
+			RecordLabel:   title,
+			URL:           record.GetString("url"),
+			Mime:          record.GetString("mime"),
+			ThumbnailURL:  record.GetString("thumbnail_url"),
+			UploadedAt:    created,
+			External:      true,
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, int64, int, error) {
 	dataDir := app.DataDir()
 	storageRoot := filepath.Join(dataDir, "storage")
 	var orphans []services.MediaItem
 	var totalSize int64
+	var storageSize int64
+	var storageFiles int
 
 	err := filepath.WalkDir(storageRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -277,6 +380,11 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]s
 		}
 		if strings.HasSuffix(d.Name(), ".attrs") {
 			return nil
+		}
+		info, infoErr := d.Info()
+		if infoErr == nil {
+			storageSize += info.Size()
+			storageFiles++
 		}
 		rel, err := filepath.Rel(storageRoot, path)
 		if err != nil {
@@ -311,7 +419,7 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]s
 		return nil
 	})
 
-	return orphans, totalSize, err
+	return orphans, totalSize, storageSize, storageFiles, err
 }
 
 func fileFieldNames(c *core.Collection) []string {
@@ -322,4 +430,31 @@ func fileFieldNames(c *core.Collection) []string {
 		}
 	}
 	return names
+}
+
+func resolveStoragePath(storageRoot, rel string) (string, error) {
+	clean := filepath.Clean(rel)
+	if strings.Contains(clean, "..") {
+		return "", os.ErrInvalid
+	}
+	clean = strings.TrimPrefix(clean, "/")
+	clean = strings.TrimPrefix(clean, "\\")
+	clean = strings.TrimPrefix(clean, "storage/")
+	clean = strings.TrimPrefix(clean, "storage\\")
+	target := filepath.Join(storageRoot, clean)
+	if !strings.HasPrefix(target, storageRoot) {
+		return "", os.ErrInvalid
+	}
+	return target, nil
+}
+
+func validateURL(raw string) (*url.URL, error) {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return nil, os.ErrInvalid
+	}
+	return parsed, nil
 }
