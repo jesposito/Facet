@@ -818,6 +818,113 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return nil
 		}))
 
+		// iCal feed for public talks
+		se.Router.GET("/talks.ics", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			fmt.Println("[API /talks.ics] ========== REQUEST START ==========")
+
+			// Fetch profile for calendar metadata
+			calendarName := "Facet Talks"
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility != 'private'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				p := profileRecords[0]
+				if name := p.GetString("name"); name != "" {
+					calendarName = name + " — Talks"
+				}
+			}
+
+			// Fetch public, non-draft talks
+			talkRecords, err := app.FindRecordsByFilter(
+				"talks",
+				"visibility = 'public' && is_draft = false",
+				"-date,-sort_order",
+				100,
+				0,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("[API /talks.ics] ERROR: FindRecordsByFilter failed: %v\n", err)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
+			}
+
+			baseURL := strings.TrimSuffix(resolveBaseURL(e), "/")
+			var builder strings.Builder
+			builder.WriteString("BEGIN:VCALENDAR\r\n")
+			builder.WriteString("VERSION:2.0\r\n")
+			builder.WriteString("PRODID:-//Facet//Talks//EN\r\n")
+			builder.WriteString("CALSCALE:GREGORIAN\r\n")
+			builder.WriteString(fmt.Sprintf("X-WR-CALNAME:%s\r\n", escapeICSText(calendarName)))
+
+			now := time.Now().UTC().Format("20060102T150405Z")
+			for _, record := range talkRecords {
+				date := record.GetDateTime("date")
+				if date.IsZero() {
+					continue
+				}
+
+				title := record.GetString("title")
+				eventName := record.GetString("event")
+				location := record.GetString("location")
+				desc := record.GetString("description")
+				slug := record.GetString("slug")
+
+				url := baseURL
+				if slug != "" {
+					url = fmt.Sprintf("%s/talks/%s", baseURL, slug)
+				} else if record.GetString("event_url") != "" {
+					url = record.GetString("event_url")
+				}
+
+				var descriptionParts []string
+				if eventName != "" {
+					descriptionParts = append(descriptionParts, fmt.Sprintf("Event: %s", eventName))
+				}
+				if desc != "" {
+					descriptionParts = append(descriptionParts, desc)
+				}
+				if record.GetString("event_url") != "" {
+					descriptionParts = append(descriptionParts, fmt.Sprintf("Event URL: %s", record.GetString("event_url")))
+				}
+				if record.GetString("slides_url") != "" {
+					descriptionParts = append(descriptionParts, fmt.Sprintf("Slides: %s", record.GetString("slides_url")))
+				}
+				if record.GetString("video_url") != "" {
+					descriptionParts = append(descriptionParts, fmt.Sprintf("Video: %s", record.GetString("video_url")))
+				}
+				description := escapeICSText(strings.Join(descriptionParts, "\\n"))
+
+				builder.WriteString("BEGIN:VEVENT\r\n")
+				builder.WriteString(fmt.Sprintf("UID:%s\r\n", escapeICSText(url)))
+				builder.WriteString(fmt.Sprintf("DTSTAMP:%s\r\n", now))
+				builder.WriteString(fmt.Sprintf("DTSTART;VALUE=DATE:%s\r\n", date.Time().UTC().Format("20060102")))
+				builder.WriteString(fmt.Sprintf("SUMMARY:%s\r\n", escapeICSText(title)))
+				if description != "" {
+					builder.WriteString(fmt.Sprintf("DESCRIPTION:%s\r\n", description))
+				}
+				if location != "" {
+					builder.WriteString(fmt.Sprintf("LOCATION:%s\r\n", escapeICSText(location)))
+				}
+				if url != "" {
+					builder.WriteString(fmt.Sprintf("URL:%s\r\n", escapeICSText(url)))
+				}
+				builder.WriteString("END:VEVENT\r\n")
+			}
+
+			builder.WriteString("END:VCALENDAR\r\n")
+
+			e.Response.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+			_, _ = e.Response.Write([]byte(builder.String()))
+			fmt.Printf("[API /talks.ics] Returned %d items\n", len(talkRecords))
+			fmt.Println("[API /talks.ics] ========== REQUEST END ==========")
+			return nil
+		}))
+
 		// Public talks listing
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft talks for the index page
@@ -1665,4 +1772,15 @@ func resolveBaseURL(e *core.RequestEvent) string {
 
 	host := req.Host
 	return fmt.Sprintf("%s://%s", proto, host)
+}
+
+func escapeICSText(value string) string {
+	// Escape characters per RFC 5545: backslash, semicolon, comma, newline
+	replacer := strings.NewReplacer(
+		"\\", "\\\\",
+		";", "\\;",
+		",", "\\,",
+		"\n", "\\n",
+	)
+	return replacer.Replace(value)
 }
