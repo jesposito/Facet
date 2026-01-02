@@ -12,6 +12,7 @@ type SiteSettings struct {
 	HomepageEnabled    bool
 	LandingPageMessage string
 	CustomCSS          string
+	GAMeasurementID    string
 	Record             *core.Record
 }
 
@@ -56,6 +57,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HomepageEnabled:    record.GetBool("homepage_enabled"),
 		LandingPageMessage: record.GetString("landing_page_message"),
 		CustomCSS:          record.GetString("custom_css"),
+		GAMeasurementID:    record.GetString("ga_measurement_id"),
 		Record:             record,
 	}, nil
 }
@@ -82,6 +84,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("custom_css", css)
 		} else if logger != nil {
 			logger.Warn("custom_css field missing on site_settings, skipping update")
+		}
+	}
+	if ga, ok := updates["ga_measurement_id"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("ga_measurement_id") != nil {
+			settings.Record.Set("ga_measurement_id", ga)
+		} else if logger != nil {
+			logger.Warn("ga_measurement_id field missing on site_settings, skipping update")
 		}
 	}
 

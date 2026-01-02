@@ -28,6 +28,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"homepage_enabled":     settings.HomepageEnabled,
 				"landing_page_message": settings.LandingPageMessage,
 				"custom_css":           settings.CustomCSS,
+				"ga_measurement_id":    settings.GAMeasurementID,
 			})
 		})
 
@@ -41,6 +42,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				HomepageEnabled    *bool  `json:"homepage_enabled"`
 				LandingPageMessage string `json:"landing_page_message"`
 				CustomCSS          string `json:"custom_css"`
+				GAMeasurementID    string `json:"ga_measurement_id"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -66,6 +68,13 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				}
 				updates["custom_css"] = css
 			}
+			if req.GAMeasurementID != "" || req.GAMeasurementID == "" {
+				id := strings.TrimSpace(req.GAMeasurementID)
+				if len(id) > 100 {
+					id = id[:100]
+				}
+				updates["ga_measurement_id"] = id
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -76,6 +85,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"homepage_enabled":     settings.HomepageEnabled,
 				"landing_page_message": settings.LandingPageMessage,
 				"custom_css":           settings.CustomCSS,
+				"ga_measurement_id":    settings.GAMeasurementID,
 			})
 		})
 

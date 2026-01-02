@@ -1805,8 +1805,8 @@ Enable a production-safe, one-click demo persona so new users can see Facet’s 
 ### Integrations
 - Webhook notifications
 - [x] RSS feed for posts
-- iCal export for talks
-- Google Analytics (opt-in)
+- [x] iCal export for talks
+- [x] Google Analytics (opt-in)
 
 ### Content Types
 - Awards & honors section

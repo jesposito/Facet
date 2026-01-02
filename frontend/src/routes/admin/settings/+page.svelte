@@ -21,6 +21,7 @@
 	let homepageEnabled = true;
 	let landingPageMessage = 'This profile is being set up.';
 	let customCSS = '';
+	let gaMeasurementId = '';
 	let showCSSHelp = false;
 
 	// Demo data state
@@ -188,6 +189,7 @@
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				customCSS = data.custom_css || '';
+				gaMeasurementId = data.ga_measurement_id || '';
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
@@ -208,7 +210,8 @@
 				body: JSON.stringify({
 					homepage_enabled: homepageEnabled,
 					landing_page_message: landingPageMessage,
-					custom_css: customCSS
+					custom_css: customCSS,
+					ga_measurement_id: gaMeasurementId
 				})
 			});
 
@@ -221,6 +224,7 @@
 			homepageEnabled = result.homepage_enabled !== false;
 			landingPageMessage = result.landing_page_message || '';
 			customCSS = result.custom_css || '';
+			gaMeasurementId = result.ga_measurement_id || '';
 			toasts.add('success', 'Homepage visibility updated');
 		} catch (err) {
 			console.error('Failed to save site settings:', err);
@@ -426,6 +430,38 @@
 				></textarea>
 			</div>
 
+			<div class="flex justify-end">
+				<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+					{siteSettingsSaving ? 'Saving...' : 'Save'}
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Analytics -->
+	<div class="card p-6 mb-6">
+		<div class="flex items-start justify-between gap-3">
+			<div>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Analytics (optional)</h2>
+				<p class="text-gray-600 dark:text-gray-400 text-sm">
+					Google Analytics 4 measurement ID (public). Leave blank to disable tracking.
+				</p>
+			</div>
+		</div>
+
+		<div class="mt-4 space-y-3">
+			<label class="label" for="ga-id">GA4 Measurement ID</label>
+			<input
+				id="ga-id"
+				class="input"
+				placeholder="G-XXXXXXXXXX"
+				bind:value={gaMeasurementId}
+				disabled={siteSettingsLoading || siteSettingsSaving}
+				maxlength="100"
+			/>
+			<p class="text-xs text-gray-500 dark:text-gray-400">
+				We only load GA on public pages when this is set. Do not use sensitive values.
+			</p>
 			<div class="flex justify-end">
 				<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
 					{siteSettingsSaving ? 'Saving...' : 'Save'}
