@@ -59,7 +59,7 @@
 			if (typeFilter === 'image') params.set('type', 'image');
 
 			const res = await fetch(`/api/media?${params.toString()}`, {
-				headers: pb.authStore.isValid ? { Authorization: pb.authStore.token } : {}
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
@@ -95,7 +95,7 @@
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json',
-					...(pb.authStore.isValid ? { Authorization: pb.authStore.token } : {})
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 				},
 				body: JSON.stringify({
 					collection_id: item.collection_id,
