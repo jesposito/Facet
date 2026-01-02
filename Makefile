@@ -123,6 +123,14 @@ seed-dev: kill
 	if [ -n "$$GOOGLE_ID" ] && [ -n "$$GOOGLE_SECRET" ]; then VARS="GOOGLE_CLIENT_ID=$$GOOGLE_ID GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET $$VARS"; fi; \
 	echo "Using APP_URL=$$APP_URL_VALUE"; \
 	echo "Admin email: $$ADMIN_VALUE"; \
+	{ \
+	  echo "APP_URL=$$APP_URL_VALUE"; \
+	  echo "ADMIN_EMAILS=$$ADMIN_VALUE"; \
+	  if [ -n "$$GOOGLE_ID" ] && [ -n "$$GOOGLE_SECRET" ]; then \
+	    echo "GOOGLE_CLIENT_ID=$$GOOGLE_ID"; \
+	    echo "GOOGLE_CLIENT_SECRET=$$GOOGLE_SECRET"; \
+	  fi; \
+	} > .env; \
 	sh -c "$$VARS ./scripts/start-dev.sh"
 
 # Just clear database (no restart)
