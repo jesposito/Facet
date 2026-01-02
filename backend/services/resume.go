@@ -383,7 +383,12 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 				}
 				filtered = append(filtered, a)
 			}
-			args = append(filtered, "--pdf-engine=pdflatex")
+			args = append(filtered,
+				"--pdf-engine=pdflatex",
+				// Use helvet package to keep sans-serif look with pdflatex
+				"-V", "fontfamily=helvet",
+				"-V", "fontfamilyoptions=scaled=0.95",
+			)
 
 			cmd = exec.Command("pandoc", args...)
 			stderr.Reset()
