@@ -30,6 +30,10 @@
 	// Back navigation: prefer originating view, then referrer, then home
 	$: backUrl = data.fromView ? `/${data.fromView}` : referrerPath || '/';
 	$: backLabel = 'Back';
+	$: projectThumb =
+		(data.project as Record<string, string>).cover_image_thumb_url ?? data.project.cover_image_url;
+	$: projectLarge =
+		(data.project as Record<string, string>).cover_image_large_url ?? data.project.cover_image_url;
 
 	function handleBack(event: Event) {
 		event.preventDefault();
@@ -82,7 +86,9 @@
 		{#if data.project.cover_image_url}
 			<div class="absolute inset-0">
 				<img
-					src={data.project.cover_image_url}
+					src={projectLarge}
+					srcset={`${projectThumb ?? data.project.cover_image_url} 640w, ${projectLarge} 1280w, ${data.project.cover_image_url} 1600w`}
+					sizes="100vw"
 					alt=""
 					class="w-full h-full object-cover opacity-30"
 				/>

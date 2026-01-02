@@ -11,6 +11,8 @@
 
 	// Format the published date
 	$: publishedDate = data.post.published_at ? formatDate(data.post.published_at) : null;
+	$: postThumb = (data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url;
+	$: postLarge = (data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url;
 
 	let referrerPath = '';
 
@@ -71,7 +73,9 @@
 		{#if data.post.cover_image_url}
 			<div class="absolute inset-0">
 				<img
-					src={data.post.cover_image_url}
+					src={postLarge}
+					srcset={`${postThumb ?? data.post.cover_image_url} 640w, ${postLarge} 1280w, ${data.post.cover_image_url} 1600w`}
+					sizes="100vw"
 					alt=""
 					class="w-full h-full object-cover opacity-30"
 				/>

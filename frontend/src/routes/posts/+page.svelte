@@ -128,10 +128,12 @@
 				{#each data.posts as post (post.id)}
 					<article class="group bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
 						<!-- Cover image -->
-						{#if post.cover_image_url}
+						{#if post.cover_image_thumb_url || post.cover_image_url}
 							<a href="/posts/{post.slug}" class="block aspect-video overflow-hidden">
 								<img
-									src={post.cover_image_url}
+									src={post.cover_image_large_url ?? post.cover_image_url}
+									srcset={`${post.cover_image_thumb_url ?? post.cover_image_url} 640w, ${post.cover_image_large_url ?? post.cover_image_url} 1280w, ${post.cover_image_url} 1600w`}
+									sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
 									alt=""
 									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 								/>

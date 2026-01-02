@@ -16,28 +16,35 @@
 	let description = '';
 	let techStackText = '';
 	let links: Array<{ type: string; url: string }> = [];
-	let categoriesText = '';
-	let visibility = 'public';
-	let isDraft = false;
-	let isFeatured = false;
-	let sortOrder = 0;
-	let coverImageFile: FileList | null = null;
-	let saving = false;
+let categoriesText = '';
+let visibility = 'public';
+let isDraft = false;
+let isFeatured = false;
+let sortOrder = 0;
+let coverImageFile: FileList | null = null;
+let saving = false;
+let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
 
 	onMount(loadProjects);
 
-	async function loadProjects() {
-		loading = true;
-		try {
-			const records = await pb.collection('projects').getList(1, 100, {
+async function loadProjects() {
+	loading = true;
+	try {
+		const [projectResp, membershipResp] = await Promise.all([
+			pb.collection('projects').getList(1, 100, {
 				sort: '-is_featured,-sort_order'
-			});
-			projects = records.items as unknown as Project[];
-		} catch (err) {
-			console.error('Failed to load projects:', err);
-			toasts.add('error', 'Failed to load projects');
-		} finally {
-			loading = false;
+			}),
+			fetch('/api/admin/view-memberships?collection=projects', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+		]);
+		projects = projectResp.items as unknown as Project[];
+		memberships = (membershipResp.memberships as typeof memberships) || {};
+	} catch (err) {
+		console.error('Failed to load projects:', err);
+		toasts.add('error', 'Failed to load projects');
+	} finally {
+		loading = false;
 		}
 	}
 
@@ -536,6 +543,28 @@
 										</span>
 									{/if}
 								</div>
+
+								{#if memberships[project.id]?.length}
+									<div class="flex flex-wrap gap-1 mt-2">
+										{#each memberships[project.id].slice(0, 3) as viewRef}
+											<a
+												href={`/admin/views/${viewRef.id}`}
+												target="_blank"
+												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+												title={`Open view: ${viewRef.name}`}
+											>
+												{viewRef.slug || viewRef.name}
+											</a>
+										{/each}
+										{#if memberships[project.id].length > 3}
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+												+{memberships[project.id].length - 3}
+											</span>
+										{/if}
+									</div>
+								{:else}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+								{/if}
 
 								{#if project.summary}
 									<p class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">

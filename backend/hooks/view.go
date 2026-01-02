@@ -79,6 +79,80 @@ func isValidSlug(slug string) bool {
 	return true
 }
 
+type viewRef struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
+// buildViewMemberships returns a map of itemID -> views that explicitly include that item.
+// If collectionFilter is provided (non-empty), only that collection is processed.
+func buildViewMemberships(app *pocketbase.PocketBase, collectionFilter string) (map[string][]viewRef, error) {
+	result := make(map[string][]viewRef)
+
+	viewRecords, err := app.FindRecordsByFilter("views", "", "", 200, 0, nil)
+	if err != nil {
+		return result, err
+	}
+
+	for _, view := range viewRecords {
+		sectionsJSON := view.GetString("sections")
+		if sectionsJSON == "" {
+			continue
+		}
+		var sections []map[string]interface{}
+		if err := json.Unmarshal([]byte(sectionsJSON), &sections); err != nil {
+			continue
+		}
+
+		for _, section := range sections {
+			sectionName, ok := section["section"].(string)
+			if !ok {
+				continue
+			}
+			enabled, ok := section["enabled"].(bool)
+			if !ok || !enabled {
+				continue
+			}
+
+			collectionName := getCollectionName(sectionName)
+			if collectionName == "" {
+				continue
+			}
+			if collectionFilter != "" && collectionFilter != collectionName {
+				continue
+			}
+
+			items, ok := section["items"].([]interface{})
+			// Only map explicit selections; if no items array, the view shows "all" and we skip to avoid marking everything.
+			if !ok || len(items) == 0 {
+				continue
+			}
+
+			for _, raw := range items {
+				itemID, ok := raw.(string)
+				if !ok || itemID == "" {
+					continue
+				}
+				result[itemID] = append(result[itemID], viewRef{
+					Id:   view.Id,
+					Name: view.GetString("name"),
+					Slug: view.GetString("slug"),
+				})
+			}
+		}
+	}
+
+	return result, nil
+}
+
+func fileURL(collectionID, recordID, filename string, transform string) string {
+	if transform != "" {
+		return "/api/files/" + collectionID + "/" + recordID + "/" + filename + "?" + transform
+	}
+	return "/api/files/" + collectionID + "/" + recordID + "/" + filename
+}
+
 // RegisterViewHooks registers view-related API endpoints
 func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
 	// Register views collection hooks for validation
@@ -423,6 +497,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			})
 		}))
 
+		// Admin: view memberships for a collection (which views explicitly include which items)
+		se.Router.GET("/api/admin/view-memberships", func(e *core.RequestEvent) error {
+			collection := strings.TrimSpace(strings.ToLower(e.Request.URL.Query().Get("collection")))
+			memberships, err := buildViewMemberships(app, collection)
+			if err != nil {
+				app.Logger().Error("failed to build view memberships", "error", err)
+				return apis.NewBadRequestError("failed to build view memberships", err)
+			}
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"memberships": memberships,
+			})
+		}).Bind(apis.RequireAuth())
+
 		// Get homepage data (public content aggregation)
 		// DEPRECATED: Use /api/default-view + /api/view/{slug}/data instead
 		// Kept for backwards compatibility during migration
@@ -504,13 +591,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			if err == nil {
+			if err == nil && len(projectRecords) > 0 {
 				projects := serializeRecords(projectRecords)
+				projectCollectionID := projectRecords[0].Collection().Id
 				// Add file URLs for cover images
 				for i, p := range projects {
 					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
 						if id, ok := p["id"].(string); ok {
-							projects[i]["cover_image_url"] = "/api/files/projects/" + id + "/" + coverImage
+							projects[i]["cover_image_url"] = fileURL(projectCollectionID, id, coverImage, "")
+							projects[i]["cover_image_large_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=1600x0")
+							projects[i]["cover_image_thumb_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=480x0")
 						}
 					}
 				}
@@ -558,16 +648,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					fmt.Printf("[API /api/homepage]   Post[%d] id=%s title=%q visibility=%q is_draft=%v\n",
 						i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
 				}
-				posts := serializeRecords(postRecords)
-				// Add file URLs for cover images
-				for i, p := range posts {
-					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
-						if id, ok := p["id"].(string); ok {
-							posts[i]["cover_image_url"] = "/api/files/posts/" + id + "/" + coverImage
+				if len(postRecords) > 0 {
+					posts := serializeRecords(postRecords)
+					postCollectionID := postRecords[0].Collection().Id
+					// Add file URLs for cover images
+					for i, p := range posts {
+						if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+							if id, ok := p["id"].(string); ok {
+								posts[i]["cover_image_url"] = fileURL(postCollectionID, id, coverImage, "")
+								posts[i]["cover_image_large_url"] = fileURL(postCollectionID, id, coverImage, "thumb=1600x0")
+								posts[i]["cover_image_thumb_url"] = fileURL(postCollectionID, id, coverImage, "thumb=480x0")
+							}
 						}
 					}
+					response["posts"] = posts
 				}
-				response["posts"] = posts
 			} else {
 				fmt.Printf("[API /api/homepage] Posts query ERROR: %v\n", err)
 			}
@@ -701,11 +796,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			posts := serializeRecords(postRecords)
-			// Add file URLs for cover images
-			for i, p := range posts {
-				if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
-					if id, ok := p["id"].(string); ok {
-						posts[i]["cover_image_url"] = "/api/files/posts/" + id + "/" + coverImage
+			if len(postRecords) > 0 {
+				postCollectionID := postRecords[0].Collection().Id
+				// Add file URLs for cover images
+				for i, p := range posts {
+					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+						if id, ok := p["id"].(string); ok {
+							posts[i]["cover_image_url"] = fileURL(postCollectionID, id, coverImage, "")
+							posts[i]["cover_image_large_url"] = fileURL(postCollectionID, id, coverImage, "thumb=1600x0")
+							posts[i]["cover_image_thumb_url"] = fileURL(postCollectionID, id, coverImage, "thumb=480x0")
+						}
 					}
 				}
 			}
@@ -1213,7 +1313,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Resolve cover image URL
 			if coverImage := post.GetString("cover_image"); coverImage != "" {
-				response["cover_image_url"] = "/api/files/" + post.Collection().Id + "/" + post.Id + "/" + coverImage
+				response["cover_image_url"] = fileURL(post.Collection().Id, post.Id, coverImage, "")
+				response["cover_image_large_url"] = fileURL(post.Collection().Id, post.Id, coverImage, "thumb=1600x0")
+				response["cover_image_thumb_url"] = fileURL(post.Collection().Id, post.Id, coverImage, "thumb=480x0")
 			}
 
 			// Fetch profile data for navigation context
@@ -1326,7 +1428,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Resolve cover image URL
 			if coverImage := project.GetString("cover_image"); coverImage != "" {
-				response["cover_image_url"] = "/api/files/" + project.Collection().Id + "/" + project.Id + "/" + coverImage
+				response["cover_image_url"] = fileURL(project.Collection().Id, project.Id, coverImage, "")
+				response["cover_image_large_url"] = fileURL(project.Collection().Id, project.Id, coverImage, "thumb=1600x0")
+				response["cover_image_thumb_url"] = fileURL(project.Collection().Id, project.Id, coverImage, "thumb=480x0")
 			}
 
 			// Resolve media URLs
@@ -1334,7 +1438,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if mediaFiles, ok := mediaField.([]string); ok && len(mediaFiles) > 0 {
 					var mediaURLs []string
 					for _, file := range mediaFiles {
-						mediaURLs = append(mediaURLs, "/api/files/"+project.Collection().Id+"/"+project.Id+"/"+file)
+						mediaURLs = append(mediaURLs, fileURL(project.Collection().Id, project.Id, file, "thumb=1600x0"))
 					}
 					response["media_urls"] = mediaURLs
 				}

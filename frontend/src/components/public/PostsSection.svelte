@@ -13,6 +13,18 @@
 		}
 		return `/posts/${slug}`;
 	}
+
+	const thumbSrc = (post: Post) =>
+		(post as unknown as Record<string, string>).cover_image_thumb_url ||
+		(post as unknown as Record<string, string>).cover_image_url ||
+		post.cover_image ||
+		'';
+
+	const largeSrc = (post: Post) =>
+		(post as unknown as Record<string, string>).cover_image_large_url ||
+		(post as unknown as Record<string, string>).cover_image_url ||
+		post.cover_image ||
+		'';
 </script>
 
 <section id="posts" class="mb-16">
@@ -21,10 +33,12 @@
 	<div class="grid grid-cols-1 {layout === 'grid-2' ? 'md:grid-cols-2' : layout === 'list' ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6">
 		{#each items as post (post.id)}
 			<article class="card overflow-hidden group animate-fade-in">
-				{#if post.cover_image}
+				{#if thumbSrc(post)}
 					<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
 						<img
-							src={post.cover_image}
+							src={largeSrc(post)}
+							srcset={`${thumbSrc(post)} 640w, ${largeSrc(post)} 1280w`}
+							sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
 							alt={post.title}
 							class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 						/>

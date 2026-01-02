@@ -26,6 +26,18 @@ const projectHref = (slug: string | undefined) => {
 	// Split items for featured layout
 	$: featuredItem = items[0];
 	$: remainingItems = items.slice(1);
+
+	const thumbSrc = (project: Project) =>
+		(project as unknown as Record<string, string>).cover_image_thumb_url ||
+		(project as unknown as Record<string, string>).cover_image_url ||
+		project.cover_image ||
+		'';
+
+	const largeSrc = (project: Project) =>
+		(project as unknown as Record<string, string>).cover_image_large_url ||
+		(project as unknown as Record<string, string>).cover_image_url ||
+		project.cover_image ||
+		'';
 </script>
 
 <section id="projects" class="mb-16">
@@ -37,10 +49,12 @@ const projectHref = (slug: string | undefined) => {
 			<!-- Featured Project -->
 			<article class="card overflow-hidden group animate-fade-in">
 				<div class="grid md:grid-cols-2 gap-0">
-					{#if featuredItem.cover_image}
+					{#if thumbSrc(featuredItem)}
 						<div class="aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700">
 							<img
-								src={featuredItem.cover_image}
+								src={largeSrc(featuredItem)}
+								srcset={`${thumbSrc(featuredItem)} 640w, ${largeSrc(featuredItem)} 1280w`}
+								sizes="(max-width: 768px) 100vw, 50vw"
 								alt={featuredItem.title}
 								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 							/>
@@ -109,10 +123,12 @@ const projectHref = (slug: string | undefined) => {
 				<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 					{#each remainingItems as project (project.id)}
 						<article class="card overflow-hidden group animate-fade-in">
-							{#if project.cover_image}
+							{#if thumbSrc(project)}
 								<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
 									<img
-										src={project.cover_image}
+										src={largeSrc(project)}
+										srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+										sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
 										alt={project.title}
 										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 									/>
@@ -169,10 +185,12 @@ const projectHref = (slug: string | undefined) => {
 			{#each items as project (project.id)}
 				<article class="card overflow-hidden group animate-fade-in">
 					<div class="flex flex-col sm:flex-row">
-						{#if project.cover_image}
+						{#if thumbSrc(project)}
 							<div class="sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
 								<img
-									src={project.cover_image}
+									src={largeSrc(project)}
+									srcset={`${thumbSrc(project)} 480w, ${largeSrc(project)} 960w`}
+									sizes="(max-width: 640px) 100vw, 200px"
 									alt={project.title}
 									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 								/>

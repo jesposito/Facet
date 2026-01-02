@@ -70,7 +70,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 								if (posts.length === 0 && homepageData.posts) {
 									posts = homepageData.posts.map((p: Record<string, unknown>) => ({
 										...p,
-										cover_image: p.cover_image_url || null
+										cover_image: p.cover_image_url || null,
+										cover_image_thumb_url: p.cover_image_thumb_url || p.cover_image_url || null,
+										cover_image_large_url: p.cover_image_large_url || p.cover_image_url || null
 									}));
 									console.log('[ROOT PAGE] Populated posts from homepage:', posts.length);
 								}
