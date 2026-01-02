@@ -817,8 +817,8 @@ Enable per-view customization of individual items without modifying source recor
 - [x] Preview of how homepage will look — Implemented in Phase 6.2
 
 #### 2.4 View Analytics (Minimal)
-- [ ] View count per view (opt-in)
-- [ ] Last accessed timestamp
+- [x] View count per view (auto-incremented on public/unauth view fetch)
+- [x] Last accessed timestamp (records most recent public/unauth fetch)
 - [ ] No PII collected
 
 ### Prerequisites
