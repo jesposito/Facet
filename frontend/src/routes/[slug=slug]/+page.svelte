@@ -9,6 +9,7 @@
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
 	import CertificationsSection from '$components/public/CertificationsSection.svelte';
+	import AwardsSection from '$components/public/AwardsSection.svelte';
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
@@ -321,6 +322,10 @@
 					{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
 						<div class={getWidthClass(getSectionWidth('certifications'))}>
 							<CertificationsSection items={data.sections.certifications} layout={getSectionLayout('certifications')} />
+						</div>
+					{:else if sectionKey === 'awards' && data.sections?.awards?.length > 0}
+						<div class={getWidthClass(getSectionWidth('awards'))}>
+							<AwardsSection items={data.sections.awards} layout={getSectionLayout('awards')} />
 						</div>
 					{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
 						<div class={getWidthClass(getSectionWidth('skills'))}>

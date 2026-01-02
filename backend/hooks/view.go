@@ -589,6 +589,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["certifications"] = serializeRecords(certRecords)
 			}
 
+			// Fetch awards - only public items appear on homepage
+			awardRecords, err := app.FindRecordsByFilter(
+				"awards",
+				"visibility = 'public' && is_draft = false",
+				"-sort_order,-awarded_at",
+				100,
+				0,
+				nil,
+			)
+			if err == nil {
+				response["awards"] = serializeRecords(awardRecords)
+			}
+
 			// Log final response summary
 			expLen := 0
 			projLen := 0
@@ -597,6 +610,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			postsLen := 0
 			talksLen := 0
 			certsLen := 0
+			awardsLen := 0
 			if exp, ok := response["experience"].([]map[string]interface{}); ok {
 				expLen = len(exp)
 			}
@@ -618,8 +632,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if certs, ok := response["certifications"].([]map[string]interface{}); ok {
 				certsLen = len(certs)
 			}
-			fmt.Printf("[API /api/homepage] Response summary: profile=%v exp=%d proj=%d edu=%d skills=%d posts=%d talks=%d certs=%d\n",
-				response["profile"] != nil, expLen, projLen, eduLen, skillsLen, postsLen, talksLen, certsLen)
+			if awards, ok := response["awards"].([]map[string]interface{}); ok {
+				awardsLen = len(awards)
+			}
+			fmt.Printf("[API /api/homepage] Response summary: profile=%v exp=%d proj=%d edu=%d skills=%d posts=%d talks=%d certs=%d awards=%d\n",
+				response["profile"] != nil, expLen, projLen, eduLen, skillsLen, postsLen, talksLen, certsLen, awardsLen)
 			fmt.Println("[API /api/homepage] ========== REQUEST END ==========")
 
 			return e.JSON(http.StatusOK, response)
@@ -1463,6 +1480,8 @@ func getCollectionName(section string) string {
 		return "education"
 	case "certifications":
 		return "certifications"
+	case "awards":
+		return "awards"
 	case "skills":
 		return "skills"
 	case "posts":
@@ -1485,6 +1504,8 @@ func getDefaultLayout(section string) string {
 	case "education":
 		return "default"
 	case "certifications":
+		return "grouped"
+	case "awards":
 		return "grouped"
 	case "skills":
 		return "grouped"

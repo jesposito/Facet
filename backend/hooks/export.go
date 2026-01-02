@@ -27,6 +27,7 @@ type ExportData struct {
 	Projects       []map[string]interface{} `json:"projects,omitempty" yaml:"projects,omitempty"`
 	Education      []map[string]interface{} `json:"education,omitempty" yaml:"education,omitempty"`
 	Certifications []map[string]interface{} `json:"certifications,omitempty" yaml:"certifications,omitempty"`
+	Awards         []map[string]interface{} `json:"awards,omitempty" yaml:"awards,omitempty"`
 	Skills         []map[string]interface{} `json:"skills,omitempty" yaml:"skills,omitempty"`
 	Posts          []map[string]interface{} `json:"posts,omitempty" yaml:"posts,omitempty"`
 	Talks          []map[string]interface{} `json:"talks,omitempty" yaml:"talks,omitempty"`
@@ -110,6 +111,12 @@ func collectExportData(app *pocketbase.PocketBase) (*ExportData, error) {
 	certRecords, err := app.FindRecordsByFilter("certifications", "", "issuer,sort_order,-issue_date", 0, 0, nil)
 	if err == nil {
 		export.Certifications = sanitizeRecords(certRecords)
+	}
+
+	// Awards
+	awardRecords, err := app.FindRecordsByFilter("awards", "", "-sort_order,-awarded_at", 0, 0, nil)
+	if err == nil {
+		export.Awards = sanitizeRecords(awardRecords)
 	}
 
 	// Skills

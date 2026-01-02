@@ -27,9 +27,11 @@
 
 	let themeColor = '#0ea5e9'; // Default sky-500
 	let customCSS = '';
+	let lastCustomCSS = '';
 	let mounted = false;
 	let gaMeasurementId = '';
 	let gaInitialized = false;
+	let accentStyleEl: HTMLStyleElement | null = null;
 
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -37,18 +39,27 @@
 		const color = ACCENT_COLORS[colorName];
 		if (!color) return;
 
-		const root = document.documentElement;
-		root.style.setProperty('--color-primary-50', color.scale[50]);
-		root.style.setProperty('--color-primary-100', color.scale[100]);
-		root.style.setProperty('--color-primary-200', color.scale[200]);
-		root.style.setProperty('--color-primary-300', color.scale[300]);
-		root.style.setProperty('--color-primary-400', color.scale[400]);
-		root.style.setProperty('--color-primary-500', color.scale[500]);
-		root.style.setProperty('--color-primary-600', color.scale[600]);
-		root.style.setProperty('--color-primary-700', color.scale[700]);
-		root.style.setProperty('--color-primary-800', color.scale[800]);
-		root.style.setProperty('--color-primary-900', color.scale[900]);
-		root.style.setProperty('--color-primary-950', color.scale[950]);
+		if (!accentStyleEl) {
+			accentStyleEl = document.createElement('style');
+			accentStyleEl.id = 'accent-colors';
+			document.head.appendChild(accentStyleEl);
+		}
+
+		accentStyleEl.textContent = `
+:root {
+  --color-primary-50: ${color.scale[50]};
+  --color-primary-100: ${color.scale[100]};
+  --color-primary-200: ${color.scale[200]};
+  --color-primary-300: ${color.scale[300]};
+  --color-primary-400: ${color.scale[400]};
+  --color-primary-500: ${color.scale[500]};
+  --color-primary-600: ${color.scale[600]};
+  --color-primary-700: ${color.scale[700]};
+  --color-primary-800: ${color.scale[800]};
+  --color-primary-900: ${color.scale[900]};
+  --color-primary-950: ${color.scale[950]};
+}
+		`.trim();
 
 		// Update theme-color meta tag for browser chrome
 		themeColor = color.scale[500];
@@ -85,6 +96,7 @@
 
 	function applyCustomCSS(css: string) {
 		if (!browser) return;
+		lastCustomCSS = css;
 		const existing = document.getElementById('custom-css');
 		if (existing) {
 			existing.remove();
@@ -119,6 +131,12 @@
 			injectGA(gaMeasurementId);
 			gaInitialized = true;
 		}
+	}
+
+	// Ensure custom CSS stays last after accent updates
+	$: if (mounted && lastCustomCSS && accentStyleEl) {
+		// Re-append custom CSS to the end of head so it wins cascade against accent variables
+		applyCustomCSS(lastCustomCSS);
 	}
 
 	function injectGA(id: string) {

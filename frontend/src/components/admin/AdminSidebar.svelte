@@ -15,6 +15,7 @@ const navSections = [
 			{ href: '/admin/projects', label: 'Projects', icon: 'folder' },
 			{ href: '/admin/education', label: 'Education', icon: 'academic' },
 			{ href: '/admin/certifications', label: 'Certifications', icon: 'badge' },
+			{ href: '/admin/awards', label: 'Awards', icon: 'star' },
 			{ href: '/admin/skills', label: 'Skills', icon: 'chip' },
 			{ href: '/admin/posts', label: 'Posts', icon: 'document' },
 			{ href: '/admin/talks', label: 'Talks', icon: 'presentation' }

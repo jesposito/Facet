@@ -16,13 +16,14 @@
 		projects: { label: 'Projects', collection: 'projects' },
 		education: { label: 'Education', collection: 'education' },
 		certifications: { label: 'Certifications', collection: 'certifications' },
+		awards: { label: 'Awards', collection: 'awards' },
 		skills: { label: 'Skills', collection: 'skills' },
 		posts: { label: 'Posts', collection: 'posts' },
 		talks: { label: 'Talks', collection: 'talks' }
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks'];
 
 	let loading = true;
 	let saving = false;
@@ -359,6 +360,8 @@
 				return `${item.degree || 'Degree'} - ${item.institution}`;
 			case 'certifications':
 				return `${item.name} (${item.issuer || 'Unknown issuer'})`;
+			case 'awards':
+				return `${item.title}${item.issuer ? ` (${item.issuer})` : ''}`;
 			case 'skills':
 				return `${item.name}${item.category ? ` (${item.category})` : ''}`;
 			case 'posts':
