@@ -146,6 +146,8 @@ func parseIntDefault(raw string, def int) int {
 func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error) {
 	dataDir := app.DataDir()
 
+	app.Logger().Info("media: collecting files")
+
 	collections := []string{
 		"profile",
 		"experience",
@@ -173,11 +175,14 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error)
 			continue
 		}
 
-		records, err := app.FindRecordsByFilter(collection.Name, "", "-created", 500, 0, nil)
+		// Avoid relying on created/updated columns because older seeded data may not include them.
+		records, err := app.FindRecordsByFilter(collection.Name, "", "", 500, 0, nil)
 		if err != nil {
 			app.Logger().Warn("media: failed to load records", "collection", collection.Name, "error", err)
 			continue
 		}
+
+		app.Logger().Info("media: collection scan", "collection", collection.Name, "records", len(records), "fileFields", fileFields)
 
 		for _, record := range records {
 			created := record.GetDateTime("created")
