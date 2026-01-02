@@ -356,7 +356,8 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 	// then fall back to pdflatex if unavailable.
 	if format == "pdf" {
 		args = append(args,
-			"-V", "mainfont=Helvetica",
+			"-V", "mainfont=TeX Gyre Heros",
+			"-V", "mainfontfallback=Arial",
 			"--pdf-engine=xelatex",
 		)
 	}
