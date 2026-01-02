@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 
 	let loading = false;
 	let error = '';
@@ -11,6 +12,7 @@
 
 	let oauthProviders: string[] = [];
 	let passwordAuthEnabled = true;
+	let redirectUrl = '';
 
 	// Reactively redirect when user becomes authenticated
 	$: if ($currentUser && !redirecting) {
@@ -26,6 +28,10 @@
 		if (pb.authStore.isValid && pb.authStore.model) {
 			redirecting = true;
 			goto('/admin', { replaceState: true });
+		}
+
+		if (browser) {
+			redirectUrl = `${window.location.origin}/api/oauth2-redirect`;
 		}
 
 		await loadAuthMethods();
@@ -60,7 +66,10 @@
 		loading = true;
 		error = '';
 		try {
-			await pb.collection('users').authWithOAuth2({ provider: 'google' });
+			await pb.collection('users').authWithOAuth2({
+				provider: 'google',
+				redirectUrl: redirectUrl || undefined
+			});
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = 'Failed to login with Google';
@@ -73,7 +82,10 @@
 		loading = true;
 		error = '';
 		try {
-			await pb.collection('users').authWithOAuth2({ provider: 'github' });
+			await pb.collection('users').authWithOAuth2({
+				provider: 'github',
+				redirectUrl: redirectUrl || undefined
+			});
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = 'Failed to login with GitHub';
