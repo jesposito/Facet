@@ -20,38 +20,43 @@
 		orphan?: boolean;
 	};
 
-	type MediaStats = {
-		referencedFiles: number;
-		referencedSize: number;
-		orphanFiles: number;
-		orphanSize: number;
-		totalFiles: number;
-		totalSize: number;
-	};
+type MediaStats = {
+	referencedFiles: number;
+	referencedSize: number;
+	orphanFiles: number;
+	orphanSize: number;
+	totalFiles: number;
+	totalSize: number;
+	storageFiles: number;
+	storageSize: number;
+};
 
-	let items: MediaItem[] = [];
-	let loading = true;
-	let page = 1;
+let items: MediaItem[] = [];
+let loading = true;
+let page = 1;
 	let perPage = 50;
 	let totalItems = 0;
 	let totalPages = 1;
 	let search = '';
-	let typeFilter: 'all' | 'image' = 'all';
-	let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
-	let error = '';
-	let stats: MediaStats = {
-		referencedFiles: 0,
-		referencedSize: 0,
-		orphanFiles: 0,
-		orphanSize: 0,
-		totalFiles: 0,
-		totalSize: 0
-	};
+let typeFilter: 'all' | 'image' = 'all';
+let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
+let error = '';
+let stats: MediaStats = {
+	referencedFiles: 0,
+	referencedSize: 0,
+	orphanFiles: 0,
+	orphanSize: 0,
+	totalFiles: 0,
+	totalSize: 0,
+	storageFiles: 0,
+	storageSize: 0
+};
+let selectedOrphans: Set<string> = new Set();
 
-	const humanSize = (bytes: number) => {
-		if (!bytes) return '0 B';
-		const units = ['B', 'KB', 'MB', 'GB'];
-		let i = 0;
+const humanSize = (bytes: number) => {
+	if (!bytes) return '0 B';
+	const units = ['B', 'KB', 'MB', 'GB'];
+	let i = 0;
 		let size = bytes;
 		while (size >= 1024 && i < units.length - 1) {
 			size /= 1024;
@@ -104,8 +109,11 @@
 				orphanFiles: 0,
 				orphanSize: 0,
 				totalFiles: totalItems,
-				totalSize: 0
+				totalSize: 0,
+				storageFiles: 0,
+				storageSize: 0
 			};
+			selectedOrphans = new Set();
 		} catch (err) {
 			console.error(err);
 			error = 'Failed to load media';
@@ -121,11 +129,11 @@
 		toasts.add('success', 'URL copied');
 	}
 
-	async function deleteFile(item: MediaItem) {
-		if (!confirm(`Delete ${item.filename}? This cannot be undone.`)) return;
-		try {
-			const body =
-				item.orphan && item.relative_path
+async function deleteFile(item: MediaItem) {
+	if (!confirm(`Delete ${item.filename}? This cannot be undone.`)) return;
+	try {
+		const body =
+			item.orphan && item.relative_path
 					? { relative_path: item.relative_path }
 					: {
 							collection_id: item.collection_id,
@@ -155,13 +163,70 @@
 		} catch (err) {
 			console.error(err);
 			toasts.add('error', err instanceof Error ? err.message : 'Failed to delete file');
-		}
 	}
+}
 
-	function resetAndLoad() {
-		page = 1;
-		loadMedia();
+function toggleSelection(item: MediaItem) {
+	if (!item.orphan || !item.relative_path) return;
+	const next = new Set(selectedOrphans);
+	if (next.has(item.relative_path)) {
+		next.delete(item.relative_path);
+	} else {
+		next.add(item.relative_path);
 	}
+	selectedOrphans = next;
+}
+
+function selectVisibleOrphans() {
+	const next = new Set(selectedOrphans);
+	items.forEach((item) => {
+		if (item.orphan && item.relative_path) {
+			next.add(item.relative_path);
+		}
+	});
+	selectedOrphans = next;
+}
+
+function clearSelection() {
+	selectedOrphans = new Set();
+}
+
+async function bulkDeleteSelected() {
+	if (selectedOrphans.size === 0) return;
+	if (!confirm(`Delete ${selectedOrphans.size} orphan file(s)? This cannot be undone.`)) return;
+
+	try {
+		const res = await fetch('/api/media/bulk-delete', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+			},
+			body: JSON.stringify({ orphans: Array.from(selectedOrphans) })
+		});
+		if (!res.ok) {
+			if (res.status === 401) {
+				toasts.add('error', 'Session expired. Please sign in again.');
+				goto('/admin/login');
+				return;
+			}
+			const body = await res.json().catch(() => ({}));
+			throw new Error(body.error || 'Failed to delete files');
+		}
+		const result = await res.json().catch(() => ({}));
+		toasts.add('success', `Deleted ${result.deleted ?? selectedOrphans.size} orphan file(s)`);
+		selectedOrphans = new Set();
+		await loadMedia();
+	} catch (err) {
+		console.error(err);
+		toasts.add('error', err instanceof Error ? err.message : 'Failed to delete files');
+	}
+}
+
+function resetAndLoad() {
+	page = 1;
+	loadMedia();
+}
 
 	onMount(loadMedia);
 </script>
@@ -181,8 +246,8 @@
 		</button>
 	</div>
 
-	<div class="card p-4 mb-4">
-		<div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+	<div class="card p-4 mb-4 space-y-3">
+		<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
 			<div class="flex items-center gap-2">
 				<input
 					class="input"
@@ -217,6 +282,29 @@
 				{/if}
 			</div>
 		</div>
+		<div class="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
+			<div class="flex flex-wrap gap-3">
+				<span>Storage: {humanSize(stats.storageSize)} ({stats.storageFiles} files)</span>
+				<span>Referenced: {humanSize(stats.referencedSize)}</span>
+				<span>Orphans: {humanSize(stats.orphanSize)} ({stats.orphanFiles})</span>
+			</div>
+			<div class="flex flex-wrap gap-2 items-center">
+				{#if selectedOrphans.size > 0}
+					<span class="text-gray-700 dark:text-gray-200">{selectedOrphans.size} orphan{selectedOrphans.size === 1 ? '' : 's'} selected</span>
+					<button
+						class="btn btn-secondary text-red-600 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
+						on:click={bulkDeleteSelected}
+					>
+						Delete selected
+					</button>
+					<button class="btn btn-ghost btn-sm" on:click={clearSelection}>Clear selection</button>
+				{:else if statusFilter !== 'referenced'}
+					<button class="btn btn-secondary btn-sm" on:click={selectVisibleOrphans}>
+						Select all visible orphans
+					</button>
+				{/if}
+			</div>
+		</div>
 	</div>
 
 	{#if error}
@@ -235,6 +323,7 @@
 				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 					<thead class="bg-gray-50 dark:bg-gray-800">
 						<tr>
+							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
 							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">File</th>
 							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
 							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Size</th>
@@ -247,6 +336,16 @@
 					<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 						{#each items as item}
 							<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+								<td class="px-4 py-3">
+									{#if item.orphan && item.relative_path}
+										<input
+											type="checkbox"
+											class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											checked={selectedOrphans.has(item.relative_path)}
+											on:change={() => toggleSelection(item)}
+										/>
+									{/if}
+								</td>
 								<td class="px-4 py-3">
 									<div class="flex items-center gap-2">
 										{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}

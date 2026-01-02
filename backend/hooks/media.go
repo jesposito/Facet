@@ -26,24 +26,20 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			}
 
 			query := e.Request.URL.Query()
-			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
-			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
-
 			items, referenced, referencedSize, err := collectMediaItems(app)
 			if err != nil {
 				app.Logger().Error("media list failed", "error", err)
 				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
 
-			var orphanItems []services.MediaItem
-			var orphanSize int64
-			if orphansOnly || includeOrphans {
-				orphanItems, orphanSize, err = collectOrphanMediaItems(app, referenced)
-				if err != nil {
-					app.Logger().Error("media orphan scan failed", "error", err)
-					return apis.NewBadRequestError("failed to enumerate media", err)
-				}
+			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, referenced)
+			if err != nil {
+				app.Logger().Error("media orphan scan failed", "error", err)
+				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
+
+			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
+			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
 
 			combined := items
 			if orphansOnly {
@@ -107,10 +103,49 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 					"orphanSize":      orphanSize,
 					"totalFiles":      len(items) + len(orphanItems),
 					"totalSize":       referencedSize + orphanSize,
+					"storageFiles":    storageFiles,
+					"storageSize":     storageSize,
 				},
 			}
 
 			return e.JSON(http.StatusOK, response)
+		}).Bind(apis.RequireAuth())
+
+		se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
+			var req struct {
+				Orphans []string `json:"orphans"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+			if len(req.Orphans) == 0 {
+				return apis.NewBadRequestError("no items to delete", nil)
+			}
+
+			storageRoot := filepath.Join(app.DataDir(), "storage")
+			deleted := 0
+			var failed []string
+
+			for _, rel := range req.Orphans {
+				target, err := resolveStoragePath(storageRoot, rel)
+				if err != nil {
+					app.Logger().Warn("media bulk delete: invalid path", "path", rel, "error", err)
+					failed = append(failed, rel)
+					continue
+				}
+				if err := os.Remove(target); err != nil {
+					app.Logger().Warn("media bulk delete failed", "path", rel, "error", err)
+					failed = append(failed, rel)
+					continue
+				}
+				deleted++
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"deleted": deleted,
+				"failed":  len(failed),
+				"errors":  failed,
+			})
 		}).Bind(apis.RequireAuth())
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
@@ -129,17 +164,9 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			if req.RelativePath != "" && (req.CollectionID == "" || req.Field == "") {
 				dataDir := app.DataDir()
 				storageRoot := filepath.Join(dataDir, "storage")
-				clean := filepath.Clean(req.RelativePath)
-				if strings.Contains(clean, "..") {
-					return apis.NewBadRequestError("invalid path", nil)
-				}
-				clean = strings.TrimPrefix(clean, "/")
-				clean = strings.TrimPrefix(clean, "\\")
-				clean = strings.TrimPrefix(clean, "storage/")
-				clean = strings.TrimPrefix(clean, "storage\\")
-				target := filepath.Join(storageRoot, clean)
-				if !strings.HasPrefix(target, storageRoot) {
-					return apis.NewBadRequestError("invalid path", nil)
+				target, err := resolveStoragePath(storageRoot, req.RelativePath)
+				if err != nil {
+					return apis.NewBadRequestError("invalid path", err)
 				}
 				if err := os.Remove(target); err != nil {
 					app.Logger().Warn("media: failed to delete orphan file", "path", target, "error", err)
@@ -262,11 +289,13 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 	return all, referenced, totalSize, nil
 }
 
-func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, error) {
+func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, int64, int, error) {
 	dataDir := app.DataDir()
 	storageRoot := filepath.Join(dataDir, "storage")
 	var orphans []services.MediaItem
 	var totalSize int64
+	var storageSize int64
+	var storageFiles int
 
 	err := filepath.WalkDir(storageRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -277,6 +306,11 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]s
 		}
 		if strings.HasSuffix(d.Name(), ".attrs") {
 			return nil
+		}
+		info, infoErr := d.Info()
+		if infoErr == nil {
+			storageSize += info.Size()
+			storageFiles++
 		}
 		rel, err := filepath.Rel(storageRoot, path)
 		if err != nil {
@@ -311,7 +345,7 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]s
 		return nil
 	})
 
-	return orphans, totalSize, err
+	return orphans, totalSize, storageSize, storageFiles, err
 }
 
 func fileFieldNames(c *core.Collection) []string {
@@ -322,4 +356,20 @@ func fileFieldNames(c *core.Collection) []string {
 		}
 	}
 	return names
+}
+
+func resolveStoragePath(storageRoot, rel string) (string, error) {
+	clean := filepath.Clean(rel)
+	if strings.Contains(clean, "..") {
+		return "", os.ErrInvalid
+	}
+	clean = strings.TrimPrefix(clean, "/")
+	clean = strings.TrimPrefix(clean, "\\")
+	clean = strings.TrimPrefix(clean, "storage/")
+	clean = strings.TrimPrefix(clean, "storage\\")
+	target := filepath.Join(storageRoot, clean)
+	if !strings.HasPrefix(target, storageRoot) {
+		return "", os.ErrInvalid
+	}
+	return target, nil
 }
