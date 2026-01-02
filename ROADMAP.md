@@ -10,112 +10,7 @@ This roadmap outlines the feature development plan for Facet (formerly Me.yaml),
 
 ## ✅ Rebrand Me.yaml → Facet (Complete)
 
-**Purpose**: Rename the project from "Me.yaml" to "Facet" to improve market positioning, broaden appeal, and align the name with the core "Views as Facets" feature.
-
-**Status**: ✅ Complete
-
-### Strategic Rationale
-
-| Aspect | Me.yaml | Facet |
-|--------|---------|-------|
-| **Audience** | Developers only | Developers + non-technical professionals |
-| **Clarity** | Requires YAML knowledge | Intuitive English word |
-| **Memorability** | Punctuation, file extension | Single word, easy to spell |
-| **Domain availability** | Limited | More options (facet.app, getfacet.io, etc.) |
-| **Feature alignment** | None | "Views = Facets" built into name |
-| **Word of mouth** | "Check out my me-dot-yaml" | "Check out my Facet" |
-
-### Pre-Flight Checklist
-
-Before starting technical work:
-
-- [ ] **Secure domain name** (facet.app, getfacet.io, facetprofile.com, etc.)
-- [ ] **Check trademark availability** ("Facet" is common—ensure no conflicts in software/SaaS)
-- [ ] **Secure social handles** (@facet, @getfacet on Twitter/X, GitHub org, etc.)
-- [ ] **Decide GitHub strategy**: Rename existing repo (recommended) vs. create new repo
-- [ ] **Notify any existing users** (if applicable)
-
-### Phase 1: Documentation & Frontend (Low Risk)
-
-All find-and-replace operations on user-facing text. No breaking changes.
-
-#### 1.1 Documentation Files
-
-| File | Occurrences | Pattern |
-|------|-------------|---------|
-| `README.md` | 13 | "Me.yaml" → "Facet", "me.yaml" → "facet" |
-| `DESIGN.md` | 14 | "Me.yaml" → "Facet" |
-| `ROADMAP.md` | 3 | "Me.yaml" → "Facet" |
-| `ARCHITECTURE.md` | 1 | "Me.yaml" → "Facet" |
-| `agent-instructions.md` | 2 | "Me.yaml" → "Facet" |
-| `docs/SETUP.md` | 7 | "Me.yaml" → "Facet", URLs |
-| `docs/DEV.md` | 10 | "Me.yaml" → "Facet" |
-| `docs/SECURITY.md` | 5 | "Me.yaml" → "Facet" |
-| `docs/UPGRADE.md` | 1 | "Me.yaml" → "Facet" |
-| `RESEARCH.md` | Multiple | "OwnProfile" → "Facet" (legacy) |
-
-**Tasks:**
-- [ ] Global find-replace "Me.yaml" → "Facet" in all `.md` files
-- [ ] Global find-replace "me.yaml" → "facet" in URLs/examples
-- [ ] Update LICENSE copyright: "me.yaml Contributors" → "Facet Contributors"
-- [ ] Review and update tagline: "You, human-readable" → new tagline TBD
-
-#### 1.2 Frontend Page Titles (22 files)
-
-All `<svelte:head><title>` tags containing "Me.yaml":
-
-| Route | Current Title |
-|-------|---------------|
-| `/` | `... \| Me.yaml` |
-| `/admin` | `Dashboard \| Me.yaml` |
-| `/admin/login` | `Sign In \| Me.yaml`, "Sign in to Me.yaml" |
-| `/admin/profile` | `Edit Profile \| Me.yaml` |
-| `/admin/experience` | `Experience \| Me.yaml Admin` |
-| `/admin/education` | `Education \| Me.yaml Admin` |
-| `/admin/certifications` | `Certifications \| Me.yaml Admin` |
-| `/admin/skills` | `Skills \| Me.yaml Admin` |
-| `/admin/projects` | `Projects \| Me.yaml Admin` |
-| `/admin/posts` | `Posts \| Me.yaml Admin` |
-| `/admin/talks` | `Talks \| Me.yaml Admin` |
-| `/admin/import` | `Import from GitHub \| Me.yaml` |
-| `/admin/views` | `Views \| Me.yaml` |
-| `/admin/views/new` | `Create View \| Me.yaml` |
-| `/admin/views/[id]` | `Edit View \| Me.yaml` |
-| `/admin/tokens` | `Share Tokens \| Me.yaml` |
-| `/admin/settings` | `Settings \| Me.yaml` |
-| `/admin/review/[id]` | `Review Import \| Me.yaml` |
-| `/s/[token]` | `Shared Link \| Me.yaml` |
-
-**Tasks:**
-- [ ] Find-replace `| Me.yaml` → `| Facet` in all route `+page.svelte` files
-- [ ] Update login page text: "Sign in to Me.yaml" → "Sign in to Facet"
-
-#### 1.3 Frontend Components
-
-| Component | Location | Change |
-|-----------|----------|--------|
-| `AdminHeader.svelte` | Line 33 | Brand text in header |
-| `Footer.svelte` | Lines 13, 47 | Footer branding, "Powered by" |
-
-**Tasks:**
-- [ ] Update `frontend/src/components/admin/AdminHeader.svelte`
-- [ ] Update `frontend/src/components/public/Footer.svelte`
-
-#### 1.4 Script Comments & Headers
-
-| File | Change |
-|------|--------|
-| `scripts/start-dev.sh` | Header comments |
-| `scripts/dev-backend.sh` | Header comments |
-| `scripts/dev-frontend.sh` | Header comments |
-| `scripts/seed.js` | File header comment |
-| `Makefile` | Header comment |
-| `docker/start.sh` | Startup messages ("Starting Me.yaml...") |
-| `docker/Caddyfile` | Header comment |
-
-**Tasks:**
-- [ ] Update all script headers and comments
-- [ ] Update startup/status messages in `docker/start.sh`
+**Status**: ✅ Complete — all branding, assets, copy, and metadata reflect Facet. No remaining rebrand tasks are tracked here.
 
 ---
 
@@ -1776,31 +1671,31 @@ GITHUB_CLIENT_SECRET=your-client-secret
 Enable a production-safe, one-click demo persona so new users can see Facet’s value without running dev seeds or losing their own data.
 
 **Goals**
-- Default OFF; prominent toggle on the admin dashboard when not in dev/debug mode
-- Toggle ON loads a fully authored sci-fi/fantasy persona with humor and five faceted views
-- Toggle OFF restores the user’s data losslessly; warn before destructive actions
+- Default OFF; prominent toggle on the admin dashboard when not in dev/debug mode.
+- Toggle ON loads a well-known, multifaceted fictional persona with humor and at least five curated views that mix overlapping and view-specific content.
+- Toggle OFF restores the user’s data losslessly; warn before any destructive action.
 
 **Persona & Views**
-- Persona: “The Doctor” (Doctor Who) — famous, multi-regeneration consultant with playful tone
+- Persona: “The Doctor” (Doctor Who) — famous, multi-regeneration consultant with a playful tone.
 - Views (overlapping core profile + unique emphasis):
-  - “UNIT Scientific Advisor” — deep experience/tech stack, accent indigo, AI print-ready
-  - “Temporal PM” — delivery timelines & paradox mitigation, includes a share token example
-  - “Rogue Time Tourist” — playful/creative mashup, GitHub import sample artifacts
-  - “Diplomat-at-Large” — calm public-facing view plus password-protected variant
-  - “Curator of Impossible Artifacts” — projects/talks focused on odd finds, uses custom CSS
+  - “UNIT Scientific Advisor” — deep experience/tech stack, accent indigo, AI print-ready.
+  - “Temporal PM” — delivery timelines & paradox mitigation, includes a share token example.
+  - “Rogue Time Tourist” — playful/creative mashup, GitHub import sample artifacts.
+  - “Diplomat-at-Large” — calm public-facing view plus password-protected variant.
+  - “Curator of Impossible Artifacts” — projects/talks focused on odd finds, uses custom CSS.
 
 **Feature Requirements**
-- Dashboard toggle component visible only when `NODE_ENV`/app mode ≠ dev; default off
-- When enabling: backup current data (JSON export or temp snapshot) and seed Nyx dataset (profile, experience, projects, posts, talks, certs, skills, views, share tokens, passwords where applicable)
-- When disabling: restore user snapshot; clear demo data; return to prior homepage/view settings
-- Clear status copy: “Demo mode is on/off”; CTA to exit demo; warnings before overwrite if backup fails
-- Ensure AI Print, accent colors, per-view overrides, share tokens/password-protected view, GitHub import sample repo, and custom CSS all have demo examples
-- Analytics-friendly hook: emit log/telemetry event (if enabled) when demo is toggled on/off
+- Dashboard toggle visible only when app mode is not dev; default off.
+- Enabling: snapshot existing data (export or temp backup) and seed the demo dataset (profile, experience, projects, posts, talks, certs, skills, views, share tokens/passwords as needed).
+- Disabling: restore the user snapshot; clear demo data; return to prior homepage/view settings.
+- Clear status copy (“Demo mode is on/off”), CTA to exit demo, and warnings if backup fails.
+- Demo content should exercise: views (section selection), per-view theming, media, share tokens/password protection, exports/print, AI print/resume, custom CSS, GitHub import sample.
+- Optional telemetry hook when demo is toggled (respect existing analytics settings).
 
 **Prerequisites**
-- Reliable backup/restore of user data (reuse existing export endpoints or add snapshot service)
-- Seed script for Nyx Quasar with five views and overlapping records
-- Frontend dashboard surface for the toggle (admin home)
+- Reliable backup/restore of user data (reuse export/import or snapshot service).
+- Seed script for the Doctor persona with five views and overlapping records.
+- Frontend dashboard surface for the toggle (admin home).
 
 ### Integrations
 - Webhook notifications

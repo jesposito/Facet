@@ -864,7 +864,7 @@ Based on codebase analysis, these features are incomplete or missing:
 | ~~**Talks section**~~ | ~~Collection exists, no UI~~ | ✅ Complete: Public display with video embeds |
 | ~~**Certifications section**~~ | ~~Collection exists, no UI~~ | ✅ Complete: Public display with issuer grouping |
 | ~~**View editor**~~ | ~~Basic, no drag-drop~~ | ✅ Complete: Full editor with section/item selection |
-| **Media library** | No implementation | Cannot manage uploaded files |
+| ~~**Media library**~~ | ~~No implementation~~ | ✅ Complete: `/admin/media` with listing, filters, delete |
 | ~~**Share token management UI**~~ | ~~Listed in views page, no full UI~~ | ✅ Complete: `/admin/tokens` with full CRUD |
 | **Scheduled GitHub sync** | Not implemented | Manual refresh only |
 | ~~**Resume PDF export**~~ | ~~Not implemented~~ | ✅ Complete: Print stylesheet + print button |
@@ -881,7 +881,8 @@ Based on codebase analysis, these features are incomplete or missing:
 6. **Theme system**: Light/dark modes, color customization
 7. **Scheduled sync**: Cron-based GitHub refresh
 8. **Media library**: Upload management, image optimization
-9. **Audit log**: Access history for share tokens
+9. **Demo mode**: Production-safe showcase persona with multiple views
+10. **Audit log**: Access history for share tokens
 
 ---
 
