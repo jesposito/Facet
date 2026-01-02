@@ -2,8 +2,10 @@ package hooks
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -704,6 +706,116 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"posts":   posts,
 				"profile": profile,
 			})
+		}))
+
+		// RSS feed for public posts
+		se.Router.GET("/rss.xml", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			fmt.Println("[API /rss.xml] ========== REQUEST START ==========")
+
+			// Fetch profile for channel metadata
+			channelTitle := "Facet - Latest Posts"
+			channelDescription := "Recent posts"
+			profileRecords, err := app.FindRecordsByFilter(
+				"profile",
+				"visibility != 'private'",
+				"",
+				1,
+				0,
+				nil,
+			)
+			if err == nil && len(profileRecords) > 0 {
+				p := profileRecords[0]
+				if name := p.GetString("name"); name != "" {
+					channelTitle = name + " — Recent Posts"
+				}
+				if headline := p.GetString("headline"); headline != "" {
+					channelDescription = headline
+				}
+			}
+
+			// Fetch latest public posts
+			postRecords, err := app.FindRecordsByFilter(
+				"posts",
+				"visibility = 'public' && is_draft = false",
+				"-published_at",
+				50,
+				0,
+				nil,
+			)
+			if err != nil {
+				fmt.Printf("[API /rss.xml] ERROR: FindRecordsByFilter failed: %v\n", err)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
+			}
+
+			type rssItem struct {
+				Title       string `xml:"title"`
+				Link        string `xml:"link"`
+				GUID        string `xml:"guid"`
+				Description string `xml:"description,omitempty"`
+				PubDate     string `xml:"pubDate,omitempty"`
+			}
+
+			type rssChannel struct {
+				Title       string    `xml:"title"`
+				Link        string    `xml:"link"`
+				Description string    `xml:"description"`
+				Items       []rssItem `xml:"item"`
+			}
+
+			type rssFeed struct {
+				XMLName xml.Name   `xml:"rss"`
+				Version string     `xml:"version,attr"`
+				Channel rssChannel `xml:"channel"`
+			}
+
+			baseURL := strings.TrimSuffix(resolveBaseURL(e), "/")
+			items := make([]rssItem, 0, len(postRecords))
+
+			for _, record := range postRecords {
+				slug := record.GetString("slug")
+				if slug == "" {
+					continue
+				}
+
+				link := fmt.Sprintf("%s/posts/%s", baseURL, slug)
+				pub := record.GetDateTime("published_at")
+				pubDate := ""
+				if !pub.IsZero() {
+					pubDate = pub.Time().UTC().Format(time.RFC1123Z)
+				}
+
+				item := rssItem{
+					Title:       record.GetString("title"),
+					Link:        link,
+					GUID:        link,
+					Description: record.GetString("excerpt"),
+					PubDate:     pubDate,
+				}
+				items = append(items, item)
+			}
+
+			feed := rssFeed{
+				Version: "2.0",
+				Channel: rssChannel{
+					Title:       channelTitle,
+					Link:        baseURL,
+					Description: channelDescription,
+					Items:       items,
+				},
+			}
+
+			data, err := xml.MarshalIndent(feed, "", "  ")
+			if err != nil {
+				fmt.Printf("[API /rss.xml] ERROR: xml.MarshalIndent failed: %v\n", err)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to render feed"})
+			}
+
+			data = append([]byte(xml.Header), data...)
+			e.Response.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
+			_, _ = e.Response.Write(data)
+			fmt.Printf("[API /rss.xml] Returned %d items\n", len(items))
+			fmt.Println("[API /rss.xml] ========== REQUEST END ==========")
+			return nil
 		}))
 
 		// Public talks listing
@@ -1534,4 +1646,23 @@ func clearOtherDefaults(app *pocketbase.PocketBase, excludeID string) error {
 	}
 
 	return nil
+}
+
+func resolveBaseURL(e *core.RequestEvent) string {
+	if appURL := strings.TrimSpace(os.Getenv("APP_URL")); appURL != "" {
+		return strings.TrimSuffix(appURL, "/")
+	}
+
+	req := e.Request
+	proto := req.Header.Get("X-Forwarded-Proto")
+	if proto == "" {
+		if req.TLS != nil {
+			proto = "https"
+		} else {
+			proto = "http"
+		}
+	}
+
+	host := req.Host
+	return fmt.Sprintf("%s://%s", proto, host)
 }
