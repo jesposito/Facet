@@ -9,6 +9,7 @@
 
 	// Compute back navigation URL based on where user came from
 	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
+	$: landingMessage = data.landingPageMessage || 'This profile is being set up.';
 
 	onMount(() => {
 		console.log('[POSTS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
@@ -27,6 +28,17 @@
 	<meta property="og:type" content="website" />
 </svelte:head>
 
+{#if data.homepageDisabled}
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+			<ThemeToggle />
+		</div>
+		<div class="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center space-y-4">
+			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Posts are hidden right now</h1>
+			<p class="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
+		</div>
+	</div>
+{:else}
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 	<!-- Theme toggle -->
 	<div class="fixed top-4 right-4 z-40 print:hidden">
@@ -183,3 +195,4 @@
 	<!-- Footer -->
 	<Footer profile={data.profile} />
 </div>
+{/if}

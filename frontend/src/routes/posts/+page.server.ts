@@ -28,14 +28,35 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		console.log('[POSTS PAGE] Response status:', response.status);
 
 		if (!response.ok) {
-			const errorText = await response.text();
+			let landingPageMessage = '';
+			try {
+				const errorData = await response.json();
+				if (errorData?.homepage_enabled === false) {
+					return {
+						posts: [],
+						profile: null,
+						selectedTag: tag,
+						allTags: [],
+						fromView: fromView || null,
+						homepageDisabled: true,
+						landingPageMessage: errorData.landing_page_message || ''
+					};
+				}
+				landingPageMessage = errorData?.error || '';
+			} catch (parseErr) {
+				console.error('[POSTS PAGE] Failed to parse error response:', parseErr);
+			}
+
+			const errorText = landingPageMessage || (await response.text());
 			console.error('[POSTS PAGE] API error:', response.status, errorText);
 			return {
 				posts: [],
 				profile: null,
 				selectedTag: tag,
 				allTags: [],
-				fromView: fromView || null
+				fromView: fromView || null,
+				homepageDisabled: false,
+				landingPageMessage: landingPageMessage
 			};
 		}
 
@@ -68,7 +89,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			profile,
 			selectedTag: tag,
 			allTags: Array.from(allTags).sort(),
-			fromView: fromView || null
+			fromView: fromView || null,
+			homepageDisabled: false,
+			landingPageMessage: ''
 		};
 		console.log('[POSTS PAGE] Returning:', JSON.stringify({ ...result, posts: `[${posts.length} items]` }));
 		console.log('[POSTS PAGE] ========== LOAD END ==========');
@@ -81,7 +104,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			profile: null,
 			selectedTag: tag,
 			allTags: [],
-			fromView: fromView || null
+			fromView: fromView || null,
+			homepageDisabled: false,
+			landingPageMessage: ''
 		};
 	}
 };

@@ -350,6 +350,20 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// This endpoint returns the slug of the default view for the homepage
 		// Rate limited: normal tier (60/min)
 		se.Router.GET("/api/default-view", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				app.Logger().Warn("Failed to load site settings", "error", err)
+			}
+
+			if settings != nil && !settings.HomepageEnabled {
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"has_default":          false,
+					"fallback":             "homepage",
+					"homepage_enabled":     false,
+					"landing_page_message": settings.LandingPageMessage,
+				})
+			}
+
 			// Find the default view (is_default = true, is_active = true, visibility = public)
 			records, err := app.FindRecordsByFilter(
 				"views",
@@ -382,10 +396,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			view := records[0]
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"has_default": true,
-				"slug":        view.GetString("slug"),
-				"view_id":     view.Id,
-				"name":        view.GetString("name"),
+				"has_default":          true,
+				"slug":                 view.GetString("slug"),
+				"view_id":              view.Id,
+				"name":                 view.GetString("name"),
+				"homepage_enabled":     true,
+				"landing_page_message": settings.LandingPageMessage,
 			})
 		}))
 
@@ -396,6 +412,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			fmt.Println("[API /api/homepage] ========== REQUEST START ==========")
 			response := make(map[string]interface{})
+
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				app.Logger().Warn("Failed to load site settings", "error", err)
+			}
+			if settings != nil && !settings.HomepageEnabled {
+				response["homepage_enabled"] = false
+				response["landing_page_message"] = settings.LandingPageMessage
+				fmt.Println("[API /api/homepage] Homepage disabled via settings")
+				fmt.Println("[API /api/homepage] ========== REQUEST END ==========")
+				return e.JSON(http.StatusOK, response)
+			}
 
 			// Fetch profile - only public profiles appear on homepage
 			profileRecords, err := app.FindRecordsByFilter(
@@ -601,6 +629,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		se.Router.GET("/api/posts", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			fmt.Println("[API /api/posts] ========== REQUEST START ==========")
 
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				app.Logger().Warn("Failed to load site settings", "error", err)
+			}
+			if settings != nil && !settings.HomepageEnabled {
+				fmt.Println("[API /api/posts] Homepage disabled via settings")
+				return e.JSON(http.StatusForbidden, map[string]interface{}{
+					"homepage_enabled":     false,
+					"landing_page_message": settings.LandingPageMessage,
+				})
+			}
+
 			// Fetch non-private, non-draft posts (public and unlisted)
 			// Use explicit OR to handle NULL visibility values
 			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
@@ -671,6 +711,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Returns all non-private, non-draft talks for the index page
 		se.Router.GET("/api/talks", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			fmt.Println("[API /api/talks] ========== REQUEST START ==========")
+
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				app.Logger().Warn("Failed to load site settings", "error", err)
+			}
+			if settings != nil && !settings.HomepageEnabled {
+				fmt.Println("[API /api/talks] Homepage disabled via settings")
+				return e.JSON(http.StatusForbidden, map[string]interface{}{
+					"homepage_enabled":     false,
+					"landing_page_message": settings.LandingPageMessage,
+				})
+			}
 
 			// Fetch non-private, non-draft talks (public and unlisted)
 			// Use explicit OR to handle NULL visibility values

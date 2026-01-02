@@ -48,6 +48,7 @@ func main() {
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterSiteSettingsHooks(app)
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)
 	hooks.RegisterAdminHooks(app)

@@ -38,6 +38,7 @@
 		length: 'two-page' as 'one-page' | 'two-page' | 'full'
 	};
 	let generatedUrl: string | null = null;
+	$: landingMessage = data.landingPageMessage || 'This profile is being set up.';
 
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
@@ -61,6 +62,11 @@
 	}
 
 	onMount(() => {
+		if (data.homepageDisabled) {
+			console.log('[ROOT PAGE CLIENT] Homepage disabled');
+			return;
+		}
+
 		console.log('[ROOT PAGE CLIENT] Page mounted', {
 			hasProfile: !!data.profile,
 			profileName: data.profile?.name,
@@ -82,6 +88,8 @@
 	});
 
 	async function checkAIPrintStatus() {
+		if (data.homepageDisabled) return;
+
 		try {
 			const response = await fetch('/api/ai-print/status');
 			if (response.ok) {
@@ -98,6 +106,8 @@
 	}
 
 	async function generateResume() {
+		if (data.homepageDisabled) return;
+
 		const slug = data.view?.slug;
 		if (!slug) return;
 		generating = true;
@@ -159,6 +169,20 @@
 	<link rel="canonical" href="/" />
 </svelte:head>
 
+{#if data.homepageDisabled}
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+			<ThemeToggle />
+		</div>
+		<div class="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center space-y-4">
+			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Profile is private right now</h1>
+			<p class="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
+			<p class="text-sm text-gray-500 dark:text-gray-400">
+				You can still access shared views directly if you have the link.
+			</p>
+		</div>
+	</div>
+{:else}
 <div class="min-h-screen">
 	<!-- Theme toggle and print menu -->
 	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
@@ -372,4 +396,5 @@
 			</div>
 		</div>
 	</div>
+{/if}
 {/if}

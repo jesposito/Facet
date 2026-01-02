@@ -15,6 +15,12 @@
 	let showAddForm = false;
 	let testing: string | null = null;
 
+	// Site settings (homepage visibility)
+	let siteSettingsLoading = true;
+	let siteSettingsSaving = false;
+	let homepageEnabled = true;
+	let landingPageMessage = 'This profile is being set up.';
+
 	// Demo data state
 	let demoLoading = false;
 	let demoStatus = { has_data: false, profile: 0, experience: 0, projects: 0 };
@@ -63,7 +69,7 @@
 	}
 
 	onMount(async () => {
-		await Promise.all([loadProviders(), loadDemoStatus(), loadProfile()]);
+		await Promise.all([loadProviders(), loadDemoStatus(), loadProfile(), loadSiteSettings()]);
 	});
 
 	async function loadProfile() {
@@ -169,6 +175,53 @@
 			console.error('Failed to load providers:', err);
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function loadSiteSettings() {
+		try {
+			const response = await fetch('/api/site-settings');
+			if (response.ok) {
+				const data = await response.json();
+				homepageEnabled = data.homepage_enabled !== false;
+				landingPageMessage = data.landing_page_message || '';
+			}
+		} catch (err) {
+			console.error('Failed to load site settings:', err);
+		} finally {
+			siteSettingsLoading = false;
+		}
+	}
+
+	async function saveSiteSettings() {
+		siteSettingsSaving = true;
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					homepage_enabled: homepageEnabled,
+					landing_page_message: landingPageMessage
+				})
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				toasts.add('error', result.error || 'Failed to save settings');
+				return;
+			}
+
+			homepageEnabled = result.homepage_enabled !== false;
+			landingPageMessage = result.landing_page_message || '';
+			toasts.add('success', 'Homepage visibility updated');
+		} catch (err) {
+			console.error('Failed to save site settings:', err);
+			toasts.add('error', 'Failed to save settings');
+		} finally {
+			siteSettingsSaving = false;
 		}
 	}
 
@@ -328,6 +381,53 @@
 
 <div class="max-w-4xl mx-auto">
 	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h1>
+
+	<!-- Homepage Visibility -->
+	<div class="card p-6 mb-6">
+		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Homepage Visibility</h2>
+		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+			Turn off the public homepage at <code>/</code> while keeping shared views accessible via their direct links.
+		</p>
+
+		<div class="flex flex-col gap-4">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					<p class="text-sm font-medium text-gray-900 dark:text-white">
+						Public homepage {homepageEnabled ? 'ON' : 'OFF'}
+					</p>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						When off, /, /posts, and /talks show a private landing message.
+					</p>
+				</div>
+				<label class="inline-flex items-center cursor-pointer">
+					<input
+						type="checkbox"
+						class="sr-only peer"
+						bind:checked={homepageEnabled}
+						disabled={siteSettingsLoading || siteSettingsSaving}
+					/>
+					<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-400 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 relative"></div>
+				</label>
+			</div>
+
+			<div>
+				<label class="label" for="landing-message">Landing message (shown when homepage is off)</label>
+				<textarea
+					id="landing-message"
+					class="input h-28"
+					bind:value={landingPageMessage}
+					placeholder="This profile is being set up."
+					disabled={siteSettingsLoading || siteSettingsSaving}
+				></textarea>
+			</div>
+
+			<div class="flex justify-end">
+				<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+					{siteSettingsSaving ? 'Saving...' : 'Save'}
+				</button>
+			</div>
+		</div>
+	</div>
 
 	<!-- Appearance Section -->
 	<div class="card p-6 mb-6">

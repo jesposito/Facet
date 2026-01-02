@@ -1604,16 +1604,18 @@ interface SiteSettings {
 **Backend Changes:**
 - [ ] Add `site_settings` collection (or extend profile)
 - [ ] Modify `/api/homepage` to check `homepage_enabled`
-- [ ] Modify `/api/default-view` to return `homepage_disabled: true` when OFF
+- [x] Modify `/api/homepage` to check `homepage_enabled`
+- [x] Modify `/api/default-view` to return `homepage_disabled: true` when OFF
 - [ ] Fix view data endpoint to show profile regardless of profile visibility when view access is authenticated (unlisted token or password JWT validated)
-- [ ] Add `/api/site-settings` endpoint for frontend
+- [x] Add `/api/site-settings` endpoint for frontend
 - [ ] Optionally serve dynamic `robots.txt` based on setting
 
 **Frontend Changes:**
 - [ ] Add prominent toggle in Admin Settings page
-- [ ] Landing page component for when homepage is disabled
-- [ ] Custom message textarea
-- [ ] Hide/show `/posts` and `/talks` index pages based on toggle
+- [x] Add prominent toggle in Admin Settings page
+- [x] Landing page component for when homepage is disabled
+- [x] Custom message textarea
+- [x] Hide/show `/posts` and `/talks` index pages based on toggle
 - [ ] Show "Your views" summary in settings for quick reference
 
 **UX Considerations:**

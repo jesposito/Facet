@@ -28,6 +28,14 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			const defaultViewInfo = await defaultViewResponse.json();
 			console.log('[ROOT PAGE] default-view info:', JSON.stringify(defaultViewInfo));
 
+			if (defaultViewInfo.homepage_enabled === false) {
+				console.log('[ROOT PAGE] Homepage disabled via settings');
+				return {
+					homepageDisabled: true,
+					landingPageMessage: defaultViewInfo.landing_page_message || ''
+				};
+			}
+
 			if (defaultViewInfo.has_default && defaultViewInfo.slug) {
 				console.log('[ROOT PAGE] Has default view, fetching view data for slug:', defaultViewInfo.slug);
 				// Fetch the default view's data
@@ -106,7 +114,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						posts,
 						talks,
 						// Indicate this is a view-based homepage
-						isDefaultView: true
+						isDefaultView: true,
+						homepageDisabled: false,
+						landingPageMessage: defaultViewInfo.landing_page_message || ''
 					};
 					console.log('[ROOT PAGE] Returning DEFAULT VIEW data:');
 					console.log('[ROOT PAGE]   view.slug:', result.view.slug);
@@ -143,11 +153,29 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				talks: [],
 				view: null,
 				error: 'Failed to load profile',
-				isDefaultView: false
+				isDefaultView: false,
+				homepageDisabled: false,
+				landingPageMessage: ''
 			};
 		}
 
 		const data = await response.json();
+		if (data.homepage_enabled === false) {
+			return {
+				homepageDisabled: true,
+				landingPageMessage: data.landing_page_message || '',
+				profile: null,
+				experience: [],
+				projects: [],
+				education: [],
+				certifications: [],
+				skills: [],
+				posts: [],
+				talks: [],
+				view: null,
+				isDefaultView: false
+			};
+		}
 		console.log('[ROOT PAGE] Homepage data received:');
 		console.log('[ROOT PAGE]   profile:', data.profile?.name || 'null');
 		console.log('[ROOT PAGE]   experience:', (data.experience || []).length);

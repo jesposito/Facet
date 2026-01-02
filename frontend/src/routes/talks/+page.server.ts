@@ -28,14 +28,35 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		console.log('[TALKS PAGE] Response status:', response.status);
 
 		if (!response.ok) {
-			const errorText = await response.text();
+			let landingPageMessage = '';
+			try {
+				const errorData = await response.json();
+				if (errorData?.homepage_enabled === false) {
+					return {
+						talks: [],
+						profile: null,
+						selectedYear: year,
+						allYears: [],
+						fromView: fromView || null,
+						homepageDisabled: true,
+						landingPageMessage: errorData.landing_page_message || ''
+					};
+				}
+				landingPageMessage = errorData?.error || '';
+			} catch (parseErr) {
+				console.error('[TALKS PAGE] Failed to parse error response:', parseErr);
+			}
+
+			const errorText = landingPageMessage || (await response.text());
 			console.error('[TALKS PAGE] API error:', response.status, errorText);
 			return {
 				talks: [],
 				profile: null,
 				selectedYear: year,
 				allYears: [],
-				fromView: fromView || null
+				fromView: fromView || null,
+				homepageDisabled: false,
+				landingPageMessage: landingPageMessage
 			};
 		}
 
@@ -71,7 +92,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			profile,
 			selectedYear: year,
 			allYears: Array.from(allYears).sort((a, b) => parseInt(b) - parseInt(a)), // Descending
-			fromView: fromView || null
+			fromView: fromView || null,
+			homepageDisabled: false,
+			landingPageMessage: ''
 		};
 		console.log('[TALKS PAGE] Returning:', JSON.stringify({ ...result, talks: `[${talks.length} items]` }));
 		console.log('[TALKS PAGE] ========== LOAD END ==========');
@@ -84,7 +107,9 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			profile: null,
 			selectedYear: year,
 			allYears: [],
-			fromView: fromView || null
+			fromView: fromView || null,
+			homepageDisabled: false,
+			landingPageMessage: ''
 		};
 	}
 };

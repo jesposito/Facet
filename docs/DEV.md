@@ -734,6 +734,10 @@ make seed-dev
 make seed-clear
 ```
 
+### Homepage visibility toggle
+
+From **Admin > Settings**, you can turn off the public homepage (`/`) while keeping shared views accessible via their direct URLs. When disabled, `/`, `/posts`, and `/talks` show a private landing message (customizable in the settings panel). Use this when you want to share specific views without exposing a public homepage.
+
 ### Demo Data (Admin UI)
 
 New users can load demo data via **Admin > Settings > Demo Data**. This loads a fun
