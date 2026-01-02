@@ -300,6 +300,18 @@
 			{/if}
 
 			{#if data.posts && data.posts.length > 0}
+				<div class="flex items-center justify-between gap-3 mb-4">
+					<h2 class="section-title mb-0">Posts</h2>
+					<a
+						href="/posts"
+						class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+					>
+						Browse all
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+						</svg>
+					</a>
+				</div>
 				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
 				<PostsSection items={data.posts} viewSlug="" />
 			{/if}
