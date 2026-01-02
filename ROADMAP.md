@@ -93,7 +93,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ## Cross-Cutting Backlog
 - Testing: frontend/component + integration tests; GitHub/AI provider mocks
-- Theme system extensions (light/dark, presets), custom section layouts (grids/compact), view warnings, section titles/layout options
+- Theme system extensions (light/dark, presets), custom section layouts (grids/compact), deferred view warnings, section titles/layout options
 - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
 - Media: image optimization, storage usage, bulk orphan delete, external embeds
 - Security: audit log, headers, 2FA, session management
