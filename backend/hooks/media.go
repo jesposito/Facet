@@ -19,11 +19,6 @@ import (
 func RegisterMediaHooks(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		se.Router.GET("/api/media", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				app.Logger().Warn("media list unauthorized")
-				return apis.NewUnauthorizedError("authentication required", nil)
-			}
-
 			items, err := collectMediaItems(app)
 			if err != nil {
 				app.Logger().Error("media list failed", "error", err)
@@ -82,14 +77,9 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			}
 
 			return e.JSON(http.StatusOK, response)
-		})
+		}).Bind(apis.RequireAuth())
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				app.Logger().Warn("media delete unauthorized")
-				return apis.NewUnauthorizedError("authentication required", nil)
-			}
-
 			var req struct {
 				CollectionID string `json:"collection_id"`
 				RecordID     string `json:"record_id"`
@@ -131,7 +121,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			_ = os.Remove(filepath.Join(dataDir, "storage", collection.Id, record.Id, req.Filename))
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
-		})
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})
