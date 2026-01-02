@@ -46,6 +46,7 @@
 				? await collection.listAuthMethods()
 				: await collection.authMethods();
 
+			console.log('[LOGIN] Auth methods:', methods);
 			oauthProviders = (methods?.oauth2?.providers || []).map((p: { name: string }) => p.name);
 			passwordAuthEnabled = methods?.password?.enabled ?? true;
 			methodsError = '';
