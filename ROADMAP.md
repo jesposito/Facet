@@ -1772,7 +1772,7 @@ GITHUB_CLIENT_SECRET=your-client-secret
 
 ### Integrations
 - Webhook notifications
-- RSS feed for posts
+- [x] RSS feed for posts
 - iCal export for talks
 - Google Analytics (opt-in)
 
