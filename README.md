@@ -74,9 +74,11 @@ Open `http://localhost:8080` — you're live.
 
 ### Your Profile, Your Way
 
-- **Experience, projects, education, skills** — all the professional sections you'd expect
-- **Posts & talks** — share your writing and speaking engagements
-- **Certifications** — with expiry tracking and verification links
+- **Experience, projects, education, skills, certifications, awards** — all the professional sections you'd expect
+- **Posts & talks** — share your writing and speaking engagements (RSS feed, iCal for talks)
+- **Views & theming** — per-view section curation, overrides, accent colors, and custom CSS
+- **Media library** — browse/search/delete uploads with orphan detection
+- **Exports** — JSON/YAML export, print-ready stylesheet, AI print/resume (beta)
 - **Markdown everywhere** — rich content without a heavy editor
 
 ### Views: Different Faces for Different Audiences
@@ -235,12 +237,9 @@ make dev-down     # Stop
 | Backend API | 8090 | http://localhost:8090 |
 | PocketBase Admin | 8090 | http://localhost:8090/_/ |
 
-### Default Credentials (Development Only)
+### Admin Access (Development)
 
-| Panel | Email | Password |
-|-------|-------|----------|
-| Facet Admin | `admin@example.com` | `changeme123` |
-| PocketBase Admin | `admin@localhost.dev` | `admin123` |
+Run `make seed-dev` (or `./scripts/start-dev.sh` which seeds on first run) to set your admin email/password and optional OAuth env vars. The seed prompts you; no hard-coded defaults are shipped in production.
 
 For complete development documentation, see **[Development Guide](docs/DEV.md)**.
 
@@ -306,7 +305,7 @@ make dev-reset    # Clear caches and restart
 
 **For development:** Use `make seed-dev` to load a real-world test profile.
 
-**For demos:** New users can load demo data via **Admin > Settings > Demo Data** (Merlin Ambrosius, a fun Arthurian-themed wizard profile).
+**For demos:** Use `make seed-dev` to load a rich sample profile; you’ll be prompted for admin email/password and optional OAuth envs.
 
 ---
 
