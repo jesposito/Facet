@@ -3,7 +3,6 @@ package migrations
 import (
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
-	"github.com/pocketbase/pocketbase/models"
 )
 
 func init() {
@@ -29,7 +28,7 @@ func init() {
 		}
 
 		// Seed a default settings record
-		record := models.NewRecord(collection)
+		record := core.NewRecord(collection)
 		record.Set("homepage_enabled", true)
 		record.Set("landing_page_message", "This profile is being set up.")
 

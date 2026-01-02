@@ -5,14 +5,13 @@ import (
 	"log/slog"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/models"
 )
 
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
 	HomepageEnabled    bool
 	LandingPageMessage string
-	Record             *models.Record
+	Record             *core.Record
 }
 
 // LoadSiteSettings returns the current site settings, ensuring a default record exists.
@@ -39,12 +38,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		return nil, err
 	}
 
-	var record *models.Record
+	var record *core.Record
 	if len(records) > 0 {
 		record = records[0]
 	} else {
 		// Seed default record if none exists
-		record = models.NewRecord(collection)
+		record = core.NewRecord(collection)
 		record.Set("homepage_enabled", true)
 		record.Set("landing_page_message", "This profile is being set up.")
 		if err := app.Save(record); err != nil {
