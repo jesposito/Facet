@@ -129,8 +129,7 @@ func convertMarkdownToPDF(markdown string) ([]byte, error) {
         "--pdf-engine=xelatex",  // prefer xelatex for font support; fallback handled in code
         "-V", "geometry:margin=0.75in",
         "-V", "fontsize=11pt",
-        "-V", "mainfont=TeX Gyre Heros",
-        "-V", "mainfontfallback=Arial",
+        "-V", "mainfont=Latin Modern Sans",
     )
 
     var stderr bytes.Buffer

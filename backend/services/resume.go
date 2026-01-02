@@ -356,8 +356,7 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 	// then fall back to pdflatex if unavailable.
 	if format == "pdf" {
 		args = append(args,
-			"-V", "mainfont=TeX Gyre Heros",
-			"-V", "mainfontfallback=Arial",
+			"-V", "mainfont=Latin Modern Sans",
 			"--pdf-engine=xelatex",
 		)
 	}
@@ -372,7 +371,7 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		errMsg := stderr.String()
 		log.Printf("[AI-PRINT] Pandoc failed: %v, stderr: %s", err, errMsg)
 
-		// If xelatex or font selection failed, fall back to pdflatex with helvet.
+		// If xelatex or font selection failed, fall back to pdflatex with lmodern.
 		if format == "pdf" && (strings.Contains(errMsg, "xelatex") || strings.Contains(errMsg, "xetex") || strings.Contains(errMsg, "fontspec")) {
 			log.Printf("[AI-PRINT] xelatex/font selection failed, trying pdflatex fallback")
 
@@ -395,8 +394,8 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 
 			args = append(filtered,
 				"--pdf-engine=pdflatex",
-				"-V", "fontfamily=helvet",
-				"-V", "fontfamilyoptions=scaled=0.95",
+				"-V", "fontfamily=lmodern",
+				"-V", "microtypeoptions=expansion=false",
 			)
 
 			cmd = exec.Command("pandoc", args...)
