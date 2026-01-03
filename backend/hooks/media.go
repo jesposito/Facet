@@ -251,6 +251,62 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
+
+	se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
+		var req struct {
+			Orphans []string `json:"orphans"`
+		}
+		if err := e.BindBody(&req); err != nil {
+			return apis.NewBadRequestError("invalid request body", err)
+		}
+
+		if len(req.Orphans) == 0 {
+			return apis.NewBadRequestError("no orphans specified", nil)
+		}
+
+		if len(req.Orphans) > 100 {
+			return apis.NewBadRequestError("maximum 100 files per request", nil)
+		}
+
+		dataDir := app.DataDir()
+		storageRoot := filepath.Join(dataDir, "storage")
+
+		deleted := 0
+		failed := 0
+		var errors []map[string]string
+
+		for _, relativePath := range req.Orphans {
+			target, err := resolveStoragePath(storageRoot, relativePath)
+			if err != nil {
+				failed++
+				errors = append(errors, map[string]string{
+					"path":  relativePath,
+					"error": "invalid path",
+				})
+				continue
+			}
+
+			if err := os.Remove(target); err != nil {
+				app.Logger().Warn("bulk delete: failed to delete file", "path", target, "error", err)
+				failed++
+				errors = append(errors, map[string]string{
+					"path":  relativePath,
+					"error": err.Error(),
+				})
+			} else {
+				deleted++
+				app.Logger().Info("bulk delete: deleted orphan", "path", target)
+			}
+		}
+
+		response := map[string]interface{}{
+			"deleted": deleted,
+			"failed":  failed,
+			"errors":  errors,
+		}
+
+		return e.JSON(http.StatusOK, response)
+	}).Bind(apis.RequireAuth())
 		return se.Next()
 	})
 }
