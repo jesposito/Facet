@@ -15,13 +15,23 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 	const fromView = url.searchParams.get('from');
 
 	try {
-		const response = await fetch(`${pbUrl}/api/post/${slug}`);
-
-		if (!response.ok) {
-			throw error(404, 'Not Found');
+		// Try to fetch with expand first so media_refs are available.
+		let post: any = null;
+		const expanded = await fetch(
+			`${pbUrl}/api/collections/posts/records?filter=${encodeURIComponent(`slug="${slug}"`)}&expand=media_refs&perPage=1`
+		);
+		if (expanded.ok) {
+			const data = await expanded.json();
+			post = data.items?.[0] ?? null;
 		}
 
-		const post = await response.json();
+		if (!post) {
+			const response = await fetch(`${pbUrl}/api/post/${slug}`);
+			if (!response.ok) {
+				throw error(404, 'Not Found');
+			}
+			post = await response.json();
+		}
 
 		return {
 			post: {
@@ -36,6 +46,7 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				updated: post.updated,
 				cover_image_url: post.cover_image_url || null
 			},
+			media_refs: post.expand?.media_refs || post.media_refs || [],
 			profile: post.profile || null,
 			prev_post: post.prev_post || null,
 			next_post: post.next_post || null,

@@ -116,9 +116,6 @@
 				throw new Error(`Failed to load media (${res.status})`);
 			}
 			const data = await res.json();
-			items = data.items || [];
-			totalItems = data.totalItems || 0;
-			totalPages = data.totalPages || 1;
 			stats = data.stats || {
 				referencedFiles: 0,
 				referencedSize: 0,
@@ -129,6 +126,35 @@
 				storageFiles: 0,
 				storageSize: 0
 			};
+			items = data.items || [];
+			// Append external media directly (some environments may not surface them via /api/media)
+			const externalRes = await fetch('/api/collections/external_media/records?perPage=200', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (externalRes.ok) {
+				const ext = await externalRes.json();
+				const externalItems =
+					(ext.items || []).map((item: any) => ({
+						collection: 'external_media',
+						collection_id: item.collectionId,
+						record_id: item.id,
+						field: 'external',
+						filename: item.title || item.url,
+						display_name: item.title || item.url,
+						record_label: item.title || item.url,
+						url: item.url,
+						mime: item.mime || '',
+						uploaded_at: item.created || new Date().toISOString(),
+						external: true,
+						collection_key: 'external',
+						provider: item.provider || 'external'
+					})) || [];
+				items = [...items, ...externalItems];
+				stats.referencedFiles += externalItems.length;
+				stats.totalFiles += externalItems.length;
+			}
+			totalItems = items.length;
+			totalPages = Math.max(1, Math.ceil(totalItems / perPage));
 			selectedOrphans = new Set();
 		} catch (err) {
 			console.error(err);

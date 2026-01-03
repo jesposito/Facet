@@ -49,18 +49,17 @@ let saving = false;
 
 	async function loadMediaOptions() {
 		try {
-			const res = await fetch('/api/media?perPage=200', {
+			const res = await fetch('/api/collections/external_media/records?perPage=200', {
 				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
 			});
 			if (!res.ok) return;
 			const data = await res.json();
-			mediaOptions = (data.items || [])
-				.filter((item: any) => item.external || item.collection_key === 'external')
-				.map((item: any) => ({
-					id: item.record_id || item.url,
-					title: item.display_name || item.filename || item.url,
-					provider: item.provider || 'external'
-				}));
+			mediaOptions = (data.items || []).map((item: any) => ({
+				id: item.id,
+				title: item.title || item.url,
+				provider: 'external',
+				url: item.url
+			}));
 		} catch (err) {
 			console.error('Failed to load media options', err);
 		}

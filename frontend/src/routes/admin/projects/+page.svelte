@@ -23,7 +23,9 @@ let isFeatured = false;
 let sortOrder = 0;
 let coverImageFile: FileList | null = null;
 let mediaRefs: string[] = [];
-let mediaOptions: { id: string; title: string; provider?: string }[] = [];
+let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = [];
+let mediaSearch = '';
+let loadingMedia = false;
 let showShortcodes = false;
 let saving = false;
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
@@ -32,21 +34,23 @@ let memberships: Record<string, { id: string; name: string; slug: string }[]> = 
 	onMount(loadMediaOptions);
 
 async function loadMediaOptions() {
+	loadingMedia = true;
 	try {
-		const res = await fetch('/api/media?perPage=200', {
+		const res = await fetch('/api/collections/external_media/records?perPage=200', {
 			headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
 		});
 		if (!res.ok) return;
 		const data = await res.json();
-		mediaOptions = (data.items || [])
-			.filter((item: any) => item.external || item.collection_key === 'external')
-			.map((item: any) => ({
-				id: item.record_id || item.url,
-				title: item.display_name || item.filename || item.url,
-				provider: item.provider || 'external'
-			}));
+		mediaOptions = (data.items || []).map((item: any) => ({
+			id: item.id,
+			title: item.title || item.url,
+			provider: 'external',
+			url: item.url
+		}));
 	} catch (err) {
 		console.error('Failed to load media options', err);
+	} finally {
+		loadingMedia = false;
 	}
 }
 

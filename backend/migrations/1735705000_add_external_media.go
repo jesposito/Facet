@@ -31,8 +31,9 @@ func init() {
 		})
 
 		authRule := "@request.auth.id != ''"
-		collection.ListRule = &authRule
-		collection.ViewRule = &authRule
+		publicRule := ""
+		collection.ListRule = &publicRule
+		collection.ViewRule = &publicRule
 		collection.CreateRule = &authRule
 		collection.UpdateRule = &authRule
 		collection.DeleteRule = &authRule

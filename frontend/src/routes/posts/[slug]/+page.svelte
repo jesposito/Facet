@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
-	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
-	import Footer from '$components/public/Footer.svelte';
-	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+import Footer from '$components/public/Footer.svelte';
+import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
+import { onMount } from 'svelte';
+	import type { RecordModel } from 'pocketbase';
 
 	export let data: PageData;
 
@@ -13,6 +14,7 @@
 	$: publishedDate = data.post.published_at ? formatDate(data.post.published_at) : null;
 	$: postThumb = (data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url;
 	$: postLarge = (data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url;
+	let mediaRefs: Array<RecordModel & { url?: string; title?: string; mime?: string }> = (data.media_refs as any) || [];
 
 	let referrerPath = '';
 
@@ -35,6 +37,36 @@
 	// Prefer originating view, then referrer, otherwise posts index
 	$: backUrl = data.fromView ? `/${data.fromView}` : referrerPath || '/posts';
 	$: backLabel = 'Back';
+
+	function isYouTube(url?: string): string | null {
+		if (!url) return null;
+		try {
+			const u = new URL(url);
+			if (u.hostname.includes('youtu.be')) return u.pathname.replace('/', '');
+			if (u.searchParams.get('v')) return u.searchParams.get('v');
+			if (u.pathname.startsWith('/embed/')) return u.pathname.replace('/embed/', '');
+			return null;
+		} catch {
+			return null;
+		}
+	}
+
+	function isVimeo(url?: string): string | null {
+		if (!url) return null;
+		try {
+			const u = new URL(url);
+			if (u.hostname.includes('vimeo.com')) {
+				const parts = u.pathname.split('/').filter(Boolean);
+				return parts.pop() || null;
+			}
+			return null;
+		} catch {
+			return null;
+		}
+	}
+
+	const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
+	const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
 
 	function handleBack(event: Event) {
 		event.preventDefault();
@@ -149,6 +181,50 @@
 			<article class="prose prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-img:rounded-lg prose-pre:bg-gray-800 dark:prose-pre:bg-gray-950">
 				{@html parseMarkdown(data.post.content)}
 			</article>
+		{/if}
+
+		{#if mediaRefs && mediaRefs.length > 0}
+			<section class="mt-10 space-y-3">
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Attached media</h3>
+				<div class="grid gap-4 md:grid-cols-2">
+					{#each mediaRefs as media}
+						<div class="card p-4 space-y-2">
+							<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title || media.url}</p>
+							{#if isYouTube(media.url)}
+								<div class="aspect-video rounded-lg overflow-hidden bg-black/10">
+									<iframe
+										src={`https://www.youtube.com/embed/${isYouTube(media.url) ?? ''}`}
+										title={media.title || 'YouTube'}
+										allowfullscreen
+										loading="lazy"
+										class="w-full h-full"
+									></iframe>
+								</div>
+							{:else if isVimeo(media.url)}
+								<div class="aspect-video rounded-lg overflow-hidden bg-black/10">
+									<iframe
+										src={`https://player.vimeo.com/video/${isVimeo(media.url) ?? ''}`}
+										title={media.title || 'Vimeo'}
+										allowfullscreen
+										loading="lazy"
+										class="w-full h-full"
+									></iframe>
+								</div>
+							{:else if isImage(media.url)}
+								<img src={media.url || ''} alt={media.title || ''} class="w-full rounded-lg" loading="lazy" />
+							{:else if isVideoFile(media.url)}
+								<video src={media.url || ''} controls class="w-full rounded-lg">
+									<track kind="captions" srclang="en" label="captions" />
+								</video>
+							{:else}
+								<a href={media.url || '#'} class="text-primary-600 dark:text-primary-300 hover:underline break-all" target="_blank" rel="noopener noreferrer">
+									{media.url || 'View media'}
+								</a>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			</section>
 		{/if}
 
 		<!-- Previous/Next navigation -->
