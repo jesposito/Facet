@@ -94,8 +94,10 @@ openssl rand -hex 32
 # Copy the example config
 cp .env.example .env
 
-# Edit .env and paste your ENCRYPTION_KEY
-# Add your email to ADMIN_EMAILS if you want OAuth login
+# Edit .env:
+# - Set ENCRYPTION_KEY (required)
+# - Set ADMIN_EMAILS to your email
+# - (Optional) Add OAuth credentials (GOOGLE_CLIENT_ID/SECRET or GITHUB_CLIENT_ID/SECRET)
 
 # Run it
 docker-compose up -d
@@ -106,8 +108,8 @@ Open `http://localhost:8080`. You're live.
 > Your data lives in `./data` by default. Back that up. If you want it somewhere else, set `DATA_PATH` in `.env`.
 
 **First login:**
-- Development: `admin@example.com` / `changeme123`
-- Production: Your email from `ADMIN_EMAILS` (OAuth via Google/GitHub)
+- Password login: `admin@example.com` / `changeme123` (change this immediately!)
+- OAuth login: Set up Google or GitHub OAuth credentials in `.env` (see [docs/SETUP.md](docs/SETUP.md))
 
 Full setup instructions (OAuth, reverse proxy, etc.): [docs/SETUP.md](docs/SETUP.md)
 
