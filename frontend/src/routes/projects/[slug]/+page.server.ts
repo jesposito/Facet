@@ -15,24 +15,25 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 	const fromView = url.searchParams.get('from');
 
 	try {
-		// Prefer expanded fetch to include media_refs for rendering
-		let project: any = null;
-		const expanded = await fetch(
-			`${pbUrl}/api/collections/projects/records?filter=${encodeURIComponent(`slug="${slug}"`)}&expand=media_refs&perPage=1`
-		);
-		if (expanded.ok) {
-			const data = await expanded.json();
-			project = data.items?.[0] ?? null;
+		const response = await fetch(`${pbUrl}/api/project/${slug}`);
+
+		if (!response.ok) {
+			throw error(404, 'Not Found');
 		}
 
-		if (!project) {
-			const response = await fetch(`${pbUrl}/api/project/${slug}`);
+		const project = await response.json();
 
-			if (!response.ok) {
-				throw error(404, 'Not Found');
+		const mediaRefsIds: string[] = project.media_refs || [];
+		let mediaRefs: any[] = [];
+		if (mediaRefsIds.length > 0) {
+			const filter = mediaRefsIds.map((id) => `id="${id}"`).join(' || ');
+			const res = await fetch(
+				`${pbUrl}/api/collections/external_media/records?filter=${encodeURIComponent(filter)}&perPage=${mediaRefsIds.length}`
+			);
+			if (res.ok) {
+				const data = await res.json();
+				mediaRefs = data.items || [];
 			}
-
-			project = await response.json();
 		}
 
 		return {
@@ -49,7 +50,7 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				cover_image_url: project.cover_image_url || null,
 				media_urls: project.media_urls || []
 			},
-			media_refs: project.expand?.media_refs || project.media_refs || [],
+			media_refs: mediaRefs,
 			profile: project.profile || null,
 			fromView: fromView || null
 		};
