@@ -16,7 +16,7 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { pb } from '$lib/pocketbase';
-	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd } from '$lib/seo';
+	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 
 	export let data: PageData;
 
@@ -24,10 +24,19 @@
 	$: headline = data.view?.hero_headline || data.profile?.headline;
 	$: summary = data.view?.hero_summary || data.profile?.summary;
 
-	// Generate JSON-LD for SEO
+	// Generate JSON-LD and Open Graph for SEO
 	$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
 	$: personJsonLd = data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null;
 	$: websiteJsonLd = data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null;
+	$: canonicalUrl = getCanonicalUrl(baseUrl, '');
+	$: ogTags = data.profile ? generateOpenGraphTags({
+		title: data.profile.name || 'Profile',
+		description: headline || 'Personal profile and portfolio',
+		image: data.profile.avatar_url || undefined,
+		url: canonicalUrl,
+		type: 'profile',
+		siteName: 'Facet'
+	}) : {};
 
 	// Print menu state
 	let showPrintMenu = false;
@@ -168,12 +177,14 @@
 <svelte:head>
 	<title>{data.profile?.name || 'Profile'} | Facet</title>
 	<meta name="description" content={headline || 'Personal profile and portfolio'} />
-	{#if headline}
-		<meta property="og:title" content={data.profile?.name} />
-		<meta property="og:description" content={headline} />
-	{/if}
-	<!-- Canonical URL is always / for the homepage -->
-	<link rel="canonical" href="/" />
+
+	<!-- Canonical URL -->
+	<link rel="canonical" href={canonicalUrl} />
+
+	<!-- Open Graph and Twitter Card meta tags -->
+	{#each Object.entries(ogTags) as [property, content]}
+		<meta property={property} content={content} />
+	{/each}
 
 	<!-- JSON-LD Structured Data -->
 	{#if personJsonLd}

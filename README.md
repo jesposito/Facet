@@ -375,8 +375,7 @@ For complete security documentation, see **[Security Guide](docs/SECURITY.md)**.
 
 **Planned:**
 - Scheduled GitHub sync
-- Media bulk operations (bulk delete endpoint)
-- Additional integrations
+- Additional integrations (webhooks, etc.)
 
 See **[Roadmap](ROADMAP.md)** for the full development plan.
 

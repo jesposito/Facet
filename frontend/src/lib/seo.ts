@@ -108,3 +108,49 @@ export function generateWebSiteJsonLd(profile: RecordModel, baseUrl: string): Js
 export function serializeJsonLd(data: object): string {
 	return JSON.stringify(data, null, 0); // Minified for production
 }
+
+/**
+ * Generate canonical URL for a page
+ */
+export function getCanonicalUrl(baseUrl: string, path: string): string {
+	// Remove trailing slash from baseUrl and leading slash from path if present
+	const cleanBase = baseUrl.replace(/\/+$/, '');
+	const cleanPath = path.replace(/^\/+/, '');
+	return cleanPath ? `${cleanBase}/${cleanPath}` : cleanBase;
+}
+
+/**
+ * Generate Open Graph meta tags data
+ */
+export interface OpenGraphData {
+	title: string;
+	description?: string;
+	image?: string;
+	url: string;
+	type?: 'website' | 'article' | 'profile';
+	siteName?: string;
+	publishedTime?: string;
+	modifiedTime?: string;
+}
+
+export function generateOpenGraphTags(data: OpenGraphData): Record<string, string> {
+	const tags: Record<string, string> = {
+		'og:title': data.title,
+		'og:url': data.url,
+		'og:type': data.type || 'website'
+	};
+
+	if (data.description) tags['og:description'] = data.description;
+	if (data.image) tags['og:image'] = data.image;
+	if (data.siteName) tags['og:site_name'] = data.siteName;
+	if (data.publishedTime) tags['article:published_time'] = data.publishedTime;
+	if (data.modifiedTime) tags['article:modified_time'] = data.modifiedTime;
+
+	// Add Twitter Card tags
+	tags['twitter:card'] = data.image ? 'summary_large_image' : 'summary';
+	tags['twitter:title'] = data.title;
+	if (data.description) tags['twitter:description'] = data.description;
+	if (data.image) tags['twitter:image'] = data.image;
+
+	return tags;
+}

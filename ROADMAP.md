@@ -12,8 +12,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ View editor with overrides/reordering; per-view theming; accent colors; media library with orphan detection and cleanup.
 - ✅ Media optimization (thumb/srcset) live on posts/projects/homepage; view membership badges in admin lists.
 - ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks, bulk delete.
+- ✅ SEO & Error UX complete: custom 404/500 pages, canonical URLs, comprehensive Open Graph/Twitter Cards, JSON-LD, sitemap, robots.txt.
 - 🟡 In progress: AI print/resume polish, testing backlog.
-- 🔜 Planned: Security/Audit (Phase 8), Performance/SEO polish (Phase 9), Demo Mode toggle/persona (Phase 10).
+- 🔜 Planned: Security/Audit (Phase 8), Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
 
 ---
 
@@ -81,10 +82,10 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - 2FA (TOTP + backup codes)
 - Session listing/revoke/expiry
 
-## Phase 9: Polish & Performance (🔜 Planned)
-- Performance/Lighthouse tuning, lazy loading, bundle/db optimization
-- SEO: JSON-LD, sitemap, robots.txt, canonical URLs
-- Error UX: custom 404/500, error boundaries, friendly messages
+## Phase 9: Polish & Performance (✅ Complete)
+- ✅ SEO: JSON-LD, sitemap, robots.txt, canonical URLs, Open Graph/Twitter Cards
+- ✅ Error UX: custom 404/500 with self-deprecating humor and SVG illustrations
+- 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (planned)
 
 ## Phase 10: Demo & Showcase Mode (🔜 Planned)
 **Purpose:** Production-safe demo to highlight value when not in dev.

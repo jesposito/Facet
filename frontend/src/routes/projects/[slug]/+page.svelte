@@ -7,8 +7,21 @@ import { goto } from '$app/navigation';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 import Footer from '$components/public/Footer.svelte';
 import type { RecordModel } from 'pocketbase';
+import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
 export let data: PageData;
+
+// SEO metadata
+$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
+$: canonicalUrl = getCanonicalUrl(baseUrl, `projects/${data.project.slug}`);
+$: ogTags = generateOpenGraphTags({
+	title: data.project.title,
+	description: data.project.summary || '',
+	image: data.project.cover_image_url || undefined,
+	url: canonicalUrl,
+	type: 'article',
+	siteName: data.profile?.name || 'Facet'
+});
 
 let referrerPath = '';
 let mediaRefs: Array<RecordModel & { url?: string; title?: string; mime?: string }> = (data as any).media_refs || [];
@@ -115,14 +128,14 @@ const getFileName = (url?: string) => {
 <svelte:head>
 	<title>{data.project.title} | {data.profile?.name || 'Projects'}</title>
 	<meta name="description" content={data.project.summary || ''} />
-	<link rel="canonical" href="/projects/{data.project.slug}" />
-	<!-- Open Graph -->
-	<meta property="og:title" content={data.project.title} />
-	<meta property="og:description" content={data.project.summary || ''} />
-	<meta property="og:type" content="article" />
-	{#if data.project.cover_image_url}
-		<meta property="og:image" content={data.project.cover_image_url} />
-	{/if}
+
+	<!-- Canonical URL -->
+	<link rel="canonical" href={canonicalUrl} />
+
+	<!-- Open Graph and Twitter Card meta tags -->
+	{#each Object.entries(ogTags) as [property, content]}
+		<meta property={property} content={content} />
+	{/each}
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
