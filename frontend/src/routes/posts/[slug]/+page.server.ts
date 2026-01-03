@@ -16,12 +16,13 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 
 	try {
 		const response = await fetch(`${pbUrl}/api/post/${slug}`);
-
 		if (!response.ok) {
 			throw error(404, 'Not Found');
 		}
 
 		const post = await response.json();
+
+		const mediaRefs: any[] = post.media_refs_expand || [];
 
 		return {
 			post: {
@@ -36,6 +37,7 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				updated: post.updated,
 				cover_image_url: post.cover_image_url || null
 			},
+			media_refs: mediaRefs,
 			profile: post.profile || null,
 			prev_post: post.prev_post || null,
 			next_post: post.next_post || null,

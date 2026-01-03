@@ -107,6 +107,9 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				"perPage":    perPage,
 				"totalItems": total,
 				"totalPages": (total + perPage - 1) / perPage,
+				"debug": map[string]interface{}{
+					"externalCount": len(externalItems),
+				},
 				"stats": map[string]interface{}{
 					"referencedFiles": len(items) + len(externalItems),
 					"referencedSize":  referencedSize,
@@ -277,6 +280,7 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 		"posts",
 		"talks",
 		"views",
+		"uploads",
 		"view_exports",
 	}
 

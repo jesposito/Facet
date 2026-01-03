@@ -23,6 +23,8 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 
 		const project = await response.json();
 
+		const mediaRefs: any[] = project.media_refs_expand || [];
+
 		return {
 			project: {
 				id: project.id,
@@ -37,6 +39,7 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				cover_image_url: project.cover_image_url || null,
 				media_urls: project.media_urls || []
 			},
+			media_refs: mediaRefs,
 			profile: project.profile || null,
 			fromView: fromView || null
 		};

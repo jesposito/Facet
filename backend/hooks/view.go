@@ -16,6 +16,45 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// fetchExternalMedia safely loads external_media records by IDs without relying on expand rules.
+func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	filters := make([]string, 0, len(ids))
+	params := map[string]interface{}{}
+	for i, id := range ids {
+		key := fmt.Sprintf("id%d", i)
+		filters = append(filters, fmt.Sprintf("id={:%s}", key))
+		params[key] = id
+	}
+
+	records, err := app.FindRecordsByFilter(
+		"external_media",
+		strings.Join(filters, " || "),
+		"",
+		len(ids),
+		0,
+		params,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]map[string]interface{}, 0, len(records))
+	for _, r := range records {
+		out = append(out, map[string]interface{}{
+			"id":       r.Id,
+			"title":    r.GetString("title"),
+			"url":      r.GetString("url"),
+			"provider": r.GetString("provider"),
+		})
+	}
+
+	return out, nil
+}
+
 // Reserved slugs that cannot be used for views
 // These correspond to existing routes or system paths
 // SYNC WITH: frontend/src/params/slug.ts
@@ -1310,6 +1349,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"created":      post.GetDateTime("created"),
 				"updated":      post.GetDateTime("updated"),
 			}
+			if mediaRefs, ok := post.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
+				response["media_refs"] = mediaRefs
+				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
+					response["media_refs_expand"] = expanded
+				}
+			}
 
 			// Resolve cover image URL
 			if coverImage := post.GetString("cover_image"); coverImage != "" {
@@ -1425,6 +1470,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"categories":  project.Get("categories"),
 				"is_featured": project.GetBool("is_featured"),
 			}
+			if mediaRefs, ok := project.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
+				response["media_refs"] = mediaRefs
+				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
+					response["media_refs_expand"] = expanded
+				}
+			}
 
 			// Resolve cover image URL
 			if coverImage := project.GetString("cover_image"); coverImage != "" {
@@ -1518,6 +1569,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"video_url":   talk.GetString("video_url"),
 				"created":     talk.GetDateTime("created"),
 				"updated":     talk.GetDateTime("updated"),
+			}
+			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
+				response["media_refs"] = mediaRefs
+				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
+					response["media_refs_expand"] = expanded
+				}
 			}
 
 			// Fetch profile data for navigation context

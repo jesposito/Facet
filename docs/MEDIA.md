@@ -15,6 +15,7 @@ This doc explains how Facet’s media pipeline works and how to extend or touch 
 ## Collections
 - `external_media`: link-based entries for embeds. Fields: `url` (required), `title`, `mime`, `thumbnail_url`.
 - `media_refs` relation (multi-select) is added to `projects`, `posts`, `talks` to attach external media.
+- `uploads`: generic files added via the Media Library upload form (single `file` field plus optional title/mime).
 
 ## API endpoints
 - `GET /api/media` (auth required):
@@ -36,7 +37,7 @@ Recognizes providers and builds `provider`, `embed_url`, `thumbnail_url`, `mime`
 - Fallback: link card
 
 ## Admin UI
-- Media Library: lists uploads + external entries, shows storage/orphan stats, bulk orphan delete.
+- Media Library: lists uploads + external entries, shows storage/orphan stats, bulk orphan delete, and supports uploading files directly into the `uploads` collection.
 - Projects/Posts forms: multi-select of media options (uploads or external entries) stored in `media_refs`.
   - Talks picker is planned but not wired yet.
 
@@ -55,4 +56,3 @@ Recognizes providers and builds `provider`, `embed_url`, `thumbnail_url`, `mime`
 2) Verify `/api/media` with a fresh token.
 3) Do not remove file fields listed above without updating collectors.
 4) If adding providers, extend `mediaembed.Normalize` and keep it offline (no network calls).
-

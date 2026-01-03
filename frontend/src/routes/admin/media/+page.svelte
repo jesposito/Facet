@@ -28,13 +28,13 @@
 	type MediaStats = {
 		referencedFiles: number;
 		referencedSize: number;
-	orphanFiles: number;
-	orphanSize: number;
-	totalFiles: number;
-	totalSize: number;
-	storageFiles: number;
-	storageSize: number;
-};
+		orphanFiles: number;
+		orphanSize: number;
+		totalFiles: number;
+		totalSize: number;
+		storageFiles: number;
+		storageSize: number;
+	};
 
 	let items: MediaItem[] = [];
 	let loading = true;
@@ -45,25 +45,28 @@
 	let search = '';
 	let typeFilter: 'all' | 'image' = 'all';
 	let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
-let error = '';
-let stats: MediaStats = {
-	referencedFiles: 0,
-	referencedSize: 0,
-	orphanFiles: 0,
-	orphanSize: 0,
-	totalFiles: 0,
-	totalSize: 0,
-	storageFiles: 0,
-	storageSize: 0
-};
-let selectedOrphans: Set<string> = new Set();
-let newExternal = {
-	url: '',
-	title: '',
-	mime: '',
-	thumbnail_url: '',
-	saving: false
-};
+	let error = '';
+	let stats: MediaStats = {
+		referencedFiles: 0,
+		referencedSize: 0,
+		orphanFiles: 0,
+		orphanSize: 0,
+		totalFiles: 0,
+		totalSize: 0,
+		storageFiles: 0,
+		storageSize: 0
+	};
+	let selectedOrphans: Set<string> = new Set();
+	let newExternal = {
+		url: '',
+		title: '',
+		mime: '',
+		thumbnail_url: '',
+		saving: false
+	};
+	let uploadFile: File | null = null;
+	let uploadTitle = '';
+	let uploading = false;
 
 	const humanSize = (bytes: number) => {
 		if (!bytes) return '0 B';
@@ -113,21 +116,47 @@ let newExternal = {
 				throw new Error(`Failed to load media (${res.status})`);
 			}
 			const data = await res.json();
+			stats = data.stats || {
+				referencedFiles: 0,
+				referencedSize: 0,
+				orphanFiles: 0,
+				orphanSize: 0,
+				totalFiles: totalItems,
+				totalSize: 0,
+				storageFiles: 0,
+				storageSize: 0
+			};
 			items = data.items || [];
-			totalItems = data.totalItems || 0;
-			totalPages = data.totalPages || 1;
-				stats = data.stats || {
-					referencedFiles: 0,
-					referencedSize: 0,
-					orphanFiles: 0,
-					orphanSize: 0,
-					totalFiles: totalItems,
-					totalSize: 0,
-					storageFiles: 0,
-					storageSize: 0
-				};
-				selectedOrphans = new Set();
-			} catch (err) {
+			// Append external media directly (some environments may not surface them via /api/media)
+			const externalRes = await fetch('/api/collections/external_media/records?perPage=200', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (externalRes.ok) {
+				const ext = await externalRes.json();
+				const externalItems =
+					(ext.items || []).map((item: any) => ({
+						collection: 'external_media',
+						collection_id: item.collectionId,
+						record_id: item.id,
+						field: 'external',
+						filename: item.title || item.url,
+						display_name: item.title || item.url,
+						record_label: item.title || item.url,
+						url: item.url,
+						mime: item.mime || '',
+						uploaded_at: item.created || new Date().toISOString(),
+						external: true,
+						collection_key: 'external',
+						provider: item.provider || 'external'
+					})) || [];
+				items = [...items, ...externalItems];
+				stats.referencedFiles += externalItems.length;
+				stats.totalFiles += externalItems.length;
+			}
+			totalItems = items.length;
+			totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+			selectedOrphans = new Set();
+		} catch (err) {
 			console.error(err);
 			error = 'Failed to load media';
 			toasts.add('error', 'Failed to load media');
@@ -284,6 +313,53 @@ let newExternal = {
 		}
 	}
 
+	async function uploadMedia() {
+		if (!uploadFile) {
+			toasts.add('error', 'Choose a file to upload');
+			return;
+		}
+		uploading = true;
+		error = '';
+		try {
+			const form = new FormData();
+			form.append('file', uploadFile);
+			if (uploadTitle.trim()) {
+				form.append('title', uploadTitle.trim());
+			}
+			const mime = uploadFile.type || '';
+			if (mime) {
+				form.append('mime', mime);
+			}
+			const res = await fetch('/api/collections/uploads/records', {
+				method: 'POST',
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
+				body: form
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.message || 'Failed to upload file');
+			}
+			toasts.add('success', 'File uploaded');
+			uploadFile = null;
+			uploadTitle = '';
+			await loadMedia();
+		} catch (err) {
+			console.error(err);
+			toasts.add('error', err instanceof Error ? err.message : 'Upload failed');
+			error = 'Upload failed';
+		} finally {
+			uploading = false;
+		}
+	}
+
+	function handleFileChange(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		uploadFile = target.files?.[0] ?? null;
+		if (uploadFile && !uploadTitle) {
+			uploadTitle = uploadFile.name;
+		}
+	}
+
 	function resetAndLoad() {
 		page = 1;
 		loadMedia();
@@ -373,6 +449,40 @@ let newExternal = {
 			{error}
 		</div>
 	{/if}
+
+	<div class="card p-4 mb-4 space-y-3">
+		<div class="flex items-center justify-between">
+			<div>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Upload media</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					Add files directly to the media library (images, docs, video up to 20MB).
+				</p>
+			</div>
+			<button class="btn btn-primary" on:click={uploadMedia} aria-busy={uploading}>
+				{uploading ? 'Uploading…' : 'Upload'}
+			</button>
+		</div>
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+			<div class="md:col-span-2">
+				<label class="label" for="upload-file">File *</label>
+				<input
+					id="upload-file"
+					type="file"
+					class="input"
+					on:change={handleFileChange}
+				/>
+			</div>
+			<div>
+				<label class="label" for="upload-title">Title (optional)</label>
+				<input
+					id="upload-title"
+					class="input"
+					placeholder="Display name"
+					bind:value={uploadTitle}
+				/>
+			</div>
+		</div>
+	</div>
 
 	<div class="card p-4 mb-4 space-y-3">
 		<div class="flex items-center justify-between">

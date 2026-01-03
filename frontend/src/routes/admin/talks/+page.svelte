@@ -11,18 +11,23 @@
 
 	// Form fields
 	let title = '';
-	let slug = '';
-	let event = '';
-	let eventUrl = '';
-	let date = '';
-	let location = '';
-	let description = '';
-	let slidesUrl = '';
-	let videoUrl = '';
-	let visibility = 'public';
-	let isDraft = false;
-	let sortOrder = 0;
-	let saving = false;
+let slug = '';
+let event = '';
+let eventUrl = '';
+let date = '';
+let location = '';
+let description = '';
+let slidesUrl = '';
+let videoUrl = '';
+let visibility = 'public';
+let isDraft = false;
+let sortOrder = 0;
+let mediaRefs: string[] = [];
+let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = [];
+let showShortcodes = false;
+let saving = false;
+let mediaSearch = '';
+let loadingMedia = false;
 
 	// Generate slug from title
 	function generateSlug(text: string): string {
@@ -42,6 +47,106 @@
 	}
 
 	onMount(loadTalks);
+onMount(loadMediaOptions);
+
+async function loadMediaOptions(searchTerm = '') {
+	loadingMedia = true;
+	try {
+		const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
+		const mediaParams = new URLSearchParams({ perPage: '50' });
+		if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
+		const externalFilter = searchTerm.trim()
+			? `&filter=${encodeURIComponent(`title~"${searchTerm}" || url~"${searchTerm}"`)}`
+			: '';
+
+		const [mediaRes, externalRes] = await Promise.all([
+			fetch(`/api/media?${mediaParams.toString()}`, { headers }),
+			fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
+		]);
+
+		const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
+		const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
+
+		const options: { id: string; title: string; provider?: string; url?: string }[] = [];
+
+		for (const item of mediaData.items || []) {
+			options.push({
+				id: item.record_id || item.relative_path || item.url,
+				title: item.display_name || item.filename || item.url,
+				provider: item.provider || (item.external ? 'external' : 'upload'),
+				url: item.url
+			});
+		}
+
+		for (const item of externalData.items || []) {
+			if (!options.find((opt) => opt.id === item.id || opt.url === item.url)) {
+				options.push({
+					id: item.id,
+					title: item.title || item.url,
+					provider: 'external',
+					url: item.url
+				});
+			}
+		}
+
+		mediaOptions = options;
+	} catch (err) {
+		console.error('Failed to load media options', err);
+	} finally {
+		loadingMedia = false;
+	}
+}
+
+async function resolveMediaRefs(selected: string[]) {
+	const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
+	const optionMap = new Map(mediaOptions.map((opt) => [opt.id, opt]));
+	const resolved: string[] = [];
+
+	const toAbsolute = (url?: string) => {
+		if (!url) return '';
+		if (/^https?:\/\//i.test(url)) return url;
+		const base = pb.baseUrl.replace(/\/$/, '');
+		return `${base}${url.startsWith('/') ? url : `/${url}`}`;
+	};
+
+	for (const id of selected) {
+		const opt = optionMap.get(id);
+		if (!opt) continue;
+		if (opt.provider === 'upload' && opt.url) {
+			try {
+				const filter = encodeURIComponent(`url="${opt.url}"`);
+				const existingRes = await fetch(`/api/collections/external_media/records?perPage=1&filter=${filter}`, {
+					headers
+				});
+				if (existingRes.ok) {
+					const existing = await existingRes.json();
+					if (existing.items?.[0]?.id) {
+						resolved.push(existing.items[0].id);
+						continue;
+					}
+				}
+				const created = await fetch('/api/media/external', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', ...headers },
+					body: JSON.stringify({ url: toAbsolute(opt.url), title: opt.title })
+				});
+				if (created.ok) {
+					const body = await created.json();
+					if (body.id) {
+						resolved.push(body.id);
+						continue;
+					}
+				}
+			} catch (err) {
+				console.error('Failed to mirror upload to external_media', err);
+			}
+		} else {
+			resolved.push(id);
+		}
+	}
+
+	return resolved;
+}
 
 	async function loadTalks() {
 		loading = true;
@@ -71,12 +176,17 @@
 		visibility = 'public';
 		isDraft = false;
 		sortOrder = 0;
+		mediaRefs = [];
 		editingTalk = null;
 	}
 
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+	}
+
+	function toggleShortcodes() {
+		showShortcodes = !showShortcodes;
 	}
 
 	function openEditForm(talk: Talk) {
@@ -93,6 +203,7 @@
 		visibility = talk.visibility;
 		isDraft = talk.is_draft;
 		sortOrder = talk.sort_order;
+		mediaRefs = (talk as any).media_refs || [];
 		showForm = true;
 	}
 
@@ -109,6 +220,7 @@
 
 		saving = true;
 		try {
+			const resolvedRefs = await resolveMediaRefs(mediaRefs);
 			const data = {
 				title: title.trim(),
 				slug: slug.trim(),
@@ -119,6 +231,7 @@
 				description: description,
 				slides_url: slidesUrl.trim(),
 				video_url: videoUrl.trim(),
+				media_refs: resolvedRefs,
 				visibility,
 				is_draft: isDraft,
 				sort_order: sortOrder
@@ -293,9 +406,12 @@
 						id="description"
 						bind:value={description}
 						class="input min-h-[150px]"
-						placeholder="A brief description of your talk... (Markdown supported)"
+						placeholder="A brief description of your talk... (Markdown + media shortcodes)"
 					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
+					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+						<button type="button" class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Media shortcodes</button>
+						<span>Use {'{{provider:url}}'} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).</span>
+					</div>
 				</div>
 			</div>
 
@@ -323,6 +439,54 @@
 						class="input"
 						placeholder="https://speakerdeck.com/... or https://slides.com/..."
 					/>
+				</div>
+
+				<div>
+					<p class="label">Attached media / embeds</p>
+					<div class="flex flex-wrap items-center gap-2 mb-2 text-sm text-gray-600 dark:text-gray-400">
+						<input
+							class="input w-full md:w-64"
+							placeholder="Search media..."
+							bind:value={mediaSearch}
+							on:keydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
+						/>
+						<button type="button" class="btn btn-secondary btn-sm" on:click={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
+							{loadingMedia ? 'Searching…' : 'Search'}
+						</button>
+						<button type="button" class="btn btn-ghost btn-sm" on:click={() => { mediaSearch = ''; loadMediaOptions(''); }}>
+							Clear
+						</button>
+					</div>
+					{#if loadingMedia}
+						<p class="text-sm text-gray-500 dark:text-gray-400">Loading media…</p>
+					{:else if mediaOptions.length === 0}
+						<p class="text-sm text-gray-500 dark:text-gray-400">No media found. Add uploads or external links in the Media Library.</p>
+					{:else}
+						<div class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
+							{#each mediaOptions as opt}
+								<label
+									class={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${
+										mediaRefs.includes(opt.id)
+											? 'bg-primary-50 border-primary-200 text-primary-700'
+											: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+									}`}
+								>
+									<input
+										type="checkbox"
+										class="w-4 h-4"
+										bind:group={mediaRefs}
+										value={opt.id}
+									/>
+									<div class="flex flex-col">
+										<span class="text-sm font-medium">{opt.title}</span>
+										{#if opt.provider}
+											<span class="text-xs text-gray-500">{opt.provider}</span>
+										{/if}
+									</div>
+								</label>
+							{/each}
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -378,6 +542,58 @@
 				</button>
 			</div>
 		</form>
+		{#if showShortcodes}
+			<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
+					<div class="flex items-center justify-between">
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Media shortcodes</h3>
+						<button class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Close</button>
+					</div>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media Library (uploads or external) or any supported provider.
+					</p>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-200">
+						<div>
+							<p class="font-semibold">Video</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{youtube:https://youtu.be/ID}}'}</code></li>
+								<li><code>{'{{vimeo:https://vimeo.com/ID}}'}</code></li>
+								<li><code>{'{{loom:https://www.loom.com/share/ID}}'}</code></li>
+								<li><code>{'{{video:https://example.com/video.mp4}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Audio</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{soundcloud:https://soundcloud.com/...}}'}</code></li>
+								<li><code>{'{{spotify:https://open.spotify.com/track/...}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Images / Docs</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{image:https://.../image.jpg}}'}</code></li>
+								<li><code>{'{{pdf:https://.../file.pdf}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Design / Code</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{figma:https://www.figma.com/file/...}}'}</code></li>
+								<li><code>{'{{codepen:https://codepen.io/user/pen/...}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Immich / Other</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{immich:https://immich.example.com/...}}'}</code></li>
+								<li><code>{'{{embed:https://any-link}}'}</code></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
 	{:else if talks.length === 0}
 		<div class="card p-8 text-center">
 			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
