@@ -36,6 +36,7 @@
 	let slug = '';
 	let description = '';
 	let visibility: 'public' | 'unlisted' | 'private' | 'password' = 'public';
+	let password = ''; // For password-protected views
 	let heroHeadline = '';
 	let heroSummary = '';
 	let ctaText = '';
@@ -236,6 +237,10 @@
 			toasts.add('error', 'Slug is required');
 			return;
 		}
+		if (visibility === 'password' && !password.trim()) {
+			toasts.add('error', 'Password is required for password-protected views');
+			return;
+		}
 
 		// Check for reserved slugs
 		const reservedSlugs = [
@@ -267,6 +272,7 @@
 				slug: slug.trim(),
 				description: description.trim(),
 				visibility,
+				password: visibility === 'password' ? password.trim() : null,
 				hero_headline: heroHeadline.trim() || null,
 				hero_summary: heroSummary.trim() || null,
 				cta_text: ctaText.trim() || null,
@@ -475,6 +481,21 @@
 							<option value="private">Private - Admin only</option>
 						</select>
 					</div>
+					{#if visibility === 'password'}
+						<div>
+							<label for="password" class="label">Password *</label>
+							<input
+								type="password"
+								id="password"
+								bind:value={password}
+								class="input"
+								placeholder="Enter password for this view"
+								required
+								autocomplete="new-password"
+							/>
+							<p class="text-xs text-gray-500 mt-1">Visitors will need this password to access this view</p>
+						</div>
+					{/if}
 				</div>
 
 				<div class="flex flex-col gap-3 pt-2">

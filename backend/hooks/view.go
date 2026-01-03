@@ -195,7 +195,7 @@ func fileURL(collectionID, recordID, filename string, transform string) string {
 // RegisterViewHooks registers view-related API endpoints
 func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
 	// Register views collection hooks for validation
-	registerViewsValidation(app)
+	registerViewsValidation(app, crypto)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
@@ -1855,7 +1855,8 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 // This enforces:
 // 1. Reserved slug protection - prevents creating views with reserved slugs
 // 2. Single default view - ensures only one view can be marked as default
-func registerViewsValidation(app *pocketbase.PocketBase) {
+// 3. Password hashing - automatically hashes passwords for password-protected views
+func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	// Validate on create
 	app.OnRecordCreate("views").BindFunc(func(e *core.RecordEvent) error {
 		slug := e.Record.GetString("slug")
@@ -1863,6 +1864,17 @@ func registerViewsValidation(app *pocketbase.PocketBase) {
 		// Validate slug is not reserved
 		if !isValidSlug(slug) {
 			return fmt.Errorf("invalid or reserved slug: slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc")
+		}
+
+		// Hash password if provided (frontend sends "password" field, we store "password_hash")
+		password := e.Record.GetString("password")
+		if password != "" {
+			hash, err := crypto.HashPassword(password)
+			if err != nil {
+				return fmt.Errorf("failed to hash password: %w", err)
+			}
+			e.Record.Set("password_hash", hash)
+			e.Record.Set("password", "") // Clear plaintext password
 		}
 
 		// If this view is being set as default, clear other defaults
@@ -1882,6 +1894,17 @@ func registerViewsValidation(app *pocketbase.PocketBase) {
 		// Validate slug is not reserved
 		if !isValidSlug(slug) {
 			return fmt.Errorf("invalid or reserved slug: slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc")
+		}
+
+		// Hash password if provided (only hash if password field is present and not empty)
+		password := e.Record.GetString("password")
+		if password != "" {
+			hash, err := crypto.HashPassword(password)
+			if err != nil {
+				return fmt.Errorf("failed to hash password: %w", err)
+			}
+			e.Record.Set("password_hash", hash)
+			e.Record.Set("password", "") // Clear plaintext password
 		}
 
 		// If this view is being set as default, clear other defaults

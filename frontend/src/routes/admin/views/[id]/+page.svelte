@@ -41,6 +41,7 @@
 	let slug = '';
 	let description = '';
 	let visibility: 'public' | 'unlisted' | 'private' | 'password' = 'public';
+	let password = ''; // For password-protected views (only set when changing)
 	let heroHeadline = '';
 	let heroSummary = '';
 	let ctaText = '';
@@ -472,7 +473,7 @@
 					return sectionData;
 				});
 
-			const data = {
+			const data: Record<string, unknown> = {
 				name: name.trim(),
 				slug: slug.trim(),
 				description: description.trim(),
@@ -485,6 +486,11 @@
 				sections: sectionsData,
 				accent_color: accentColor || null
 			};
+
+			// Only include password if it's set (for new password or change)
+			if (visibility === 'password' && password.trim()) {
+				data.password = password.trim();
+			}
 
 			await pb.collection('views').update(viewId, data);
 
@@ -853,6 +859,24 @@
 							<option value="private">Private - Admin only</option>
 						</select>
 					</div>
+					{#if visibility === 'password'}
+						<div>
+							<label for="password" class="label">
+								{password ? 'Change Password' : 'Set Password *'}
+							</label>
+							<input
+								type="password"
+								id="password"
+								bind:value={password}
+								class="input"
+								placeholder={password ? 'Enter new password to change' : 'Enter password for this view'}
+								autocomplete="new-password"
+							/>
+							<p class="text-xs text-gray-500 mt-1">
+								{password ? 'Leave blank to keep current password' : 'Visitors will need this password to access this view'}
+							</p>
+						</div>
+					{/if}
 				</div>
 
 				<!-- Accent Color Override -->
