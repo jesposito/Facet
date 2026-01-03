@@ -172,6 +172,35 @@ export interface Award {
 	sort_order: number;
 }
 
+export type ContactMethodType =
+	| 'email'
+	| 'phone'
+	| 'linkedin'
+	| 'github'
+	| 'twitter'
+	| 'facebook'
+	| 'instagram'
+	| 'website'
+	| 'whatsapp'
+	| 'telegram'
+	| 'discord'
+	| 'slack'
+	| 'other';
+
+export type ProtectionLevel = 'none' | 'obfuscation' | 'click_to_reveal' | 'captcha';
+
+export interface ContactMethod {
+	id: string;
+	type: ContactMethodType;
+	value: string;
+	label?: string;
+	icon?: string;
+	protection_level: ProtectionLevel;
+	view_visibility?: Record<string, boolean>;
+	is_primary: boolean;
+	sort_order: number;
+}
+
 export interface View {
 	id: string;
 	name: string;
@@ -290,6 +319,15 @@ export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string;
 			default: 'Default',
 			cards: 'Cards',
 			list: 'List'
+		}
+	},
+	contacts: {
+		layouts: ['vertical', 'horizontal', 'grid'],
+		default: 'vertical',
+		labels: {
+			vertical: 'Vertical List',
+			horizontal: 'Horizontal',
+			grid: 'Grid'
 		}
 	}
 };
@@ -492,6 +530,17 @@ export async function fetchCertifications(): Promise<Certification[]> {
 			sort: 'issuer,sort_order,-issue_date'
 		});
 		return records.items as unknown as Certification[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchContactMethods(): Promise<ContactMethod[]> {
+	try {
+		const records = await pb.collection('contact_methods').getList(1, 100, {
+			sort: '-is_primary,sort_order'
+		});
+		return records.items as unknown as ContactMethod[];
 	} catch {
 		return [];
 	}

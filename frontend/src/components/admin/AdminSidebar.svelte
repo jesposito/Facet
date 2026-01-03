@@ -11,6 +11,7 @@ const navSections = [
 		title: 'All About You',
 		items: [
 			{ href: '/admin/profile', label: 'Profile', icon: 'user' },
+			{ href: '/admin/contacts', label: 'Contact Methods', icon: 'mail' },
 			{ href: '/admin/experience', label: 'Experience', icon: 'briefcase' },
 			{ href: '/admin/projects', label: 'Projects', icon: 'folder' },
 			{ href: '/admin/education', label: 'Education', icon: 'academic' },
@@ -77,6 +78,10 @@ function isActive(href: string): boolean {
 							{:else if item.icon === 'user'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+								</svg>
+							{:else if item.icon === 'mail'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 								</svg>
 							{:else if item.icon === 'briefcase'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
