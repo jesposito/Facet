@@ -126,14 +126,14 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			}
 
 			var req struct {
-				ViewID    string     `json:"view_id"`
-				Name      string     `json:"name"`
-				ExpiresAt *time.Time `json:"expires_at"`
-				MaxUses   int        `json:"max_uses"`
+				ViewID    string  `json:"view_id"`
+				Name      string  `json:"name"`
+				ExpiresAt *string `json:"expires_at"` // Accept as string, parse below
+				MaxUses   int     `json:"max_uses"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request", "details": err.Error()})
 			}
 
 			// Verify view exists
@@ -165,8 +165,22 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			record.Set("is_active", true)
 			record.Set("use_count", 0)
 
-			if req.ExpiresAt != nil {
-				record.Set("expires_at", *req.ExpiresAt)
+			if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+				// Parse datetime-local format (e.g., "2024-01-15T14:30")
+				// Try multiple formats
+				expiresAt, err := time.Parse("2006-01-02T15:04", *req.ExpiresAt)
+				if err != nil {
+					// Try with seconds
+					expiresAt, err = time.Parse("2006-01-02T15:04:05", *req.ExpiresAt)
+				}
+				if err != nil {
+					// Try RFC3339
+					expiresAt, err = time.Parse(time.RFC3339, *req.ExpiresAt)
+				}
+				if err != nil {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid expiration date format"})
+				}
+				record.Set("expires_at", expiresAt)
 			}
 			if req.MaxUses > 0 {
 				record.Set("max_uses", req.MaxUses)
