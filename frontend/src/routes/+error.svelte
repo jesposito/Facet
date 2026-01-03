@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { dev } from '$app/environment';
+	import { dev, browser } from '$app/environment';
 
 	onMount(() => {
 		console.error('[ERROR PAGE] Displayed error:', {
@@ -13,6 +13,48 @@
 
 	$: is404 = $page.status === 404;
 	$: is500 = $page.status >= 500;
+
+	let referrerPath = '';
+
+	onMount(() => {
+		if (!browser) return;
+		try {
+			const ref = document.referrer;
+			if (ref) {
+				const refUrl = new URL(ref);
+				// Only use same-origin referrers, and avoid self-loops
+				if (refUrl.origin === window.location.origin && refUrl.pathname !== window.location.pathname) {
+					referrerPath = refUrl.pathname + refUrl.search;
+				}
+			}
+		} catch {
+			// ignore
+		}
+	});
+
+	const goHome = () => {
+		if (!browser) return;
+		// If we have a usable referrer, prefer it
+		if (referrerPath && referrerPath !== $page.url.pathname) {
+			window.location.href = referrerPath;
+		} else {
+			window.location.href = '/';
+		}
+	};
+
+	const goBack = () => {
+		if (!browser) return;
+		if (referrerPath && referrerPath !== $page.url.pathname) {
+			window.location.href = referrerPath;
+		} else {
+			window.history.back();
+		}
+	};
+
+	const hardReload = () => {
+		if (!browser) return;
+		window.location.reload();
+	};
 </script>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
@@ -153,26 +195,32 @@
 
 		<!-- Action buttons -->
 		<div class="flex flex-wrap gap-4 justify-center">
-			<a
-				href="/"
+			<button
+				type="button"
+				on:click={goHome}
 				class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
 				</svg>
 				{is404 ? 'Back to What Actually Works' : 'Go Home'}
-			</a>
+			</button>
 
 			{#if is404}
-				<a
-					href="/projects"
+				<button
+					type="button"
+					on:click={goBack}
 					class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 				>
-					See What I Did Build
-				</a>
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+					</svg>
+					Go Back
+				</button>
 			{:else}
 				<button
-					on:click={() => window.location.reload()}
+					type="button"
+					on:click={hardReload}
 					class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

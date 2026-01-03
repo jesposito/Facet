@@ -38,42 +38,13 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "token required"})
 			}
 
-			// O(1) lookup using token_prefix index
-			prefix := share.TokenPrefix(req.Token)
-
-			// Query by prefix for efficient lookup (indexed)
-			candidates, err := app.FindRecordsByFilter(
+			// Direct lookup by HMAC (unique index) avoids any prefix mismatches
+			tokenHMAC := share.HMACToken(req.Token)
+			tokenRecord, err := app.FindFirstRecordByFilter(
 				"share_tokens",
-				"token_prefix = {:prefix} && is_active = true",
-				"-created",
-				10, // Prefix collisions are rare; limit for safety
-				0,
-				map[string]interface{}{"prefix": prefix},
+				"token_hash = {:hash} && is_active = true",
+				map[string]interface{}{"hash": tokenHMAC},
 			)
-
-			// Fallback to legacy lookup if no prefix-based results (for tokens created before migration)
-			if err != nil || len(candidates) == 0 {
-				// Try legacy O(n) scan for old tokens without prefix
-				candidates, err = app.FindRecordsByFilter(
-					"share_tokens",
-					"(token_prefix = '' || token_prefix IS NULL) && is_active = true",
-					"-created",
-					100,
-					0,
-					nil,
-				)
-			}
-
-			// Find the matching token using constant-time HMAC comparison
-			var tokenRecord *core.Record
-			for _, record := range candidates {
-				storedHMAC := record.GetString("token_hash")
-				if share.ValidateTokenHMAC(req.Token, storedHMAC) {
-					tokenRecord = record
-					break
-				}
-			}
-
 			if err != nil || tokenRecord == nil {
 				return e.JSON(http.StatusOK, invalidResponse)
 			}
@@ -126,14 +97,14 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			}
 
 			var req struct {
-				ViewID    string     `json:"view_id"`
-				Name      string     `json:"name"`
-				ExpiresAt *time.Time `json:"expires_at"`
-				MaxUses   int        `json:"max_uses"`
+				ViewID    string  `json:"view_id"`
+				Name      string  `json:"name"`
+				ExpiresAt *string `json:"expires_at"` // Accept as string, parse below
+				MaxUses   int     `json:"max_uses"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request", "details": err.Error()})
 			}
 
 			// Verify view exists
@@ -165,8 +136,22 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			record.Set("is_active", true)
 			record.Set("use_count", 0)
 
-			if req.ExpiresAt != nil {
-				record.Set("expires_at", *req.ExpiresAt)
+			if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+				// Parse datetime-local format (e.g., "2024-01-15T14:30")
+				// Try multiple formats
+				expiresAt, err := time.Parse("2006-01-02T15:04", *req.ExpiresAt)
+				if err != nil {
+					// Try with seconds
+					expiresAt, err = time.Parse("2006-01-02T15:04:05", *req.ExpiresAt)
+				}
+				if err != nil {
+					// Try RFC3339
+					expiresAt, err = time.Parse(time.RFC3339, *req.ExpiresAt)
+				}
+				if err != nil {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid expiration date format"})
+				}
+				record.Set("expires_at", expiresAt)
 			}
 			if req.MaxUses > 0 {
 				record.Set("max_uses", req.MaxUses)

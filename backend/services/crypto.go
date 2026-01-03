@@ -125,12 +125,13 @@ func (c *CryptoService) CheckPassword(password, hash string) bool {
 }
 
 // GenerateToken generates a cryptographically secure random token
+// Uses URL-safe base64 encoding WITHOUT padding to avoid issues with = in URLs
 func (c *CryptoService) GenerateToken(length int) (string, error) {
 	bytes := make([]byte, length)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(bytes), nil
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
 // HMACToken creates an HMAC-SHA256 of a token for secure storage

@@ -41,6 +41,7 @@
 	let slug = '';
 	let description = '';
 	let visibility: 'public' | 'unlisted' | 'private' | 'password' = 'public';
+	let password = ''; // For password-protected views (only set when changing)
 	let heroHeadline = '';
 	let heroSummary = '';
 	let ctaText = '';
@@ -472,7 +473,7 @@
 					return sectionData;
 				});
 
-			const data = {
+			const data: Record<string, unknown> = {
 				name: name.trim(),
 				slug: slug.trim(),
 				description: description.trim(),
@@ -485,6 +486,11 @@
 				sections: sectionsData,
 				accent_color: accentColor || null
 			};
+
+			// Only include password if it's set (for new password or change)
+			if (visibility === 'password' && password.trim()) {
+				data.password = password.trim();
+			}
 
 			await pb.collection('views').update(viewId, data);
 
@@ -749,6 +755,36 @@
 					></textarea>
 					<p class="text-xs text-gray-500 mt-1">Private notes (not shown publicly)</p>
 				</div>
+
+				<div>
+					<label for="visibility" class="label">Visibility *</label>
+					<select id="visibility" bind:value={visibility} class="input">
+						<option value="public">Public - Anyone can access</option>
+						<option value="unlisted">Unlisted - Only with share token</option>
+						<option value="password">Password - Requires password</option>
+						<option value="private">Private - Admin only</option>
+					</select>
+					<p class="text-xs text-gray-500 mt-1">Controls who can access this view</p>
+				</div>
+
+				{#if visibility === 'password'}
+					<div>
+						<label for="password" class="label">
+							{password ? 'Change Password' : 'Set Password *'}
+						</label>
+						<input
+							type="password"
+							id="password"
+							bind:value={password}
+							class="input"
+							placeholder={password ? 'Enter new password to change' : 'Enter password for this view'}
+							autocomplete="new-password"
+						/>
+						<p class="text-xs text-gray-500 mt-1">
+							{password ? 'Leave blank to keep current password' : 'Visitors will need this password to access this view'}
+						</p>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Hero Overrides -->
@@ -842,18 +878,6 @@
 			<!-- Settings -->
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="visibility" class="label">Visibility</label>
-						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">Public - Anyone can access</option>
-							<option value="unlisted">Unlisted - Only with share token</option>
-							<option value="password">Password - Requires password</option>
-							<option value="private">Private - Admin only</option>
-						</select>
-					</div>
-				</div>
 
 				<!-- Accent Color Override -->
 				<div class="pt-2">

@@ -195,7 +195,7 @@ func fileURL(collectionID, recordID, filename string, transform string) string {
 // RegisterViewHooks registers view-related API endpoints
 func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
 	// Register views collection hooks for validation
-	registerViewsValidation(app)
+	registerViewsValidation(app, crypto)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
@@ -1819,41 +1819,13 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 		return false, nil
 	}
 
-	// O(1) lookup using token_prefix index
-	prefix := share.TokenPrefix(token)
-
-	// Query by prefix for efficient lookup (indexed)
-	candidates, err := app.FindRecordsByFilter(
+	// Direct lookup by HMAC (unique index) avoids prefix mismatches
+	tokenHMAC := share.HMACToken(token)
+	tokenRecord, err := app.FindFirstRecordByFilter(
 		"share_tokens",
-		"token_prefix = {:prefix} && is_active = true",
-		"-created",
-		10,
-		0,
-		map[string]interface{}{"prefix": prefix},
+		"token_hash = {:hash} && is_active = true",
+		map[string]interface{}{"hash": tokenHMAC},
 	)
-
-	// Fallback to legacy lookup if no prefix-based results
-	if err != nil || len(candidates) == 0 {
-		candidates, err = app.FindRecordsByFilter(
-			"share_tokens",
-			"(token_prefix = '' || token_prefix IS NULL) && is_active = true",
-			"-created",
-			100,
-			0,
-			nil,
-		)
-	}
-
-	// Find matching token using constant-time HMAC comparison
-	var tokenRecord *core.Record
-	for _, record := range candidates {
-		storedHMAC := record.GetString("token_hash")
-		if share.ValidateTokenHMAC(token, storedHMAC) {
-			tokenRecord = record
-			break
-		}
-	}
-
 	if err != nil || tokenRecord == nil {
 		return false, nil
 	}
@@ -1883,7 +1855,8 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 // This enforces:
 // 1. Reserved slug protection - prevents creating views with reserved slugs
 // 2. Single default view - ensures only one view can be marked as default
-func registerViewsValidation(app *pocketbase.PocketBase) {
+// 3. Password hashing - automatically hashes passwords for password-protected views
+func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	// Validate on create
 	app.OnRecordCreate("views").BindFunc(func(e *core.RecordEvent) error {
 		slug := e.Record.GetString("slug")
@@ -1891,6 +1864,21 @@ func registerViewsValidation(app *pocketbase.PocketBase) {
 		// Validate slug is not reserved
 		if !isValidSlug(slug) {
 			return fmt.Errorf("invalid or reserved slug: slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc")
+		}
+
+		// Hash password if provided (frontend sends "password" field, we store "password_hash")
+		password := e.Record.GetString("password")
+		app.Logger().Info("OnRecordCreate views hook", "slug", slug, "password_len", len(password), "visibility", e.Record.GetString("visibility"))
+		if password != "" {
+			hash, err := crypto.HashPassword(password)
+			if err != nil {
+				return fmt.Errorf("failed to hash password: %w", err)
+			}
+			e.Record.Set("password_hash", hash)
+			e.Record.Set("password", "") // Clear plaintext password
+			app.Logger().Info("Password hashed successfully", "slug", slug, "hash_len", len(hash))
+		} else if e.Record.GetString("visibility") == "password" {
+			app.Logger().Warn("Password visibility set but no password provided", "slug", slug)
 		}
 
 		// If this view is being set as default, clear other defaults
@@ -1910,6 +1898,17 @@ func registerViewsValidation(app *pocketbase.PocketBase) {
 		// Validate slug is not reserved
 		if !isValidSlug(slug) {
 			return fmt.Errorf("invalid or reserved slug: slugs cannot use reserved paths like 'admin', 'api', 's', 'v', etc")
+		}
+
+		// Hash password if provided (only hash if password field is present and not empty)
+		password := e.Record.GetString("password")
+		if password != "" {
+			hash, err := crypto.HashPassword(password)
+			if err != nil {
+				return fmt.Errorf("failed to hash password: %w", err)
+			}
+			e.Record.Set("password_hash", hash)
+			e.Record.Set("password", "") // Clear plaintext password
 		}
 
 		// If this view is being set as default, clear other defaults

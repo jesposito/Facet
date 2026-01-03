@@ -16,7 +16,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management (25 tests, 96% pass rate).
 - ✅ Security audit complete: Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (1 HIGH, 3 MEDIUM, 2 LOW severity issues) with prioritized remediation roadmap.
 - ✅ Critical security fixes: XSS prevention (DOMPurify sanitization) and path traversal protection (11-layer validation with symlink detection) implemented and tested.
-- 🟡 In progress: AI print/resume polish.
+- 🟡 In progress: Contact protection & social links (Phase 11 - Phase 1: Foundation), AI print/resume polish.
 - 🔜 Planned: Security headers implementation, debug logging cleanup, 2FA, audit logging hooks, Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
 
 ---
@@ -107,6 +107,32 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - Enabling: snapshot user data, seed demo dataset; clear status copy
 - Disabling: restore snapshot, clean demo data, restore prior settings
 - Optional telemetry hook on toggle respecting analytics settings
+
+---
+
+## Phase 11: Contact Protection & Social Links (🟡 In Progress)
+**Purpose:** Granular per-view contact control with anti-scraping protection
+- 🟡 **Phase 1 (Week 1): Foundation**
+  - Create `contact_methods` collection with view-specific visibility
+  - Implement CSS obfuscation and click-to-reveal components
+  - Add robots.txt blocking AI crawlers (GPTBot, ClaudeBot, etc.)
+  - Rate limiting for contact reveals (10/10min per device)
+- 🔜 **Phase 2 (Week 2): Admin UI**
+  - Contact methods management page
+  - Per-view visibility matrix
+  - Protection level selector (none/obfuscation/click-to-reveal/captcha)
+  - Drag-and-drop reordering
+- 🔜 **Phase 3 (Week 3): Advanced Protection**
+  - Cloudflare Turnstile integration
+  - Device fingerprinting
+  - Analytics dashboard for reveal attempts
+  - Honeypot detection
+
+**Features:**
+- Multiple contact types: email, phone, LinkedIn, GitHub, Twitter, WhatsApp, etc.
+- 4-tier protection: none, CSS obfuscation, click-to-reveal, Turnstile CAPTCHA
+- Full WCAG 2.1 AA accessibility compliance
+- See [CONTACT_PROTECTION.md](docs/CONTACT_PROTECTION.md) for complete spec
 
 ---
 
