@@ -34,45 +34,23 @@ onMount(loadMediaOptions);
 async function loadMediaOptions(searchTerm = '') {
 	loadingMedia = true;
 	try {
-	const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
-		const mediaParams = new URLSearchParams({ perPage: '50' });
-		if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
-
+		const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
 		const externalFilter = searchTerm.trim()
 			? `&filter=${encodeURIComponent(`title~"${searchTerm}" || url~"${searchTerm}"`)}`
 			: '';
 
-		const [mediaRes, externalRes] = await Promise.all([
-			fetch(`/api/media?${mediaParams.toString()}`, { headers }),
-			fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
-		]);
-
-		const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
-		const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
-
-		const options: { id: string; title: string; provider?: string; url?: string }[] = [];
-
-		for (const item of mediaData.items || []) {
-			options.push({
-				id: item.record_id || item.relative_path || item.url,
-				title: item.display_name || item.filename || item.url,
-				provider: item.provider || (item.external ? 'external' : 'upload'),
-				url: item.url
-			});
+		const externalRes = await fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers });
+		if (!externalRes.ok) {
+			mediaOptions = [];
+			return;
 		}
-
-		for (const item of externalData.items || []) {
-			if (!options.find((opt) => opt.id === item.id || opt.url === item.url)) {
-				options.push({
-					id: item.id,
-					title: item.title || item.url,
-					provider: 'external',
-					url: item.url
-				});
-			}
-		}
-
-		mediaOptions = options;
+		const externalData = await externalRes.json();
+		mediaOptions = (externalData.items || []).map((item: any) => ({
+			id: item.id,
+			title: item.title || item.url,
+			provider: 'external',
+			url: item.url
+		}));
 	} catch (err) {
 		console.error('Failed to load media options', err);
 	} finally {
