@@ -37,6 +37,50 @@ One port exposed. One volume to backup. That's it.
 
 ---
 
+## Why Facet Is Secure
+
+Your professional identity deserves better than hoping a platform protects it. Facet takes security seriously:
+
+**You Control the Data**
+- SQLite database you own (no cloud dependency)
+- AES-256-GCM encryption for API keys and tokens
+- Bcrypt password hashing (cost 12)
+- Everything runs on your hardware
+
+**Privacy by Design**
+- Zero tracking or analytics
+- No third-party scripts
+- No data mining
+- Email allowlist for admin access
+
+**Battle-Tested Security**
+- Comprehensive security audit completed ([docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md))
+- 11-layer path traversal protection
+- DOMPurify XSS prevention
+- Rate limiting on sensitive endpoints
+- Deny-by-default access control
+
+**Transparent and Auditable**
+- Open source (you can read every line)
+- 25+ E2E security tests
+- Full security documentation
+- No proprietary black boxes
+
+**Share Links That Don't Leak**
+- HMAC-SHA256 hashed tokens (raw tokens never stored)
+- Expiration dates and use limits
+- One-click revocation
+- Works correctly behind reverse proxies
+
+**Contact Protection**
+- Four-tier protection (CSS obfuscation, click-to-reveal, CAPTCHA-ready)
+- Per-view visibility controls
+- Anti-bot measures
+
+Facet isn't just private. It's designed to be verifiably secure. Read the full security model: [docs/SECURITY.md](docs/SECURITY.md)
+
+---
+
 ## Quick Start
 
 ```bash

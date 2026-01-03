@@ -13,12 +13,15 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Media optimization (thumb/srcset) live on posts/projects/homepage; view membership badges in admin lists.
 - ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks, bulk delete.
 - ✅ SEO & Error UX complete: custom 404/500 pages, canonical URLs, comprehensive Open Graph/Twitter Cards, JSON-LD, sitemap, robots.txt.
-- ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management (25 tests, 96% pass rate).
+- ✅ E2E Testing: Playwright test suite with 100% pass rate on public tests (12/12), 25+ total tests covering public APIs, SEO, error pages, media, admin flows, security (96% overall pass rate).
 - ✅ Security audit complete: Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (1 HIGH, 3 MEDIUM, 2 LOW severity issues) with prioritized remediation roadmap.
 - ✅ Critical security fixes: XSS prevention (DOMPurify sanitization) and path traversal protection (11-layer validation with symlink detection) implemented and tested.
 - ✅ Contact protection & social links (Phase 11): Complete with contact_methods collection, admin CRUD, per-view visibility, and 4-tier protection levels.
 - ✅ AI Writing Assistant (Phase 12): Complete with 5 tone options, critique mode, mobile-responsive, integrated across all content forms.
-- 🔜 Planned: Resume upload & AI parsing, Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning, Demo Mode (Phase 10).
+- ✅ README rewrite: Comprehensive, user-focused documentation for visitors, site owners, and developers with security highlights and accurate feature descriptions.
+- ✅ docker-compose.yml enhancement: Extensively commented with Unraid-specific guidance, troubleshooting, and backup instructions.
+- 🔜 **Next Up (Phase 13):** First-run welcome page, password change prompt, demo mode toggle, Unraid Community Apps template, enhanced setup docs
+- 🔜 **Planned:** Resume upload & AI parsing, Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
 
 ---
 
@@ -102,12 +105,26 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (planned)
 
 ## Phase 10: Demo & Showcase Mode (🔜 Planned)
-**Purpose:** Production-safe demo to highlight value when not in dev.
-- Admin dashboard toggle (off by default, non-dev only)
-- Persona: well-known, multifaceted fictional character (e.g., The Doctor) with 5 curated views mixing overlapping/specific content (tokens, password view, custom CSS, AI print, media, GitHub sample)
-- Enabling: snapshot user data, seed demo dataset; clear status copy
-- Disabling: restore snapshot, clean demo data, restore prior settings
-- Optional telemetry hook on toggle respecting analytics settings
+**Purpose:** Production-safe demo to highlight value for new users.
+- **Demo Mode Toggle** in admin dashboard (off by default)
+  - Visible toggle near top of admin dashboard
+  - Enables full showcase data to demonstrate all Facet features
+  - Hydrates with complete demo profile including:
+    - Multiple views (public, recruiter, conference, consulting, personal)
+    - Sample projects with media and GitHub import examples
+    - Blog posts and talks with rich content
+    - All content types populated (experience, education, skills, certifications, awards)
+    - Password-protected view example
+    - Share tokens with various expiration/limit settings
+- **Data Preservation**
+  - On enable: Snapshot current user data before loading demo
+  - On disable: Restore user's original data exactly as it was
+  - If user edits during demo mode: preserve those edits OR restore to empty (user choice)
+- **Implementation Details**
+  - Backend API: `/api/demo/enable` and `/api/demo/disable`
+  - Database backup/restore mechanism (export to JSON, store in temporary table)
+  - Clear UI indicators when demo mode is active
+  - Persistent toggle state across sessions
 
 ---
 
@@ -151,6 +168,58 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - Preview modal with side-by-side comparison
 - Works with OpenAI, Anthropic, and Ollama providers
 - Comprehensive documentation in [AI_WRITING_ASSISTANT.md](docs/AI_WRITING_ASSISTANT.md)
+
+---
+
+## Phase 13: First-Run Experience & Unraid Support (🔜 Planned)
+**Purpose:** Make installation and onboarding seamless for all users, especially Unraid community.
+
+### First-Run Welcome Page
+- **Welcome screen** when no profile exists (replaces "This profile is being set up")
+  - Engaging introduction to Facet
+  - Brief explanation of what users can do
+  - Prominent "Sign In to Get Started" button → `/admin`
+  - Optional: Preview screenshots or key feature highlights
+- **First login enhancements**
+  - Detect first login with default password (`changeme123`)
+  - Modal prompt to change password immediately
+  - Cannot access admin dashboard until password is changed
+  - Smooth redirect to admin after password update
+
+### Unraid Community Support
+- **Enhanced docker-compose.yml**
+  - ✅ Extensive inline comments explaining every environment variable
+  - ✅ Unraid-specific guidance throughout
+  - ✅ Complete troubleshooting section
+  - ✅ Backup/restore instructions
+- **Unraid Community Apps Template** (XML)
+  - Template for Unraid Community Applications store
+  - Pre-filled smart defaults for typical Unraid setups
+  - Helpful descriptions for each field in the WebUI
+  - Automatic DATA_PATH mapping to `/mnt/user/appdata/facet`
+- **Enhanced .env.example**
+  - Dedicated Unraid configuration section
+  - Example configurations for common setups:
+    - Unraid local access
+    - Unraid + Cloudflare Tunnel
+    - Unraid + Nginx Proxy Manager
+  - Clear "Required vs Optional" sections
+- **Comprehensive SETUP.md updates**
+  - Dedicated Unraid section with step-by-step instructions
+  - Screenshots/placeholders for Unraid WebUI
+  - Cloudflare Tunnel + Unraid walkthrough
+  - Reverse proxy configuration to preserve share tokens
+
+### Reverse Proxy & Token Handling
+- **Documentation improvements**
+  - Verify TRUST_PROXY correctly handles share tokens
+  - Cloudflare-specific settings and gotchas
+  - Nginx/Traefik/Swag configuration examples
+  - Debug instructions for broken share links behind proxies
+- **Testing**
+  - E2E tests for share tokens behind simulated proxy
+  - Verify X-Forwarded-Proto and X-Forwarded-Host handling
+  - Test with real Cloudflare Tunnel setup
 
 ---
 

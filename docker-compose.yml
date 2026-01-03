@@ -1,33 +1,280 @@
-# Facet Production Docker Compose
-# Single container, single port
+# ============================================================================
+# Facet - Self-Hosted Personal Profile Platform
+# ============================================================================
+#
+# This Docker Compose file runs Facet in a single container with:
+# - PocketBase backend (Go) on internal port 8090
+# - SvelteKit frontend (Node.js) on internal port 3000
+# - Caddy reverse proxy routing requests between them
+# - Single public port: 8080 (configurable via PORT env var)
+# - Single volume: /data (for SQLite database + uploaded files)
+#
+# BEFORE YOU START:
+# 1. Copy .env.example to .env
+# 2. Generate an encryption key: openssl rand -hex 32
+# 3. Paste it as ENCRYPTION_KEY in .env
+# 4. (Optional) Add your email to ADMIN_EMAILS for OAuth login
+# 5. Run: docker-compose up -d
+#
+# ============================================================================
 
 version: '3.8'
 
 services:
   facet:
+    # --------------------------------------------------------------------
+    # BUILD CONFIGURATION
+    # --------------------------------------------------------------------
+    # Builds from the Dockerfile in ./docker/Dockerfile
+    # Multi-stage build creates optimized production image
     build:
       context: .
       dockerfile: docker/Dockerfile
+
     container_name: facet
+
+    # --------------------------------------------------------------------
+    # RESTART POLICY
+    # --------------------------------------------------------------------
+    # "unless-stopped" means:
+    # - Container restarts automatically if it crashes
+    # - Container does NOT restart if you manually stop it
+    # - Container DOES restart when the system reboots
     restart: unless-stopped
+
+    # --------------------------------------------------------------------
+    # PORT MAPPING
+    # --------------------------------------------------------------------
+    # Maps host port to container port 8080 (Caddy reverse proxy)
+    # Default: 8080 (change with PORT in .env)
+    #
+    # IMPORTANT FOR UNRAID USERS:
+    # - Use a free port on your Unraid server (8080 is usually fine)
+    # - If 8080 is taken, set PORT=8081 (or any free port) in .env
+    # - This is the port you'll use in your browser: http://unraid-ip:8080
     ports:
       - "${PORT:-8080}:8080"
+
+    # --------------------------------------------------------------------
+    # VOLUME MAPPING
+    # --------------------------------------------------------------------
+    # Maps a host directory to /data in the container
+    # Contains:
+    # - SQLite database (pb_data/data.db)
+    # - Uploaded files (pb_data/storage/)
+    #
+    # CRITICAL: This is your only data. BACK IT UP.
+    #
+    # Default: ./data (relative to docker-compose.yml)
+    #
+    # UNRAID USERS:
+    # Set DATA_PATH=/mnt/user/appdata/facet in .env
+    # This puts your data in the standard Unraid appdata location
+    # which gets backed up by CA Backup/Restore
     volumes:
       - ${DATA_PATH:-./data}:/data
+
+    # --------------------------------------------------------------------
+    # ENVIRONMENT VARIABLES
+    # --------------------------------------------------------------------
+    # These come from your .env file. See .env.example for full docs.
     environment:
-      # Backend
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env}
+      # ------------------------------------------------------------------
+      # REQUIRED: ENCRYPTION_KEY
+      # ------------------------------------------------------------------
+      # Used to encrypt API keys and sensitive tokens in the database
+      # Generate with: openssl rand -hex 32
+      #
+      # MUST be 32 bytes (64 hex characters)
+      # MUST be kept secret
+      # MUST NOT change after first run (or encrypted data becomes unreadable)
+      #
+      # If this is missing, the container will fail to start.
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ERROR: ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32}
+
+      # ------------------------------------------------------------------
+      # NETWORK: Reverse Proxy Configuration
+      # ------------------------------------------------------------------
+      # TRUST_PROXY:
+      # - Set "true" if Facet is behind a reverse proxy (Nginx, Cloudflare Tunnel, Traefik)
+      # - Tells the backend to trust X-Forwarded-* headers for client IP and protocol
+      # - Default: false (direct access)
+      #
+      # WHEN TO SET TRUE:
+      # - Using Cloudflare Tunnel
+      # - Using Nginx Proxy Manager
+      # - Using Traefik
+      # - Using Swag/Let's Encrypt
+      # - Behind any reverse proxy that sets X-Forwarded-For, X-Forwarded-Proto
+      #
+      # WHEN TO KEEP FALSE:
+      # - Accessing directly (no reverse proxy)
+      # - Using port forwarding only
       - TRUST_PROXY=${TRUST_PROXY:-false}
+
+      # APP_URL:
+      # Your public-facing URL (how users access Facet)
+      # Used for:
+      # - OAuth redirect URIs (Google/GitHub login)
+      # - Generated share links
+      # - Email links (if you add email features later)
+      #
+      # EXAMPLES:
+      # - Direct access: http://localhost:8080
+      # - Unraid local: http://192.168.1.100:8080
+      # - Cloudflare Tunnel: https://profile.yourdomain.com
+      # - Nginx: https://facet.example.com
+      #
+      # IMPORTANT:
+      # - Use http:// for local/development
+      # - Use https:// for production with SSL
+      # - Must match OAuth redirect URIs in Google/GitHub console
       - APP_URL=${APP_URL:-http://localhost:8080}
+
+      # ------------------------------------------------------------------
+      # SECURITY: Admin Access
+      # ------------------------------------------------------------------
+      # ADMIN_ENABLED:
+      # - Set "true" to enable PocketBase admin UI at /_/
+      # - Default: false (disabled for security)
+      # - Only enable for debugging/troubleshooting
+      # - PocketBase admin is separate from Facet admin (/admin)
       - ADMIN_ENABLED=${ADMIN_ENABLED:-false}
+
+      # ADMIN_EMAILS:
+      # Comma-separated list of emails allowed to log in as admin
+      #
+      # HOW IT WORKS:
+      # - If set: Only these emails can create admin accounts via OAuth
+      # - If empty: Any authenticated user can become admin (NOT RECOMMENDED FOR PRODUCTION)
+      #
+      # EXAMPLES:
+      # - Single user: you@gmail.com
+      # - Multiple users: you@gmail.com,coworker@example.com
+      #
+      # UNRAID USERS:
+      # Set this to your email address to lock down admin access
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
-      # Frontend (SvelteKit) - for proper URL generation behind reverse proxy
+
+      # ------------------------------------------------------------------
+      # FRONTEND: SvelteKit Configuration
+      # ------------------------------------------------------------------
+      # These tell SvelteKit how to handle requests behind a reverse proxy
+      #
+      # ORIGIN:
+      # - Must match APP_URL
+      # - Used by SvelteKit for CSRF protection and URL generation
       - ORIGIN=${APP_URL:-http://localhost:8080}
+
+      # PROTOCOL_HEADER / HOST_HEADER:
+      # - Tell SvelteKit to trust X-Forwarded-Proto and X-Forwarded-Host
+      # - Critical for OAuth and share links to work behind reverse proxy
+      # - Leave these as-is (standard headers)
       - PROTOCOL_HEADER=X-Forwarded-Proto
       - HOST_HEADER=X-Forwarded-Host
+
+    # --------------------------------------------------------------------
+    # HEALTH CHECK
+    # --------------------------------------------------------------------
+    # Docker will ping /api/health every 30 seconds
+    # If it fails 3 times, container is marked unhealthy
+    # Useful for monitoring and auto-restart
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
+
+# ============================================================================
+# AFTER STARTING
+# ============================================================================
+#
+# 1. Check logs:
+#    docker-compose logs -f facet
+#
+# 2. Access your instance:
+#    - Public profile: http://localhost:8080 (or your APP_URL)
+#    - Admin dashboard: http://localhost:8080/admin
+#
+# 3. First login:
+#    - Email: admin@example.com (or your email if set in .env via seed script)
+#    - Password: changeme123 (CHANGE THIS IMMEDIATELY)
+#
+# 4. Next steps:
+#    - Change your password
+#    - Try demo mode (toggle in admin dashboard)
+#    - Edit your profile
+#    - Import projects from GitHub
+#    - Create custom views
+#
+# ============================================================================
+# BACKUP & RESTORE
+# ============================================================================
+#
+# Everything lives in your DATA_PATH directory.
+#
+# BACKUP:
+#   docker-compose down
+#   tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data
+#   docker-compose up -d
+#
+# RESTORE:
+#   docker-compose down
+#   tar -xzvf facet-backup-20260103.tar.gz
+#   docker-compose up -d
+#
+# UNRAID USERS:
+# - Use CA Backup/Restore plugin to back up /mnt/user/appdata/facet
+# - Or manually copy /mnt/user/appdata/facet to a safe location
+#
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+#
+# Container won't start:
+#   - Check ENCRYPTION_KEY is set in .env
+#   - Check DATA_PATH exists and is writable
+#   - View logs: docker-compose logs facet
+#
+# Can't log in:
+#   - Default credentials: admin@example.com / changeme123
+#   - Check ADMIN_EMAILS matches your OAuth email
+#   - Try password login instead of OAuth
+#
+# OAuth not working:
+#   - Verify APP_URL matches OAuth redirect URI
+#   - Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env
+#   - Ensure redirect URI is: <APP_URL>/api/oauth2-redirect
+#
+# Share links broken behind reverse proxy:
+#   - Set TRUST_PROXY=true in .env
+#   - Ensure reverse proxy sets X-Forwarded-Proto and X-Forwarded-Host
+#   - Restart container after changing .env
+#
+# Uploads not persisting:
+#   - Check DATA_PATH is correctly mounted
+#   - Verify directory permissions (container runs as UID 1000)
+#   - Check available disk space
+#
+# ============================================================================
+# FOR UNRAID USERS
+# ============================================================================
+#
+# RECOMMENDED SETTINGS:
+#   Container Name: facet
+#   Repository: your-dockerhub-username/facet:latest
+#   Network Type: Bridge
+#   Port: 8080 → 8080 (or any free port)
+#   Path: /data → /mnt/user/appdata/facet
+#
+#   Environment Variables:
+#   - ENCRYPTION_KEY: (generate with: openssl rand -hex 32)
+#   - ADMIN_EMAILS: your-email@gmail.com
+#   - APP_URL: https://profile.yourdomain.com (if using Cloudflare Tunnel)
+#   - TRUST_PROXY: true (if using reverse proxy)
+#   - PORT: 8080
+#
+# See docs/SETUP.md for complete Unraid setup guide with screenshots.
+#
+# ============================================================================
