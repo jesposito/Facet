@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 

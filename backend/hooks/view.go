@@ -1819,41 +1819,13 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 		return false, nil
 	}
 
-	// O(1) lookup using token_prefix index
-	prefix := share.TokenPrefix(token)
-
-	// Query by prefix for efficient lookup (indexed)
-	candidates, err := app.FindRecordsByFilter(
+	// Direct lookup by HMAC (unique index) avoids prefix mismatches
+	tokenHMAC := share.HMACToken(token)
+	tokenRecord, err := app.FindFirstRecordByFilter(
 		"share_tokens",
-		"token_prefix = {:prefix} && is_active = true",
-		"-created",
-		10,
-		0,
-		map[string]interface{}{"prefix": prefix},
+		"token_hash = {:hash} && is_active = true",
+		map[string]interface{}{"hash": tokenHMAC},
 	)
-
-	// Fallback to legacy lookup if no prefix-based results
-	if err != nil || len(candidates) == 0 {
-		candidates, err = app.FindRecordsByFilter(
-			"share_tokens",
-			"(token_prefix = '' || token_prefix IS NULL) && is_active = true",
-			"-created",
-			100,
-			0,
-			nil,
-		)
-	}
-
-	// Find matching token using constant-time HMAC comparison
-	var tokenRecord *core.Record
-	for _, record := range candidates {
-		storedHMAC := record.GetString("token_hash")
-		if share.ValidateTokenHMAC(token, storedHMAC) {
-			tokenRecord = record
-			break
-		}
-	}
-
 	if err != nil || tokenRecord == nil {
 		return false, nil
 	}
