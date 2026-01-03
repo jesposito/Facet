@@ -370,6 +370,8 @@
 				return item.title as string;
 			case 'talks':
 				return `${item.title}${item.event ? ` @ ${item.event}` : ''}`;
+			case 'contacts':
+				return `${item.label || item.type} - ${item.value}`;
 			default:
 				return item.title as string || item.name as string || item.id as string;
 		}
