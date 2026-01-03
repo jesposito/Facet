@@ -24,6 +24,13 @@ pb_data/
 *.swo
 *~
 
+# AI agent instructions (keep local only)
+.claude/
+.cursor/
+.clinerules
+.aiderignore
+agent-instructions.md
+
 # Dev cache hashes (auto-generated)
 backend/.gomod-hash
 
