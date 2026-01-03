@@ -1868,6 +1868,7 @@ func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.Crypto
 
 		// Hash password if provided (frontend sends "password" field, we store "password_hash")
 		password := e.Record.GetString("password")
+		app.Logger().Info("OnRecordCreate views hook", "slug", slug, "password_len", len(password), "visibility", e.Record.GetString("visibility"))
 		if password != "" {
 			hash, err := crypto.HashPassword(password)
 			if err != nil {
@@ -1875,6 +1876,9 @@ func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.Crypto
 			}
 			e.Record.Set("password_hash", hash)
 			e.Record.Set("password", "") // Clear plaintext password
+			app.Logger().Info("Password hashed successfully", "slug", slug, "hash_len", len(hash))
+		} else if e.Record.GetString("visibility") == "password" {
+			app.Logger().Warn("Password visibility set but no password provided", "slug", slug)
 		}
 
 		// If this view is being set as default, clear other defaults
