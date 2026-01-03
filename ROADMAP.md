@@ -18,10 +18,11 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Critical security fixes: XSS prevention (DOMPurify sanitization) and path traversal protection (11-layer validation with symlink detection) implemented and tested.
 - ✅ Contact protection & social links (Phase 11): Complete with contact_methods collection, admin CRUD, per-view visibility, and 4-tier protection levels.
 - ✅ AI Writing Assistant (Phase 12): Complete with 5 tone options, critique mode, mobile-responsive, integrated across all content forms.
+- ✅ AI Resume Generation (Phase 4): Complete with PDF/DOCX export, multiple formats/styles, AI provider integration.
 - ✅ README rewrite: Comprehensive, user-focused documentation for visitors, site owners, and developers with security highlights and accurate feature descriptions.
 - ✅ docker-compose.yml enhancement: Extensively commented with Unraid-specific guidance, troubleshooting, and backup instructions.
 - 🔜 **Next Up (Phase 13):** First-run welcome page, password change prompt, demo mode toggle, Unraid Community Apps template, enhanced setup docs
-- 🔜 **Planned:** Resume upload & AI parsing, Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
+- 🔜 **Planned:** Resume upload & AI parsing (reverse direction), Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
 
 ---
 
@@ -57,11 +58,14 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - `/admin/tokens` full CRUD with usage stats, status badges, copy URL
 - Visibility and draft filters respected on shared views
 
-## Phase 4: Export & Print System (🟡 Partial)
+## Phase 4: Export & Print System (✅ Complete)
 - ✅ Print stylesheet + print button on public views
 - ✅ JSON/YAML export endpoint `/api/export` (admin)
-- 🟡 AI print/resume flow: implemented but still being polished (provider selection, error handling, fonts)
-- Outstanding: export metadata audit, DOCX/PDF parity checks
+- ✅ AI print/resume generation: Full implementation with PDF/DOCX output, multiple styles, AI provider integration
+  - Backend: `/api/view/{slug}/generate` endpoint
+  - Frontend: AI Resume modal with format/style/length options
+  - Streaming support and error handling
+  - Works with OpenAI, Anthropic, and Ollama
 
 ## Phase 5: Import System Expansion (🟡 Partial)
 - ✅ GitHub import proposals/review flow
@@ -225,7 +229,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - **High Priority:**
   - Testing: ✅ E2E infrastructure complete (25 Playwright tests covering public APIs, SEO, error pages, media, admin flows); 🔜 GitHub/AI provider mocks, additional coverage
   - Theme system extensions (light/dark, presets)
-  - 🔜 **Resume Upload & AI Parsing:** Upload PDF/DOCX resumes, use AI to extract and populate experience/education/skills into a new view
+  - 🔜 **Resume Upload & AI Parsing (Reverse Direction):** Upload existing PDF/DOCX resumes, use AI to extract and populate experience/education/skills
+    - Note: AI resume generation (Facet → PDF/DOCX) is complete. This is the opposite: existing resume → Facet data
 - **Medium Priority:**
   - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
   - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options

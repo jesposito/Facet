@@ -151,7 +151,7 @@ You get an admin dashboard at `/admin` where you:
 - Configure AI providers (OpenAI, Anthropic, or local Ollama)
 - Use the AI writing assistant to improve your content
 - Export everything as JSON or YAML
-- Print your profile or generate an AI-powered resume (beta)
+- Print your profile or generate an AI-powered resume (PDF/DOCX)
 
 The views system is the killer feature. You create different versions of your profile:
 - **Recruiter view**: Heavy on employment, light on side projects
@@ -339,7 +339,7 @@ Media attaches to projects, posts, and talks. It shows up on public pages with l
 
 **Print System**:
 - Print-optimized stylesheet (works with Cmd+P or Ctrl+P)
-- AI-powered resume generation (beta)
+- AI-powered resume generation (PDF/DOCX with multiple formats and styles)
 - Clean, professional layout
 
 ### SEO and Discoverability
@@ -708,16 +708,14 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Contact protection (4 tiers)
 - ✅ Export system (JSON/YAML)
 - ✅ Print-optimized CSS
+- ✅ AI-powered resume generation (PDF/DOCX with multiple formats and styles)
 - ✅ RSS feed and iCal export
 - ✅ SEO (Open Graph, JSON-LD, sitemaps)
-- ✅ Security audit and XSS/path traversal protection
-
-**In progress:**
-- 🟡 AI-powered PDF resume generation (beta)
+- ✅ Security review and XSS/path traversal protection
 
 **Planned:**
 - Scheduled GitHub sync (auto-refresh projects)
-- Resume upload and AI parsing
+- Resume upload and AI parsing (upload existing resume → extract to Facet)
 - Security headers (CSP, X-Frame-Options)
 - 2FA (TOTP + backup codes)
 - Audit logging for admin actions
