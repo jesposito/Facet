@@ -4,7 +4,7 @@
 
 A self-hosted personal profile platform that puts you in control. Own your data, choose what each audience sees, and skip the tracking.
 
-Think LinkedIn meets personal portfolio, except you hold all the cards: the data lives in your SQLite database, you decide who sees what, and analytics are off by default (opt-in if you want them).
+Think LinkedIn meets personal portfolio, except you hold all the cards: the data lives in your SQLite database, you decide who sees what, and analytics are off by default (opt-in only if you want them).
 
 ---
 
