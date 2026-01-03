@@ -16,12 +16,18 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { pb } from '$lib/pocketbase';
+	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd } from '$lib/seo';
 
 	export let data: PageData;
 
 	// Get headline and summary - use view overrides if this is a default view
 	$: headline = data.view?.hero_headline || data.profile?.headline;
 	$: summary = data.view?.hero_summary || data.profile?.summary;
+
+	// Generate JSON-LD for SEO
+	$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
+	$: personJsonLd = data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null;
+	$: websiteJsonLd = data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null;
 
 	// Print menu state
 	let showPrintMenu = false;
@@ -168,6 +174,14 @@
 	{/if}
 	<!-- Canonical URL is always / for the homepage -->
 	<link rel="canonical" href="/" />
+
+	<!-- JSON-LD Structured Data -->
+	{#if personJsonLd}
+		{@html `<script type="application/ld+json">${personJsonLd}</script>`}
+	{/if}
+	{#if websiteJsonLd}
+		{@html `<script type="application/ld+json">${websiteJsonLd}</script>`}
+	{/if}
 </svelte:head>
 
 {#if data.homepageDisabled}
