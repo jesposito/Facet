@@ -9,9 +9,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 ## Current Status Snapshot
 - ✅ Rebrand complete; branding, assets, and metadata reflect Facet.
 - ✅ Core flows: views, share tokens/passwords, GitHub import, AI enrichment (optional), admin CRUD, public pages, print stylesheet.
-- ✅ View editor with overrides/reordering; per-view theming; accent colors; media library with orphan detection.
+- ✅ View editor with overrides/reordering; per-view theming; accent colors; media library with orphan detection and cleanup.
 - ✅ Media optimization (thumb/srcset) live on posts/projects/homepage; view membership badges in admin lists.
-- 🟡 In progress/up next: orphan cleanup UX (bulk delete/storage usage), external media embeds, testing backlog.
+- 🟡 In progress/up next: external media embeds, storage usage polish (bulk stats in UI done), testing backlog.
 - 🔜 Planned: Security/Audit (Phase 8), Performance/SEO polish (Phase 9), Demo Mode toggle/persona (Phase 10).
 
 ---
@@ -68,7 +68,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 ## Phase 7: Media Management (🟡 Partially Complete)
 - 7.1 Media library: ✅ `/admin/media` listing, filters, search, delete; orphan detection
 - 7.2 Image optimization: ✅ thumbnails + responsive srcsets for posts/projects/homepage
-- 7.3 Cleanup UX: ✅ orphan detection + bulk delete + storage usage display
+- 7.3 Cleanup UX: ✅ orphan detection + bulk delete + storage usage stats
 - 7.4 External media: ✅ link-based entries (URL/title/mime/thumbnail) listed alongside uploads; deletion supported; media_refs on projects/posts/talks
 - ⚠️ Media stability note: `/api/media` depends on file fields + `external_media`; run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`) after schema changes; see docs/MEDIA.md for details.
 
