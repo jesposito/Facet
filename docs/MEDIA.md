@@ -25,7 +25,7 @@ This doc explains how Facet’s media pipeline works and how to extend or touch 
   - Returns stats (referenced/orphan/storage size and counts).
 - `POST /api/media/external` / `DELETE /api/media/external/{id}`: manage `external_media` entries.
 - `DELETE /api/media`: delete a file from a record, or delete an orphan via `relative_path`.
-- `POST /api/media/bulk-delete`: delete multiple orphans by relative paths.
+- `POST /api/media/bulk-delete`: ⚠️ **DOCUMENTED BUT NOT IMPLEMENTED** - should delete multiple orphans by relative paths.
 
 ## Normalization (backend/services/mediaembed)
 Recognizes providers and builds `provider`, `embed_url`, `thumbnail_url`, `mime`:
@@ -37,13 +37,19 @@ Recognizes providers and builds `provider`, `embed_url`, `thumbnail_url`, `mime`
 - Fallback: link card
 
 ## Admin UI
-- Media Library: lists uploads + external entries, shows storage/orphan stats, bulk orphan delete, and supports uploading files directly into the `uploads` collection.
-- Projects/Posts forms: multi-select of media options (uploads or external entries) stored in `media_refs`.
-  - Talks picker is planned but not wired yet.
+- Media Library: lists uploads + external entries, shows storage/orphan stats, bulk orphan delete UI (⚠️ backend endpoint not implemented), and supports uploading files directly into the `uploads` collection.
+- Projects/Posts/Talks forms: multi-select of media options (uploads or external entries) stored in `media_refs`.
+- Upload mirroring: Files uploaded to the `uploads` collection are automatically mirrored to `external_media` for unified handling.
 
-## Public rendering (current state)
-- Cover images use responsive thumb/large URLs.
-- Media refs are stored but not yet rendered on public project/post/talk pages (follow-up required).
+## Public rendering
+- ✅ Cover images use responsive thumb/large URLs.
+- ✅ Media refs are fully rendered on public project/post/talk pages with support for:
+  - YouTube embeds (with video ID extraction from various URL formats)
+  - Vimeo embeds
+  - Direct image URLs (rendered as img tags)
+  - Direct video URLs (rendered as video tags)
+  - Link cards for other URLs (with host and filename display)
+- ⚠️ **Known Issue:** Bulk delete feature exists in UI but backend endpoint `/api/media/bulk-delete` is not implemented, causing 404 errors.
 
 ## Common failure modes & how to avoid them
 - **Missing external_media collection**: migrations must run; deleting `pb_data` and reseeding applies all migrations.

@@ -367,13 +367,15 @@ For complete security documentation, see **[Security Guide](docs/SECURITY.md)**.
 - Per-view theming with accent colors
 - Data export (JSON/YAML)
 - Content discovery (Posts & Talks index pages)
+- Media library with uploads and external embeds
+- Media rendering on public pages (Projects, Posts, Talks)
 
 **In Progress:**
 - AI-powered PDF resume generation
 
 **Planned:**
 - Scheduled GitHub sync
-- Media library
+- Media bulk operations (bulk delete endpoint)
 - Additional integrations
 
 See **[Roadmap](ROADMAP.md)** for the full development plan.
