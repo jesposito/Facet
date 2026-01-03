@@ -128,7 +128,6 @@ async function resolveMediaRefs(selected: string[]) {
 			resolved.push(id);
 		}
 	}
-}
 
 	return resolved;
 }
