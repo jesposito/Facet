@@ -3,7 +3,7 @@
 	import { pb, type View } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
-	import AIImproveButton from '$components/admin/AIImproveButton.svelte';
+	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
 	let profile: Record<string, unknown> | null = null;
 	let loading = true;
@@ -106,15 +106,13 @@
 				</div>
 
 				<div>
-					<div class="flex items-center justify-between">
+					<div class="flex items-center justify-between mb-2">
 						<label for="headline" class="label mb-0">Headline</label>
-						<AIImproveButton
-							contentType="headline"
+						<AIContentHelper
+							fieldType="headline"
 							content={headline}
 							context={{ name, location }}
-							action={headline ? 'improve' : 'generate'}
-							label={headline ? 'Improve' : 'Generate'}
-							on:result={(e) => (headline = e.detail.content)}
+							on:apply={(e) => (headline = e.detail.content)}
 						/>
 					</div>
 					<input
@@ -148,15 +146,13 @@
 				</div>
 
 				<div>
-					<div class="flex items-center justify-between">
+					<div class="flex items-center justify-between mb-2">
 						<label for="summary" class="label mb-0">Summary</label>
-						<AIImproveButton
-							contentType="summary"
+						<AIContentHelper
+							fieldType="summary"
 							content={summary}
 							context={{ name, headline, location }}
-							action={summary ? 'improve' : 'generate'}
-							label={summary ? 'Improve' : 'Generate'}
-							on:result={(e) => (summary = e.detail.content)}
+							on:apply={(e) => (summary = e.detail.content)}
 						/>
 					</div>
 					<textarea

@@ -3,6 +3,7 @@
 import { pb, type Post } from '$lib/pocketbase';
 import { toasts } from '$lib/stores';
 import { formatDate } from '$lib/utils';
+import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
 let posts: Post[] = [];
 let loading = true;
@@ -361,7 +362,15 @@ function openEditForm(post: Post) {
 				</div>
 
 				<div>
-					<label for="excerpt" class="label">Excerpt</label>
+					<div class="flex items-center justify-between mb-2">
+						<label for="excerpt" class="label mb-0">Excerpt</label>
+						<AIContentHelper
+							fieldType="summary"
+							content={excerpt}
+							context={{ title, tags: tags.join(', ') }}
+							on:apply={(e) => (excerpt = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="excerpt"
 						bind:value={excerpt}
@@ -372,7 +381,16 @@ function openEditForm(post: Post) {
 				</div>
 
 				<div>
-					<label for="content" class="label">Content (Markdown)</label>
+					<div class="flex items-center justify-between mb-2">
+						<label for="content" class="label mb-0">Content (Markdown)</label>
+						<AIContentHelper
+							fieldType="content"
+							content={content}
+							context={{ title, excerpt, tags: tags.join(', ') }}
+							on:apply={(e) => (content = e.detail.content)}
+							size="sm"
+						/>
+					</div>
 					<textarea
 						id="content"
 						bind:value={content}

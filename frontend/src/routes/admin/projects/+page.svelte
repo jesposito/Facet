@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
-	import AIImproveButton from '$components/admin/AIImproveButton.svelte';
+	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
 	let projects: Project[] = [];
 	let loading = true;
@@ -403,15 +403,13 @@ async function loadProjects() {
 				</div>
 
 				<div>
-					<div class="flex items-center justify-between">
+					<div class="flex items-center justify-between mb-2">
 						<label for="summary" class="label mb-0">Summary</label>
-						<AIImproveButton
-							contentType="summary"
+						<AIContentHelper
+							fieldType="summary"
 							content={summary}
 							context={{ project: title, technologies: techStackText }}
-							action={summary ? 'improve' : 'generate'}
-							label={summary ? 'Improve' : 'Generate'}
-							on:result={(e) => (summary = e.detail.content)}
+							on:apply={(e) => (summary = e.detail.content)}
 						/>
 					</div>
 					<textarea
@@ -424,15 +422,13 @@ async function loadProjects() {
 				</div>
 
 				<div>
-					<div class="flex items-center justify-between">
+					<div class="flex items-center justify-between mb-2">
 						<label for="description" class="label mb-0">Description</label>
-						<AIImproveButton
-							contentType="description"
+						<AIContentHelper
+							fieldType="description"
 							content={description}
 							context={{ project: title, summary, technologies: techStackText }}
-							action={description ? 'improve' : 'generate'}
-							label={description ? 'Improve' : 'Generate'}
-							on:result={(e) => (description = e.detail.content)}
+							on:apply={(e) => (description = e.detail.content)}
 						/>
 					</div>
 					<textarea
