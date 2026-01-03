@@ -748,9 +748,6 @@ A: There's no automated LinkedIn import. You'll need to copy/paste your content 
 **Q: Can I use this without AI features?**
 A: Absolutely. AI enrichment and the writing assistant are optional. If you don't configure an AI provider, those features just won't appear in the UI.
 
-**Q: Is this production-ready?**
-A: It's been through 12 development phases, has 25+ E2E tests, and a full security audit. People are using it. But it's a solo dev project, so expect rough edges. Read the security audit, decide if it meets your risk tolerance, and proceed accordingly.
-
 **Q: Can I contribute?**
 A: Yes! Check [CONTRIBUTING.md](CONTRIBUTING.md) if it exists, or just open a PR. Bug fixes and documentation improvements are always welcome. For big features, open an issue first to discuss.
 
