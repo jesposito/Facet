@@ -277,6 +277,7 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 		"posts",
 		"talks",
 		"views",
+		"uploads",
 		"view_exports",
 	}
 
