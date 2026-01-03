@@ -39,6 +39,8 @@ ADMIN_EMAILS=you@example.com
 docker-compose up -d
 ```
 
+By default, the database and uploads are stored at `./data` on the host (mapped to `/data` in the container). Set `DATA_PATH=/absolute/host/path` in your `.env` if you want them elsewhere, and ensure that path is persisted/backed up.
+
 ### 4. Access Facet
 
 - **Public profile**: `http://localhost:8080`

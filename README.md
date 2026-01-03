@@ -60,6 +60,8 @@ docker-compose up -d
 
 Open `http://localhost:8080` — you're live.
 
+> ℹ️ Data lives under `./data` by default (mapped to `/data` in the container). Set `DATA_PATH` to a host path if you want uploads + DB somewhere else, and make sure that volume is backed up.
+
 ### First Login
 
 | Environment | Email | Password |
