@@ -1,6 +1,8 @@
 package hooks
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,6 +18,15 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+)
+
+// Path validation errors
+var (
+	ErrInvalidPath  = errors.New("invalid path")
+	ErrPathEscapes  = errors.New("path escapes storage directory")
+	ErrSymlink      = errors.New("refusing to operate on symbolic links")
+	ErrAbsolutePath = errors.New("absolute paths not allowed")
+	ErrIsDirectory  = errors.New("refusing to delete directories")
 )
 
 // RegisterMediaHooks exposes admin-only media listing and deletion endpoints.
@@ -209,12 +220,27 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				storageRoot := filepath.Join(dataDir, "storage")
 				target, err := resolveStoragePath(storageRoot, req.RelativePath)
 				if err != nil {
-					return apis.NewBadRequestError("invalid path", err)
+					// Return specific error messages based on error type
+					switch err {
+					case ErrSymlink:
+						app.Logger().Warn("media: rejected symlink deletion attempt", "path", req.RelativePath)
+						return apis.NewBadRequestError("symbolic links cannot be deleted", err)
+					case ErrPathEscapes:
+						app.Logger().Warn("media: rejected path escaping storage", "path", req.RelativePath)
+						return apis.NewBadRequestError("path escapes storage directory", err)
+					case ErrAbsolutePath:
+						app.Logger().Warn("media: rejected absolute path", "path", req.RelativePath)
+						return apis.NewBadRequestError("absolute paths not allowed", err)
+					default:
+						app.Logger().Warn("media: invalid path", "path", req.RelativePath, "error", err)
+						return apis.NewBadRequestError("invalid path", err)
+					}
 				}
 				if err := os.Remove(target); err != nil {
 					app.Logger().Warn("media: failed to delete orphan file", "path", target, "error", err)
 					return apis.NewBadRequestError("failed to delete file", err)
 				}
+				app.Logger().Info("media: deleted orphan file", "path", target, "relative", req.RelativePath)
 				return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 			}
 
@@ -279,9 +305,24 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			target, err := resolveStoragePath(storageRoot, relativePath)
 			if err != nil {
 				failed++
+				errorMsg := "invalid path"
+				switch err {
+				case ErrSymlink:
+					errorMsg = "symbolic link"
+					app.Logger().Warn("bulk delete: rejected symlink", "path", relativePath)
+				case ErrPathEscapes:
+					errorMsg = "path escapes storage"
+					app.Logger().Warn("bulk delete: rejected path escape", "path", relativePath)
+				case ErrAbsolutePath:
+					errorMsg = "absolute path not allowed"
+					app.Logger().Warn("bulk delete: rejected absolute path", "path", relativePath)
+				default:
+					app.Logger().Warn("bulk delete: invalid path", "path", relativePath, "error", err)
+				}
+
 				errors = append(errors, map[string]string{
 					"path":  relativePath,
-					"error": "invalid path",
+					"error": errorMsg,
 				})
 				continue
 			}
@@ -295,7 +336,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				})
 			} else {
 				deleted++
-				app.Logger().Info("bulk delete: deleted orphan", "path", target)
+				app.Logger().Info("bulk delete: deleted orphan", "path", target, "relative", relativePath)
 			}
 		}
 
@@ -499,19 +540,83 @@ func fileFieldNames(c *core.Collection) []string {
 	return names
 }
 
+// resolveStoragePath securely resolves a user-provided relative path within the storage root directory.
+// It prevents:
+// - Path traversal attacks (../ sequences)
+// - Symlink attacks (links pointing outside storage)
+// - Absolute path injection
+// - Platform-specific path bypass techniques
+//
+// This function implements defense-in-depth with multiple validation layers:
+// 1. Input validation (non-empty, non-absolute)
+// 2. Path cleaning (normalize separators, remove ..)
+// 3. Containment validation (must remain within storage root)
+// 4. Symlink detection (reject symbolic links)
 func resolveStoragePath(storageRoot, rel string) (string, error) {
-	clean := filepath.Clean(rel)
-	if strings.Contains(clean, "..") {
-		return "", os.ErrInvalid
+	// 1. Validate inputs
+	if storageRoot == "" || rel == "" {
+		return "", ErrInvalidPath
 	}
+
+	// 2. Clean the user input (handles .., //, platform separators)
+	clean := filepath.Clean(rel)
+
+	// 3. Reject absolute paths (prevents /etc/passwd injection)
+	if filepath.IsAbs(clean) {
+		return "", ErrAbsolutePath
+	}
+
+	// 4. Remove leading slashes and backslashes
 	clean = strings.TrimPrefix(clean, "/")
 	clean = strings.TrimPrefix(clean, "\\")
+
+	// 5. Remove "storage" prefix if present (backward compatibility)
 	clean = strings.TrimPrefix(clean, "storage/")
 	clean = strings.TrimPrefix(clean, "storage\\")
-	target := filepath.Join(storageRoot, clean)
-	if !strings.HasPrefix(target, storageRoot) {
-		return "", os.ErrInvalid
+
+	// 6. Defense in depth: reject if still contains .. after cleaning
+	// Protects against theoretical filepath.Clean bypasses (e.g., CVE-2022-41722)
+	if strings.Contains(clean, "..") {
+		return "", ErrInvalidPath
 	}
+
+	// 7. Join with storage root
+	target := filepath.Join(storageRoot, clean)
+
+	// 8. Validate containment using filepath.Rel (robust approach)
+	relPath, err := filepath.Rel(storageRoot, target)
+	if err != nil {
+		return "", fmt.Errorf("failed to compute relative path: %w", err)
+	}
+
+	// Check if relative path tries to escape
+	if strings.HasPrefix(relPath, ".."+string(filepath.Separator)) || relPath == ".." {
+		return "", ErrPathEscapes
+	}
+
+	// 9. Additional containment check using prefix (defense in depth)
+	if !strings.HasPrefix(target, storageRoot+string(filepath.Separator)) && target != storageRoot {
+		return "", ErrPathEscapes
+	}
+
+	// 10. CRITICAL: Check if path is a symlink
+	// Use Lstat (not Stat) to avoid following the symlink
+	info, err := os.Lstat(target)
+	if err != nil {
+		// File doesn't exist - this is okay for some operations
+		// (os.Remove will fail gracefully if file doesn't exist)
+		if os.IsNotExist(err) {
+			return target, nil
+		}
+		return "", fmt.Errorf("failed to stat path: %w", err)
+	}
+
+	// 11. Reject symbolic links entirely
+	// This prevents symlink attacks where a link points outside storage
+	if info.Mode()&os.ModeSymlink != 0 {
+		return "", ErrSymlink
+	}
+
 	return target, nil
 }
 
