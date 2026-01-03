@@ -4,7 +4,7 @@
 
 A self-hosted personal profile platform that puts you in control. Own your data, choose what each audience sees, and skip the tracking.
 
-Think LinkedIn meets personal portfolio, except you hold all the cards: the data lives in your SQLite database, you decide who sees what, and there's zero analytics nonsense.
+Think LinkedIn meets personal portfolio, except you hold all the cards: the data lives in your SQLite database, you decide who sees what, and analytics are off by default (opt-in if you want them).
 
 ---
 
@@ -30,7 +30,7 @@ One Docker container. One command. You get:
 - Privacy controls (public, unlisted with share links, password-protected, or private)
 - GitHub import that pulls in your repos (with optional AI summaries)
 - RSS feed for your blog posts, iCal export for your talks
-- No tracking, no ads, no engagement metrics
+- No tracking by default, no ads, no engagement metrics (analytics are opt-in)
 - Your data in SQLite, your uploads in a folder, both easy to backup
 
 One port exposed. One volume to backup. That's it.
