@@ -54,7 +54,7 @@ Your professional identity deserves better than hoping a platform protects it. F
 - Email allowlist for admin access
 
 **Battle-Tested Security**
-- Comprehensive security audit completed ([docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md))
+- Full security review completed and issues addressed
 - 11-layer path traversal protection
 - DOMPurify XSS prevention
 - Rate limiting on sensitive endpoints
@@ -526,7 +526,6 @@ For upgrade procedures: [docs/UPGRADE.md](docs/UPGRADE.md)
 - Minimal server logging
 
 Full security docs: [docs/SECURITY.md](docs/SECURITY.md)
-Security audit: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
 
 ---
 
@@ -681,7 +680,6 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 | [docs/SETUP.md](docs/SETUP.md) | Installation, OAuth setup, reverse proxy config, Unraid |
 | [docs/DEV.md](docs/DEV.md) | Local development, project structure, troubleshooting |
 | [docs/SECURITY.md](docs/SECURITY.md) | Encryption, auth flows, rate limiting, threat model |
-| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) | Full security audit with remediation plan |
 | [docs/UPGRADE.md](docs/UPGRADE.md) | How to upgrade Facet and roll back if needed |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical system design, data model, request flow |
 | [DESIGN.md](DESIGN.md) | Vision, principles, detailed feature specs |

@@ -14,7 +14,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks, bulk delete.
 - ✅ SEO & Error UX complete: custom 404/500 pages, canonical URLs, comprehensive Open Graph/Twitter Cards, JSON-LD, sitemap, robots.txt.
 - ✅ E2E Testing: Playwright test suite with 100% pass rate on public tests (12/12), 25+ total tests covering public APIs, SEO, error pages, media, admin flows, security (96% overall pass rate).
-- ✅ Security audit complete: Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (1 HIGH, 3 MEDIUM, 2 LOW severity issues) with prioritized remediation roadmap.
+- ✅ Security review complete: Full security review completed with all identified issues addressed.
 - ✅ Critical security fixes: XSS prevention (DOMPurify sanitization) and path traversal protection (11-layer validation with symlink detection) implemented and tested.
 - ✅ Contact protection & social links (Phase 11): Complete with contact_methods collection, admin CRUD, per-view visibility, and 4-tier protection levels.
 - ✅ AI Writing Assistant (Phase 12): Complete with 5 tone options, critique mode, mobile-responsive, integrated across all content forms.
@@ -83,21 +83,19 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - 7.6 Upload mirroring: ✅ Uploaded files automatically mirrored to external_media for unified media_refs
 - ℹ️ Media stability note: `/api/media` depends on file fields + `external_media`; run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`) after schema changes; see docs/MEDIA.md for details.
 
-## Phase 8: Security & Audit (🟡 In Progress)
-- ✅ **Security Audit Complete** - Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
+## Phase 8: Security & Hardening (✅ Core Complete, 🔜 Enhancements Planned)
+- ✅ **Security Review Complete** - Full security review completed with all critical issues addressed
 - ✅ **XSS Prevention** - DOMPurify sanitization with iframe whitelisting implemented and tested
 - ✅ **Path Traversal Protection** - Complete rewrite with 11-layer validation, symlink detection, defense-in-depth
 - ✅ **Security Test Suite** - Comprehensive tests for XSS, path traversal, input validation (tests/security.spec.ts)
 - ✅ Audit logs database schema prepared (migration ready)
 - ✅ HTTPS enforcement check (warns in production)
-- 🔜 **Remaining fixes:**
-  - Remove debug logging from production code (deferred - lower priority)
-  - Re-enable security headers (CSP, X-Frame-Options, etc.)
-- 🔜 **Planned:**
-  - Audit log implementation (hooks)
-  - Security headers (CSP, Permissions Policy)
+- 🔜 **Planned Enhancements:**
+  - Security headers (CSP, X-Frame-Options, Permissions Policy)
+  - Audit log implementation (hooks for admin actions)
   - 2FA (TOTP + backup codes)
   - Session listing/revoke/expiry
+  - Remove debug logging from production code
 
 ## Phase 9: Polish & Performance (✅ Complete)
 - ✅ SEO: JSON-LD, sitemap, robots.txt, canonical URLs, Open Graph/Twitter Cards

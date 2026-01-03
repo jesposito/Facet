@@ -5,8 +5,7 @@ import { apiBaseURL } from './config';
 /**
  * Security Test Suite
  *
- * Tests critical security fixes for XSS and path traversal vulnerabilities
- * identified in SECURITY_AUDIT.md.
+ * Tests critical security protections for XSS and path traversal vulnerabilities.
  *
  * Note: Tests requiring authentication need ADMIN_EMAIL and ADMIN_PASSWORD
  * environment variables to be set. Run with:
