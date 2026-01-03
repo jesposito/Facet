@@ -6,6 +6,7 @@
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 	import ViewPreview from '$components/admin/ViewPreview.svelte';
+	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
 
 	// Default section definitions - used to initialize and provide labels
 	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
@@ -43,6 +44,7 @@
 	let ctaUrl = '';
 	let isActive = true;
 	let isDefault = false;
+	let accentColor: AccentColor | null = null; // null = use global profile setting
 
 	// Sections configuration with layout and width support (itemConfig empty for new views)
 	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }> }> = {};
@@ -279,6 +281,7 @@
 				cta_url: ctaUrl.trim() || null,
 				is_active: isActive,
 				is_default: isDefault,
+				accent_color: accentColor || null,
 				sections: sectionsData
 			};
 
@@ -496,6 +499,64 @@
 							<p class="text-xs text-gray-500 mt-1">Visitors will need this password to access this view</p>
 						</div>
 					{/if}
+				</div>
+
+				<!-- Accent Color Override -->
+				<div class="pt-2">
+					<span class="label mb-3 block">Accent Color</span>
+					<div class="flex flex-wrap items-center gap-3" role="group" aria-label="Select accent color">
+						<!-- Use Global Option -->
+						<button
+							type="button"
+							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+								{accentColor === null
+								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							on:click={() => accentColor = null}
+						>
+							<div class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"></div>
+							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use global</span>
+							{#if accentColor === null}
+								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							{/if}
+						</button>
+
+						<!-- Color Swatches -->
+						{#each ACCENT_COLOR_LIST as color}
+							{@const colorInfo = ACCENT_COLORS[color]}
+							<button
+								type="button"
+								class="relative group"
+								on:click={() => accentColor = color}
+								title="{colorInfo.label} - {colorInfo.description}"
+							>
+								<div
+									class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
+										{accentColor === color
+										? 'ring-2 ring-gray-900 dark:ring-white scale-110'
+										: 'hover:scale-105'}"
+									style="background-color: {colorInfo.scale[500]}"
+								>
+									{#if accentColor === color}
+										<div class="absolute inset-0 flex items-center justify-center">
+											<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+											</svg>
+										</div>
+									{/if}
+								</div>
+							</button>
+						{/each}
+					</div>
+					<p class="text-xs text-gray-500 mt-2">
+						{#if accentColor}
+							Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
+						{:else}
+							Inherits from global profile setting
+						{/if}
+					</p>
 				</div>
 
 				<div class="flex flex-col gap-3 pt-2">
