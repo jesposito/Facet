@@ -30,22 +30,24 @@ let memberships: Record<string, { id: string; name: string; slug: string }[]> = 
 	onMount(loadProjects);
 	onMount(loadMediaOptions);
 
-	async function loadMediaOptions() {
-		try {
-			const res = await fetch('/api/media?perPage=200', {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-			});
-			if (!res.ok) return;
-			const data = await res.json();
-			mediaOptions = (data.items || []).map((item: any) => ({
-				id: item.record_id || item.relative_path || item.url,
+async function loadMediaOptions() {
+	try {
+		const res = await fetch('/api/media?perPage=200', {
+			headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+		});
+		if (!res.ok) return;
+		const data = await res.json();
+		mediaOptions = (data.items || [])
+			.filter((item: any) => item.external || item.collection_key === 'external')
+			.map((item: any) => ({
+				id: item.record_id || item.url,
 				title: item.display_name || item.filename || item.url,
-				provider: item.provider || (item.external ? 'external' : 'upload')
+				provider: item.provider || 'external'
 			}));
-		} catch (err) {
-			console.error('Failed to load media options', err);
-		}
+	} catch (err) {
+		console.error('Failed to load media options', err);
 	}
+}
 
 async function loadProjects() {
 	loading = true;

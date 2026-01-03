@@ -22,6 +22,8 @@
 	let visibility = 'public';
 	let isDraft = false;
 	let sortOrder = 0;
+	let mediaRefs: string[] = [];
+	let mediaOptions: { id: string; title: string; provider?: string }[] = [];
 	let saving = false;
 
 	// Generate slug from title
@@ -42,6 +44,26 @@
 	}
 
 	onMount(loadTalks);
+	onMount(loadMediaOptions);
+
+	async function loadMediaOptions() {
+		try {
+			const res = await fetch('/api/media?perPage=200', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (!res.ok) return;
+			const data = await res.json();
+			mediaOptions = (data.items || [])
+				.filter((item: any) => item.external || item.collection_key === 'external')
+				.map((item: any) => ({
+					id: item.record_id || item.url,
+					title: item.display_name || item.filename || item.url,
+					provider: item.provider || 'external'
+				}));
+		} catch (err) {
+			console.error('Failed to load media options', err);
+		}
+	}
 
 	async function loadTalks() {
 		loading = true;
@@ -71,6 +93,7 @@
 		visibility = 'public';
 		isDraft = false;
 		sortOrder = 0;
+		mediaRefs = [];
 		editingTalk = null;
 	}
 
@@ -93,6 +116,7 @@
 		visibility = talk.visibility;
 		isDraft = talk.is_draft;
 		sortOrder = talk.sort_order;
+		mediaRefs = (talk as any).media_refs || [];
 		showForm = true;
 	}
 
@@ -119,6 +143,7 @@
 				description: description,
 				slides_url: slidesUrl.trim(),
 				video_url: videoUrl.trim(),
+				media_refs: mediaRefs,
 				visibility,
 				is_draft: isDraft,
 				sort_order: sortOrder
