@@ -85,7 +85,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			for i, record := range candidates {
 				storedHMAC := record.GetString("token_hash")
 				storedPrefix := record.GetString("token_prefix")
-				if share.ValidateTokenHMAC(req.Token, storedHMAC) {
+				if share.ValidateTokenHash(req.Token, storedHMAC) {
 					tokenRecord = record
 					app.Logger().Info("Token matched", "candidate_index", i)
 					break
@@ -175,7 +175,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
 			}
 
-			tokenHMAC := share.HMACToken(rawToken)
+			tokenHMAC := share.HashToken(rawToken)
 			tokenPrefix := share.TokenPrefix(rawToken)
 
 			// DEBUG: Log token generation
@@ -223,6 +223,12 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			if err := app.Save(record); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save token"})
 			}
+
+			// TEMPORARY DEBUG: Log what we're returning
+			app.Logger().Info("Token generation complete",
+				"returned_token", rawToken,
+				"stored_hmac", tokenHMAC,
+			)
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"id":    record.Id,

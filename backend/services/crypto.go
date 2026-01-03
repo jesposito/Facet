@@ -3,7 +3,6 @@ package services
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -134,18 +133,15 @@ func (c *CryptoService) GenerateToken(length int) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
-// HMACToken creates an HMAC-SHA256 of a token for secure storage
-// Uses server secret as key, so DB leak doesn't allow offline verification
-func (c *CryptoService) HMACToken(token string) string {
-	h := hmac.New(sha256.New, c.hmacKey)
-	h.Write([]byte(token))
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+// HashSHA256 creates a SHA-256 hash of a string (for token storage)
+func (c *CryptoService) HashSHA256(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return base64.StdEncoding.EncodeToString(hash[:])
 }
 
-// ValidateTokenHMAC compares a token against stored HMAC using constant-time comparison
-func (c *CryptoService) ValidateTokenHMAC(token, storedHMAC string) bool {
-	expectedHMAC := c.HMACToken(token)
-	return subtle.ConstantTimeCompare([]byte(expectedHMAC), []byte(storedHMAC)) == 1
+// ConstantTimeCompare compares two strings in constant time to prevent timing attacks
+func (c *CryptoService) ConstantTimeCompare(a, b string) bool {
+	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
 
 // GenerateViewAccessJWT creates a signed JWT for password-protected view access
