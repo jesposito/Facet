@@ -35,27 +35,91 @@ async function loadMediaOptions(searchTerm = '') {
 	loadingMedia = true;
 	try {
 		const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
+		const mediaParams = new URLSearchParams({ perPage: '50' });
+		if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
 		const externalFilter = searchTerm.trim()
 			? `&filter=${encodeURIComponent(`title~"${searchTerm}" || url~"${searchTerm}"`)}`
 			: '';
 
-		const externalRes = await fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers });
-		if (!externalRes.ok) {
-			mediaOptions = [];
-			return;
+		const [mediaRes, externalRes] = await Promise.all([
+			fetch(`/api/media?${mediaParams.toString()}`, { headers }),
+			fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
+		]);
+
+		const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
+		const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
+
+		const options: { id: string; title: string; provider?: string; url?: string }[] = [];
+
+		for (const item of mediaData.items || []) {
+			options.push({
+				id: item.record_id || item.relative_path || item.url,
+				title: item.display_name || item.filename || item.url,
+				provider: item.provider || (item.external ? 'external' : 'upload'),
+				url: item.url
+			});
 		}
-		const externalData = await externalRes.json();
-		mediaOptions = (externalData.items || []).map((item: any) => ({
-			id: item.id,
-			title: item.title || item.url,
-			provider: 'external',
-			url: item.url
-		}));
+
+		for (const item of externalData.items || []) {
+			if (!options.find((opt) => opt.id === item.id || opt.url === item.url)) {
+				options.push({
+					id: item.id,
+					title: item.title || item.url,
+					provider: 'external',
+					url: item.url
+				});
+			}
+		}
+
+		mediaOptions = options;
 	} catch (err) {
 		console.error('Failed to load media options', err);
 	} finally {
 		loadingMedia = false;
 	}
+}
+
+async function resolveMediaRefs(selected: string[]) {
+	const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
+	const optionMap = new Map(mediaOptions.map((opt) => [opt.id, opt]));
+	const resolved: string[] = [];
+
+	for (const id of selected) {
+		const opt = optionMap.get(id);
+		if (!opt) continue;
+		if (opt.provider === 'upload' && opt.url) {
+			// Mirror upload into external_media so it can be stored in media_refs
+			try {
+				const filter = encodeURIComponent(`url="${opt.url}"`);
+				const existingRes = await fetch(`/api/collections/external_media/records?perPage=1&filter=${filter}`, { headers });
+				if (existingRes.ok) {
+					const existing = await existingRes.json();
+					if (existing.items?.[0]?.id) {
+						resolved.push(existing.items[0].id);
+						continue;
+					}
+				}
+				const created = await fetch('/api/media/external', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json', ...headers },
+					body: JSON.stringify({ url: opt.url, title: opt.title })
+				});
+				if (created.ok) {
+					const body = await created.json();
+					if (body.id) {
+						resolved.push(body.id);
+						continue;
+					}
+				}
+			} catch (err) {
+				console.error('Failed to mirror upload to external_media', err);
+			}
+		} else {
+			resolved.push(id);
+		}
+	}
+
+	return resolved;
 }
 
 async function loadPosts() {
@@ -160,12 +224,13 @@ function openEditForm(post: Post) {
 
 		saving = true;
 		try {
+			const resolvedRefs = await resolveMediaRefs(mediaRefs);
 			const data = {
 				title: title.trim(),
 				slug: slug.trim(),
 				excerpt: excerpt.trim(),
 				content: content,
-				media_refs: mediaRefs,
+				media_refs: resolvedRefs,
 				tags: tags,
 				visibility,
 				is_draft: isDraft,
