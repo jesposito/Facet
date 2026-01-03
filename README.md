@@ -48,8 +48,8 @@ Your professional identity deserves better than hoping a platform protects it. F
 - Everything runs on your hardware
 
 **Privacy by Design**
-- Zero tracking or analytics
-- No third-party scripts
+- No tracking by default (Google Analytics is opt-in if you want it)
+- No third-party scripts unless you enable them
 - No data mining
 - Email allowlist for admin access
 
