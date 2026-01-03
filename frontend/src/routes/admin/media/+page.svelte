@@ -18,11 +18,16 @@
 		uploaded_at: string;
 		relative_path?: string;
 		orphan?: boolean;
+		display_name?: string;
+		record_label?: string;
+		thumbnail_url?: string;
+		collection_key?: string;
+		external?: boolean;
 	};
 
-type MediaStats = {
-	referencedFiles: number;
-	referencedSize: number;
+	type MediaStats = {
+		referencedFiles: number;
+		referencedSize: number;
 	orphanFiles: number;
 	orphanSize: number;
 	totalFiles: number;
@@ -31,15 +36,15 @@ type MediaStats = {
 	storageSize: number;
 };
 
-let items: MediaItem[] = [];
-let loading = true;
-let page = 1;
+	let items: MediaItem[] = [];
+	let loading = true;
+	let page = 1;
 	let perPage = 50;
 	let totalItems = 0;
 	let totalPages = 1;
 	let search = '';
-let typeFilter: 'all' | 'image' = 'all';
-let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
+	let typeFilter: 'all' | 'image' = 'all';
+	let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
 let error = '';
 let stats: MediaStats = {
 	referencedFiles: 0,
@@ -52,11 +57,18 @@ let stats: MediaStats = {
 	storageSize: 0
 };
 let selectedOrphans: Set<string> = new Set();
+let newExternal = {
+	url: '',
+	title: '',
+	mime: '',
+	thumbnail_url: '',
+	saving: false
+};
 
-const humanSize = (bytes: number) => {
-	if (!bytes) return '0 B';
-	const units = ['B', 'KB', 'MB', 'GB'];
-	let i = 0;
+	const humanSize = (bytes: number) => {
+		if (!bytes) return '0 B';
+		const units = ['B', 'KB', 'MB', 'GB'];
+		let i = 0;
 		let size = bytes;
 		while (size >= 1024 && i < units.length - 1) {
 			size /= 1024;
@@ -66,6 +78,7 @@ const humanSize = (bytes: number) => {
 	};
 
 	const mimeLabel = (mime: string) => {
+		if (!mime) return 'Link';
 		if (mime.startsWith('image/')) return 'Image';
 		if (mime.startsWith('video/')) return 'Video';
 		if (mime.startsWith('audio/')) return 'Audio';
@@ -103,18 +116,18 @@ const humanSize = (bytes: number) => {
 			items = data.items || [];
 			totalItems = data.totalItems || 0;
 			totalPages = data.totalPages || 1;
-			stats = data.stats || {
-				referencedFiles: 0,
-				referencedSize: 0,
-				orphanFiles: 0,
-				orphanSize: 0,
-				totalFiles: totalItems,
-				totalSize: 0,
-				storageFiles: 0,
-				storageSize: 0
-			};
-			selectedOrphans = new Set();
-		} catch (err) {
+				stats = data.stats || {
+					referencedFiles: 0,
+					referencedSize: 0,
+					orphanFiles: 0,
+					orphanSize: 0,
+					totalFiles: totalItems,
+					totalSize: 0,
+					storageFiles: 0,
+					storageSize: 0
+				};
+				selectedOrphans = new Set();
+			} catch (err) {
 			console.error(err);
 			error = 'Failed to load media';
 			toasts.add('error', 'Failed to load media');
@@ -129,11 +142,24 @@ const humanSize = (bytes: number) => {
 		toasts.add('success', 'URL copied');
 	}
 
-async function deleteFile(item: MediaItem) {
-	if (!confirm(`Delete ${item.filename}? This cannot be undone.`)) return;
-	try {
-		const body =
-			item.orphan && item.relative_path
+	async function deleteFile(item: MediaItem) {
+		if (!confirm(`Delete ${item.filename}? This cannot be undone.`)) return;
+		try {
+			if (item.external && item.record_id) {
+				const res = await fetch(`/api/media/external/${item.record_id}`, {
+					method: 'DELETE',
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				});
+				if (!res.ok) {
+					const body = await res.json().catch(() => ({}));
+					throw new Error(body.error || 'Failed to delete external media');
+				}
+				toasts.add('success', 'External media deleted');
+				await loadMedia();
+				return;
+			}
+			const body =
+				item.orphan && item.relative_path
 					? { relative_path: item.relative_path }
 					: {
 							collection_id: item.collection_id,
@@ -163,70 +189,105 @@ async function deleteFile(item: MediaItem) {
 		} catch (err) {
 			console.error(err);
 			toasts.add('error', err instanceof Error ? err.message : 'Failed to delete file');
+		}
 	}
-}
 
-function toggleSelection(item: MediaItem) {
-	if (!item.orphan || !item.relative_path) return;
-	const next = new Set(selectedOrphans);
-	if (next.has(item.relative_path)) {
-		next.delete(item.relative_path);
-	} else {
-		next.add(item.relative_path);
-	}
-	selectedOrphans = next;
-}
-
-function selectVisibleOrphans() {
-	const next = new Set(selectedOrphans);
-	items.forEach((item) => {
-		if (item.orphan && item.relative_path) {
+	function toggleSelection(item: MediaItem) {
+		if (!item.orphan || !item.relative_path) return;
+		const next = new Set(selectedOrphans);
+		if (next.has(item.relative_path)) {
+			next.delete(item.relative_path);
+		} else {
 			next.add(item.relative_path);
 		}
-	});
-	selectedOrphans = next;
-}
-
-function clearSelection() {
-	selectedOrphans = new Set();
-}
-
-async function bulkDeleteSelected() {
-	if (selectedOrphans.size === 0) return;
-	if (!confirm(`Delete ${selectedOrphans.size} orphan file(s)? This cannot be undone.`)) return;
-
-	try {
-		const res = await fetch('/api/media/bulk-delete', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
-			},
-			body: JSON.stringify({ orphans: Array.from(selectedOrphans) })
-		});
-		if (!res.ok) {
-			if (res.status === 401) {
-				toasts.add('error', 'Session expired. Please sign in again.');
-				goto('/admin/login');
-				return;
-			}
-			const body = await res.json().catch(() => ({}));
-			throw new Error(body.error || 'Failed to delete files');
-		}
-		const result = await res.json().catch(() => ({}));
-		toasts.add('success', `Deleted ${result.deleted ?? selectedOrphans.size} orphan file(s)`);
-		selectedOrphans = new Set();
-		await loadMedia();
-	} catch (err) {
-		console.error(err);
-		toasts.add('error', err instanceof Error ? err.message : 'Failed to delete files');
+		selectedOrphans = next;
 	}
-}
 
-function resetAndLoad() {
-	page = 1;
-	loadMedia();
-}
+	function selectVisibleOrphans() {
+		const next = new Set(selectedOrphans);
+		items.forEach((item) => {
+			if (item.orphan && item.relative_path) {
+				next.add(item.relative_path);
+			}
+		});
+		selectedOrphans = next;
+	}
+
+	function clearSelection() {
+		selectedOrphans = new Set();
+	}
+
+	async function bulkDeleteSelected() {
+		if (selectedOrphans.size === 0) return;
+		if (!confirm(`Delete ${selectedOrphans.size} orphan file(s)? This cannot be undone.`)) return;
+
+		try {
+			const res = await fetch('/api/media/bulk-delete', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+				},
+				body: JSON.stringify({ orphans: Array.from(selectedOrphans) })
+			});
+			if (!res.ok) {
+				if (res.status === 401) {
+					toasts.add('error', 'Session expired. Please sign in again.');
+					goto('/admin/login');
+					return;
+				}
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.error || 'Failed to delete files');
+			}
+			const result = await res.json().catch(() => ({}));
+			toasts.add('success', `Deleted ${result.deleted ?? selectedOrphans.size} orphan file(s)`);
+			selectedOrphans = new Set();
+			await loadMedia();
+		} catch (err) {
+			console.error(err);
+			toasts.add('error', err instanceof Error ? err.message : 'Failed to delete files');
+		}
+	}
+
+	async function createExternal() {
+		if (!newExternal.url.trim()) {
+			toasts.add('error', 'URL is required');
+			return;
+		}
+		newExternal.saving = true;
+		try {
+			const res = await fetch('/api/media/external', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+				},
+				body: JSON.stringify({
+					url: newExternal.url.trim(),
+					title: newExternal.title.trim(),
+					mime: newExternal.mime.trim(),
+					thumbnail_url: newExternal.thumbnail_url.trim()
+				})
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.error || 'Failed to add external media');
+			}
+			toasts.add('success', 'External media added');
+			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false };
+			await loadMedia();
+		} catch (err) {
+			console.error(err);
+			toasts.add('error', err instanceof Error ? err.message : 'Failed to add external media');
+		} finally {
+			newExternal.saving = false;
+		}
+	}
+
+	function resetAndLoad() {
+		page = 1;
+		loadMedia();
+	}
 
 	onMount(loadMedia);
 </script>
@@ -313,6 +374,36 @@ function resetAndLoad() {
 		</div>
 	{/if}
 
+	<div class="card p-4 mb-4 space-y-3">
+		<div class="flex items-center justify-between">
+			<div>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Add external media</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">Link to remote assets (YouTube, Vimeo, images, etc.).</p>
+			</div>
+			<button class="btn btn-primary" on:click={createExternal} aria-busy={newExternal.saving}>
+				{newExternal.saving ? 'Saving…' : 'Add'}
+			</button>
+		</div>
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+			<div class="md:col-span-2">
+				<label class="label" for="ext-url">URL *</label>
+				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder="https://…" />
+			</div>
+			<div>
+				<label class="label" for="ext-title">Title</label>
+				<input id="ext-title" class="input" bind:value={newExternal.title} placeholder="Optional display name" />
+			</div>
+			<div>
+				<label class="label" for="ext-mime">MIME (optional)</label>
+				<input id="ext-mime" class="input" bind:value={newExternal.mime} placeholder="image/png, video/mp4…" />
+			</div>
+			<div class="md:col-span-2">
+				<label class="label" for="ext-thumb">Thumbnail URL (optional)</label>
+				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder="https://example.com/thumb.jpg" />
+			</div>
+		</div>
+	</div>
+
 	{#if loading}
 		<div class="card p-6 text-gray-500 dark:text-gray-400">Loading media...</div>
 	{:else if items.length === 0}
@@ -321,49 +412,53 @@ function resetAndLoad() {
 		<div class="card overflow-hidden">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-					<thead class="bg-gray-50 dark:bg-gray-800">
-						<tr>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">File</th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Size</th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Collection</th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Record</th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Uploaded</th>
-							<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
-						</tr>
-					</thead>
-					<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-						{#each items as item}
-							<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-								<td class="px-4 py-3">
-									{#if item.orphan && item.relative_path}
-										<input
-											type="checkbox"
-											class="w-4 h-4 text-primary-600 rounded border-gray-300"
-											checked={selectedOrphans.has(item.relative_path)}
-											on:change={() => toggleSelection(item)}
-										/>
-									{/if}
-								</td>
-								<td class="px-4 py-3">
-									<div class="flex items-center gap-2">
-										{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}
-										<a
-											class="text-primary-600 dark:text-primary-300 hover:underline break-all"
-											href={item.url}
+						<thead class="bg-gray-50 dark:bg-gray-800">
+							<tr>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">File</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Size</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Collection</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Record</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Uploaded</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+							{#each items as item}
+								<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+									<td class="px-4 py-3">
+										{#if item.orphan && item.relative_path}
+											<input
+												type="checkbox"
+												class="w-4 h-4 text-primary-600 rounded border-gray-300"
+												checked={selectedOrphans.has(item.relative_path)}
+												on:change={() => toggleSelection(item)}
+											/>
+										{/if}
+									</td>
+									<td class="px-4 py-3">
+										<div class="flex items-center gap-2">
+											{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}
+											<a
+												class="text-primary-600 dark:text-primary-300 hover:underline break-all"
+												href={item.url}
 											target="_blank"
 											rel="noopener noreferrer"
 										>
 											{item.filename}
 										</a>
-										{#if item.orphan}
-											<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-												Orphan
-											</span>
-										{/if}
-									</div>
-								</td>
+											{#if item.orphan}
+												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+													Orphan
+												</span>
+											{:else if item.external}
+												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+													External
+												</span>
+											{/if}
+										</div>
+									</td>
 								<td class="px-4 py-3">
 									<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
 										{mimeLabel(item.mime)}

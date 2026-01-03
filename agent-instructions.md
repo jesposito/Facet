@@ -29,6 +29,7 @@
 - If you are unsure → **investigate**
 - If something "seems fine" → **verify it**
 - If anything is incomplete → **document it**
+- Media guardrail: `/api/media` relies on file fields + `external_media` + `media_refs`. If you touch media/storage code, read `docs/MEDIA.md`, run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`), and verify `/api/media` with a token before shipping.
 
 ---
 

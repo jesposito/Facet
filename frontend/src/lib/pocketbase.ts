@@ -78,6 +78,7 @@ export interface Project {
 	tech_stack?: string[];
 	links?: ProjectLink[];
 	media?: string[];
+	media_refs?: string[];
 	cover_image?: string;
 	categories?: string[];
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
@@ -123,6 +124,7 @@ export interface Post {
 	content?: string;
 	cover_image?: string;
 	tags?: string[];
+	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';
 	is_draft: boolean;
 	published_at?: string;
@@ -139,6 +141,7 @@ export interface Talk {
 	description?: string;
 	slides_url?: string;
 	video_url?: string;
+	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';
 	is_draft: boolean;
 	sort_order: number;

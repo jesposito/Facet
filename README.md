@@ -31,6 +31,7 @@ A self-hosted, privacy-respecting personal profile platform. Think LinkedIn prof
 | **Self-host it** | [Setup Guide](docs/SETUP.md) |
 | **Contribute or develop** | [Developer Guide](#for-developers) |
 | **Understand the architecture** | [Architecture](ARCHITECTURE.md) |
+| **Media internals** | [Media System](docs/MEDIA.md) |
 | **Read the design philosophy** | [Design Document](DESIGN.md) |
 
 ---
@@ -77,7 +78,7 @@ Open `http://localhost:8080` — you're live.
 - **Experience, projects, education, skills, certifications, awards** — all the professional sections you'd expect
 - **Posts & talks** — share your writing and speaking engagements (RSS feed, iCal for talks)
 - **Views & theming** — per-view section curation, overrides, accent colors, and custom CSS
-- **Media library** — browse/search/delete uploads with orphan detection, responsive thumbnails, usage stats, and bulk orphan cleanup
+- **Media library** — browse/search/delete uploads with orphan detection, responsive thumbnails, usage stats, bulk orphan cleanup, and external link entries (YouTube/Vimeo/images)
 - **View membership cues** — admin lists show which views a project/post belongs to (with links to edit)
 - **Exports** — JSON/YAML export, print-ready stylesheet, AI print/resume (beta)
 - **Markdown everywhere** — rich content without a heavy editor

@@ -9,6 +9,8 @@ let loading = true;
 let showForm = false;
 let editingPost: Post | null = null;
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
+let mediaRefs: string[] = [];
+let mediaOptions: { id: string; title: string; provider?: string }[] = [];
 
 	// Form fields
 	let title = '';
@@ -23,7 +25,25 @@ let memberships: Record<string, { id: string; name: string; slug: string }[]> = 
 	let saving = false;
 
 	// Simple pattern - admin layout handles auth
-	onMount(loadPosts);
+onMount(loadPosts);
+onMount(loadMediaOptions);
+
+async function loadMediaOptions() {
+	try {
+		const res = await fetch('/api/media?perPage=200', {
+			headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+		});
+		if (!res.ok) return;
+		const data = await res.json();
+		mediaOptions = (data.items || []).map((item: any) => ({
+			id: item.record_id || item.relative_path || item.url,
+			title: item.display_name || item.filename || item.url,
+			provider: item.provider || (item.external ? 'external' : 'upload')
+		}));
+	} catch (err) {
+		console.error('Failed to load media options', err);
+	}
+}
 
 async function loadPosts() {
 	loading = true;
@@ -47,16 +67,17 @@ async function loadPosts() {
 		}
 	}
 
-	function resetForm() {
-		title = '';
-		slug = '';
-		excerpt = '';
-		content = '';
-		tags = [];
-		tagInput = '';
-		visibility = 'public';
-		isDraft = true;
-		publishedAt = '';
+function resetForm() {
+	title = '';
+	slug = '';
+	excerpt = '';
+	content = '';
+	mediaRefs = [];
+	tags = [];
+	tagInput = '';
+	visibility = 'public';
+	isDraft = true;
+	publishedAt = '';
 		editingPost = null;
 	}
 
@@ -65,17 +86,18 @@ async function loadPosts() {
 		showForm = true;
 	}
 
-	function openEditForm(post: Post) {
-		editingPost = post;
-		title = post.title;
-		slug = post.slug || '';
-		excerpt = post.excerpt || '';
-		content = post.content || '';
-		tags = post.tags || [];
-		visibility = post.visibility;
-		isDraft = post.is_draft;
-		publishedAt = post.published_at ? post.published_at.split('T')[0] : '';
-		showForm = true;
+function openEditForm(post: Post) {
+	editingPost = post;
+	title = post.title;
+	slug = post.slug || '';
+	excerpt = post.excerpt || '';
+	content = post.content || '';
+	mediaRefs = (post as any).media_refs || [];
+	tags = post.tags || [];
+	visibility = post.visibility;
+	isDraft = post.is_draft;
+	publishedAt = post.published_at ? post.published_at.split('T')[0] : '';
+	showForm = true;
 	}
 
 	function closeForm() {
@@ -126,6 +148,7 @@ async function loadPosts() {
 				slug: slug.trim(),
 				excerpt: excerpt.trim(),
 				content: content,
+				media_refs: mediaRefs,
 				tags: tags,
 				visibility,
 				is_draft: isDraft,
@@ -261,14 +284,43 @@ async function loadPosts() {
 
 				<div>
 					<label for="content" class="label">Content</label>
-					<textarea
-						id="content"
-						bind:value={content}
-						class="input min-h-[300px] font-mono text-sm"
-						placeholder="Write your post content here... (Markdown supported)"
-					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
-				</div>
+				<textarea
+					id="content"
+					bind:value={content}
+					class="input min-h-[300px] font-mono text-sm"
+					placeholder="Write your post content here... (Markdown supported)"
+				></textarea>
+				<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
+			</div>
+
+			<div>
+				<p class="label">Attached media / embeds</p>
+				{#if mediaOptions.length === 0}
+					<p class="text-sm text-gray-500 dark:text-gray-400">Add external media in the Media Library first.</p>
+				{:else}
+					<div class="flex flex-wrap gap-2 mb-2">
+						{#each mediaOptions as opt}
+							<label
+								class={`inline-flex items-center gap-2 px-2 py-1 rounded border cursor-pointer ${
+									mediaRefs.includes(opt.id)
+										? 'bg-primary-50 border-primary-200 text-primary-700'
+										: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+								}`}
+							>
+								<input
+									type="checkbox"
+									class="w-4 h-4"
+									bind:group={mediaRefs}
+									value={opt.id}
+								/>
+								<span class="text-xs font-medium">
+									{opt.title}{opt.provider ? ` (${opt.provider})` : ''}
+								</span>
+							</label>
+						{/each}
+					</div>
+				{/if}
+			</div>
 
 				<div>
 					<span class="label">Tags</span>

@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"facet/services"
+	"facet/services/mediaembed"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -26,22 +28,31 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			}
 
 			query := e.Request.URL.Query()
+			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
+			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
+
 			items, referenced, referencedSize, err := collectMediaItems(app)
 			if err != nil {
 				app.Logger().Error("media list failed", "error", err)
 				return apis.NewBadRequestError("failed to enumerate media", err)
 			}
 
+			externalItems, err := collectExternalMediaItems(app)
+			if err != nil {
+				app.Logger().Error("media external scan failed", "error", err)
+				externalItems = nil
+			}
+
 			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, referenced)
 			if err != nil {
 				app.Logger().Error("media orphan scan failed", "error", err)
-				return apis.NewBadRequestError("failed to enumerate media", err)
+				orphanItems = nil
+				orphanSize = 0
+				storageSize = 0
+				storageFiles = 0
 			}
 
-			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
-			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
-
-			combined := items
+			combined := append(items, externalItems...)
 			if orphansOnly {
 				combined = orphanItems
 			} else if includeOrphans {
@@ -54,7 +65,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 
 			filtered := make([]services.MediaItem, 0, len(combined))
 			for _, item := range combined {
-				if search != "" && !strings.Contains(strings.ToLower(item.Filename), search) {
+				if search != "" && !strings.Contains(strings.ToLower(item.Filename), search) && !strings.Contains(strings.ToLower(item.DisplayName), search) {
 					continue
 				}
 				if collectionFilter != "" && strings.ToLower(item.Collection) != collectionFilter && strings.ToLower(item.CollectionKey) != collectionFilter {
@@ -97,11 +108,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				"totalItems": total,
 				"totalPages": (total + perPage - 1) / perPage,
 				"stats": map[string]interface{}{
-					"referencedFiles": len(items),
+					"referencedFiles": len(items) + len(externalItems),
 					"referencedSize":  referencedSize,
 					"orphanFiles":     len(orphanItems),
 					"orphanSize":      orphanSize,
-					"totalFiles":      len(items) + len(orphanItems),
+					"totalFiles":      len(items) + len(externalItems) + len(orphanItems),
 					"totalSize":       referencedSize + orphanSize,
 					"storageFiles":    storageFiles,
 					"storageSize":     storageSize,
@@ -111,41 +122,70 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, response)
 		}).Bind(apis.RequireAuth())
 
-		se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
+		se.Router.POST("/api/media/external", func(e *core.RequestEvent) error {
 			var req struct {
-				Orphans []string `json:"orphans"`
+				URL          string `json:"url"`
+				Title        string `json:"title"`
+				Mime         string `json:"mime"`
+				ThumbnailURL string `json:"thumbnail_url"`
 			}
 			if err := e.BindBody(&req); err != nil {
 				return apis.NewBadRequestError("invalid request body", err)
 			}
-			if len(req.Orphans) == 0 {
-				return apis.NewBadRequestError("no items to delete", nil)
+			if req.URL == "" {
+				return apis.NewBadRequestError("url is required", nil)
+			}
+			if _, err := validateURL(req.URL); err != nil {
+				return apis.NewBadRequestError("invalid url", err)
+			}
+			if req.ThumbnailURL != "" {
+				if _, err := validateURL(req.ThumbnailURL); err != nil {
+					return apis.NewBadRequestError("invalid thumbnail_url", err)
+				}
 			}
 
-			storageRoot := filepath.Join(app.DataDir(), "storage")
-			deleted := 0
-			var failed []string
-
-			for _, rel := range req.Orphans {
-				target, err := resolveStoragePath(storageRoot, rel)
-				if err != nil {
-					app.Logger().Warn("media bulk delete: invalid path", "path", rel, "error", err)
-					failed = append(failed, rel)
-					continue
-				}
-				if err := os.Remove(target); err != nil {
-					app.Logger().Warn("media bulk delete failed", "path", rel, "error", err)
-					failed = append(failed, rel)
-					continue
-				}
-				deleted++
+			collection, err := app.FindCollectionByNameOrId("external_media")
+			if err != nil {
+				return apis.NewBadRequestError("external media not configured", err)
 			}
 
-			return e.JSON(http.StatusOK, map[string]interface{}{
-				"deleted": deleted,
-				"failed":  len(failed),
-				"errors":  failed,
+			record := core.NewRecord(collection)
+			record.Set("url", req.URL)
+			if req.Title != "" {
+				record.Set("title", req.Title)
+			}
+			if req.Mime != "" {
+				record.Set("mime", req.Mime)
+			}
+			if req.ThumbnailURL != "" {
+				record.Set("thumbnail_url", req.ThumbnailURL)
+			}
+			if err := app.Save(record); err != nil {
+				return apis.NewBadRequestError("failed to save external media", err)
+			}
+			return e.JSON(http.StatusOK, map[string]string{
+				"id":  record.Id,
+				"url": req.URL,
 			})
+		}).Bind(apis.RequireAuth())
+
+		se.Router.DELETE("/api/media/external/{id}", func(e *core.RequestEvent) error {
+			id := e.Request.PathValue("id")
+			if id == "" {
+				return apis.NewBadRequestError("missing id", nil)
+			}
+			collection, err := app.FindCollectionByNameOrId("external_media")
+			if err != nil {
+				return apis.NewBadRequestError("external media not configured", err)
+			}
+			record, err := app.FindRecordById(collection.Name, id)
+			if err != nil {
+				return apis.NewNotFoundError("not found", err)
+			}
+			if err := app.Delete(record); err != nil {
+				return apis.NewBadRequestError("failed to delete external media", err)
+			}
+			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
@@ -289,6 +329,47 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 	return all, referenced, totalSize, nil
 }
 
+func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error) {
+	collection, err := app.FindCollectionByNameOrId("external_media")
+	if err != nil {
+		return nil, nil
+	}
+
+	records, err := app.FindRecordsByFilter(collection.Name, "", "-created", 500, 0, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var items []services.MediaItem
+	for _, record := range records {
+		created := record.GetDateTime("created").Time()
+		title := record.GetString("title")
+		if title == "" {
+			title = record.GetString("url")
+		}
+		normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+		item := services.MediaItem{
+			Collection:    collection.Name,
+			CollectionID:  collection.Id,
+			CollectionKey: "external",
+			RecordID:      record.Id,
+			Field:         "external",
+			Filename:      title,
+			DisplayName:   title,
+			RecordLabel:   title,
+			URL:           record.GetString("url"),
+			Mime:          normalized.Mime,
+			ThumbnailURL:  normalized.ThumbnailURL,
+			EmbedURL:      normalized.EmbedURL,
+			Provider:      normalized.Provider,
+			UploadedAt:    created,
+			External:      true,
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
 func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, int64, int, error) {
 	dataDir := app.DataDir()
 	storageRoot := filepath.Join(dataDir, "storage")
@@ -372,4 +453,15 @@ func resolveStoragePath(storageRoot, rel string) (string, error) {
 		return "", os.ErrInvalid
 	}
 	return target, nil
+}
+
+func validateURL(raw string) (*url.URL, error) {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return nil, os.ErrInvalid
+	}
+	return parsed, nil
 }
