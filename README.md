@@ -759,6 +759,16 @@ MIT. Do whatever you want with it.
 
 ---
 
+## Support This Project
+
+If Facet saves you time or helps your career, consider buying me a coffee!
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20Facet-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jesposito)
+
+Your support helps keep the project maintained and growing. Thank you! ☕
+
+---
+
 ## Credits
 
 Built by [jesposito](https://github.com/jesposito). Powered by [PocketBase](https://pocketbase.io/), [SvelteKit](https://kit.svelte.dev/), and too much coffee.
