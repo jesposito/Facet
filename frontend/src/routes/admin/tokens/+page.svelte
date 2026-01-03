@@ -64,7 +64,7 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token
+					Authorization: `Bearer ${pb.authStore.token}`
 				},
 				body: JSON.stringify({
 					view_id: newToken.view_id,
@@ -106,7 +106,7 @@
 			const response = await fetch(`/api/share/revoke/${tokenId}`, {
 				method: 'POST',
 				headers: {
-					Authorization: pb.authStore.token
+					Authorization: `Bearer ${pb.authStore.token}`
 				}
 			});
 
