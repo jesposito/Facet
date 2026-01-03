@@ -106,27 +106,118 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Error UX: custom 404/500 with self-deprecating humor and SVG illustrations
 - 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (planned)
 
-## Phase 10: Demo & Showcase Mode (🔜 Planned)
-**Purpose:** Production-safe demo to highlight value for new users.
+## Phase 10: Demo & Showcase Mode (🔜 Planned, Must Build Before Phase 13)
+**Purpose:** Production-safe demo showing all Facet features with humor.
+
+**Demo Persona: "The Doctor"** (tongue-in-cheek, multi-faceted character)
+- Shows how one person can have many "facets" (get it?)
+- Demonstrates every major feature in an entertaining way
+- 6+ different views showcasing different aspects/regenerations
+
+### Demo Content Strategy
+**Profile:** The Doctor
+- Name: "The Doctor"
+- Headline: "Time Lord, Adventurer, Earth's Protector (Sometimes)"
+- Location: "The TARDIS (usually parked near Earth)"
+- Summary: Witty, self-aware description of being a time-traveling problem solver
+
+**Views (6+ Different Facets):**
+1. **Default/Public** - "The Official Record"
+   - Formal, professional, downplayed
+   - "Freelance Consultant specializing in Impossible Problems"
+   - Shows: basic experience, selected projects, professional photo
+
+2. **Recruiter** - "For Earth's Defense"
+   - Emphasis on leadership, crisis management, team building
+   - 900+ years of experience (with humor about age discrimination)
+   - Skills: Crisis Management, Alien Diplomacy, Improvisation
+   - Password-protected (password: "jiggery-pokery")
+
+3. **Conference** - "Speaking Circuit"
+   - All talks and presentations
+   - "Fixing Time Paradoxes" (TechConf 2024)
+   - "Why You Shouldn't Cross Your Own Timeline" (DevCon)
+   - Shows media embeds, slides, videos
+
+4. **Consulting** - "The Real Resume"
+   - Unlisted (share token required)
+   - Case studies: Stopped Dalek invasion, resolved Cyberman uprising
+   - Client testimonials (funny quotes from companions)
+
+5. **Personal/Companions** - "For Friends"
+   - Password-protected (password: "allonsy")
+   - Hobbies, interests, fish custard recipes
+   - Less formal, more personality
+   - Custom CSS for fun styling
+
+6. **Academic** - "The Scholar"
+   - Education section (Prydonian Academy, etc.)
+   - Certifications in temporal mechanics
+   - Published papers on wibbly-wobbly timey-wimey stuff
+
+**Content Examples:**
+
+**Experience:**
+- "Time Lord Academy" (900+ years ago - present)
+- "Freelance Problem Solver" (various timelines)
+- Each with bullets showing feature richness
+
+**Projects:**
+- "TARDIS Redesign" (GitHub import example)
+- "Sonic Screwdriver v14" (with tech stack, media)
+- "Defeating the Daleks" (case study format)
+
+**Posts:**
+- "Why Time Travel Isn't All It's Cracked Up To Be"
+- "10 Things I've Learned in 900 Years" (with AI writing in different tones)
+- Show tags, cover images, markdown formatting
+
+**Talks:**
+- "Time and Relative Dimensions in Space" (iCal export example)
+- With slides URL, video embed, event details
+
+**Awards:**
+- "Saved Earth (Again)" - Earth Defense Force
+- "Best Use of a Sonic Screwdriver" - Maker Faire 2023
+
+### Feature Showcase
+Every view demonstrates:
+- ✅ Different visibility levels (public, unlisted, password, private)
+- ✅ Custom theming and accent colors per view
+- ✅ Share tokens (with expiration, use limits)
+- ✅ Media library (images, YouTube embeds, external links)
+- ✅ GitHub import (fictional TARDIS project)
+- ✅ AI Writing Assistant samples (show different tones on same content)
+- ✅ Contact protection (different levels per view)
+- ✅ Custom CSS (one view has playful styling)
+- ✅ RSS feed and iCal export
+- ✅ Drag-and-drop reordering
+- ✅ Field locking on imported projects
+
+### Implementation Details
 - **Demo Mode Toggle** in admin dashboard (off by default)
-  - Visible toggle near top of admin dashboard
-  - Enables full showcase data to demonstrate all Facet features
-  - Hydrates with complete demo profile including:
-    - Multiple views (public, recruiter, conference, consulting, personal)
-    - Sample projects with media and GitHub import examples
-    - Blog posts and talks with rich content
-    - All content types populated (experience, education, skills, certifications, awards)
-    - Password-protected view example
-    - Share tokens with various expiration/limit settings
-- **Data Preservation**
+- **Data Preservation:**
   - On enable: Snapshot current user data before loading demo
   - On disable: Restore user's original data exactly as it was
-  - If user edits during demo mode: preserve those edits OR restore to empty (user choice)
-- **Implementation Details**
-  - Backend API: `/api/demo/enable` and `/api/demo/disable`
+  - If user edits during demo: preserve those edits OR restore to empty (user choice)
+- **Backend API:**
+  - `/api/demo/enable` - Loads Doctor persona
+  - `/api/demo/disable` - Restores user data
   - Database backup/restore mechanism (export to JSON, store in temporary table)
-  - Clear UI indicators when demo mode is active
-  - Persistent toggle state across sessions
+- **UI Indicators:**
+  - Banner at top of admin when demo mode active
+  - "Exploring Demo Mode" message
+  - Clear "Exit Demo Mode" button
+- **Seed Data File:** `backend/seeds/demo_doctor.json`
+  - Complete profile with all views, projects, posts, talks
+  - Can be updated/improved without code changes
+
+### Tone
+- Self-aware and playful (knows it's a demo)
+- Shows off features without being salesy
+- Easter eggs for Doctor Who fans
+- Professional enough to be useful as example
+- Funny enough to be memorable
 
 ---
 
