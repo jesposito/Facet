@@ -107,6 +107,94 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			})
 		}).Bind(apis.RequireAuth())
 
+		// AI content rewrite with tone options
+		se.Router.POST("/api/ai/rewrite", func(e *core.RequestEvent) error {
+			if e.Auth == nil {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			}
+
+			var req struct {
+				Content   string            `json:"content"`
+				FieldType string            `json:"field_type"`
+				Context   map[string]string `json:"context"`
+				Tone      string            `json:"tone"` // executive, professional, technical, conversational, creative
+			}
+
+			if err := e.BindBody(&req); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			}
+
+			if req.Content == "" {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "content is required"})
+			}
+
+			// Get default provider
+			provider, err := getActiveProvider(app, crypto, "")
+			if err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+			}
+
+			// Build rewrite prompt with tone
+			prompt := buildRewritePrompt(req.Content, req.FieldType, req.Context, req.Tone)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			result, err := ai.ImproveContent(ctx, provider, prompt)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"content":  result,
+				"tone":     req.Tone,
+				"provider": provider.Name,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// AI content critique with inline feedback
+		se.Router.POST("/api/ai/critique", func(e *core.RequestEvent) error {
+			if e.Auth == nil {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			}
+
+			var req struct {
+				Content   string            `json:"content"`
+				FieldType string            `json:"field_type"`
+				Context   map[string]string `json:"context"`
+			}
+
+			if err := e.BindBody(&req); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			}
+
+			if req.Content == "" {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "content is required"})
+			}
+
+			// Get default provider
+			provider, err := getActiveProvider(app, crypto, "")
+			if err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+			}
+
+			// Build critique prompt
+			prompt := buildCritiquePrompt(req.Content, req.FieldType, req.Context)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+
+			result, err := ai.ImproveContent(ctx, provider, prompt)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"content":  result,
+				"provider": provider.Name,
+			})
+		}).Bind(apis.RequireAuth())
+
 		// General-purpose AI content improvement endpoint
 		se.Router.POST("/api/ai/improve", func(e *core.RequestEvent) error {
 			if e.Auth == nil {
@@ -443,6 +531,156 @@ func getMapKeys(m map[string]any) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// buildRewritePrompt creates a tone-specific rewrite prompt
+func buildRewritePrompt(content, fieldType string, ctx map[string]string, tone string) string {
+	var sb strings.Builder
+
+	sb.WriteString(`You are a professional writing assistant helping to rewrite portfolio content.
+
+CRITICAL STYLE RULES - NEVER VIOLATE:
+- Write like a human, not an AI. Be direct and natural.
+- NEVER use em dashes (—). Use commas, periods, semicolons, or "and" instead.
+- NEVER use these AI-sounding words: delve, leverage, utilize, spearheaded, synergy, cutting-edge,
+  comprehensive, robust, streamline, optimize, revolutionize, game-changing, innovative (unless
+  genuinely describing innovation), state-of-the-art, paradigm, holistic, seamless
+- Avoid passive voice. Use active, strong verbs.
+- Don't start sentences with "This project..." or "I was responsible for..."
+- Vary sentence structure and length
+- Be specific and concrete, not vague and abstract
+
+`)
+
+	// Add tone-specific instructions
+	switch tone {
+	case "executive":
+		sb.WriteString(`TONE: Executive/C-Suite
+- Focus on strategic impact, leadership, and business outcomes
+- Emphasize ROI, revenue impact, cost savings, market position
+- Use terminology like: "directed," "architected strategy," "drove," "delivered"
+- Quantify everything possible (%, $, time saved, team size)
+- 3rd person perspective preferred ("Led team of..." not "I led...")
+- Example: "Led strategic initiative" NOT "Worked on project"
+
+`)
+	case "technical":
+		sb.WriteString(`TONE: Technical/Engineering
+- Focus on technologies, architectures, methodologies, technical challenges
+- Be specific about tech stack, frameworks, design patterns
+- Emphasize technical depth: "Implemented distributed caching using Redis" NOT "Made things faster"
+- Use precise technical terms but avoid unnecessary jargon
+- Explain the "how" and "why" of technical decisions
+- First person active voice is fine ("Built," "Designed," "Implemented")
+
+`)
+	case "conversational":
+		sb.WriteString(`TONE: Conversational/Approachable
+- Use first person ("I built," "I designed")
+- More personality, less corporate
+- Contractions are okay (I'm, we're, it's)
+- Shorter sentences, more direct communication
+- Sound human and genuine, like explaining to a colleague
+- Still professional, just more relaxed and personable
+
+`)
+	case "creative":
+		sb.WriteString(`TONE: Creative/Portfolio Style
+- Storytelling approach - what was the challenge, solution, impact?
+- Emphasis on innovation, creativity, user experience
+- More descriptive and engaging language
+- Paint a picture of the work and its impact
+- Show passion and craft, not just competence
+- Balance creativity with credibility
+
+`)
+	default: // professional
+		sb.WriteString(`TONE: Professional/Standard Resume
+- Balanced, achievement-focused, industry-appropriate
+- Clear action verbs: "Built," "Created," "Improved," "Managed"
+- Quantify achievements where possible
+- Professional but not stuffy, clear but not casual
+- This is the safe, widely-appropriate choice
+
+`)
+	}
+
+	// Add context if provided
+	if len(ctx) > 0 {
+		sb.WriteString("\nContext for this content:\n")
+		for k, v := range ctx {
+			if v != "" {
+				sb.WriteString(fmt.Sprintf("- %s: %s\n", k, v))
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	// Add field-specific guidance
+	switch fieldType {
+	case "headline":
+		sb.WriteString("Rewrite this HEADLINE (one line, under 100 characters):\n\n")
+	case "summary":
+		sb.WriteString("Rewrite this SUMMARY (2-4 sentences capturing key professional value):\n\n")
+	case "description":
+		sb.WriteString("Rewrite this DESCRIPTION (1-3 paragraphs of detailed content):\n\n")
+	case "bullets":
+		sb.WriteString("Rewrite these BULLET POINTS (return as bullet list with • prefix):\n\n")
+	default:
+		sb.WriteString("Rewrite this content:\n\n")
+	}
+
+	sb.WriteString(content)
+	sb.WriteString("\n\nReturn ONLY the rewritten content with no explanations, no preamble, no meta-commentary.")
+
+	return sb.String()
+}
+
+// buildCritiquePrompt creates a prompt for inline feedback
+func buildCritiquePrompt(content, fieldType string, ctx map[string]string) string {
+	var sb strings.Builder
+
+	sb.WriteString(`You are a professional writing coach providing inline feedback on portfolio content.
+
+Your task: Return the EXACT original text with constructive feedback inserted in [square brackets].
+
+FEEDBACK GUIDELINES:
+- Be specific and actionable
+- Point out vague language: [Too generic - what specific technology/approach?]
+- Request quantification: [Can you quantify this? How much/many? What timeframe?]
+- Flag buzzwords: [Avoid "leverage" - say "used" or be more specific]
+- Suggest stronger verbs: [Passive voice - try "Built" or "Created" instead]
+- Note missing context: [What was the impact? Who benefited?]
+- Keep feedback brief and in brackets
+
+EXAMPLE:
+Original: "Worked on improving the application's performance using various techniques"
+With feedback: "Worked on [Weak verb - try 'optimized' or 'redesigned'] improving the application's performance [By how much? 2x? 50% faster?] using various techniques [Too vague - name specific techniques like caching, query optimization, etc.]"
+
+DO NOT:
+- Rewrite the content
+- Remove any original text
+- Add feedback at the end
+- Explain your feedback outside of brackets
+
+`)
+
+	// Add context if provided
+	if len(ctx) > 0 {
+		sb.WriteString("\nContext:\n")
+		for k, v := range ctx {
+			if v != "" {
+				sb.WriteString(fmt.Sprintf("- %s: %s\n", k, v))
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("Content to critique:\n\n")
+	sb.WriteString(content)
+	sb.WriteString("\n\nReturn the original text with inline [feedback in brackets].")
+
+	return sb.String()
 }
 
 // encryptProviderKeyFromRequest reads api_key from request body and encrypts it

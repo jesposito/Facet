@@ -16,8 +16,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management (25 tests, 96% pass rate).
 - ✅ Security audit complete: Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (1 HIGH, 3 MEDIUM, 2 LOW severity issues) with prioritized remediation roadmap.
 - ✅ Critical security fixes: XSS prevention (DOMPurify sanitization) and path traversal protection (11-layer validation with symlink detection) implemented and tested.
-- 🟡 In progress: Contact protection & social links (Phase 11 - Phase 1: Foundation), AI print/resume polish.
-- 🔜 Planned: Security headers implementation, debug logging cleanup, 2FA, audit logging hooks, Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
+- ✅ Contact protection & social links (Phase 11): Complete with contact_methods collection, admin CRUD, per-view visibility, and 4-tier protection levels.
+- ✅ AI Writing Assistant (Phase 12): Complete with 5 tone options, critique mode, mobile-responsive, integrated across all content forms.
+- 🔜 Planned: Resume upload & AI parsing, Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning, Demo Mode (Phase 10).
 
 ---
 
@@ -110,20 +111,19 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ---
 
-## Phase 11: Contact Protection & Social Links (🟡 In Progress)
+## Phase 11: Contact Protection & Social Links (✅ Complete)
 **Purpose:** Granular per-view contact control with anti-scraping protection
-- 🟡 **Phase 1 (Week 1): Foundation**
-  - Create `contact_methods` collection with view-specific visibility
-  - Implement CSS obfuscation and click-to-reveal components
+- ✅ **Phase 1 (Week 1): Foundation**
+  - ✅ Create `contact_methods` collection with view-specific visibility
+  - ✅ Implement CSS obfuscation and click-to-reveal components
+  - ✅ Contact methods admin page with full CRUD
+  - ✅ Per-view visibility controls
+  - ✅ Protection level selector (none/obfuscation/click-to-reveal/captcha)
+  - ✅ Public rendering in views with ContactMethodsList component
+- 🔜 **Phase 2 (Future): Advanced Protection**
   - Add robots.txt blocking AI crawlers (GPTBot, ClaudeBot, etc.)
   - Rate limiting for contact reveals (10/10min per device)
-- 🔜 **Phase 2 (Week 2): Admin UI**
-  - Contact methods management page
-  - Per-view visibility matrix
-  - Protection level selector (none/obfuscation/click-to-reveal/captcha)
-  - Drag-and-drop reordering
-- 🔜 **Phase 3 (Week 3): Advanced Protection**
-  - Cloudflare Turnstile integration
+  - Cloudflare Turnstile integration for captcha level
   - Device fingerprinting
   - Analytics dashboard for reveal attempts
   - Honeypot detection
@@ -136,10 +136,29 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ---
 
+## Phase 12: AI Writing Assistant (✅ Complete)
+**Purpose:** Intelligent content rewriting and feedback across all text fields
+- ✅ **Multi-tone rewriting:** Executive, Professional, Technical, Conversational, Creative
+- ✅ **Critique mode:** Inline feedback with [bracketed suggestions]
+- ✅ **Anti-AI guidelines:** Strict rules to avoid AI-sounding language (no "leverage", "delve", em-dashes, etc.)
+- ✅ **Integrated everywhere:** Experience, Projects, Profile, Education, Posts, Talks
+- ✅ **Mobile-responsive:** Optimized for all screen sizes
+- ✅ **Context-aware:** Uses form fields (title, company, etc.) for better results
+
+**Features:**
+- 5 distinct writing tones with specific style guidelines
+- Critique mode returns original text with inline `[feedback in brackets]`
+- Preview modal with side-by-side comparison
+- Works with OpenAI, Anthropic, and Ollama providers
+- Comprehensive documentation in [AI_WRITING_ASSISTANT.md](docs/AI_WRITING_ASSISTANT.md)
+
+---
+
 ## Cross-Cutting Backlog
 - **High Priority:**
   - Testing: ✅ E2E infrastructure complete (25 Playwright tests covering public APIs, SEO, error pages, media, admin flows); 🔜 GitHub/AI provider mocks, additional coverage
   - Theme system extensions (light/dark, presets)
+  - 🔜 **Resume Upload & AI Parsing:** Upload PDF/DOCX resumes, use AI to extract and populate experience/education/skills into a new view
 - **Medium Priority:**
   - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
   - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Education } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
+	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
 	let educations: Education[] = [];
 	let loading = true;
@@ -240,7 +241,15 @@
 				</div>
 
 				<div>
-					<label for="description" class="label">Description</label>
+					<div class="flex items-center justify-between mb-2">
+						<label for="description" class="label mb-0">Description</label>
+						<AIContentHelper
+							fieldType="description"
+							content={description}
+							context={{ degree, field, institution }}
+							on:apply={(e) => (description = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="description"
 						bind:value={description}

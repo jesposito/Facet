@@ -3,6 +3,7 @@
 	import { pb, type Talk } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
+	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
 	let talks: Talk[] = [];
 	let loading = true;
@@ -401,7 +402,15 @@ async function resolveMediaRefs(selected: string[]) {
 				</div>
 
 				<div>
-					<label for="description" class="label">Description</label>
+					<div class="flex items-center justify-between mb-2">
+						<label for="description" class="label mb-0">Description</label>
+						<AIContentHelper
+							fieldType="description"
+							content={description}
+							context={{ title, event, location }}
+							on:apply={(e) => (description = e.detail.content)}
+						/>
+					</div>
 					<textarea
 						id="description"
 						bind:value={description}
