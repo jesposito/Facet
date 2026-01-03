@@ -16,6 +16,7 @@ Think LinkedIn meets personal portfolio, except you hold all the cards: the data
 - Keep a professional presence online without feeding the LinkedIn algorithm
 - Import your GitHub projects without copying and pasting 47 README files
 - Actually own your professional identity
+- Make up fake people like some kind of weirdie 
 
 **Then Facet might be for you.**
 
