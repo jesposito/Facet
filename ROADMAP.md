@@ -15,8 +15,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ SEO & Error UX complete: custom 404/500 pages, canonical URLs, comprehensive Open Graph/Twitter Cards, JSON-LD, sitemap, robots.txt.
 - ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management (25 tests, 96% pass rate).
 - ✅ Security audit complete: Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (1 HIGH, 3 MEDIUM, 2 LOW severity issues) with prioritized remediation roadmap.
-- 🟡 In progress: Security fixes (XSS, path traversal, debug logging), AI print/resume polish.
-- 🔜 Planned: Security headers implementation, 2FA, audit logging hooks, Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
+- ✅ Critical security fixes: XSS prevention (DOMPurify sanitization) and path traversal protection (11-layer validation with symlink detection) implemented and tested.
+- 🟡 In progress: AI print/resume polish.
+- 🔜 Planned: Security headers implementation, debug logging cleanup, 2FA, audit logging hooks, Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
 
 ---
 
@@ -80,13 +81,14 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ## Phase 8: Security & Audit (🟡 In Progress)
 - ✅ **Security Audit Complete** - Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
+- ✅ **XSS Prevention** - DOMPurify sanitization with iframe whitelisting implemented and tested
+- ✅ **Path Traversal Protection** - Complete rewrite with 11-layer validation, symlink detection, defense-in-depth
+- ✅ **Security Test Suite** - Comprehensive tests for XSS, path traversal, input validation (tests/security.spec.ts)
 - ✅ Audit logs database schema prepared (migration ready)
 - ✅ HTTPS enforcement check (warns in production)
-- 🔜 **Immediate fixes needed:**
-  - Fix XSS in markdown rendering (add DOMPurify sanitization)
-  - Remove debug logging from production code
-  - Fix path traversal in media deletion (symlink checks)
-  - Re-enable security headers
+- 🔜 **Remaining fixes:**
+  - Remove debug logging from production code (deferred - lower priority)
+  - Re-enable security headers (CSP, X-Frame-Options, etc.)
 - 🔜 **Planned:**
   - Audit log implementation (hooks)
   - Security headers (CSP, Permissions Policy)

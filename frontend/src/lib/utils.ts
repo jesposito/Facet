@@ -1,9 +1,37 @@
 import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
 
 type EmbedMatch = {
 	provider: string;
 	url: string;
 };
+
+// Configure DOMPurify with iframe domain whitelist for security
+// This hook validates iframe sources to prevent malicious embeds
+DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+	if (data.tagName === 'iframe') {
+		const src = node.getAttribute('src') || '';
+
+		// Whitelist of trusted embed domains matching our shortcode providers
+		const allowedDomains = [
+			'https://www.youtube.com/embed/',
+			'https://www.youtube-nocookie.com/embed/',
+			'https://player.vimeo.com/video/',
+			'https://www.loom.com/embed/',
+			'https://w.soundcloud.com/player/',
+			'https://open.spotify.com/embed/',
+			'https://codepen.io/embed/',
+			'https://www.figma.com/embed/'
+		];
+
+		// Remove iframe if source doesn't match whitelisted domains
+		const isAllowed = allowedDomains.some(domain => src.startsWith(domain));
+		if (!isAllowed) {
+			node.parentNode?.removeChild(node);
+			console.warn('[Security] Blocked iframe with untrusted source:', src);
+		}
+	}
+});
 
 // Date formatting
 export function formatDate(dateString: string | undefined, options?: Intl.DateTimeFormatOptions): string {
@@ -18,11 +46,39 @@ export function formatDateRange(startDate?: string, endDate?: string): string {
 	return `${start} - ${end}`;
 }
 
-// Markdown parsing
+// Markdown parsing with XSS protection
+// Converts markdown to HTML, applies shortcode embeds, and sanitizes output
 export function parseMarkdown(content: string): string {
 	if (!content) return '';
+
+	// Step 1: Apply shortcode transformations ({{youtube:...}}, etc.)
 	const withEmbeds = applyShortcodes(content);
-	return marked.parse(withEmbeds, { async: false }) as string;
+
+	// Step 2: Convert markdown to HTML
+	const html = marked.parse(withEmbeds, { async: false }) as string;
+
+	// Step 3: Sanitize HTML to prevent XSS attacks
+	// This protects against malicious content in markdown (scripts, dangerous attributes, etc.)
+	return DOMPurify.sanitize(html, {
+		// Extend default safe tags with media/embed elements
+		ADD_TAGS: ['iframe', 'video', 'audio', 'figure', 'figcaption', 'picture', 'source'],
+
+		// Add attributes needed for media embeds and accessibility
+		ADD_ATTR: [
+			'allowfullscreen', // YouTube/Vimeo fullscreen capability
+			'frameborder',     // iframe styling (legacy but still used)
+			'loading',         // lazy loading for performance
+			'controls',        // video/audio playback controls
+			'target',          // open links in new tab
+			'rel',             // link security (noopener, noreferrer)
+			'allow',           // iframe permissions (autoplay, encrypted-media)
+			'scrolling'        // iframe scrolling behavior
+		],
+
+		// Keep data-* and aria-* attributes for accessibility and functionality
+		ALLOW_DATA_ATTR: true,
+		ALLOW_ARIA_ATTR: true
+	});
 }
 
 // Media shortcodes -> embed HTML
