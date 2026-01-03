@@ -41,6 +41,12 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			// O(1) lookup using token_prefix index
 			prefix := share.TokenPrefix(req.Token)
 
+			// DEBUG: Log validation attempt
+			app.Logger().Info("Share token validation attempt",
+				"token_length", len(req.Token),
+				"prefix", prefix,
+			)
+
 			// Query by prefix for efficient lookup (indexed)
 			candidates, err := app.FindRecordsByFilter(
 				"share_tokens",
@@ -49,6 +55,12 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				10, // Prefix collisions are rare; limit for safety
 				0,
 				map[string]interface{}{"prefix": prefix},
+			)
+
+			// DEBUG: Log candidates found
+			app.Logger().Info("Prefix lookup results",
+				"candidates", len(candidates),
+				"error", err,
 			)
 
 			// Fallback to legacy lookup if no prefix-based results (for tokens created before migration)
@@ -62,19 +74,34 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 					0,
 					nil,
 				)
+				app.Logger().Info("Legacy lookup results",
+					"candidates", len(candidates),
+					"error", err,
+				)
 			}
 
 			// Find the matching token using constant-time HMAC comparison
 			var tokenRecord *core.Record
-			for _, record := range candidates {
+			for i, record := range candidates {
 				storedHMAC := record.GetString("token_hash")
+				storedPrefix := record.GetString("token_prefix")
 				if share.ValidateTokenHMAC(req.Token, storedHMAC) {
 					tokenRecord = record
+					app.Logger().Info("Token matched", "candidate_index", i)
 					break
+				} else {
+					app.Logger().Debug("Token mismatch",
+						"candidate_index", i,
+						"stored_prefix", storedPrefix,
+					)
 				}
 			}
 
 			if err != nil || tokenRecord == nil {
+				app.Logger().Warn("Token validation failed",
+					"found_record", tokenRecord != nil,
+					"error", err,
+				)
 				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
@@ -150,6 +177,13 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 
 			tokenHMAC := share.HMACToken(rawToken)
 			tokenPrefix := share.TokenPrefix(rawToken)
+
+			// DEBUG: Log token generation
+			app.Logger().Info("Generating share token",
+				"token_length", len(rawToken),
+				"prefix", tokenPrefix,
+				"hmac_length", len(tokenHMAC),
+			)
 
 			// Create token record
 			collection, err := app.FindCollectionByNameOrId("share_tokens")
