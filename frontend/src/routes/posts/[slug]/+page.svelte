@@ -7,8 +7,23 @@ import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { onMount } from 'svelte';
 	import type { RecordModel } from 'pocketbase';
+import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
 	export let data: PageData;
+
+	// SEO metadata
+	$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
+	$: canonicalUrl = getCanonicalUrl(baseUrl, `posts/${data.post.slug}`);
+	$: ogTags = generateOpenGraphTags({
+		title: data.post.title,
+		description: data.post.excerpt || '',
+		image: data.post.cover_image_url || undefined,
+		url: canonicalUrl,
+		type: 'article',
+		siteName: data.profile?.name || 'Facet',
+		publishedTime: data.post.published_at || undefined,
+		modifiedTime: data.post.updated || undefined
+	});
 
 	// Format the published date
 	$: publishedDate = data.post.published_at ? formatDate(data.post.published_at) : null;
@@ -99,17 +114,14 @@ const getHost = (url?: string) => {
 <svelte:head>
 	<title>{data.post.title} | {data.profile?.name || 'Blog'}</title>
 	<meta name="description" content={data.post.excerpt || ''} />
-	<link rel="canonical" href="/posts/{data.post.slug}" />
-	<!-- Open Graph -->
-	<meta property="og:title" content={data.post.title} />
-	<meta property="og:description" content={data.post.excerpt || ''} />
-	<meta property="og:type" content="article" />
-	{#if data.post.cover_image_url}
-		<meta property="og:image" content={data.post.cover_image_url} />
-	{/if}
-	{#if publishedDate}
-		<meta property="article:published_time" content={data.post.published_at} />
-	{/if}
+
+	<!-- Canonical URL -->
+	<link rel="canonical" href={canonicalUrl} />
+
+	<!-- Open Graph and Twitter Card meta tags -->
+	{#each Object.entries(ogTags) as [property, content]}
+		<meta property={property} content={content} />
+	{/each}
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
