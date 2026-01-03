@@ -11,8 +11,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Core flows: views, share tokens/passwords, GitHub import, AI enrichment (optional), admin CRUD, public pages, print stylesheet.
 - ✅ View editor with overrides/reordering; per-view theming; accent colors; media library with orphan detection and cleanup.
 - ✅ Media optimization (thumb/srcset) live on posts/projects/homepage; view membership badges in admin lists.
-- ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks.
-- 🟡 In progress: AI print/resume polish, testing backlog, bulk delete endpoint.
+- ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks, bulk delete.
+- 🟡 In progress: AI print/resume polish, testing backlog.
 - 🔜 Planned: Security/Audit (Phase 8), Performance/SEO polish (Phase 9), Demo Mode toggle/persona (Phase 10).
 
 ---
@@ -66,14 +66,13 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - Custom CSS support; live preview in settings
 - View previews in editor
 
-## Phase 7: Media Management (✅ Complete - except bulk delete API)
+## Phase 7: Media Management (✅ Complete)
 - 7.1 Media library: ✅ `/admin/media` listing, filters, search, delete; orphan detection
 - 7.2 Image optimization: ✅ thumbnails + responsive srcsets for posts/projects/homepage
-- 7.3 Cleanup UX: ✅ orphan detection + storage usage stats; ⚠️ bulk delete UI exists but backend endpoint missing
+- 7.3 Cleanup UX: ✅ orphan detection + storage usage stats + bulk delete endpoint
 - 7.4 External media: ✅ link-based entries (URL/title/mime/thumbnail) listed alongside uploads; deletion supported; media_refs on projects/posts/talks
 - 7.5 Public rendering: ✅ Projects, Posts, and Talks pages render media_refs (YouTube, Vimeo, images, videos, link cards)
 - 7.6 Upload mirroring: ✅ Uploaded files automatically mirrored to external_media for unified media_refs
-- ⚠️ **Known Issue:** Bulk delete endpoint (`POST /api/media/bulk-delete`) documented but not implemented; UI will 404 when attempting bulk orphan deletion.
 - ℹ️ Media stability note: `/api/media` depends on file fields + `external_media`; run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`) after schema changes; see docs/MEDIA.md for details.
 
 ## Phase 8: Security & Audit (🔜 Planned)
@@ -98,8 +97,6 @@ This roadmap reflects current implementation status and planned work, ordered ch
 ---
 
 ## Cross-Cutting Backlog
-- **Critical:**
-  - Implement `POST /api/media/bulk-delete` endpoint (UI exists, backend missing)
 - **High Priority:**
   - Testing: frontend/component + integration tests; GitHub/AI provider mocks
   - Theme system extensions (light/dark, presets)
