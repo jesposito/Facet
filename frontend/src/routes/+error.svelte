@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { dev, browser } from '$app/environment';
 
 	onMount(() => {
@@ -37,16 +36,16 @@
 		if (!browser) return;
 		// If we have a usable referrer, prefer it
 		if (referrerPath && referrerPath !== $page.url.pathname) {
-			goto(referrerPath, { replaceState: true });
+			window.location.href = referrerPath;
 		} else {
-			goto('/', { replaceState: true });
+			window.location.href = '/';
 		}
 	};
 
 	const goBack = () => {
 		if (!browser) return;
 		if (referrerPath && referrerPath !== $page.url.pathname) {
-			goto(referrerPath, { replaceState: true });
+			window.location.href = referrerPath;
 		} else {
 			window.history.back();
 		}
