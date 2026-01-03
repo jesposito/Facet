@@ -1,0 +1,128 @@
+# Facet Portfolio - Robots.txt
+# Last Updated: 2026-01-03
+#
+# This file controls which bots can crawl the site.
+# We block AI training crawlers to protect content and contact information
+# while allowing legitimate search engines for discoverability.
+
+# === AI Training Bots (BLOCKED) ===
+# These bots scrape content for AI training datasets
+
+# OpenAI (ChatGPT training)
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+# Anthropic (Claude training)
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+# Google AI training (separate from Googlebot)
+User-agent: Google-Extended
+Disallow: /
+
+# Common Crawl (dataset for AI training)
+User-agent: CCBot
+Disallow: /
+
+# ByteDance (TikTok parent company)
+User-agent: Bytespider
+Disallow: /
+
+# Apple AI training
+User-agent: Applebot-Extended
+Disallow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Disallow: /
+
+# Diffbot
+User-agent: Diffbot
+Disallow: /
+
+# Meta/Facebook AI training
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+# Cohere AI
+User-agent: cohere-ai
+Disallow: /
+
+# Omgili (content scraper)
+User-agent: omgili
+Disallow: /
+
+# === Legitimate Search Engines (ALLOWED) ===
+# These help with discoverability
+
+# Google Search
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+# Bing Search
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# DuckDuckGo
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 1
+
+# Yandex
+User-agent: Yandex
+Allow: /
+Crawl-delay: 2
+
+# Baidu
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 2
+
+# === Well-Behaved Bots (ALLOWED) ===
+
+# Internet Archive (Wayback Machine)
+User-agent: ia_archiver
+Allow: /
+Crawl-delay: 5
+
+# Apple Siri/Spotlight
+User-agent: Applebot
+Allow: /
+Crawl-delay: 1
+
+# === Default Rules ===
+# Apply to all other bots
+
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /*?*
+Allow: /
+
+# === Sitemaps ===
+Sitemap: https://facet.example.com/sitemap.xml
+
+# === Notes ===
+# - This robots.txt is advisory only; malicious bots can ignore it
+# - Additional protection implemented via:
+#   - CSS obfuscation for contact info
+#   - Click-to-reveal UI patterns
+#   - Rate limiting
+#   - Server-side bot detection
+#
+# - See docs/CONTACT_PROTECTION.md for complete security strategy
