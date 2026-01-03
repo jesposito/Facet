@@ -202,15 +202,15 @@ test.describe('Error pages', () => {
 		expect(svgCount).toBeGreaterThan(0);
 	});
 
-	test('error pages have "Go Home" link', async ({ page }) => {
+	test('error pages have "Go Home" button', async ({ page }) => {
 		await page.goto('/this-does-not-exist');
 
-		// Should have a link back to home
-		const homeLink = page.locator('a[href="/"]');
-		await expect(homeLink).toHaveCount(1);
+		// Should have a "Go Home" button
+		const homeButton = page.getByTestId('go-home-button');
+		await expect(homeButton).toBeVisible();
 
-		// Link should be clickable
-		await homeLink.click();
+		// Button should navigate home when clicked
+		await homeButton.click();
 		await expect(page).toHaveURL('/');
 	});
 });
