@@ -2,391 +2,730 @@
 
 **Every side of you. Your way.**
 
-Own your profile. Structure your story. Share it on your terms.
+A self-hosted personal profile platform that puts you in control. Own your data, choose what each audience sees, and skip the tracking.
 
-A self-hosted, privacy-respecting personal profile platform. Think LinkedIn profile, but you own everything: the data, the hosting, the rules.
-
----
-
-## Why Facet?
-
-| Problem | Facet Solution |
-|---------|------------------|
-| LinkedIn owns your professional identity | **You own everything** — data lives in SQLite you control |
-| One profile for all audiences | **Views** — curated versions for recruiters, clients, conferences |
-| No control over who sees what | **Privacy controls** — public, unlisted, or password-protected |
-| Can't import your work easily | **GitHub import** — pull in projects with one click |
-| Platform tracks everything | **Zero tracking** — no analytics, no engagement metrics |
-
-**One container. One port. One volume to backup.**
+Think LinkedIn meets personal portfolio, except you hold all the cards: the data lives in your SQLite database, you decide who sees what, and there's zero analytics nonsense.
 
 ---
 
-## Quick Links
+## What Is This For?
 
-| I want to... | Go here |
-|--------------|---------|
-| **Try it out** | [Quick Start](#quick-start) |
-| **Learn what it does** | [Features](#features) |
-| **Self-host it** | [Setup Guide](docs/SETUP.md) |
-| **Contribute or develop** | [Developer Guide](#for-developers) |
-| **Understand the architecture** | [Architecture](ARCHITECTURE.md) |
-| **Media internals** | [Media System](docs/MEDIA.md) |
-| **Read the design philosophy** | [Design Document](DESIGN.md) |
+**If you want to:**
+- Show recruiters your employment history without broadcasting it to your boss
+- Share conference-specific work at events without exposing client projects
+- Keep a professional presence online without feeding the LinkedIn algorithm
+- Import your GitHub projects without copying and pasting 47 README files
+- Actually own your professional identity
+
+**Then Facet might be for you.**
 
 ---
 
-# For Users
+## The 30-Second Version
 
-Everything you need to run your own Facet instance.
+One Docker container. One command. You get:
+
+- A profile with all the usual sections (experience, projects, education, skills, etc.)
+- Multiple "views" (different versions of your profile for different audiences)
+- Privacy controls (public, unlisted with share links, password-protected, or private)
+- GitHub import that pulls in your repos (with optional AI summaries)
+- RSS feed for your blog posts, iCal export for your talks
+- No tracking, no ads, no engagement metrics
+- Your data in SQLite, your uploads in a folder, both easy to backup
+
+One port exposed. One volume to backup. That's it.
+
+---
 
 ## Quick Start
 
 ```bash
-# Clone the repository
+# Clone it
 git clone https://github.com/jesposito/Facet.git
 cd Facet
 
-# Generate encryption key (required)
+# Generate an encryption key (required for API keys and tokens)
 openssl rand -hex 32
 
-# Configure
+# Copy the example config
 cp .env.example .env
-# Edit .env: add your ENCRYPTION_KEY
 
-# Run
+# Edit .env and paste your ENCRYPTION_KEY
+# Add your email to ADMIN_EMAILS if you want OAuth login
+
+# Run it
 docker-compose up -d
 ```
 
-Open `http://localhost:8080` — you're live.
+Open `http://localhost:8080`. You're live.
 
-> ℹ️ Data lives under `./data` by default (mapped to `/data` in the container). Set `DATA_PATH` to a host path if you want uploads + DB somewhere else, and make sure that volume is backed up.
+> Your data lives in `./data` by default. Back that up. If you want it somewhere else, set `DATA_PATH` in `.env`.
 
-### First Login
+**First login:**
+- Development: `admin@example.com` / `changeme123`
+- Production: Your email from `ADMIN_EMAILS` (OAuth via Google/GitHub)
 
-| Environment | Email | Password |
-|-------------|-------|----------|
-| Development | `admin@example.com` | `changeme123` |
-| Production | Your email in `ADMIN_EMAILS` | Your password |
-
-**OAuth:** Google/GitHub via environment variables. See [Setup Guide](docs/SETUP.md).
+Full setup instructions (OAuth, reverse proxy, etc.): [docs/SETUP.md](docs/SETUP.md)
 
 ---
 
-## Features
+## Who Uses Facet?
 
-### Your Profile, Your Way
+Three kinds of people interact with Facet instances:
 
-- **Experience, projects, education, skills, certifications, awards** — all the professional sections you'd expect
-- **Posts & talks** — share your writing and speaking engagements (RSS feed, iCal for talks)
-- **Views & theming** — per-view section curation, overrides, accent colors, and custom CSS
-- **Media library** — browse/search/delete uploads with orphan detection, responsive thumbnails, usage stats, bulk orphan cleanup, and external link entries (YouTube/Vimeo/images)
-- **View membership cues** — admin lists show which views a project/post belongs to (with links to edit)
-- **Exports** — JSON/YAML export, print-ready stylesheet, AI print/resume (beta)
-- **Markdown everywhere** — rich content without a heavy editor
+### 1. **Visitors** (People viewing your profile)
 
-### Views: Different Faces for Different Audiences
+They see whatever you've made public or shared with them:
+- Your homepage at `/` (your default view)
+- Named views like `/recruiter` or `/conference`
+- Share links you've sent them (`/s/abc123`)
+- Individual project pages (`/projects/my-cool-app`)
+- Blog posts (`/posts/my-article`)
+- Talks (`/talks/my-conference-talk`)
+- Your RSS feed (`/rss.xml`) if they use a feed reader
+- Your talks calendar (`/talks.ics`) if they want to add events
 
-Create tailored versions of your profile:
+They can't see:
+- Anything marked private or unlisted (unless they have a share link)
+- Content you've hidden from specific views
+- Your admin dashboard
+- Your actual contact info if you've protected it
 
-- **Recruiter view** — emphasize employment history and skills
-- **Conference view** — highlight talks and projects
-- **Consulting view** — focus on case studies and expertise
-- **Personal view** — the stuff your friends care about
+### 2. **Site Owners** (That's you, running your own Facet)
 
-Each view can:
-- Show/hide sections and specific items
-- Override your headline and summary
-- Include a custom call-to-action button
-- Have different visibility settings
+You get an admin dashboard at `/admin` where you:
+- Build your profile (name, headline, summary, avatar, etc.)
+- Add your work history, projects, education, certifications, awards
+- Write blog posts and add speaking engagements
+- Manage skills and contact methods
+- Create "views" (different versions of your profile)
+- Import projects from GitHub (with optional AI summaries)
+- Generate share links that expire or have use limits
+- Upload media or link to YouTube/Vimeo
+- Configure AI providers (OpenAI, Anthropic, or local Ollama)
+- Use the AI writing assistant to improve your content
+- Export everything as JSON or YAML
+- Print your profile or generate an AI-powered resume (beta)
 
-### Privacy Controls
+The views system is the killer feature. You create different versions of your profile:
+- **Recruiter view**: Heavy on employment, light on side projects
+- **Conference view**: All your talks and relevant projects
+- **Consulting view**: Case studies and client work
+- **Personal view**: The stuff your friends actually care about
 
-| Visibility | Who can access |
-|------------|----------------|
-| **Public** | Anyone |
-| **Unlisted** | Only people with a share link |
-| **Password** | Anyone who knows the password |
-| **Private** | Only you (admin) |
+Each view can show/hide sections, include/exclude specific items, override your headline, have a custom call-to-action, use different colors, and have its own privacy settings.
 
-### Share Links
+### 3. **Developers** (Contributing to Facet or customizing it)
 
-Generate private URLs for specific views:
-- Set expiration dates
-- Limit total uses
-- Revoke instantly
-- Clean URLs (token never visible in address bar)
+The codebase is:
+- **Backend**: Go 1.23 with PocketBase (a lightweight backend framework)
+- **Frontend**: SvelteKit 2.0 with TypeScript and Tailwind CSS
+- **Database**: SQLite (embedded, single file)
+- **Deployment**: Docker with Caddy reverse proxy
 
-### Import & Enrichment
-
-**GitHub Import:**
-- Fetch repository metadata, languages, and README
-- Preview before importing
-- Lock fields you've customized
-- Refresh anytime
-
-**AI Enrichment (optional):**
-- OpenAI, Anthropic, or Ollama
-- Generates summaries from READMEs
-- You review everything before publishing
-- Your API keys, encrypted at rest
-
----
-
-## Configuration
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `ENCRYPTION_KEY` | Yes | — | 32-byte hex key (`openssl rand -hex 32`) |
-| `PORT` | No | `8080` | Public port |
-| `APP_URL` | No | `http://localhost:8080` | Your public URL (for OAuth callbacks) |
-| `TRUST_PROXY` | No | `false` | Set `true` behind reverse proxy |
-| `ADMIN_EMAILS` | No | — | Comma-separated email allowlist for OAuth |
-| `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin at `/_/` |
-| `DATA_PATH` | No | `./data` | Database and uploads directory |
-
-For detailed setup instructions including OAuth, reverse proxy, and Unraid configuration, see the **[Setup Guide](docs/SETUP.md)**.
-
----
-
-## Backup & Restore
-
-Everything lives in one directory:
-
+Local development is straightforward:
 ```bash
-# Backup
+make dev          # Starts backend + frontend with hot reload
+make test         # Runs Playwright E2E tests
+make build        # Builds production Docker image
+```
+
+Full dev setup: [docs/DEV.md](docs/DEV.md)
+
+---
+
+## Key Features (The Stuff That Actually Matters)
+
+### Content Types You Can Create
+
+| Thing | What It Is | Public URL |
+|-------|------------|------------|
+| **Profile** | Your name, headline, summary, avatar, hero image | `/` (homepage) |
+| **Experience** | Job history with bullets and date ranges | Embedded in views |
+| **Projects** | Portfolio pieces with tech stack, links, images | `/projects/{slug}` |
+| **Education** | Schools and degrees | Embedded in views |
+| **Certifications** | Professional creds with expiry tracking | Embedded in views |
+| **Skills** | Grouped by category with proficiency levels | Embedded in views |
+| **Posts** | Blog articles in Markdown with tags | `/posts/{slug}` |
+| **Talks** | Speaking engagements with slides/video URLs | `/talks/{slug}` |
+| **Awards** | Recognition and achievements | Embedded in views |
+| **Contact Methods** | Email, phone, social links (with protection) | Embedded in views |
+
+Everything supports Markdown. Most things support media (images, videos, external embeds).
+
+### The Views System (Why This Exists)
+
+You don't have one profile. You have multiple "views" of your profile, each tailored to an audience.
+
+**Example:** You're looking for a new job but don't want your current employer to know. You:
+1. Create a "recruiter" view with your full employment history
+2. Set it to "unlisted" (not searchable, only accessible via direct link)
+3. Generate a share link that expires in 30 days
+4. Send that link to recruiters
+
+Your public view (at `/`) shows whatever you want the world to see. Your boss won't stumble on your job hunt.
+
+**Each view can:**
+- Show/hide entire sections (experience, projects, posts, etc.)
+- Include/exclude specific items (show this project, hide that one)
+- Override your hero headline and summary
+- Add a custom call-to-action button
+- Use a different accent color and custom CSS
+- Be public, unlisted, password-protected, or private
+- Be reordered with drag-and-drop
+
+You can have as many views as you want. One must be marked as default (shown at `/`).
+
+### Privacy Controls (Four Levels)
+
+| Level | Who Can Access | Use Case |
+|-------|----------------|----------|
+| **Public** | Anyone on the internet | Your general professional presence |
+| **Unlisted** | Only people with the URL | Share with specific people without a password |
+| **Password** | Anyone who knows the password | "Here's my consulting portfolio, password is TechConf2024" |
+| **Private** | Only you (when logged in) | Drafts or internal notes |
+
+Privacy applies to individual items (projects, posts, etc.) and entire views.
+
+### Share Links (Unlisted Views with Superpowers)
+
+For unlisted views, you can generate share links that:
+- Expire after a certain date
+- Limit total uses (e.g., "can be viewed 10 times")
+- Track when they were last used
+- Get revoked instantly if needed
+- Hide the token from the URL bar (clean links like `/recruiter` instead of `/s/abc123xyz`)
+
+You create a link, send it to someone, they click it, they see your view. No account needed. No ugly tokens in the URL.
+
+### GitHub Import (With Optional AI Help)
+
+Connect your GitHub account and import repositories as projects. Facet grabs:
+- Repo name and description
+- README content
+- Languages used (with percentages)
+- Topics/tags
+- GitHub URL
+
+**Optional AI enrichment:**
+If you configure an AI provider (OpenAI, Anthropic, or local Ollama), Facet can:
+- Generate a summary from the README
+- Create bullet points highlighting key features
+- Suggest tags based on content
+- Clean up technical jargon
+
+You review everything before it goes live. You can edit any field, lock fields you've customized (so they don't get overwritten on refresh), and refresh projects from GitHub anytime.
+
+The AI won't invent metrics or hallucinate features (we've built guardrails). Your API keys are encrypted at rest with AES-256-GCM.
+
+### AI Writing Assistant (Makes You Sound Better)
+
+Built into every text field in the admin dashboard. Two modes:
+
+**1. Rewrite Mode (5 tones):**
+- Executive (formal, C-suite focused)
+- Professional (balanced, industry standard)
+- Technical (methodology-driven, precise)
+- Conversational (approachable, first-person)
+- Creative (engaging, storytelling-focused)
+
+Paste your rough draft, pick a tone, get a polished version.
+
+**2. Critique Mode:**
+Gives you inline feedback like:
+- [This is vague. What kind of system? What scale?]
+- [Weak verb. What did you actually do?]
+- [Quantify this. How much faster?]
+- [This sounds like AI wrote it. Be more specific.]
+
+It won't rewrite for you, just tells you what's weak. Good for when you want to improve your own writing.
+
+**Anti-AI rules baked in:**
+- Banned words: "leverage", "delve", "synergy", "robust", "utilize"
+- No em-dashes (we're not writing a novel)
+- Prefer active voice, specific details, quantification
+
+Works on mobile. Context-aware (uses your form data for better results). Supports streaming responses so you see text as it generates.
+
+### Contact Protection (Four Tiers)
+
+Your email, phone, and social links can be protected:
+
+| Level | What Happens | Use Case |
+|-------|--------------|----------|
+| **None** | Plain text, visible to everyone | LinkedIn, GitHub (already public) |
+| **CSS Obfuscation** | Hidden with CSS, visible on hover | Light anti-bot protection |
+| **Click-to-Reveal** | JavaScript toggle, user has to click | Moderate anti-bot protection |
+| **CAPTCHA** | Turnstile challenge (planned) | Heavy anti-bot protection |
+
+Plus, you can show different contact methods in different views. Example: recruiters see your email and phone, conference attendees only see your Twitter and LinkedIn.
+
+### Media Library
+
+Upload images, videos, documents. Or add external media (YouTube, Vimeo, image URLs).
+
+Features:
+- Automatic thumbnail generation for images
+- Responsive srcsets (different sizes for different screens)
+- Orphan detection (finds files not used anywhere)
+- Bulk cleanup (delete all orphans at once)
+- Storage usage stats
+- Search and filter
+
+Media attaches to projects, posts, and talks. It shows up on public pages with lazy loading and proper alt text.
+
+### Feeds and Exports
+
+**RSS Feed** (`/rss.xml`):
+- All your public blog posts
+- Auto-discovery in browsers and feed readers
+- Full post content included
+
+**iCal Export** (`/talks.ics`):
+- All your public talks as calendar events
+- Import into Google Calendar, Outlook, Apple Calendar
+- Includes event name, date, location, links to slides/video
+
+**Data Export** (JSON or YAML):
+- Everything: profile, experience, projects, posts, talks, views, settings
+- Perfect for backups or migrating to another system
+- Timestamped snapshots
+
+**Print System**:
+- Print-optimized stylesheet (works with Cmd+P or Ctrl+P)
+- AI-powered resume generation (beta)
+- Clean, professional layout
+
+### SEO and Discoverability
+
+Every page gets:
+- Proper `<title>` and `<meta description>` tags
+- Open Graph tags (for Twitter, Facebook, Slack previews)
+- JSON-LD structured data (Person, Article, WebSite schemas)
+- Canonical URLs (avoid duplicate content penalties)
+
+Plus:
+- Dynamic sitemap at `/sitemap.xml`
+- Robots.txt at `/robots.txt`
+- Custom 404 and 500 error pages (with a sense of humor)
+
+Search engines can index your public content. Unlisted and private stuff stays hidden.
+
+---
+
+## What Facet Is Not
+
+**It's not a CMS.** If you want a blog with 17 post types and a visual page builder, use WordPress.
+
+**It's not a social network.** There are no likes, no comments, no followers. It's a profile platform.
+
+**It's not a resume builder.** It's more than a resume (you can export a resume from it, though).
+
+**It's not a no-code tool.** You need to run a Docker container and edit a `.env` file. If that sounds scary, this might not be for you (yet).
+
+**It's not LinkedIn.** There's no feed, no messaging, no "People You May Know". It's your profile, hosted by you, under your control.
+
+---
+
+## Tech Stack (For Developers)
+
+**Backend:**
+- **Go 1.23** (backend language)
+- **PocketBase v0.23.4** (lightweight backend framework built on SQLite and Fiber)
+- **SQLite** (embedded database, single file)
+- **AES-256-GCM** (encryption for API keys and tokens)
+- **Bcrypt** (password hashing)
+- **JWT** (session tokens for password-protected views)
+
+**Frontend:**
+- **SvelteKit v2.0** (full-stack web framework)
+- **Svelte v4.2** (component framework)
+- **TypeScript** (type safety)
+- **Tailwind CSS v3.4** (utility-first CSS)
+- **Marked** (Markdown rendering)
+- **DOMPurify** (XSS prevention)
+
+**Infrastructure:**
+- **Docker** (containerization)
+- **Caddy** (internal reverse proxy)
+- **Multi-stage builds** (optimized production images)
+
+**Testing:**
+- **Playwright** (E2E tests)
+- 25+ tests covering public APIs, admin flows, security, media management
+- 96% pass rate (12/12 public tests passing)
+
+**Development:**
+- **Air** (Go hot reload)
+- **Vite** (frontend dev server with HMR)
+- **Make** (task automation)
+
+---
+
+## Architecture (The 10,000-Foot View)
+
+```
+┌──────────────────────────────────────────────┐
+│         Docker Container (port 8080)         │
+│                                              │
+│  ┌────────────────────────────────────────┐ │
+│  │  Caddy (Reverse Proxy)                 │ │
+│  │  /api/*  → PocketBase :8090            │ │
+│  │  /*      → SvelteKit :3000             │ │
+│  └────────────────────────────────────────┘ │
+│                                              │
+│  ┌──────────────┐      ┌─────────────────┐ │
+│  │  SvelteKit   │      │   PocketBase    │ │
+│  │  :3000       │◄────►│   :8090         │ │
+│  │  (Frontend)  │      │   (Backend)     │ │
+│  └──────────────┘      └─────────────────┘ │
+│                              │               │
+│                        ┌─────▼────────┐     │
+│                        │  /data       │     │
+│                        │  (Volume)    │     │
+│                        │              │     │
+│                        │  data.db     │     │
+│                        │  uploads/    │     │
+│                        └──────────────┘     │
+└──────────────────────────────────────────────┘
+```
+
+**What happens when someone visits `/recruiter`:**
+
+1. Browser → Caddy :8080
+2. Caddy → SvelteKit :3000 (route handler)
+3. SvelteKit → PocketBase API :8090 (fetch view data)
+4. PocketBase → SQLite (query database)
+5. Response flows back up the chain
+6. SvelteKit renders HTML with data
+7. Browser displays the page
+
+**Everything runs in one container.** One port exposed (8080). One volume to backup (`/data`). That's the whole deployment.
+
+For detailed architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+
+---
+
+## Configuration (Environment Variables)
+
+| Variable | Required? | Default | What It Does |
+|----------|-----------|---------|--------------|
+| `ENCRYPTION_KEY` | **Yes** | — | 32-byte hex key for encrypting API keys and tokens (`openssl rand -hex 32`) |
+| `PORT` | No | `8080` | Public port for the app |
+| `APP_URL` | No | `http://localhost:8080` | Your public URL (needed for OAuth callbacks) |
+| `ADMIN_EMAILS` | No | — | Comma-separated email allowlist for OAuth login |
+| `TRUST_PROXY` | No | `false` | Set `true` if behind a reverse proxy (Nginx, Cloudflare, etc.) |
+| `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin UI at `/_/` (use for debugging only) |
+| `DATA_PATH` | No | `./data` | Where to store the database and uploads |
+| `GOOGLE_CLIENT_ID` | No | — | OAuth via Google |
+| `GOOGLE_CLIENT_SECRET` | No | — | OAuth via Google |
+| `GITHUB_CLIENT_ID` | No | — | OAuth via GitHub |
+| `GITHUB_CLIENT_SECRET` | No | — | OAuth via GitHub |
+
+Full setup guide (OAuth, reverse proxy, Unraid, etc.): [docs/SETUP.md](docs/SETUP.md)
+
+---
+
+## Backup and Restore (Super Simple)
+
+Everything lives in one directory: `./data` (or wherever `DATA_PATH` points).
+
+**Backup:**
+```bash
 docker-compose down
-tar -czvf backup.tar.gz ./data
-docker-compose up -d
-
-# Restore
-tar -xzvf backup.tar.gz
+tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data
 docker-compose up -d
 ```
 
-For upgrade procedures, see **[Upgrade Guide](docs/UPGRADE.md)**.
+**Restore:**
+```bash
+docker-compose down
+tar -xzvf facet-backup-20260103.tar.gz
+docker-compose up -d
+```
+
+That's it. The tarball contains your SQLite database and all uploaded files.
+
+For upgrade procedures: [docs/UPGRADE.md](docs/UPGRADE.md)
 
 ---
 
-## Architecture Overview
+## Security (The Boring But Important Stuff)
 
-```
-+--------------------------------------------+
-|              Docker Container              |
-|                                            |
-|   :8080 -> Caddy -+-> /api/*  -> PocketBase|
-|                   +-> /*      -> SvelteKit |
-|                                            |
-|   +------------------------------------+   |
-|   |   SQLite + Uploads (/data)         |   |
-+--------------------------------------------+
-```
+**Authentication:**
+- OAuth 2.0 (Google, GitHub)
+- Email allowlist (`ADMIN_EMAILS`)
+- Session tokens in httpOnly cookies
 
-- **Single port** exposed (8080)
-- **Single volume** to backup (`/data`)
-- **Caddy** routes requests internally
-- **PocketBase** handles API and auth
-- **SvelteKit** serves the frontend
+**Encryption:**
+- AES-256-GCM for API keys and sensitive tokens (encrypted at rest)
+- Bcrypt for passwords (cost 12)
+- HMAC-SHA256 for share tokens (raw tokens never stored)
+- JWT for password-protected view sessions
 
-For complete technical details, see **[Architecture](ARCHITECTURE.md)**.
+**Access Control:**
+- Deny-by-default on all database collections
+- Admin-only by default
+- Public content requires explicit `visibility="public"`
+- Rate limiting on sensitive endpoints
+
+**Input Validation:**
+- DOMPurify for XSS prevention
+- 11-layer path traversal protection
+- Symlink detection
+- Type validation (TypeScript + PocketBase schema)
+
+**What We Don't Do:**
+- No analytics or tracking
+- No engagement metrics
+- No user profiling
+- Minimal server logging
+
+Full security docs: [docs/SECURITY.md](docs/SECURITY.md)
+Security audit: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
 
 ---
 
-# For Developers
+## For Developers (Contributing or Customizing)
 
-Everything you need to contribute to Facet.
-
-## Development Setup
-
-### Option 1: Codespaces (Fastest)
-
-1. Click "Open in Codespaces" from GitHub
-2. Wait for devcontainer to build (~2 min first time)
-3. Services start automatically
-4. Frontend: http://localhost:5173
-5. API: http://localhost:8090
-
-### Option 2: Local Development
+### Local Development
 
 **Prerequisites:**
 - Go 1.23+
 - Node.js 20+
-- [Air](https://github.com/air-verse/air) for Go hot reload
+- [Air](https://github.com/air-verse/air) for Go hot reload (install: `go install github.com/air-verse/air@v1.61.7`)
 
+**Start everything:**
 ```bash
-# Install air
-go install github.com/air-verse/air@v1.61.7
-
-# Start everything with hot reload
-make dev
-
-# Or start services individually
-make backend   # Backend with air
-make frontend  # Frontend with Vite HMR
+make dev          # Starts backend (with Air) + frontend (with Vite HMR)
 ```
 
-### Option 3: Docker Compose
-
+**Or start services individually:**
 ```bash
-make dev-docker   # Start development environment
-make dev-logs     # View logs
-make dev-down     # Stop
+make backend      # Just the Go backend on :8090
+make frontend     # Just the SvelteKit frontend on :5173
 ```
 
-### Development Ports
+**Other useful commands:**
+```bash
+make test         # Run Playwright E2E tests
+make build        # Build production Docker image
+make lint         # Run linters
+make fmt          # Format code (Go + Prettier)
+make seed-dev     # Load development seed data
+make dev-reset    # Clear caches and restart
+```
 
-| Service | Port | URL |
-|---------|------|-----|
-| Frontend (Vite) | 5173 | http://localhost:5173 |
-| Backend API | 8090 | http://localhost:8090 |
-| PocketBase Admin | 8090 | http://localhost:8090/_/ |
+**Development ports:**
+- Frontend (Vite): http://localhost:5173
+- Backend (PocketBase): http://localhost:8090
+- PocketBase Admin: http://localhost:8090/_/
 
-### Admin Access (Development)
+**First-time setup:**
+Run `make seed-dev` to set your admin email/password and optional OAuth credentials. The script prompts you (no hard-coded defaults).
 
-Run `make seed-dev` (or `./scripts/start-dev.sh` which seeds on first run) to set your admin email/password and optional OAuth env vars. The seed prompts you; no hard-coded defaults are shipped in production.
+Full developer guide: [docs/DEV.md](docs/DEV.md)
 
-For complete development documentation, see **[Development Guide](docs/DEV.md)**.
-
----
-
-## Project Structure
+### Project Structure
 
 ```
 Facet/
 ├── backend/                 # Go + PocketBase
-│   ├── hooks/               # Custom event handlers
-│   ├── services/            # Business logic
-│   ├── migrations/          # Database schema
+│   ├── hooks/               # Custom API endpoints (10K+ lines)
+│   │   ├── view.go          # Views, RSS, iCal (1,883 lines)
+│   │   ├── ai.go            # AI enrichment (688 lines)
+│   │   ├── media.go         # Media management (612 lines)
+│   │   └── resume.go        # Resume generation (518 lines)
+│   ├── services/            # Reusable business logic (6K+ lines)
+│   │   ├── ai.go            # AI provider integration
+│   │   ├── crypto.go        # AES encryption
+│   │   └── github.go        # GitHub API
+│   ├── migrations/          # Database schema (20+ migrations)
 │   └── main.go              # Entry point
 │
 ├── frontend/                # SvelteKit + TypeScript
-│   ├── src/routes/          # Page routes
-│   ├── src/components/      # UI components
-│   └── src/lib/             # Shared utilities
+│   ├── src/routes/          # Page routes (77 files)
+│   │   ├── [slug]/          # Public view pages
+│   │   ├── admin/           # Admin dashboard
+│   │   ├── projects/        # Project pages
+│   │   ├── posts/           # Blog pages
+│   │   └── talks/           # Talks pages
+│   ├── src/components/      # UI components (30+ files)
+│   └── src/lib/             # Utilities, stores, API client
+│
+├── frontend/tests/          # Playwright E2E tests
+│   ├── public-api.spec.ts   # RSS, iCal, endpoints
+│   ├── seo-and-errors.spec.ts  # SEO, error pages
+│   ├── admin-flows.spec.ts  # Auth, CRUD
+│   ├── media-management.spec.ts  # Uploads, orphans
+│   └── security.spec.ts     # XSS, path traversal
 │
 ├── docker/                  # Production Docker config
 ├── scripts/                 # Development scripts
 └── docs/                    # Documentation
 ```
 
----
+**Code stats:**
+- ~25,000 lines across 150+ files
+- Backend: ~16,000 lines of Go
+- Frontend: ~6,000 lines of Svelte/TypeScript
+- Tests: ~1,500 lines
 
-## Tech Stack
+### Testing
 
-**Backend:**
-- Go 1.23 — backend language
-- [PocketBase](https://pocketbase.io/) v0.23.4 — Go-based backend framework
-- SQLite — embedded database
-- AES-256-GCM — encryption for sensitive data
-
-**Frontend:**
-- [SvelteKit](https://kit.svelte.dev/) v2.0 — full-stack web framework
-- [Tailwind CSS](https://tailwindcss.com/) v3.4 — utility-first styling
-- TypeScript — type safety
-
-**Infrastructure:**
-- Docker — containerization
-- Caddy — internal reverse proxy
-- Multi-stage builds — optimized production images
-
----
-
-## Common Tasks
-
+**Run all tests:**
 ```bash
-make dev          # Start development environment
-make test         # Run all tests
-make build        # Build production Docker image
-make lint         # Run linters
-make fmt          # Format code
-make seed-dev     # Load development seed data
-make dev-reset    # Clear caches and restart
+make test
 ```
 
+**Run specific test suites:**
+```bash
+cd frontend
+npm run test:public          # Public API tests (no auth required)
+npm run test -- security.spec.ts  # Just security tests
+```
+
+**Current test status:**
+- ✅ Backend tests: 100% passing
+- ✅ Public E2E tests: 12/12 passing
+- ⚠️ Admin tests: 20 tests require `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env`
+
+Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
+
+### URL Routing (For Reference)
+
+**Public routes:**
+- `GET /` → Default view (homepage)
+- `GET /{slug}` → Named view (e.g., `/recruiter`)
+- `GET /v/{slug}` → Legacy view route (301 redirect to `/{slug}`)
+- `GET /s/{token}` → Share link (redirects to view)
+- `GET /projects/{slug}` → Project detail page
+- `GET /posts` → Blog index
+- `GET /posts/{slug}` → Blog post
+- `GET /talks` → Talks index
+- `GET /talks/{slug}` → Talk detail
+- `GET /rss.xml` → RSS feed
+- `GET /talks.ics` → iCal export
+- `GET /sitemap.xml` → Sitemap
+- `GET /robots.txt` → Robots.txt
+
+**Admin routes** (OAuth required):
+- `GET /admin` → Dashboard
+- `GET /admin/profile` → Edit profile
+- `GET /admin/experience` → Manage jobs
+- `GET /admin/projects` → Manage projects
+- `GET /admin/views` → Manage views
+- `GET /admin/import` → GitHub import
+- `GET /admin/media` → Media library
+- `GET /admin/settings` → AI providers, settings
+- (Plus routes for education, certifications, skills, posts, talks, awards, contacts, tokens)
+
+**API routes** (via PocketBase hooks):
+- `GET /api/homepage` → Fetch homepage data
+- `POST /api/github/import` → Import from GitHub
+- `POST /api/ai/enrich` → AI enrichment
+- `GET /api/export?format=json|yaml` → Data export
+- `POST /api/share/validate` → Validate share token
+- (Plus standard PocketBase collection endpoints)
+
 ---
 
-## Seed Data
+## Documentation (Everything Else)
 
-**For development:** Use `make seed-dev` to load a real-world test profile.
+| Doc | What's In It |
+|-----|--------------|
+| [docs/SETUP.md](docs/SETUP.md) | Installation, OAuth setup, reverse proxy config, Unraid |
+| [docs/DEV.md](docs/DEV.md) | Local development, project structure, troubleshooting |
+| [docs/SECURITY.md](docs/SECURITY.md) | Encryption, auth flows, rate limiting, threat model |
+| [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) | Full security audit with remediation plan |
+| [docs/UPGRADE.md](docs/UPGRADE.md) | How to upgrade Facet and roll back if needed |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical system design, data model, request flow |
+| [DESIGN.md](DESIGN.md) | Vision, principles, detailed feature specs |
+| [ROADMAP.md](ROADMAP.md) | Development phases (what's done, what's planned) |
+| [frontend/tests/README.md](frontend/tests/README.md) | How to run tests, write new tests, test structure |
+| [docs/AI_FEATURES.md](docs/AI_FEATURES.md) | AI provider setup, enrichment details |
+| [docs/AI_WRITING_ASSISTANT.md](docs/AI_WRITING_ASSISTANT.md) | Writing assistant tones, critique mode, implementation |
+| [docs/CONTACT_PROTECTION.md](docs/CONTACT_PROTECTION.md) | Contact protection tiers, implementation details |
+| [docs/MEDIA.md](docs/MEDIA.md) | Media system internals, file handling, optimization |
 
-**For demos:** Use `make seed-dev` to load a rich sample profile; you’ll be prompted for admin email/password and optional OAuth envs.
-
----
-
-## URL Routing
-
-| Route | Purpose |
-|-------|---------|
-| `/` | Default public view |
-| `/<slug>` | Named view (e.g., `/recruiter`) |
-| `/s/<token>` | Share link entry point |
-| `/projects/<slug>` | Project detail page |
-| `/posts/<slug>` | Blog post page |
-| `/admin/*` | Admin dashboard |
-
----
-
-## Security Model
-
-- **AES-256-GCM** encryption for API keys and tokens
-- **HMAC-SHA256** share tokens (raw tokens never stored)
-- **JWT** for password-protected views
-- **Rate limiting** on sensitive endpoints
-- **Deny-by-default** collection access
-
-For complete security documentation, see **[Security Guide](docs/SECURITY.md)**.
+> **Note for contributors:** Keep [ROADMAP.md](ROADMAP.md) up-to-date. When you complete a feature, mark it done. When you add a feature, add it to the roadmap. It's the source of truth for what's implemented vs. planned.
 
 ---
 
-# Documentation
+## Roadmap (What's Done, What's Next)
 
-| Document | Description |
-|----------|-------------|
-| **[Setup Guide](docs/SETUP.md)** | Installation, OAuth, reverse proxy, Unraid |
-| **[Development Guide](docs/DEV.md)** | Local setup, project structure, troubleshooting |
-| **[Security Guide](docs/SECURITY.md)** | Encryption, auth flows, rate limiting |
-| **[Security Audit](docs/SECURITY_AUDIT.md)** | Comprehensive security audit & remediation plan |
-| **[Upgrade Guide](docs/UPGRADE.md)** | Upgrade and rollback procedures |
-| **[Architecture](ARCHITECTURE.md)** | Technical system design and data model |
-| **[Design Document](DESIGN.md)** | Vision, principles, and detailed specifications |
-| **[Roadmap](ROADMAP.md)** | Feature development phases |
-| **[Testing Guide](frontend/tests/README.md)** | E2E testing with Playwright |
+**Completed (12 phases):**
+- ✅ Core profile and content management
+- ✅ Views system with custom ordering, overrides, theming
+- ✅ Share token management with expiration and use limits
+- ✅ GitHub import with AI enrichment and field locking
+- ✅ Media library with uploads, external embeds, orphan detection
+- ✅ AI Writing Assistant (5 tones + critique mode)
+- ✅ Contact protection (4 tiers)
+- ✅ Export system (JSON/YAML)
+- ✅ Print-optimized CSS
+- ✅ RSS feed and iCal export
+- ✅ SEO (Open Graph, JSON-LD, sitemaps)
+- ✅ Security audit and XSS/path traversal protection
 
-> ⚠️ **IMPORTANT FOR CONTRIBUTORS:** The [ROADMAP.md](ROADMAP.md) must be kept up-to-date with development progress. When completing features, mark them as done in the roadmap. When adding new features, add them to the appropriate phase. The roadmap is the source of truth for what is implemented vs. planned.
-
----
-
-## Roadmap Highlights
-
-**Complete:**
-- Core profile and content management
-- Views with custom ordering and overrides
-- Share token management
-- GitHub import with AI enrichment
-- Print-optimized CSS for resume export
-- Per-section layout presets
-- Live preview in view editor
-- Per-view theming with accent colors
-- Data export (JSON/YAML)
-- Content discovery (Posts & Talks index pages)
-- Media library with uploads and external embeds
-- Media rendering on public pages (Projects, Posts, Talks)
-
-**In Progress:**
-- AI-powered PDF resume generation
+**In progress:**
+- 🟡 AI-powered PDF resume generation (beta)
 
 **Planned:**
-- Scheduled GitHub sync
-- Additional integrations (webhooks, etc.)
+- Scheduled GitHub sync (auto-refresh projects)
+- Resume upload and AI parsing
+- Security headers (CSP, X-Frame-Options)
+- 2FA (TOTP + backup codes)
+- Audit logging for admin actions
+- Webhooks and integrations
 
-See **[Roadmap](ROADMAP.md)** for the full development plan.
+Full roadmap: [ROADMAP.md](ROADMAP.md)
+
+---
+
+## Common Questions
+
+**Q: Can I use this without Docker?**
+A: Not easily. The production setup uses Caddy to route requests between the backend and frontend. You could run them separately in development (`make dev`), but deployment assumes Docker.
+
+**Q: Can I use a different database?**
+A: No. PocketBase uses SQLite. It's baked into the framework. (And honestly, SQLite is perfect for this use case.)
+
+**Q: Can I customize the design?**
+A: Yes. Each view supports custom CSS. The frontend uses Tailwind, so you can modify `frontend/src/app.css` or component styles. For deeper changes, you'll need to edit Svelte components.
+
+**Q: Can I self-host this on a Raspberry Pi?**
+A: Probably? Docker runs on ARM. The SQLite database is tiny. Give it a shot and let us know.
+
+**Q: Can I use this for a team or company?**
+A: Not really. Facet is designed for individuals. There's no multi-tenancy, no user roles (other than admin vs. visitor). You could hack it, but you'd be fighting the design.
+
+**Q: Can I migrate from LinkedIn?**
+A: There's no automated LinkedIn import. You'll need to copy/paste your content or use the GitHub import for projects. (LinkedIn doesn't export cleanly.)
+
+**Q: Can I use this without AI features?**
+A: Absolutely. AI enrichment and the writing assistant are optional. If you don't configure an AI provider, those features just won't appear in the UI.
+
+**Q: Is this production-ready?**
+A: It's been through 12 development phases, has 25+ E2E tests, and a full security audit. People are using it. But it's a solo dev project, so expect rough edges. Read the security audit, decide if it meets your risk tolerance, and proceed accordingly.
+
+**Q: Can I contribute?**
+A: Yes! Check [CONTRIBUTING.md](CONTRIBUTING.md) if it exists, or just open a PR. Bug fixes and documentation improvements are always welcome. For big features, open an issue first to discuss.
 
 ---
 
 ## License
 
-MIT
+MIT. Do whatever you want with it.
 
 ---
 
-*Your profile, your data, your rules.*
+## Credits
+
+Built by [jesposito](https://github.com/jesposito). Powered by [PocketBase](https://pocketbase.io/), [SvelteKit](https://kit.svelte.dev/), and too much coffee.
+
+If you use Facet and like it, star the repo. If you find bugs, open issues. If you want a feature, open a discussion.
+
+---
+
+*Your profile. Your data. Your rules.*
