@@ -31,16 +31,15 @@ func (s *ShareService) GenerateToken() (string, error) {
 	return s.crypto.GenerateToken(32)
 }
 
-// HashToken creates a SHA-256 hash of a token for secure storage
-// Tokens are hashed so they can't be extracted from database leaks
-func (s *ShareService) HashToken(token string) string {
-	return s.crypto.HashSHA256(token)
+// HMACToken creates an HMAC of a token for secure storage
+// DB leaks won't allow offline verification without the server secret
+func (s *ShareService) HMACToken(token string) string {
+	return s.crypto.HMACToken(token)
 }
 
-// ValidateTokenHash compares a token against stored hash using constant-time comparison
-func (s *ShareService) ValidateTokenHash(token, storedHash string) bool {
-	expectedHash := s.HashToken(token)
-	return s.crypto.ConstantTimeCompare(expectedHash, storedHash)
+// ValidateTokenHMAC compares a token against stored HMAC using constant-time comparison
+func (s *ShareService) ValidateTokenHMAC(token, storedHMAC string) bool {
+	return s.crypto.ValidateTokenHMAC(token, storedHMAC)
 }
 
 // IsTokenExpired checks if a token has expired

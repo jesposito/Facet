@@ -1848,7 +1848,7 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 	var tokenRecord *core.Record
 	for _, record := range candidates {
 		storedHMAC := record.GetString("token_hash")
-		if share.ValidateTokenHash(token, storedHMAC) {
+		if share.ValidateTokenHMAC(token, storedHMAC) {
 			tokenRecord = record
 			break
 		}
