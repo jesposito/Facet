@@ -16,11 +16,12 @@
 		certifications: { label: 'Certifications', collection: 'certifications' },
 		skills: { label: 'Skills', collection: 'skills' },
 		posts: { label: 'Posts', collection: 'posts' },
-		talks: { label: 'Talks', collection: 'talks' }
+		talks: { label: 'Talks', collection: 'talks' },
+		contacts: { label: 'Contact Methods', collection: 'contact_methods' }
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks', 'contacts'];
 
 	let loading = true;
 	let saving = false;
@@ -137,6 +138,8 @@
 				return item.title as string;
 			case 'talks':
 				return `${item.title}${item.event ? ` @ ${item.event}` : ''}`;
+			case 'contacts':
+				return `${item.label || item.type} - ${item.value}`;
 			default:
 				return item.title as string || item.name as string || item.id as string;
 		}

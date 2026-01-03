@@ -413,7 +413,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					for _, itemID := range items {
 						if id, ok := itemID.(string); ok {
 							record, err := app.FindRecordById(collectionName, id)
-							if err == nil && isRecordVisible(record) {
+							if err == nil && isRecordVisibleForSection(record, sectionName) {
 								itemRecords = append(itemRecords, record)
 							}
 						}
@@ -421,10 +421,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					sectionData[sectionName] = serializeRecordsWithOverrides(itemRecords, itemConfig, sectionName)
 				} else {
 					// Fetch all visible items from section
+					var filter string
+					var sortField string
+					if sectionName == "contacts" {
+						// Contact methods don't have visibility or is_draft fields
+						filter = ""
+						sortField = "-is_primary,-sort_order"
+					} else {
+						filter = "visibility != 'private' && is_draft = false"
+						sortField = "sort_order"
+					}
+
 					records, err := app.FindRecordsByFilter(
 						collectionName,
-						"visibility != 'private' && is_draft = false",
-						"sort_order",
+						filter,
+						sortField,
 						100,
 						0,
 						nil,
@@ -1665,6 +1676,8 @@ func getCollectionName(section string) string {
 		return "posts"
 	case "talks":
 		return "talks"
+	case "contacts":
+		return "contact_methods"
 	default:
 		return ""
 	}
@@ -1690,6 +1703,8 @@ func getDefaultLayout(section string) string {
 		return "grid-3"
 	case "talks":
 		return "default"
+	case "contacts":
+		return "vertical"
 	default:
 		return "default"
 	}
@@ -1699,6 +1714,16 @@ func isRecordVisible(record *core.Record) bool {
 	visibility := record.GetString("visibility")
 	isDraft := record.GetBool("is_draft")
 	return visibility != "private" && !isDraft
+}
+
+// isRecordVisibleForSection checks if a record should be visible for a specific section
+// Some sections (like contacts) have different visibility rules
+func isRecordVisibleForSection(record *core.Record, section string) bool {
+	if section == "contacts" {
+		// Contact methods are always visible (filtering is done client-side by view_visibility)
+		return true
+	}
+	return isRecordVisible(record)
 }
 
 func serializeRecords(records []*core.Record) []map[string]interface{} {
