@@ -35,11 +35,13 @@ async function loadMediaOptions() {
 		});
 		if (!res.ok) return;
 		const data = await res.json();
-		mediaOptions = (data.items || []).map((item: any) => ({
-			id: item.record_id || item.relative_path || item.url,
-			title: item.display_name || item.filename || item.url,
-			provider: item.provider || (item.external ? 'external' : 'upload')
-		}));
+		mediaOptions = (data.items || [])
+			.filter((item: any) => item.external) // relation points to external_media
+			.map((item: any) => ({
+				id: item.record_id,
+				title: item.display_name || item.filename || item.url,
+				provider: item.provider || 'external'
+			}));
 	} catch (err) {
 		console.error('Failed to load media options', err);
 	}
