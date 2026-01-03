@@ -345,10 +345,12 @@ For complete security documentation, see **[Security Guide](docs/SECURITY.md)**.
 | **[Setup Guide](docs/SETUP.md)** | Installation, OAuth, reverse proxy, Unraid |
 | **[Development Guide](docs/DEV.md)** | Local setup, project structure, troubleshooting |
 | **[Security Guide](docs/SECURITY.md)** | Encryption, auth flows, rate limiting |
+| **[Security Audit](docs/SECURITY_AUDIT.md)** | Comprehensive security audit & remediation plan |
 | **[Upgrade Guide](docs/UPGRADE.md)** | Upgrade and rollback procedures |
 | **[Architecture](ARCHITECTURE.md)** | Technical system design and data model |
 | **[Design Document](DESIGN.md)** | Vision, principles, and detailed specifications |
 | **[Roadmap](ROADMAP.md)** | Feature development phases |
+| **[Testing Guide](frontend/tests/README.md)** | E2E testing with Playwright |
 
 > ⚠️ **IMPORTANT FOR CONTRIBUTORS:** The [ROADMAP.md](ROADMAP.md) must be kept up-to-date with development progress. When completing features, mark them as done in the roadmap. When adding new features, add them to the appropriate phase. The roadmap is the source of truth for what is implemented vs. planned.
 

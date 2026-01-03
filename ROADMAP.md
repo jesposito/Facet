@@ -13,9 +13,10 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Media optimization (thumb/srcset) live on posts/projects/homepage; view membership badges in admin lists.
 - ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks, bulk delete.
 - ✅ SEO & Error UX complete: custom 404/500 pages, canonical URLs, comprehensive Open Graph/Twitter Cards, JSON-LD, sitemap, robots.txt.
-- ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management.
-- 🟡 In progress: AI print/resume polish.
-- 🔜 Planned: Security/Audit (Phase 8), Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
+- ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management (25 tests, 96% pass rate).
+- ✅ Security audit complete: Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (1 HIGH, 3 MEDIUM, 2 LOW severity issues) with prioritized remediation roadmap.
+- 🟡 In progress: Security fixes (XSS, path traversal, debug logging), AI print/resume polish.
+- 🔜 Planned: Security headers implementation, 2FA, audit logging hooks, Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
 
 ---
 
@@ -77,11 +78,20 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - 7.6 Upload mirroring: ✅ Uploaded files automatically mirrored to external_media for unified media_refs
 - ℹ️ Media stability note: `/api/media` depends on file fields + `external_media`; run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`) after schema changes; see docs/MEDIA.md for details.
 
-## Phase 8: Security & Audit (🔜 Planned)
-- Audit log of admin actions/share token/password attempts
-- Security headers (CSP, Permissions Policy, CORS hardening)
-- 2FA (TOTP + backup codes)
-- Session listing/revoke/expiry
+## Phase 8: Security & Audit (🟡 In Progress)
+- ✅ **Security Audit Complete** - Full codebase audit documented in [SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)
+- ✅ Audit logs database schema prepared (migration ready)
+- ✅ HTTPS enforcement check (warns in production)
+- 🔜 **Immediate fixes needed:**
+  - Fix XSS in markdown rendering (add DOMPurify sanitization)
+  - Remove debug logging from production code
+  - Fix path traversal in media deletion (symlink checks)
+  - Re-enable security headers
+- 🔜 **Planned:**
+  - Audit log implementation (hooks)
+  - Security headers (CSP, Permissions Policy)
+  - 2FA (TOTP + backup codes)
+  - Session listing/revoke/expiry
 
 ## Phase 9: Polish & Performance (✅ Complete)
 - ✅ SEO: JSON-LD, sitemap, robots.txt, canonical URLs, Open Graph/Twitter Cards
@@ -100,8 +110,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ## Cross-Cutting Backlog
 - **High Priority:**
-  - ✅ Testing: E2E tests with Playwright (public APIs, SEO, error pages, media, admin flows)
-  - 🟡 Testing: GitHub/AI provider mocks (planned)
+  - Testing: ✅ E2E infrastructure complete (25 Playwright tests covering public APIs, SEO, error pages, media, admin flows); 🔜 GitHub/AI provider mocks, additional coverage
   - Theme system extensions (light/dark, presets)
 - **Medium Priority:**
   - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
