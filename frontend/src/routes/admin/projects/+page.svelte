@@ -24,6 +24,7 @@ let sortOrder = 0;
 let coverImageFile: FileList | null = null;
 let mediaRefs: string[] = [];
 let mediaOptions: { id: string; title: string; provider?: string }[] = [];
+let showShortcodes = false;
 let saving = false;
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
 
@@ -90,6 +91,10 @@ async function loadProjects() {
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+	}
+
+	function toggleShortcodes() {
+		showShortcodes = !showShortcodes;
 	}
 
 	function openEditForm(project: Project) {
@@ -351,9 +356,12 @@ async function loadProjects() {
 						id="description"
 						bind:value={description}
 						class="input min-h-[150px] mt-1"
-						placeholder="Full project description with details about features, architecture, etc."
+						placeholder="Full project description with details about features, architecture, etc. (Markdown + media shortcodes)"
 					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Markdown supported</p>
+					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+						<button type="button" class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Media shortcodes</button>
+						<span>Use {'{{provider:url}}'} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).</span>
+					</div>
 				</div>
 			</div>
 
@@ -542,6 +550,58 @@ async function loadProjects() {
 				</button>
 			</div>
 		</form>
+		{#if showShortcodes}
+			<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
+					<div class="flex items-center justify-between">
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Media shortcodes</h3>
+						<button class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Close</button>
+					</div>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media Library (uploads or external) or any supported provider.
+					</p>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-200">
+						<div>
+							<p class="font-semibold">Video</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{youtube:https://youtu.be/ID}}'}</code></li>
+								<li><code>{'{{vimeo:https://vimeo.com/ID}}'}</code></li>
+								<li><code>{'{{loom:https://www.loom.com/share/ID}}'}</code></li>
+								<li><code>{'{{video:https://example.com/video.mp4}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Audio</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{soundcloud:https://soundcloud.com/...}}'}</code></li>
+								<li><code>{'{{spotify:https://open.spotify.com/track/...}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Images / Docs</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{image:https://.../image.jpg}}'}</code></li>
+								<li><code>{'{{pdf:https://.../file.pdf}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Design / Code</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{figma:https://www.figma.com/file/...}}'}</code></li>
+								<li><code>{'{{codepen:https://codepen.io/user/pen/...}}'}</code></li>
+							</ul>
+						</div>
+						<div>
+							<p class="font-semibold">Immich / Other</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{immich:https://immich.example.com/...}}'}</code></li>
+								<li><code>{'{{embed:https://any-link}}'}</code></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
 	{:else if projects.length === 0}
 		<div class="card p-8 text-center">
 			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
