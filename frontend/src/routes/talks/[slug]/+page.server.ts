@@ -23,6 +23,8 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 
 		const talk = await response.json();
 
+		const mediaRefs: any[] = talk.media_refs_expand || [];
+
 		return {
 			talk: {
 				id: talk.id,
@@ -38,6 +40,7 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				created: talk.created,
 				updated: talk.updated
 			},
+			media_refs: mediaRefs,
 			profile: talk.profile || null,
 			prev_talk: talk.prev_talk || null,
 			next_talk: talk.next_talk || null,

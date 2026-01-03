@@ -23,18 +23,7 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 
 		const project = await response.json();
 
-		const mediaRefsIds: string[] = project.media_refs || [];
-		let mediaRefs: any[] = [];
-		if (mediaRefsIds.length > 0) {
-			const filter = mediaRefsIds.map((id) => `id="${id}"`).join(' || ');
-			const res = await fetch(
-				`${pbUrl}/api/collections/external_media/records?filter=${encodeURIComponent(filter)}&perPage=${mediaRefsIds.length}`
-			);
-			if (res.ok) {
-				const data = await res.json();
-				mediaRefs = data.items || [];
-			}
-		}
+		const mediaRefs: any[] = project.media_refs_expand || [];
 
 		return {
 			project: {

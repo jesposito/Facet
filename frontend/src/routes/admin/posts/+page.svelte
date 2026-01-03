@@ -84,6 +84,13 @@ async function resolveMediaRefs(selected: string[]) {
 	const optionMap = new Map(mediaOptions.map((opt) => [opt.id, opt]));
 	const resolved: string[] = [];
 
+	const toAbsolute = (url?: string) => {
+		if (!url) return '';
+		if (/^https?:\/\//i.test(url)) return url;
+		const base = pb.baseUrl.replace(/\/$/, '');
+		return `${base}${url.startsWith('/') ? url : `/${url}`}`;
+	};
+
 	for (const id of selected) {
 		const opt = optionMap.get(id);
 		if (!opt) continue;
@@ -102,7 +109,7 @@ async function resolveMediaRefs(selected: string[]) {
 				const created = await fetch('/api/media/external', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json', ...headers },
-					body: JSON.stringify({ url: opt.url, title: opt.title })
+					body: JSON.stringify({ url: toAbsolute(opt.url), title: opt.title })
 				});
 				if (created.ok) {
 					const body = await created.json();
