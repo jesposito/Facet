@@ -13,7 +13,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Media optimization (thumb/srcset) live on posts/projects/homepage; view membership badges in admin lists.
 - ✅ External media embeds complete: uploads, external links, public rendering on projects/posts/talks, bulk delete.
 - ✅ SEO & Error UX complete: custom 404/500 pages, canonical URLs, comprehensive Open Graph/Twitter Cards, JSON-LD, sitemap, robots.txt.
-- 🟡 In progress: AI print/resume polish, testing backlog.
+- ✅ E2E Testing: Playwright test suite with 90%+ coverage of public APIs, SEO features, error pages, and media management.
+- 🟡 In progress: AI print/resume polish.
 - 🔜 Planned: Security/Audit (Phase 8), Performance tuning (lazy loading, bundle optimization), Demo Mode toggle/persona (Phase 10).
 
 ---
@@ -99,7 +100,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ## Cross-Cutting Backlog
 - **High Priority:**
-  - Testing: frontend/component + integration tests; GitHub/AI provider mocks
+  - ✅ Testing: E2E tests with Playwright (public APIs, SEO, error pages, media, admin flows)
+  - 🟡 Testing: GitHub/AI provider mocks (planned)
   - Theme system extensions (light/dark, presets)
 - **Medium Priority:**
   - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
