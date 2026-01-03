@@ -1,9 +1,5 @@
 # Facet Agent Instructions
 
-> **Reusable Phase Execution Prompt — Claude-Tuned**
->
-> This prompt is explicitly written to prevent premature solutioning, doc drift, and "looks done" phases. It forces deliberate reasoning and verification.
-
 > ⚠️ **CRITICAL: Roadmap Maintenance Required**
 >
 > The [ROADMAP.md](ROADMAP.md) MUST be kept up-to-date with all development progress. When completing any phase or feature:
