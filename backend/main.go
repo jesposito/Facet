@@ -52,7 +52,6 @@ func main() {
 	hooks.RegisterMediaHooks(app)
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)
-	hooks.RegisterAdminHooks(app)
 	hooks.RegisterExportHooks(app)
 	hooks.RegisterResumeHooks(app, cryptoService)
 	hooks.RegisterSeedHook(app)

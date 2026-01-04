@@ -46,8 +46,8 @@ function isActive(href: string): boolean {
 	if (href === '/admin') {
 		return $page.url.pathname === '/admin';
 	}
-		return $page.url.pathname.startsWith(href);
-	}
+	return $page.url.pathname.startsWith(href);
+}
 </script>
 
 <aside

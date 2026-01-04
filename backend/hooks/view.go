@@ -214,8 +214,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		se.Router.GET("/api/view/{slug}/access", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
 
+			// Use demo-aware collection name
+			viewsCollection := getTableName(app, "views")
+
 			records, err := app.FindRecordsByFilter(
-				"views",
+				viewsCollection,
 				"slug = {:slug}",
 				"",
 				1,
@@ -250,8 +253,20 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		se.Router.GET("/api/view/{slug}/data", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
 
+			// Check if demo mode is enabled
+			isDemoMode := false
+			if demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", ""); demoProfile != nil {
+				isDemoMode = true
+			}
+
+			// Use demo-aware collection name
+			viewsCollection := "views"
+			if isDemoMode {
+				viewsCollection = "demo_views"
+			}
+
 			records, err := app.FindRecordsByFilter(
-				"views",
+				viewsCollection,
 				"slug = {:slug} && is_active = true",
 				"",
 				1,
@@ -266,12 +281,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			view := records[0]
 			visibility := view.GetString("visibility")
 			shouldCountView := e.Auth == nil
-
-			// Check if demo mode is enabled
-			isDemoMode := false
-			if demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", ""); demoProfile != nil {
-				isDemoMode = true
-			}
 
 			// Check access based on visibility
 			switch visibility {
@@ -326,8 +335,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			if shouldCountView {
 				// Increment view count and last_viewed_at in the background
-				go func(viewID string) {
-					record, err := app.FindRecordById("views", viewID)
+				go func(viewID string, collection string) {
+					record, err := app.FindRecordById(collection, viewID)
 					if err != nil {
 						return
 					}
@@ -336,7 +345,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					if err := app.Save(record); err != nil {
 						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
 					}
-				}(view.Id)
+				}(view.Id, viewsCollection)
 			}
 
 			// Build view response
@@ -1349,9 +1358,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "post not found"})
 			}
 
+			// Use demo-aware collection name
+			postsCollection := getTableName(app, "posts")
+
 			// Find post by slug
 			records, err := app.FindRecordsByFilter(
-				"posts",
+				postsCollection,
 				"slug = {:slug}",
 				"",
 				1,
@@ -1401,8 +1413,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch profile data for navigation context
+			profileCollection := getTableName(app, "profile")
 			profileRecords, err := app.FindRecordsByFilter(
-				"profile",
+				profileCollection,
 				"visibility = 'public'",
 				"",
 				1,
@@ -1425,7 +1438,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Fetch previous and next posts for navigation
 			// Previous post (published before this one)
 			prevRecords, err := app.FindRecordsByFilter(
-				"posts",
+				postsCollection,
 				"visibility = 'public' && is_draft = false && published_at < {:published_at}",
 				"-published_at",
 				1,
@@ -1442,7 +1455,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Next post (published after this one)
 			nextRecords, err := app.FindRecordsByFilter(
-				"posts",
+				postsCollection,
 				"visibility = 'public' && is_draft = false && published_at > {:published_at}",
 				"published_at",
 				1,
@@ -1470,9 +1483,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
 			}
 
+			// Use demo-aware collection name
+			projectsCollection := getTableName(app, "projects")
+
 			// Find project by slug
 			records, err := app.FindRecordsByFilter(
-				"projects",
+				projectsCollection,
 				"slug = {:slug}",
 				"",
 				1,
@@ -1533,8 +1549,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch profile data for navigation context
+			profileCollection := getTableName(app, "profile")
 			profileRecords, err := app.FindRecordsByFilter(
-				"profile",
+				profileCollection,
 				"visibility = 'public'",
 				"",
 				1,
@@ -1567,9 +1584,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "talk not found"})
 			}
 
+			// Use demo-aware collection name
+			talksCollection := getTableName(app, "talks")
+
 			// Find talk by slug
 			records, err := app.FindRecordsByFilter(
-				"talks",
+				talksCollection,
 				"slug = {:slug}",
 				"",
 				1,
@@ -1615,8 +1635,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch profile data for navigation context
+			profileCollection := getTableName(app, "profile")
 			profileRecords, err := app.FindRecordsByFilter(
-				"profile",
+				profileCollection,
 				"visibility = 'public'",
 				"",
 				1,
@@ -1640,7 +1661,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Previous talk (before this one by date)
 			if talkDate := talk.GetDateTime("date"); !talkDate.IsZero() {
 				prevRecords, err := app.FindRecordsByFilter(
-					"talks",
+					talksCollection,
 					"visibility = 'public' && is_draft = false && date < {:date}",
 					"-date",
 					1,
@@ -1659,7 +1680,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 				// Next talk (after this one by date)
 				nextRecords, err := app.FindRecordsByFilter(
-					"talks",
+					talksCollection,
 					"visibility = 'public' && is_draft = false && date > {:date}",
 					"date",
 					1,
