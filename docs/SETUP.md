@@ -56,6 +56,23 @@ For development, a default admin account is created automatically:
 
 **Important**: Change this password or set up your own authentication for production.
 
+### 6. Try Demo Mode (Optional)
+
+Not sure where to start? After logging in, toggle **Demo Mode** ON at the top of the admin panel to instantly load The Doctor's hilarious profile showcasing all features:
+
+- 5 different views (recruiter, conference, consulting, personal, academic)
+- 4 extensive blog posts with technical humor
+- Projects, experience, talks, certifications, and more
+- All features demonstrated: media embeds, different layouts, privacy controls
+
+**Your data is safe:** When you toggle demo mode ON, your original data is backed up. Toggle it OFF to restore your data exactly as it was (or keep the demo data as your starting point if you prefer).
+
+**Perfect for:**
+- Exploring what a complete profile looks like
+- Understanding how views and privacy controls work
+- Seeing examples of well-written content
+- Learning the interface before building your own profile
+
 ---
 
 ## Authentication Options

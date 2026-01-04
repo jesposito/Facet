@@ -22,6 +22,27 @@ Think LinkedIn meets personal portfolio, except you hold all the cards: the data
 
 ---
 
+## Try It Out (Demo Mode)
+
+Not sure if Facet is for you? After signing in, you'll see a **Demo toggle** at the top of the admin panel. Toggle it on to instantly load The Doctor's hilarious profile - a time-traveling alien trying to pass as a normal developer.
+
+**What you'll see:**
+- 5 different views showcasing different professional personas
+- 4 extensive blog posts with technical humor (~2000 words each)
+- Conference talks, projects, work experience, and more
+- All features working: views, content types, multiple layouts
+
+**Demo mode features:**
+- One-click toggle on/off (top of admin panel)
+- Loads comprehensive example content instantly
+- Your original data is backed up and restored when you toggle off
+- Shows you what a complete Facet profile looks like
+- Perfect for exploring features before building your own
+
+Toggle off to restore your original data, or keep the demo data as your starting point.
+
+---
+
 ## The 30-Second Version
 
 One Docker container. One command. You get:

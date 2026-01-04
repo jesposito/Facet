@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-01-03
+**Last Updated:** 2026-01-04
 
 This roadmap reflects current implementation status and planned work, ordered chronologically by phase. Completed items remain for context; upcoming items are listed under each phase.
 
@@ -21,9 +21,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ AI Resume Generation (Phase 4): Complete with PDF/DOCX export, multiple formats/styles, AI provider integration.
 - ✅ README rewrite: Comprehensive, user-focused documentation for visitors, site owners, and developers with security highlights and accurate feature descriptions.
 - ✅ docker-compose.yml enhancement: Extensively commented with Unraid-specific guidance, troubleshooting, and backup instructions.
-- ✅ **Demo Mode (Phase 10):** One-click "Try Demo" button with The Doctor's hilarious profile showcasing all features.
+- ✅ **Demo Mode (Phase 10):** Demo toggle in admin panel with The Doctor's hilarious profile showcasing all features. Data backup/restore when toggling on/off.
 - ✅ **First-Run Experience (Phase 13):** Welcome page, feature highlights, demo integration, Unraid Community Apps template, comprehensive SETUP.md.
-- 🔜 **Next Up:** Resume upload & AI parsing (reverse direction), Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
+- 🔜 **Next Up:** Demo media system (Phase 14), Resume upload & AI parsing (reverse direction), Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
 
 ---
 
@@ -221,7 +221,7 @@ Every view demonstrates:
 - Professional enough to be useful as example
 - Funny enough to be memorable
 
-**✅ What Was Actually Built:** Simpler and better! One-click "Try Demo" button on welcome page that instantly logs you into The Doctor's hilarious profile. No toggle needed, no data snapshots - just a separate demo account with laugh-out-loud content showcasing every feature. See `backend/hooks/demo.go` and `frontend/src/components/public/WelcomePage.svelte`.
+**✅ What Was Actually Built:** Demo mode toggle at the top of the admin panel (in AdminHeader). Toggle on to replace your data with The Doctor's hilarious profile showcasing all features. Your original data is backed up and restored when you toggle off (or you can keep the demo data as your starting point). See [backend/hooks/demo.go](backend/hooks/demo.go) and [AdminHeader.svelte](frontend/src/components/admin/AdminHeader.svelte).
 
 ---
 
@@ -316,6 +316,38 @@ Every view demonstrates:
   - E2E tests for share tokens behind simulated proxy
   - Verify X-Forwarded-Proto and X-Forwarded-Host handling
   - Test with real Cloudflare Tunnel setup
+
+---
+
+## Phase 14: Demo Media System (🔜 Planned)
+**Purpose:** Add visual richness to demo mode with images and media
+
+Currently, demo mode loads The Doctor's hilarious content but without images or media files. This phase will add a media system specifically for demo content.
+
+**Planned Features:**
+- **Demo Assets Directory:** `/backend/seeds/demo_assets/` containing images, avatars, project screenshots
+- **File Copying on Demo Enable:** When toggling demo mode ON, copy files from `demo_assets/` to PocketBase storage
+- **PocketBase File API Integration:** Properly register files with PocketBase so they work with the media library
+- **Image Generation/Placeholders:** Use AI-generated or placeholder images for:
+  - Profile avatar for The Doctor
+  - Project screenshots for TARDIS Redesign, Sonic Screwdriver, etc.
+  - Blog post cover images
+  - Media gallery images
+- **Cleanup on Demo Restore:** When toggling demo OFF, remove demo media files (unless user wants to keep them)
+- **Media References:** Update demo seed data to reference the media files properly
+
+**Benefits:**
+- More impressive demo showcasing the media library features
+- Better visual demonstration of how a complete profile looks
+- Shows off responsive images, thumbnails, and media embeds
+- Makes demo mode feel like a real, production-ready profile
+
+**Implementation Notes:**
+- Files stored in `/backend/seeds/demo_assets/` committed to repo
+- Copy files to PocketBase's `pb_data/storage/` on demo enable
+- Update `demo_*` tables with proper file references
+- Consider using freely-licensed Doctor Who fan art or generated images
+- Total asset size should stay reasonable (< 10MB) for repo size
 
 ---
 
