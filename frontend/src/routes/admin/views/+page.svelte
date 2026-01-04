@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
@@ -14,7 +15,7 @@
 	async function loadViews() {
 		loading = true;
 		try {
-			const result = await pb.collection('views').getList(1, 50, {
+			const result = await collection('views').getList(1, 50, {
 				sort: '-is_default,-id'
 			});
 			views = result.items;
@@ -28,7 +29,7 @@
 
 	async function toggleActive(view: Record<string, unknown>) {
 		try {
-			await pb.collection('views').update(view.id as string, {
+			await collection('views').update(view.id as string, {
 				is_active: !view.is_active
 			});
 			await loadViews();
@@ -40,7 +41,7 @@
 	async function deleteView(id: string) {
 		if (!confirm('Are you sure you want to delete this view?')) return;
 		try {
-			await pb.collection('views').delete(id);
+			await collection('views').delete(id);
 			toasts.add('success', 'View deleted');
 			await loadViews();
 		} catch (err) {

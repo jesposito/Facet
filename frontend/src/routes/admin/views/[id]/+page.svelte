@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
@@ -130,7 +131,7 @@
 
 	async function loadProfile() {
 		try {
-			const records = await pb.collection('profile').getList(1, 1);
+			const records = await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
 				const record = records.items[0] as unknown as Profile & { collectionId: string };
 				// Resolve avatar URL if exists
@@ -265,7 +266,7 @@
 		if (!viewId) return;
 		loading = true;
 		try {
-			const record = await pb.collection('views').getOne(viewId);
+			const record = await collection('views').getOne(viewId);
 			view = record as unknown as View;
 
 			// Populate form fields
@@ -280,7 +281,7 @@
 			isActive = view.is_active;
 
 			// Check if this is the default view
-			const defaultViews = await pb.collection('views').getList(1, 1, {
+			const defaultViews = await collection('views').getList(1, 1, {
 				filter: 'is_default = true'
 			});
 			isDefault = defaultViews.items.length > 0 && defaultViews.items[0].id === viewId;
@@ -334,7 +335,7 @@
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const def = SECTION_DEFS[key];
 			try {
-				const records = await pb.collection(def.collection).getList(1, 100, {
+				const records = await collection(def.collection).getList(1, 100, {
 					sort: '-id'
 				});
 
@@ -495,18 +496,18 @@
 				data.password = password.trim();
 			}
 
-			await pb.collection('views').update(viewId, data);
+			await collection('views').update(viewId, data);
 
 			// Handle default view setting
 			if (isDefault) {
 				// Clear other defaults first
-				const currentDefaults = await pb.collection('views').getList(1, 100, {
+				const currentDefaults = await collection('views').getList(1, 100, {
 					filter: `is_default = true && id != "${viewId}"`
 				});
 				for (const v of currentDefaults.items) {
-					await pb.collection('views').update(v.id, { is_default: false });
+					await collection('views').update(v.id, { is_default: false });
 				}
-				await pb.collection('views').update(viewId, { is_default: true });
+				await collection('views').update(viewId, { is_default: true });
 			}
 
 			toasts.add('success', 'View updated successfully');

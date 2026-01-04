@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Talk } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
@@ -152,7 +153,7 @@ async function resolveMediaRefs(selected: string[]) {
 	async function loadTalks() {
 		loading = true;
 		try {
-			const records = await pb.collection('talks').getList(1, 100, {
+			const records = await await collection('talks').getList(1, 100, {
 				sort: '-date,-sort_order'
 			});
 			talks = records.items as unknown as Talk[];
@@ -239,10 +240,10 @@ async function resolveMediaRefs(selected: string[]) {
 			};
 
 			if (editingTalk) {
-				await pb.collection('talks').update(editingTalk.id, data);
+				await await collection('talks').update(editingTalk.id, data);
 				toasts.add('success', 'Talk updated successfully');
 			} else {
-				await pb.collection('talks').create(data);
+				await await collection('talks').create(data);
 				toasts.add('success', 'Talk created successfully');
 			}
 
@@ -262,7 +263,7 @@ async function resolveMediaRefs(selected: string[]) {
 		}
 
 		try {
-			await pb.collection('talks').delete(talk.id);
+			await await collection('talks').delete(talk.id);
 			toasts.add('success', 'Talk deleted');
 			await loadTalks();
 		} catch (err) {
@@ -273,7 +274,7 @@ async function resolveMediaRefs(selected: string[]) {
 
 	async function togglePublish(talk: Talk) {
 		try {
-			await pb.collection('talks').update(talk.id, {
+			await await collection('talks').update(talk.id, {
 				is_draft: !talk.is_draft
 			});
 			toasts.add('success', talk.is_draft ? 'Talk published' : 'Talk unpublished');

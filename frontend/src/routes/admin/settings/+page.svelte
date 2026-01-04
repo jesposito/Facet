@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Profile } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import {
@@ -23,11 +24,6 @@
 	let customCSS = '';
 	let gaMeasurementId = '';
 	let showCSSHelp = false;
-
-	// Demo data state
-	let demoLoading = false;
-	let demoStatus = { has_data: false, profile: 0, experience: 0, projects: 0 };
-	$: hasData = demoStatus.has_data;
 
 	// Export state
 	let exporting: string | null = null;
@@ -72,12 +68,12 @@
 	}
 
 	onMount(async () => {
-		await Promise.all([loadProviders(), loadDemoStatus(), loadProfile(), loadSiteSettings()]);
+		await Promise.all([loadProviders(), loadProfile(), loadSiteSettings()]);
 	});
 
 	async function loadProfile() {
 		try {
-			const records = await pb.collection('profile').getList(1, 1);
+			const records = await await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
 				profile = records.items[0] as unknown as Profile;
 				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
@@ -92,7 +88,7 @@
 
 		savingAppearance = true;
 		try {
-			await pb.collection('profile').update(profile.id, {
+			await await collection('profile').update(profile.id, {
 				accent_color: color
 			});
 			selectedAccentColor = color;
@@ -106,67 +102,6 @@
 			toasts.add('error', 'Failed to update accent color');
 		} finally {
 			savingAppearance = false;
-		}
-	}
-
-	async function loadDemoStatus() {
-		try {
-			const response = await fetch('/api/admin/demo/status', {
-				headers: { Authorization: pb.authStore.token }
-			});
-			if (response.ok) {
-				demoStatus = await response.json();
-			}
-		} catch (err) {
-			console.error('Failed to load demo status:', err);
-		}
-	}
-
-	async function handleLoadDemo() {
-		if (!confirm('This will load demo data (Merlin Ambrosius profile). Continue?')) return;
-
-		demoLoading = true;
-		try {
-			const response = await fetch('/api/admin/demo/load', {
-				method: 'POST',
-				headers: { Authorization: pb.authStore.token }
-			});
-			const result = await response.json();
-
-			if (response.ok) {
-				toasts.add('success', 'Demo data loaded! Refresh to see changes.');
-				await loadDemoStatus();
-			} else {
-				toasts.add('error', result.error || 'Failed to load demo data');
-			}
-		} catch (err) {
-			toasts.add('error', 'Failed to load demo data');
-		} finally {
-			demoLoading = false;
-		}
-	}
-
-	async function handleClearData() {
-		if (!confirm('This will delete ALL your profile data. This cannot be undone. Continue?')) return;
-
-		demoLoading = true;
-		try {
-			const response = await fetch('/api/admin/demo/clear', {
-				method: 'POST',
-				headers: { Authorization: pb.authStore.token }
-			});
-			const result = await response.json();
-
-			if (response.ok) {
-				toasts.add('success', 'All data cleared');
-				await loadDemoStatus();
-			} else {
-				toasts.add('error', result.error || 'Failed to clear data');
-			}
-		} catch (err) {
-			toasts.add('error', 'Failed to clear data');
-		} finally {
-			demoLoading = false;
 		}
 	}
 
@@ -847,47 +782,6 @@ body { font-family: 'Inter', sans-serif; }
 					</div>
 				{/each}
 			</div>
-		{/if}
-	</div>
-
-	<!-- Demo Data Section -->
-	<div class="card p-6 mt-6">
-		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Demo Data</h2>
-		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-			Load sample data to see what a complete profile looks like. This creates a fun Arthurian-themed
-			profile (Merlin Ambrosius, Chief Wizard) with experience, projects, skills, and more.
-		</p>
-
-		{#if demoLoading}
-			<div class="flex items-center gap-2 text-gray-500">
-				<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-				</svg>
-				Loading...
-			</div>
-		{:else if hasData}
-			<div class="flex items-center gap-4">
-				<span class="text-sm text-gray-600 dark:text-gray-400">
-					Profile has data ({demoStatus.experience} experiences, {demoStatus.projects} projects)
-				</span>
-				<button
-					class="btn btn-danger-ghost btn-sm"
-					on:click={handleClearData}
-					disabled={demoLoading}
-				>
-					{@html icon('trash')}
-					Clear All Data
-				</button>
-			</div>
-		{:else}
-			<button
-				class="btn btn-secondary"
-				on:click={handleLoadDemo}
-				disabled={demoLoading}
-			>
-				Load Demo Data
-			</button>
 		{/if}
 	</div>
 

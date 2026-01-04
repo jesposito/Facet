@@ -16,6 +16,17 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// getTableName returns the correct table name based on demo mode
+// If demo mode is ON, returns "demo_<collection>", otherwise returns "<collection>"
+func getTableName(app core.App, collection string) string {
+	// Check if demo data exists (indicates demo mode is ON)
+	demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", "")
+	if demoProfile != nil {
+		return "demo_" + collection
+	}
+	return collection
+}
+
 // fetchExternalMedia safely loads external_media records by IDs without relying on expand rules.
 func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, error) {
 	if len(ids) == 0 {
@@ -256,6 +267,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			visibility := view.GetString("visibility")
 			shouldCountView := e.Auth == nil
 
+			// Check if demo mode is enabled
+			isDemoMode := false
+			if demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", ""); demoProfile != nil {
+				isDemoMode = true
+			}
+
 			// Check access based on visibility
 			switch visibility {
 			case "private":
@@ -396,6 +413,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if collectionName == "" {
 					continue
 				}
+				// Use demo collection if demo mode is enabled
+				if isDemoMode {
+					collectionName = "demo_" + collectionName
+				}
 
 				// Extract itemConfig for overrides
 				itemConfig := make(map[string]map[string]interface{})
@@ -452,8 +473,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["section_widths"] = sectionWidths
 
 			// Fetch profile data for the view
+			profileTableName := "profile"
+			if isDemoMode {
+				profileTableName = "demo_profile"
+			}
 			profileRecords, err := app.FindRecordsByFilter(
-				"profile",
+				profileTableName,
 				"visibility != 'private'",
 				"",
 				1,
@@ -581,8 +606,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch profile - only public profiles appear on homepage
+			// Use demo_profile table if demo mode is ON
 			profileRecords, err := app.FindRecordsByFilter(
-				"profile",
+				getTableName(app, "profile"),
 				"visibility = 'public'",
 				"",
 				1,
@@ -621,7 +647,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch experience - only public items appear on homepage
 			experienceRecords, err := app.FindRecordsByFilter(
-				"experience",
+				getTableName(app, "experience"),
 				"visibility = 'public' && is_draft = false",
 				"-sort_order,-start_date",
 				100,
@@ -634,7 +660,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch projects - only public items appear on homepage
 			projectRecords, err := app.FindRecordsByFilter(
-				"projects",
+				getTableName(app, "projects"),
 				"visibility = 'public' && is_draft = false",
 				"-is_featured,-sort_order",
 				100,
@@ -659,7 +685,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch education - only public items appear on homepage
 			educationRecords, err := app.FindRecordsByFilter(
-				"education",
+				getTableName(app, "education"),
 				"visibility = 'public' && is_draft = false",
 				"-sort_order,-end_date",
 				100,
@@ -672,7 +698,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch skills - only public items appear on homepage
 			skillRecords, err := app.FindRecordsByFilter(
-				"skills",
+				getTableName(app, "skills"),
 				"visibility = 'public'",
 				"category,sort_order",
 				200,
@@ -685,7 +711,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch posts - only public items appear on homepage
 			postRecords, err := app.FindRecordsByFilter(
-				"posts",
+				getTableName(app, "posts"),
 				"visibility = 'public' && is_draft = false",
 				"-published_at",
 				100,
@@ -719,7 +745,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch talks - only public items appear on homepage
 			talkRecords, err := app.FindRecordsByFilter(
-				"talks",
+				getTableName(app, "talks"),
 				"visibility = 'public' && is_draft = false",
 				"-sort_order,-date",
 				100,
@@ -739,7 +765,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch certifications - only public items appear on homepage
 			certRecords, err := app.FindRecordsByFilter(
-				"certifications",
+				getTableName(app, "certifications"),
 				"visibility = 'public' && is_draft = false",
 				"issuer,sort_order,-issue_date",
 				100,
@@ -752,7 +778,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch awards - only public items appear on homepage
 			awardRecords, err := app.FindRecordsByFilter(
-				"awards",
+				getTableName(app, "awards"),
 				"visibility = 'public' && is_draft = false",
 				"-sort_order,-awarded_at",
 				100,

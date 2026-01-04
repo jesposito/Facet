@@ -4,10 +4,12 @@
 	import { page } from '$app/stores';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
+	import { initDemoMode } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 
 	let loading = true;
+	let demoModeInitialized = false;
 	let authorized = false;
 	let mounted = false;
 
@@ -15,7 +17,7 @@
 	$: isLoginPage = $page.url.pathname === '/admin/login';
 
 	// Reactively handle auth state changes
-	$: if (mounted && !isLoginPage) {
+	$: if (mounted && !isLoginPage && demoModeInitialized) {
 		if ($currentUser) {
 			authorized = true;
 			loading = false;
@@ -32,7 +34,7 @@
 		loading = false;
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		mounted = true;
 
 		// Restore sidebar state from localStorage
@@ -58,6 +60,13 @@
 			loading = false;
 			return;
 		}
+
+		// Initialize demo mode state BEFORE child pages render
+		console.log('[LAYOUT] About to call initDemoMode()');
+		await initDemoMode();
+		console.log('[LAYOUT] initDemoMode() completed');
+		demoModeInitialized = true;
+		console.log('[LAYOUT] Set demoModeInitialized to true');
 
 		// Small delay to allow auth store to hydrate from cookies/localStorage
 		// This is especially important in Codespaces/SSR environments

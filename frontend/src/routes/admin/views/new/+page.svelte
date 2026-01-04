@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
@@ -75,7 +76,7 @@
 
 	async function loadProfile() {
 		try {
-			const records = await pb.collection('profile').getList(1, 1);
+			const records = await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
 				const record = records.items[0] as unknown as Profile & { collectionId: string };
 				if (record.avatar) {
@@ -104,7 +105,7 @@
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const def = SECTION_DEFS[key];
 			try {
-				const records = await pb.collection(def.collection).getList(1, 100, {
+				const records = await collection(def.collection).getList(1, 100, {
 					sort: '-id'
 				});
 
@@ -288,15 +289,15 @@
 				sections: sectionsData
 			};
 
-			const newView = await pb.collection('views').create(data);
+			const newView = await collection('views').create(data);
 
 			// If setting as default, clear other defaults
 			if (isDefault) {
-				const currentDefaults = await pb.collection('views').getList(1, 100, {
+				const currentDefaults = await collection('views').getList(1, 100, {
 					filter: `is_default = true && id != "${newView.id}"`
 				});
 				for (const v of currentDefaults.items) {
-					await pb.collection('views').update(v.id, { is_default: false });
+					await collection('views').update(v.id, { is_default: false });
 				}
 			}
 

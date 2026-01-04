@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 
@@ -57,7 +58,7 @@
 	async function loadContacts() {
 		loading = true;
 		try {
-			const records = await pb.collection('contact_methods').getList(1, 100, {
+			const records = await await collection('contact_methods').getList(1, 100, {
 				sort: '-sort_order'
 			});
 			contacts = records.items as unknown as ContactMethod[];
@@ -71,7 +72,7 @@
 
 	async function loadViews() {
 		try {
-			const records = await pb.collection('views').getList(1, 100, {
+			const records = await await collection('views').getList(1, 100, {
 				sort: '-is_default,-created'
 			});
 			views = records.items as unknown as View[];
@@ -151,10 +152,10 @@
 			};
 
 			if (editingContact) {
-				await pb.collection('contact_methods').update(editingContact.id, data);
+				await await collection('contact_methods').update(editingContact.id, data);
 				toasts.add('success', 'Contact method updated successfully');
 			} else {
-				await pb.collection('contact_methods').create(data);
+				await await collection('contact_methods').create(data);
 				toasts.add('success', 'Contact method added successfully');
 			}
 
@@ -175,7 +176,7 @@
 		}
 
 		try {
-			await pb.collection('contact_methods').delete(contact.id);
+			await await collection('contact_methods').delete(contact.id);
 			toasts.add('success', 'Contact method deleted');
 			await loadContacts();
 		} catch (err) {
@@ -186,7 +187,7 @@
 
 	async function togglePrimary(contact: ContactMethod) {
 		try {
-			await pb.collection('contact_methods').update(contact.id, {
+			await await collection('contact_methods').update(contact.id, {
 				is_primary: !contact.is_primary
 			});
 			await loadContacts();

@@ -43,8 +43,9 @@ let mediaRefs: Array<RecordModel & { url?: string; title?: string; mime?: string
 	});
 
 	// Back navigation: prefer originating view, then referrer, then home
-	$: backUrl = data.fromView ? `/${data.fromView}` : referrerPath || '/';
+	$: backUrl = data.fromView ? `/v/${data.fromView}` : referrerPath || '/';
 	$: backLabel = 'Back';
+	$: console.log('[PROJECT PAGE] fromView:', data.fromView, 'referrerPath:', referrerPath, 'backUrl:', backUrl);
 	$: projectThumb =
 		(data.project as Record<string, string>).cover_image_thumb_url ?? data.project.cover_image_url;
 	$: projectLarge =

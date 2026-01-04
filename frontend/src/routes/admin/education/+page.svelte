@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Education } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
@@ -26,7 +27,7 @@
 	async function loadEducations() {
 		loading = true;
 		try {
-			const records = await pb.collection('education').getList(1, 100, {
+			const records = await await collection('education').getList(1, 100, {
 				sort: '-sort_order,-end_date'
 			});
 			educations = records.items as unknown as Education[];
@@ -96,10 +97,10 @@
 			};
 
 			if (editingEdu) {
-				await pb.collection('education').update(editingEdu.id, data);
+				await await collection('education').update(editingEdu.id, data);
 				toasts.add('success', 'Education updated successfully');
 			} else {
-				await pb.collection('education').create(data);
+				await await collection('education').create(data);
 				toasts.add('success', 'Education created successfully');
 			}
 
@@ -119,7 +120,7 @@
 		}
 
 		try {
-			await pb.collection('education').delete(edu.id);
+			await await collection('education').delete(edu.id);
 			toasts.add('success', 'Education deleted');
 			await loadEducations();
 		} catch (err) {
@@ -130,7 +131,7 @@
 
 	async function togglePublish(edu: Education) {
 		try {
-			await pb.collection('education').update(edu.id, {
+			await await collection('education').update(edu.id, {
 				is_draft: !edu.is_draft
 			});
 			toasts.add('success', edu.is_draft ? 'Education published' : 'Education unpublished');

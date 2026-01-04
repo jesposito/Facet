@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Award } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { formatDate, truncate } from '$lib/utils';
 
@@ -25,7 +26,7 @@
 	async function loadAwards() {
 		loading = true;
 		try {
-			const records = await pb.collection('awards').getList(1, 100, {
+			const records = await await collection('awards').getList(1, 100, {
 				sort: '-sort_order,-awarded_at'
 			});
 			awards = records.items as unknown as Award[];
@@ -95,10 +96,10 @@
 			};
 
 			if (editingAward) {
-				await pb.collection('awards').update(editingAward.id, data);
+				await await collection('awards').update(editingAward.id, data);
 				toasts.add('success', 'Award updated successfully');
 			} else {
-				await pb.collection('awards').create(data);
+				await await collection('awards').create(data);
 				toasts.add('success', 'Award created successfully');
 			}
 
@@ -123,7 +124,7 @@
 		}
 
 		try {
-			await pb.collection('awards').delete(award.id);
+			await await collection('awards').delete(award.id);
 			toasts.add('success', 'Award deleted');
 			await loadAwards();
 		} catch (err) {

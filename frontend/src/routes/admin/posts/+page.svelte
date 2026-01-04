@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 import { pb, type Post } from '$lib/pocketbase';
+import { collection } from '$lib/stores/demo';
 import { toasts } from '$lib/stores';
 import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
@@ -134,7 +135,7 @@ async function loadPosts() {
 	loading = true;
 	try {
 		const [records, membershipResp] = await Promise.all([
-			pb.collection('posts').getList(1, 100, {
+			await collection('posts').getList(1, 100, {
 				sort: '-published_at'
 			}),
 			fetch('/api/admin/view-memberships?collection=posts', {
@@ -246,10 +247,10 @@ function openEditForm(post: Post) {
 			};
 
 			if (editingPost) {
-				await pb.collection('posts').update(editingPost.id, data);
+				await await collection('posts').update(editingPost.id, data);
 				toasts.add('success', 'Post updated successfully');
 			} else {
-				await pb.collection('posts').create(data);
+				await await collection('posts').create(data);
 				toasts.add('success', 'Post created successfully');
 			}
 
@@ -274,7 +275,7 @@ function openEditForm(post: Post) {
 		}
 
 		try {
-			await pb.collection('posts').delete(post.id);
+			await await collection('posts').delete(post.id);
 			toasts.add('success', 'Post deleted');
 			await loadPosts();
 		} catch (err) {
@@ -286,7 +287,7 @@ function openEditForm(post: Post) {
 	async function togglePublish(post: Post) {
 		try {
 			const newDraftState = !post.is_draft;
-			await pb.collection('posts').update(post.id, {
+			await await collection('posts').update(post.id, {
 				is_draft: newDraftState,
 				published_at: newDraftState ? null : (post.published_at || new Date().toISOString())
 			});

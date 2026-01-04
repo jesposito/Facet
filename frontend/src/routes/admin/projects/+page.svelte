@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
@@ -136,7 +137,7 @@ async function loadProjects() {
 	loading = true;
 	try {
 		const [projectResp, membershipResp] = await Promise.all([
-			pb.collection('projects').getList(1, 100, {
+			await collection('projects').getList(1, 100, {
 				sort: '-is_featured,-sort_order'
 			}),
 			fetch('/api/admin/view-memberships?collection=projects', {
@@ -259,10 +260,10 @@ async function loadProjects() {
 			}
 
 			if (editingProject) {
-				await pb.collection('projects').update(editingProject.id, formData);
+				await await collection('projects').update(editingProject.id, formData);
 				toasts.add('success', 'Project updated successfully');
 			} else {
-				await pb.collection('projects').create(formData);
+				await await collection('projects').create(formData);
 				toasts.add('success', 'Project created successfully');
 			}
 
@@ -283,7 +284,7 @@ async function loadProjects() {
 		}
 
 		try {
-			await pb.collection('projects').delete(project.id);
+			await await collection('projects').delete(project.id);
 			toasts.add('success', 'Project deleted');
 			await loadProjects();
 		} catch (err) {
@@ -294,7 +295,7 @@ async function loadProjects() {
 
 	async function togglePublish(project: Project) {
 		try {
-			await pb.collection('projects').update(project.id, {
+			await await collection('projects').update(project.id, {
 				is_draft: !project.is_draft
 			});
 			toasts.add('success', project.is_draft ? 'Project published' : 'Project unpublished');
@@ -307,7 +308,7 @@ async function loadProjects() {
 
 	async function toggleFeatured(project: Project) {
 		try {
-			await pb.collection('projects').update(project.id, {
+			await await collection('projects').update(project.id, {
 				is_featured: !project.is_featured
 			});
 			toasts.add('success', project.is_featured ? 'Project unfeatured' : 'Project featured');

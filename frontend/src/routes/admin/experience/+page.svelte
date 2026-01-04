@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Experience } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
@@ -31,7 +32,7 @@
 	async function loadExperiences() {
 		loading = true;
 		try {
-			const records = await pb.collection('experience').getList(1, 100, {
+			const records = await await collection('experience').getList(1, 100, {
 				sort: '-sort_order,-start_date'
 			});
 			experiences = records.items as unknown as Experience[];
@@ -123,10 +124,10 @@
 			};
 
 			if (editingExp) {
-				await pb.collection('experience').update(editingExp.id, data);
+				await await collection('experience').update(editingExp.id, data);
 				toasts.add('success', 'Experience updated successfully');
 			} else {
-				await pb.collection('experience').create(data);
+				await await collection('experience').create(data);
 				toasts.add('success', 'Experience created successfully');
 			}
 
@@ -146,7 +147,7 @@
 		}
 
 		try {
-			await pb.collection('experience').delete(exp.id);
+			await await collection('experience').delete(exp.id);
 			toasts.add('success', 'Experience deleted');
 			await loadExperiences();
 		} catch (err) {
@@ -157,7 +158,7 @@
 
 	async function togglePublish(exp: Experience) {
 		try {
-			await pb.collection('experience').update(exp.id, {
+			await await collection('experience').update(exp.id, {
 				is_draft: !exp.is_draft
 			});
 			toasts.add('success', exp.is_draft ? 'Experience published' : 'Experience unpublished');

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { onMount } from 'svelte';
 
 	let stats = {
@@ -18,9 +19,9 @@
 	async function loadDashboard() {
 		try {
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
-				pb.collection('projects').getList(1, 1),
-				pb.collection('experience').getList(1, 1),
-				pb.collection('views').getList(1, 1),
+				await collection('projects').getList(1, 1),
+				await collection('experience').getList(1, 1),
+				await collection('views').getList(1, 1),
 				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
 			]);
 
@@ -33,8 +34,8 @@
 
 			// Get recent projects and experience for activity feed
 			const [recentProjects, recentExperience] = await Promise.all([
-				pb.collection('projects').getList(1, 3, { sort: '-id' }),
-				pb.collection('experience').getList(1, 3, { sort: '-id' })
+				await collection('projects').getList(1, 3, { sort: '-id' }),
+				await collection('experience').getList(1, 3, { sort: '-id' })
 			]);
 
 			recentActivity = [

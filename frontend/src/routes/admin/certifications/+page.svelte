@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Certification } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 
@@ -26,7 +27,7 @@
 	async function loadCertifications() {
 		loading = true;
 		try {
-			const records = await pb.collection('certifications').getList(1, 100, {
+			const records = await await collection('certifications').getList(1, 100, {
 				sort: 'issuer,sort_order,-issue_date'
 			});
 			certifications = records.items as unknown as Certification[];
@@ -96,10 +97,10 @@
 			};
 
 			if (editingCert) {
-				await pb.collection('certifications').update(editingCert.id, data);
+				await await collection('certifications').update(editingCert.id, data);
 				toasts.add('success', 'Certification updated successfully');
 			} else {
-				await pb.collection('certifications').create(data);
+				await await collection('certifications').create(data);
 				toasts.add('success', 'Certification created successfully');
 			}
 
@@ -119,7 +120,7 @@
 		}
 
 		try {
-			await pb.collection('certifications').delete(cert.id);
+			await await collection('certifications').delete(cert.id);
 			toasts.add('success', 'Certification deleted');
 			await loadCertifications();
 		} catch (err) {
@@ -130,7 +131,7 @@
 
 	async function togglePublish(cert: Certification) {
 		try {
-			await pb.collection('certifications').update(cert.id, {
+			await await collection('certifications').update(cert.id, {
 				is_draft: !cert.is_draft
 			});
 			toasts.add('success', cert.is_draft ? 'Certification published' : 'Certification unpublished');

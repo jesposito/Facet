@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type View } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
@@ -23,10 +24,14 @@
 	let viewsOverridingSummary: View[] = [];
 
 	onMount(async () => {
+		console.log('[PROFILE] onMount() called');
 		try {
-			const records = await pb.collection('profile').getList(1, 1);
+			console.log('[PROFILE] About to fetch profile data...');
+			const records = await collection('profile').getList(1, 1);
+			console.log('[PROFILE] Fetched records:', records);
 			if (records.items.length > 0) {
 				profile = records.items[0];
+				console.log('[PROFILE] Loaded profile:', profile);
 				name = (profile.name as string) || '';
 				headline = (profile.headline as string) || '';
 				location = (profile.location as string) || '';
@@ -37,11 +42,11 @@
 			}
 
 			// Check for views with overrides
-			const views = await pb.collection('views').getList(1, 100);
+			const views = await collection('views').getList(1, 100);
 			viewsOverridingHeadline = (views.items as unknown as View[]).filter(v => v.hero_headline);
 			viewsOverridingSummary = (views.items as unknown as View[]).filter(v => v.hero_summary);
 		} catch (err) {
-			console.error('Failed to load profile:', err);
+			console.error('[PROFILE] Failed to load profile:', err);
 		} finally {
 			loading = false;
 		}
@@ -61,9 +66,9 @@
 			};
 
 			if (profile) {
-				await pb.collection('profile').update(profile.id as string, data);
+				await collection('profile').update(profile.id as string, data);
 			} else {
-				await pb.collection('profile').create(data);
+				await collection('profile').create(data);
 			}
 
 			toasts.add('success', 'Profile saved successfully');

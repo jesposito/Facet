@@ -1,28 +1,43 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
+	import { demoMode as demoModeStore } from '$lib/stores/demo';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
-	import { onMount } from 'svelte';
 
 	let demoMode = false;
 	let toggleLoading = false;
+	let showDemoAnimation = false;
 
-	onMount(() => {
-		checkDemoStatus();
+	// Subscribe to demo mode store
+	demoModeStore.subscribe(value => {
+		demoMode = value;
 	});
 
-	async function checkDemoStatus() {
+	onMount(() => {
+		// Check if user has seen the demo toggle before
 		try {
-			const response = await fetch('/api/demo/status', {
-				headers: { Authorization: pb.authStore.token }
-			});
-			if (response.ok) {
-				const data = await response.json();
-				demoMode = data.demo_mode || false;
+			const hasSeenDemo = localStorage.getItem('hasSeenDemoToggle');
+			if (!hasSeenDemo) {
+				showDemoAnimation = true;
+				// Auto-dismiss after 10 seconds
+				setTimeout(() => {
+					showDemoAnimation = false;
+					localStorage.setItem('hasSeenDemoToggle', 'true');
+				}, 10000);
 			}
 		} catch (err) {
-			console.error('Failed to check demo status:', err);
+			console.warn('Failed to check demo toggle state', err);
+		}
+	});
+
+	function dismissDemoAnimation() {
+		showDemoAnimation = false;
+		try {
+			localStorage.setItem('hasSeenDemoToggle', 'true');
+		} catch (err) {
+			console.warn('Failed to save demo toggle state', err);
 		}
 	}
 
@@ -39,9 +54,14 @@
 	}
 
 	async function toggleDemoMode() {
+		// Dismiss animation when user interacts with toggle
+		dismissDemoAnimation();
+
+		console.log('[TOGGLE] toggleDemoMode() called, current demoMode:', demoMode);
 		if (!demoMode) {
 			// Turning on demo mode
 			if (!confirm('This will replace your current profile data with sample data. Your original data will be backed up and can be restored when you toggle off demo mode.\n\nNote: If you currently have no profile data, toggling demo OFF later will keep the demo data as your starting profile. Continue?')) {
+				console.log('[TOGGLE] User cancelled');
 				return;
 			}
 		}
@@ -49,22 +69,28 @@
 		toggleLoading = true;
 		try {
 			const endpoint = demoMode ? '/api/demo/restore' : '/api/demo/enable';
+			console.log('[TOGGLE] Calling endpoint:', endpoint);
 			const response = await fetch(endpoint, {
 				method: 'POST',
 				headers: { Authorization: pb.authStore.token }
 			});
+			console.log('[TOGGLE] Response:', response.status, response.ok);
 
 			if (!response.ok) {
 				const data = await response.json();
 				throw new Error(data.error || 'Failed to toggle demo mode');
 			}
 
-			demoMode = !demoMode;
+			const newDemoMode = !demoMode;
+			console.log('[TOGGLE] Updating store to:', newDemoMode);
+			// Update the store
+			demoModeStore.set(newDemoMode);
+			console.log('[TOGGLE] Store updated, reloading page...');
 
 			// Refresh the page to show updated data
 			window.location.reload();
 		} catch (err) {
-			console.error('Failed to toggle demo mode:', err);
+			console.error('[TOGGLE] Failed to toggle demo mode:', err);
 			alert(err instanceof Error ? err.message : 'Failed to toggle demo mode');
 		} finally {
 			toggleLoading = false;
@@ -99,7 +125,7 @@
 
 		<div class="flex items-center gap-3">
 			<!-- Demo Mode Toggle -->
-			<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700">
+			<div class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 {showDemoAnimation ? 'ring-2 ring-primary-500 animate-pulse' : ''}">
 				<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
 					Demo
 				</span>
@@ -120,6 +146,12 @@
 				{#if demoMode}
 					<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
 						ON
+					</span>
+				{/if}
+				{#if showDemoAnimation}
+					<span class="absolute -top-2 -right-2 flex h-3 w-3">
+						<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+						<span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
 					</span>
 				{/if}
 			</div>

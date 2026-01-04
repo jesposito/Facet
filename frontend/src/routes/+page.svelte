@@ -16,8 +16,9 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
-	import { pb } from '$lib/pocketbase';
+	import { pb, currentUser } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
+	import { goto } from '$app/navigation';
 
 	export let data: PageData;
 
@@ -173,6 +174,13 @@
 	function closePrintMenu() {
 		showPrintMenu = false;
 	}
+
+	function handleLogout() {
+		// Just log out and go to login page
+		// Demo data stays - user can replace it with their own profile in /admin
+		pb.authStore.clear();
+		window.location.href = '/admin/login';
+	}
 </script>
 
 <svelte:head>
@@ -258,6 +266,28 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Login button - for demo users, auto-logout and go to login page -->
+		{#if $currentUser}
+			<button
+				on:click={handleLogout}
+				class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+				title="Log in to your account"
+				aria-label="Log in to your account"
+			>
+				Log In
+			</button>
+		{:else}
+			<a
+				href="/admin/login"
+				class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+				title="Log in"
+				aria-label="Log in"
+			>
+				Log In
+			</a>
+		{/if}
+
 		<ThemeToggle />
 	</div>
 
@@ -315,7 +345,7 @@
 			{/if}
 
 			{#if data.projects.length > 0}
-				<ProjectsSection items={data.projects} viewSlug={data.view?.slug || ''} />
+				<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
 			{/if}
 
 			{#if data.education.length > 0}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type Skill } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 
 	let skills: Skill[] = [];
@@ -24,7 +25,7 @@
 	async function loadSkills() {
 		loading = true;
 		try {
-			const records = await pb.collection('skills').getList(1, 200, {
+			const records = await await collection('skills').getList(1, 200, {
 				sort: 'category,sort_order,name'
 			});
 			skills = records.items as unknown as Skill[];
@@ -85,10 +86,10 @@
 			};
 
 			if (editingSkill) {
-				await pb.collection('skills').update(editingSkill.id, data);
+				await await collection('skills').update(editingSkill.id, data);
 				toasts.add('success', 'Skill updated successfully');
 			} else {
-				await pb.collection('skills').create(data);
+				await await collection('skills').create(data);
 				toasts.add('success', 'Skill created successfully');
 			}
 
@@ -108,7 +109,7 @@
 		}
 
 		try {
-			await pb.collection('skills').delete(skill.id);
+			await await collection('skills').delete(skill.id);
 			toasts.add('success', 'Skill deleted');
 			await loadSkills();
 		} catch (err) {

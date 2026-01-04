@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { pb, type ShareToken, type View } from '$lib/pocketbase';
+	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
@@ -42,7 +43,7 @@
 
 	async function loadViews() {
 		try {
-			const result = await pb.collection('views').getList<View>(1, 100, {
+			const result = await collection('views').getList<View>(1, 100, {
 				filter: "visibility = 'unlisted'",
 				sort: 'name'
 			});
