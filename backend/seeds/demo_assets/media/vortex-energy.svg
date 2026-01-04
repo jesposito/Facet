@@ -1,0 +1,33 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <radialGradient id="vortexGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6366F1;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#1E1B4B;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="600" fill="#1E1B4B"/>
+  <circle cx="400" cy="300" r="250" fill="url(#vortexGrad)" opacity="0.8"/>
+
+  <!-- Spiral energy lines -->
+  <g opacity="0.6">
+    <path d="M 400,300 Q 450,250 500,300 Q 450,350 400,400 Q 350,350 300,300 Q 350,250 400,200"
+          fill="none" stroke="#C084FC" stroke-width="3"/>
+    <path d="M 400,300 Q 430,270 480,300 Q 430,330 400,360 Q 370,330 320,300 Q 370,270 400,240"
+          fill="none" stroke="#A78BFA" stroke-width="2"/>
+    <path d="M 400,300 Q 420,280 460,300 Q 420,320 400,340 Q 380,320 340,300 Q 380,280 400,260"
+          fill="none" stroke="#8B5CF6" stroke-width="1"/>
+  </g>
+
+  <!-- Energy particles -->
+  <circle cx="400" cy="300" r="60" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="420" cy="280" r="4" fill="#FCD34D"/>
+  <circle cx="380" cy="320" r="3" fill="#FCD34D"/>
+  <circle cx="410" cy="310" r="5" fill="#FFFFFF" opacity="0.8"/>
+  <circle cx="390" cy="290" r="3" fill="#FFFFFF" opacity="0.7"/>
+
+  <!-- Title -->
+  <text x="400" y="550" font-family="sans-serif" font-size="28" fill="#C084FC" text-anchor="middle">Time Vortex Energy Reading</text>
+</svg>

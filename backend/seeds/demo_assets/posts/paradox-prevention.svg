@@ -1,0 +1,30 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="paradoxBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E40AF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E3A8A;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#paradoxBg)"/>
+
+  <!-- Infinity symbol -->
+  <path d="M 800,315 Q 900,215 1000,315 Q 900,415 800,315 M 800,315 Q 700,415 600,315 Q 700,215 800,315" fill="none" stroke="#60A5FA" stroke-width="6" opacity="0.3"/>
+
+  <!-- Title -->
+  <text x="60" y="170" font-family="'Georgia', serif" font-size="60" font-weight="bold" fill="#FFFFFF">Paradox Prevention</text>
+  <text x="60" y="240" font-family="'Georgia', serif" font-size="60" font-weight="bold" fill="#FFFFFF">for Beginners</text>
+
+  <!-- Subtitle -->
+  <text x="60" y="310" font-family="'Arial', sans-serif" font-size="28" fill="#93C5FD" font-style="italic">A practical guide to not destroying the universe</text>
+
+  <!-- Warning box -->
+  <rect x="60" y="360" width="700" height="150" rx="10" fill="#1E3A8A" stroke="#FCD34D" stroke-width="3" opacity="0.8"/>
+  <text x="90" y="400" font-family="sans-serif" font-size="20" fill="#FCD34D" font-weight="bold">⚠ CAUTION</text>
+  <text x="90" y="435" font-family="sans-serif" font-size="18" fill="#E0E0E0">Rule #1: Don't cross your own timeline</text>
+  <text x="90" y="470" font-family="sans-serif" font-size="18" fill="#E0E0E0">Rule #2: See Rule #1</text>
+
+  <!-- Author -->
+  <text x="60" y="570" font-family="sans-serif" font-size="22" fill="#93C5FD">Technical Writing • 8 min read</text>
+</svg>

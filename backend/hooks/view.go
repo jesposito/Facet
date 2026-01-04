@@ -1539,7 +1539,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Resolve media URLs
 			if mediaField := project.Get("media"); mediaField != nil {
-				if mediaFiles, ok := mediaField.([]string); ok && len(mediaFiles) > 0 {
+				var mediaFiles []string
+
+				// Handle both []string and []interface{} types
+				switch v := mediaField.(type) {
+				case []string:
+					mediaFiles = v
+				case []interface{}:
+					for _, item := range v {
+						if str, ok := item.(string); ok {
+							mediaFiles = append(mediaFiles, str)
+						}
+					}
+				}
+
+				if len(mediaFiles) > 0 {
 					var mediaURLs []string
 					for _, file := range mediaFiles {
 						mediaURLs = append(mediaURLs, fileURL(project.Collection().Id, project.Id, file, "thumb=1600x0"))

@@ -1,0 +1,53 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7F1D1D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#991B1B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bgGrad3)"/>
+
+  <!-- Danger stripes -->
+  <g opacity="0.2">
+    <rect x="0" y="0" width="60" height="630" fill="#FCD34D"/>
+    <rect x="1140" y="0" width="60" height="630" fill="#FCD34D"/>
+    <polygon points="0,0 60,0 0,60" fill="#000000"/>
+    <polygon points="0,120 60,120 0,180" fill="#000000"/>
+    <polygon points="0,240 60,240 0,300" fill="#000000"/>
+    <polygon points="0,360 60,360 0,420" fill="#000000"/>
+    <polygon points="0,480 60,480 0,540" fill="#000000"/>
+  </g>
+
+  <!-- Title -->
+  <text x="100" y="140" font-family="'Arial', sans-serif" font-size="64" font-weight="bold" fill="#FCD34D">DEFEATING THE DALEKS</text>
+  <text x="100" y="200" font-family="'Arial', sans-serif" font-size="36" fill="#FECACA">Crisis Management Case Study</text>
+
+  <!-- Stats -->
+  <g transform="translate(100, 260)">
+    <rect width="300" height="100" rx="10" fill="#000000" opacity="0.4"/>
+    <text x="20" y="35" font-family="sans-serif" font-size="20" fill="#E0E0E0">Threat Level:</text>
+    <text x="20" y="70" font-family="sans-serif" font-size="42" font-weight="bold" fill="#EF4444">MAXIMUM</text>
+  </g>
+
+  <g transform="translate(450, 260)">
+    <rect width="300" height="100" rx="10" fill="#000000" opacity="0.4"/>
+    <text x="20" y="35" font-family="sans-serif" font-size="20" fill="#E0E0E0">Successful Defenses:</text>
+    <text x="20" y="70" font-family="sans-serif" font-size="42" font-weight="bold" fill="#10B981">47+</text>
+  </g>
+
+  <g transform="translate(800, 260)">
+    <rect width="300" height="100" rx="10" fill="#000000" opacity="0.4"/>
+    <text x="20" y="35" font-family="sans-serif" font-size="20" fill="#E0E0E0">Casualties:</text>
+    <text x="20" y="70" font-family="sans-serif" font-size="42" font-weight="bold" fill="#FCD34D">MINIMAL</text>
+  </g>
+
+  <!-- Methods -->
+  <text x="100" y="440" font-family="monospace" font-size="20" fill="#E0E0E0">Methods: Clever Talking, Strategic Retreats, Sonic Technology</text>
+  <text x="100" y="480" font-family="monospace" font-size="20" fill="#E0E0E0">Skills: Crisis Management, Improvisation, Time Lord Expertise</text>
+
+  <!-- Warning badge -->
+  <rect x="100" y="530" width="200" height="50" rx="8" fill="#FCD34D" opacity="0.9"/>
+  <text x="200" y="563" font-family="sans-serif" font-size="24" font-weight="bold" fill="#7F1D1D" text-anchor="middle">⚠ CLASSIFIED</text>
+</svg>

@@ -91,7 +91,7 @@
 			<!-- Primary CTA - Sign In -->
 			<div class="space-y-3">
 				<a
-					href="/admin"
+					href="/admin/login"
 					class="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

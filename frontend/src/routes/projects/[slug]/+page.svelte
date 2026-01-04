@@ -219,7 +219,7 @@ const getFileName = (url?: string) => {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tech Stack</h2>
 				<div class="flex flex-wrap gap-2">
 					{#each data.project.tech_stack as tech}
-						<span class="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-200 rounded-full">
+						<span class="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-white rounded-full">
 							{tech}
 						</span>
 					{/each}

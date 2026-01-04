@@ -1,0 +1,19 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- TARDIS Blue background -->
+  <rect width="400" height="400" fill="#003B6F"/>
+
+  <!-- Circular frame -->
+  <circle cx="200" cy="200" r="180" fill="none" stroke="#FFD700" stroke-width="4"/>
+
+  <!-- Time vortex spiral pattern -->
+  <circle cx="200" cy="200" r="140" fill="none" stroke="#4A90E2" stroke-width="2" opacity="0.6"/>
+  <circle cx="200" cy="200" r="120" fill="none" stroke="#4A90E2" stroke-width="2" opacity="0.5"/>
+  <circle cx="200" cy="200" r="100" fill="none" stroke="#4A90E2" stroke-width="2" opacity="0.4"/>
+  <circle cx="200" cy="200" r="80" fill="none" stroke="#4A90E2" stroke-width="2" opacity="0.3"/>
+
+  <!-- Initials -->
+  <text x="200" y="230" font-family="'Courier New', monospace" font-size="120" font-weight="bold" fill="#FFD700" text-anchor="middle">TD</text>
+
+  <!-- Subtitle -->
+  <text x="200" y="320" font-family="'Courier New', monospace" font-size="24" fill="#E0E0E0" text-anchor="middle">Time Lord</text>
+</svg>

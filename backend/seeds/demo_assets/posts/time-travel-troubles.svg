@@ -1,0 +1,34 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="timeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4C1D95;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#581C87;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#timeBg)"/>
+
+  <!-- Clock spirals -->
+  <g opacity="0.2">
+    <circle cx="1000" cy="150" r="100" fill="none" stroke="#C084FC" stroke-width="3"/>
+    <circle cx="1000" cy="150" r="80" fill="none" stroke="#C084FC" stroke-width="2"/>
+    <circle cx="1000" cy="150" r="60" fill="none" stroke="#C084FC" stroke-width="1"/>
+    <line x1="1000" y1="150" x2="1050" y2="150" stroke="#C084FC" stroke-width="4"/>
+    <line x1="1000" y1="150" x2="1000" y2="100" stroke="#C084FC" stroke-width="4"/>
+  </g>
+
+  <!-- Title -->
+  <text x="60" y="200" font-family="'Georgia', serif" font-size="56" font-weight="bold" fill="#FFFFFF">Why Time Travel Isn't</text>
+  <text x="60" y="270" font-family="'Georgia', serif" font-size="56" font-weight="bold" fill="#FFFFFF">All It's Cracked Up To Be</text>
+
+  <!-- Subtitle -->
+  <text x="60" y="350" font-family="'Arial', sans-serif" font-size="28" fill="#C084FC" font-style="italic">Lessons from 900 years of temporal mishaps</text>
+
+  <!-- Decorative elements -->
+  <rect x="60" y="400" width="600" height="4" fill="#C084FC" opacity="0.6"/>
+
+  <!-- Author -->
+  <text x="60" y="500" font-family="sans-serif" font-size="24" fill="#E0E0E0">The Doctor</text>
+  <text x="60" y="540" font-family="sans-serif" font-size="20" fill="#A78BFA">5 min read • Personal Reflections</text>
+</svg>
