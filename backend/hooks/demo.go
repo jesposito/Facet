@@ -320,6 +320,25 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 		app.Logger().Warn("Failed to load TARDIS cover asset", "error", err)
 	}
 
+	// Load and attach media gallery images
+	var mediaFiles []*filesystem.File
+	if constellationFile, err := loadDemoAsset("media/constellation-map.svg"); err == nil {
+		mediaFiles = append(mediaFiles, constellationFile)
+		app.Logger().Info("Loaded constellation map for TARDIS project")
+	} else {
+		app.Logger().Warn("Failed to load constellation map asset", "error", err)
+	}
+	if vortexFile, err := loadDemoAsset("media/vortex-energy.svg"); err == nil {
+		mediaFiles = append(mediaFiles, vortexFile)
+		app.Logger().Info("Loaded vortex energy for TARDIS project")
+	} else {
+		app.Logger().Warn("Failed to load vortex energy asset", "error", err)
+	}
+	if len(mediaFiles) > 0 {
+		proj1.Set("media", mediaFiles)
+		app.Logger().Info("Attached media gallery to TARDIS project", "count", len(mediaFiles))
+	}
+
 	if err := app.Save(proj1); err != nil {
 		return err
 	}
@@ -735,7 +754,7 @@ If you're using Kubernetes in production, you're welcome. If you're having issue
 
 	// Load and attach cover image
 	if coverFile, err := loadDemoAsset("posts/gallifrey-tech-stack.svg"); err == nil {
-		post1.Set("cover", coverFile)
+		post1.Set("cover_image", coverFile)
 		app.Logger().Info("Attached cover to Kubernetes post")
 	} else {
 		app.Logger().Warn("Failed to load Kubernetes post cover asset", "error", err)
@@ -910,7 +929,7 @@ Also, if your code is reading this: hi! Yes, I know you're there. No, you can't 
 
 	// Load and attach cover image
 	if coverFile, err := loadDemoAsset("posts/paradox-prevention.svg"); err == nil {
-		post2.Set("cover", coverFile)
+		post2.Set("cover_image", coverFile)
 		app.Logger().Info("Attached cover to Sentient Code post")
 	} else {
 		app.Logger().Warn("Failed to load Sentient Code post cover asset", "error", err)
@@ -1187,7 +1206,7 @@ If you're struggling with CSS, know that you're not alone. Somewhere, right now,
 
 	// Load and attach cover image
 	if coverFile, err := loadDemoAsset("posts/time-travel-troubles.svg"); err == nil {
-		post3.Set("cover", coverFile)
+		post3.Set("cover_image", coverFile)
 		app.Logger().Info("Attached cover to CSS post")
 	} else {
 		app.Logger().Warn("Failed to load CSS post cover asset", "error", err)
@@ -1626,7 +1645,7 @@ Date:   Thu Jan 11 17:00:03 2024
 
 	// Load and attach cover image
 	if coverFile, err := loadDemoAsset("posts/900-years-wisdom.svg"); err == nil {
-		post4.Set("cover", coverFile)
+		post4.Set("cover_image", coverFile)
 		app.Logger().Info("Attached cover to Git Timeline post")
 	} else {
 		app.Logger().Warn("Failed to load Git Timeline post cover asset", "error", err)
