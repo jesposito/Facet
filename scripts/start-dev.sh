@@ -34,7 +34,7 @@ chmod +x "$SCRIPT_DIR/dev-backend.sh" "$SCRIPT_DIR/dev-frontend.sh" 2>/dev/null 
 # Environment
 export DATA_DIR="${DATA_DIR:-$PROJECT_ROOT/pb_data}"
 export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!}"
-export SEED_DATA="${SEED_DATA:-true}"
+export SEED_DATA="${SEED_DATA:-minimal}"
 
 mkdir -p "$DATA_DIR"
 mkdir -p "$PROJECT_ROOT/tmp"

@@ -14,6 +14,7 @@ import (
 // RegisterSeedHook seeds data on first run (development only)
 // Environment variable SEED_DATA controls behavior:
 //   - "dev": Seeds development data (Jedidiah Esposito) - for development/testing
+//   - "minimal": Seeds ONLY a user account (for testing first-run experience)
 //   - unset or other: No automatic seeding (production default)
 //
 // Demo data (Merlin Ambrosius) is available via admin UI toggle, not auto-seeded.
@@ -30,8 +31,10 @@ func RegisterSeedHook(app *pocketbase.PocketBase) {
 		switch seedMode {
 		case "dev":
 			err = seedDevData(app)
+		case "minimal":
+			err = seedMinimalData(app)
 		default:
-			log.Printf("Unknown SEED_DATA value: %s (only 'dev' is supported for auto-seeding)", seedMode)
+			log.Printf("Unknown SEED_DATA value: %s (supported: 'dev', 'minimal')", seedMode)
 		}
 		if err != nil {
 			log.Printf("Seed warning: %v", err)
@@ -48,6 +51,35 @@ func SeedDemoData(app *pocketbase.PocketBase) error {
 		return fmt.Errorf("profile data already exists - clear first")
 	}
 	return seedDemoData(app)
+}
+
+// seedMinimalData creates ONLY a user account - no profile, no content
+// Perfect for testing the first-run welcome page experience
+func seedMinimalData(app *pocketbase.PocketBase) error {
+	// Check if already seeded
+	userCount, _ := app.CountRecords("users")
+	if userCount > 0 {
+		return nil
+	}
+
+	log.Println("Seeding minimal data (user only, no profile/content)...")
+	log.Println("This mode is for testing the first-run welcome page.")
+	log.Println("")
+
+	// Create default user for frontend admin
+	if err := createDefaultUser(app); err != nil {
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+
+	log.Println("")
+	log.Println("========================================")
+	log.Println("  Minimal seed complete!")
+	log.Println("  You can now sign in and see the")
+	log.Println("  welcome page (no profile/content yet)")
+	log.Println("========================================")
+	log.Println("")
+
+	return nil
 }
 
 // ClearAllData removes all user-created data (for demo reset)
