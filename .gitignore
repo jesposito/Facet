@@ -30,6 +30,7 @@ pb_data/
 .clinerules
 .aiderignore
 agent-instructions.md
+.empirica/
 
 # Dev cache hashes (auto-generated)
 backend/.gomod-hash
@@ -62,3 +63,5 @@ backups/
 tmp/
 temp/
 backend/facet
+.empirica/
+.empirica-venv/

@@ -54,6 +54,7 @@ func main() {
 	hooks.RegisterOAuthEnvConfig(app)
 	hooks.RegisterExportHooks(app)
 	hooks.RegisterResumeHooks(app, cryptoService)
+	hooks.RegisterResumeUploadHooks(app, cryptoService) // Resume upload & parsing
 	hooks.RegisterSeedHook(app)
 	hooks.RegisterDemoHandlers(app)
 
