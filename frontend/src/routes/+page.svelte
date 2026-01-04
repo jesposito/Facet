@@ -14,6 +14,7 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import WelcomePage from '$components/public/WelcomePage.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { pb } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
@@ -195,7 +196,11 @@
 	{/if}
 </svelte:head>
 
-{#if data.homepageDisabled}
+{#if !data.profile && !data.experience?.length && !data.projects?.length}
+	<!-- First-time visitor: no profile exists yet -->
+	<WelcomePage />
+{:else if data.homepageDisabled}
+	<!-- Profile exists but homepage is disabled -->
 	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
 		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
 			<ThemeToggle />

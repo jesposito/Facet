@@ -163,22 +163,156 @@ labels:
 
 ## Unraid Setup
 
-### Using Docker Compose
+Facet works great on Unraid! You can install it via Community Applications or manually with Docker Compose.
 
-1. Place files in `/mnt/user/appdata/facet/`
-2. Edit `.env`:
-   ```env
-   ENCRYPTION_KEY=your-key-here
-   DATA_PATH=/mnt/user/appdata/facet/data
-   TRUST_PROXY=true
-   APP_URL=https://profile.yourdomain.com
-   ADMIN_EMAILS=you@gmail.com
+### Method 1: Community Applications (Recommended)
+
+1. **Install from Community Applications**
+   - Open Unraid WebUI
+   - Go to Apps tab
+   - Search for "Facet"
+   - Click Install
+
+2. **Configure Required Settings**
+   - **Port**: Leave as 8080 (or change if needed)
+   - **Data Path**: Default `/mnt/user/appdata/facet` (recommended)
+   - **Encryption Key**: Generate with `openssl rand -hex 32` in Unraid terminal
+     - SSH into Unraid: `ssh root@tower`
+     - Run: `openssl rand -hex 32`
+     - Copy the output
+   - **Admin Emails**: Your email address (e.g., `you@gmail.com`)
+   - **App URL**:
+     - Local only: `http://tower.local:8080`
+     - With Cloudflare Tunnel: `https://facet.yourdomain.com`
+
+3. **Optional: Enable OAuth Login**
+   - Expand "Show more settings"
+   - Enter Google or GitHub OAuth credentials (see OAuth section above)
+
+4. **Start the Container**
+   - Click "Apply"
+   - Wait for container to start
+
+5. **Access Facet**
+   - Local: `http://tower:8080`
+   - Or your configured domain
+
+### Method 2: Docker Compose
+
+1. **Prepare Directory**
+   ```bash
+   mkdir -p /mnt/user/appdata/facet
+   cd /mnt/user/appdata/facet
    ```
-3. Run: `docker-compose up -d`
 
-### Community App (Coming Soon)
+2. **Create .env file**
+   ```bash
+   # Generate encryption key
+   openssl rand -hex 32
 
-An Unraid Community App template is planned for easier installation.
+   # Create .env file
+   cat > .env << 'EOF'
+   ENCRYPTION_KEY=paste-generated-key-here
+   DATA_PATH=/mnt/user/appdata/facet
+   APP_URL=http://tower.local:8080
+   TRUST_PROXY=false
+   ADMIN_EMAILS=your@email.com
+   PORT=8080
+   EOF
+   ```
+
+3. **Create docker-compose.yml**
+   ```bash
+   wget https://raw.githubusercontent.com/jesposito/Facet/main/docker-compose.yml
+   ```
+
+4. **Start Container**
+   ```bash
+   docker-compose up -d
+   ```
+
+5. **Check Logs**
+   ```bash
+   docker-compose logs -f facet
+   ```
+
+### Unraid + Cloudflare Tunnel (Secure Remote Access)
+
+For secure remote access without opening ports:
+
+1. **Install Cloudflare Tunnel on Unraid**
+   - Install "cloudflared" from Community Applications
+   - Or follow [Cloudflare's Unraid guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+
+2. **Create Tunnel**
+   ```bash
+   cloudflared tunnel create facet
+   ```
+
+3. **Configure Tunnel**
+   - Point tunnel to `http://172.17.0.x:8080` (your Facet container IP)
+   - Get container IP: `docker inspect facet | grep IPAddress`
+
+4. **Update Facet Settings**
+   In Unraid WebUI or .env:
+   ```env
+   APP_URL=https://facet.yourdomain.com
+   TRUST_PROXY=true
+   ```
+
+5. **Add DNS Record**
+   - In Cloudflare dashboard, add CNAME for `facet.yourdomain.com` → your tunnel
+
+### Unraid Backup
+
+**Method 1: CA Backup Plugin (Recommended)**
+1. Install "CA Backup / Restore Appdata" from Community Applications
+2. Add `/mnt/user/appdata/facet` to backup list
+3. Schedule regular backups
+
+**Method 2: Manual Backup**
+```bash
+# Backup
+cd /mnt/user/appdata
+tar -czvf facet-backup-$(date +%Y%m%d).tar.gz facet/
+
+# Restore
+tar -xzvf facet-backup-20241203.tar.gz
+```
+
+**What to back up:**
+- `/mnt/user/appdata/facet/data/pb_data.db` - Your database
+- `/mnt/user/appdata/facet/data/pb_data/storage` - Your uploads
+- `.env` file - Your configuration
+
+### Unraid Troubleshooting
+
+**Container won't start:**
+```bash
+# Check logs
+docker logs facet
+
+# Check if port is in use
+netstat -tulpn | grep 8080
+
+# Verify encryption key is set
+docker exec facet env | grep ENCRYPTION_KEY
+```
+
+**Can't access from other devices:**
+- Check Unraid firewall settings
+- Verify container is running: `docker ps | grep facet`
+- Check container network: `docker inspect facet | grep IPAddress`
+
+**Share tokens not working behind reverse proxy:**
+- Ensure `TRUST_PROXY=true` is set
+- Check reverse proxy forwards `X-Forwarded-*` headers
+- Verify `APP_URL` matches your actual domain
+
+**Database locked errors:**
+- Stop container: `docker stop facet`
+- Check for zombie processes: `lsof | grep pb_data.db`
+- Start container: `docker start facet`
 
 ---
 
