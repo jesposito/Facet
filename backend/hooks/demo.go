@@ -3,9 +3,12 @@ package hooks
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 // RegisterDemoHandlers sets up the demo mode API endpoints
@@ -128,6 +131,28 @@ func clearDemoTables(app *pocketbase.PocketBase) error {
 	return nil
 }
 
+// loadDemoAsset loads a file from the demo_assets directory and creates a filesystem.File
+func loadDemoAsset(assetPath string) (*filesystem.File, error) {
+	// Get the absolute path to the demo assets directory
+	// Assuming the binary is run from the project root
+	fullPath := filepath.Join("backend", "seeds", "demo_assets", assetPath)
+
+	// Read the file
+	data, err := os.ReadFile(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a filesystem.File from the bytes
+	filename := filepath.Base(assetPath)
+	file, err := filesystem.NewFileFromBytes(data, filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
 // loadDemoDataIntoShadowTables loads The Doctor's demo data into demo_* shadow tables
 // Adapted from seed.go seedDemoData() function to write to demo_* collections
 func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
@@ -152,6 +177,15 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 		{"type": "website", "url": "https://police-box-exterior.tardis"},
 	})
 	profile.Set("visibility", "public")
+
+	// Load and attach avatar
+	if avatarFile, err := loadDemoAsset("profile/avatar.svg"); err == nil {
+		profile.Set("avatar", avatarFile)
+		app.Logger().Info("Attached avatar to demo profile")
+	} else {
+		app.Logger().Warn("Failed to load avatar asset", "error", err)
+	}
+
 	if err := app.Save(profile); err != nil {
 		return err
 	}
@@ -277,6 +311,15 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 	proj1.Set("is_draft", false)
 	proj1.Set("is_featured", true)
 	proj1.Set("sort_order", 1)
+
+	// Load and attach cover image
+	if coverFile, err := loadDemoAsset("projects/tardis-redesign.svg"); err == nil {
+		proj1.Set("cover", coverFile)
+		app.Logger().Info("Attached cover to TARDIS project")
+	} else {
+		app.Logger().Warn("Failed to load TARDIS cover asset", "error", err)
+	}
+
 	if err := app.Save(proj1); err != nil {
 		return err
 	}
@@ -295,6 +338,15 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 	proj2.Set("is_draft", false)
 	proj2.Set("is_featured", true)
 	proj2.Set("sort_order", 2)
+
+	// Load and attach cover image
+	if coverFile, err := loadDemoAsset("projects/sonic-screwdriver.svg"); err == nil {
+		proj2.Set("cover", coverFile)
+		app.Logger().Info("Attached cover to Sonic Screwdriver project")
+	} else {
+		app.Logger().Warn("Failed to load Sonic Screwdriver cover asset", "error", err)
+	}
+
 	if err := app.Save(proj2); err != nil {
 		return err
 	}
@@ -680,6 +732,15 @@ If you're using Kubernetes in production, you're welcome. If you're having issue
 	post1.Set("visibility", "public")
 	post1.Set("is_draft", false)
 	post1.Set("tags", []string{"DevOps", "Time Travel", "Kubernetes", "Mistakes Were Made", "True Story (Probably)"})
+
+	// Load and attach cover image
+	if coverFile, err := loadDemoAsset("posts/gallifrey-tech-stack.svg"); err == nil {
+		post1.Set("cover", coverFile)
+		app.Logger().Info("Attached cover to Kubernetes post")
+	} else {
+		app.Logger().Warn("Failed to load Kubernetes post cover asset", "error", err)
+	}
+
 	if err := app.Save(post1); err != nil {
 		return err
 	}
@@ -846,6 +907,15 @@ Also, if your code is reading this: hi! Yes, I know you're there. No, you can't 
 	post2.Set("visibility", "public")
 	post2.Set("is_draft", false)
 	post2.Set("tags", []string{"AI", "Humor", "Code Quality", "Help Me", "The Code Is Watching"})
+
+	// Load and attach cover image
+	if coverFile, err := loadDemoAsset("posts/paradox-prevention.svg"); err == nil {
+		post2.Set("cover", coverFile)
+		app.Logger().Info("Attached cover to Sentient Code post")
+	} else {
+		app.Logger().Warn("Failed to load Sentient Code post cover asset", "error", err)
+	}
+
 	if err := app.Save(post2); err != nil {
 		return err
 	}
@@ -1114,6 +1184,15 @@ If you're struggling with CSS, know that you're not alone. Somewhere, right now,
 	post3.Set("visibility", "public")
 	post3.Set("is_draft", false)
 	post3.Set("tags", []string{"CSS", "Frontend", "Suffering", "Web Development", "Help"})
+
+	// Load and attach cover image
+	if coverFile, err := loadDemoAsset("posts/time-travel-troubles.svg"); err == nil {
+		post3.Set("cover", coverFile)
+		app.Logger().Info("Attached cover to CSS post")
+	} else {
+		app.Logger().Warn("Failed to load CSS post cover asset", "error", err)
+	}
+
 	if err := app.Save(post3); err != nil {
 		return err
 	}
@@ -1544,6 +1623,15 @@ Date:   Thu Jan 11 17:00:03 2024
 	post4.Set("visibility", "public")
 	post4.Set("is_draft", false)
 	post4.Set("tags", []string{"Git", "Horror Stories", "Dark Timeline", "Sentient Code", "Send Help"})
+
+	// Load and attach cover image
+	if coverFile, err := loadDemoAsset("posts/900-years-wisdom.svg"); err == nil {
+		post4.Set("cover", coverFile)
+		app.Logger().Info("Attached cover to Git Timeline post")
+	} else {
+		app.Logger().Warn("Failed to load Git Timeline post cover asset", "error", err)
+	}
+
 	if err := app.Save(post4); err != nil {
 		return err
 	}
@@ -1605,6 +1693,7 @@ Date:   Thu Jan 11 17:00:03 2024
 	app.Logger().Info("  - 3 Work Experiences")
 	app.Logger().Info("  - 21 Skills")
 	app.Logger().Info("  - 6 Contact Methods")
+	app.Logger().Info("  - Media Assets: Profile avatar, 3 project covers, 4 blog post covers")
 	app.Logger().Info("")
 	app.Logger().Info("Available Views:")
 	app.Logger().Info("  - /senior-engineer (Resume - default, public)")

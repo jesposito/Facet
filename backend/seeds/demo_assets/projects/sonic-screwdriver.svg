@@ -1,0 +1,42 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1F2937;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#111827;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bgGrad2)"/>
+
+  <!-- Circuit board pattern -->
+  <g opacity="0.1">
+    <circle cx="200" cy="100" r="50" fill="none" stroke="#10B981" stroke-width="2"/>
+    <circle cx="1000" cy="500" r="70" fill="none" stroke="#10B981" stroke-width="2"/>
+    <line x1="250" y1="100" x2="950" y2="500" stroke="#10B981" stroke-width="1"/>
+  </g>
+
+  <!-- Sonic screwdriver -->
+  <rect x="850" y="200" width="40" height="250" rx="20" fill="#64748B" stroke="#94A3B8" stroke-width="2"/>
+  <circle cx="870" cy="180" r="25" fill="url(#glow)"/>
+  <rect x="860" y="160" width="20" height="40" fill="#10B981" opacity="0.9"/>
+
+  <!-- Title -->
+  <text x="60" y="150" font-family="'Arial', sans-serif" font-size="68" font-weight="bold" fill="#10B981">Sonic Screwdriver</text>
+  <text x="60" y="210" font-family="'Arial', sans-serif" font-size="48" fill="#E0E0E0">Version 14.2</text>
+  <text x="60" y="270" font-family="'Arial', sans-serif" font-size="28" fill="#94A3B8">Multi-purpose Analysis Tool</text>
+
+  <!-- Features -->
+  <text x="60" y="350" font-family="monospace" font-size="22" fill="#E0E0E0">✓ Lock Picking Algorithm</text>
+  <text x="60" y="390" font-family="monospace" font-size="22" fill="#E0E0E0">✓ Medical Scanner</text>
+  <text x="60" y="430" font-family="monospace" font-size="22" fill="#E0E0E0">✓ Temporal Diagnostics</text>
+  <text x="60" y="470" font-family="monospace" font-size="22" fill="#E0E0E0">✓ Universal Remote</text>
+
+  <!-- Version badge -->
+  <rect x="60" y="510" width="120" height="45" rx="8" fill="#10B981" opacity="0.9"/>
+  <text x="120" y="540" font-family="monospace" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">v14.2</text>
+</svg>

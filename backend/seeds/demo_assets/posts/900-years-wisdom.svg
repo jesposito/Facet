@@ -1,0 +1,35 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <defs>
+    <linearGradient id="wisdomBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#065F46;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#047857;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#wisdomBg)"/>
+
+  <!-- Number decoration -->
+  <text x="900" y="400" font-family="'Arial Black', sans-serif" font-size="350" font-weight="bold" fill="#10B981" opacity="0.15">900</text>
+
+  <!-- Title -->
+  <text x="60" y="180" font-family="'Georgia', serif" font-size="64" font-weight="bold" fill="#FFFFFF">10 Things I've Learned</text>
+  <text x="60" y="260" font-family="'Georgia', serif" font-size="64" font-weight="bold" fill="#FFFFFF">in 900 Years</text>
+
+  <!-- Subtitle -->
+  <text x="60" y="340" font-family="'Arial', sans-serif" font-size="30" fill="#6EE7B7">Wisdom from a Time Lord's perspective</text>
+
+  <!-- List hint -->
+  <g transform="translate(60, 400)">
+    <circle cx="0" cy="0" r="8" fill="#10B981"/>
+    <text x="25" y="8" font-family="sans-serif" font-size="22" fill="#D1FAE5">Never run when you can walk</text>
+  </g>
+  <g transform="translate(60, 450)">
+    <circle cx="0" cy="0" r="8" fill="#10B981"/>
+    <text x="25" y="8" font-family="sans-serif" font-size="22" fill="#D1FAE5">Always bring a banana</text>
+  </g>
+  <g transform="translate(60, 500)">
+    <circle cx="0" cy="0" r="8" fill="#10B981"/>
+    <text x="25" y="8" font-family="sans-serif" font-size="22" fill="#D1FAE5">Question everything...</text>
+  </g>
+</svg>

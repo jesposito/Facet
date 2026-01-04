@@ -1,0 +1,35 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Space background -->
+  <rect width="800" height="600" fill="#0A0E27"/>
+
+  <!-- Stars -->
+  <circle cx="100" cy="50" r="2" fill="#FFFFFF"/>
+  <circle cx="250" cy="100" r="1.5" fill="#FFFFFF" opacity="0.7"/>
+  <circle cx="600" cy="80" r="1" fill="#FFFFFF" opacity="0.5"/>
+  <circle cx="700" cy="150" r="2" fill="#FFFFFF"/>
+  <circle cx="150" cy="400" r="1" fill="#FFFFFF" opacity="0.6"/>
+  <circle cx="500" cy="500" r="1.5" fill="#FFFFFF"/>
+  <circle cx="300" cy="550" r="1" fill="#FFFFFF" opacity="0.8"/>
+
+  <!-- Constellation points -->
+  <circle cx="200" cy="200" r="4" fill="#FCD34D"/>
+  <circle cx="300" cy="180" r="4" fill="#FCD34D"/>
+  <circle cx="350" cy="250" r="4" fill="#FCD34D"/>
+  <circle cx="280" cy="300" r="4" fill="#FCD34D"/>
+  <circle cx="400" cy="320" r="4" fill="#FCD34D"/>
+  <circle cx="500" cy="280" r="4" fill="#FCD34D"/>
+  <circle cx="450" cy="200" r="4" fill="#FCD34D"/>
+
+  <!-- Constellation lines -->
+  <line x1="200" y1="200" x2="300" y2="180" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+  <line x1="300" y1="180" x2="350" y2="250" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+  <line x1="350" y1="250" x2="280" y2="300" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+  <line x1="280" y1="300" x2="400" y2="320" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+  <line x1="400" y1="320" x2="500" y2="280" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+  <line x1="500" y1="280" x2="450" y2="200" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+  <line x1="450" y1="200" x2="300" y2="180" stroke="#FCD34D" stroke-width="1" opacity="0.6"/>
+
+  <!-- Title -->
+  <text x="400" y="480" font-family="'Georgia', serif" font-size="32" fill="#FCD34D" text-anchor="middle">Kasterborous Constellation</text>
+  <text x="400" y="520" font-family="sans-serif" font-size="18" fill="#A78BFA" text-anchor="middle">Home of Gallifrey</text>
+</svg>
