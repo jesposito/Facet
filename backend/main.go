@@ -56,6 +56,7 @@ func main() {
 	hooks.RegisterExportHooks(app)
 	hooks.RegisterResumeHooks(app, cryptoService)
 	hooks.RegisterSeedHook(app)
+	hooks.RegisterDemoHooks(app)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
