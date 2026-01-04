@@ -3,6 +3,28 @@
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import { onMount } from 'svelte';
+
+	let demoMode = false;
+	let toggleLoading = false;
+
+	onMount(() => {
+		checkDemoStatus();
+	});
+
+	async function checkDemoStatus() {
+		try {
+			const response = await fetch('/api/demo/status', {
+				headers: { Authorization: pb.authStore.token }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				demoMode = data.demo_mode || false;
+			}
+		} catch (err) {
+			console.error('Failed to check demo status:', err);
+		}
+	}
 
 	function toggleSidebar() {
 		adminSidebarOpen.update((v) => {
@@ -14,6 +36,39 @@
 			}
 			return next;
 		});
+	}
+
+	async function toggleDemoMode() {
+		if (!demoMode) {
+			// Turning on demo mode
+			if (!confirm('This will replace your current profile data with sample data. Your original data will be backed up and can be restored when you toggle off demo mode.\n\nNote: If you currently have no profile data, toggling demo OFF later will keep the demo data as your starting profile. Continue?')) {
+				return;
+			}
+		}
+
+		toggleLoading = true;
+		try {
+			const endpoint = demoMode ? '/api/demo/restore' : '/api/demo/enable';
+			const response = await fetch(endpoint, {
+				method: 'POST',
+				headers: { Authorization: pb.authStore.token }
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to toggle demo mode');
+			}
+
+			demoMode = !demoMode;
+
+			// Refresh the page to show updated data
+			window.location.reload();
+		} catch (err) {
+			console.error('Failed to toggle demo mode:', err);
+			alert(err instanceof Error ? err.message : 'Failed to toggle demo mode');
+		} finally {
+			toggleLoading = false;
+		}
 	}
 
 	async function logout() {
@@ -43,6 +98,32 @@
 		</div>
 
 		<div class="flex items-center gap-3">
+			<!-- Demo Mode Toggle -->
+			<div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700">
+				<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
+					Demo
+				</span>
+				<button
+					on:click={toggleDemoMode}
+					disabled={toggleLoading}
+					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+						{demoMode ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+					role="switch"
+					aria-checked={demoMode}
+					aria-label="Toggle demo mode"
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+							{demoMode ? 'translate-x-5' : 'translate-x-0.5'}"
+					/>
+				</button>
+				{#if demoMode}
+					<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
+						ON
+					</span>
+				{/if}
+			</div>
+
 			<ThemeToggle />
 
 			{#if $currentUser}
