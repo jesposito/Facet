@@ -21,8 +21,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ AI Resume Generation (Phase 4): Complete with PDF/DOCX export, multiple formats/styles, AI provider integration.
 - ✅ README rewrite: Comprehensive, user-focused documentation for visitors, site owners, and developers with security highlights and accurate feature descriptions.
 - ✅ docker-compose.yml enhancement: Extensively commented with Unraid-specific guidance, troubleshooting, and backup instructions.
-- 🔜 **Next Up (Phase 13):** First-run welcome page, password change prompt, demo mode toggle, Unraid Community Apps template, enhanced setup docs
-- 🔜 **Planned:** Resume upload & AI parsing (reverse direction), Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
+- ✅ **Demo Mode (Phase 10):** One-click "Try Demo" button with The Doctor's hilarious profile showcasing all features.
+- ✅ **First-Run Experience (Phase 13):** Welcome page, feature highlights, demo integration, Unraid Community Apps template, comprehensive SETUP.md.
+- 🔜 **Next Up:** Resume upload & AI parsing (reverse direction), Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
 
 ---
 
@@ -106,13 +107,14 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ Error UX: custom 404/500 with self-deprecating humor and SVG illustrations
 - 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (planned)
 
-## Phase 10: Demo & Showcase Mode (🔜 Planned, Must Build Before Phase 13)
-**Purpose:** Production-safe demo showing all Facet features with humor.
+## Phase 10: Demo & Showcase Mode (✅ Complete)
+**Purpose:** One-click demo showing all Facet features with hilarious content.
 
-**Demo Persona: "The Doctor"** (tongue-in-cheek, multi-faceted character)
-- Shows how one person can have many "facets" (get it?)
-- Demonstrates every major feature in an entertaining way
-- 6+ different views showcasing different aspects/regenerations
+**Implemented:** Simplified, better approach than original plan!
+- ✅ **The Doctor's Profile:** Laugh-out-loud funny demo showcasing EVERY feature
+- ✅ **One-Click Demo Login:** `/api/demo/login` endpoint + welcome page button
+- ✅ **No Data Pollution:** Demo uses separate account, user's data untouched
+- ✅ **Feature Showcase:** Experience, Projects, Skills, Education, Certs, Custom View
 
 ### Demo Content Strategy
 **Profile:** The Doctor
@@ -219,6 +221,8 @@ Every view demonstrates:
 - Professional enough to be useful as example
 - Funny enough to be memorable
 
+**✅ What Was Actually Built:** Simpler and better! One-click "Try Demo" button on welcome page that instantly logs you into The Doctor's hilarious profile. No toggle needed, no data snapshots - just a separate demo account with laugh-out-loud content showcasing every feature. See `backend/hooks/demo.go` and `frontend/src/components/public/WelcomePage.svelte`.
+
 ---
 
 ## Phase 11: Contact Protection & Social Links (✅ Complete)
@@ -264,44 +268,43 @@ Every view demonstrates:
 
 ---
 
-## Phase 13: First-Run Experience & Unraid Support (🔜 Planned)
+## Phase 13: First-Run Experience & Unraid Support (🟡 Partially Complete)
 **Purpose:** Make installation and onboarding seamless for all users, especially Unraid community.
 
 ### First-Run Welcome Page
-- **Welcome screen** when no profile exists (replaces "This profile is being set up")
-  - Engaging introduction to Facet
-  - Brief explanation of what users can do
-  - Prominent "Sign In to Get Started" button → `/admin`
-  - Optional: Preview screenshots or key feature highlights
-- **First login enhancements**
+- ✅ **Welcome screen** when no profile exists
+  - ✅ Engaging introduction to Facet
+  - ✅ Brief explanation of what users can do
+  - ✅ "Try Demo" button for one-click access to The Doctor's profile
+  - ✅ "Sign In to Build Your Own" as secondary CTA
+  - ✅ Feature highlights with icons
+- 🔜 **First login enhancements** (deferred)
   - Detect first login with default password (`changeme123`)
   - Modal prompt to change password immediately
   - Cannot access admin dashboard until password is changed
   - Smooth redirect to admin after password update
 
 ### Unraid Community Support
-- **Enhanced docker-compose.yml**
+- ✅ **Enhanced docker-compose.yml**
   - ✅ Extensive inline comments explaining every environment variable
   - ✅ Unraid-specific guidance throughout
   - ✅ Complete troubleshooting section
   - ✅ Backup/restore instructions
-- **Unraid Community Apps Template** (XML)
-  - Template for Unraid Community Applications store
-  - Pre-filled smart defaults for typical Unraid setups
-  - Helpful descriptions for each field in the WebUI
-  - Automatic DATA_PATH mapping to `/mnt/user/appdata/facet`
-- **Enhanced .env.example**
-  - Dedicated Unraid configuration section
-  - Example configurations for common setups:
-    - Unraid local access
-    - Unraid + Cloudflare Tunnel
-    - Unraid + Nginx Proxy Manager
-  - Clear "Required vs Optional" sections
-- **Comprehensive SETUP.md updates**
-  - Dedicated Unraid section with step-by-step instructions
-  - Screenshots/placeholders for Unraid WebUI
-  - Cloudflare Tunnel + Unraid walkthrough
-  - Reverse proxy configuration to preserve share tokens
+- ✅ **Unraid Community Apps Template** (XML)
+  - ✅ Template for Unraid Community Applications store (`unraid/facet-template.xml`)
+  - ✅ Pre-filled smart defaults for typical Unraid setups
+  - ✅ Helpful descriptions for each field in the WebUI
+  - ✅ Automatic DATA_PATH mapping to `/mnt/user/appdata/facet`
+- ✅ **Enhanced .env.example**
+  - ✅ Dedicated Unraid configuration section
+  - ✅ Example configurations for common setups
+  - ✅ Clear "Required vs Optional" sections
+  - ✅ Seed data modes documented (dev, minimal, unset)
+- ✅ **Comprehensive SETUP.md updates**
+  - ✅ Dedicated Unraid section with step-by-step instructions
+  - ✅ Cloudflare Tunnel + Unraid walkthrough
+  - ✅ Reverse proxy configuration to preserve share tokens
+  - ✅ Backup strategies and troubleshooting guide
 
 ### Reverse Proxy & Token Handling
 - **Documentation improvements**
