@@ -145,7 +145,7 @@ return resolved;  // inside function
 ### Immediate (Critical)
 1. **Review this PR** - Ensure documentation accurately reflects codebase state
 2. **Merge to main** - Get critical syntax fix deployed
-3. **Implement bulk delete** - Follow [IMPLEMENTATION_PLAN_BULK_DELETE.md](docs/IMPLEMENTATION_PLAN_BULK_DELETE.md)
+3. **Implement bulk delete** - Follow [IMPLEMENTATION_PLAN_BULK_DELETE.md](IMPLEMENTATION_PLAN_BULK_DELETE.md)
 
 ### Short-term (High Priority)
 4. Add frontend tests (currently 0 test files)

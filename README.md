@@ -470,7 +470,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 
 **Everything runs in one container.** One port exposed (8080). One volume to backup (`/data`). That's the whole deployment.
 
-For detailed architecture: [ARCHITECTURE.md](ARCHITECTURE.md)
+For detailed architecture: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ---
 
@@ -705,16 +705,16 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 | [docs/DEV.md](docs/DEV.md) | Local development, project structure, troubleshooting |
 | [docs/SECURITY.md](docs/SECURITY.md) | Encryption, auth flows, rate limiting, threat model |
 | [docs/UPGRADE.md](docs/UPGRADE.md) | How to upgrade Facet and roll back if needed |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical system design, data model, request flow |
-| [DESIGN.md](DESIGN.md) | Vision, principles, detailed feature specs |
-| [ROADMAP.md](ROADMAP.md) | Development phases (what's done, what's planned) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical system design, data model, request flow |
+| [docs/DESIGN.md](docs/DESIGN.md) | Vision, principles, detailed feature specs |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Development phases (what's done, what's planned) |
 | [frontend/tests/README.md](frontend/tests/README.md) | How to run tests, write new tests, test structure |
 | [docs/AI_FEATURES.md](docs/AI_FEATURES.md) | AI provider setup, enrichment details |
 | [docs/AI_WRITING_ASSISTANT.md](docs/AI_WRITING_ASSISTANT.md) | Writing assistant tones, critique mode, implementation |
 | [docs/CONTACT_PROTECTION.md](docs/CONTACT_PROTECTION.md) | Contact protection tiers, implementation details |
 | [docs/MEDIA.md](docs/MEDIA.md) | Media system internals, file handling, optimization |
 
-> **Note for contributors:** Keep [ROADMAP.md](ROADMAP.md) up-to-date. When you complete a feature, mark it done. When you add a feature, add it to the roadmap. It's the source of truth for what's implemented vs. planned.
+> **Note for contributors:** Keep [ROADMAP.md](docs/ROADMAP.md) up-to-date. When you complete a feature, mark it done. When you add a feature, add it to the roadmap. It's the source of truth for what's implemented vs. planned.
 
 ---
 
@@ -743,7 +743,7 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - Audit logging for admin actions
 - Webhooks and integrations
 
-Full roadmap: [ROADMAP.md](ROADMAP.md)
+Full roadmap: [ROADMAP.md](docs/ROADMAP.md)
 
 ---
 

@@ -246,7 +246,7 @@ Every view demonstrates:
 - Multiple contact types: email, phone, LinkedIn, GitHub, Twitter, WhatsApp, etc.
 - 4-tier protection: none, CSS obfuscation, click-to-reveal, Turnstile CAPTCHA
 - Full WCAG 2.1 AA accessibility compliance
-- See [CONTACT_PROTECTION.md](docs/CONTACT_PROTECTION.md) for complete spec
+- See [CONTACT_PROTECTION.md](CONTACT_PROTECTION.md) for complete spec
 
 ---
 
@@ -264,7 +264,7 @@ Every view demonstrates:
 - Critique mode returns original text with inline `[feedback in brackets]`
 - Preview modal with side-by-side comparison
 - Works with OpenAI, Anthropic, and Ollama providers
-- Comprehensive documentation in [AI_WRITING_ASSISTANT.md](docs/AI_WRITING_ASSISTANT.md)
+- Comprehensive documentation in [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md)
 
 ---
 

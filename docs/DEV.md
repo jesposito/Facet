@@ -772,7 +772,7 @@ This is useful for:
                         └───────────┘
 ```
 
-For detailed architecture, see [ARCHITECTURE.md](../ARCHITECTURE.md).
+For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Development Phases
 
