@@ -18,14 +18,15 @@
 
 	// Reactively handle auth state changes
 	$: if (mounted && !isLoginPage && demoModeInitialized) {
-		if ($currentUser) {
+		if ($currentUser && pb.authStore.isValid) {
+			// User is authenticated
 			authorized = true;
 			loading = false;
-		} else if (!pb.authStore.isValid) {
-			// Only redirect if we're sure auth is not valid
-			// Give a small delay for auth store to hydrate
-			loading = false;
+		} else {
+			// Not authenticated - redirect to login
 			authorized = false;
+			loading = false;
+			goto('/admin/login');
 		}
 	}
 
@@ -68,27 +69,8 @@
 		demoModeInitialized = true;
 		console.log('[LAYOUT] Set demoModeInitialized to true');
 
-		// Small delay to allow auth store to hydrate from cookies/localStorage
-		// This is especially important in Codespaces/SSR environments
-		const checkAuth = () => {
-			if (pb.authStore.isValid) {
-				authorized = true;
-				loading = false;
-			} else {
-				// Not authenticated, redirect to login
-				authorized = false;
-				loading = false;
-				goto('/admin/login');
-			}
-		};
-
-		// Give auth store time to load from storage
-		if (pb.authStore.isValid) {
-			checkAuth();
-		} else {
-			// Wait a tick for auth store to hydrate
-			setTimeout(checkAuth, 50);
-		}
+		// Auth check now handled entirely by the reactive block above
+		// This prevents race condition between checkAuth() and the reactive $currentUser watcher
 	});
 
 	onDestroy(() => {

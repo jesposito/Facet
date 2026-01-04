@@ -4,6 +4,14 @@
 	import { goto } from '$app/navigation';
 	import { icon } from '$lib/icons';
 
+	// Resume upload state
+	let resumeFile: File | null = null;
+	let resumeUploading = false;
+	let resumeError = '';
+	let dragActive = false;
+	let resumeResult: any = null;
+
+	// GitHub import state
 	let step = 1;
 	let loading = false;
 	let error = '';
@@ -23,6 +31,70 @@
 
 	// Step 4: Proposal
 	let proposalId = '';
+
+	// Resume upload handlers
+	function handleResumeFileDrop(e: DragEvent) {
+		e.preventDefault();
+		dragActive = false;
+
+		const files = e.dataTransfer?.files;
+		if (files && files.length > 0) {
+			const file = files[0];
+			if (file.type === 'application/pdf' ||
+			    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+			    file.name.endsWith('.pdf') || file.name.endsWith('.docx')) {
+				resumeFile = file;
+				resumeError = '';
+			} else {
+				resumeError = 'Please upload a PDF or DOCX file';
+			}
+		}
+	}
+
+	function handleResumeFileSelect(e: Event) {
+		const target = e.target as HTMLInputElement;
+		const files = target.files;
+		if (files && files.length > 0) {
+			resumeFile = files[0];
+			resumeError = '';
+		}
+	}
+
+	async function handleResumeUpload() {
+		if (!resumeFile) {
+			resumeError = 'Please select a resume file';
+			return;
+		}
+
+		resumeUploading = true;
+		resumeError = '';
+
+		try {
+			const formData = new FormData();
+			formData.append('file', resumeFile);
+
+			const response = await fetch('/api/resume/upload', {
+				method: 'POST',
+				headers: {
+					Authorization: pb.authStore.token
+				},
+				body: formData
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Resume upload failed');
+			}
+
+			const result = await response.json();
+			resumeResult = result;
+			toasts.add('success', `Resume imported! ${result.counts.experience || 0} experiences, ${result.counts.skills || 0} skills, and more.`);
+		} catch (err) {
+			resumeError = (err as Error).message;
+		} finally {
+			resumeUploading = false;
+		}
+	}
 
 	async function loadProviders() {
 		try {
@@ -125,11 +197,189 @@
 </script>
 
 <svelte:head>
-	<title>Import from GitHub | Facet</title>
+	<title>Import | Facet</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">
-	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Import from GitHub</h1>
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Import Data</h1>
+
+	<!-- Resume Upload Section -->
+	<div class="card p-6 mb-8">
+		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+			Upload Resume
+		</h2>
+
+		<p class="text-gray-600 dark:text-gray-400 mb-4">
+			Upload your resume (PDF or DOCX) and AI will automatically extract your experience, education, skills, projects, and more.
+		</p>
+
+		{#if resumeError}
+			<div class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+				{resumeError}
+			</div>
+		{/if}
+
+		{#if !resumeResult}
+			<!-- File upload area -->
+			<div
+				class="border-2 border-dashed rounded-lg p-8 text-center transition-colors
+				{dragActive
+					? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+					: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+				on:drop={handleResumeFileDrop}
+				on:dragover={(e) => {
+					e.preventDefault();
+					dragActive = true;
+				}}
+				on:dragleave={() => (dragActive = false)}
+			>
+				{#if resumeFile}
+					<div class="space-y-3">
+						<div class="w-16 h-16 mx-auto rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+							<svg class="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+							</svg>
+						</div>
+						<p class="font-medium text-gray-900 dark:text-white">{resumeFile.name}</p>
+						<p class="text-sm text-gray-500">{(resumeFile.size / 1024).toFixed(1)} KB</p>
+						<div class="flex gap-3 justify-center">
+							<button
+								class="btn btn-primary"
+								on:click={handleResumeUpload}
+								disabled={resumeUploading}
+							>
+								{#if resumeUploading}
+									<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									</svg>
+									Parsing resume...
+								{:else}
+									Upload & Parse
+								{/if}
+							</button>
+							<button class="btn btn-secondary" on:click={() => (resumeFile = null)}>
+								Change File
+							</button>
+						</div>
+					</div>
+				{:else}
+					<div class="space-y-3">
+						<div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+							<svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+							</svg>
+						</div>
+						<p class="text-gray-700 dark:text-gray-300">
+							<label for="resumeFile" class="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer">
+								Choose a file
+							</label>
+							or drag and drop
+						</p>
+						<p class="text-sm text-gray-500">PDF or DOCX up to 5MB</p>
+						<input
+							type="file"
+							id="resumeFile"
+							class="hidden"
+							accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+							on:change={handleResumeFileSelect}
+						/>
+					</div>
+				{/if}
+			</div>
+		{:else}
+			<!-- Import summary -->
+			<div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
+				<div class="flex items-start gap-3">
+					<div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center flex-shrink-0">
+						<svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+						</svg>
+					</div>
+					<div class="flex-1">
+						<h3 class="font-semibold text-green-900 dark:text-green-100 mb-2">
+							Resume Imported Successfully!
+						</h3>
+						<p class="text-sm text-green-800 dark:text-green-200 mb-4">
+							We extracted and imported the following from your resume:
+						</p>
+						<div class="grid grid-cols-2 gap-3 text-sm">
+							{#if resumeResult.counts.experience}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.experience}</span>
+									<span class="text-green-700 dark:text-green-300">Work Experience</span>
+								</div>
+							{/if}
+							{#if resumeResult.counts.education}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.education}</span>
+									<span class="text-green-700 dark:text-green-300">Education</span>
+								</div>
+							{/if}
+							{#if resumeResult.counts.skills}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.skills}</span>
+									<span class="text-green-700 dark:text-green-300">Skills</span>
+								</div>
+							{/if}
+							{#if resumeResult.counts.projects}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.projects}</span>
+									<span class="text-green-700 dark:text-green-300">Projects</span>
+								</div>
+							{/if}
+							{#if resumeResult.counts.certifications}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.certifications}</span>
+									<span class="text-green-700 dark:text-green-300">Certifications</span>
+								</div>
+							{/if}
+							{#if resumeResult.counts.awards}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.awards}</span>
+									<span class="text-green-700 dark:text-green-300">Awards</span>
+								</div>
+							{/if}
+							{#if resumeResult.counts.talks}
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{resumeResult.counts.talks}</span>
+									<span class="text-green-700 dark:text-green-300">Talks</span>
+								</div>
+							{/if}
+						</div>
+						{#if resumeResult.warnings && resumeResult.warnings.length > 0}
+							<div class="mt-3 text-sm text-yellow-700 dark:text-yellow-300">
+								<p class="font-medium">Notes:</p>
+								<ul class="list-disc list-inside mt-1">
+									{#each resumeResult.warnings as warning}
+										<li>{warning}</li>
+									{/each}
+								</ul>
+							</div>
+						{/if}
+						<p class="mt-4 text-sm text-green-800 dark:text-green-200">
+							All items have been imported as <strong>private</strong>. You can review and edit them in your admin sections.
+						</p>
+						<div class="flex gap-3 mt-4">
+							<a href="/admin/experience" class="btn btn-sm btn-primary">
+								Review Experience
+							</a>
+							<button class="btn btn-sm btn-secondary" on:click={() => {
+								resumeFile = null;
+								resumeResult = null;
+								resumeError = '';
+							}}>
+								Upload Another
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		{/if}
+	</div>
+
+	<!-- GitHub Import Section -->
+	<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Import from GitHub</h2>
 
 	<!-- Progress steps -->
 	<div class="flex items-center mb-8">

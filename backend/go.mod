@@ -5,6 +5,8 @@ go 1.24.0
 toolchain go1.24.4
 
 require (
+	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
+	github.com/gen2brain/go-fitz v1.24.15
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/pocketbase/dbx v1.10.1
 	github.com/pocketbase/pocketbase v0.23.4
@@ -40,11 +42,9 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b // indirect
 	github.com/fumiama/imgsz v0.0.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
 	github.com/ganigeorgiev/fexpr v0.4.1 // indirect
-	github.com/gen2brain/go-fitz v1.24.15 // indirect
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
