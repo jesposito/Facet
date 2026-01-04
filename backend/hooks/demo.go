@@ -315,7 +315,7 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 
 	// Load and attach cover image
 	if coverFile, err := loadDemoAsset("projects/tardis-redesign.svg"); err == nil {
-		proj1.Set("cover", coverFile)
+		proj1.Set("cover_image", coverFile)
 		app.Logger().Info("Attached cover to TARDIS project")
 	} else {
 		app.Logger().Warn("Failed to load TARDIS cover asset", "error", err)
@@ -370,7 +370,7 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 
 	// Load and attach cover image
 	if coverFile, err := loadDemoAsset("projects/sonic-screwdriver.svg"); err == nil {
-		proj2.Set("cover", coverFile)
+		proj2.Set("cover_image", coverFile)
 		app.Logger().Info("Attached cover to Sonic Screwdriver project")
 	} else {
 		app.Logger().Warn("Failed to load Sonic Screwdriver cover asset", "error", err)
