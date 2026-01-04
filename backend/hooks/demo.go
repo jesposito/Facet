@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -337,11 +338,20 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 	if len(mediaFiles) > 0 {
 		proj1.Set("media", mediaFiles)
 		app.Logger().Info("Attached media gallery to TARDIS project", "count", len(mediaFiles))
+	} else {
+		app.Logger().Warn("No media files were loaded for TARDIS project")
 	}
 
+	app.Logger().Info("Saving TARDIS project with media files...")
 	if err := app.Save(proj1); err != nil {
+		app.Logger().Error("Failed to save TARDIS project", "error", err)
 		return err
 	}
+	app.Logger().Info("TARDIS project saved successfully")
+
+	// Log what was actually saved
+	savedMediaField := proj1.Get("media")
+	app.Logger().Info("Saved media field value", "type", fmt.Sprintf("%T", savedMediaField), "value", savedMediaField)
 
 	proj2 := core.NewRecord(projColl)
 	proj2.Set("title", "Sonic Screwdriver API v47")
