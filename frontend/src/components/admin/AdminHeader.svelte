@@ -16,20 +16,12 @@
 	});
 
 	onMount(() => {
-		// Check if user has seen the demo toggle before
-		try {
-			const hasSeenDemo = localStorage.getItem('hasSeenDemoToggle');
-			if (!hasSeenDemo) {
-				showDemoAnimation = true;
-				// Auto-dismiss after 10 seconds
-				setTimeout(() => {
-					showDemoAnimation = false;
-					localStorage.setItem('hasSeenDemoToggle', 'true');
-				}, 10000);
-			}
-		} catch (err) {
-			console.warn('Failed to check demo toggle state', err);
-		}
+		// Always show animation for now (TODO: add first-time detection later)
+		showDemoAnimation = true;
+		// Auto-dismiss after 10 seconds
+		setTimeout(() => {
+			showDemoAnimation = false;
+		}, 10000);
 	});
 
 	function dismissDemoAnimation() {

@@ -104,7 +104,7 @@ func clearDemoTables(app *pocketbase.PocketBase) error {
 	tables := []string{
 		"demo_profile", "demo_experience", "demo_projects", "demo_education",
 		"demo_skills", "demo_certifications", "demo_posts", "demo_talks",
-		"demo_awards", "demo_views", "demo_share_tokens",
+		"demo_awards", "demo_views", "demo_share_tokens", "demo_contact_methods",
 	}
 
 	for _, tableName := range tables {
