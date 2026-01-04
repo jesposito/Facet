@@ -58,7 +58,7 @@
 	async function loadContacts() {
 		loading = true;
 		try {
-			const records = await await collection('contact_methods').getList(1, 100, {
+			const records = await collection('contact_methods').getList(1, 100, {
 				sort: '-sort_order'
 			});
 			contacts = records.items as unknown as ContactMethod[];
@@ -72,7 +72,7 @@
 
 	async function loadViews() {
 		try {
-			const records = await await collection('views').getList(1, 100, {
+			const records = await collection('views').getList(1, 100, {
 				sort: '-is_default,-created'
 			});
 			views = records.items as unknown as View[];
