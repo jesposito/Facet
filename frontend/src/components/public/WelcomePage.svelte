@@ -135,7 +135,7 @@
 				<button
 					on:click={handleDemoLogin}
 					disabled={loading}
-					class="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-accent-600 hover:bg-accent-700 disabled:bg-accent-400 rounded-lg shadow-sm transition-colors"
+					class="inline-flex items-center gap-2 px-8 py-4 text-lg font-semibold text-white bg-primary-600 hover:bg-primary-700 disabled:bg-primary-400 rounded-lg shadow-sm transition-colors"
 				>
 					{#if loading}
 						<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
