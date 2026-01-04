@@ -43,10 +43,17 @@ const navSections = [
 ];
 
 function isActive(href: string): boolean {
+	const currentPath = $page.url.pathname;
+
+	// Exact match for dashboard
 	if (href === '/admin') {
-		return $page.url.pathname === '/admin';
+		return currentPath === '/admin' || currentPath === '/admin/';
 	}
-	return $page.url.pathname.startsWith(href);
+
+	// For other paths, check if current path starts with the href
+	// and is followed by either nothing, a slash, or end of string
+	// This prevents /admin/view from matching when on /admin/views
+	return currentPath === href || currentPath.startsWith(href + '/');
 }
 </script>
 
