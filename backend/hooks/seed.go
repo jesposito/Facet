@@ -1,14 +1,18 @@
 package hooks
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // RegisterSeedHook seeds data on first run (development only)
@@ -822,30 +826,57 @@ func seedDevData(app *pocketbase.PocketBase) error {
 }
 
 // createDefaultUser creates the frontend admin user
+// Uses direct SQL INSERT because app.Save() silently fails in OnServe hooks (PB v0.23 issue)
 func createDefaultUser(app *pocketbase.PocketBase) error {
-	users, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		return err
-	}
-
 	userCount, _ := app.CountRecords("users")
 	if userCount > 0 {
 		return nil
 	}
 
-	admin := core.NewRecord(users)
-	admin.Set("email", getSeedAdminEmail("admin@example.com"))
-	admin.Set("name", "Admin")
-	admin.Set("is_admin", true)
-	admin.SetPassword("changeme123")
-	if err := app.Save(admin); err != nil {
-		return err
+	email := getSeedAdminEmail("admin@example.com")
+
+	// Generate ID (PocketBase pattern: 'r' + 14 random hex chars)
+	randomBytes := make([]byte, 7)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return fmt.Errorf("generate ID: %w", err)
+	}
+	id := "r" + hex.EncodeToString(randomBytes)
+
+	// Hash password with bcrypt
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte("changeme123"), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	// Generate tokenKey (PocketBase uses 50 random bytes)
+	tokenBytes := make([]byte, 50)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return fmt.Errorf("generate token: %w", err)
+	}
+	tokenKey := hex.EncodeToString(tokenBytes)
+
+	// Direct SQL INSERT
+	query := `INSERT INTO users (id, email, name, password, tokenKey, verified, emailVisibility, avatar)
+	          VALUES ({:id}, {:email}, {:name}, {:password}, {:tokenKey}, 1, 0, '')`
+
+	_, err = app.DB().NewQuery(query).Bind(dbx.Params{
+		"id":       id,
+		"email":    email,
+		"name":     "Admin",
+		"password": string(passwordHash),
+		"tokenKey": tokenKey,
+	}).Execute()
+
+	if err != nil {
+		return fmt.Errorf("insert user: %w", err)
 	}
 
 	log.Println("Created default frontend admin account:")
-	log.Printf("  Email: %s\n", admin.Email())
+	log.Printf("  Email: %s\n", email)
 	log.Println("  Password: changeme123")
 	log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
+	log.Println("")
+	log.Printf("  NOTE: This email (%s) must be in ADMIN_EMAILS to access /admin", email)
 
 	return nil
 }
