@@ -148,11 +148,19 @@ func (rp *ResumeParser) extractPDF(fileBytes []byte) (string, error) {
 }
 
 // extractDOCX extracts text from DOCX using go-docx
-func (rp *ResumeParser) extractDOCX(fileBytes []byte) (string, error) {
+func (rp *ResumeParser) extractDOCX(fileBytes []byte) (text string, err error) {
+	// Recover from panics in go-docx library (can happen with malformed/complex DOCX files)
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("failed to parse DOCX: the file may be corrupted or use unsupported formatting. Error: %v", r)
+			text = ""
+		}
+	}()
+
 	reader := bytes.NewReader(fileBytes)
-	doc, err := docx.Parse(reader, int64(len(fileBytes)))
-	if err != nil {
-		return "", fmt.Errorf("failed to parse DOCX: %w", err)
+	doc, parseErr := docx.Parse(reader, int64(len(fileBytes)))
+	if parseErr != nil {
+		return "", fmt.Errorf("failed to parse DOCX: %w. Try converting to PDF or re-saving the file", parseErr)
 	}
 
 	var textBuilder strings.Builder
@@ -171,7 +179,7 @@ func (rp *ResumeParser) extractDOCX(fileBytes []byte) (string, error) {
 
 	extractedText := textBuilder.String()
 	if strings.TrimSpace(extractedText) == "" {
-		return "", fmt.Errorf("no text found in DOCX")
+		return "", fmt.Errorf("no text found in DOCX - the file may be empty or contain only images/tables")
 	}
 
 	return extractedText, nil
@@ -179,6 +187,14 @@ func (rp *ResumeParser) extractDOCX(fileBytes []byte) (string, error) {
 
 // ParseResume uses AI to extract structured data from resume text
 func (rp *ResumeParser) ParseResume(ctx context.Context, provider *AIProvider, resumeText string) (*ParsedResume, error) {
+	// Limit resume text to prevent token overflow (roughly 4000 words = 5000 tokens)
+	const maxChars = 16000
+	truncated := false
+	if len(resumeText) > maxChars {
+		resumeText = resumeText[:maxChars]
+		truncated = true
+	}
+
 	prompt := rp.buildParsingPrompt(resumeText)
 
 	// Call AI provider with parsing prompt
@@ -187,14 +203,41 @@ func (rp *ResumeParser) ParseResume(ctx context.Context, provider *AIProvider, r
 		return nil, fmt.Errorf("AI parsing failed: %w", err)
 	}
 
-	// Parse JSON response
+	// Try to extract and parse JSON from response
+	cleaned := extractJSONFromResponse(response)
+
 	var parsed ParsedResume
-	if err := json.Unmarshal([]byte(response), &parsed); err != nil {
-		// Try to extract JSON from markdown code block if present
-		cleaned := extractJSONFromResponse(response)
-		if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {
-			return nil, fmt.Errorf("failed to parse AI response as JSON: %w", err)
+	if err := json.Unmarshal([]byte(cleaned), &parsed); err != nil {
+		// If JSON parsing fails, try to fix common issues
+		fixed, fixErr := fixTruncatedJSON(cleaned)
+		if fixErr == nil {
+			if err := json.Unmarshal([]byte(fixed), &parsed); err == nil {
+				// Success after fix - add warning
+				if parsed.Metadata.Warnings == nil {
+					parsed.Metadata.Warnings = []string{}
+				}
+				parsed.Metadata.Warnings = append(parsed.Metadata.Warnings,
+					"AI response was incomplete - some data may be missing")
+				rp.validateAndEnrich(&parsed)
+				return &parsed, nil
+			}
 		}
+
+		// Still failed - return detailed error
+		preview := cleaned
+		if len(preview) > 500 {
+			preview = preview[:500] + "..."
+		}
+		return nil, fmt.Errorf("failed to parse AI response as JSON: %w. Response preview: %s", err, preview)
+	}
+
+	// Add warning if resume was truncated
+	if truncated {
+		if parsed.Metadata.Warnings == nil {
+			parsed.Metadata.Warnings = []string{}
+		}
+		parsed.Metadata.Warnings = append(parsed.Metadata.Warnings,
+			"Resume text was very long and had to be truncated - some information may be missing")
 	}
 
 	// Validate and enrich
@@ -376,6 +419,97 @@ func extractJSONFromResponse(response string) string {
 	}
 
 	return strings.TrimSpace(response)
+}
+
+// fixTruncatedJSON attempts to fix truncated JSON by closing unclosed structures
+func fixTruncatedJSON(jsonStr string) (string, error) {
+	jsonStr = strings.TrimSpace(jsonStr)
+
+	// Count opening and closing braces/brackets
+	openBraces := strings.Count(jsonStr, "{")
+	closeBraces := strings.Count(jsonStr, "}")
+	openBrackets := strings.Count(jsonStr, "[")
+	closeBrackets := strings.Count(jsonStr, "]")
+
+	// If JSON looks complete, return as-is
+	if openBraces == closeBraces && openBrackets == closeBrackets {
+		return jsonStr, nil
+	}
+
+	// Remove trailing incomplete data (incomplete string, number, etc.)
+	jsonStr = removeTrailingIncomplete(jsonStr)
+
+	// Close unclosed arrays
+	for i := 0; i < openBrackets-closeBrackets; i++ {
+		jsonStr += "]"
+	}
+
+	// Close unclosed objects
+	for i := 0; i < openBraces-closeBraces; i++ {
+		jsonStr += "}"
+	}
+
+	return jsonStr, nil
+}
+
+// removeTrailingIncomplete removes trailing incomplete JSON elements
+func removeTrailingIncomplete(jsonStr string) string {
+	jsonStr = strings.TrimSpace(jsonStr)
+
+	// If ends with comma, remove it
+	if strings.HasSuffix(jsonStr, ",") {
+		jsonStr = strings.TrimSuffix(jsonStr, ",")
+	}
+
+	// If has unclosed string at the end, remove it
+	// Look for the last complete field
+	lastValidPos := len(jsonStr)
+	inString := false
+	escaped := false
+
+	// Scan backwards to find last complete position
+	for i := len(jsonStr) - 1; i >= 0; i-- {
+		c := jsonStr[i]
+
+		if escaped {
+			escaped = false
+			continue
+		}
+
+		if c == '\\' {
+			escaped = true
+			continue
+		}
+
+		if c == '"' {
+			inString = !inString
+			if !inString {
+				// Found end of a complete string
+				// Check if this is likely a complete field
+				if i < len(jsonStr)-1 {
+					next := jsonStr[i+1:]
+					if strings.HasPrefix(strings.TrimSpace(next), ",") ||
+						strings.HasPrefix(strings.TrimSpace(next), "}") ||
+						strings.HasPrefix(strings.TrimSpace(next), "]") {
+						// This looks complete
+						break
+					}
+				}
+			}
+		}
+
+		// If we find a comma or closing brace/bracket outside a string, that's a safe point
+		if !inString && (c == ',' || c == '}' || c == ']') {
+			lastValidPos = i + 1
+			break
+		}
+	}
+
+	if lastValidPos < len(jsonStr) {
+		jsonStr = jsonStr[:lastValidPos]
+	}
+
+	return strings.TrimSpace(jsonStr)
 }
 
 // Helper to read file bytes from io.Reader
