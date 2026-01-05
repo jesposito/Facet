@@ -442,6 +442,12 @@
 								</ul>
 							</div>
 						{/if}
+						{#if resumeResult.deduplicated && resumeResult.deduplicated > 0}
+							<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-sm text-blue-800 dark:text-blue-200">
+								<p class="font-medium">✓ Skipped {resumeResult.deduplicated} duplicate {resumeResult.deduplicated === 1 ? 'item' : 'items'}</p>
+								<p class="mt-1 text-xs">We detected {resumeResult.deduplicated} {resumeResult.deduplicated === 1 ? 'item that was' : 'items that were'} already in your profile and skipped {resumeResult.deduplicated === 1 ? 'it' : 'them'} to avoid duplicates.</p>
+							</div>
+						{/if}
 						<p class="mt-4 text-sm text-green-800 dark:text-green-200">
 							All items have been imported as <strong>private</strong>. You can review and edit them in your admin sections.
 						</p>

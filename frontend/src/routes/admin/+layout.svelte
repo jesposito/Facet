@@ -17,13 +17,25 @@
 	$: isLoginPage = $page.url.pathname === '/admin/login';
 
 	// Reactively handle auth state changes
-	$: if (mounted && !isLoginPage && demoModeInitialized) {
+	// IMPORTANT: Must reference $currentUser in the condition so Svelte knows to re-run this block
+	$: if (mounted && !isLoginPage && demoModeInitialized && ($currentUser !== undefined || !$currentUser)) {
 		if ($currentUser && pb.authStore.isValid) {
 			// User is authenticated
+			console.log('[LAYOUT] User authenticated, showing admin');
 			authorized = true;
 			loading = false;
+		} else if (pb.authStore.isValid) {
+			// Auth store is valid but $currentUser not yet set - wait a tick
+			console.log('[LAYOUT] Auth store valid but $currentUser not set, waiting...');
+			setTimeout(() => {
+				if (pb.authStore.isValid && !authorized) {
+					authorized = true;
+					loading = false;
+				}
+			}, 100);
 		} else {
 			// Not authenticated - redirect to login
+			console.log('[LAYOUT] Not authenticated, redirecting to login');
 			authorized = false;
 			loading = false;
 			goto('/admin/login');

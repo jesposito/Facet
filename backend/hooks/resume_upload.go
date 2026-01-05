@@ -165,9 +165,9 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 
 			log.Printf("[RESUME-UPLOAD] Parsing complete. Confidence: %s, Warnings: %d", parsed.Metadata.Confidence, len(parsed.Metadata.Warnings))
 
-			// Create records in collections
+			// Create records in collections with import metadata
 			log.Println("[RESUME-UPLOAD] Creating records in collections...")
-			imported, err := createResumeRecords(app, parsed)
+			imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
 				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -179,9 +179,8 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-			log.Printf("[RESUME-UPLOAD] Successfully imported: %d experience, %d education, %d skills, %d certifications, %d projects",
-				len(imported["experience"]), len(imported["education"]), len(imported["skills"]),
-				len(imported["certifications"]), len(imported["projects"]))
+			log.Printf("[RESUME-UPLOAD] Successfully imported: %d experience, %d education, %d skills (skipped %d duplicates)",
+				len(imported["experience"]), len(imported["education"]), len(imported["skills"]), deduped)
 
 			// Return success with import details
 			return e.JSON(http.StatusOK, map[string]interface{}{
@@ -196,9 +195,10 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					"awards":         len(imported["awards"]),
 					"talks":          len(imported["talks"]),
 				},
-				"warnings":   parsed.Metadata.Warnings,
-				"confidence": parsed.Metadata.Confidence,
-				"filename":   header.Filename,
+				"deduplicated": deduped,
+				"warnings":     parsed.Metadata.Warnings,
+				"confidence":   parsed.Metadata.Confidence,
+				"filename":     header.Filename,
 			})
 		}).Bind(apis.RequireAuth()) // Require authentication
 
@@ -420,6 +420,316 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 	}
 
 	return imported, nil
+}
+
+// createResumeRecordsWithDeduplication creates records with deduplication and import metadata
+func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string) (map[string][]string, int, error) {
+	imported := make(map[string][]string)
+	duplicateCount := 0
+
+	// Helper to get table name
+	getTableName := func(baseName string) string {
+		return baseName
+	}
+
+	// Create experience records with deduplication
+	if len(parsed.Experience) > 0 {
+		expCollection, err := app.FindCollectionByNameOrId(getTableName("experience"))
+		if err != nil {
+			return nil, 0, fmt.Errorf("experience collection not found: %w", err)
+		}
+
+		for _, exp := range parsed.Experience {
+			// Check for duplicate: same company + title + start_date
+			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s'",
+				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate)
+			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 0, 1)
+			if err == nil && len(existing) > 0 {
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate experience: %s at %s", exp.Title, exp.Company)
+				duplicateCount++
+				continue
+			}
+
+			record := core.NewRecord(expCollection)
+			record.Set("company", exp.Company)
+			record.Set("title", exp.Title)
+			record.Set("location", exp.Location)
+			record.Set("start_date", exp.StartDate)
+			if exp.EndDate != "" && exp.EndDate != "null" {
+				record.Set("end_date", exp.EndDate)
+			}
+			record.Set("description", exp.Description)
+			if len(exp.Bullets) > 0 {
+				record.Set("bullets", exp.Bullets)
+			}
+			if len(exp.Skills) > 0 {
+				record.Set("skills", exp.Skills)
+			}
+			// Add import metadata
+			record.Set("notes", fmt.Sprintf("Imported from: %s", filename))
+			record.Set("visibility", "private")
+			record.Set("is_draft", false)
+			record.Set("sort_order", 0)
+
+			if err := app.Save(record); err != nil {
+				log.Printf("[RESUME-UPLOAD] Failed to create experience: %v", err)
+				continue
+			}
+			imported["experience"] = append(imported["experience"], record.Id)
+		}
+	}
+
+	// Create education records with deduplication
+	if len(parsed.Education) > 0 {
+		eduCollection, err := app.FindCollectionByNameOrId(getTableName("education"))
+		if err != nil {
+			return nil, 0, fmt.Errorf("education collection not found: %w", err)
+		}
+
+		for _, edu := range parsed.Education {
+			// Check for duplicate: same institution + degree + field
+			filter := fmt.Sprintf("institution = '%s' && degree = '%s' && field = '%s'",
+				escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field))
+			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 0, 1)
+			if err == nil && len(existing) > 0 {
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate education: %s from %s", edu.Degree, edu.Institution)
+				duplicateCount++
+				continue
+			}
+
+			record := core.NewRecord(eduCollection)
+			record.Set("institution", edu.Institution)
+			record.Set("degree", edu.Degree)
+			record.Set("field", edu.Field)
+			record.Set("start_date", edu.StartDate)
+			if edu.EndDate != "" && edu.EndDate != "null" {
+				record.Set("end_date", edu.EndDate)
+			}
+			record.Set("description", edu.Description)
+			record.Set("visibility", "private")
+			record.Set("is_draft", false)
+			record.Set("sort_order", 0)
+
+			if err := app.Save(record); err != nil {
+				log.Printf("[RESUME-UPLOAD] Failed to create education: %v", err)
+				continue
+			}
+			imported["education"] = append(imported["education"], record.Id)
+		}
+	}
+
+	// Create skills records with deduplication
+	if len(parsed.Skills) > 0 {
+		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
+		if err != nil {
+			return nil, 0, fmt.Errorf("skills collection not found: %w", err)
+		}
+
+		for _, skill := range parsed.Skills {
+			// Check for duplicate: same name (case-insensitive)
+			filter := fmt.Sprintf("LOWER(name) = LOWER('%s')", escapeFilter(skill.Name))
+			existing, err := app.FindRecordsByFilter(skillsCollection.Name, filter, "", 0, 1)
+			if err == nil && len(existing) > 0 {
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate skill: %s", skill.Name)
+				duplicateCount++
+				continue
+			}
+
+			record := core.NewRecord(skillsCollection)
+			record.Set("name", skill.Name)
+			record.Set("category", skill.Category)
+			record.Set("proficiency", skill.Proficiency)
+			record.Set("visibility", "private")
+			record.Set("sort_order", 0)
+
+			if err := app.Save(record); err != nil {
+				log.Printf("[RESUME-UPLOAD] Failed to create skill: %v", err)
+				continue
+			}
+			imported["skills"] = append(imported["skills"], record.Id)
+		}
+	}
+
+	// Create certifications records with deduplication
+	if len(parsed.Certifications) > 0 {
+		certsCollection, err := app.FindCollectionByNameOrId(getTableName("certifications"))
+		if err != nil {
+			return nil, 0, fmt.Errorf("certifications collection not found: %w", err)
+		}
+
+		for _, cert := range parsed.Certifications {
+			// Check for duplicate: same name + issuer
+			filter := fmt.Sprintf("name = '%s' && issuer = '%s'",
+				escapeFilter(cert.Name), escapeFilter(cert.Issuer))
+			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 0, 1)
+			if err == nil && len(existing) > 0 {
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate certification: %s", cert.Name)
+				duplicateCount++
+				continue
+			}
+
+			record := core.NewRecord(certsCollection)
+			record.Set("name", cert.Name)
+			record.Set("issuer", cert.Issuer)
+			record.Set("issue_date", cert.IssueDate)
+			if cert.ExpiryDate != "" && cert.ExpiryDate != "null" {
+				record.Set("expiry_date", cert.ExpiryDate)
+			}
+			record.Set("credential_id", cert.CredentialID)
+			record.Set("credential_url", cert.CredentialURL)
+			record.Set("visibility", "private")
+			record.Set("is_draft", false)
+			record.Set("sort_order", 0)
+
+			if err := app.Save(record); err != nil {
+				log.Printf("[RESUME-UPLOAD] Failed to create certification: %v", err)
+				continue
+			}
+			imported["certifications"] = append(imported["certifications"], record.Id)
+		}
+	}
+
+	// Create projects records with deduplication
+	if len(parsed.Projects) > 0 {
+		projectsCollection, err := app.FindCollectionByNameOrId(getTableName("projects"))
+		if err != nil {
+			return nil, 0, fmt.Errorf("projects collection not found: %w", err)
+		}
+
+		for _, proj := range parsed.Projects {
+			// Check for duplicate: same title
+			filter := fmt.Sprintf("title = '%s'", escapeFilter(proj.Title))
+			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 0, 1)
+			if err == nil && len(existing) > 0 {
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate project: %s", proj.Title)
+				duplicateCount++
+				continue
+			}
+
+			record := core.NewRecord(projectsCollection)
+			record.Set("title", proj.Title)
+			slug := generateSlug(proj.Title)
+			record.Set("slug", slug)
+			record.Set("summary", proj.Summary)
+			record.Set("description", proj.Description)
+			if len(proj.TechStack) > 0 {
+				record.Set("tech_stack", proj.TechStack)
+			}
+			if len(proj.Links) > 0 {
+				linksJSON, _ := json.Marshal(proj.Links)
+				record.Set("links", string(linksJSON))
+			}
+			record.Set("visibility", "private")
+			record.Set("is_draft", false)
+			record.Set("is_featured", false)
+			record.Set("sort_order", 0)
+
+			if err := app.Save(record); err != nil {
+				log.Printf("[RESUME-UPLOAD] Failed to create project: %v", err)
+				continue
+			}
+			imported["projects"] = append(imported["projects"], record.Id)
+		}
+	}
+
+	// Create awards records with deduplication
+	if len(parsed.Awards) > 0 {
+		awardsCollection, err := app.FindCollectionByNameOrId(getTableName("awards"))
+		if err != nil {
+			log.Printf("[RESUME-UPLOAD] Awards collection not found (skipping): %v", err)
+		} else {
+			for _, award := range parsed.Awards {
+				// Check for duplicate: same title + issuer
+				filter := fmt.Sprintf("title = '%s' && issuer = '%s'",
+					escapeFilter(award.Title), escapeFilter(award.Issuer))
+				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 0, 1)
+				if err == nil && len(existing) > 0 {
+					log.Printf("[RESUME-UPLOAD] Skipping duplicate award: %s", award.Title)
+					duplicateCount++
+					continue
+				}
+
+				record := core.NewRecord(awardsCollection)
+				record.Set("title", award.Title)
+				record.Set("issuer", award.Issuer)
+				record.Set("awarded_at", award.AwardedAt)
+				record.Set("description", award.Description)
+				record.Set("visibility", "private")
+				record.Set("is_draft", false)
+				record.Set("sort_order", 0)
+
+				if err := app.Save(record); err != nil {
+					log.Printf("[RESUME-UPLOAD] Failed to create award: %v", err)
+					continue
+				}
+				imported["awards"] = append(imported["awards"], record.Id)
+			}
+		}
+	}
+
+	// Create talks records with deduplication
+	if len(parsed.Talks) > 0 {
+		talksCollection, err := app.FindCollectionByNameOrId(getTableName("talks"))
+		if err != nil {
+			log.Printf("[RESUME-UPLOAD] Talks collection not found (skipping): %v", err)
+		} else {
+			for _, talk := range parsed.Talks {
+				// Check for duplicate: same title + event
+				filter := fmt.Sprintf("title = '%s' && event = '%s'",
+					escapeFilter(talk.Title), escapeFilter(talk.Event))
+				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 0, 1)
+				if err == nil && len(existing) > 0 {
+					log.Printf("[RESUME-UPLOAD] Skipping duplicate talk: %s", talk.Title)
+					duplicateCount++
+					continue
+				}
+
+				record := core.NewRecord(talksCollection)
+				record.Set("title", talk.Title)
+				slug := generateSlug(talk.Title)
+				record.Set("slug", slug)
+				record.Set("event", talk.Event)
+				record.Set("date", talk.Date)
+				record.Set("location", talk.Location)
+				record.Set("description", talk.Description)
+				record.Set("visibility", "private")
+				record.Set("is_draft", false)
+				record.Set("sort_order", 0)
+
+				if err := app.Save(record); err != nil {
+					log.Printf("[RESUME-UPLOAD] Failed to create talk: %v", err)
+					continue
+				}
+				imported["talks"] = append(imported["talks"], record.Id)
+			}
+		}
+	}
+
+	return imported, duplicateCount, nil
+}
+
+// escapeFilter escapes single quotes for SQL filter strings
+func escapeFilter(s string) string {
+	return strings.ReplaceAll(s, "'", "''")
+}
+
+// sanitizeFilename removes special characters from filename
+func sanitizeFilename(filename string) string {
+	// Remove extension
+	name := strings.TrimSuffix(filename, ".pdf")
+	name = strings.TrimSuffix(name, ".docx")
+	// Replace special chars with underscores
+	name = strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '_'
+	}, name)
+	// Limit length
+	if len(name) > 30 {
+		name = name[:30]
+	}
+	return name
 }
 
 // generateSlug creates a URL-friendly slug from a title
