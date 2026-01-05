@@ -97,8 +97,12 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Security Test Suite** - Comprehensive tests for XSS, path traversal, input validation (tests/security.spec.ts)
 - ✅ Audit logs database schema prepared (migration ready)
 - ✅ HTTPS enforcement check (warns in production)
+- ✅ **Security Headers** - Comprehensive headers implemented via Caddy (docker/Caddyfile) and PocketBase built-in middleware:
+  - PocketBase `pbSecurityHeaders` middleware: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options (automatic on all responses)
+  - Caddy layer: X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, Server header removal
+  - CSP intentionally deferred (requires OAuth testing, report-only rollout first)
 - 🔜 **Planned Enhancements:**
-  - Security headers (CSP, X-Frame-Options, Permissions Policy)
+  - Content Security Policy (CSP) - Requires report-only rollout and OAuth flow testing
   - Audit log implementation (hooks for admin actions)
   - 2FA (TOTP + backup codes)
   - Session listing/revoke/expiry
