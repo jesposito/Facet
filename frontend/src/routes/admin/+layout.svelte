@@ -55,35 +55,38 @@
 			return;
 		}
 
-		// Initialize demo mode state BEFORE child pages render
-		console.log('[LAYOUT] About to call initDemoMode()');
-		await initDemoMode();
-		console.log('[LAYOUT] initDemoMode() completed');
+		// Initialize demo mode state BEFORE child pages render (with timeout protection)
+		try {
+			await initDemoMode();
+		} catch (err) {
+			console.error('[LAYOUT] initDemoMode() failed:', err);
+			// Continue - demo mode failure shouldn't block login
+		}
 
-		// Check auth state directly after demo mode is initialized
-		console.log('[LAYOUT] Checking auth state - currentUser:', $currentUser, 'authStore.isValid:', pb.authStore.isValid);
+		// CRITICAL: Check auth state - MUST be authenticated to proceed
+		const isAuthenticated = $currentUser && pb.authStore.isValid;
 
-		if ($currentUser && pb.authStore.isValid) {
-			console.log('[LAYOUT] User authenticated, showing admin');
+		if (isAuthenticated) {
+			// User is fully authenticated - show admin
 			authorized = true;
 			loading = false;
 		} else if (pb.authStore.isValid && !$currentUser) {
-			// Auth store is valid but store not updated yet - wait briefly
-			console.log('[LAYOUT] Auth store valid but $currentUser not set, waiting...');
+			// Auth store is valid but $currentUser store not updated yet - wait briefly
 			await new Promise(resolve => setTimeout(resolve, 150));
 
 			// Re-check after delay
-			if ($currentUser && pb.authStore.isValid) {
-				console.log('[LAYOUT] User authenticated after delay, showing admin');
+			const stillAuthenticated = $currentUser && pb.authStore.isValid;
+			if (stillAuthenticated) {
 				authorized = true;
 				loading = false;
 			} else {
-				console.log('[LAYOUT] Still not authenticated after delay, redirecting to login');
+				// Auth check failed - redirect to login
+				loading = false; // Stop loading before redirect
 				goto('/admin/login');
 			}
 		} else {
-			// Not authenticated - redirect to login
-			console.log('[LAYOUT] Not authenticated, redirecting to login');
+			// Not authenticated at all - redirect to login immediately
+			loading = false; // Stop loading before redirect
 			goto('/admin/login');
 		}
 	});
@@ -118,6 +121,23 @@
 			<main id="main-content" class="flex-1 p-6 {$adminSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-200 mt-16">
 				<slot />
 			</main>
+		</div>
+	</div>
+{:else}
+	<!-- CRITICAL SECURITY: Fallback for any edge case where user is not authenticated -->
+	<!-- This prevents blank pages AND unauthorized access to admin panel -->
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+		<div class="text-center">
+			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+				<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+				</svg>
+			</div>
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Authentication Required</h2>
+			<p class="text-gray-600 dark:text-gray-400 mb-6">You must be logged in to access the admin panel.</p>
+			<a href="/admin/login" class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+				Go to Login
+			</a>
 		</div>
 	</div>
 {/if}
