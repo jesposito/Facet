@@ -4,10 +4,10 @@
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.24-alpine AS backend-builder
+FROM golang:1.24-bookworm AS backend-builder
 
 WORKDIR /build
-RUN apk add --no-cache gcc musl-dev
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -31,21 +31,26 @@ RUN npm run build
 # ============================================
 # Stage 3: Final runtime image
 # ============================================
-FROM alpine:3.19
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tzdata \
     nodejs \
+    npm \
     caddy \
     pandoc \
     texlive \
-    texmf-dist-latexextra \
-    texmf-dist-fontsextra
+    texlive-latex-extra \
+    texlive-fonts-extra \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1000 facet && \
-    adduser -u 1000 -G facet -s /bin/sh -D facet
+# Note: Uses GID/UID 1000 as standard. If your host user has different UID,
+# either chown the data directory or rebuild with matching UID
+RUN groupadd -g 1000 facet && \
+    useradd -u 1000 -g facet -s /bin/sh -m facet
 
 WORKDIR /app
 
