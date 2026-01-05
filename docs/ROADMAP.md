@@ -415,17 +415,91 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
 
 ---
 
+## Phase 16: Code Quality & Bug Fixes (🔜 In Progress)
+**Purpose:** Address technical debt and improve codebase health
+
+### Bug Fixes (19 identified via comprehensive analysis)
+- 🔴 **Critical/High Priority** (10 bugs):
+  - HTTP timeouts in AI service (DoS vulnerability)
+  - Race condition in rate limiting service
+  - File size validation bypass (DoS vulnerability)
+  - Missing error checks on database saves
+  - SQL filter escaping issues
+  - Resource leaks in HTTP clients
+  - Pagination off-by-one errors
+  - Silent deduplication failures
+  - State consistency in demo mode
+  - Non-unique slug generation
+
+- 🟡 **Medium/Low Priority** (9 bugs):
+  - Fragile error string matching
+  - Weak time parsing validation
+  - Type safety issues in frontend
+  - HTTP status code inconsistencies
+  - Missing null checks
+  - Magic numbers in string operations
+  - Silent file attachment failures
+
+**Process:** All bug fixes follow `.claude/BUG_INVESTIGATION_PROTOCOL.md`:
+1. Investigation branch for root cause analysis
+2. Comprehensive test plan before implementation
+3. Fix branch with TDD approach (write failing test first)
+4. Manual + automated testing
+5. PR with detailed root cause documentation
+
+**See:** `.claude/bugs/BUGS_INVENTORY.md` for complete bug list with severity, impact, and suggested fixes.
+
+### Testing Infrastructure (Phase 16.1)
+**Current State:** 14% backend coverage, 0% frontend coverage, ~50 test cases
+**Target:** 70%+ coverage, 250+ test cases, all critical paths tested
+
+- 🔜 **Tier 1 - Critical** (Weeks 1-4):
+  - Authentication & authorization tests (40 test cases)
+  - View visibility & access control tests (30 test cases)
+  - File security & media management tests (25 test cases)
+  - GitHub import system tests (20 test cases)
+
+- 🔜 **Tier 2 - Important** (Weeks 5-6):
+  - Resume parsing tests (30 test cases)
+  - AI integration tests with mocking (25 test cases)
+  - View management tests (20 test cases)
+  - Export functionality tests (15 test cases)
+
+- 🔜 **Tier 3 - Coverage** (Weeks 7-8):
+  - Frontend component tests (60+ test cases)
+  - Demo mode tests (10 test cases)
+  - Performance/load tests
+
+**Infrastructure Improvements:**
+- CI/CD integration with GitHub Actions
+- Test fixtures and seeding
+- Mock services for GitHub, AI providers
+- Automated test runs on all PRs
+
+---
+
 ## Cross-Cutting Backlog
 - **High Priority:**
-  - Testing: ✅ E2E infrastructure complete (25 Playwright tests covering public APIs, SEO, error pages, media, admin flows); 🔜 GitHub/AI provider mocks, additional coverage
-  - Theme system extensions (light/dark, presets)
+  - 🔜 **Bug Fixes** - 10 critical/high priority bugs (see Phase 16)
+  - 🔜 **Testing Infrastructure** - Expand to 70%+ coverage (see Phase 16)
+  - 🔜 **Theme System** - Pre-built themes, visual editor, dark/light toggle
+  - 🔜 **Custom Sections** - User-defined section types (Publications, Testimonials, Patents, etc.)
   - ✅ **Resume Upload & AI Parsing (Reverse Direction):** Upload existing PDF/DOCX resumes, use AI to extract and populate experience/education/skills
     - Complete: AI resume generation (Facet → PDF/DOCX) + resume upload (existing resume → Facet data). Both directions now supported.
 - **Medium Priority:**
+  - 🔜 **Content Insights Dashboard** - Simple metrics (total views, share token usage, most-viewed content) - privacy-respecting, opt-in only
+  - 🔜 **Scheduled Publishing** - Content calendar for posts/projects with scheduled publish dates
   - Import/sync: scheduled GitHub refresh, JSON Resume format support
   - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options
 - **Low Priority:**
-  - Content extensions: awards/publications/testimonials/custom sections; collaboration modes (read-only/suggestion) remain single-user
+  - Webhooks & integrations (Zapier/IFTTT support)
+  - Advanced media features (native video hosting, image galleries, lightbox)
+  - API documentation & SDKs (OpenAPI spec, Python/JS SDKs)
+  - Bulk operations (bulk edit visibility, CSV import/export)
+  - Offline PWA support
+  - Mobile admin UX improvements
+  - Accessibility audit (WCAG 2.1 AAA compliance)
+  - Content extensions: awards/publications/testimonials; collaboration modes (read-only/suggestion) remain single-user
 
 ## Integrations
 - ✅ RSS feed for posts
