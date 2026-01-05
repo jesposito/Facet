@@ -11,6 +11,7 @@ import (
 
 	"facet/services"
 
+	"github.com/google/uuid"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -165,9 +166,14 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 
 			log.Printf("[RESUME-UPLOAD] Parsing complete. Confidence: %s, Warnings: %d", parsed.Metadata.Confidence, len(parsed.Metadata.Warnings))
 
-			// Create records in collections with import metadata
+			// Generate unique session ID for this import
+			// This allows us to track which items came from which resume upload
+			importSessionID := uuid.New().String()
+			log.Printf("[RESUME-UPLOAD] Generated import session ID: %s", importSessionID)
+
+			// Create records in collections with smart deduplication
 			log.Println("[RESUME-UPLOAD] Creating records in collections...")
-			imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename)
+			imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename, importSessionID)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
 				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -422,17 +428,28 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 	return imported, nil
 }
 
-// createResumeRecordsWithDeduplication creates records with deduplication and import metadata
-func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string) (map[string][]string, int, error) {
+// createResumeRecordsWithDeduplication creates records with smart deduplication and import metadata
+//
+// Deduplication Strategy (for faceted resume views):
+// - Skills: Always dedupe across all imports (same skill is same skill)
+// - Experience: Only dedupe within same session (different resumes = different facets)
+// - Education: Always dedupe (same degree is same credential)
+// - Awards: Always dedupe (same award is same achievement)
+// - Projects: Only dedupe within same session (different resumes = different facets)
+func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string, importSessionID string) (map[string][]string, int, error) {
 	imported := make(map[string][]string)
 	duplicateCount := 0
+
+	log.Printf("[RESUME-UPLOAD] Using smart deduplication strategy for import session: %s", importSessionID)
 
 	// Helper to get table name
 	getTableName := func(baseName string) string {
 		return baseName
 	}
 
-	// Create experience records with deduplication
+	// Create experience records with within-session deduplication only
+	// Strategy: Different resumes = different facets, so we allow same job to appear multiple times
+	// but dedupe within the same resume upload to avoid duplicates from parsing errors
 	if len(parsed.Experience) > 0 {
 		expCollection, err := app.FindCollectionByNameOrId(getTableName("experience"))
 		if err != nil {
@@ -440,12 +457,13 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 
 		for _, exp := range parsed.Experience {
-			// Check for duplicate: same company + title + start_date
-			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s'",
-				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate)
+			// Check for duplicate ONLY within this import session
+			// This allows same role to be imported from different resumes (faceted views)
+			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s' && import_session_id = '%s'",
+				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate, importSessionID)
 			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 0, 1)
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate experience: %s at %s", exp.Title, exp.Company)
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate experience within same resume: %s at %s", exp.Title, exp.Company)
 				duplicateCount++
 				continue
 			}
@@ -465,8 +483,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			if len(exp.Skills) > 0 {
 				record.Set("skills", exp.Skills)
 			}
-			// Add import metadata
-			record.Set("notes", fmt.Sprintf("Imported from: %s", filename))
+			// Add import metadata for tracking and user visibility
+			record.Set("import_session_id", importSessionID)
+			record.Set("import_filename", filename)
 			record.Set("visibility", "private")
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
@@ -479,7 +498,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 	}
 
-	// Create education records with deduplication
+	// Create education records with cross-session deduplication
+	// Strategy: Same degree = same credential, regardless of which resume it appears on
+	// Match on institution + degree + field + end_date (graduation date)
 	if len(parsed.Education) > 0 {
 		eduCollection, err := app.FindCollectionByNameOrId(getTableName("education"))
 		if err != nil {
@@ -487,9 +508,17 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 
 		for _, edu := range parsed.Education {
-			// Check for duplicate: same institution + degree + field
-			filter := fmt.Sprintf("institution = '%s' && degree = '%s' && field = '%s'",
-				escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field))
+			// Check for duplicate across ALL imports (not session-specific)
+			// A degree from MIT is the same degree regardless of which resume lists it
+			var filter string
+			if edu.EndDate != "" && edu.EndDate != "null" {
+				filter = fmt.Sprintf("institution = '%s' && degree = '%s' && field = '%s' && end_date = '%s'",
+					escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field), edu.EndDate)
+			} else {
+				filter = fmt.Sprintf("institution = '%s' && degree = '%s' && field = '%s'",
+					escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field))
+			}
+
 			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 0, 1)
 			if err == nil && len(existing) > 0 {
 				log.Printf("[RESUME-UPLOAD] Skipping duplicate education: %s from %s", edu.Degree, edu.Institution)
@@ -506,6 +535,8 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				record.Set("end_date", edu.EndDate)
 			}
 			record.Set("description", edu.Description)
+			record.Set("import_session_id", importSessionID)
+			record.Set("import_filename", filename)
 			record.Set("visibility", "private")
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
@@ -518,7 +549,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 	}
 
-	// Create skills records with deduplication
+	// Create skills records with cross-session deduplication
+	// Strategy: A skill is a skill - "Python" is "Python" regardless of which resume it appears on
+	// Always dedupe across all imports (case-insensitive match)
 	if len(parsed.Skills) > 0 {
 		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
 		if err != nil {
@@ -526,7 +559,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 
 		for _, skill := range parsed.Skills {
-			// Check for duplicate: same name (case-insensitive)
+			// Check for duplicate across ALL imports (not session-specific)
 			filter := fmt.Sprintf("LOWER(name) = LOWER('%s')", escapeFilter(skill.Name))
 			existing, err := app.FindRecordsByFilter(skillsCollection.Name, filter, "", 0, 1)
 			if err == nil && len(existing) > 0 {
@@ -539,6 +572,8 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			record.Set("name", skill.Name)
 			record.Set("category", skill.Category)
 			record.Set("proficiency", skill.Proficiency)
+			record.Set("import_session_id", importSessionID)
+			record.Set("import_filename", filename)
 			record.Set("visibility", "private")
 			record.Set("sort_order", 0)
 
@@ -589,7 +624,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 	}
 
-	// Create projects records with deduplication
+	// Create projects records with within-session deduplication only
+	// Strategy: Like experience, projects are faceted - same project may have different descriptions
+	// for different audiences (e.g., emphasizing different tech stacks or outcomes)
 	if len(parsed.Projects) > 0 {
 		projectsCollection, err := app.FindCollectionByNameOrId(getTableName("projects"))
 		if err != nil {
@@ -597,11 +634,12 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 
 		for _, proj := range parsed.Projects {
-			// Check for duplicate: same title
-			filter := fmt.Sprintf("title = '%s'", escapeFilter(proj.Title))
+			// Check for duplicate ONLY within this import session
+			// This allows same project to be imported from different resumes with different facets
+			filter := fmt.Sprintf("title = '%s' && import_session_id = '%s'", escapeFilter(proj.Title), importSessionID)
 			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 0, 1)
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate project: %s", proj.Title)
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate project within same resume: %s", proj.Title)
 				duplicateCount++
 				continue
 			}
@@ -619,6 +657,8 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				linksJSON, _ := json.Marshal(proj.Links)
 				record.Set("links", string(linksJSON))
 			}
+			record.Set("import_session_id", importSessionID)
+			record.Set("import_filename", filename)
 			record.Set("visibility", "private")
 			record.Set("is_draft", false)
 			record.Set("is_featured", false)
@@ -632,16 +672,26 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 	}
 
-	// Create awards records with deduplication
+	// Create awards records with cross-session deduplication
+	// Strategy: Same award = same achievement regardless of which resume it appears on
+	// "Best Paper Award at ICML 2024" is the same award everywhere
 	if len(parsed.Awards) > 0 {
 		awardsCollection, err := app.FindCollectionByNameOrId(getTableName("awards"))
 		if err != nil {
 			log.Printf("[RESUME-UPLOAD] Awards collection not found (skipping): %v", err)
 		} else {
 			for _, award := range parsed.Awards {
-				// Check for duplicate: same title + issuer
-				filter := fmt.Sprintf("title = '%s' && issuer = '%s'",
-					escapeFilter(award.Title), escapeFilter(award.Issuer))
+				// Check for duplicate across ALL imports (not session-specific)
+				// Match on title + issuer + date for uniqueness
+				var filter string
+				if award.AwardedAt != "" && award.AwardedAt != "null" {
+					filter = fmt.Sprintf("title = '%s' && issuer = '%s' && awarded_at = '%s'",
+						escapeFilter(award.Title), escapeFilter(award.Issuer), award.AwardedAt)
+				} else {
+					filter = fmt.Sprintf("title = '%s' && issuer = '%s'",
+						escapeFilter(award.Title), escapeFilter(award.Issuer))
+				}
+
 				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 0, 1)
 				if err == nil && len(existing) > 0 {
 					log.Printf("[RESUME-UPLOAD] Skipping duplicate award: %s", award.Title)
@@ -654,6 +704,8 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				record.Set("issuer", award.Issuer)
 				record.Set("awarded_at", award.AwardedAt)
 				record.Set("description", award.Description)
+				record.Set("import_session_id", importSessionID)
+				record.Set("import_filename", filename)
 				record.Set("visibility", "private")
 				record.Set("is_draft", false)
 				record.Set("sort_order", 0)
