@@ -560,7 +560,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s' && import_filename = '%s'",
 				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate, escapeFilter(filename))
 			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate experience '%s at %s' with filter: %s", exp.Title, exp.Company, filter)
-			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 0, 1)
+			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 1, 0)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for experience '%s at %s': %v", exp.Title, exp.Company, err)
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
@@ -622,7 +622,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 					escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field))
 			}
 
-			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 0, 1)
+			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 1, 0)
 			if err == nil && len(existing) > 0 {
 				log.Printf("[RESUME-UPLOAD] Skipping duplicate education: %s from %s", edu.Degree, edu.Institution)
 				duplicateCount++
@@ -665,7 +665,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		log.Printf("[RESUME-UPLOAD] [DEBUG] Skills collection: name=%s, id=%s", skillsCollection.Name, skillsCollection.Id)
 
 		// Fetch ALL existing skills for case-insensitive comparison
-		allSkills, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", 0, 500)
+		// Note: FindRecordsByFilter(collection, filter, sort, limit, offset)
+		// limit=500 (max records to return), offset=0 (start from beginning)
+		allSkills, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", 500, 0)
 		if err != nil {
 			log.Printf("[RESUME-UPLOAD] [WARNING] Failed to fetch existing skills: %v", err)
 			allSkills = []*core.Record{} // Continue with empty list
@@ -723,7 +725,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// Check for duplicate: same name + issuer
 			filter := fmt.Sprintf("name = '%s' && issuer = '%s'",
 				escapeFilter(cert.Name), escapeFilter(cert.Issuer))
-			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 0, 1)
+			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 1, 0)
 			if err == nil && len(existing) > 0 {
 				log.Printf("[RESUME-UPLOAD] Skipping duplicate certification: %s", cert.Name)
 				duplicateCount++
@@ -766,7 +768,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// but prevents duplicates from same resume imported multiple times
 			filter := fmt.Sprintf("title = '%s' && import_filename = '%s'", escapeFilter(proj.Title), escapeFilter(filename))
 			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate project '%s' with filter: %s", proj.Title, filter)
-			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 0, 1)
+			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 1, 0)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for project '%s': %v", proj.Title, err)
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
@@ -825,7 +827,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 						escapeFilter(award.Title), escapeFilter(award.Issuer))
 				}
 
-				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 0, 1)
+				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 1, 0)
 				if err == nil && len(existing) > 0 {
 					log.Printf("[RESUME-UPLOAD] Skipping duplicate award: %s", award.Title)
 					duplicateCount++
@@ -862,7 +864,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				// Check for duplicate: same title + event
 				filter := fmt.Sprintf("title = '%s' && event = '%s'",
 					escapeFilter(talk.Title), escapeFilter(talk.Event))
-				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 0, 1)
+				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 1, 0)
 				if err == nil && len(existing) > 0 {
 					log.Printf("[RESUME-UPLOAD] Skipping duplicate talk: %s", talk.Title)
 					duplicateCount++
