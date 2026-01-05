@@ -1,9 +1,11 @@
 package services
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"strings"
@@ -147,19 +149,27 @@ func (rp *ResumeParser) extractPDF(fileBytes []byte) (string, error) {
 	return extractedText, nil
 }
 
-// extractDOCX extracts text from DOCX using go-docx
+// extractDOCX extracts text from DOCX using go-docx with XML fallback
 func (rp *ResumeParser) extractDOCX(fileBytes []byte) (text string, err error) {
 	// Recover from panics in go-docx library (can happen with malformed/complex DOCX files)
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("failed to parse DOCX: the file may be corrupted or use unsupported formatting. Error: %v", r)
-			text = ""
+			// If go-docx panics, try the XML fallback
+			text, err = rp.extractDOCXFromXML(fileBytes)
+			if err != nil {
+				err = fmt.Errorf("failed to parse DOCX: the file may be corrupted or use unsupported formatting. Error: %v", r)
+			}
 		}
 	}()
 
 	reader := bytes.NewReader(fileBytes)
 	doc, parseErr := docx.Parse(reader, int64(len(fileBytes)))
 	if parseErr != nil {
+		// Try XML fallback before giving up
+		text, fallbackErr := rp.extractDOCXFromXML(fileBytes)
+		if fallbackErr == nil {
+			return text, nil
+		}
 		return "", fmt.Errorf("failed to parse DOCX: %w. Try converting to PDF or re-saving the file", parseErr)
 	}
 
@@ -180,6 +190,83 @@ func (rp *ResumeParser) extractDOCX(fileBytes []byte) (text string, err error) {
 	extractedText := textBuilder.String()
 	if strings.TrimSpace(extractedText) == "" {
 		return "", fmt.Errorf("no text found in DOCX - the file may be empty or contain only images/tables")
+	}
+
+	return extractedText, nil
+}
+
+// extractDOCXFromXML extracts text from DOCX by parsing the XML directly
+// DOCX files are ZIP archives containing XML. This is a fallback when go-docx fails.
+func (rp *ResumeParser) extractDOCXFromXML(fileBytes []byte) (string, error) {
+	// Open DOCX as ZIP archive
+	reader := bytes.NewReader(fileBytes)
+	zipReader, err := zip.NewReader(reader, int64(len(fileBytes)))
+	if err != nil {
+		return "", fmt.Errorf("failed to read DOCX as ZIP: %w", err)
+	}
+
+	// Find and read word/document.xml
+	var documentXML []byte
+	for _, file := range zipReader.File {
+		if file.Name == "word/document.xml" {
+			rc, err := file.Open()
+			if err != nil {
+				return "", fmt.Errorf("failed to open document.xml: %w", err)
+			}
+			defer rc.Close()
+
+			documentXML, err = io.ReadAll(rc)
+			if err != nil {
+				return "", fmt.Errorf("failed to read document.xml: %w", err)
+			}
+			break
+		}
+	}
+
+	if documentXML == nil {
+		return "", fmt.Errorf("document.xml not found in DOCX file")
+	}
+
+	// Parse XML and extract text from <w:t> elements
+	type Text struct {
+		Value string `xml:",chardata"`
+	}
+	type Document struct {
+		Texts []Text `xml:"body>p>r>t"`
+	}
+
+	// Use a simpler approach: extract all <w:t> tags with regex
+	// This is more robust than full XML parsing for our use case
+	var textBuilder strings.Builder
+	decoder := xml.NewDecoder(bytes.NewReader(documentXML))
+
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			continue
+		}
+
+		switch elem := token.(type) {
+		case xml.StartElement:
+			if elem.Name.Local == "t" {
+				// Read the text content
+				var text string
+				if err := decoder.DecodeElement(&text, &elem); err == nil {
+					textBuilder.WriteString(text)
+				}
+			} else if elem.Name.Local == "p" {
+				// Add newline for paragraphs
+				textBuilder.WriteString("\n")
+			}
+		}
+	}
+
+	extractedText := textBuilder.String()
+	if strings.TrimSpace(extractedText) == "" {
+		return "", fmt.Errorf("no text found in DOCX XML")
 	}
 
 	return extractedText, nil
