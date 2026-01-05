@@ -7,9 +7,10 @@
 	// Resume upload state
 	let resumeFile: File | null = null;
 	let resumeUploading = false;
-	let resumeError = '';
+	let resumeError: { message: string; action: string; technical: string } | string = '';
 	let dragActive = false;
 	let resumeResult: any = null;
+	let showTechnicalDetails = false;
 
 	// GitHub import state
 	let step = 1;
@@ -68,6 +69,7 @@
 
 		resumeUploading = true;
 		resumeError = '';
+		showTechnicalDetails = false;
 
 		try {
 			const formData = new FormData();
@@ -83,7 +85,14 @@
 
 			if (!response.ok) {
 				const data = await response.json();
-				throw new Error(data.error || 'Resume upload failed');
+				// Check if error is structured (with message, action, technical)
+				if (data.error && typeof data.error === 'object' && data.error.message) {
+					resumeError = data.error;
+				} else {
+					// Fallback to simple error message
+					resumeError = data.error || 'Resume upload failed';
+				}
+				return;
 			}
 
 			const result = await response.json();
@@ -93,6 +102,13 @@
 			resumeError = (err as Error).message;
 		} finally {
 			resumeUploading = false;
+		}
+	}
+
+	function copyTechnicalDetails() {
+		if (typeof resumeError === 'object' && resumeError.technical) {
+			navigator.clipboard.writeText(resumeError.technical);
+			toasts.add('success', 'Technical details copied to clipboard');
 		}
 	}
 
@@ -214,8 +230,56 @@
 		</p>
 
 		{#if resumeError}
-			<div class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
-				{resumeError}
+			<div class="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+				{#if typeof resumeError === 'object' && resumeError.message}
+					<!-- Structured error with user-friendly message -->
+					<div class="flex items-start gap-3">
+						<svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<div class="flex-1">
+							<p class="font-medium text-red-900 dark:text-red-100">
+								{resumeError.message}
+							</p>
+							<p class="mt-1 text-sm text-red-700 dark:text-red-300">
+								{resumeError.action}
+							</p>
+							{#if resumeError.technical}
+								<button
+									class="mt-2 text-xs text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
+									on:click={() => (showTechnicalDetails = !showTechnicalDetails)}
+								>
+									{showTechnicalDetails ? 'Hide' : 'Show'} technical details
+									<svg class="w-3 h-3 transition-transform {showTechnicalDetails ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									</svg>
+								</button>
+								{#if showTechnicalDetails}
+									<div class="mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded text-xs font-mono text-red-800 dark:text-red-200 relative">
+										<button
+											class="absolute top-1 right-1 p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded"
+											on:click={copyTechnicalDetails}
+											title="Copy to clipboard"
+										>
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+											</svg>
+										</button>
+										<pre class="whitespace-pre-wrap break-words pr-8">{resumeError.technical}</pre>
+									</div>
+								{/if}
+							{/if}
+						</div>
+					</div>
+				{:else}
+					<!-- Simple error string (fallback) -->
+					<div class="flex items-start gap-2">
+						<svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<p class="text-sm text-red-700 dark:text-red-300">{resumeError}</p>
+					</div>
+				{/if}
 			</div>
 		{/if}
 

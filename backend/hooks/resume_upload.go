@@ -16,6 +16,22 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// UserError represents an error with both user-friendly and technical details
+type UserError struct {
+	Message   string `json:"message"`   // User-friendly message
+	Action    string `json:"action"`    // Suggested action for user
+	Technical string `json:"technical"` // Technical details for support/debugging
+}
+
+// NewUserError creates a user-friendly error with technical details
+func NewUserError(message, action, technical string) UserError {
+	return UserError{
+		Message:   message,
+		Action:    action,
+		Technical: technical,
+	}
+}
+
 // RegisterResumeUploadHooks registers resume upload and parsing endpoints
 func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	ai := services.NewAIService(crypto)
@@ -33,8 +49,12 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			file, header, err := e.Request.FormFile("file")
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Failed to get file: %v", err)
-				return e.JSON(http.StatusBadRequest, map[string]string{
-					"error": "No file uploaded. Please select a PDF or DOCX file.",
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"We couldn't find a file to upload.",
+						"Please select a PDF or DOCX resume file and try again.",
+						fmt.Sprintf("File upload error: %v", err),
+					),
 				})
 			}
 			defer file.Close()
@@ -43,8 +63,13 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			const maxSize = 5 * 1024 * 1024 // 5MB
 			if header.Size > maxSize {
 				log.Printf("[RESUME-UPLOAD] File too large: %d bytes", header.Size)
-				return e.JSON(http.StatusBadRequest, map[string]string{
-					"error": "File is too large. Maximum size is 5MB.",
+				fileSizeMB := float64(header.Size) / (1024 * 1024)
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"Your resume file is too large.",
+						"Please use a file smaller than 5MB. Try compressing images or saving as a simpler format.",
+						fmt.Sprintf("File size: %.2f MB (maximum: 5 MB)", fileSizeMB),
+					),
 				})
 			}
 
@@ -52,8 +77,12 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			mimeType := header.Header.Get("Content-Type")
 			if mimeType != "application/pdf" && mimeType != "application/vnd.openxmlformats-officedocument.wordprocessingml.document" {
 				log.Printf("[RESUME-UPLOAD] Invalid file type: %s", mimeType)
-				return e.JSON(http.StatusBadRequest, map[string]string{
-					"error": "Invalid file type. Please upload a PDF or DOCX file.",
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"This file type isn't supported.",
+						"Please upload your resume as a PDF (.pdf) or Word document (.docx).",
+						fmt.Sprintf("Unsupported file type: %s (filename: %s)", mimeType, header.Filename),
+					),
 				})
 			}
 
@@ -64,8 +93,12 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			provider, err := getActiveProvider(app, crypto, providerID)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] No AI provider: %v", err)
-				return e.JSON(http.StatusBadRequest, map[string]string{
-					"error": "AI provider not configured. Please configure an AI provider in settings.",
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"AI provider is not configured.",
+						"Please go to Settings and configure an AI provider (OpenAI, Anthropic, or Ollama) to parse resumes.",
+						fmt.Sprintf("Provider error: %v", err),
+					),
 				})
 			}
 			log.Printf("[RESUME-UPLOAD] Using AI provider: %s (%s)", provider.Name, provider.Type)
@@ -74,8 +107,12 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			fileBytes, err := services.ReadFileBytes(file)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Failed to read file: %v", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "Failed to read uploaded file.",
+				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"error": NewUserError(
+						"We couldn't read your file.",
+						"This is unusual. Try uploading your file again, or try a different file format.",
+						fmt.Sprintf("File read error: %v (filename: %s)", err, header.Filename),
+					),
 				})
 			}
 
@@ -84,8 +121,19 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			resumeText, err := parser.ExtractText(fileBytes, mimeType)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Text extraction failed: %v", err)
-				return e.JSON(http.StatusBadRequest, map[string]string{
-					"error": fmt.Sprintf("Failed to extract text from resume: %v", err),
+				// Provide context-specific suggestions based on error
+				action := "Try converting your resume to PDF format, or re-save your document and try again."
+				if strings.Contains(err.Error(), "corrupted") {
+					action = "Your file may be corrupted. Try opening it in Word/PDF viewer and saving a new copy."
+				} else if strings.Contains(err.Error(), "no text found") {
+					action = "Your file appears to contain only images. Try using a version with selectable text, or use OCR software first."
+				}
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"We couldn't extract text from your resume.",
+						action,
+						fmt.Sprintf("Text extraction error: %v", err),
+					),
 				})
 			}
 
@@ -99,8 +147,19 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			parsed, err := parser.ParseResume(ctx, provider, resumeText)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] AI parsing failed: %v", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{
-					"error": fmt.Sprintf("AI parsing failed: %v. Please try again or use a different file.", err),
+				// Provide helpful suggestions based on error type
+				action := "Try uploading your resume again. If the problem persists, try a simpler resume format."
+				if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
+					action = "The AI service took too long to respond. Try again in a moment, or try a shorter resume."
+				} else if strings.Contains(err.Error(), "JSON") {
+					action = "The AI had trouble understanding your resume format. Try a simpler layout or contact support."
+				}
+				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"error": NewUserError(
+						"We couldn't parse your resume with AI.",
+						action,
+						fmt.Sprintf("AI parsing error: %v", err),
+					),
 				})
 			}
 
@@ -111,8 +170,12 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			imported, err := createResumeRecords(app, parsed)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{
-					"error": fmt.Sprintf("Failed to save resume data: %v", err),
+				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"error": NewUserError(
+						"We parsed your resume but couldn't save the data.",
+						"This might be a temporary database issue. Please try again in a moment.",
+						fmt.Sprintf("Database error: %v", err),
+					),
 				})
 			}
 
