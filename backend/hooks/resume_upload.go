@@ -562,25 +562,35 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 	// Create skills records with cross-session deduplication
 	// Strategy: A skill is a skill - "Python" is "Python" regardless of which resume it appears on
 	// Always dedupe across all imports (case-insensitive match)
+	// NOTE: PocketBase doesn't support :lower modifier in filters, so we fetch all and compare in-memory
 	if len(parsed.Skills) > 0 {
 		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
 		if err != nil {
 			return nil, 0, fmt.Errorf("skills collection not found: %w", err)
 		}
 
+		// Fetch ALL existing skills for case-insensitive comparison
+		allSkills, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", 0, 500)
+		if err != nil {
+			log.Printf("[RESUME-UPLOAD] [WARNING] Failed to fetch existing skills: %v", err)
+			allSkills = []*core.Record{} // Continue with empty list
+		}
+		log.Printf("[RESUME-UPLOAD] [DEBUG] Loaded %d existing skills for deduplication check", len(allSkills))
+
 		for _, skill := range parsed.Skills {
-			// Check for duplicate across ALL imports (not session-specific)
-			// Use PocketBase :lower modifier for case-insensitive matching
-			filter := fmt.Sprintf("name:lower = '%s'", strings.ToLower(escapeFilter(skill.Name)))
-			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate skill '%s' with filter: %s", skill.Name, filter)
-			existing, err := app.FindRecordsByFilter(skillsCollection.Name, filter, "", 0, 1)
-			if err != nil {
-				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for skill '%s': %v", skill.Name, err)
-				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
+			// Check for duplicate by comparing lowercase names
+			isDuplicate := false
+			for _, existing := range allSkills {
+				existingName := existing.GetString("name")
+				if strings.EqualFold(existingName, skill.Name) {
+					log.Printf("[RESUME-UPLOAD] Skipping duplicate skill: %s (matches existing: %s)", skill.Name, existingName)
+					duplicateCount++
+					isDuplicate = true
+					break
+				}
 			}
-			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate skill: %s (found %d existing)", skill.Name, len(existing))
-				duplicateCount++
+
+			if isDuplicate {
 				continue
 			}
 
@@ -598,6 +608,8 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				continue
 			}
 			imported["skills"] = append(imported["skills"], record.Id)
+			// Add to our in-memory list for subsequent checks in this import
+			allSkills = append(allSkills, record)
 		}
 	}
 

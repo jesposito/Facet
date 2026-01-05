@@ -13,7 +13,7 @@ func init() {
 		// - awards: to track source and support deduplication
 		// - experience: to track source and enable faceted views
 
-		collectionsToUpdate := []string{"skills", "education", "awards", "experience"}
+		collectionsToUpdate := []string{"skills", "education", "awards", "experience", "projects"}
 
 		for _, collectionName := range collectionsToUpdate {
 			collection, err := app.FindCollectionByNameOrId(collectionName)
@@ -46,7 +46,7 @@ func init() {
 		return nil
 	}, func(app core.App) error {
 		// Rollback: remove the fields
-		collectionsToUpdate := []string{"skills", "education", "awards", "experience"}
+		collectionsToUpdate := []string{"skills", "education", "awards", "experience", "projects"}
 
 		for _, collectionName := range collectionsToUpdate {
 			collection, err := app.FindCollectionByNameOrId(collectionName)
