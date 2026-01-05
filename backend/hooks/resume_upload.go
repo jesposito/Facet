@@ -2,6 +2,8 @@ package hooks
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -117,6 +119,46 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
+			// Hash the file to check for duplicates
+			hasher := sha256.New()
+			hasher.Write(fileBytes)
+			fileHash := hex.EncodeToString(hasher.Sum(nil))
+			log.Printf("[RESUME-UPLOAD] File hash: %s", fileHash)
+
+			// Check if this exact file has been imported before
+			resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports")
+			if err == nil {
+				existingImport, err := app.FindFirstRecordByFilter(
+					resumeImportsCollection.Name,
+					fmt.Sprintf("hash = '%s'", fileHash),
+				)
+				if err == nil && existingImport != nil {
+					// This file was already imported - check if it was recent (within 1 hour)
+					importedAt := existingImport.GetDateTime("imported_at")
+					originalFilename := existingImport.GetString("filename")
+					hoursSinceImport := time.Since(importedAt.Time()).Hours()
+
+					log.Printf("[RESUME-UPLOAD] Duplicate file detected - imported %s as '%s' (%.1f hours ago)",
+						importedAt, originalFilename, hoursSinceImport)
+
+					// If imported within last hour, likely accidental duplicate - reject
+					if hoursSinceImport < 1.0 {
+						return e.JSON(http.StatusBadRequest, map[string]interface{}{
+							"error": NewUserError(
+								"This resume was just imported.",
+								fmt.Sprintf("This file was imported %d minutes ago as '%s'. If you deleted some records and want to re-import them, wait an hour or delete the original import first.",
+									int(hoursSinceImport*60), originalFilename),
+								fmt.Sprintf("Duplicate hash: %s (imported %.1f hours ago)", fileHash, hoursSinceImport),
+							),
+						})
+					}
+
+					// Imported more than an hour ago - allow re-import
+					// User may have deleted/modified records and wants to restore them
+					log.Printf("[RESUME-UPLOAD] Allowing re-import of file imported %.1f hours ago", hoursSinceImport)
+				}
+			}
+
 			// Extract text
 			log.Println("[RESUME-UPLOAD] Extracting text from file...")
 			resumeText, err := parser.ExtractText(fileBytes, mimeType)
@@ -187,6 +229,31 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 
 			log.Printf("[RESUME-UPLOAD] Successfully imported: %d experience, %d education, %d skills (skipped %d duplicates)",
 				len(imported["experience"]), len(imported["education"]), len(imported["skills"]), deduped)
+
+			// Create resume_imports record to track this import and prevent future duplicates
+			if resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports"); err == nil {
+				resumeImportRecord := core.NewRecord(resumeImportsCollection)
+				resumeImportRecord.Set("hash", fileHash)
+				resumeImportRecord.Set("filename", header.Filename)
+				resumeImportRecord.Set("file_size", header.Size)
+				resumeImportRecord.Set("record_counts", map[string]int{
+					"experience":     len(imported["experience"]),
+					"education":      len(imported["education"]),
+					"skills":         len(imported["skills"]),
+					"certifications": len(imported["certifications"]),
+					"projects":       len(imported["projects"]),
+					"awards":         len(imported["awards"]),
+					"talks":          len(imported["talks"]),
+				})
+				resumeImportRecord.Set("imported_at", time.Now())
+
+				if err := app.Save(resumeImportRecord); err != nil {
+					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to create resume_imports record: %v", err)
+					// Don't fail the import if we can't save the tracking record
+				} else {
+					log.Printf("[RESUME-UPLOAD] Created resume_imports record (id: %s) with hash: %s", resumeImportRecord.Id, fileHash)
+				}
+			}
 
 			// Return success with import details
 			return e.JSON(http.StatusOK, map[string]interface{}{
