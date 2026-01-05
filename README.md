@@ -559,6 +559,8 @@ For upgrade procedures: [docs/UPGRADE.md](docs/UPGRADE.md)
 - OAuth 2.0 (Google, GitHub)
 - Email allowlist (`ADMIN_EMAILS`)
 - Session tokens in httpOnly cookies
+- First-time password change enforcement for default credentials
+- 2FA/TOTP: Awaiting native PocketBase support (OAuth providers handle their own 2FA)
 
 **Encryption:**
 - AES-256-GCM for API keys and sensitive tokens (encrypted at rest)

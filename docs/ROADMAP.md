@@ -97,10 +97,14 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Security Test Suite** - Comprehensive tests for XSS, path traversal, input validation (tests/security.spec.ts)
 - ✅ Audit logs database schema prepared (migration ready)
 - ✅ HTTPS enforcement check (warns in production)
+- ✅ **Security Headers** - Comprehensive headers implemented via Caddy (docker/Caddyfile) and PocketBase built-in middleware:
+  - PocketBase `pbSecurityHeaders` middleware: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options (automatic on all responses)
+  - Caddy layer: X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, Server header removal
+  - CSP intentionally deferred (requires OAuth testing, report-only rollout first)
 - 🔜 **Planned Enhancements:**
-  - Security headers (CSP, X-Frame-Options, Permissions Policy)
+  - Content Security Policy (CSP) - Requires report-only rollout and OAuth flow testing
   - Audit log implementation (hooks for admin actions)
-  - 2FA (TOTP + backup codes)
+  - 2FA/TOTP - Deferred pending native PocketBase support (OAuth users already protected by provider 2FA)
   - Session listing/revoke/expiry
   - Remove debug logging from production code
 
@@ -433,6 +437,30 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
 - ✅ iCal export for talks
 - ✅ Google Analytics (opt-in)
 - 🔜 Webhook notifications
+
+## Tracking Upstream Dependencies
+
+### PocketBase 2FA/TOTP Support
+**Status:** Deferred pending native PocketBase support
+
+**Why deferred:**
+- No native TOTP in PocketBase as of v0.23
+- OAuth users (Google/GitHub) already protected by provider 2FA
+- Custom implementation would add complexity and maintenance burden
+
+**How to track:**
+1. Subscribe to PocketBase TOTP discussion: https://github.com/pocketbase/pocketbase/discussions/1208
+2. On the discussion page, click "Subscribe" button (bell icon in top right)
+3. You'll receive email notifications when:
+   - PocketBase maintainers comment on TOTP plans
+   - Native TOTP support is announced
+   - Related pull requests are referenced
+
+**When implemented upstream:**
+- Evaluate native PocketBase TOTP implementation
+- Make it opt-in for password users only (skip OAuth users)
+- Add admin settings toggle with QR code generation
+- Implement backup codes with encrypted storage
 
 ## Decision Log
 (unchanged; see historical entries below)
