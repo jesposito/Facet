@@ -224,7 +224,12 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 			if err != nil {
 				sourceRecord.Set("sync_status", "error")
 				sourceRecord.Set("sync_log", err.Error())
-				app.Save(sourceRecord)
+				if saveErr := app.Save(sourceRecord); saveErr != nil {
+					app.Logger().Warn("github: failed to save error status",
+						"error", saveErr,
+						"source_id", sourceRecord.Id,
+						"original_error", err)
+				}
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
@@ -276,7 +281,13 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 			// Update source sync status
 			sourceRecord.Set("sync_status", "pending")
 			sourceRecord.Set("last_sync", time.Now())
-			app.Save(sourceRecord)
+			if err := app.Save(sourceRecord); err != nil {
+				app.Logger().Warn("github: failed to update sync status",
+					"error", err,
+					"source_id", sourceRecord.Id,
+					"proposal_id", proposalRecord.Id)
+				// Continue - proposal was created successfully, status is secondary
+			}
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"proposal_id": proposalRecord.Id,
