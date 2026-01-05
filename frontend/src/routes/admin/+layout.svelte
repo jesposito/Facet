@@ -9,42 +9,23 @@
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 
 	let loading = true;
-	let demoModeInitialized = false;
 	let authorized = false;
 	let mounted = false;
 
 	// Check if we're on the login page (don't require auth there)
 	$: isLoginPage = $page.url.pathname === '/admin/login';
 
-	// Reactively handle auth state changes
-	// IMPORTANT: Must reference $currentUser in the condition so Svelte knows to re-run this block
-	$: if (mounted && !isLoginPage && demoModeInitialized && ($currentUser !== undefined || !$currentUser)) {
-		if ($currentUser && pb.authStore.isValid) {
-			// User is authenticated
-			console.log('[LAYOUT] User authenticated, showing admin');
-			authorized = true;
-			loading = false;
-		} else if (pb.authStore.isValid) {
-			// Auth store is valid but $currentUser not yet set - wait a tick
-			console.log('[LAYOUT] Auth store valid but $currentUser not set, waiting...');
-			setTimeout(() => {
-				if (pb.authStore.isValid && !authorized) {
-					authorized = true;
-					loading = false;
-				}
-			}, 100);
-		} else {
-			// Not authenticated - redirect to login
-			console.log('[LAYOUT] Not authenticated, redirecting to login');
-			authorized = false;
-			loading = false;
-			goto('/admin/login');
-		}
-	}
-
-	// Handle login page - always stop loading
+	// Handle login page - always stop loading immediately
 	$: if (isLoginPage) {
 		loading = false;
+		authorized = false;
+	}
+
+	// Watch for logout (user becomes unauthenticated after being authorized)
+	$: if (mounted && !isLoginPage && authorized && !$currentUser && !pb.authStore.isValid) {
+		console.log('[LAYOUT] User logged out, redirecting to login');
+		authorized = false;
+		goto('/admin/login');
 	}
 
 	onMount(async () => {
@@ -78,11 +59,33 @@
 		console.log('[LAYOUT] About to call initDemoMode()');
 		await initDemoMode();
 		console.log('[LAYOUT] initDemoMode() completed');
-		demoModeInitialized = true;
-		console.log('[LAYOUT] Set demoModeInitialized to true');
 
-		// Auth check now handled entirely by the reactive block above
-		// This prevents race condition between checkAuth() and the reactive $currentUser watcher
+		// Check auth state directly after demo mode is initialized
+		console.log('[LAYOUT] Checking auth state - currentUser:', $currentUser, 'authStore.isValid:', pb.authStore.isValid);
+
+		if ($currentUser && pb.authStore.isValid) {
+			console.log('[LAYOUT] User authenticated, showing admin');
+			authorized = true;
+			loading = false;
+		} else if (pb.authStore.isValid && !$currentUser) {
+			// Auth store is valid but store not updated yet - wait briefly
+			console.log('[LAYOUT] Auth store valid but $currentUser not set, waiting...');
+			await new Promise(resolve => setTimeout(resolve, 150));
+
+			// Re-check after delay
+			if ($currentUser && pb.authStore.isValid) {
+				console.log('[LAYOUT] User authenticated after delay, showing admin');
+				authorized = true;
+				loading = false;
+			} else {
+				console.log('[LAYOUT] Still not authenticated after delay, redirecting to login');
+				goto('/admin/login');
+			}
+		} else {
+			// Not authenticated - redirect to login
+			console.log('[LAYOUT] Not authenticated, redirecting to login');
+			goto('/admin/login');
+		}
 	});
 
 	onDestroy(() => {
