@@ -6,7 +6,7 @@
 # - Air is pre-installed
 # - Runtime dependency installation is handled by scripts with hash caching
 
-FROM mcr.microsoft.com/devcontainers/go:1.23
+FROM mcr.microsoft.com/devcontainers/go:1.24
 
 # Build-time only: use goproxy.cn as fallback for restricted environments
 # (proxy.golang.org redirects to storage.googleapis.com which may be blocked)
