@@ -72,8 +72,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 
 ## Phase 5: Import System Expansion (🟡 Partial)
 - ✅ GitHub import proposals/review flow
-- 🟡 Scheduled/cron refresh: planned
-- 🟡 Additional sources (LinkedIn/JSON Resume/Credly): planned
+- ✅ Resume upload & AI parsing (PDF/DOCX to Facet data)
+- 🔜 Scheduled/cron refresh: planned
+- 🔜 Additional sources: LinkedIn, JSON Resume (deferred - see "Tracking Upstream Dependencies")
 
 ## Phase 6: Visual Layout & Theming (✅ Complete)
 - Admin sidebar grouped with categories/collapse
@@ -421,7 +422,7 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
   - ✅ **Resume Upload & AI Parsing (Reverse Direction):** Upload existing PDF/DOCX resumes, use AI to extract and populate experience/education/skills
     - Complete: AI resume generation (Facet → PDF/DOCX) + resume upload (existing resume → Facet data). Both directions now supported.
 - **Medium Priority:**
-  - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
+  - Import/sync: scheduled GitHub refresh, JSON Resume format support
   - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options
 - **Low Priority:**
   - Content extensions: awards/publications/testimonials/custom sections; collaboration modes (read-only/suggestion) remain single-user
@@ -521,6 +522,65 @@ All four deferred security enhancements share the same trigger for reconsiderati
 - Owner-managed password changes handle session invalidation
 - OAuth providers handle their own 2FA
 - Existing security headers prevent common attacks
+
+---
+
+### Import Source Integrations (Deferred)
+
+Several import sources have been evaluated and deferred due to API limitations or Terms of Service concerns.
+
+#### Credly Certification Import (Empirica: 797a16c5)
+**Status:** Deferred - No public API for individual users
+
+**Why deferred:**
+- Official Credly API requires organization credentials (not available to individuals)
+- Public endpoint (`/api/v1/users/{id}/badges`) returns "Unauthorized" - locked down
+- Only option is HTML scraping, which is brittle and may violate Terms of Service
+- High maintenance burden (8/10 complexity) when Credly changes page structure
+- Risk of IP blocking or legal issues (7/10 risk)
+
+**Empirica assessment:**
+- Confidence: 7/10 (confident scraping is wrong approach)
+- Complexity: 8/10 (HTML parsing brittle, breaks on layout changes)
+- Risk: 7/10 (ToS violation, IP blocking potential)
+- Value: 4/10 (manual entry achieves 80% of value with 20% of risk)
+
+**Current workaround:**
+- Users manually enter certifications with optional Credly badge URL field
+- Certifications collection supports all standard fields (issuer, issue_date, expiry_date, credential_url)
+
+**Would revisit if:**
+- Credly opens public API for individual users
+- Official API partnership opportunity arises
+- Automated import becomes critical user request
+
+#### LinkedIn Profile Import
+**Status:** Deferred - API access restrictions
+
+**Why deferred:**
+- LinkedIn API has strict access requirements and rate limits
+- Requires LinkedIn Partnership for profile data access
+- Manual profile data entry is current approach
+
+**Would revisit if:**
+- LinkedIn opens public profile API
+- Partnership opportunity with LinkedIn
+- JSON Resume format support provides similar value (see below)
+
+#### JSON Resume Format Support
+**Status:** Planned - Lower priority
+
+**Why lower priority:**
+- Resume upload & AI parsing (Phase 15) already provides import path
+- Users can export JSON Resume format and upload as resume
+- Standard format but less common than PDF/DOCX
+- Would add import option alongside PDF/DOCX
+
+**Implementation approach when prioritized:**
+- Add JSON Resume format detection to resume upload endpoint
+- Parse JSON structure directly (no AI parsing needed)
+- Map JSON Resume schema to Facet collections
+- Simpler than Credly/LinkedIn (no API/scraping needed)
 
 ## Decision Log
 (unchanged; see historical entries below)
