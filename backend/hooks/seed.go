@@ -633,8 +633,8 @@ func createDefaultUser(app *pocketbase.PocketBase) error {
 	tokenKey := hex.EncodeToString(tokenBytes)
 
 	// Direct SQL INSERT
-	query := `INSERT INTO users (id, email, name, password, tokenKey, verified, emailVisibility, avatar)
-	          VALUES ({:id}, {:email}, {:name}, {:password}, {:tokenKey}, 1, 0, '')`
+	query := `INSERT INTO users (id, email, name, password, tokenKey, verified, emailVisibility, avatar, password_changed_from_default)
+	          VALUES ({:id}, {:email}, {:name}, {:password}, {:tokenKey}, 1, 0, '', 0)`
 
 	_, err = app.DB().NewQuery(query).Bind(dbx.Params{
 		"id":       id,
@@ -651,7 +651,7 @@ func createDefaultUser(app *pocketbase.PocketBase) error {
 	log.Println("Created default frontend admin account:")
 	log.Printf("  Email: %s\n", email)
 	log.Println("  Password: changeme123")
-	log.Println("  ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!")
+	log.Println("  ⚠️  You will be prompted to change this password on first login.")
 	log.Println("")
 	log.Printf("  NOTE: This email (%s) must be in ADMIN_EMAILS to access /admin", email)
 

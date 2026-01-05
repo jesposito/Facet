@@ -1,0 +1,60 @@
+{
+  "session_id": "bf19718e-ef48-4cd5-8d79-8f0a4e1e0055",
+  "phase": "POSTFLIGHT",
+  "round": 1,
+  "timestamp": "2026-01-05T08:56:43.029616+00:00",
+  "vectors": {
+    "understanding": 0.9,
+    "confidence": 0.95,
+    "completeness": 0.95,
+    "quality": 0.9
+  },
+  "overall_confidence": 0.5,
+  "meta": {
+    "reasoning": "Successfully implemented first-time password change feature. Started with database flag approach but pivoted to simpler password hash check. Feature works correctly: modal blocks access on first login, password change works from modal and settings page, CLI reset command available. Fixed multiple issues including tokenKey validation and autocancellation errors. All code tested and debug logging removed.",
+    "task_summary": "Successfully implemented first-time password change feature. Started with database flag approach but pivoted to simpler password hash check. Feature works correctly: modal blocks access on first login, password change works from modal and settings page, CLI reset command available. Fixed multiple issues including tokenKey validation and autocancellation errors. All code tested and debug logging removed.",
+    "postflight_confidence": 0.5,
+    "calibration_accuracy": "good",
+    "deltas": {
+      "understanding": 0.3,
+      "confidence": 0.45
+    },
+    "calibration_issues": [],
+    "git_commit_sha": "a7efe7a90b85190471dff6eb4772d5f20a6dfebf",
+    "git_notes_ref": "empirica/session/bf19718e-ef48-4cd5-8d79-8f0a4e1e0055/POSTFLIGHT/1"
+  },
+  "epistemic_tags": {},
+  "git_state": {
+    "head_commit": "0127074bc9ce390fc7ccb441d28e844888402277",
+    "commits_since_last_checkpoint": [],
+    "uncommitted_changes": {
+      "files_modified": [
+        ".gitignore",
+        "README.md",
+        "backend/hooks/auth.go",
+        "backend/hooks/seed.go",
+        "backend/main.go",
+        "docs/SETUP.md",
+        "frontend/src/routes/admin/+layout.svelte",
+        "frontend/src/routes/admin/+page.svelte",
+        "frontend/src/routes/admin/settings/+page.svelte"
+      ],
+      "files_added": [],
+      "files_deleted": [],
+      "diff_stat": ".gitignore                                      |   7 ++\n README.md                                       |   3 +-\n backend/hooks/auth.go                           |  81 +++++++++++++\n backend/hooks/seed.go                           |   6 +-\n backend/main.go                                 |  54 +++++++++\n docs/SETUP.md                                   |  14 ++-\n frontend/src/routes/admin/+layout.svelte        |  52 ++++++++-\n frontend/src/routes/admin/+page.svelte          |  26 ++++-\n frontend/src/routes/admin/settings/+page.svelte | 148 ++++++++++++++++++++++++\n 9 files changed, 381 insertions(+), 10 deletions(-)"
+    }
+  },
+  "learning_delta": {
+    "understanding": {
+      "prev": 0.6,
+      "curr": 0.9,
+      "delta": 0.3
+    },
+    "confidence": {
+      "prev": 0.5,
+      "curr": 0.95,
+      "delta": 0.45
+    }
+  },
+  "token_count": 291
+}

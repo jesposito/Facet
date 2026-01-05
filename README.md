@@ -131,7 +131,8 @@ Open `http://localhost:8080`. You're live.
 > Your data lives in `./data` by default. Back that up. If you want it somewhere else, set `DATA_PATH` in `.env`.
 
 **First login:**
-- Password login: `admin@example.com` / `changeme123` (change this immediately!)
+- Password login: `admin@example.com` / `changeme123`
+  - You'll be prompted to change this password on first login (modal blocks access until changed)
 - OAuth login: Set up Google or GitHub OAuth credentials in `.env` (see [docs/SETUP.md](docs/SETUP.md))
 
 Full setup instructions (OAuth, reverse proxy, etc.): [docs/SETUP.md](docs/SETUP.md)

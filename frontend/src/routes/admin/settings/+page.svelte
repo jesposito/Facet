@@ -33,6 +33,16 @@
 	let selectedAccentColor: AccentColor = DEFAULT_ACCENT_COLOR;
 	let savingAppearance = false;
 
+	// Password change form
+	let passwordForm = {
+		currentPassword: '',
+		newPassword: '',
+		confirmPassword: '',
+		loading: false,
+		error: '',
+		success: false
+	};
+
 	// New provider form
 	let newProvider = {
 		name: '',
@@ -102,6 +112,62 @@
 			toasts.add('error', 'Failed to update accent color');
 		} finally {
 			savingAppearance = false;
+		}
+	}
+
+	async function changePassword() {
+		// Reset states
+		passwordForm.error = '';
+		passwordForm.success = false;
+
+		// Validate
+		if (passwordForm.newPassword.length < 8) {
+			passwordForm.error = 'New password must be at least 8 characters';
+			return;
+		}
+
+		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+			passwordForm.error = 'Passwords do not match';
+			return;
+		}
+
+		if (passwordForm.newPassword === passwordForm.currentPassword) {
+			passwordForm.error = 'New password must be different from current password';
+			return;
+		}
+
+		passwordForm.loading = true;
+
+		try {
+			const response = await fetch('/api/auth/change-password', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pb.authStore.token}`
+				},
+				body: JSON.stringify({
+					currentPassword: passwordForm.currentPassword,
+					newPassword: passwordForm.newPassword
+				})
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Failed to change password');
+			}
+
+			// Success!
+			passwordForm.success = true;
+			passwordForm.currentPassword = '';
+			passwordForm.newPassword = '';
+			passwordForm.confirmPassword = '';
+			toasts.add('success', 'Password changed successfully');
+		} catch (err: any) {
+			passwordForm.error = err.message || 'Failed to change password';
+			toasts.add('error', 'Failed to change password');
+		} finally {
+			passwordForm.loading = false;
 		}
 	}
 
@@ -327,6 +393,88 @@
 	<p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
 		Control what visitors see on your public site, enable analytics, and manage advanced options.
 	</p>
+
+	<!-- Security section -->
+	<div class="space-y-4 mb-8">
+		<div>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Security</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Manage your account password.</p>
+		</div>
+
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h2>
+
+			<form on:submit|preventDefault={changePassword} class="space-y-4 max-w-md">
+				<div>
+					<label for="current-password-settings" class="label">Current Password</label>
+					<input
+						type="password"
+						id="current-password-settings"
+						bind:value={passwordForm.currentPassword}
+						class="input"
+						disabled={passwordForm.loading}
+						required
+					/>
+				</div>
+
+				<div>
+					<label for="new-password-settings" class="label">New Password</label>
+					<input
+						type="password"
+						id="new-password-settings"
+						bind:value={passwordForm.newPassword}
+						class="input"
+						disabled={passwordForm.loading}
+						minlength="8"
+						required
+					/>
+					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+						Minimum 8 characters
+					</p>
+				</div>
+
+				<div>
+					<label for="confirm-password-settings" class="label">Confirm New Password</label>
+					<input
+						type="password"
+						id="confirm-password-settings"
+						bind:value={passwordForm.confirmPassword}
+						class="input"
+						disabled={passwordForm.loading}
+						required
+					/>
+				</div>
+
+				{#if passwordForm.error}
+					<div class="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+						{passwordForm.error}
+					</div>
+				{/if}
+
+				{#if passwordForm.success}
+					<div class="p-3 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
+						Password changed successfully!
+					</div>
+				{/if}
+
+				<button
+					type="submit"
+					class="btn btn-primary"
+					disabled={passwordForm.loading}
+				>
+					{#if passwordForm.loading}
+						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+						Changing Password...
+					{:else}
+						Change Password
+					{/if}
+				</button>
+			</form>
+		</div>
+	</div>
 
 	<!-- Public site controls -->
 	<div class="space-y-4 mb-6">

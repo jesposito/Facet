@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 
 	let stats = {
 		projects: 0,
@@ -12,11 +12,21 @@
 
 	let recentActivity: Array<{ type: string; title: string; date: string }> = [];
 	let loading = true;
+	let mounted = false;
 
 	// Simple pattern - admin layout handles auth
-	onMount(loadDashboard);
+	onMount(() => {
+		mounted = true;
+		loadDashboard();
+	});
+
+	onDestroy(() => {
+		mounted = false;
+	});
 
 	async function loadDashboard() {
+		if (!mounted) return; // Don't run if component is unmounting
+
 		try {
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
 				await collection('projects').getList(1, 1),
@@ -24,6 +34,8 @@
 				await collection('views').getList(1, 1),
 				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
 			]);
+
+			if (!mounted) return; // Check again after async operations
 
 			stats = {
 				projects: projectsRes.totalItems,
@@ -37,6 +49,8 @@
 				await collection('projects').getList(1, 3, { sort: '-id' }),
 				await collection('experience').getList(1, 3, { sort: '-id' })
 			]);
+
+			if (!mounted) return; // Check one more time before updating state
 
 			recentActivity = [
 				...recentProjects.items.map((p) => ({
@@ -53,9 +67,15 @@
 				.sort((a, b) => b.date.localeCompare(a.date))
 				.slice(0, 5);
 		} catch (err) {
+			// Silently ignore autocancellation errors (they're expected when navigating away)
+			if (err instanceof Error && err.message.includes('autocancelled')) {
+				return;
+			}
 			console.error('Failed to load dashboard stats:', err);
 		} finally {
-			loading = false;
+			if (mounted) {
+				loading = false;
+			}
 		}
 	}
 
