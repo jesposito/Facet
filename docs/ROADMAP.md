@@ -25,7 +25,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Demo Media System (Phase 14):** Profile avatar, project covers, and blog post covers with professional SVG graphics (60KB total). Demo mode now visually complete.
 - ✅ **First-Run Experience (Phase 13):** Welcome page, feature highlights, demo integration, Unraid Community Apps template, comprehensive SETUP.md.
 - ✅ **Resume Upload & AI Parsing (Phase 15):** Upload PDF/DOCX resumes, AI extraction to Facet data, smart deduplication, file storage with hash-based duplicate prevention.
-- 🔜 **Next Up:** Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
+- 🔜 **Next Up:** Phase 8 Security complete; Phase 9 Polish/Performance tuning when needed.
 
 ---
 
@@ -90,28 +90,24 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - 7.6 Upload mirroring: ✅ Uploaded files automatically mirrored to external_media for unified media_refs
 - ℹ️ Media stability note: `/api/media` depends on file fields + `external_media`; run migrations or reseed (`rm -rf pb_data && SEED_DATA=dev make seed-dev`) after schema changes; see docs/MEDIA.md for details.
 
-## Phase 8: Security & Hardening (✅ Core Complete, 🔜 Enhancements Planned)
+## Phase 8: Security & Hardening (✅ Complete)
 - ✅ **Security Review Complete** - Full security review completed with all critical issues addressed
 - ✅ **XSS Prevention** - DOMPurify sanitization with iframe whitelisting implemented and tested
 - ✅ **Path Traversal Protection** - Complete rewrite with 11-layer validation, symlink detection, defense-in-depth
 - ✅ **Security Test Suite** - Comprehensive tests for XSS, path traversal, input validation (tests/security.spec.ts)
-- ✅ Audit logs database schema prepared (migration ready)
+- ✅ **Password Security** - First-time password change enforcement, CLI reset tool, bcrypt validation
 - ✅ HTTPS enforcement check (warns in production)
 - ✅ **Security Headers** - Comprehensive headers implemented via Caddy (docker/Caddyfile) and PocketBase built-in middleware:
   - PocketBase `pbSecurityHeaders` middleware: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options (automatic on all responses)
   - Caddy layer: X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, Server header removal
-  - CSP intentionally deferred (requires OAuth testing, report-only rollout first)
-- 🔜 **Planned Enhancements:**
-  - Content Security Policy (CSP) - Requires report-only rollout and OAuth flow testing
-  - Audit log implementation (hooks for admin actions)
-  - 2FA/TOTP - Deferred pending native PocketBase support (OAuth users already protected by provider 2FA)
-  - Session listing/revoke/expiry
-  - Remove debug logging from production code
+- ✅ **Security Enhancements Evaluated & Deferred** - Empirica assessments completed for remaining items:
+  - All deferred enhancements have low necessity for Facet's single-owner architecture
+  - See "Tracking Upstream Dependencies" section below for monitoring approach
 
-## Phase 9: Polish & Performance (✅ Complete)
+## Phase 9: Polish & Performance (🟡 Core Complete)
 - ✅ SEO: JSON-LD, sitemap, robots.txt, canonical URLs, Open Graph/Twitter Cards
 - ✅ Error UX: custom 404/500 with self-deprecating humor and SVG illustrations
-- 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (planned)
+- 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (deferred - optimize when actual performance issues arise)
 
 ## Phase 10: Demo & Showcase Mode (✅ Complete)
 **Purpose:** One-click demo showing all Facet features with hilarious content.
@@ -427,9 +423,7 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
 - **Medium Priority:**
   - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
   - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options
-  - Security: audit log, headers, 2FA, session management
 - **Low Priority:**
-  - Performance/SEO/Error UX: as listed in phases 8–9
   - Content extensions: awards/publications/testimonials/custom sections; collaboration modes (read-only/suggestion) remain single-user
 
 ## Integrations
@@ -440,13 +434,63 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
 
 ## Tracking Upstream Dependencies
 
-### PocketBase 2FA/TOTP Support
+This section documents security and infrastructure features that have been evaluated and intentionally deferred. Each has been assessed using Empirica epistemic analysis with reasoning documented in git notes.
+
+### Phase 8 Security Enhancements (Deferred)
+
+All remaining Phase 8 security enhancements have been evaluated and deferred due to **low necessity for Facet's single-owner architecture**. Multi-user applications would benefit from these features, but for a single-owner profile site, the complexity and risk outweigh the security value.
+
+#### 1. Audit Logging (Empirica: 13f779f4)
+**Status:** Deferred - Low necessity for single-owner use case
+
+**Why deferred:**
+- Primary value: Multi-user environments, compliance requirements, forensic investigation
+- Facet context: Single owner notices their own security intrusions, no compliance requirements
+- Alternative: Git history already tracks admin changes to content/config files
+- Complexity: 6/10, Maintenance burden: 7/10
+
+**Empirica assessment:**
+- Confidence: 5/10 (moderate uncertainty about single-owner value)
+- Necessity: 4/10 (questionable for single-owner, high for multi-user)
+- Would revisit if: Multi-user support or compliance requirements added
+
+#### 2. Session Management (List/Revoke/Expiry) (Empirica: 2bce295433)
+**Status:** Deferred - High risk, low necessity
+
+**Why deferred:**
+- OAuth complication: Google/GitHub tokens don't revoke when Facet sessions end
+- Owner workaround: Change password to invalidate all sessions if suspected compromise
+- Implementation risk: 7/10 (touches authentication flow - previous auth breakage incident)
+- Complexity: 7/10
+
+**Empirica assessment:**
+- Confidence: 3/10 (low confidence in value for single-owner)
+- Necessity: 3/10 (password change achieves same goal with zero dev risk)
+- Would revisit if: Multi-device session monitoring becomes a user request
+
+#### 3. Content Security Policy (CSP) (Empirica: 31a130dc)
+**Status:** Deferred - High OAuth breakage risk
+
+**Why deferred:**
+- OAuth flow risk: CSP can break Google/GitHub authentication if misconfigured (8/10 risk)
+- Current security: X-Content-Type-Options, X-Frame-Options, Referrer-Policy already in place
+- Single-owner context: XSS attack surface minimal (owner would need to XSS themselves)
+- Complexity: Report-only rollout requires monitoring, iterative refinement, OAuth testing (7/10)
+- Maintenance burden: 6/10
+
+**Empirica assessment:**
+- Confidence: 4/10 (uncertain about single-owner value)
+- Necessity: 3/10 (adequate existing security headers)
+- Risk: 8/10 (highest risk - OAuth breakage = complete lockout)
+- Would revisit if: Multi-user support added or XSS attack surface expands
+
+#### 4. 2FA/TOTP Support (Empirica: Session context)
 **Status:** Deferred pending native PocketBase support
 
 **Why deferred:**
 - No native TOTP in PocketBase as of v0.23
 - OAuth users (Google/GitHub) already protected by provider 2FA
-- Custom implementation would add complexity and maintenance burden
+- Custom implementation: 6-7 hours with auth flow risk and maintenance burden
 
 **How to track:**
 1. Subscribe to PocketBase TOTP discussion: https://github.com/pocketbase/pocketbase/discussions/1208
@@ -461,6 +505,22 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
 - Make it opt-in for password users only (skip OAuth users)
 - Add admin settings toggle with QR code generation
 - Implement backup codes with encrypted storage
+
+### Summary: When to Revisit These Features
+
+All four deferred security enhancements share the same trigger for reconsideration:
+
+**If Facet adds multi-user support:**
+- Audit logging becomes valuable for accountability
+- Session management enables users to monitor their own devices
+- CSP provides defense-in-depth against user-generated XSS
+- 2FA adds account protection (if native PocketBase support exists)
+
+**For single-owner architecture:**
+- Current security posture is adequate
+- Owner-managed password changes handle session invalidation
+- OAuth providers handle their own 2FA
+- Existing security headers prevent common attacks
 
 ## Decision Log
 (unchanged; see historical entries below)
