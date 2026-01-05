@@ -35,6 +35,10 @@ agent-instructions.md
 .empirica_reflex_logs/
 .beads/
 
+# Agent-generated analysis files (keep local only)
+TESTING_*.md
+*_ANALYSIS.md
+
 # Dev cache hashes (auto-generated)
 backend/.gomod-hash
 
