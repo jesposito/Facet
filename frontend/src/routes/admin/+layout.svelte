@@ -21,11 +21,18 @@
 		authorized = false;
 	}
 
-	// Watch for logout (user becomes unauthenticated after being authorized)
-	$: if (mounted && !isLoginPage && authorized && !$currentUser && !pb.authStore.isValid) {
-		console.log('[LAYOUT] User logged out, redirecting to login');
-		authorized = false;
-		goto('/admin/login');
+	// Reactive auth check - update authorized when currentUser changes
+	$: if (mounted && !isLoginPage) {
+		const isAuth = $currentUser && pb.authStore.isValid;
+		if (isAuth && !authorized) {
+			// User just logged in - authorize them
+			authorized = true;
+			loading = false;
+		} else if (!isAuth && authorized) {
+			// User just logged out - redirect
+			authorized = false;
+			goto('/admin/login');
+		}
 	}
 
 	onMount(async () => {
