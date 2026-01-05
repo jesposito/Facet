@@ -15,17 +15,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// RegisterSeedHook seeds data on first run (development only)
+// RegisterSeedHook seeds data on first run
 // Environment variable SEED_DATA controls behavior:
 //   - "dev": Seeds development data (Jedidiah Esposito) - for development/testing
-//   - "minimal": Seeds ONLY a user account (for testing first-run experience)
-//   - unset or other: No automatic seeding (production default)
+//   - "minimal" or unset: Seeds ONLY default admin account (production default)
 //
 // Demo data (Merlin Ambrosius) is available via admin UI toggle, not auto-seeded.
 func RegisterSeedHook(app *pocketbase.PocketBase) {
 	seedMode := os.Getenv("SEED_DATA")
+
+	// Default to minimal if not set (production default = create admin account)
 	if seedMode == "" {
-		return
+		seedMode = "minimal"
 	}
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
