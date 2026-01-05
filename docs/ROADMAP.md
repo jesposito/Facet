@@ -403,7 +403,6 @@ Users can now upload their PDF or DOCX resumes and have AI automatically extract
 - New hooks: `hooks/resume_upload.go` (944 lines) for upload endpoint
 - Extensive debugging with Empirica cognitive OS to fix deduplication bugs
 - Comprehensive testing with multiple resume formats (PDF, DOCX, complex layouts)
-- Documentation: RESUME_UPLOAD_DESIGN.md, TESTING_RESUME_UPLOAD.md, EMPIRICA_GUIDE.md
 
 **Bug Fixes During Implementation:**
 1. Critical: Swapped limit/offset parameters in all deduplication queries (returned 0 results every time)
