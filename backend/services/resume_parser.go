@@ -285,7 +285,8 @@ func (rp *ResumeParser) ParseResume(ctx context.Context, provider *AIProvider, r
 	prompt := rp.buildParsingPrompt(resumeText)
 
 	// Call AI provider with parsing prompt
-	response, err := rp.ai.ImproveContent(ctx, provider, prompt)
+	// Use higher max_tokens (8192) for resume parsing to avoid truncation
+	response, err := rp.ai.ImproveContentWithTokens(ctx, provider, prompt, 8192)
 	if err != nil {
 		return nil, fmt.Errorf("AI parsing failed: %w", err)
 	}
