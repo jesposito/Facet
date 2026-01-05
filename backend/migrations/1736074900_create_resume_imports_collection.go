@@ -25,6 +25,11 @@ func init() {
 		collection.Fields.Add(&core.NumberField{
 			Name: "file_size",
 		})
+		collection.Fields.Add(&core.FileField{
+			Name:      "file",
+			MaxSelect: 1,
+			MaxSize:   10485760, // 10MB limit for resume files
+		})
 		collection.Fields.Add(&core.JSONField{
 			Name: "record_counts",
 		})

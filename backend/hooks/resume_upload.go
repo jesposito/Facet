@@ -17,6 +17,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 // UserError represents an error with both user-friendly and technical details
@@ -99,7 +100,7 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				return e.JSON(http.StatusBadRequest, map[string]interface{}{
 					"error": NewUserError(
 						"AI provider is not configured.",
-						"Please go to Settings and configure an AI provider (OpenAI, Anthropic, or Ollama) to parse resumes.",
+						"Resume import requires AI to parse the file. Please configure an AI provider (OpenAI, Anthropic, or Ollama) in Admin → Settings → AI.",
 						fmt.Sprintf("Provider error: %v", err),
 					),
 				})
@@ -133,29 +134,29 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					fmt.Sprintf("hash = '%s'", fileHash),
 				)
 				if err == nil && existingImport != nil {
-					// This file was already imported - check if it was recent (within 1 hour)
+					// This file was already imported - check if it was recent (within 5 minutes)
 					importedAt := existingImport.GetDateTime("imported_at")
 					originalFilename := existingImport.GetString("filename")
-					hoursSinceImport := time.Since(importedAt.Time()).Hours()
+					minutesSinceImport := time.Since(importedAt.Time()).Minutes()
 
-					log.Printf("[RESUME-UPLOAD] Duplicate file detected - imported %s as '%s' (%.1f hours ago)",
-						importedAt, originalFilename, hoursSinceImport)
+					log.Printf("[RESUME-UPLOAD] Duplicate file detected - imported %s as '%s' (%.1f minutes ago)",
+						importedAt, originalFilename, minutesSinceImport)
 
-					// If imported within last hour, likely accidental duplicate - reject
-					if hoursSinceImport < 1.0 {
+					// If imported within last 5 minutes, likely accidental duplicate - reject
+					if minutesSinceImport < 5.0 {
 						return e.JSON(http.StatusBadRequest, map[string]interface{}{
 							"error": NewUserError(
 								"This resume was just imported.",
-								fmt.Sprintf("This file was imported %d minutes ago as '%s'. If you deleted some records and want to re-import them, wait an hour or delete the original import first.",
-									int(hoursSinceImport*60), originalFilename),
-								fmt.Sprintf("Duplicate hash: %s (imported %.1f hours ago)", fileHash, hoursSinceImport),
+								fmt.Sprintf("This exact file was imported %d minutes ago as '%s'. All data from this resume is already in your profile.",
+									int(minutesSinceImport), originalFilename),
+								fmt.Sprintf("Duplicate hash: %s (imported %.1f minutes ago)", fileHash, minutesSinceImport),
 							),
 						})
 					}
 
-					// Imported more than an hour ago - allow re-import
+					// Imported more than 5 minutes ago - allow re-import
 					// User may have deleted/modified records and wants to restore them
-					log.Printf("[RESUME-UPLOAD] Allowing re-import of file imported %.1f hours ago", hoursSinceImport)
+					log.Printf("[RESUME-UPLOAD] Allowing re-import of file imported %.1f minutes ago", minutesSinceImport)
 				}
 			}
 
@@ -247,8 +248,18 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 				resumeImportRecord.Set("imported_at", time.Now())
 
+				// Attach the uploaded file to the record
+				// We already have fileBytes from earlier, so create a file object from it
+				f, err := filesystem.NewFileFromBytes(fileBytes, header.Filename)
+				if err == nil {
+					resumeImportRecord.Set("file", f)
+					log.Printf("[RESUME-UPLOAD] Attached file to resume_imports record: %s", header.Filename)
+				} else {
+					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to create file object: %v", err)
+				}
+
 				if err := app.Save(resumeImportRecord); err != nil {
-					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to create resume_imports record: %v", err)
+					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to save resume_imports record: %v", err)
 					// Don't fail the import if we can't save the tracking record
 				} else {
 					log.Printf("[RESUME-UPLOAD] Created resume_imports record (id: %s) with hash: %s", resumeImportRecord.Id, fileHash)
