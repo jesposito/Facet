@@ -79,6 +79,8 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 			}
 
 			// Build proposed project data
+			// Imports are always private and draft by default
+			// User must explicitly publish to make visible on profile or add to views
 			proposedData := map[string]interface{}{
 				"title":       metadata.Name,
 				"summary":     metadata.Description,
@@ -88,7 +90,7 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 					{"type": "github", "url": metadata.HTMLURL},
 				},
 				"categories":  metadata.Topics,
-				"visibility":  "draft",
+				"visibility":  "private",
 				"is_draft":    true,
 				"is_featured": false,
 			}
