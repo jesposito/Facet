@@ -667,10 +667,10 @@ Facet/
 ```
 
 **Code stats:**
-- ~25,000 lines across 150+ files
+- ~38,000 lines across 1,300+ files
 - Backend: ~16,000 lines of Go
-- Frontend: ~6,000 lines of Svelte/TypeScript
-- Tests: ~1,500 lines
+- Frontend: ~21,000 lines of Svelte/TypeScript
+- Tests: ~3,100 lines (Go unit tests + Playwright E2E)
 
 ### Testing
 
