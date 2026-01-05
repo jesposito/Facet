@@ -89,7 +89,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 		// Public endpoint - allows recruiters to generate resumes from public views
 		se.Router.POST("/api/view/{slug}/generate", func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
-			log.Printf("[AI-PRINT] Generate request for view: %s", slug)
 
 			// Rate limit by IP (skip for authenticated users)
 			if e.Auth == nil {
@@ -143,7 +142,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				req.Length = "two-page"
 			}
 
-			log.Printf("[AI-PRINT] Request params - format: %s, style: %s, length: %s", req.Format, req.Style, req.Length)
 
 			// Check Pandoc availability
 			if !resume.CheckPandocAvailable() {
@@ -159,7 +157,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				log.Printf("[AI-PRINT] No AI provider available: %v", err)
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
-			log.Printf("[AI-PRINT] Using provider: %s (%s)", provider.Name, provider.Type)
 
 			// Create export record with pending status
 			exportsCollection, err := app.FindCollectionByNameOrId("view_exports")
@@ -184,7 +181,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				log.Printf("[AI-PRINT] Failed to create export record: %v", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create export"})
 			}
-			log.Printf("[AI-PRINT] Created export record: %s", exportRecord.Id)
 
 			// Fetch view data
 			viewData, err := collectViewData(app, view)
@@ -195,7 +191,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				app.Save(exportRecord)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to collect view data"})
 			}
-			log.Printf("[AI-PRINT] Collected view data, sections: %d", len(viewData.SectionOrder))
 
 			// Generate resume
 			config := &services.GenerationConfig{
@@ -237,7 +232,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save export"})
 			}
 
-			log.Printf("[AI-PRINT] Successfully generated resume, export ID: %s", exportRecord.Id)
 
 			// Build download URL
 			downloadURL := "/api/files/" + exportsCollection.Id + "/" + exportRecord.Id + "/" + exportRecord.GetString("file")

@@ -185,7 +185,6 @@
 			if (newProvider.base_url) {
 				payload.base_url = newProvider.base_url;
 			}
-			console.log('[AI-PROVIDER] Creating provider with payload:', JSON.stringify(payload, null, 2));
 			await pb.collection('ai_providers').create(payload);
 
 			toasts.add('success', 'AI provider added');

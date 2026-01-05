@@ -45,11 +45,9 @@ func (r *ResumeService) GenerateResume(
 	config *GenerationConfig,
 	format string,
 ) ([]byte, error) {
-	log.Printf("[AI-PRINT] Starting resume generation, format: %s, config: %+v", format, config)
 
 	// 1. Build the prompt
 	prompt := r.buildResumePrompt(viewData, config)
-	log.Printf("[AI-PRINT] Prompt built, length: %d chars", len(prompt))
 
 	// 2. Call AI to generate markdown
 	markdown, err := r.ai.ImproveContent(ctx, provider, prompt)
@@ -57,11 +55,9 @@ func (r *ResumeService) GenerateResume(
 		log.Printf("[AI-PRINT] AI call failed: %v", err)
 		return nil, fmt.Errorf("AI generation failed: %w", err)
 	}
-	log.Printf("[AI-PRINT] AI response received, length: %d chars", len(markdown))
 
 	// 3. Clean up the markdown (remove code blocks if present)
 	markdown = r.cleanMarkdown(markdown)
-	log.Printf("[AI-PRINT] Markdown cleaned, length: %d chars", len(markdown))
 
 	// 4. Convert to requested format
 	var output []byte
@@ -79,7 +75,6 @@ func (r *ResumeService) GenerateResume(
 		return nil, err
 	}
 
-	log.Printf("[AI-PRINT] Successfully generated %s, size: %d bytes", format, len(output))
 	return output, nil
 }
 
@@ -313,7 +308,6 @@ func (r *ResumeService) convertToDOCX(markdown string) ([]byte, error) {
 func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error) {
 	// Check if Pandoc is available
 	if !r.CheckPandocAvailable() {
-		log.Printf("[AI-PRINT] Pandoc not found in PATH")
 		return nil, fmt.Errorf("Pandoc is not installed. PDF/DOCX generation requires Pandoc.")
 	}
 
@@ -361,7 +355,6 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		)
 	}
 
-	log.Printf("[AI-PRINT] Running Pandoc with args: %v", args)
 
 	cmd := exec.Command("pandoc", args...)
 	var stderr bytes.Buffer
@@ -373,7 +366,6 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 
 		// If xelatex or font selection failed, fall back to pdflatex with lmodern.
 		if format == "pdf" && (strings.Contains(errMsg, "xelatex") || strings.Contains(errMsg, "xetex") || strings.Contains(errMsg, "fontspec")) {
-			log.Printf("[AI-PRINT] xelatex/font selection failed, trying pdflatex fallback")
 
 			// Remove pdf-engine and mainfont flags
 			filtered := make([]string, 0, len(args))
@@ -410,7 +402,6 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		}
 	}
 
-	log.Printf("[AI-PRINT] Pandoc succeeded, reading output file: %s", tmpOut)
 
 	// Read the output file
 	output, err := os.ReadFile(tmpOut)
@@ -419,7 +410,6 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		return nil, fmt.Errorf("failed to read output file: %w", err)
 	}
 
-	log.Printf("[AI-PRINT] Output file size: %d bytes", len(output))
 	return output, nil
 }
 

@@ -47,8 +47,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 		// POST /api/resume/upload
 		// Uploads PDF/DOCX resume, extracts text, parses with AI, creates records in main collections
 		se.Router.POST("/api/resume/upload", func(e *core.RequestEvent) error {
-			log.Println("[RESUME-UPLOAD] Starting resume upload")
-
 			// Get uploaded file
 			file, header, err := e.Request.FormFile("file")
 			if err != nil {
@@ -90,7 +88,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-			log.Printf("[RESUME-UPLOAD] File: %s, Size: %d bytes, Type: %s", header.Filename, header.Size, mimeType)
 
 			// Get AI provider
 			providerID := e.Request.FormValue("provider_id")
@@ -105,7 +102,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					),
 				})
 			}
-			log.Printf("[RESUME-UPLOAD] Using AI provider: %s (%s)", provider.Name, provider.Type)
 
 			// Read file bytes
 			fileBytes, err := services.ReadFileBytes(file)
@@ -124,7 +120,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			hasher := sha256.New()
 			hasher.Write(fileBytes)
 			fileHash := hex.EncodeToString(hasher.Sum(nil))
-			log.Printf("[RESUME-UPLOAD] File hash: %s", fileHash)
 
 			// Check if this exact file has been imported before
 			resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports")
@@ -138,9 +133,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					importedAt := existingImport.GetDateTime("imported_at")
 					originalFilename := existingImport.GetString("filename")
 					minutesSinceImport := time.Since(importedAt.Time()).Minutes()
-
-					log.Printf("[RESUME-UPLOAD] Duplicate file detected - imported %s as '%s' (%.1f minutes ago)",
-						importedAt, originalFilename, minutesSinceImport)
 
 					// If imported within last 5 minutes, likely accidental duplicate - reject
 					if minutesSinceImport < 5.0 {
@@ -156,12 +148,10 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 
 					// Imported more than 5 minutes ago - allow re-import
 					// User may have deleted/modified records and wants to restore them
-					log.Printf("[RESUME-UPLOAD] Allowing re-import of file imported %.1f minutes ago", minutesSinceImport)
 				}
 			}
 
 			// Extract text
-			log.Println("[RESUME-UPLOAD] Extracting text from file...")
 			resumeText, err := parser.ExtractText(fileBytes, mimeType)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Text extraction failed: %v", err)
@@ -181,10 +171,8 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-			log.Printf("[RESUME-UPLOAD] Extracted %d characters of text", len(resumeText))
 
 			// Parse with AI
-			log.Println("[RESUME-UPLOAD] Parsing resume with AI...")
 			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			defer cancel()
 
@@ -207,15 +195,12 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-			log.Printf("[RESUME-UPLOAD] Parsing complete. Confidence: %s, Warnings: %d", parsed.Metadata.Confidence, len(parsed.Metadata.Warnings))
 
 			// Generate unique session ID for this import
 			// This allows us to track which items came from which resume upload
 			importSessionID := uuid.New().String()
-			log.Printf("[RESUME-UPLOAD] Generated import session ID: %s", importSessionID)
 
 			// Create records in collections with smart deduplication
-			log.Println("[RESUME-UPLOAD] Creating records in collections...")
 			imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename, importSessionID)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
@@ -228,9 +213,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-			log.Printf("[RESUME-UPLOAD] Successfully imported: %d experience, %d education, %d skills (skipped %d duplicates)",
-				len(imported["experience"]), len(imported["education"]), len(imported["skills"]), deduped)
-
 			// Create or update resume_imports record to track this import
 			if resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports"); err == nil {
 				// Check if a record with this hash already exists
@@ -242,12 +224,10 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				if err == nil && existingRecord != nil {
 					// Update existing record
 					resumeImportRecord = existingRecord
-					log.Printf("[RESUME-UPLOAD] Updating existing resume_imports record (id: %s)", resumeImportRecord.Id)
 				} else {
 					// Create new record
 					resumeImportRecord = core.NewRecord(resumeImportsCollection)
 					resumeImportRecord.Set("hash", fileHash)
-					log.Printf("[RESUME-UPLOAD] Creating new resume_imports record")
 				}
 
 				resumeImportRecord.Set("filename", header.Filename)
@@ -268,7 +248,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				f, err := filesystem.NewFileFromBytes(fileBytes, header.Filename)
 				if err == nil {
 					resumeImportRecord.Set("file", f)
-					log.Printf("[RESUME-UPLOAD] Attached file to resume_imports record: %s", header.Filename)
 				} else {
 					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to create file object: %v", err)
 				}
@@ -276,8 +255,6 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				if err := app.Save(resumeImportRecord); err != nil {
 					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to save resume_imports record: %v", err)
 					// Don't fail the import if we can't save the tracking record
-				} else {
-					log.Printf("[RESUME-UPLOAD] Saved resume_imports record (id: %s) with hash: %s", resumeImportRecord.Id, fileHash)
 				}
 			}
 
@@ -537,8 +514,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 	imported := make(map[string][]string)
 	duplicateCount := 0
 
-	log.Printf("[RESUME-UPLOAD] Using smart deduplication strategy for import session: %s", importSessionID)
-
 	// Helper to get table name
 	getTableName := func(baseName string) string {
 		return baseName
@@ -559,14 +534,12 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// but prevents duplicates from same resume imported multiple times
 			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s' && import_filename = '%s'",
 				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate, escapeFilter(filename))
-			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate experience '%s at %s' with filter: %s", exp.Title, exp.Company, filter)
 			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 1, 0)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for experience '%s at %s': %v", exp.Title, exp.Company, err)
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
 			}
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate experience from same resume file: %s at %s (found %d existing)", exp.Title, exp.Company, len(existing))
 				duplicateCount++
 				continue
 			}
@@ -624,7 +597,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 1, 0)
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate education: %s from %s", edu.Degree, edu.Institution)
 				duplicateCount++
 				continue
 			}
@@ -662,8 +634,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			return nil, 0, fmt.Errorf("skills collection not found: %w", err)
 		}
 
-		log.Printf("[RESUME-UPLOAD] [DEBUG] Skills collection: name=%s, id=%s", skillsCollection.Name, skillsCollection.Id)
-
 		// Fetch ALL existing skills for case-insensitive comparison
 		// Note: FindRecordsByFilter(collection, filter, sort, limit, offset)
 		// limit=500 (max records to return), offset=0 (start from beginning)
@@ -672,10 +642,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			log.Printf("[RESUME-UPLOAD] [WARNING] Failed to fetch existing skills: %v", err)
 			allSkills = []*core.Record{} // Continue with empty list
 		}
-		log.Printf("[RESUME-UPLOAD] [DEBUG] Loaded %d existing skills for deduplication check", len(allSkills))
-		if len(allSkills) > 0 {
-			log.Printf("[RESUME-UPLOAD] [DEBUG] Sample existing skills: %s, %s", allSkills[0].GetString("name"), allSkills[0].Id)
-		}
 
 		for _, skill := range parsed.Skills {
 			// Check for duplicate by comparing lowercase names
@@ -683,7 +649,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			for _, existing := range allSkills {
 				existingName := existing.GetString("name")
 				if strings.EqualFold(existingName, skill.Name) {
-					log.Printf("[RESUME-UPLOAD] Skipping duplicate skill: %s (matches existing: %s)", skill.Name, existingName)
 					duplicateCount++
 					isDuplicate = true
 					break
@@ -707,7 +672,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				log.Printf("[RESUME-UPLOAD] Failed to create skill: %v", err)
 				continue
 			}
-			log.Printf("[RESUME-UPLOAD] [DEBUG] Created skill: %s (id: %s, collection: %s)", skill.Name, record.Id, record.Collection().Name)
 			imported["skills"] = append(imported["skills"], record.Id)
 			// Add to our in-memory list for subsequent checks in this import
 			allSkills = append(allSkills, record)
@@ -727,7 +691,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				escapeFilter(cert.Name), escapeFilter(cert.Issuer))
 			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 1, 0)
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate certification: %s", cert.Name)
 				duplicateCount++
 				continue
 			}
@@ -767,14 +730,12 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// This allows same project from DIFFERENT resumes (faceted views)
 			// but prevents duplicates from same resume imported multiple times
 			filter := fmt.Sprintf("title = '%s' && import_filename = '%s'", escapeFilter(proj.Title), escapeFilter(filename))
-			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate project '%s' with filter: %s", proj.Title, filter)
 			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 1, 0)
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for project '%s': %v", proj.Title, err)
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
 			}
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate project from same resume file: %s (found %d existing)", proj.Title, len(existing))
 				duplicateCount++
 				continue
 			}
@@ -829,7 +790,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 1, 0)
 				if err == nil && len(existing) > 0 {
-					log.Printf("[RESUME-UPLOAD] Skipping duplicate award: %s", award.Title)
 					duplicateCount++
 					continue
 				}
@@ -866,7 +826,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 					escapeFilter(talk.Title), escapeFilter(talk.Event))
 				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 1, 0)
 				if err == nil && len(existing) > 0 {
-					log.Printf("[RESUME-UPLOAD] Skipping duplicate talk: %s", talk.Title)
 					duplicateCount++
 					continue
 				}

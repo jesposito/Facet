@@ -6,7 +6,6 @@ import { beforeNavigate, afterNavigate } from '$app/navigation';
 
 // Log navigation events in development
 if (typeof window !== 'undefined') {
-	console.log('[HOOKS CLIENT] Initializing client hooks');
 
 	// Note: These hooks need to be set up in a component, not in hooks.client.ts
 	// This file is for handle/handleError hooks only

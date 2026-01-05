@@ -297,7 +297,6 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			log.Printf("[AI] Provider create failed: %v", err)
 			return err
 		}
-		log.Printf("[AI] Provider created: %s (id: %s)", e.Record.GetString("name"), e.Record.Id)
 		return nil
 	})
 
@@ -310,7 +309,6 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			log.Printf("[AI] Provider update failed: %v", err)
 			return err
 		}
-		log.Printf("[AI] Provider updated: %s (id: %s)", e.Record.GetString("name"), e.Record.Id)
 		return nil
 	})
 }
@@ -325,7 +323,6 @@ func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoSer
 		if err := createProviderFromEnv(app, crypto, "anthropic", "Claude (Auto)", apiKey, "", "claude-sonnet-4-20250514", isFirstProvider); err != nil {
 			log.Printf("[AI] Failed to auto-configure Anthropic: %v", err)
 		} else {
-			log.Printf("[AI] Auto-configured Anthropic Claude provider from environment")
 			isFirstProvider = false
 		}
 	}
@@ -335,7 +332,6 @@ func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoSer
 		if err := createProviderFromEnv(app, crypto, "openai", "OpenAI (Auto)", apiKey, "", "gpt-4o", isFirstProvider); err != nil {
 			log.Printf("[AI] Failed to auto-configure OpenAI: %v", err)
 		} else {
-			log.Printf("[AI] Auto-configured OpenAI provider from environment")
 			isFirstProvider = false
 		}
 	}
@@ -349,7 +345,6 @@ func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoSer
 		if err := createProviderFromEnv(app, crypto, "ollama", "Ollama (Auto)", "", baseURL, model, isFirstProvider); err != nil {
 			log.Printf("[AI] Failed to auto-configure Ollama: %v", err)
 		} else {
-			log.Printf("[AI] Auto-configured Ollama provider from environment")
 		}
 	}
 }
@@ -392,7 +387,6 @@ func createProviderFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoSe
 		return fmt.Errorf("insert: %w", err)
 	}
 
-	log.Printf("[AI] Created provider via direct SQL: %s (id: %s)", name, id)
 	return nil
 }
 

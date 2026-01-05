@@ -95,7 +95,6 @@ func enforceCollectionRules(app *pocketbase.PocketBase) error {
 	}
 
 	if len(updated) > 0 {
-		log.Printf("Enforced collection access rules: %v", updated)
 	}
 
 	return nil
