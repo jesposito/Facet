@@ -36,8 +36,7 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tzdata \
-    nodejs \
-    npm \
+    curl \
     caddy \
     pandoc \
     texlive \
@@ -45,6 +44,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-fonts-extra \
     wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 from NodeSource (Debian's nodejs is v18, incompatible with build)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
 # Note: Uses GID/UID 1000 as standard. If your host user has different UID,
