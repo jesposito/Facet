@@ -431,11 +431,15 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 // createResumeRecordsWithDeduplication creates records with smart deduplication and import metadata
 //
 // Deduplication Strategy (for faceted resume views):
-// - Skills: Always dedupe across all imports (same skill is same skill)
-// - Experience: Only dedupe within same session (different resumes = different facets)
-// - Education: Always dedupe (same degree is same credential)
-// - Awards: Always dedupe (same award is same achievement)
-// - Projects: Only dedupe within same session (different resumes = different facets)
+// - Skills: Always dedupe across all imports (same skill is same skill, case-insensitive)
+// - Experience: Dedupe by filename (same resume = dedupe, different resumes = different facets)
+// - Education: Always dedupe across all imports (same degree is same credential)
+// - Awards: Always dedupe across all imports (same award is same achievement)
+// - Projects: Dedupe by filename (same resume = dedupe, different resumes = different facets)
+//
+// The filename-based deduplication for experience/projects allows:
+// 1. Same resume imported multiple times → prevents duplicates
+// 2. Different resumes with same role → creates faceted views
 func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string, importSessionID string) (map[string][]string, int, error) {
 	imported := make(map[string][]string)
 	duplicateCount := 0
@@ -457,13 +461,19 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 
 		for _, exp := range parsed.Experience {
-			// Check for duplicate ONLY within this import session
-			// This allows same role to be imported from different resumes (faceted views)
-			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s' && import_session_id = '%s'",
-				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate, importSessionID)
+			// Check for duplicate within same resume (by filename)
+			// This allows same role from DIFFERENT resumes (faceted views)
+			// but prevents duplicates from same resume imported multiple times
+			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s' && import_filename = '%s'",
+				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate, escapeFilter(filename))
+			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate experience '%s at %s' with filter: %s", exp.Title, exp.Company, filter)
 			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 0, 1)
+			if err != nil {
+				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for experience '%s at %s': %v", exp.Title, exp.Company, err)
+				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
+			}
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate experience within same resume: %s at %s", exp.Title, exp.Company)
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate experience from same resume file: %s at %s (found %d existing)", exp.Title, exp.Company, len(existing))
 				duplicateCount++
 				continue
 			}
@@ -560,10 +570,16 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 		for _, skill := range parsed.Skills {
 			// Check for duplicate across ALL imports (not session-specific)
-			filter := fmt.Sprintf("LOWER(name) = LOWER('%s')", escapeFilter(skill.Name))
+			// Use PocketBase :lower modifier for case-insensitive matching
+			filter := fmt.Sprintf("name:lower = '%s'", strings.ToLower(escapeFilter(skill.Name)))
+			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate skill '%s' with filter: %s", skill.Name, filter)
 			existing, err := app.FindRecordsByFilter(skillsCollection.Name, filter, "", 0, 1)
+			if err != nil {
+				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for skill '%s': %v", skill.Name, err)
+				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
+			}
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate skill: %s", skill.Name)
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate skill: %s (found %d existing)", skill.Name, len(existing))
 				duplicateCount++
 				continue
 			}
@@ -634,12 +650,18 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 
 		for _, proj := range parsed.Projects {
-			// Check for duplicate ONLY within this import session
-			// This allows same project to be imported from different resumes with different facets
-			filter := fmt.Sprintf("title = '%s' && import_session_id = '%s'", escapeFilter(proj.Title), importSessionID)
+			// Check for duplicate within same resume (by filename)
+			// This allows same project from DIFFERENT resumes (faceted views)
+			// but prevents duplicates from same resume imported multiple times
+			filter := fmt.Sprintf("title = '%s' && import_filename = '%s'", escapeFilter(proj.Title), escapeFilter(filename))
+			log.Printf("[RESUME-UPLOAD] [DEBUG] Checking for duplicate project '%s' with filter: %s", proj.Title, filter)
 			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 0, 1)
+			if err != nil {
+				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for project '%s': %v", proj.Title, err)
+				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
+			}
 			if err == nil && len(existing) > 0 {
-				log.Printf("[RESUME-UPLOAD] Skipping duplicate project within same resume: %s", proj.Title)
+				log.Printf("[RESUME-UPLOAD] Skipping duplicate project from same resume file: %s (found %d existing)", proj.Title, len(existing))
 				duplicateCount++
 				continue
 			}
