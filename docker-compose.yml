@@ -90,7 +90,7 @@ services:
       # MUST NOT change after first run (or encrypted data becomes unreadable)
       #
       # If this is missing, the container will fail to start.
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ERROR: ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required. Generate with openssl rand -hex 32}
 
       # ------------------------------------------------------------------
       # NETWORK: Reverse Proxy Configuration

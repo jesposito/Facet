@@ -12,8 +12,8 @@ RUN apk add --no-cache \
     git \
     curl
 
-# Install air for Go hot reload
-RUN go install github.com/air-verse/air@latest
+# Install air for Go hot reload (pinned to v1.52.3 for Go 1.24 compatibility)
+RUN go install github.com/air-verse/air@v1.52.3
 
 WORKDIR /app
 

@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"facet/services"
+
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -70,7 +72,7 @@ func (e *AdminDeniedError) Error() string {
 }
 
 // RegisterPasswordChangeEndpoint registers password change endpoints
-func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase) {
+func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// GET /api/auth/check-default-password - Check if user has default password
 		se.Router.GET("/api/auth/check-default-password", func(e *core.RequestEvent) error {
@@ -91,7 +93,8 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase) {
 		})
 
 		// POST /api/auth/change-password - Change user password
-		se.Router.POST("/api/auth/change-password", func(e *core.RequestEvent) error {
+		// Rate limited: strict tier (5/min) to prevent brute force attacks on password verification
+		se.Router.POST("/api/auth/change-password", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
 			// Verify user is authenticated
 			user := e.Auth
 			if user == nil {
@@ -143,7 +146,7 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase) {
 				"success": true,
 				"message": "Password changed successfully",
 			})
-		})
+		}))
 
 		return se.Next()
 	})
