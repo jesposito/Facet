@@ -19,6 +19,7 @@ pb_data/
 # IDE (keep .vscode/tasks.json for shared dev tasks)
 .vscode/*
 !.vscode/tasks.json
+.devcontainer/
 .idea/
 *.swp
 *.swo
@@ -31,6 +32,8 @@ pb_data/
 .aiderignore
 agent-instructions.md
 .empirica/
+.empirica_reflex_logs/
+.beads/
 
 # Dev cache hashes (auto-generated)
 backend/.gomod-hash
