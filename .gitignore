@@ -65,3 +65,31 @@ temp/
 backend/facet
 .empirica/
 .empirica-venv/
+
+# === Agent Tooling - Auto-managed (DO NOT EDIT) ===
+# Installation artifacts
+.analysis-workspace/
+.agent-tooling-temp/
+.agent-tooling-cache/
+agent-tooling-install.log
+
+# API keys and secrets (CRITICAL - never commit!)
+.env
+.env.local
+.env.*.local
+.agent-tools.secrets.yaml
+
+# Tool-specific temp/cache
+.mem0-cache/
+.gptme-cache/
+.gptme-sessions/
+.aider-cache/
+.coderabbit-cache/
+
+# Session files (may contain sensitive data)
+.empirica-sessions/
+
+# Per-project installation (if using local mode)
+.agent-tools/
+
+# === End Agent Tooling ===
