@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-01-04
+**Last Updated:** 2026-01-05
 
 This roadmap reflects current implementation status and planned work, ordered chronologically by phase. Completed items remain for context; upcoming items are listed under each phase.
 
@@ -24,7 +24,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Demo Mode (Phase 10):** Demo toggle in admin panel with The Doctor's hilarious profile showcasing all features. Data backup/restore when toggling on/off.
 - ✅ **Demo Media System (Phase 14):** Profile avatar, project covers, and blog post covers with professional SVG graphics (60KB total). Demo mode now visually complete.
 - ✅ **First-Run Experience (Phase 13):** Welcome page, feature highlights, demo integration, Unraid Community Apps template, comprehensive SETUP.md.
-- 🔜 **Next Up:** Resume upload & AI parsing (reverse direction), Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
+- ✅ **Resume Upload & AI Parsing (Phase 15):** Upload PDF/DOCX resumes, AI extraction to Facet data, smart deduplication, file storage with hash-based duplicate prevention.
+- 🔜 **Next Up:** Security headers, debug logging cleanup, 2FA, audit logging hooks, Performance tuning.
 
 ---
 
@@ -353,12 +354,73 @@ Demo mode now includes professional SVG graphics that showcase the media library
 
 ---
 
+## Phase 15: Resume Upload & AI Parsing (✅ Complete)
+**Purpose:** Allow users to upload existing resumes and automatically populate their Facet profile using AI
+
+Users can now upload their PDF or DOCX resumes and have AI automatically extract all professional information, eliminating manual data entry.
+
+**✅ Implemented Features:**
+- **File Upload Endpoint:** `/api/resume/upload` with multipart form support
+- **File Format Support:**
+  - PDF parsing using `go-fitz` v1.24.15 (reliable text extraction)
+  - DOCX parsing using `go-docx` v0.1.1 with XML fallback for malformed files
+  - 5MB file size limit
+  - File type validation (PDF, DOCX only)
+- **AI Parsing Integration:**
+  - Structured prompts for OpenAI, Anthropic, and Ollama
+  - Extracts: experience, education, skills, projects, certifications, awards, talks
+  - 8192 max_tokens to handle complex resumes
+  - Confidence scores and parsing warnings
+  - Error handling with user-friendly messages
+- **Smart Deduplication System:**
+  - Skills: Always dedupe across all imports (case-insensitive)
+  - Experience/Projects: Dedupe within same file only (enables faceted resume views)
+  - Education/Certifications/Awards: Always dedupe universally
+  - Fixed critical bug: All queries had swapped limit/offset parameters (returned 0 results)
+- **File Storage & Tracking:**
+  - `resume_imports` collection stores uploaded files with SHA256 hashing
+  - Duplicate detection with 5-minute prevention window
+  - Import session tracking with `import_session_id` and `import_filename` fields
+  - Files accessible for future media gallery display
+- **Database Migrations:**
+  - 1736074800: Add import tracking fields to all resume-related collections
+  - 1736074900: Create `resume_imports` collection with file storage
+  - 1736075000: Add `resume_import_id` relation field for cleanup
+- **UX Improvements:**
+  - Clear error messages with expandable technical details
+  - Import summary showing counts of created/skipped records
+  - AI configuration guidance (links to Admin → Settings → AI)
+
+**Benefits Delivered:**
+- Fastest way to populate Facet profile from existing resume
+- No manual data entry for users with existing resumes
+- Intelligent deduplication prevents duplicates across multiple imports
+- Supports "faceted resume views" (same person, multiple resume versions)
+- File storage enables future media gallery integration
+
+**Technical Highlights:**
+- New services: `services/resume_parser.go` (610 lines) for AI parsing logic
+- New hooks: `hooks/resume_upload.go` (944 lines) for upload endpoint
+- Extensive debugging with Empirica cognitive OS to fix deduplication bugs
+- Comprehensive testing with multiple resume formats (PDF, DOCX, complex layouts)
+- Documentation: RESUME_UPLOAD_DESIGN.md, TESTING_RESUME_UPLOAD.md, EMPIRICA_GUIDE.md
+
+**Bug Fixes During Implementation:**
+1. Critical: Swapped limit/offset parameters in all deduplication queries (returned 0 results every time)
+2. PocketBase filter syntax: `:lower` modifier doesn't exist (switched to in-memory `strings.EqualFold()`)
+3. Missing migration field: `import_filename` field missing from projects collection
+4. AI response truncation: Increased max_tokens from 2048 to 8192
+5. DOCX parsing panics: Added XML fallback for malformed files
+6. Unique constraint errors: Update existing resume_imports record instead of creating duplicate
+
+---
+
 ## Cross-Cutting Backlog
 - **High Priority:**
   - Testing: ✅ E2E infrastructure complete (25 Playwright tests covering public APIs, SEO, error pages, media, admin flows); 🔜 GitHub/AI provider mocks, additional coverage
   - Theme system extensions (light/dark, presets)
-  - 🔜 **Resume Upload & AI Parsing (Reverse Direction):** Upload existing PDF/DOCX resumes, use AI to extract and populate experience/education/skills
-    - Note: AI resume generation (Facet → PDF/DOCX) is complete. This is the opposite: existing resume → Facet data
+  - ✅ **Resume Upload & AI Parsing (Reverse Direction):** Upload existing PDF/DOCX resumes, use AI to extract and populate experience/education/skills
+    - Complete: AI resume generation (Facet → PDF/DOCX) + resume upload (existing resume → Facet data). Both directions now supported.
 - **Medium Priority:**
   - Import/sync: scheduled GitHub refresh, additional sources (LinkedIn/JSON Resume/Credly)
   - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options
