@@ -120,11 +120,18 @@ func clearDemoTables(app *pocketbase.PocketBase) error {
 	for _, tableName := range tables {
 		records, err := app.FindRecordsByFilter(tableName, "", "", 1000, 0)
 		if err != nil {
+			app.Logger().Warn("demo: failed to fetch records for clearing",
+				"table", tableName,
+				"error", err)
 			continue
 		}
 		for _, record := range records {
 			if err := app.Delete(record); err != nil {
-				return err
+				app.Logger().Error("demo: failed to delete record",
+					"table", tableName,
+					"record_id", record.Id,
+					"error", err)
+				return fmt.Errorf("failed to delete demo data from %s: %w", tableName, err)
 			}
 		}
 	}
