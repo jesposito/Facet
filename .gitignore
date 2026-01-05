@@ -107,3 +107,13 @@ agent-tooling-install.log
 .agent-tools/
 
 # === End Agent Tooling ===
+
+# Research/cloned repos (temporary)
+ca-repo/
+community.applications/
+docker-baseimage-alpine/
+docker-baseimage-ubuntu/
+docker-sonarr/
+unraid-ca/
+unraid-docker-templates/
+/tmp/

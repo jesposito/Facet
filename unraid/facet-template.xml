@@ -22,7 +22,7 @@
   <DonateLink/>
   <Requires/>
   <Config Name="WebUI Port" Target="8080" Default="8080" Mode="tcp" Description="Port for accessing Facet web interface" Type="Port" Display="always" Required="true" Mask="false">8080</Config>
-  <Config Name="Data Directory" Target="/app/data" Default="/mnt/user/appdata/facet" Mode="rw" Description="Where Facet stores your database and uploads. IMPORTANT: Back this up regularly!" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/facet</Config>
+  <Config Name="Data Directory" Target="/data" Default="/mnt/user/appdata/facet" Mode="rw" Description="Where Facet stores your database and uploads. IMPORTANT: Back this up regularly!" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/facet</Config>
   <Config Name="Encryption Key" Target="ENCRYPTION_KEY" Default="" Mode="" Description="REQUIRED: Generate with 'openssl rand -hex 32'. Used to encrypt AI API keys and tokens. NEVER share this!" Type="Variable" Display="always" Required="true" Mask="true"/>
   <Config Name="Admin Emails" Target="ADMIN_EMAILS" Default="" Mode="" Description="Comma-separated list of emails allowed to log in (e.g., you@gmail.com,admin@example.com). Leave empty to allow any authenticated user." Type="Variable" Display="always" Required="false" Mask="false"/>
   <Config Name="App URL" Target="APP_URL" Default="http://localhost:8080" Mode="" Description="Your public URL. For Cloudflare Tunnel: https://facet.yourdomain.com. For local access: http://tower.local:8080" Type="Variable" Display="always" Required="true" Mask="false">http://localhost:8080</Config>
