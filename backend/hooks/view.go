@@ -599,7 +599,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Kept for backwards compatibility during migration
 		// Rate limited: normal tier (60/min) to prevent scraping
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			fmt.Println("[API /api/homepage] ========== REQUEST START ==========")
 			response := make(map[string]interface{})
 
 			settings, err := services.LoadSiteSettings(app)
@@ -609,8 +608,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if settings != nil && !settings.HomepageEnabled {
 				response["homepage_enabled"] = false
 				response["landing_page_message"] = settings.LandingPageMessage
-				fmt.Println("[API /api/homepage] Homepage disabled via settings")
-				fmt.Println("[API /api/homepage] ========== REQUEST END ==========")
 				return e.JSON(http.StatusOK, response)
 			}
 
@@ -651,7 +648,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 				response["profile"] = profileData
 			} else {
-				fmt.Println("[API /api/homepage] No public profile found!")
 			}
 
 			// Fetch experience - only public items appear on homepage
@@ -833,7 +829,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 			fmt.Printf("[API /api/homepage] Response summary: profile=%v exp=%d proj=%d edu=%d skills=%d posts=%d talks=%d certs=%d awards=%d\n",
 				response["profile"] != nil, expLen, projLen, eduLen, skillsLen, postsLen, talksLen, certsLen, awardsLen)
-			fmt.Println("[API /api/homepage] ========== REQUEST END ==========")
 
 			return e.JSON(http.StatusOK, response)
 		}))
@@ -842,14 +837,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft posts for the index page
 		se.Router.GET("/api/posts", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			fmt.Println("[API /api/posts] ========== REQUEST START ==========")
 
 			settings, err := services.LoadSiteSettings(app)
 			if err != nil {
 				app.Logger().Warn("Failed to load site settings", "error", err)
 			}
 			if settings != nil && !settings.HomepageEnabled {
-				fmt.Println("[API /api/posts] Homepage disabled via settings")
 				return e.JSON(http.StatusForbidden, map[string]interface{}{
 					"homepage_enabled":     false,
 					"landing_page_message": settings.LandingPageMessage,
@@ -915,11 +908,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 				fmt.Printf("[API /api/posts] Profile: id=%s name=%q\n", p.Id, p.GetString("name"))
 			} else {
-				fmt.Println("[API /api/posts] No public profile found")
 			}
 
 			fmt.Printf("[API /api/posts] Returning: posts=%d profile_exists=%v\n", len(posts), profile != nil)
-			fmt.Println("[API /api/posts] ========== REQUEST END ==========")
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"posts":   posts,
 				"profile": profile,
@@ -928,7 +919,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 		// RSS feed for public posts
 		se.Router.GET("/rss.xml", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			fmt.Println("[API /rss.xml] ========== REQUEST START ==========")
 
 			// Fetch profile for channel metadata
 			channelTitle := "Facet - Latest Posts"
@@ -1032,13 +1022,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			e.Response.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
 			_, _ = e.Response.Write(data)
 			fmt.Printf("[API /rss.xml] Returned %d items\n", len(items))
-			fmt.Println("[API /rss.xml] ========== REQUEST END ==========")
 			return nil
 		}))
 
 		// iCal feed for public talks
 		se.Router.GET("/talks.ics", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			fmt.Println("[API /talks.ics] ========== REQUEST START ==========")
 
 			// Fetch profile for calendar metadata
 			calendarName := "Facet Talks"
@@ -1139,7 +1127,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			e.Response.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 			_, _ = e.Response.Write([]byte(builder.String()))
 			fmt.Printf("[API /talks.ics] Returned %d items\n", len(talkRecords))
-			fmt.Println("[API /talks.ics] ========== REQUEST END ==========")
 			return nil
 		}))
 
@@ -1147,14 +1134,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min)
 		// Returns all non-private, non-draft talks for the index page
 		se.Router.GET("/api/talks", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			fmt.Println("[API /api/talks] ========== REQUEST START ==========")
 
 			settings, err := services.LoadSiteSettings(app)
 			if err != nil {
 				app.Logger().Warn("Failed to load site settings", "error", err)
 			}
 			if settings != nil && !settings.HomepageEnabled {
-				fmt.Println("[API /api/talks] Homepage disabled via settings")
 				return e.JSON(http.StatusForbidden, map[string]interface{}{
 					"homepage_enabled":     false,
 					"landing_page_message": settings.LandingPageMessage,
@@ -1207,11 +1192,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 				fmt.Printf("[API /api/talks] Profile: id=%s name=%q\n", p.Id, p.GetString("name"))
 			} else {
-				fmt.Println("[API /api/talks] No public profile found")
 			}
 
 			fmt.Printf("[API /api/talks] Returning: talks=%d profile_exists=%v\n", len(talks), profile != nil)
-			fmt.Println("[API /api/talks] ========== REQUEST END ==========")
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"talks":   talks,
 				"profile": profile,

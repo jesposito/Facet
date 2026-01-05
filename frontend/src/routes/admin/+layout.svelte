@@ -9,29 +9,23 @@
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 
 	let loading = true;
-	let demoModeInitialized = false;
 	let authorized = false;
 	let mounted = false;
 
 	// Check if we're on the login page (don't require auth there)
 	$: isLoginPage = $page.url.pathname === '/admin/login';
 
-	// Reactively handle auth state changes
-	$: if (mounted && !isLoginPage && demoModeInitialized) {
-		if ($currentUser) {
-			authorized = true;
-			loading = false;
-		} else if (!pb.authStore.isValid) {
-			// Only redirect if we're sure auth is not valid
-			// Give a small delay for auth store to hydrate
-			loading = false;
-			authorized = false;
-		}
-	}
-
-	// Handle login page - always stop loading
+	// Handle login page - always stop loading immediately
 	$: if (isLoginPage) {
 		loading = false;
+		authorized = false;
+	}
+
+	// Watch for logout (user becomes unauthenticated after being authorized)
+	$: if (mounted && !isLoginPage && authorized && !$currentUser && !pb.authStore.isValid) {
+		console.log('[LAYOUT] User logged out, redirecting to login');
+		authorized = false;
+		goto('/admin/login');
 	}
 
 	onMount(async () => {
@@ -65,29 +59,32 @@
 		console.log('[LAYOUT] About to call initDemoMode()');
 		await initDemoMode();
 		console.log('[LAYOUT] initDemoMode() completed');
-		demoModeInitialized = true;
-		console.log('[LAYOUT] Set demoModeInitialized to true');
 
-		// Small delay to allow auth store to hydrate from cookies/localStorage
-		// This is especially important in Codespaces/SSR environments
-		const checkAuth = () => {
-			if (pb.authStore.isValid) {
+		// Check auth state directly after demo mode is initialized
+		console.log('[LAYOUT] Checking auth state - currentUser:', $currentUser, 'authStore.isValid:', pb.authStore.isValid);
+
+		if ($currentUser && pb.authStore.isValid) {
+			console.log('[LAYOUT] User authenticated, showing admin');
+			authorized = true;
+			loading = false;
+		} else if (pb.authStore.isValid && !$currentUser) {
+			// Auth store is valid but store not updated yet - wait briefly
+			console.log('[LAYOUT] Auth store valid but $currentUser not set, waiting...');
+			await new Promise(resolve => setTimeout(resolve, 150));
+
+			// Re-check after delay
+			if ($currentUser && pb.authStore.isValid) {
+				console.log('[LAYOUT] User authenticated after delay, showing admin');
 				authorized = true;
 				loading = false;
 			} else {
-				// Not authenticated, redirect to login
-				authorized = false;
-				loading = false;
+				console.log('[LAYOUT] Still not authenticated after delay, redirecting to login');
 				goto('/admin/login');
 			}
-		};
-
-		// Give auth store time to load from storage
-		if (pb.authStore.isValid) {
-			checkAuth();
 		} else {
-			// Wait a tick for auth store to hydrate
-			setTimeout(checkAuth, 50);
+			// Not authenticated - redirect to login
+			console.log('[LAYOUT] Not authenticated, redirecting to login');
+			goto('/admin/login');
 		}
 	});
 

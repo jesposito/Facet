@@ -19,8 +19,8 @@ function getBrowserPbUrl(): string {
 const runtimePbUrl = browser ? getBrowserPbUrl() : process.env.POCKETBASE_URL || 'http://localhost:8090';
 export const pb = new PocketBase(runtimePbUrl);
 
-// Expose for debugging
-if (browser) {
+// Expose for debugging (development only)
+if (browser && import.meta.env.DEV) {
 	(window as unknown as { pb: PocketBase }).pb = pb;
 }
 

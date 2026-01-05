@@ -15,6 +15,7 @@ Think LinkedIn meets personal portfolio, except you hold all the cards: the data
 - Share conference-specific work at events without exposing client projects
 - Keep a professional presence online without feeding the LinkedIn algorithm
 - Import your GitHub projects without copying and pasting 47 README files
+- Upload your resume and have AI extract all your experience, skills, and education automatically
 - Actually own your professional identity
 - Make up fake people like some kind of weirdie 
 
@@ -164,6 +165,7 @@ They can't see:
 You get an admin dashboard at `/admin` where you:
 - Build your profile (name, headline, summary, avatar, etc.)
 - Add your work history, projects, education, certifications, awards
+- Upload your resume (PDF/DOCX) and have AI automatically extract everything
 - Write blog posts and add speaking engagements
 - Manage skills and contact methods
 - Create "views" (different versions of your profile)
@@ -285,6 +287,38 @@ If you configure an AI provider (OpenAI, Anthropic, or local Ollama), Facet can:
 You review everything before it goes live. You can edit any field, lock fields you've customized (so they don't get overwritten on refresh), and refresh projects from GitHub anytime.
 
 The AI won't invent metrics or hallucinate features (we've built guardrails). Your API keys are encrypted at rest with AES-256-GCM.
+
+### Resume Upload & AI Parsing (Import Your Existing Resume)
+
+Already have a resume? Upload it (PDF or DOCX) and let AI extract all your professional information automatically.
+
+**What gets extracted:**
+- Work experience (title, company, dates, responsibilities)
+- Education (degrees, schools, dates)
+- Skills (with categories and proficiency levels)
+- Projects (title, description, technologies)
+- Certifications (name, issuer, dates)
+- Awards and speaking engagements
+
+**Smart deduplication:**
+- Skills are always deduplicated across imports ("Docker" is "Docker")
+- Experience and projects dedupe within the same file only (allows faceted views)
+- Education, certifications, and awards dedupe universally
+
+**How it works:**
+1. Upload your PDF or Word resume
+2. AI extracts text and parses it into structured data
+3. Records are created with intelligent deduplication
+4. File is stored for your records (visible in media gallery)
+5. Import summary shows what was created
+
+**File handling:**
+- SHA256 hash prevents accidental duplicate imports (5-minute window)
+- Supports complex layouts, tables, and multi-column resumes
+- Fallback XML extraction for problematic DOCX files
+- Stores original file for future reference
+
+This is the fastest way to populate your Facet profile if you already have a resume prepared.
 
 ### AI Writing Assistant (Makes You Sound Better)
 
@@ -720,7 +754,7 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 
 ## Roadmap (What's Done, What's Next)
 
-**Completed (12 phases):**
+**Completed (13 phases):**
 - ✅ Core profile and content management
 - ✅ Views system with custom ordering, overrides, theming
 - ✅ Share token management with expiration and use limits
@@ -731,13 +765,14 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Export system (JSON/YAML)
 - ✅ Print-optimized CSS
 - ✅ AI-powered resume generation (PDF/DOCX with multiple formats and styles)
+- ✅ Resume upload and AI parsing (PDF/DOCX → auto-extract to Facet)
 - ✅ RSS feed and iCal export
 - ✅ SEO (Open Graph, JSON-LD, sitemaps)
 - ✅ Security review and XSS/path traversal protection
+- ✅ Demo mode with comprehensive example content
 
 **Planned:**
 - Scheduled GitHub sync (auto-refresh projects)
-- Resume upload and AI parsing (upload existing resume → extract to Facet)
 - Security headers (CSP, X-Frame-Options)
 - 2FA (TOTP + backup codes)
 - Audit logging for admin actions

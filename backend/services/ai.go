@@ -99,13 +99,18 @@ func (a *AIService) TestConnection(ctx context.Context, provider *AIProvider) er
 
 // ImproveContent improves content using the AI provider with a custom prompt
 func (a *AIService) ImproveContent(ctx context.Context, provider *AIProvider, prompt string) (string, error) {
+	return a.ImproveContentWithTokens(ctx, provider, prompt, 2048)
+}
+
+// ImproveContentWithTokens improves content with a custom max_tokens limit
+func (a *AIService) ImproveContentWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
 	switch provider.Type {
 	case "openai", "custom":
-		return a.callOpenAIRaw(ctx, provider, prompt)
+		return a.callOpenAIRawWithTokens(ctx, provider, prompt, maxTokens)
 	case "anthropic":
-		return a.callAnthropicRaw(ctx, provider, prompt)
+		return a.callAnthropicRawWithTokens(ctx, provider, prompt, maxTokens)
 	case "ollama":
-		return a.callOllamaRaw(ctx, provider, prompt)
+		return a.callOllamaRaw(ctx, provider, prompt) // Ollama doesn't need token limits
 	default:
 		return "", fmt.Errorf("unsupported provider type: %s", provider.Type)
 	}
@@ -189,6 +194,10 @@ func (a *AIService) callOpenAI(ctx context.Context, provider *AIProvider, prompt
 }
 
 func (a *AIService) callOpenAIRaw(ctx context.Context, provider *AIProvider, prompt string) (string, error) {
+	return a.callOpenAIRawWithTokens(ctx, provider, prompt, 0) // 0 means use API default
+}
+
+func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
 	baseURL := "https://api.openai.com/v1"
 	if provider.BaseURL != "" {
 		baseURL = strings.TrimSuffix(provider.BaseURL, "/")
@@ -205,6 +214,11 @@ func (a *AIService) callOpenAIRaw(ctx context.Context, provider *AIProvider, pro
 			{"role": "user", "content": prompt},
 		},
 		"temperature": 0.7,
+	}
+
+	// Add max_tokens if specified
+	if maxTokens > 0 {
+		reqBody["max_tokens"] = maxTokens
 	}
 
 	body, err := json.Marshal(reqBody)
@@ -264,6 +278,10 @@ func (a *AIService) callAnthropic(ctx context.Context, provider *AIProvider, pro
 }
 
 func (a *AIService) callAnthropicRaw(ctx context.Context, provider *AIProvider, prompt string) (string, error) {
+	return a.callAnthropicRawWithTokens(ctx, provider, prompt, 2048)
+}
+
+func (a *AIService) callAnthropicRawWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
 	model := provider.Model
 	if model == "" {
 		model = "claude-sonnet-4-20250514"
@@ -271,7 +289,7 @@ func (a *AIService) callAnthropicRaw(ctx context.Context, provider *AIProvider, 
 
 	reqBody := map[string]interface{}{
 		"model":      model,
-		"max_tokens": 2048,
+		"max_tokens": maxTokens,
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
