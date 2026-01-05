@@ -7,10 +7,12 @@
 	import { initDemoMode } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
+	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
 
 	let loading = true;
 	let authorized = false;
 	let mounted = false;
+	let showPasswordChangeModal = false;
 
 	// Check if we're on the login page (don't require auth there)
 	$: isLoginPage = $page.url.pathname === '/admin/login';
@@ -25,13 +27,33 @@
 	$: if (mounted && !isLoginPage) {
 		const isAuth = $currentUser && pb.authStore.isValid;
 		if (isAuth && !authorized) {
-			// User just logged in - authorize them
+			// User just logged in - check for default password
+			checkDefaultPassword();
 			authorized = true;
 			loading = false;
 		} else if (!isAuth && authorized) {
 			// User just logged out - redirect
 			authorized = false;
 			goto('/admin/login');
+		}
+	}
+
+	async function checkDefaultPassword() {
+		try {
+			const response = await fetch('/api/auth/check-default-password', {
+				headers: {
+					Authorization: `Bearer ${pb.authStore.token}`
+				}
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				if (data.has_default_password) {
+					showPasswordChangeModal = true;
+				}
+			}
+		} catch (err) {
+			console.error('Failed to check default password:', err);
 		}
 	}
 
@@ -74,7 +96,8 @@
 		const isAuthenticated = $currentUser && pb.authStore.isValid;
 
 		if (isAuthenticated) {
-			// User is fully authenticated - show admin
+			// User is fully authenticated - check if they have default password
+			checkDefaultPassword();
 			authorized = true;
 			loading = false;
 		} else if (pb.authStore.isValid && !$currentUser) {
@@ -84,6 +107,8 @@
 			// Re-check after delay
 			const stillAuthenticated = $currentUser && pb.authStore.isValid;
 			if (stillAuthenticated) {
+				// Check if user has default password
+				checkDefaultPassword();
 				authorized = true;
 				loading = false;
 			} else {
@@ -101,6 +126,24 @@
 	onDestroy(() => {
 		mounted = false;
 	});
+
+	function handlePasswordChanged() {
+		// Password was successfully changed - hide modal and reload user data
+		showPasswordChangeModal = false;
+
+		// Refresh user data to get updated password_changed_from_default field
+		if ($currentUser) {
+			pb.collection('users')
+				.getOne($currentUser.id)
+				.then((updatedUser) => {
+					// Update the currentUser store
+					currentUser.set(updatedUser);
+				})
+				.catch((err) => {
+					console.error('Failed to refresh user data:', err);
+				});
+		}
+	}
 </script>
 
 {#if loading}
@@ -129,6 +172,11 @@
 				<slot />
 			</main>
 		</div>
+
+		<!-- Password change modal (blocks all access until password is changed) -->
+		{#if showPasswordChangeModal}
+			<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />
+		{/if}
 	</div>
 {:else}
 	<!-- CRITICAL SECURITY: Fallback for any edge case where user is not authenticated -->

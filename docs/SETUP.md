@@ -54,7 +54,19 @@ For development, a default admin account is created automatically:
 |-------|----------|
 | `admin@example.com` | `changeme123` |
 
-**Important**: Change this password or set up your own authentication for production.
+**Security Note**: On your first login with the default password, you'll be prompted to change it immediately. The modal cannot be dismissed until you set a secure password.
+
+**Resetting Admin Password**: If you forget your password or need to reset it to default:
+
+```bash
+# From your Docker container
+docker exec -it facet /app/backend/facet reset-admin-password
+
+# Or specify a different email
+docker exec -it facet /app/backend/facet reset-admin-password admin@yourdomain.com
+```
+
+This resets the password to `changeme123` and the user will be prompted to change it on next login.
 
 ### 6. Try Demo Mode (Optional)
 

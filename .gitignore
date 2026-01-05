@@ -66,6 +66,12 @@ backend/facet
 .empirica/
 .empirica-venv/
 
+# Python virtual environments
+.venv/
+venv/
+env/
+
+
 # === Agent Tooling - Auto-managed (DO NOT EDIT) ===
 # Installation artifacts
 .analysis-workspace/
@@ -78,6 +84,7 @@ agent-tooling-install.log
 .env.local
 .env.*.local
 .agent-tools.secrets.yaml
+.mem0.env
 
 # Tool-specific temp/cache
 .mem0-cache/
