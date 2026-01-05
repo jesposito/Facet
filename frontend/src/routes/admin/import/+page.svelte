@@ -83,8 +83,25 @@
 				body: formData
 			});
 
+			// Try to parse JSON response safely
+			let data;
+			try {
+				const responseText = await response.text();
+				if (!responseText || responseText.trim() === '') {
+					throw new Error('Empty response from server');
+				}
+				data = JSON.parse(responseText);
+			} catch (jsonErr) {
+				// Response wasn't valid JSON or was empty
+				resumeError = {
+					message: 'The server response was incomplete or invalid.',
+					action: 'This might be due to a timeout or server error. Try uploading your resume again, or try a shorter/simpler resume.',
+					technical: `JSON parse error: ${jsonErr}. HTTP status: ${response.status}`
+				};
+				return;
+			}
+
 			if (!response.ok) {
-				const data = await response.json();
 				// Check if error is structured (with message, action, technical)
 				if (data.error && typeof data.error === 'object' && data.error.message) {
 					resumeError = data.error;
@@ -95,11 +112,15 @@
 				return;
 			}
 
-			const result = await response.json();
-			resumeResult = result;
-			toasts.add('success', `Resume imported! ${result.counts.experience || 0} experiences, ${result.counts.skills || 0} skills, and more.`);
+			resumeResult = data;
+			toasts.add('success', `Resume imported! ${data.counts?.experience || 0} experiences, ${data.counts?.skills || 0} skills, and more.`);
 		} catch (err) {
-			resumeError = (err as Error).message;
+			// Network error or other unexpected error
+			resumeError = {
+				message: 'Upload failed unexpectedly.',
+				action: 'Check your internet connection and try again.',
+				technical: `Error: ${(err as Error).message}`
+			};
 		} finally {
 			resumeUploading = false;
 		}
