@@ -1752,8 +1752,6 @@ func isRecordVisible(record *core.Record) bool {
 }
 
 func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
-	visibility := record.GetString("visibility")
-	isDraft := record.GetBool("is_draft")
 	viewVisibility := record.Get("view_visibility")
 
 	if isRecordVisible(record) {
