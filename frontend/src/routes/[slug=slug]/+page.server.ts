@@ -14,15 +14,16 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getShareToken, getPasswordToken, setPasswordToken, setShareToken, buildTokenHeaders } from '$lib/tokens';
+import { getShareToken, getPasswordToken, setPasswordToken, setShareToken } from '$lib/tokens';
 
-export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
+export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 
-	// Get tokens from cookies (set by /s/[token] or password flow)
 	const shareToken = getShareToken(cookies);
 	const passwordToken = getPasswordToken(cookies);
+	
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 
 	// Check for URL token (legacy ?t= parameter)
 	// If present, validate and redirect to clean URL
@@ -49,8 +50,15 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 	const effectiveShareToken = shareToken;
 
 	try {
-		// Get view access info
-		const response = await fetch(`${pbUrl}/api/view/${slug}/access`);
+		const accessHeaders: Record<string, string> = {};
+		if (pbAuthToken) {
+			accessHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
+		}
+		
+		const response = await fetch(`${pbUrl}/api/view/${slug}/access`, {
+			headers: accessHeaders
+		});
+		
 		if (!response.ok) {
 			throw error(404, 'Not Found');
 		}
@@ -80,14 +88,19 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 			};
 		}
 
-		// Build headers with available tokens
-		const headers = buildTokenHeaders(effectiveShareToken, passwordToken);
+		const dataHeaders: Record<string, string> = {};
+		if (effectiveShareToken) {
+			dataHeaders['X-Share-Token'] = effectiveShareToken;
+		}
+		if (pbAuthToken) {
+			dataHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
+		} else if (passwordToken) {
+			dataHeaders['Authorization'] = `Bearer ${passwordToken}`;
+		}
 
-		// Fetch view data with tokens
-		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers });
+		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: dataHeaders });
 
 		if (!dataResponse.ok) {
-			// If we have a token but it's invalid, show appropriate error
 			if (dataResponse.status === 401 || dataResponse.status === 403) {
 				if (accessInfo.visibility === 'password') {
 					return {

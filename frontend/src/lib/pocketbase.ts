@@ -27,9 +27,18 @@ if (browser && import.meta.env.DEV) {
 // Auth store (SDK 0.21.x uses 'model')
 export const currentUser = writable(pb.authStore.model);
 
-// Update store when auth changes
 pb.authStore.onChange((token, model) => {
 	currentUser.set(model);
+	
+	if (browser) {
+		const isProd = window.location.protocol === 'https:';
+		document.cookie = pb.authStore.exportToCookie({
+			httpOnly: false,
+			secure: isProd,
+			sameSite: 'Lax',
+			path: '/'
+		}, 'pb_auth');
+	}
 });
 
 // Types
