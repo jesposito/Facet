@@ -4,10 +4,24 @@
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.24-bookworm AS backend-builder
+# go-fitz v1.24.15 ships MuPDF libs built with glibc 2.38+ (__isoc23_strtol)
+# Debian Bookworm has glibc 2.36 -> linker errors on ARM64
+# Solution: Use Ubuntu 24.04 (glibc 2.39) with manually installed Go 1.24
+FROM ubuntu:24.04 AS backend-builder
 
+ARG GO_VERSION=1.24.4
+ARG TARGETARCH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libc6-dev \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | tar -C /usr/local -xz
+
+ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /build
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -31,7 +45,7 @@ RUN npm run build
 # ============================================
 # Stage 3: Final runtime image
 # ============================================
-FROM debian:bookworm-slim
+FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -44,18 +58,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-fonts-extra \
     wget \
     openssl \
-    && rm -rf /var/lib/apt/lists/*
+    gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g 1000 facet \
+    && useradd -u 1000 -g facet -s /bin/bash -m facet
 
 # Install Node.js 20 from NodeSource (Debian's nodejs is v18, incompatible with build)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
-
-# Create non-root user
-# Note: Uses GID/UID 1000 as standard. If your host user has different UID,
-# either chown the data directory or rebuild with matching UID
-RUN groupadd -g 1000 facet && \
-    useradd -u 1000 -g facet -s /bin/sh -m facet
 
 WORKDIR /app
 
@@ -72,16 +83,18 @@ COPY docker/Caddyfile ./Caddyfile
 COPY docker/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-# Create data and uploads directories
-RUN mkdir -p /data /uploads && chown -R facet:facet /data /uploads /app
+# Create data and uploads directories (ownership set at runtime via PUID/PGID)
+RUN mkdir -p /data /uploads
 
-# Environment
+# Environment - PUID/PGID follow linuxserver.io convention for Unraid compatibility
 ENV DATA_DIR=/data \
     NODE_ENV=production \
     POCKETBASE_URL=http://localhost:8090 \
     PORT=3000 \
     HOST=0.0.0.0 \
-    ADMIN_ENABLED=false
+    ADMIN_ENABLED=false \
+    PUID=1000 \
+    PGID=1000
 
 # Single exposed port
 EXPOSE 8080
@@ -90,6 +103,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-USER facet
 VOLUME ["/data", "/uploads"]
 CMD ["./start.sh"]

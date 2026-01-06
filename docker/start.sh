@@ -6,6 +6,21 @@ echo "  Facet - Starting up..."
 echo "========================================"
 echo ""
 
+PUID=${PUID:-1000}
+PGID=${PGID:-1000}
+
+echo "[Config] Running with PUID=$PUID PGID=$PGID"
+
+if [ "$(id -u)" = "0" ]; then
+    groupmod -o -g "$PGID" facet 2>/dev/null || groupadd -o -g "$PGID" facet
+    usermod -o -u "$PUID" -g facet facet 2>/dev/null || useradd -o -u "$PUID" -g facet -s /bin/bash -m facet
+    
+    chown -R facet:facet /app /data /uploads
+    
+    echo "[Config] Switching to user facet (PUID=$PUID, PGID=$PGID)"
+    exec gosu facet "$0" "$@"
+fi
+
 DATA_DIR="/data"
 UPLOADS_DIR="/uploads"
 KEY_FILE="$DATA_DIR/.encryption_key"
