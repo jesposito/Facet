@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
-	github.com/gen2brain/go-fitz v1.24.14
+	github.com/gen2brain/go-fitz v1.23.7
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/pocketbase/dbx v1.10.1
