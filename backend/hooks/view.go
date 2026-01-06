@@ -238,14 +238,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			visibility := view.GetString("visibility")
 
-			return e.JSON(http.StatusOK, map[string]interface{}{
-				"view_id":           view.Id,
-				"view_name":         view.GetString("name"),
-				"slug":              slug,
-				"visibility":        visibility,
-				"requires_password": visibility == "password",
-				"requires_token":    visibility == "unlisted",
-			})
+		isAuthenticated := e.Auth != nil
+		return e.JSON(http.StatusOK, map[string]interface{}{
+			"view_id":           view.Id,
+			"view_name":         view.GetString("name"),
+			"slug":              slug,
+			"visibility":        visibility,
+			"requires_password": visibility == "password" && !isAuthenticated,
+			"requires_token":    visibility == "unlisted" && !isAuthenticated,
+			"is_authenticated":  isAuthenticated,
+		})
 		}))
 
 		// Get full view data (with content filtering based on sections config)
@@ -291,43 +293,44 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 				}
 
-			case "password":
-				// Password-protected views require valid JWT
-				token := extractPasswordToken(e)
-				if token == "" {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "password token required"})
-				}
+		case "password":
+			if e.Auth != nil {
+				break
+			}
+			token := extractPasswordToken(e)
+			if token == "" {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "password token required"})
+			}
 
-				viewID, err := crypto.ValidateViewAccessJWT(token)
-				if err != nil {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired token"})
-				}
+			viewID, err := crypto.ValidateViewAccessJWT(token)
+			if err != nil {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired token"})
+			}
 
-				// Ensure token is for this specific view
-				if viewID != view.Id {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "token not valid for this view"})
-				}
+			if viewID != view.Id {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "token not valid for this view"})
+			}
 
-			case "unlisted":
-				// Unlisted views require a valid share token
-				shareToken := extractShareToken(e)
-				if shareToken == "" {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "share token required"})
-				}
+		case "unlisted":
+			if e.Auth != nil {
+				break
+			}
+			shareToken := extractShareToken(e)
+			if shareToken == "" {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "share token required"})
+			}
 
-				// Validate the share token
-				valid, tokenRecord := validateShareToken(app, share, shareToken, view.Id)
-				if !valid {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
-				}
+			valid, tokenRecord := validateShareToken(app, share, shareToken, view.Id)
+			if !valid {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
+			}
 
-				// Update token usage (fire-and-forget, don't block request)
-				if tokenRecord != nil {
-					useCount := tokenRecord.GetInt("use_count")
-					tokenRecord.Set("use_count", useCount+1)
-					tokenRecord.Set("last_used_at", time.Now())
-					app.Save(tokenRecord)
-				}
+			if tokenRecord != nil {
+				useCount := tokenRecord.GetInt("use_count")
+				tokenRecord.Set("use_count", useCount+1)
+				tokenRecord.Set("last_used_at", time.Now())
+				app.Save(tokenRecord)
+			}
 
 			case "public":
 				// Public views are accessible to everyone
@@ -448,31 +451,35 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						}
 					}
 					sectionData[sectionName] = serializeRecordsWithOverrides(itemRecords, itemConfig, sectionName)
+			} else {
+				var filter string
+				var sortField string
+				if sectionName == "contacts" {
+					filter = ""
+					sortField = "-is_primary,-sort_order"
 				} else {
-					// Fetch all visible items from section
-					var filter string
-					var sortField string
-					if sectionName == "contacts" {
-						// Contact methods don't have visibility or is_draft fields
-						filter = ""
-						sortField = "-is_primary,-sort_order"
-					} else {
-						filter = "visibility != 'private' && is_draft = false"
-						sortField = "sort_order"
-					}
-
-					records, err := app.FindRecordsByFilter(
-						collectionName,
-						filter,
-						sortField,
-						100,
-						0,
-						nil,
-					)
-					if err == nil {
-						sectionData[sectionName] = serializeRecordsWithOverrides(records, itemConfig, sectionName)
-					}
+					filter = "is_draft = false"
+					sortField = "sort_order"
 				}
+
+				allRecords, err := app.FindRecordsByFilter(
+					collectionName,
+					filter,
+					sortField,
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					var visibleRecords []*core.Record
+					for _, record := range allRecords {
+						if isRecordVisibleForSection(record, sectionName, view.Id) {
+							visibleRecords = append(visibleRecords, record)
+						}
+					}
+					sectionData[sectionName] = serializeRecordsWithOverrides(visibleRecords, itemConfig, sectionName)
+				}
+			}
 			}
 
 			response["sections"] = sectionData
@@ -620,11 +627,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			fmt.Printf("[API /api/homepage] Profile query: found %d records, err=%v\n", len(profileRecords), err)
-			if err == nil && len(profileRecords) > 0 {
-				profile := profileRecords[0]
-				fmt.Printf("[API /api/homepage] Profile: id=%s name=%q visibility=%q\n",
-					profile.Id, profile.GetString("name"), profile.GetString("visibility"))
+		if err == nil && len(profileRecords) > 0 {
+			profile := profileRecords[0]
 				profileData := map[string]interface{}{
 					"id":            profile.Id,
 					"name":          profile.GetString("name"),
@@ -722,13 +726,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			fmt.Printf("[API /api/homepage] Posts query: found %d records, err=%v\n", len(postRecords), err)
-			if err == nil {
-				for i, r := range postRecords {
-					fmt.Printf("[API /api/homepage]   Post[%d] id=%s title=%q visibility=%q is_draft=%v\n",
-						i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
-				}
-				if len(postRecords) > 0 {
+		if err == nil {
+			if len(postRecords) > 0 {
 					posts := serializeRecords(postRecords)
 					postCollectionID := postRecords[0].Collection().Id
 					// Add file URLs for cover images
@@ -743,9 +742,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 					response["posts"] = posts
 				}
-			} else {
-				fmt.Printf("[API /api/homepage] Posts query ERROR: %v\n", err)
-			}
+		}
 
 			// Fetch talks - only public items appear on homepage
 			talkRecords, err := app.FindRecordsByFilter(
@@ -756,16 +753,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			fmt.Printf("[API /api/homepage] Talks query: found %d records, err=%v\n", len(talkRecords), err)
-			if err == nil {
-				for i, r := range talkRecords {
-					fmt.Printf("[API /api/homepage]   Talk[%d] id=%s title=%q visibility=%q is_draft=%v\n",
-						i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
-				}
-				response["talks"] = serializeRecords(talkRecords)
-			} else {
-				fmt.Printf("[API /api/homepage] Talks query ERROR: %v\n", err)
-			}
+		if err == nil {
+			response["talks"] = serializeRecords(talkRecords)
+		}
 
 			// Fetch certifications - only public items appear on homepage
 			certRecords, err := app.FindRecordsByFilter(
@@ -823,13 +813,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if certs, ok := response["certifications"].([]map[string]interface{}); ok {
 				certsLen = len(certs)
 			}
-			if awards, ok := response["awards"].([]map[string]interface{}); ok {
-				awardsLen = len(awards)
-			}
-			fmt.Printf("[API /api/homepage] Response summary: profile=%v exp=%d proj=%d edu=%d skills=%d posts=%d talks=%d certs=%d awards=%d\n",
-				response["profile"] != nil, expLen, projLen, eduLen, skillsLen, postsLen, talksLen, certsLen, awardsLen)
+		if awards, ok := response["awards"].([]map[string]interface{}); ok {
+			awardsLen = len(awards)
+		}
+		_ = expLen
+		_ = projLen
+		_ = eduLen
+		_ = skillsLen
+		_ = postsLen
+		_ = talksLen
+		_ = certsLen
+		_ = awardsLen
 
-			return e.JSON(http.StatusOK, response)
+		return e.JSON(http.StatusOK, response)
 		}))
 
 		// Public posts listing
@@ -850,8 +846,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch non-private, non-draft posts (public and unlisted)
 			// Use explicit OR to handle NULL visibility values
-			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
-			fmt.Printf("[API /api/posts] Using filter: %s\n", filter)
+		filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
 
 			postRecords, err := app.FindRecordsByFilter(
 				"posts",
@@ -861,18 +856,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			if err != nil {
-				fmt.Printf("[API /api/posts] ERROR: FindRecordsByFilter failed: %v\n", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts: " + err.Error()})
-			}
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
+		}
 
-			fmt.Printf("[API /api/posts] Found %d post records\n", len(postRecords))
-			for i, r := range postRecords {
-				fmt.Printf("[API /api/posts]   [%d] id=%s title=%q visibility=%q is_draft=%v\n",
-					i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
-			}
-
-			posts := serializeRecords(postRecords)
+		posts := serializeRecords(postRecords)
 			if len(postRecords) > 0 {
 				postCollectionID := postRecords[0].Collection().Id
 				// Add file URLs for cover images
@@ -897,20 +885,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			fmt.Printf("[API /api/posts] Profile query: found %d records, err=%v\n", len(profileRecords), err)
-			if err == nil && len(profileRecords) > 0 {
-				p := profileRecords[0]
-				profile = map[string]interface{}{
-					"id":       p.Id,
-					"name":     p.GetString("name"),
-					"headline": p.GetString("headline"),
-				}
-				fmt.Printf("[API /api/posts] Profile: id=%s name=%q\n", p.Id, p.GetString("name"))
-			} else {
+		if err == nil && len(profileRecords) > 0 {
+			p := profileRecords[0]
+			profile = map[string]interface{}{
+				"id":       p.Id,
+				"name":     p.GetString("name"),
+				"headline": p.GetString("headline"),
 			}
+		}
 
-			fmt.Printf("[API /api/posts] Returning: posts=%d profile_exists=%v\n", len(posts), profile != nil)
-			return e.JSON(http.StatusOK, map[string]interface{}{
+		return e.JSON(http.StatusOK, map[string]interface{}{
 				"posts":   posts,
 				"profile": profile,
 			})
@@ -949,10 +933,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			if err != nil {
-				fmt.Printf("[API /rss.xml] ERROR: FindRecordsByFilter failed: %v\n", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
-			}
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
+		}
 
 			type rssItem struct {
 				Title       string `xml:"title"`
@@ -1011,17 +994,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				},
 			}
 
-			data, err := xml.MarshalIndent(feed, "", "  ")
-			if err != nil {
-				fmt.Printf("[API /rss.xml] ERROR: xml.MarshalIndent failed: %v\n", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to render feed"})
-			}
+		data, err := xml.MarshalIndent(feed, "", "  ")
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to render feed"})
+		}
 
-			data = append([]byte(xml.Header), data...)
-			e.Response.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
-			_, _ = e.Response.Write(data)
-			fmt.Printf("[API /rss.xml] Returned %d items\n", len(items))
-			return nil
+		data = append([]byte(xml.Header), data...)
+		e.Response.Header().Set("Content-Type", "application/rss+xml; charset=utf-8")
+		_, _ = e.Response.Write(data)
+		return nil
 		}))
 
 		// iCal feed for public talks
@@ -1053,10 +1034,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			if err != nil {
-				fmt.Printf("[API /talks.ics] ERROR: FindRecordsByFilter failed: %v\n", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
-			}
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
+		}
 
 			baseURL := strings.TrimSuffix(resolveBaseURL(e), "/")
 			var builder strings.Builder
@@ -1123,11 +1103,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			builder.WriteString("END:VCALENDAR\r\n")
 
-			e.Response.Header().Set("Content-Type", "text/calendar; charset=utf-8")
-			_, _ = e.Response.Write([]byte(builder.String()))
-			fmt.Printf("[API /talks.ics] Returned %d items\n", len(talkRecords))
-			return nil
-		}))
+		e.Response.Header().Set("Content-Type", "text/calendar; charset=utf-8")
+		_, _ = e.Response.Write([]byte(builder.String()))
+		return nil
+	}))
 
 		// Public talks listing
 		// Rate limited: normal tier (60/min)
@@ -1147,29 +1126,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Fetch non-private, non-draft talks (public and unlisted)
 			// Use explicit OR to handle NULL visibility values
-			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
-			fmt.Printf("[API /api/talks] Using filter: %s\n", filter)
+		filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
 
-			talkRecords, err := app.FindRecordsByFilter(
-				"talks",
-				filter,
-				"-date,-sort_order",
-				100,
-				0,
-				nil,
-			)
-			if err != nil {
-				fmt.Printf("[API /api/talks] ERROR: FindRecordsByFilter failed: %v\n", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks: " + err.Error()})
-			}
+		talkRecords, err := app.FindRecordsByFilter(
+			"talks",
+			filter,
+			"-date,-sort_order",
+			100,
+			0,
+			nil,
+		)
+		if err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
+		}
 
-			fmt.Printf("[API /api/talks] Found %d talk records\n", len(talkRecords))
-			for i, r := range talkRecords {
-				fmt.Printf("[API /api/talks]   [%d] id=%s title=%q visibility=%q is_draft=%v\n",
-					i, r.Id, r.GetString("title"), r.GetString("visibility"), r.GetBool("is_draft"))
-			}
-
-			talks := serializeRecords(talkRecords)
+		talks := serializeRecords(talkRecords)
 
 			// Fetch profile data for page context
 			var profile map[string]interface{}
@@ -1181,20 +1152,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			fmt.Printf("[API /api/talks] Profile query: found %d records, err=%v\n", len(profileRecords), err)
-			if err == nil && len(profileRecords) > 0 {
-				p := profileRecords[0]
-				profile = map[string]interface{}{
-					"id":       p.Id,
-					"name":     p.GetString("name"),
-					"headline": p.GetString("headline"),
-				}
-				fmt.Printf("[API /api/talks] Profile: id=%s name=%q\n", p.Id, p.GetString("name"))
-			} else {
+		if err == nil && len(profileRecords) > 0 {
+			p := profileRecords[0]
+			profile = map[string]interface{}{
+				"id":       p.Id,
+				"name":     p.GetString("name"),
+				"headline": p.GetString("headline"),
 			}
+		}
 
-			fmt.Printf("[API /api/talks] Returning: talks=%d profile_exists=%v\n", len(talks), profile != nil)
-			return e.JSON(http.StatusOK, map[string]interface{}{
+		return e.JSON(http.StatusOK, map[string]interface{}{
 				"talks":   talks,
 				"profile": profile,
 			})

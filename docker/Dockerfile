@@ -7,7 +7,10 @@
 FROM golang:1.24-bookworm AS backend-builder
 
 WORKDIR /build
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libmupdf-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download

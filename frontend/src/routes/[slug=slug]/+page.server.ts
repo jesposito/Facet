@@ -57,20 +57,17 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch }) => {
 
 		const accessInfo = await response.json();
 
-		// Handle different visibility types
-		if (accessInfo.visibility === 'private') {
-			// Private views return 404 to prevent discovery
+		const isAuthenticated = accessInfo.is_authenticated === true;
+
+		if (accessInfo.visibility === 'private' && !isAuthenticated) {
 			throw error(404, 'Not Found');
 		}
 
-		// For unlisted views, we need a share token
-		if (accessInfo.visibility === 'unlisted' && !effectiveShareToken) {
-			// Return 404 to prevent discovery
+		if (accessInfo.visibility === 'unlisted' && !isAuthenticated && !effectiveShareToken) {
 			throw error(404, 'Not Found');
 		}
 
-		// For password-protected views without a token, return minimal data for password prompt
-		if (accessInfo.visibility === 'password' && !passwordToken) {
+		if (accessInfo.visibility === 'password' && !isAuthenticated && !passwordToken) {
 			return {
 				view: {
 					id: accessInfo.view_id,

@@ -385,17 +385,16 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.V
 			for _, itemID := range items {
 				if id, ok := itemID.(string); ok {
 					record, err := app.FindRecordById(collectionName, id)
-					if err == nil && isRecordVisible(record) {
+					if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
 						records = append(records, record)
 					}
 				}
 			}
 		} else {
-			// Fetch all visible items
-			var fetchErr error
-			records, fetchErr = app.FindRecordsByFilter(
+			// Fetch all non-draft items, then filter by view visibility
+			allRecords, fetchErr := app.FindRecordsByFilter(
 				collectionName,
-				"visibility != 'private' && is_draft = false",
+				"is_draft = false",
 				"sort_order",
 				100,
 				0,
@@ -403,6 +402,12 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.V
 			)
 			if fetchErr != nil {
 				continue
+			}
+			// Filter to only include items visible for this section/view
+			for _, record := range allRecords {
+				if isRecordVisibleForSection(record, sectionName, view.Id) {
+					records = append(records, record)
+				}
 			}
 		}
 

@@ -13,7 +13,7 @@
   <Category>Productivity: Tools:</Category>
   <WebUI>http://[IP]:[PORT:8080]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/jesposito/Facet/main/unraid/facet-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/jesposito/Facet/main/frontend/static/favicon.png</Icon>
+  <Icon>https://raw.githubusercontent.com/jesposito/Facet/main/frontend/static/icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
