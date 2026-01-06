@@ -1429,6 +1429,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Returns 404 for private, unlisted, draft, or non-existent projects
 		se.Router.GET("/api/project/{slug}", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
+			fromViewSlug := e.Request.URL.Query().Get("from")
 
 			if slug == "" {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
@@ -1436,6 +1437,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Use demo-aware collection name
 			projectsCollection := getTableName(app, "projects")
+			viewsCollection := getTableName(app, "views")
 
 			// Find project by slug
 			records, err := app.FindRecordsByFilter(
@@ -1453,13 +1455,34 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			project := records[0]
 
-			// Check visibility - only public, non-draft projects are accessible
+			// Check visibility - public, non-draft projects are always accessible
 			visibility := project.GetString("visibility")
 			isDraft := project.GetBool("is_draft")
 
 			if visibility != "public" || isDraft {
-				// Return 404 to prevent discovery of private/unlisted/draft projects
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
+				// For non-public or draft projects, check if accessible via view context
+				allowed := false
+				if fromViewSlug != "" {
+					// Look up the view by slug to get its ID
+					viewRecords, err := app.FindRecordsByFilter(
+						viewsCollection,
+						"slug = {:slug}",
+						"",
+						1,
+						0,
+						map[string]interface{}{"slug": fromViewSlug},
+					)
+					if err == nil && len(viewRecords) > 0 {
+						viewId := viewRecords[0].Id
+						// Check if project is visible in this view
+						if isVisibleInView(project, viewId) {
+							allowed = true
+						}
+					}
+				}
+				if !allowed {
+					return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
+				}
 			}
 
 			// Build response with resolved file URLs

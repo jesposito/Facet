@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
-	import { demoMode as demoModeStore } from '$lib/stores/demo';
+	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
 	let demoMode = false;
@@ -75,11 +75,16 @@
 
 			const newDemoMode = !demoMode;
 			console.log('[TOGGLE] Updating store to:', newDemoMode);
-			// Update the store
-			demoModeStore.set(newDemoMode);
-			console.log('[TOGGLE] Store updated, reloading page...');
+			
+			// Re-initialize demo mode from server to ensure store is in sync
+			await initDemoMode();
+			console.log('[TOGGLE] Demo mode re-initialized from server');
+			
+			// Invalidate all SvelteKit data to force fresh loads
+			await invalidateAll();
+			console.log('[TOGGLE] Data invalidated, reloading page...');
 
-			// Refresh the page to show updated data
+			// Full page reload to ensure all components get fresh data
 			window.location.reload();
 		} catch (err) {
 			console.error('[TOGGLE] Failed to toggle demo mode:', err);

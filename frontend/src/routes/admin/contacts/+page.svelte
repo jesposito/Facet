@@ -45,7 +45,7 @@
 		{ value: 'none', label: 'None', description: 'Visible to everyone (no protection)' },
 		{ value: 'obfuscation', label: 'CSS Obfuscation', description: 'Hidden from bots via CSS tricks' },
 		{ value: 'click_to_reveal', label: 'Click to Reveal', description: 'User must click to see contact' },
-		{ value: 'captcha', label: 'CAPTCHA', description: 'Cloudflare Turnstile required' }
+		{ value: 'captcha', label: 'CAPTCHA (Coming Soon)', description: 'Cloudflare Turnstile - not yet implemented' }
 	];
 
 	// Lifecycle

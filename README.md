@@ -774,12 +774,16 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Security review and XSS/path traversal protection
 - ✅ Demo mode with comprehensive example content
 
-**Planned:**
+**Coming Soon:**
+- CAPTCHA contact protection (Cloudflare Turnstile integration)
 - Scheduled GitHub sync (auto-refresh projects)
-- Security headers (CSP, X-Frame-Options)
-- 2FA (TOTP + backup codes)
+- 2FA/TOTP support (awaiting native PocketBase support)
+
+**Planned (Lower Priority):**
+- Content Security Policy headers
 - Audit logging for admin actions
 - Webhooks and integrations
+- Theme system with pre-built themes
 
 Full roadmap: [ROADMAP.md](docs/ROADMAP.md)
 
