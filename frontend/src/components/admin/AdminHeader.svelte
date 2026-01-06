@@ -73,19 +73,12 @@
 				throw new Error(data.error || 'Failed to toggle demo mode');
 			}
 
-			const newDemoMode = !demoMode;
-			console.log('[TOGGLE] Updating store to:', newDemoMode);
+			console.log('[TOGGLE] Updating store...');
 			
 			// Re-initialize demo mode from server to ensure store is in sync
+			// The {#key $demoMode} block in layout will force child components to remount
 			await initDemoMode();
-			console.log('[TOGGLE] Demo mode re-initialized from server');
-			
-			// Invalidate all SvelteKit data to force fresh loads
-			await invalidateAll();
-			console.log('[TOGGLE] Data invalidated, reloading page...');
-
-			// Full page reload to ensure all components get fresh data
-			window.location.reload();
+			console.log('[TOGGLE] Demo mode updated, components will remount');
 		} catch (err) {
 			console.error('[TOGGLE] Failed to toggle demo mode:', err);
 			alert(err instanceof Error ? err.message : 'Failed to toggle demo mode');
