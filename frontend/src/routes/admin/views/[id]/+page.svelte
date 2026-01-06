@@ -353,6 +353,11 @@
 		}
 	}
 
+	function isEnabledForView(viewVisibility: unknown, viewId: string): boolean {
+		if (!viewVisibility || typeof viewVisibility !== 'object') return false;
+		return (viewVisibility as Record<string, boolean>)[viewId] === true;
+	}
+
 	function getItemLabel(sectionKey: string, item: Record<string, unknown>): string {
 		switch (sectionKey) {
 			case 'experience':
@@ -1189,7 +1194,7 @@
 													</span>
 												{/if}
 											{#if item.visibility === 'private'}
-												{@const enabledForThisView = item.data.view_visibility && typeof item.data.view_visibility === 'object' && item.data.view_visibility[viewId] === true}
+												{@const enabledForThisView = isEnabledForView(item.data.view_visibility, viewId)}
 													<span class="px-1.5 py-0.5 text-xs rounded {enabledForThisView ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}" title={enabledForThisView ? 'Private globally, but visible in this view' : 'Private - will be auto-enabled when saved'}>
 														{enabledForThisView ? 'view-only' : 'private'}
 													</span>

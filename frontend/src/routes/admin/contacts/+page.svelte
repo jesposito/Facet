@@ -3,7 +3,7 @@
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
-	import AdminHeader from '$components/admin/AdminHeader.svelte';
+	
 
 	// State
 	let contacts: ContactMethod[] = [];
@@ -238,7 +238,7 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
-	<AdminHeader title="Contact Methods" subtitle="Manage contact information with privacy protection" />
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Contact Methods</h1>
 
 	<div class="flex items-center justify-between mb-6">
 		<p class="text-sm text-gray-600 dark:text-gray-400">
