@@ -15,6 +15,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 // getTableName returns the correct table name based on demo mode
@@ -1746,6 +1747,10 @@ func isRecordVisibleForSection(record *core.Record, section string, viewId strin
 				switch v := viewVisibility.(type) {
 				case map[string]interface{}:
 					vv = v
+				case types.JSONRaw:
+					if len(v) > 0 && string(v) != "{}" && string(v) != "null" {
+						json.Unmarshal(v, &vv)
+					}
 				case string:
 					if v != "" && v != "{}" && v != "null" {
 						json.Unmarshal([]byte(v), &vv)
@@ -1786,6 +1791,14 @@ func isVisibleInView(record *core.Record, viewId string) bool {
 	switch v := viewVisibility.(type) {
 	case map[string]interface{}:
 		vv = v
+	case types.JSONRaw:
+		if len(v) == 0 || string(v) == "{}" || string(v) == "null" {
+			return false
+		}
+		if err := json.Unmarshal(v, &vv); err != nil {
+			log.Printf("[WARN] Failed to unmarshal types.JSONRaw for record %s: %v", record.Id, err)
+			return false
+		}
 	case string:
 		if v == "" || v == "{}" || v == "null" {
 			return false
