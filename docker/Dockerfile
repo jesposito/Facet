@@ -4,24 +4,10 @@
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-# go-fitz v1.24.15 ships MuPDF libs built with glibc 2.38+ (__isoc23_strtol)
-# Debian Bookworm has glibc 2.36 -> linker errors on ARM64
-# Solution: Use Ubuntu 24.04 (glibc 2.39) with manually installed Go 1.24
-FROM ubuntu:24.04 AS backend-builder
+FROM golang:1.24-bookworm AS backend-builder
 
-ARG GO_VERSION=1.24.4
-ARG TARGETARCH
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libc6-dev \
-    ca-certificates \
-    curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | tar -C /usr/local -xz
-
-ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /build
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -45,7 +31,7 @@ RUN npm run build
 # ============================================
 # Stage 3: Final runtime image
 # ============================================
-FROM ubuntu:24.04
+FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -53,9 +39,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     caddy \
     pandoc \
-    texlive \
+    texlive-latex-base \
     texlive-latex-extra \
-    texlive-fonts-extra \
+    texlive-xetex \
+    texlive-fonts-recommended \
+    lmodern \
     wget \
     openssl \
     gosu \
@@ -63,7 +51,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && groupadd -g 1000 facet \
     && useradd -u 1000 -g facet -s /bin/bash -m facet
 
-# Install Node.js 20 from NodeSource (Debian's nodejs is v18, incompatible with build)
+# Install Node.js 20 from NodeSource
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
