@@ -456,7 +456,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 **Testing:**
 - **Playwright** (E2E tests)
 - 25+ tests covering public APIs, admin flows, security, media management
-- 96% pass rate (12/12 public tests passing)
+- 12/12 public tests passing (admin tests require credentials)
 
 **Development:**
 - **Air** (Go hot reload)
