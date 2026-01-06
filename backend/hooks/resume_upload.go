@@ -196,22 +196,28 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			}
 
 
-			// Generate unique session ID for this import
-			// This allows us to track which items came from which resume upload
-			importSessionID := uuid.New().String()
+		// Generate unique session ID for this import
+		// This allows us to track which items came from which resume upload
+		importSessionID := uuid.New().String()
 
-			// Create records in collections with smart deduplication
-			imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename, importSessionID)
-			if err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
-				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"error": NewUserError(
-						"We parsed your resume but couldn't save the data.",
-						"This might be a temporary database issue. Please try again in a moment.",
-						fmt.Sprintf("Database error: %v", err),
-					),
-				})
-			}
+		// Get visibility preference from form (default to private)
+		visibility := e.Request.FormValue("visibility")
+		if visibility == "" {
+			visibility = "private"
+		}
+
+		// Create records in collections with smart deduplication
+		imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename, importSessionID, visibility)
+		if err != nil {
+			log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
+			return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"error": NewUserError(
+					"We parsed your resume but couldn't save the data.",
+					"This might be a temporary database issue. Please try again in a moment.",
+					fmt.Sprintf("Database error: %v", err),
+				),
+			})
+		}
 
 			// Create or update resume_imports record to track this import
 			if resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports"); err == nil {
@@ -510,7 +516,7 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 // The filename-based deduplication for experience/projects allows:
 // 1. Same resume imported multiple times → prevents duplicates
 // 2. Different resumes with same role → creates faceted views
-func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string, importSessionID string) (map[string][]string, int, error) {
+func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string, importSessionID string, visibility string) (map[string][]string, int, error) {
 	imported := make(map[string][]string)
 	duplicateCount := 0
 
@@ -559,10 +565,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			if len(exp.Skills) > 0 {
 				record.Set("skills", exp.Skills)
 			}
-			// Add import metadata for tracking and user visibility
 			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
-			record.Set("visibility", "private")
+			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
 
@@ -612,7 +617,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			record.Set("description", edu.Description)
 			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
-			record.Set("visibility", "private")
+			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
 
@@ -665,7 +670,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			record.Set("proficiency", skill.Proficiency)
 			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
-			record.Set("visibility", "private")
+			record.Set("visibility", visibility)
 			record.Set("sort_order", 0)
 
 			if err := app.Save(record); err != nil {
@@ -704,7 +709,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			}
 			record.Set("credential_id", cert.CredentialID)
 			record.Set("credential_url", cert.CredentialURL)
-			record.Set("visibility", "private")
+			record.Set("import_session_id", importSessionID)
+			record.Set("import_filename", filename)
+			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
 
@@ -755,7 +762,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			}
 			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
-			record.Set("visibility", "private")
+			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("is_featured", false)
 			record.Set("sort_order", 0)
@@ -801,7 +808,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				record.Set("description", award.Description)
 				record.Set("import_session_id", importSessionID)
 				record.Set("import_filename", filename)
-				record.Set("visibility", "private")
+				record.Set("visibility", visibility)
 				record.Set("is_draft", false)
 				record.Set("sort_order", 0)
 
@@ -838,7 +845,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				record.Set("date", talk.Date)
 				record.Set("location", talk.Location)
 				record.Set("description", talk.Description)
-				record.Set("visibility", "private")
+				record.Set("import_session_id", importSessionID)
+				record.Set("import_filename", filename)
+				record.Set("visibility", visibility)
 				record.Set("is_draft", false)
 				record.Set("sort_order", 0)
 

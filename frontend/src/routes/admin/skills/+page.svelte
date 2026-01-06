@@ -3,6 +3,7 @@
 	import { pb, type Skill } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
+	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
 	let skills: Skill[] = [];
 	let loading = true;
@@ -19,6 +20,9 @@
 
 	// Available categories (derived from existing skills)
 	let availableCategories: string[] = [];
+
+	let selectMode = false;
+	let selectedIds: Set<string> = new Set();
 
 	onMount(loadSkills);
 
@@ -171,6 +175,47 @@
 	];
 
 	$: categoryOptions = [...new Set([...suggestedCategories, ...availableCategories])].sort();
+
+	function toggleSelectMode() {
+		selectMode = !selectMode;
+		if (!selectMode) selectedIds = new Set();
+	}
+
+	function toggleSelect(id: string) {
+		if (selectedIds.has(id)) selectedIds.delete(id);
+		else selectedIds.add(id);
+		selectedIds = selectedIds;
+	}
+
+	function selectAll() { selectedIds = new Set(skills.map(e => e.id)); }
+	function clearSelection() { selectedIds = new Set(); }
+
+	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		const ids = Array.from(selectedIds);
+		try {
+			for (const id of ids) await collection('skills').update(id, { visibility });
+			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadSkills();
+		} catch (err) {
+			toasts.add('error', 'Failed to update visibility');
+		}
+	}
+
+	async function bulkDelete() {
+		const ids = Array.from(selectedIds);
+		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		try {
+			for (const id of ids) await collection('skills').delete(id);
+			toasts.add('success', `Deleted ${ids.length} items`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadSkills();
+		} catch (err) {
+			toasts.add('error', 'Failed to delete items');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -178,11 +223,33 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	{#if selectMode && selectedIds.size > 0}
+		<BulkActionBar
+			selectedCount={selectedIds.size}
+			totalCount={skills.length}
+			on:selectAll={selectAll}
+			on:clearSelection={clearSelection}
+			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+			on:delete={bulkDelete}
+			on:cancel={toggleSelectMode}
+		/>
+	{/if}
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Skills</h1>
-		<button class="btn btn-primary" on:click={openNewForm}>
-			+ New Skill
-		</button>
+		<div class="flex items-center gap-2">
+			{#if skills.length > 0}
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					on:click={toggleSelectMode}
+				>
+					{selectMode ? 'Cancel' : 'Select'}
+				</button>
+			{/if}
+			<button class="btn btn-primary" on:click={openNewForm}>
+				+ New Skill
+			</button>
+		</div>
 	</div>
 
 	{#if loading}
@@ -303,7 +370,15 @@
 					</h2>
 					<div class="flex flex-wrap gap-2">
 						{#each categorySkills as skill (skill.id)}
-							<div class="group relative inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm">
+							<div class="group relative inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm {selectMode && selectedIds.has(skill.id) ? 'ring-2 ring-primary-500' : ''}">
+								{#if selectMode}
+									<input
+										type="checkbox"
+										checked={selectedIds.has(skill.id)}
+										on:change={() => toggleSelect(skill.id)}
+										class="w-4 h-4 text-primary-600 rounded border-gray-300"
+									/>
+								{/if}
 								<span class="font-medium text-gray-800 dark:text-gray-200">{skill.name}</span>
 								{#if skill.proficiency}
 									<span class="px-1.5 py-0.5 text-xs rounded {getProficiencyColor(skill.proficiency)}">

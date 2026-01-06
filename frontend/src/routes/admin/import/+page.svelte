@@ -11,6 +11,7 @@
 	let dragActive = false;
 	let resumeResult: any = null;
 	let showTechnicalDetails = false;
+	let importVisibility: 'private' | 'public' = 'private';
 
 	// GitHub import state
 	let step = 1;
@@ -74,6 +75,7 @@
 		try {
 			const formData = new FormData();
 			formData.append('file', resumeFile);
+			formData.append('visibility', importVisibility);
 
 			const response = await fetch('/api/resume/upload', {
 				method: 'POST',
@@ -372,6 +374,26 @@
 					</div>
 				{/if}
 			</div>
+
+			<!-- Visibility option -->
+			<div class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+				<label class="label mb-2">Import visibility</label>
+				<div class="flex gap-4">
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input type="radio" bind:group={importVisibility} value="private" class="text-primary-600" />
+						<span class="text-sm text-gray-700 dark:text-gray-300">Private</span>
+						<span class="text-xs text-gray-500">(recommended - review before publishing)</span>
+					</label>
+					<label class="flex items-center gap-2 cursor-pointer">
+						<input type="radio" bind:group={importVisibility} value="public" class="text-primary-600" />
+						<span class="text-sm text-gray-700 dark:text-gray-300">Public</span>
+						<span class="text-xs text-gray-500">(visible immediately)</span>
+					</label>
+				</div>
+				<p class="text-xs text-gray-500 mt-2">
+					Private items can be made visible per-view when you add them to a view, or changed to public later via bulk actions.
+				</p>
+			</div>
 		{:else}
 			<!-- Import summary -->
 			<div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
@@ -449,7 +471,7 @@
 							</div>
 						{/if}
 						<p class="mt-4 text-sm text-green-800 dark:text-green-200">
-							All items have been imported as <strong>private</strong>. You can review and edit them in your admin sections.
+							All items have been imported as <strong>{importVisibility}</strong>. You can review and edit them in your admin sections.
 						</p>
 						<div class="flex gap-3 mt-4">
 							<a href="/admin/experience" class="btn btn-sm btn-primary">

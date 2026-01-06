@@ -65,6 +65,7 @@ export interface Experience {
 	skills?: string[];
 	media?: string[];
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
 }
@@ -82,6 +83,7 @@ export interface Project {
 	cover_image?: string;
 	categories?: string[];
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	is_featured: boolean;
 	sort_order: number;
@@ -103,6 +105,7 @@ export interface Education {
 	end_date?: string;
 	description?: string;
 	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
 }
@@ -113,6 +116,7 @@ export interface Skill {
 	category?: string;
 	proficiency?: 'expert' | 'proficient' | 'familiar';
 	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
 	sort_order: number;
 }
 
@@ -126,6 +130,7 @@ export interface Post {
 	tags?: string[];
 	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	published_at?: string;
 }
@@ -143,6 +148,7 @@ export interface Talk {
 	video_url?: string;
 	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
 }
@@ -156,6 +162,7 @@ export interface Certification {
 	credential_id?: string;
 	credential_url?: string;
 	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
 }
@@ -168,6 +175,7 @@ export interface Award {
 	description?: string;
 	url?: string;
 	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
 }

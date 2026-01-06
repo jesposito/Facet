@@ -4,6 +4,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
+	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
 	let certifications: Certification[] = [];
 	let loading = true;
@@ -21,6 +22,9 @@
 	let isDraft = false;
 	let sortOrder = 0;
 	let saving = false;
+
+	let selectMode = false;
+	let selectedIds: Set<string> = new Set();
 
 	onMount(loadCertifications);
 
@@ -171,6 +175,47 @@
 	}
 
 	$: groupedCertifications = groupByIssuer(certifications);
+
+	function toggleSelectMode() {
+		selectMode = !selectMode;
+		if (!selectMode) selectedIds = new Set();
+	}
+
+	function toggleSelect(id: string) {
+		if (selectedIds.has(id)) selectedIds.delete(id);
+		else selectedIds.add(id);
+		selectedIds = selectedIds;
+	}
+
+	function selectAll() { selectedIds = new Set(certifications.map(e => e.id)); }
+	function clearSelection() { selectedIds = new Set(); }
+
+	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		const ids = Array.from(selectedIds);
+		try {
+			for (const id of ids) await collection('certifications').update(id, { visibility });
+			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadCertifications();
+		} catch (err) {
+			toasts.add('error', 'Failed to update visibility');
+		}
+	}
+
+	async function bulkDelete() {
+		const ids = Array.from(selectedIds);
+		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		try {
+			for (const id of ids) await collection('certifications').delete(id);
+			toasts.add('success', `Deleted ${ids.length} items`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadCertifications();
+		} catch (err) {
+			toasts.add('error', 'Failed to delete items');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -178,11 +223,33 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	{#if selectMode && selectedIds.size > 0}
+		<BulkActionBar
+			selectedCount={selectedIds.size}
+			totalCount={certifications.length}
+			on:selectAll={selectAll}
+			on:clearSelection={clearSelection}
+			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+			on:delete={bulkDelete}
+			on:cancel={toggleSelectMode}
+		/>
+	{/if}
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Certifications</h1>
-		<button class="btn btn-primary" on:click={openNewForm}>
-			+ New Certification
-		</button>
+		<div class="flex items-center gap-2">
+			{#if certifications.length > 0}
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					on:click={toggleSelectMode}
+				>
+					{selectMode ? 'Cancel' : 'Select'}
+				</button>
+			{/if}
+			<button class="btn btn-primary" on:click={openNewForm}>
+				+ New Certification
+			</button>
+		</div>
 	</div>
 
 	{#if loading}
@@ -353,8 +420,16 @@
 					</h2>
 					<div class="space-y-3">
 						{#each certs as cert (cert.id)}
-							<div class="card p-4">
+							<div class="card p-4 {selectMode && selectedIds.has(cert.id) ? 'ring-2 ring-primary-500' : ''}">
 								<div class="flex items-start justify-between gap-4">
+									{#if selectMode}
+										<input
+											type="checkbox"
+											checked={selectedIds.has(cert.id)}
+											on:change={() => toggleSelect(cert.id)}
+											class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+										/>
+									{/if}
 									<div class="flex-1 min-w-0">
 										<div class="flex items-center gap-2 flex-wrap">
 											<h3 class="font-medium text-gray-900 dark:text-white">

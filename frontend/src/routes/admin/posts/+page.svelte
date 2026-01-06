@@ -5,6 +5,7 @@ import { collection } from '$lib/stores/demo';
 import { toasts } from '$lib/stores';
 import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
 let posts: Post[] = [];
 let loading = true;
@@ -16,6 +17,9 @@ let mediaOptions: { id: string; title: string; provider?: string; url?: string }
 let mediaSearch = '';
 let loadingMedia = false;
 let showShortcodes = false;
+
+let selectMode = false;
+let selectedIds: Set<string> = new Set();
 
 	// Form fields
 	let title = '';
@@ -298,6 +302,47 @@ function openEditForm(post: Post) {
 			toasts.add('error', 'Failed to update post');
 		}
 	}
+
+	function toggleSelectMode() {
+		selectMode = !selectMode;
+		if (!selectMode) selectedIds = new Set();
+	}
+
+	function toggleSelect(id: string) {
+		if (selectedIds.has(id)) selectedIds.delete(id);
+		else selectedIds.add(id);
+		selectedIds = selectedIds;
+	}
+
+	function selectAll() { selectedIds = new Set(posts.map(e => e.id)); }
+	function clearSelection() { selectedIds = new Set(); }
+
+	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		const ids = Array.from(selectedIds);
+		try {
+			for (const id of ids) await collection('posts').update(id, { visibility });
+			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadPosts();
+		} catch (err) {
+			toasts.add('error', 'Failed to update visibility');
+		}
+	}
+
+	async function bulkDelete() {
+		const ids = Array.from(selectedIds);
+		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		try {
+			for (const id of ids) await collection('posts').delete(id);
+			toasts.add('success', `Deleted ${ids.length} items`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadPosts();
+		} catch (err) {
+			toasts.add('error', 'Failed to delete items');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -305,11 +350,33 @@ function openEditForm(post: Post) {
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	{#if selectMode && selectedIds.size > 0}
+		<BulkActionBar
+			selectedCount={selectedIds.size}
+			totalCount={posts.length}
+			on:selectAll={selectAll}
+			on:clearSelection={clearSelection}
+			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+			on:delete={bulkDelete}
+			on:cancel={toggleSelectMode}
+		/>
+	{/if}
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
-		<button class="btn btn-primary" on:click={openNewForm}>
-			+ New Post
-		</button>
+		<div class="flex items-center gap-2">
+			{#if posts.length > 0}
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					on:click={toggleSelectMode}
+				>
+					{selectMode ? 'Cancel' : 'Select'}
+				</button>
+			{/if}
+			<button class="btn btn-primary" on:click={openNewForm}>
+				+ New Post
+			</button>
+		</div>
 	</div>
 
 	{#if loading}
@@ -598,8 +665,16 @@ function openEditForm(post: Post) {
 		<!-- Posts List -->
 		<div class="space-y-4">
 			{#each posts as post (post.id)}
-				<div class="card p-4 hover:shadow-md transition-shadow">
+				<div class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start gap-4">
+						{#if selectMode}
+							<input
+								type="checkbox"
+								checked={selectedIds.has(post.id)}
+								on:change={() => toggleSelect(post.id)}
+								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+							/>
+						{/if}
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 mb-1">
 								<h3 class="text-lg font-medium text-gray-900 dark:text-white truncate">

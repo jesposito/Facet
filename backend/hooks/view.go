@@ -438,12 +438,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 
 				if ok && len(items) > 0 {
-					// Fetch specific items
 					var itemRecords []*core.Record
 					for _, itemID := range items {
 						if id, ok := itemID.(string); ok {
 							record, err := app.FindRecordById(collectionName, id)
-							if err == nil && isRecordVisibleForSection(record, sectionName) {
+							if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
 								itemRecords = append(itemRecords, record)
 							}
 						}
@@ -1762,12 +1761,44 @@ func isRecordVisible(record *core.Record) bool {
 
 // isRecordVisibleForSection checks if a record should be visible for a specific section
 // Some sections (like contacts) have different visibility rules
-func isRecordVisibleForSection(record *core.Record, section string) bool {
+// For items that are globally private, checks if they're enabled for this specific view
+func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
 	if section == "contacts" {
-		// Contact methods are always visible (filtering is done client-side by view_visibility)
+		// Contact methods use view_visibility for per-view control
+		return isVisibleInView(record, viewId)
+	}
+
+	// First check if globally visible (public/unlisted and not draft)
+	if isRecordVisible(record) {
 		return true
 	}
-	return isRecordVisible(record)
+
+	// For private or draft items, check per-view visibility override
+	return isVisibleInView(record, viewId)
+}
+
+// isVisibleInView checks if an item is specifically enabled for a view via view_visibility
+func isVisibleInView(record *core.Record, viewId string) bool {
+	if viewId == "" {
+		return false
+	}
+
+	viewVisibility := record.Get("view_visibility")
+	if viewVisibility == nil {
+		return false
+	}
+
+	vv, ok := viewVisibility.(map[string]interface{})
+	if !ok {
+		return false
+	}
+
+	enabled, exists := vv[viewId]
+	if !exists {
+		return false
+	}
+
+	return enabled == true
 }
 
 func serializeRecords(records []*core.Record) []map[string]interface{} {

@@ -4,6 +4,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
 	let projects: Project[] = [];
 	let loading = true;
@@ -30,6 +31,9 @@ let loadingMedia = false;
 let showShortcodes = false;
 let saving = false;
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
+
+let selectMode = false;
+let selectedIds: Set<string> = new Set();
 
 onMount(loadProjects);
 onMount(loadMediaOptions);
@@ -335,6 +339,47 @@ async function loadProjects() {
 		{ value: 'npm', label: 'NPM' },
 		{ value: 'other', label: 'Other' }
 	];
+
+	function toggleSelectMode() {
+		selectMode = !selectMode;
+		if (!selectMode) selectedIds = new Set();
+	}
+
+	function toggleSelect(id: string) {
+		if (selectedIds.has(id)) selectedIds.delete(id);
+		else selectedIds.add(id);
+		selectedIds = selectedIds;
+	}
+
+	function selectAll() { selectedIds = new Set(projects.map(e => e.id)); }
+	function clearSelection() { selectedIds = new Set(); }
+
+	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		const ids = Array.from(selectedIds);
+		try {
+			for (const id of ids) await collection('projects').update(id, { visibility });
+			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadProjects();
+		} catch (err) {
+			toasts.add('error', 'Failed to update visibility');
+		}
+	}
+
+	async function bulkDelete() {
+		const ids = Array.from(selectedIds);
+		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		try {
+			for (const id of ids) await collection('projects').delete(id);
+			toasts.add('success', `Deleted ${ids.length} items`);
+			selectedIds = new Set();
+			selectMode = false;
+			await loadProjects();
+		} catch (err) {
+			toasts.add('error', 'Failed to delete items');
+		}
+	}
 </script>
 
 <svelte:head>
@@ -342,9 +387,29 @@ async function loadProjects() {
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	{#if selectMode && selectedIds.size > 0}
+		<BulkActionBar
+			selectedCount={selectedIds.size}
+			totalCount={projects.length}
+			on:selectAll={selectAll}
+			on:clearSelection={clearSelection}
+			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+			on:delete={bulkDelete}
+			on:cancel={toggleSelectMode}
+		/>
+	{/if}
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
-		<div class="flex gap-2">
+		<div class="flex items-center gap-2">
+			{#if projects.length > 0}
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					on:click={toggleSelectMode}
+				>
+					{selectMode ? 'Cancel' : 'Select'}
+				</button>
+			{/if}
 			<a href="/admin/import" class="btn btn-secondary">
 				Import from GitHub
 			</a>
@@ -723,7 +788,7 @@ async function loadProjects() {
 		<!-- Projects Grid -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			{#each projects as project (project.id)}
-				<div class="card overflow-hidden">
+				<div class="card overflow-hidden {selectMode && selectedIds.has(project.id) ? 'ring-2 ring-primary-500' : ''}">
 					{#if project.cover_image}
 						<div class="h-32 bg-gray-100 dark:bg-gray-800">
 							<img
@@ -735,6 +800,14 @@ async function loadProjects() {
 					{/if}
 					<div class="p-4">
 						<div class="flex items-start justify-between gap-2">
+							{#if selectMode}
+								<input
+									type="checkbox"
+									checked={selectedIds.has(project.id)}
+									on:change={() => toggleSelect(project.id)}
+									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+								/>
+							{/if}
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2 flex-wrap">
 									<h3 class="font-medium text-gray-900 dark:text-white truncate">

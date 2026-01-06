@@ -435,6 +435,32 @@
 			.slice(0, 50);
 	}
 
+	async function enableItemsForView(sectionsData: ViewSection[]) {
+		for (const section of sectionsData) {
+			if (!section.enabled || !section.items?.length) continue;
+			
+			const collectionName = SECTION_DEFS[section.section]?.collection;
+			if (!collectionName) continue;
+
+			for (const itemId of section.items) {
+				const item = sectionItems[section.section]?.find(i => i.id === itemId);
+				if (!item) continue;
+
+				const isPrivate = item.visibility === 'private';
+				const isDraft = item.is_draft === true;
+				
+				if (isPrivate || isDraft) {
+					const currentViewVis = (item.data.view_visibility as Record<string, boolean>) || {};
+					if (!currentViewVis[viewId]) {
+						await collection(collectionName).update(itemId, {
+							view_visibility: { ...currentViewVis, [viewId]: true }
+						});
+					}
+				}
+			}
+		}
+	}
+
 	async function handleSubmit() {
 		if (!name.trim()) {
 			toasts.add('error', 'Name is required');
@@ -497,6 +523,9 @@
 			}
 
 			await collection('views').update(viewId, data);
+
+			// Auto-enable view_visibility for private/draft items added to this view
+			await enableItemsForView(sectionsData);
 
 			// Handle default view setting
 			if (isDefault) {
@@ -1159,7 +1188,13 @@
 														{overrideCount} override{overrideCount > 1 ? 's' : ''}
 													</span>
 												{/if}
-												{#if item.visibility !== 'public'}
+												{#if item.visibility === 'private'}
+													{@const viewVis = item.data.view_visibility as Record<string, boolean> | undefined}
+													{@const enabledForThisView = viewVis?.[viewId] === true}
+													<span class="px-1.5 py-0.5 text-xs rounded {enabledForThisView ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}" title={enabledForThisView ? 'Private globally, but visible in this view' : 'Private - will be auto-enabled when saved'}>
+														{enabledForThisView ? 'view-only' : 'private'}
+													</span>
+												{:else if item.visibility !== 'public'}
 													<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
 														{item.visibility}
 													</span>
