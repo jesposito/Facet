@@ -109,7 +109,9 @@
 		if (data.homepageDisabled) return;
 
 		try {
-			const response = await fetch('/api/ai-print/status');
+			const response = await fetch('/api/ai-print/status', {
+				headers: { Authorization: pb.authStore.token || '' }
+			});
 			if (response.ok) {
 				const result = await response.json();
 				aiPrintStatus = {

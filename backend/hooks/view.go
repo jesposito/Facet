@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -1726,18 +1727,25 @@ func isRecordVisible(record *core.Record) bool {
 	return visibility != "private" && !isDraft
 }
 
-// isRecordVisibleForSection checks if a record should be visible for a specific section
-// For items that are globally private, checks if they're enabled for this specific view
 func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
-	// First check if globally visible (public/unlisted and not draft)
 	if isRecordVisible(record) {
-		// For contacts, also check if explicitly hidden for this view
 		if section == "contacts" && viewId != "" {
 			viewVisibility := record.Get("view_visibility")
-			if vv, ok := viewVisibility.(map[string]interface{}); ok {
-				if enabled, exists := vv[viewId]; exists {
-					if b, ok := enabled.(bool); ok {
-						return b
+			if viewVisibility != nil {
+				var vv map[string]interface{}
+				switch v := viewVisibility.(type) {
+				case map[string]interface{}:
+					vv = v
+				case string:
+					if v != "" && v != "{}" && v != "null" {
+						json.Unmarshal([]byte(v), &vv)
+					}
+				}
+				if vv != nil {
+					if enabled, exists := vv[viewId]; exists {
+						if b, ok := enabled.(bool); ok {
+							return b
+						}
 					}
 				}
 			}
@@ -1745,11 +1753,9 @@ func isRecordVisibleForSection(record *core.Record, section string, viewId strin
 		return true
 	}
 
-	// For private or draft items, check per-view visibility override
 	return isVisibleInView(record, viewId)
 }
 
-// isVisibleInView checks if an item is specifically enabled for a view via view_visibility
 func isVisibleInView(record *core.Record, viewId string) bool {
 	if viewId == "" {
 		return false
@@ -1760,8 +1766,21 @@ func isVisibleInView(record *core.Record, viewId string) bool {
 		return false
 	}
 
-	vv, ok := viewVisibility.(map[string]interface{})
-	if !ok {
+	var vv map[string]interface{}
+
+	switch v := viewVisibility.(type) {
+	case map[string]interface{}:
+		vv = v
+	case string:
+		if v == "" || v == "{}" || v == "null" {
+			return false
+		}
+		if err := json.Unmarshal([]byte(v), &vv); err != nil {
+			log.Printf("[WARN] Failed to parse view_visibility JSON string for record %s: %v", record.Id, err)
+			return false
+		}
+	default:
+		log.Printf("[WARN] view_visibility unexpected type %T for record %s", viewVisibility, record.Id)
 		return false
 	}
 
@@ -1775,6 +1794,8 @@ func isVisibleInView(record *core.Record, viewId string) bool {
 	}
 	return false
 }
+
+
 
 func serializeRecords(records []*core.Record) []map[string]interface{} {
 	var result []map[string]interface{}
