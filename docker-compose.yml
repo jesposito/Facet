@@ -7,14 +7,14 @@
 # - SvelteKit frontend (Node.js) on internal port 3000
 # - Caddy reverse proxy routing requests between them
 # - Single public port: 8080 (configurable via PORT env var)
-# - Single volume: /data (for SQLite database + uploaded files)
+# - Two volumes: /data (database) and /uploads (media files)
 #
 # BEFORE YOU START:
 # 1. Copy .env.example to .env
-# 2. Generate an encryption key: openssl rand -hex 32
-# 3. Paste it as ENCRYPTION_KEY in .env
-# 4. (Optional) Add your email to ADMIN_EMAILS for OAuth login
-# 5. Run: docker-compose up -d
+# 2. (Optional) Add your email to ADMIN_EMAILS for OAuth login
+# 3. Run: docker-compose up -d
+#
+# Note: ENCRYPTION_KEY is auto-generated on first run if not provided
 #
 # ============================================================================
 
@@ -58,21 +58,17 @@ services:
     # --------------------------------------------------------------------
     # VOLUME MAPPING
     # --------------------------------------------------------------------
-    # Maps a host directory to /data in the container
-    # Contains:
-    # - SQLite database (pb_data/data.db)
-    # - Uploaded files (pb_data/storage/)
+    # /data   - Database and app config (small, goes in appdata)
+    # /uploads - User uploads (large, can go anywhere)
     #
-    # CRITICAL: This is your only data. BACK IT UP.
-    #
-    # Default: ./data (relative to docker-compose.yml)
+    # CRITICAL: Back up both directories!
     #
     # UNRAID USERS:
-    # Set DATA_PATH=/mnt/user/appdata/facet in .env
-    # This puts your data in the standard Unraid appdata location
-    # which gets backed up by CA Backup/Restore
+    # - DATA_PATH=/mnt/user/appdata/facet (standard appdata location)
+    # - UPLOADS_PATH=/mnt/user/media/facet (or wherever you want uploads)
     volumes:
       - ${DATA_PATH:-./data}:/data
+      - ${UPLOADS_PATH:-./uploads}:/uploads
 
     # --------------------------------------------------------------------
     # ENVIRONMENT VARIABLES
@@ -80,25 +76,19 @@ services:
     # These come from your .env file. See .env.example for full docs.
     environment:
       # ------------------------------------------------------------------
-      # REQUIRED: ENCRYPTION_KEY
+      # ENCRYPTION_KEY (Auto-generated if not set)
       # ------------------------------------------------------------------
       # Used to encrypt API keys and sensitive tokens in the database
-      # Generate with: openssl rand -hex 32
-      #
-      # MUST be 32 bytes (64 hex characters)
-      # MUST be kept secret
-      # MUST NOT change after first run (or encrypted data becomes unreadable)
-      #
-      # If this is missing, the container will fail to start.
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:?ENCRYPTION_KEY is required. Generate with openssl rand -hex 32}
+      # If not provided, one is generated on first run and saved to /data/.encryption_key
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
 
       # ------------------------------------------------------------------
       # NETWORK: Reverse Proxy Configuration
       # ------------------------------------------------------------------
       # TRUST_PROXY:
-      # - Set "true" if Facet is behind a reverse proxy (Nginx, Cloudflare Tunnel, Traefik)
       # - Tells the backend to trust X-Forwarded-* headers for client IP and protocol
-      # - Default: false (direct access)
+      # - Default: true (most users are behind a reverse proxy)
+      # - Set "false" only if accessing Facet directly without any proxy
       #
       # WHEN TO SET TRUE:
       # - Using Cloudflare Tunnel
@@ -110,7 +100,7 @@ services:
       # WHEN TO KEEP FALSE:
       # - Accessing directly (no reverse proxy)
       # - Using port forwarding only
-      - TRUST_PROXY=${TRUST_PROXY:-false}
+      - TRUST_PROXY=${TRUST_PROXY:-true}
 
       # APP_URL:
       # Your public-facing URL (how users access Facet)

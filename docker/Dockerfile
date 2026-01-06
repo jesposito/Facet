@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive-latex-extra \
     texlive-fonts-extra \
     wget \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 from NodeSource (Debian's nodejs is v18, incompatible with build)
@@ -71,8 +72,8 @@ COPY docker/Caddyfile ./Caddyfile
 COPY docker/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-# Create data directory
-RUN mkdir -p /data && chown -R facet:facet /data /app
+# Create data and uploads directories
+RUN mkdir -p /data /uploads && chown -R facet:facet /data /uploads /app
 
 # Environment
 ENV DATA_DIR=/data \
@@ -90,5 +91,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
 USER facet
-VOLUME ["/data"]
+VOLUME ["/data", "/uploads"]
 CMD ["./start.sh"]
