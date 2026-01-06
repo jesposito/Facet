@@ -1770,7 +1770,10 @@ func isVisibleInView(record *core.Record, viewId string) bool {
 		return false
 	}
 
-	return enabled == true
+	if b, ok := enabled.(bool); ok {
+		return b
+	}
+	return false
 }
 
 func serializeRecords(records []*core.Record) []map[string]interface{} {

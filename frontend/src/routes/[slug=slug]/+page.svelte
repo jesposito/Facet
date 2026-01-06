@@ -160,6 +160,13 @@
 		return data.sectionLayouts?.[sectionKey] || 'default';
 	}
 
+	type ContactLayoutType = 'vertical' | 'horizontal' | 'grid';
+	function getContactLayout(): ContactLayoutType {
+		const layout = getSectionLayout('contacts');
+		if (layout === 'vertical' || layout === 'horizontal' || layout === 'grid') return layout;
+		return 'vertical';
+	}
+
 	// Get width for a section (from API response or default)
 	function getSectionWidth(sectionKey: string): string {
 		return data.sectionWidths?.[sectionKey] || 'full';
@@ -342,7 +349,7 @@
 						</div>
 					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('contacts'))}>
-							<ContactMethodsList contacts={data.sections.contacts} viewId={data.view?.id || ''} layout={getSectionLayout('contacts')} />
+							<ContactMethodsList contacts={data.sections.contacts} viewId={data.view?.id || ''} layout={getContactLayout()} />
 						</div>
 					{/if}
 				{/each}
