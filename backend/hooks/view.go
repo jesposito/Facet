@@ -1728,9 +1728,19 @@ func isRecordVisible(record *core.Record) bool {
 }
 
 func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
+	visibility := record.GetString("visibility")
+	isDraft := record.GetBool("is_draft")
+	viewVisibility := record.Get("view_visibility")
+	
+	// Debug logging for visibility issues
+	if visibility == "private" || isDraft {
+		log.Printf("[DEBUG] isRecordVisibleForSection: record=%s section=%s viewId=%s visibility=%s isDraft=%v view_visibility=%v (type=%T)",
+			record.Id, section, viewId, visibility, isDraft, viewVisibility, viewVisibility)
+	}
+	
 	if isRecordVisible(record) {
+		// For contacts, check if explicitly enabled/disabled for this view
 		if section == "contacts" && viewId != "" {
-			viewVisibility := record.Get("view_visibility")
 			if viewVisibility != nil {
 				var vv map[string]interface{}
 				switch v := viewVisibility.(type) {
@@ -1753,7 +1763,12 @@ func isRecordVisibleForSection(record *core.Record, section string, viewId strin
 		return true
 	}
 
-	return isVisibleInView(record, viewId)
+	// For private/draft items, check if enabled for this specific view
+	result := isVisibleInView(record, viewId)
+	if visibility == "private" || isDraft {
+		log.Printf("[DEBUG] isVisibleInView result for record=%s: %v", record.Id, result)
+	}
+	return result
 }
 
 func isVisibleInView(record *core.Record, viewId string) bool {
