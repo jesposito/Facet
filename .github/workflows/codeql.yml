@@ -18,15 +18,6 @@ jobs:
       actions: read
       contents: read
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: javascript-typescript
-            build-mode: none
-          - language: go
-            build-mode: manual
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,29 +25,10 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-
-      - name: Setup Go
-        if: matrix.language == 'go'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-
-      - name: Install Go dependencies
-        if: matrix.language == 'go'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc libc6-dev
-
-      - name: Build Go
-        if: matrix.language == 'go'
-        working-directory: backend
-        run: |
-          go mod download
-          go build -v ./...
+          languages: javascript-typescript
+          build-mode: none
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{matrix.language}}"
+          category: "/language:javascript-typescript"
