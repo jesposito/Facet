@@ -1,4 +1,4 @@
-import { expect, APIRequestContext } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 import { adminEmail, adminPassword, apiBaseURL } from './config';
 
 export async function loginAsAdmin(request: APIRequestContext) {
