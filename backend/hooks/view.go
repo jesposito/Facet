@@ -1727,16 +1727,21 @@ func isRecordVisible(record *core.Record) bool {
 }
 
 // isRecordVisibleForSection checks if a record should be visible for a specific section
-// Some sections (like contacts) have different visibility rules
 // For items that are globally private, checks if they're enabled for this specific view
 func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
-	if section == "contacts" {
-		// Contact methods use view_visibility for per-view control
-		return isVisibleInView(record, viewId)
-	}
-
 	// First check if globally visible (public/unlisted and not draft)
 	if isRecordVisible(record) {
+		// For contacts, also check if explicitly hidden for this view
+		if section == "contacts" && viewId != "" {
+			viewVisibility := record.Get("view_visibility")
+			if vv, ok := viewVisibility.(map[string]interface{}); ok {
+				if enabled, exists := vv[viewId]; exists {
+					if b, ok := enabled.(bool); ok {
+						return b
+					}
+				}
+			}
+		}
 		return true
 	}
 
