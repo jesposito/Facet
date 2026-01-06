@@ -9,7 +9,7 @@ type EmbedMatch = {
 // Configure DOMPurify with iframe domain whitelist for security
 // This hook validates iframe sources to prevent malicious embeds
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-	if (data.tagName === 'iframe') {
+	if (data.tagName === 'iframe' && node instanceof Element) {
 		const src = node.getAttribute('src') || '';
 
 		// Whitelist of trusted embed domains matching our shortcode providers
