@@ -1,7 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
-
-const PB_COOKIE_NAME = 'pb_auth';
+import { PB_COOKIE_NAME } from '$lib/pocketbase';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';

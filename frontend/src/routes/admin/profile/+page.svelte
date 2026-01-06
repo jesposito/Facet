@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { pb, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
@@ -121,21 +121,33 @@
 		contactLinks = contactLinks.filter((_, i) => i !== index);
 	}
 	
+	let avatarBlobUrl: string | null = null;
+	let heroBlobUrl: string | null = null;
+	
 	function handleAvatarChange(event: Event) {
 		const input = event.target as HTMLInputElement;
 		if (input.files?.[0]) {
+			if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
 			avatarFile = input.files[0];
-			avatarUrl = URL.createObjectURL(avatarFile);
+			avatarBlobUrl = URL.createObjectURL(avatarFile);
+			avatarUrl = avatarBlobUrl;
 		}
 	}
 	
 	function handleHeroImageChange(event: Event) {
 		const input = event.target as HTMLInputElement;
 		if (input.files?.[0]) {
+			if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
 			heroImageFile = input.files[0];
-			heroImageUrl = URL.createObjectURL(heroImageFile);
+			heroBlobUrl = URL.createObjectURL(heroImageFile);
+			heroImageUrl = heroBlobUrl;
 		}
 	}
+	
+	onDestroy(() => {
+		if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
+		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+	});
 	
 	async function removeAvatar() {
 		if (!profile) return;

@@ -2,6 +2,8 @@ import PocketBase from 'pocketbase';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
+export const PB_COOKIE_NAME = 'pb_auth';
+
 function getBrowserPbUrl(): string {
 	if (import.meta.env.VITE_POCKETBASE_URL) {
 		return import.meta.env.VITE_POCKETBASE_URL as string;
@@ -37,7 +39,7 @@ pb.authStore.onChange((token, model) => {
 			secure: isProd,
 			sameSite: 'Lax',
 			path: '/'
-		}, 'pb_auth');
+		}, PB_COOKIE_NAME);
 	}
 });
 
