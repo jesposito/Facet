@@ -43,12 +43,18 @@ jobs:
         with:
           go-version: '1.24'
 
+      - name: Install Go dependencies
+        if: matrix.language == 'go'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libc6-dev
+
       - name: Build Go
         if: matrix.language == 'go'
         working-directory: backend
         run: |
           go mod download
-          CGO_ENABLED=0 go build -o /dev/null ./...
+          go build -v ./...
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
