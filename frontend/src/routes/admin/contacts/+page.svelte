@@ -263,13 +263,12 @@
 			</div>
 
 			<form on:submit|preventDefault={handleSubmit} class="space-y-6">
-				<!-- Contact Type & Value -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label class="label">
+						<label for="contact-type" class="label">
 							Contact Type <span class="text-red-500">*</span>
 						</label>
-						<select bind:value={type} on:change={handleTypeChange} class="input">
+						<select id="contact-type" bind:value={type} on:change={handleTypeChange} class="input">
 							{#each contactTypes as contactType}
 								<option value={contactType.value}>
 									{contactType.icon} {contactType.label}
@@ -279,10 +278,11 @@
 					</div>
 
 					<div>
-						<label class="label">
+						<label for="contact-value" class="label">
 							Value <span class="text-red-500">*</span>
 						</label>
 						<input
+							id="contact-value"
 							type="text"
 							bind:value
 							placeholder={getContactTypeInfo(type).placeholder}
@@ -292,11 +292,11 @@
 					</div>
 				</div>
 
-				<!-- Label & Icon -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label class="label">Label (optional)</label>
+						<label for="contact-label" class="label">Label (optional)</label>
 						<input
+							id="contact-label"
 							type="text"
 							bind:value={label}
 							placeholder="e.g., 'Work Email' or 'Personal Phone'"
@@ -306,8 +306,9 @@
 					</div>
 
 					<div>
-						<label class="label">Icon (optional)</label>
+						<label for="contact-icon" class="label">Icon (optional)</label>
 						<input
+							id="contact-icon"
 							type="text"
 							bind:value={icon}
 							placeholder="Emoji or icon"
@@ -318,11 +319,10 @@
 					</div>
 				</div>
 
-				<!-- Protection Level -->
-				<div>
-					<label class="label">
+				<fieldset>
+					<legend class="label">
 						Protection Level <span class="text-red-500">*</span>
-					</label>
+					</legend>
 					<div class="space-y-2">
 						{#each protectionLevels as level}
 							<label class="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {protectionLevel === level.value ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-700'}">
@@ -339,11 +339,10 @@
 							</label>
 						{/each}
 					</div>
-				</div>
+				</fieldset>
 
-				<!-- View Visibility -->
-				<div>
-					<label class="label">View Visibility</label>
+				<fieldset>
+					<legend class="label">View Visibility</legend>
 					<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
 						Select which views should display this contact method. Leave all unchecked to show on all views.
 					</p>
@@ -378,7 +377,7 @@
 							{/each}
 						</div>
 					{/if}
-				</div>
+				</fieldset>
 
 				<!-- Primary & Sort Order -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -391,8 +390,9 @@
 					</div>
 
 					<div>
-						<label class="label">Sort Order</label>
+						<label for="contact-sort-order" class="label">Sort Order</label>
 						<input
+							id="contact-sort-order"
 							type="number"
 							bind:value={sortOrder}
 							placeholder="0"

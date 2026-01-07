@@ -58,7 +58,13 @@
 				</button>
 
 				{#if showVisibilityMenu}
-					<div class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+					<button
+						type="button"
+						class="fixed inset-0 z-20"
+						on:click={() => showVisibilityMenu = false}
+						aria-label="Close menu"
+					></button>
+					<div class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-30">
 						<button
 							type="button"
 							class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
@@ -108,11 +114,4 @@
 	</div>
 </div>
 
-{#if showVisibilityMenu}
-	<button
-		type="button"
-		class="fixed inset-0 z-10"
-		on:click={() => showVisibilityMenu = false}
-		aria-label="Close menu"
-	></button>
-{/if}
+

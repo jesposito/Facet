@@ -619,7 +619,7 @@ CRITICAL STYLE RULES - NEVER VIOLATE:
 	case "description":
 		sb.WriteString("Rewrite this DESCRIPTION (1-3 paragraphs of detailed content):\n\n")
 	case "bullets":
-		sb.WriteString("Rewrite these BULLET POINTS (return as bullet list with • prefix):\n\n")
+		sb.WriteString("Rewrite these BULLET POINTS (return as plain text lines, one per line, WITHOUT bullet characters or prefixes):\n\n")
 	default:
 		sb.WriteString("Rewrite this content:\n\n")
 	}

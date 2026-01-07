@@ -185,7 +185,7 @@
 	}
 
 	.contact-method.primary {
-		/* Highlight primary contacts */
+		font-weight: 500;
 	}
 
 	.contact-link {
@@ -294,36 +294,33 @@
 		}
 	}
 
-	/* Dark mode support */
-	@media (prefers-color-scheme: dark) {
-		.contact-link {
-			border-color: #374151;
-			background: #1f2937;
-			color: #f9fafb;
-		}
+	:global(.dark) .contact-link {
+		border-color: #374151;
+		background: #1f2937;
+		color: #f9fafb;
+	}
 
-		.contact-link:hover {
-			border-color: var(--accent-color, #3b82f6);
-			background: #111827;
-		}
+	:global(.dark) .contact-link:hover {
+		border-color: var(--accent-color, #3b82f6);
+		background: #111827;
+	}
 
-		.contact-wrapper {
-			border-color: #374151;
-			background: #1f2937;
-		}
+	:global(.dark) .contact-wrapper {
+		border-color: #374151;
+		background: #1f2937;
+	}
 
-		.label {
-			color: #9ca3af;
-		}
+	:global(.dark) .label {
+		color: #9ca3af;
+	}
 
-		.captcha-button {
-			border-color: #374151;
-			background: #1f2937;
-			color: #9ca3af;
-		}
+	:global(.dark) .captcha-button {
+		border-color: #374151;
+		background: #1f2937;
+		color: #9ca3af;
+	}
 
-		.badge {
-			background: #374151;
-		}
+	:global(.dark) .badge {
+		background: #374151;
 	}
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
@@ -50,7 +50,11 @@
 	let ctaUrl = '';
 	let isActive = true;
 	let isDefault = false;
-	let accentColor: AccentColor | null = null; // null = inherit from global
+	let originalIsDefault = false;
+	let accentColor: AccentColor | null = null;
+	let heroImageUrl: string | null = null;
+	let heroImageFile: File | null = null;
+	let heroBlobUrl: string | null = null;
 
 	// Sections configuration with itemConfig, layout, and width support
 	let sections: Record<string, {
@@ -248,6 +252,7 @@
 
 	async function deleteExport(exportId: string) {
 		if (!slug) return;
+		if (!confirm('Delete this export? This cannot be undone.')) return;
 		try {
 			const response = await fetch(`/api/view/${slug}/exports/${exportId}`, {
 				method: 'DELETE',
@@ -256,9 +261,39 @@
 			if (response.ok) {
 				exports = exports.filter(e => e.id !== exportId);
 				toasts.add('success', 'Export deleted');
+			} else {
+				toasts.add('error', 'Failed to delete export');
 			}
 		} catch (err) {
 			toasts.add('error', 'Failed to delete export');
+		}
+	}
+
+	onDestroy(() => {
+		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+	});
+
+	function handleHeroImageChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (input.files?.[0]) {
+			if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+			heroImageFile = input.files[0];
+			heroBlobUrl = URL.createObjectURL(heroImageFile);
+			heroImageUrl = heroBlobUrl;
+		}
+	}
+
+	async function removeHeroImage() {
+		if (!view) return;
+		if (!confirm('Remove hero image from this view?')) return;
+		try {
+			await collection('views').update(viewId, { hero_image: null });
+			heroImageUrl = null;
+			heroImageFile = null;
+			toasts.add('success', 'Hero image removed');
+		} catch (err) {
+			console.error('Failed to remove hero image:', err);
+			toasts.add('error', 'Failed to remove hero image');
 		}
 	}
 
@@ -266,10 +301,9 @@
 		if (!viewId) return;
 		loading = true;
 		try {
-			const record = await collection('views').getOne(viewId);
+			const record = await collection('views').getOne(viewId) as unknown as View & { collectionId: string; hero_image?: string };
 			view = record as unknown as View;
 
-			// Populate form fields
 			name = view.name;
 			slug = view.slug;
 			description = view.description || '';
@@ -280,16 +314,18 @@
 			ctaUrl = view.cta_url || '';
 			isActive = view.is_active;
 
-			// Check if this is the default view
 			const defaultViews = await collection('views').getList(1, 1, {
 				filter: 'is_default = true'
 			});
 			isDefault = defaultViews.items.length > 0 && defaultViews.items[0].id === viewId;
+			originalIsDefault = isDefault;
 
-			// Load accent color (null = inherit from global)
 			accentColor = (view.accent_color as AccentColor) || null;
 
-			// Initialize sections from view data
+			if (record.hero_image) {
+				heroImageUrl = `/api/files/${record.collectionId}/${record.id}/${record.hero_image}`;
+			}
+
 			initializeSections(view.sections);
 		} catch (err) {
 			console.error('Failed to load view:', err);
@@ -508,41 +544,42 @@
 					return sectionData;
 				});
 
-			const data: Record<string, unknown> = {
-				name: name.trim(),
-				slug: slug.trim(),
-				description: description.trim(),
-				visibility,
-				hero_headline: heroHeadline.trim() || null,
-				hero_summary: heroSummary.trim() || null,
-				cta_text: ctaText.trim() || null,
-				cta_url: ctaUrl.trim() || null,
-				is_active: isActive,
-				sections: sectionsData,
-				accent_color: accentColor || null
-			};
+			const formData = new FormData();
+			formData.append('name', name.trim());
+			formData.append('slug', slug.trim());
+			formData.append('description', description.trim());
+			formData.append('visibility', visibility);
+			formData.append('hero_headline', heroHeadline.trim() || '');
+			formData.append('hero_summary', heroSummary.trim() || '');
+			formData.append('cta_text', ctaText.trim() || '');
+			formData.append('cta_url', ctaUrl.trim() || '');
+			formData.append('is_active', String(isActive));
+			formData.append('sections', JSON.stringify(sectionsData));
+			formData.append('accent_color', accentColor || '');
+			formData.set('is_default', isDefault ? 'true' : 'false');
 
-			// Only include password if it's set (for new password or change)
 			if (visibility === 'password' && password.trim()) {
-				data.password = password.trim();
+				formData.append('password', password.trim());
 			}
 
-			await collection('views').update(viewId, data);
+			if (heroImageFile) {
+				formData.append('hero_image', heroImageFile);
+			}
 
-			// Auto-enable view_visibility for private/draft items added to this view
-			await enableItemsForView(sectionsData);
+			await collection('views').update(viewId, formData);
+			heroImageFile = null;
 
-			// Handle default view setting
-			if (isDefault) {
-				// Clear other defaults first
-				const currentDefaults = await collection('views').getList(1, 100, {
+			if (isDefault && !originalIsDefault) {
+				const currentDefaults = await collection('views').getFullList({
 					filter: `is_default = true && id != "${viewId}"`
 				});
-				for (const v of currentDefaults.items) {
+				for (const v of currentDefaults) {
 					await collection('views').update(v.id, { is_default: false });
 				}
-				await collection('views').update(viewId, { is_default: true });
 			}
+			originalIsDefault = isDefault;
+
+			await enableItemsForView(sectionsData);
 
 			toasts.add('success', 'View updated successfully');
 		} catch (err) {
@@ -828,7 +865,47 @@
 			<!-- Hero Overrides -->
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
-				<p class="text-sm text-gray-500 -mt-2">Override your profile headline and summary for this view</p>
+				<p class="text-sm text-gray-500 -mt-2">Override your profile's hero image, headline and summary for this view</p>
+
+				<div>
+					<label class="label">Hero Image</label>
+					<div class="space-y-3">
+						{#if heroImageUrl}
+							<div class="relative">
+								<img 
+									src={heroImageUrl} 
+									alt="Hero" 
+									class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+								/>
+								<button
+									type="button"
+									on:click={removeHeroImage}
+									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+									title="Remove hero image"
+								>
+									{@html icon('x')}
+								</button>
+							</div>
+						{:else}
+							<div class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
+								{@html icon('image')}
+							</div>
+						{/if}
+						<div>
+							<input
+								type="file"
+								id="view_hero_image"
+								accept="image/jpeg,image/png,image/webp"
+								on:change={handleHeroImageChange}
+								class="hidden"
+							/>
+							<label for="view_hero_image" class="btn btn-secondary btn-sm cursor-pointer">
+								{heroImageUrl ? 'Change' : 'Upload'} Hero Image
+							</label>
+							<p class="text-xs text-gray-500 mt-1">Leave empty to use profile's hero image. JPG, PNG or WebP. Max 10MB.</p>
+						</div>
+					</div>
+				</div>
 
 				<div>
 					<div class="flex items-center justify-between">

@@ -51,6 +51,7 @@ export interface Profile {
 	location?: string;
 	summary?: string;
 	hero_image?: string;
+	hero_image_url?: string;
 	avatar?: string;
 	contact_email?: string;
 	contact_links?: ContactLink[];

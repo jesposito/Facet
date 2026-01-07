@@ -5,13 +5,14 @@
 	export let profile: Profile | null;
 
 	$: contactLinks = profile?.contact_links || [];
+	$: heroImageUrl = profile?.hero_image_url || profile?.hero_image || null;
 </script>
 
 <header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-	{#if profile?.hero_image}
+	{#if heroImageUrl}
 		<div class="absolute inset-0" aria-hidden="true">
 			<img
-				src={profile.hero_image}
+				src={heroImageUrl}
 				alt=""
 				class="w-full h-full object-cover opacity-30"
 			/>

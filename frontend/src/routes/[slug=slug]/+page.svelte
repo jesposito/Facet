@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
+	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
@@ -300,7 +301,8 @@
 			profile={{
 				...data.profile,
 				headline: data.view?.hero_headline || data.profile?.headline,
-				summary: data.view?.hero_summary || data.profile?.summary
+				summary: data.view?.hero_summary || data.profile?.summary,
+				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
 			}}
 		/>
 
@@ -320,6 +322,17 @@
 				</div>
 			</div>
 		{/if}
+
+		<ProfileNav
+			hasExperience={data.sections?.experience?.length > 0}
+			hasProjects={data.sections?.projects?.length > 0}
+			hasEducation={data.sections?.education?.length > 0}
+			hasCertifications={data.sections?.certifications?.length > 0}
+			hasSkills={data.sections?.skills?.length > 0}
+			hasPosts={data.sections?.posts?.length > 0}
+			hasTalks={data.sections?.talks?.length > 0}
+			viewSlug={data.view?.slug || ''}
+		/>
 
 		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			<div class="sections-grid">

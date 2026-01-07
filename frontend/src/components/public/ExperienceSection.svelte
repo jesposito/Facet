@@ -4,6 +4,10 @@
 
 	export let items: Experience[];
 	export let layout: string = 'default';
+
+	function stripBulletPrefix(text: string): string {
+		return text.replace(/^\s*[•\-\*–—·●◦▪▸►]\s*/, '').replace(/^\s*\d+[.)]\s+/, '');
+	}
 </script>
 
 <section id="experience" class="mb-16">
@@ -51,7 +55,7 @@
 								{#each item.bullets as bullet}
 									<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
 										<span class="text-primary-500 mt-0.5">•</span>
-										<span>{bullet}</span>
+										<span>{stripBulletPrefix(bullet)}</span>
 									</li>
 								{/each}
 							</ul>
@@ -142,7 +146,7 @@
 							{#each item.bullets as bullet}
 								<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300">
 									<span class="text-primary-500 mt-1">•</span>
-									<span>{bullet}</span>
+									<span>{stripBulletPrefix(bullet)}</span>
 								</li>
 							{/each}
 						</ul>

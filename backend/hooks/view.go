@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -378,6 +379,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Include view-specific accent color (null/empty means inherit from profile)
 			if accentColor := view.GetString("accent_color"); accentColor != "" {
 				response["accent_color"] = accentColor
+			}
+
+			if heroImage := view.GetString("hero_image"); heroImage != "" {
+				response["hero_image_url"] = "/api/files/" + view.Collection().Id + "/" + view.Id + "/" + url.PathEscape(heroImage)
 			}
 
 			// Get sections configuration

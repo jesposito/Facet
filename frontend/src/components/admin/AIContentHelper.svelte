@@ -314,18 +314,21 @@
 				role="button"
 				tabindex="-1"
 			>
+				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 				<div
 					class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] sm:max-h-[80vh] overflow-hidden flex flex-col"
 					on:click|stopPropagation
 					on:keydown|stopPropagation
 					role="dialog"
+					aria-modal="true"
+					aria-labelledby="ai-dialog-title"
 					tabindex="-1"
 				>
 					<!-- Header -->
 					<div
 						class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
 					>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+						<h3 id="ai-dialog-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
 							{mode === 'critique' ? '💭 AI Feedback' : '✨ AI Rewrite Preview'}
 						</h3>
 						<button
@@ -361,21 +364,19 @@
 							</div>
 						{:else}
 							<div class="space-y-4">
-								<!-- Original -->
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+									<p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 										Original:
-									</label>
+									</p>
 									<div class="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700 whitespace-pre-wrap">
 										{content}
 									</div>
 								</div>
 
-								<!-- Rewritten -->
 								<div>
-									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+									<p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 										AI Rewrite:
-									</label>
+									</p>
 									<div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded border border-purple-200 dark:border-purple-700 whitespace-pre-wrap">
 										{previewContent}
 									</div>

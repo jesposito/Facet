@@ -36,6 +36,34 @@ func NewUserError(message, action, technical string) UserError {
 	}
 }
 
+func normalizeDate(dateStr string) string {
+	dateStr = strings.TrimSpace(dateStr)
+	if dateStr == "" || strings.EqualFold(dateStr, "null") || strings.EqualFold(dateStr, "present") {
+		return ""
+	}
+
+	if idx := strings.IndexAny(dateStr, "T "); idx != -1 {
+		dateStr = dateStr[:idx]
+	}
+
+	layouts := []struct {
+		format string
+		suffix string
+	}{
+		{"2006-01-02", ""},
+		{"2006-01", "-01"},
+		{"2006", "-01-01"},
+	}
+
+	for _, l := range layouts {
+		if _, err := time.Parse(l.format, dateStr); err == nil {
+			return dateStr + l.suffix
+		}
+	}
+
+	return ""
+}
+
 // RegisterResumeUploadHooks registers resume upload and parsing endpoints
 func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	ai := services.NewAIService(crypto)
@@ -309,9 +337,11 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 			record.Set("company", exp.Company)
 			record.Set("title", exp.Title)
 			record.Set("location", exp.Location)
-			record.Set("start_date", exp.StartDate)
-			if exp.EndDate != "" && exp.EndDate != "null" {
-				record.Set("end_date", exp.EndDate)
+			if normalized := normalizeDate(exp.StartDate); normalized != "" {
+				record.Set("start_date", normalized)
+			}
+			if normalized := normalizeDate(exp.EndDate); normalized != "" {
+				record.Set("end_date", normalized)
 			}
 			record.Set("description", exp.Description)
 			if len(exp.Bullets) > 0 {
@@ -344,9 +374,11 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 			record.Set("institution", edu.Institution)
 			record.Set("degree", edu.Degree)
 			record.Set("field", edu.Field)
-			record.Set("start_date", edu.StartDate)
-			if edu.EndDate != "" && edu.EndDate != "null" {
-				record.Set("end_date", edu.EndDate)
+			if normalized := normalizeDate(edu.StartDate); normalized != "" {
+				record.Set("start_date", normalized)
+			}
+			if normalized := normalizeDate(edu.EndDate); normalized != "" {
+				record.Set("end_date", normalized)
 			}
 			record.Set("description", edu.Description)
 			record.Set("visibility", "private")
@@ -395,9 +427,11 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 			record := core.NewRecord(certsCollection)
 			record.Set("name", cert.Name)
 			record.Set("issuer", cert.Issuer)
-			record.Set("issue_date", cert.IssueDate)
-			if cert.ExpiryDate != "" && cert.ExpiryDate != "null" {
-				record.Set("expiry_date", cert.ExpiryDate)
+			if normalized := normalizeDate(cert.IssueDate); normalized != "" {
+				record.Set("issue_date", normalized)
+			}
+			if normalized := normalizeDate(cert.ExpiryDate); normalized != "" {
+				record.Set("expiry_date", normalized)
 			}
 			record.Set("credential_id", cert.CredentialID)
 			record.Set("credential_url", cert.CredentialURL)
@@ -458,7 +492,9 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 				record := core.NewRecord(awardsCollection)
 				record.Set("title", award.Title)
 				record.Set("issuer", award.Issuer)
-				record.Set("awarded_at", award.AwardedAt)
+				if normalized := normalizeDate(award.AwardedAt); normalized != "" {
+					record.Set("awarded_at", normalized)
+				}
 				record.Set("description", award.Description)
 				record.Set("visibility", "private")
 				record.Set("is_draft", false)
@@ -485,7 +521,9 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 				slug := generateSlug(talk.Title)
 				record.Set("slug", slug)
 				record.Set("event", talk.Event)
-				record.Set("date", talk.Date)
+				if normalized := normalizeDate(talk.Date); normalized != "" {
+					record.Set("date", normalized)
+				}
 				record.Set("location", talk.Location)
 				record.Set("description", talk.Description)
 				record.Set("visibility", "private")
@@ -554,9 +592,11 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			record.Set("company", exp.Company)
 			record.Set("title", exp.Title)
 			record.Set("location", exp.Location)
-			record.Set("start_date", exp.StartDate)
-			if exp.EndDate != "" && exp.EndDate != "null" {
-				record.Set("end_date", exp.EndDate)
+			if normalized := normalizeDate(exp.StartDate); normalized != "" {
+				record.Set("start_date", normalized)
+			}
+			if normalized := normalizeDate(exp.EndDate); normalized != "" {
+				record.Set("end_date", normalized)
 			}
 			record.Set("description", exp.Description)
 			if len(exp.Bullets) > 0 {
@@ -610,9 +650,11 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			record.Set("institution", edu.Institution)
 			record.Set("degree", edu.Degree)
 			record.Set("field", edu.Field)
-			record.Set("start_date", edu.StartDate)
-			if edu.EndDate != "" && edu.EndDate != "null" {
-				record.Set("end_date", edu.EndDate)
+			if normalized := normalizeDate(edu.StartDate); normalized != "" {
+				record.Set("start_date", normalized)
+			}
+			if normalized := normalizeDate(edu.EndDate); normalized != "" {
+				record.Set("end_date", normalized)
 			}
 			record.Set("description", edu.Description)
 			record.Set("import_session_id", importSessionID)
@@ -703,9 +745,11 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			record := core.NewRecord(certsCollection)
 			record.Set("name", cert.Name)
 			record.Set("issuer", cert.Issuer)
-			record.Set("issue_date", cert.IssueDate)
-			if cert.ExpiryDate != "" && cert.ExpiryDate != "null" {
-				record.Set("expiry_date", cert.ExpiryDate)
+			if normalized := normalizeDate(cert.IssueDate); normalized != "" {
+				record.Set("issue_date", normalized)
+			}
+			if normalized := normalizeDate(cert.ExpiryDate); normalized != "" {
+				record.Set("expiry_date", normalized)
 			}
 			record.Set("credential_id", cert.CredentialID)
 			record.Set("credential_url", cert.CredentialURL)
@@ -804,7 +848,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				record := core.NewRecord(awardsCollection)
 				record.Set("title", award.Title)
 				record.Set("issuer", award.Issuer)
-				record.Set("awarded_at", award.AwardedAt)
+				if normalized := normalizeDate(award.AwardedAt); normalized != "" {
+					record.Set("awarded_at", normalized)
+				}
 				record.Set("description", award.Description)
 				record.Set("import_session_id", importSessionID)
 				record.Set("import_filename", filename)
@@ -842,7 +888,9 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				slug := generateSlug(talk.Title)
 				record.Set("slug", slug)
 				record.Set("event", talk.Event)
-				record.Set("date", talk.Date)
+				if normalized := normalizeDate(talk.Date); normalized != "" {
+					record.Set("date", normalized)
+				}
 				record.Set("location", talk.Location)
 				record.Set("description", talk.Description)
 				record.Set("import_session_id", importSessionID)

@@ -151,6 +151,7 @@
 	
 	async function removeAvatar() {
 		if (!profile) return;
+		if (!confirm('Remove your avatar image?')) return;
 		try {
 			await collection('profile').update(profile.id as string, { avatar: null });
 			avatarUrl = null;
@@ -164,6 +165,7 @@
 	
 	async function removeHeroImage() {
 		if (!profile) return;
+		if (!confirm('Remove your hero image?')) return;
 		try {
 			await collection('profile').update(profile.id as string, { hero_image: null });
 			heroImageUrl = null;

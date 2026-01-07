@@ -80,7 +80,13 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				view: {
 					id: accessInfo.view_id,
 					slug,
-					name: accessInfo.view_name || 'Protected View'
+					name: accessInfo.view_name || 'Protected View',
+					hero_headline: undefined,
+					hero_summary: undefined,
+					cta_text: undefined,
+					cta_url: undefined,
+					accent_color: undefined,
+					hero_image_url: undefined
 				},
 				profile: null,
 				sections: {},
@@ -104,7 +110,17 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			if (dataResponse.status === 401 || dataResponse.status === 403) {
 				if (accessInfo.visibility === 'password') {
 					return {
-						view: { id: accessInfo.view_id, slug, name: accessInfo.view_name || 'Protected View' },
+						view: {
+							id: accessInfo.view_id,
+							slug,
+							name: accessInfo.view_name || 'Protected View',
+							hero_headline: undefined,
+							hero_summary: undefined,
+							cta_text: undefined,
+							cta_url: undefined,
+							accent_color: undefined,
+							hero_image_url: undefined
+						},
 						profile: null,
 						sections: {},
 						requiresPassword: true
@@ -130,7 +146,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				hero_summary: viewData.hero_summary,
 				cta_text: viewData.cta_text,
 				cta_url: viewData.cta_url,
-				accent_color: viewData.accent_color || null
+				accent_color: viewData.accent_color || null,
+				hero_image_url: viewData.hero_image_url || null
 			},
 			profile: profile ? {
 				...profile,

@@ -358,8 +358,8 @@ Extract the following sections and return ONLY valid JSON (no explanations, no m
       "company": "Company Name",
       "title": "Job Title",
       "location": "City, State",
-      "start_date": "YYYY-MM",
-      "end_date": "YYYY-MM" or null if current,
+      "start_date": "YYYY-MM-DD",
+      "end_date": "YYYY-MM-DD" or null if current,
       "description": "Brief role description",
       "bullets": ["Achievement 1", "Achievement 2", "Achievement 3"],
       "skills": ["Skill1", "Skill2"]
@@ -370,8 +370,8 @@ Extract the following sections and return ONLY valid JSON (no explanations, no m
       "institution": "University/School Name",
       "degree": "Degree Type (BS, MS, PhD, etc.)",
       "field": "Field of Study",
-      "start_date": "YYYY-MM",
-      "end_date": "YYYY-MM",
+      "start_date": "YYYY-MM-DD",
+      "end_date": "YYYY-MM-DD",
       "description": "Honors, GPA, relevant activities"
     }
   ],
@@ -386,8 +386,8 @@ Extract the following sections and return ONLY valid JSON (no explanations, no m
     {
       "name": "Certification Name",
       "issuer": "Issuing Organization",
-      "issue_date": "YYYY-MM",
-      "expiry_date": "YYYY-MM" or null if no expiry,
+      "issue_date": "YYYY-MM-DD",
+      "expiry_date": "YYYY-MM-DD" or null if no expiry,
       "credential_id": "ID if present",
       "credential_url": "URL if present"
     }
@@ -405,7 +405,7 @@ Extract the following sections and return ONLY valid JSON (no explanations, no m
     {
       "title": "Award Name",
       "issuer": "Issuing Organization",
-      "awarded_at": "YYYY-MM",
+      "awarded_at": "YYYY-MM-DD",
       "description": "Why awarded or significance"
     }
   ],
@@ -413,7 +413,7 @@ Extract the following sections and return ONLY valid JSON (no explanations, no m
     {
       "title": "Talk/Presentation Title",
       "event": "Event or Conference Name",
-      "date": "YYYY-MM",
+      "date": "YYYY-MM-DD",
       "location": "City, State",
       "description": "Talk description"
     }
@@ -426,8 +426,8 @@ Extract the following sections and return ONLY valid JSON (no explanations, no m
 }
 
 **IMPORTANT PARSING RULES**:
-1. Extract dates in YYYY-MM format (e.g., "2024-01"). If only year is given, use "YYYY-01".
-2. If month is ambiguous or not specified, default to "-01" (January).
+1. Extract dates in YYYY-MM-DD format (e.g., "2024-01-01"). If only year is given, use "YYYY-01-01". If only year and month, use "YYYY-MM-01".
+2. If month is ambiguous or not specified, default to January (01). If day is not specified, default to the 1st.
 3. Use null for end_date if the position is current (indicated by "Present", "Current", "Now", etc.).
 4. Preserve bullet points as separate array items, not as a single string.
 5. Categorize skills logically (Programming, Tools, Soft Skills, Languages, etc.).
