@@ -790,49 +790,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["awards"] = serializeRecords(awardRecords)
 			}
 
-			// Log final response summary
-			expLen := 0
-			projLen := 0
-			eduLen := 0
-			skillsLen := 0
-			postsLen := 0
-			talksLen := 0
-			certsLen := 0
-			awardsLen := 0
-			if exp, ok := response["experience"].([]map[string]interface{}); ok {
-				expLen = len(exp)
-			}
-			if proj, ok := response["projects"].([]map[string]interface{}); ok {
-				projLen = len(proj)
-			}
-			if edu, ok := response["education"].([]map[string]interface{}); ok {
-				eduLen = len(edu)
-			}
-			if skills, ok := response["skills"].([]map[string]interface{}); ok {
-				skillsLen = len(skills)
-			}
-			if posts, ok := response["posts"].([]map[string]interface{}); ok {
-				postsLen = len(posts)
-			}
-			if talks, ok := response["talks"].([]map[string]interface{}); ok {
-				talksLen = len(talks)
-			}
-			if certs, ok := response["certifications"].([]map[string]interface{}); ok {
-				certsLen = len(certs)
-			}
-		if awards, ok := response["awards"].([]map[string]interface{}); ok {
-			awardsLen = len(awards)
-		}
-		_ = expLen
-		_ = projLen
-		_ = eduLen
-		_ = skillsLen
-		_ = postsLen
-		_ = talksLen
-		_ = certsLen
-		_ = awardsLen
-
-		return e.JSON(http.StatusOK, response)
+			return e.JSON(http.StatusOK, response)
 		}))
 
 		// Public posts listing

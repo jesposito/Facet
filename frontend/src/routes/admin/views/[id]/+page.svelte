@@ -868,7 +868,7 @@
 				<p class="text-sm text-gray-500 -mt-2">Override your profile's hero image, headline and summary for this view</p>
 
 				<div>
-					<label class="label">Hero Image</label>
+					<span class="label">Hero Image</span>
 					<div class="space-y-3">
 						{#if heroImageUrl}
 							<div class="relative">

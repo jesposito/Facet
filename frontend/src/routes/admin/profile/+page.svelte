@@ -196,7 +196,7 @@
 				
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div>
-						<label class="label">Avatar</label>
+						<span class="label">Avatar</span>
 						<div class="flex items-start gap-4">
 							<div class="relative">
 								{#if avatarUrl}
@@ -238,7 +238,7 @@
 					</div>
 					
 					<div>
-						<label class="label">Hero Image</label>
+						<span class="label">Hero Image</span>
 						<div class="space-y-3">
 							{#if heroImageUrl}
 								<div class="relative">
