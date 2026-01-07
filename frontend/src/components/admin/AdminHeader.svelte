@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
-	import { demoMode as demoModeStore } from '$lib/stores/demo';
+	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
 	let demoMode = false;
@@ -73,14 +73,12 @@
 				throw new Error(data.error || 'Failed to toggle demo mode');
 			}
 
-			const newDemoMode = !demoMode;
-			console.log('[TOGGLE] Updating store to:', newDemoMode);
-			// Update the store
-			demoModeStore.set(newDemoMode);
-			console.log('[TOGGLE] Store updated, reloading page...');
-
-			// Refresh the page to show updated data
-			window.location.reload();
+			console.log('[TOGGLE] Updating store...');
+			
+			// Re-initialize demo mode from server to ensure store is in sync
+			// The {#key $demoMode} block in layout will force child components to remount
+			await initDemoMode();
+			console.log('[TOGGLE] Demo mode updated, components will remount');
 		} catch (err) {
 			console.error('[TOGGLE] Failed to toggle demo mode:', err);
 			alert(err instanceof Error ? err.message : 'Failed to toggle demo mode');
@@ -116,6 +114,20 @@
 		</div>
 
 		<div class="flex items-center gap-3">
+			<!-- View Site Link -->
+			<a
+				href="/"
+				target="_blank"
+				rel="noopener"
+				class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+				title="View your public profile"
+			>
+				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+				</svg>
+				<span class="hidden sm:inline">View Site</span>
+			</a>
+
 			<!-- Demo Mode Toggle -->
 			<div class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 {showDemoAnimation ? 'ring-2 ring-primary-500 animate-pulse' : ''}">
 				<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">

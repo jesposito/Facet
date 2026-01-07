@@ -8,6 +8,7 @@ import (
 	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -137,15 +138,13 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase, rl *services.Rat
 			// Save user record
 			if err := app.Save(user); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"error": "Failed to save password change",
+					"error":   "Failed to save password change",
 					"details": err.Error(),
 				})
 			}
 
-			return e.JSON(http.StatusOK, map[string]interface{}{
-				"success": true,
-				"message": "Password changed successfully",
-			})
+			// Return new auth token so user stays logged in
+			return apis.RecordAuthResponse(e, user, "", nil)
 		}))
 
 		return se.Next()

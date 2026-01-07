@@ -78,7 +78,7 @@
 							href={item.href}
 							class="flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
-									? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
 									: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
 						>
 							{item.label}
@@ -92,7 +92,7 @@
 							on:click={() => scrollToSection(item.id)}
 							class="flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
-									? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'
+									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
 									: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
 						>
 							{item.label}

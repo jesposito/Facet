@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { pb, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
@@ -18,6 +18,12 @@
 	let contactEmail = '';
 	let contactLinks: Array<{ type: string; url: string; label: string }> = [];
 	let visibility = 'public';
+	
+	// Image fields
+	let avatarUrl: string | null = null;
+	let heroImageUrl: string | null = null;
+	let avatarFile: File | null = null;
+	let heroImageFile: File | null = null;
 
 	// Views that override headline/summary
 	let viewsOverridingHeadline: View[] = [];
@@ -39,6 +45,13 @@
 				contactEmail = (profile.contact_email as string) || '';
 				contactLinks = (profile.contact_links as typeof contactLinks) || [];
 				visibility = (profile.visibility as string) || 'public';
+				
+				if (profile.avatar) {
+					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
+				}
+				if (profile.hero_image) {
+					heroImageUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.hero_image}`;
+				}
 			}
 
 			// Check for views with overrides
@@ -55,23 +68,43 @@
 	async function handleSubmit() {
 		saving = true;
 		try {
-			const data = {
-				name,
-				headline,
-				location,
-				summary,
-				contact_email: contactEmail,
-				contact_links: contactLinks,
-				visibility
-			};
+			const formData = new FormData();
+			formData.append('name', name);
+			formData.append('headline', headline);
+			formData.append('location', location);
+			formData.append('summary', summary);
+			formData.append('contact_email', contactEmail);
+			formData.append('contact_links', JSON.stringify(contactLinks));
+			formData.append('visibility', visibility);
+			
+			if (avatarFile) {
+				formData.append('avatar', avatarFile);
+			}
+			if (heroImageFile) {
+				formData.append('hero_image', heroImageFile);
+			}
 
 			if (profile) {
-				await collection('profile').update(profile.id as string, data);
+				await collection('profile').update(profile.id as string, formData);
 			} else {
-				await collection('profile').create(data);
+				await collection('profile').create(formData);
 			}
 
 			toasts.add('success', 'Profile saved successfully');
+			
+			avatarFile = null;
+			heroImageFile = null;
+			
+			const records = await collection('profile').getList(1, 1);
+			if (records.items.length > 0) {
+				profile = records.items[0];
+				if (profile.avatar) {
+					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}?${Date.now()}`;
+				}
+				if (profile.hero_image) {
+					heroImageUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.hero_image}?${Date.now()}`;
+				}
+			}
 		} catch (err) {
 			console.error('Failed to save profile:', err);
 			toasts.add('error', 'Failed to save profile');
@@ -86,6 +119,60 @@
 
 	function removeContactLink(index: number) {
 		contactLinks = contactLinks.filter((_, i) => i !== index);
+	}
+	
+	let avatarBlobUrl: string | null = null;
+	let heroBlobUrl: string | null = null;
+	
+	function handleAvatarChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (input.files?.[0]) {
+			if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
+			avatarFile = input.files[0];
+			avatarBlobUrl = URL.createObjectURL(avatarFile);
+			avatarUrl = avatarBlobUrl;
+		}
+	}
+	
+	function handleHeroImageChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (input.files?.[0]) {
+			if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+			heroImageFile = input.files[0];
+			heroBlobUrl = URL.createObjectURL(heroImageFile);
+			heroImageUrl = heroBlobUrl;
+		}
+	}
+	
+	onDestroy(() => {
+		if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
+		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+	});
+	
+	async function removeAvatar() {
+		if (!profile) return;
+		try {
+			await collection('profile').update(profile.id as string, { avatar: null });
+			avatarUrl = null;
+			avatarFile = null;
+			toasts.add('success', 'Avatar removed');
+		} catch (err) {
+			console.error('Failed to remove avatar:', err);
+			toasts.add('error', 'Failed to remove avatar');
+		}
+	}
+	
+	async function removeHeroImage() {
+		if (!profile) return;
+		try {
+			await collection('profile').update(profile.id as string, { hero_image: null });
+			heroImageUrl = null;
+			heroImageFile = null;
+			toasts.add('success', 'Hero image removed');
+		} catch (err) {
+			console.error('Failed to remove hero image:', err);
+			toasts.add('error', 'Failed to remove hero image');
+		}
 	}
 </script>
 
@@ -102,6 +189,96 @@
 		</div>
 	{:else}
 		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+			<div class="card p-6 space-y-4">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Images</h2>
+				
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+					<div>
+						<label class="label">Avatar</label>
+						<div class="flex items-start gap-4">
+							<div class="relative">
+								{#if avatarUrl}
+									<img 
+										src={avatarUrl} 
+										alt="Avatar" 
+										class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+									/>
+								<button
+									type="button"
+									on:click={removeAvatar}
+									class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+									title="Remove avatar"
+								>
+									{@html icon('x')}
+								</button>
+							{:else}
+								<div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
+									{@html icon('image')}
+								</div>
+								{/if}
+							</div>
+							<div class="flex-1">
+								<input
+									type="file"
+									id="avatar"
+									accept="image/jpeg,image/png,image/webp,image/svg+xml"
+									on:change={handleAvatarChange}
+									class="hidden"
+								/>
+								<label for="avatar" class="btn btn-secondary btn-sm cursor-pointer">
+									{avatarUrl ? 'Change' : 'Upload'} Avatar
+								</label>
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+									JPG, PNG, WebP or SVG. Max 5MB.
+								</p>
+							</div>
+						</div>
+					</div>
+					
+					<div>
+						<label class="label">Hero Image</label>
+						<div class="space-y-3">
+							{#if heroImageUrl}
+								<div class="relative">
+									<img 
+										src={heroImageUrl} 
+										alt="Hero" 
+										class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+									/>
+								<button
+									type="button"
+									on:click={removeHeroImage}
+									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+									title="Remove hero image"
+								>
+									{@html icon('x')}
+								</button>
+							</div>
+						{:else}
+							<div class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
+								{@html icon('image')}
+							</div>
+							{/if}
+							<div>
+								<input
+									type="file"
+									id="hero_image"
+									accept="image/jpeg,image/png,image/webp,image/gif"
+									on:change={handleHeroImageChange}
+									class="hidden"
+								/>
+								<label for="hero_image" class="btn btn-secondary btn-sm cursor-pointer">
+									{heroImageUrl ? 'Change' : 'Upload'} Hero Image
+								</label>
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+									JPG, PNG, WebP or GIF. Max 10MB.
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
 

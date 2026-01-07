@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
-	import { initDemoMode } from '$lib/stores/demo';
+	import { demoMode, initDemoMode } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
@@ -169,7 +169,9 @@
 			<AdminSidebar />
 
 			<main id="main-content" class="flex-1 p-6 {$adminSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-200 mt-16">
-				<slot />
+				{#key $demoMode}
+					<slot />
+				{/key}
 			</main>
 		</div>
 

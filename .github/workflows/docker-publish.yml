@@ -14,6 +14,7 @@ on:
   push:
     branches:
       - main
+      - 'fix/production-readiness-polish'  # Dev branch for testing
     tags:
       - 'v*.*.*'
   pull_request:
@@ -80,6 +81,8 @@ jobs:
           tags: |
             # Set latest tag for default branch
             type=raw,value=latest,enable={{is_default_branch}}
+            # Dev tag for production-readiness branch
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/fix/production-readiness-polish' }}
             # Branch name (e.g., main)
             type=ref,event=branch
             # Tag name (e.g., v1.0.0 -> 1.0.0)

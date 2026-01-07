@@ -6,9 +6,14 @@ export let items: Project[];
 export let layout: string = 'grid-3';
 export let viewSlug: string = '';
 
-const projectHref = (slug: string | undefined) => {
-	if (!slug) return '#';
-	return viewSlug ? `/projects/${slug}?from=${encodeURIComponent(viewSlug)}` : `/projects/${slug}`;
+const isLinkable = (project: Project) => {
+	const visibility = (project as unknown as Record<string, string>).visibility;
+	return visibility === 'public' && project.slug;
+};
+
+const projectHref = (project: Project) => {
+	if (!isLinkable(project)) return null;
+	return viewSlug ? `/projects/${project.slug}?from=${encodeURIComponent(viewSlug)}` : `/projects/${project.slug}`;
 };
 
 	function getLinkIcon(type: string) {
@@ -69,9 +74,9 @@ const projectHref = (slug: string | undefined) => {
 
 					<div class="p-6 flex flex-col justify-center">
 						<div class="flex items-start justify-between gap-2">
-							<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
-								{#if featuredItem.slug}
-									<a href={projectHref(featuredItem.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
+								<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
+								{#if isLinkable(featuredItem)}
+									<a href={projectHref(featuredItem)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{featuredItem.title}
 									</a>
 								{:else}
@@ -142,44 +147,44 @@ const projectHref = (slug: string | undefined) => {
 							{/if}
 
 							<div class="p-5">
-								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-									{#if project.slug}
-										<a href={projectHref(project.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
-											{project.title}
-										</a>
-									{:else}
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+								{#if isLinkable(project)}
+									<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{project.title}
+									</a>
+								{:else}
+									{project.title}
+								{/if}
+							</h3>
+
+							{#if project.summary}
+								<p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
+									{truncate(project.summary, 100)}
+								</p>
+							{/if}
+
+							{#if project.tech_stack && project.tech_stack.length > 0}
+								<div class="mt-3 flex flex-wrap gap-1.5">
+									{#each project.tech_stack.slice(0, 3) as tech}
+										<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+											{tech}
+										</span>
+									{/each}
+									{#if project.tech_stack.length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500">
+											+{project.tech_stack.length - 3}
+										</span>
 									{/if}
-								</h3>
+								</div>
+							{/if}
+						</div>
+					</article>
+				{/each}
+			</div>
+		{/if}
+	</div>
 
-								{#if project.summary}
-									<p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-										{truncate(project.summary, 100)}
-									</p>
-								{/if}
-
-								{#if project.tech_stack && project.tech_stack.length > 0}
-									<div class="mt-3 flex flex-wrap gap-1.5">
-										{#each project.tech_stack.slice(0, 3) as tech}
-											<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-												{tech}
-											</span>
-										{/each}
-										{#if project.tech_stack.length > 3}
-											<span class="px-2 py-0.5 text-xs text-gray-500">
-												+{project.tech_stack.length - 3}
-											</span>
-										{/if}
-									</div>
-								{/if}
-							</div>
-						</article>
-					{/each}
-				</div>
-			{/if}
-		</div>
-
-	{:else if layout === 'list'}
+{:else if layout === 'list'}
 		<!-- List Layout -->
 		<div class="space-y-4">
 			{#each items as project (project.id)}
@@ -200,8 +205,8 @@ const projectHref = (slug: string | undefined) => {
 						<div class="p-5 flex-1">
 							<div class="flex items-start justify-between gap-2">
 								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-									{#if project.slug}
-										<a href="/projects/{project.slug}" class="hover:text-primary-600 dark:hover:text-primary-400">
+									{#if isLinkable(project)}
+										<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
 											{project.title}
 										</a>
 									{:else}
@@ -283,8 +288,8 @@ const projectHref = (slug: string | undefined) => {
 					<div class="p-6">
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
-								{#if project.slug}
-									<a href={projectHref(project.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
+								{#if isLinkable(project)}
+									<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{project.title}
 									</a>
 								{:else}
@@ -363,8 +368,8 @@ const projectHref = (slug: string | undefined) => {
 					<div class="p-5">
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-								{#if project.slug}
-									<a href={projectHref(project.slug)} class="hover:text-primary-600 dark:hover:text-primary-400">
+								{#if isLinkable(project)}
+									<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
 										{project.title}
 									</a>
 								{:else}

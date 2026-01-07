@@ -27,8 +27,10 @@ test.describe('Admin-secured flows', () => {
 		const { token } = await loginAsAdmin(request);
 
 		const view = await fetchFirstView(request, token);
-		test.skip(!view, 'No views available to exercise share tokens');
-		test.skip(!view?.slug, 'View is missing a slug');
+		if (!view || !view.slug) {
+			test.skip(!view, 'No views available to exercise share tokens');
+			return;
+		}
 
 		const generateRes = await request.post(`${apiBaseURL}/api/share/generate`, {
 			headers: { Authorization: token },

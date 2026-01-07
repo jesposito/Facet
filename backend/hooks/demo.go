@@ -194,6 +194,14 @@ func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 		app.Logger().Warn("Failed to load avatar asset", "error", err)
 	}
 
+	// Load and attach hero image
+	if heroFile, err := loadDemoAsset("profile/hero.svg"); err == nil {
+		profile.Set("hero_image", heroFile)
+		app.Logger().Info("Attached hero image to demo profile")
+	} else {
+		app.Logger().Warn("Failed to load hero image asset", "error", err)
+	}
+
 	if err := app.Save(profile); err != nil {
 		return err
 	}
@@ -1704,6 +1712,34 @@ Date:   Thu Jan 11 17:00:03 2024
 		return err
 	}
 
+	talk3 := core.NewRecord(talksColl)
+	talk3.Set("title", "How I Learned to Stop Worrying and Love the Paradox")
+	talk3.Set("slug", "love-the-paradox")
+	talk3.Set("event", "StrangeLoop 2024")
+	talk3.Set("location", "St. Louis, MO")
+	talk3.Set("date", "2024-09-20")
+	talk3.Set("description", "A deep dive into recursive systems, self-referential code, and why the Bootstrap Paradox is actually fine once you stop thinking about it linearly.\n\nThis talk covers:\n- Why your recursive function isn't actually infinitely looping (probably)\n- The Grandfather Paradox and what it teaches us about immutable state\n- How I became my own code reviewer by reviewing code I hadn't written yet\n- Live demo: Fixing a bug by going back in time and telling past-me not to write it")
+	talk3.Set("recording_url", "https://youtube.com/watch?v=strangeloop2024")
+	talk3.Set("visibility", "public")
+	talk3.Set("is_draft", false)
+	if err := app.Save(talk3); err != nil {
+		return err
+	}
+
+	talk4 := core.NewRecord(talksColl)
+	talk4.Set("title", "Microservices at Scale: A Galaxy-Brain Approach")
+	talk4.Set("slug", "galaxy-brain-microservices")
+	talk4.Set("event", "KubeCon Europe 2024")
+	talk4.Set("location", "Paris, France")
+	talk4.Set("date", "2024-03-18")
+	talk4.Set("description", "What happens when you scale microservices across an actual galaxy? Latency issues. So many latency issues.\n\nLearn from my mistakes as I share war stories from running distributed systems across multiple star systems:\n- When your service mesh spans light-years\n- CAP theorem but the 'P' stands for 'Parsecs'\n- That time eventual consistency took 400 years\n- Why you should never deploy on a Friday (especially a Friday in a different century)")
+	talk4.Set("slides_url", "https://speakerdeck.com/the-doctor/galaxy-brain")
+	talk4.Set("visibility", "public")
+	talk4.Set("is_draft", false)
+	if err := app.Save(talk4); err != nil {
+		return err
+	}
+
 	// Add award
 	app.Logger().Info("Creating demo awards...")
 	awardsColl, _ := app.FindCollectionByNameOrId("demo_awards")
@@ -1718,18 +1754,49 @@ Date:   Thu Jan 11 17:00:03 2024
 		return err
 	}
 
+	award2 := core.NewRecord(awardsColl)
+	award2.Set("title", "Saved Earth (Again)")
+	award2.Set("issuer", "UNIT - United Nations Intelligence Taskforce")
+	award2.Set("date", "2024-01-15")
+	award2.Set("description", "For services rendered during the Christmas Invasion, the Sycorax Incident, the Cyber-Christmas, the Titanic Near-Miss, the Adipose Event, the Sontaran Strategem, and that thing last Tuesday nobody remembers because I fixed the timeline.")
+	award2.Set("visibility", "public")
+	if err := app.Save(award2); err != nil {
+		return err
+	}
+
+	award3 := core.NewRecord(awardsColl)
+	award3.Set("title", "Lifetime Achievement in Running Away")
+	award3.Set("issuer", "Companions Alumni Association")
+	award3.Set("date", "2022-06-10")
+	award3.Set("description", "For 900+ years of successfully running down corridors, away from explosions, and toward danger while shouting 'RUN!' Accepted via hologram because the recipient was busy running at time of ceremony.")
+	award3.Set("visibility", "public")
+	if err := app.Save(award3); err != nil {
+		return err
+	}
+
+	award4 := core.NewRecord(awardsColl)
+	award4.Set("title", "Best Dressed Time Traveler")
+	award4.Set("issuer", "Temporal Fashion Weekly")
+	award4.Set("date", "2021-09-22")
+	award4.Set("description", "Recognizing consistent commitment to iconic fashion choices including: impossibly long scarves, question-mark lapels, leather jackets, bow ties ('bow ties are cool'), fezzes, and a sonic screwdriver accessory that really ties the whole look together.")
+	award4.Set("visibility", "public")
+	if err := app.Save(award4); err != nil {
+		return err
+	}
+
 	app.Logger().Info("Demo data loaded successfully into shadow tables!")
 	app.Logger().Info("")
 	app.Logger().Info("=== Demo Mode: The Doctor's Portfolio ===")
 	app.Logger().Info("Content Summary:")
 	app.Logger().Info("  - 5 Views (Resume, Blog, Speaking, Portfolio, Frontend Dev)")
-	app.Logger().Info("  - 4 Blog Posts (~2000 words each, very funny)")
-	app.Logger().Info("  - 2 Conference Talks")
-	app.Logger().Info("  - 4 Projects")
+	app.Logger().Info("  - 4 Blog Posts (~2000 words each, hilarious)")
+	app.Logger().Info("  - 4 Conference Talks")
+	app.Logger().Info("  - 4 Projects with cover images")
+	app.Logger().Info("  - 4 Awards")
 	app.Logger().Info("  - 3 Work Experiences")
-	app.Logger().Info("  - 21 Skills")
+	app.Logger().Info("  - 21 Skills across 5 categories")
 	app.Logger().Info("  - 6 Contact Methods")
-	app.Logger().Info("  - Media Assets: Profile avatar, 3 project covers, 4 blog post covers")
+	app.Logger().Info("  - Media: Avatar, hero image, project covers, blog covers")
 	app.Logger().Info("")
 	app.Logger().Info("Available Views:")
 	app.Logger().Info("  - /senior-engineer (Resume - default, public)")

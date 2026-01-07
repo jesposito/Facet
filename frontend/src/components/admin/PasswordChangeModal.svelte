@@ -66,6 +66,11 @@
 				throw new Error(data.error || data.message || 'Failed to change password');
 			}
 
+			// Update auth store with new token to stay logged in
+			if (data.token && data.record) {
+				pb.authStore.save(data.token, data.record);
+			}
+
 			// Success! Call the callback
 			onPasswordChanged();
 		} catch (err: any) {

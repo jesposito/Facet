@@ -7,7 +7,10 @@
 FROM golang:1.24-bookworm AS backend-builder
 
 WORKDIR /build
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libmupdf-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
@@ -60,6 +63,9 @@ WORKDIR /app
 
 # Copy backend binary
 COPY --from=backend-builder /facet ./facet
+
+# Copy demo assets for demo mode
+COPY --from=backend-builder /build/seeds/demo_assets ./backend/seeds/demo_assets
 
 # Copy frontend build
 COPY --from=frontend-builder /build/build ./frontend/build

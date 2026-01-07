@@ -310,7 +310,7 @@ tar -xzvf facet-backup-20241203.tar.gz
 ```
 
 **What to back up:**
-- `/mnt/user/appdata/facet/data/pb_data.db` - Your database
+- `/mnt/user/appdata/facet/pb_data/` - Your database and PocketBase data
 - `/mnt/user/appdata/facet/data/pb_data/storage` - Your uploads
 - `.env` file - Your configuration
 
@@ -340,7 +340,7 @@ docker exec facet env | grep ENCRYPTION_KEY
 
 **Database locked errors:**
 - Stop container: `docker stop facet`
-- Check for zombie processes: `lsof | grep pb_data.db`
+- Check for zombie processes: `lsof | grep data.db`
 - Start container: `docker start facet`
 
 ---

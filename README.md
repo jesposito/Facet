@@ -456,7 +456,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 **Testing:**
 - **Playwright** (E2E tests)
 - 25+ tests covering public APIs, admin flows, security, media management
-- 96% pass rate (12/12 public tests passing)
+- 12/12 public tests passing (admin tests require credentials)
 
 **Development:**
 - **Air** (Go hot reload)
@@ -774,12 +774,16 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Security review and XSS/path traversal protection
 - ✅ Demo mode with comprehensive example content
 
-**Planned:**
+**Coming Soon:**
+- CAPTCHA contact protection (Cloudflare Turnstile integration)
 - Scheduled GitHub sync (auto-refresh projects)
-- Security headers (CSP, X-Frame-Options)
-- 2FA (TOTP + backup codes)
+- 2FA/TOTP support (awaiting native PocketBase support)
+
+**Planned (Lower Priority):**
+- Content Security Policy headers
 - Audit logging for admin actions
 - Webhooks and integrations
+- Theme system with pre-built themes
 
 Full roadmap: [ROADMAP.md](docs/ROADMAP.md)
 

@@ -10,10 +10,10 @@
   <Support>https://github.com/jesposito/Facet/issues</Support>
   <Project>https://github.com/jesposito/Facet</Project>
   <Overview>Facet is a self-hosted personal profile platform. Create multiple views of your professional profile for different audiences (recruiters, conferences, clients). Own your data, skip the tracking. Default login: admin@example.com / changeme123</Overview>
-  <Category>Productivity: Tools:</Category>
+  <Category>Productivity: Tools</Category>
   <WebUI>http://[IP]:[PORT:8080]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/jesposito/Facet/main/unraid/facet-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/jesposito/Facet/main/frontend/static/favicon.png</Icon>
+  <Icon>https://raw.githubusercontent.com/jesposito/Facet/main/assets/icon.png</Icon>
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
