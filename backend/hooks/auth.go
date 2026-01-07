@@ -144,7 +144,7 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase, rl *services.Rat
 			}
 
 			// Return new auth token so user stays logged in
-			return apis.RecordAuthResponse(app, e, user, nil)
+			return apis.RecordAuthResponse(e, user, "", nil)
 		}))
 
 		return se.Next()
