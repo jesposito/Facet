@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Certification } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
@@ -119,7 +119,13 @@
 	}
 
 	async function deleteCertification(cert: Certification) {
-		if (!confirm(`Are you sure you want to delete "${cert.name}"?`)) {
+		const confirmed = await confirm({
+			title: 'Delete Certification',
+			message: `Are you sure you want to delete "${cert.name}"? This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 
@@ -205,7 +211,13 @@
 
 	async function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Certifications',
+			message: `Are you sure you want to delete ${ids.length} certification(s)? This action cannot be undone.`,
+			confirmText: 'Delete All',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			for (const id of ids) await collection('certifications').delete(id);
 			toasts.add('success', `Deleted ${ids.length} items`);

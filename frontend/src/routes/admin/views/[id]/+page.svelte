@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
@@ -252,7 +252,13 @@
 
 	async function deleteExport(exportId: string) {
 		if (!slug) return;
-		if (!confirm('Delete this export? This cannot be undone.')) return;
+		const confirmed = await confirm({
+			title: 'Delete Export',
+			message: 'Delete this export? This action cannot be undone.',
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			const response = await fetch(`/api/view/${slug}/exports/${exportId}`, {
 				method: 'DELETE',
@@ -285,7 +291,13 @@
 
 	async function removeHeroImage() {
 		if (!view) return;
-		if (!confirm('Remove hero image from this view?')) return;
+		const confirmed = await confirm({
+			title: 'Remove Hero Image',
+			message: 'Are you sure you want to remove the hero image from this view?',
+			confirmText: 'Remove',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			await collection('views').update(viewId, { hero_image: null });
 			heroImageUrl = null;

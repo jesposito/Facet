@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
 
@@ -39,7 +39,13 @@
 	}
 
 	async function deleteView(id: string) {
-		if (!confirm('Are you sure you want to delete this view?')) return;
+		const confirmed = await confirm({
+			title: 'Delete View',
+			message: 'Are you sure you want to delete this view? This action cannot be undone.',
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			await collection('views').delete(id);
 			toasts.add('success', 'View deleted');

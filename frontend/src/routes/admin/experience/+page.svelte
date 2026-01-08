@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -146,9 +146,13 @@
 	}
 
 	async function deleteExperience(exp: Experience) {
-		if (!confirm(`Are you sure you want to delete "${exp.title} at ${exp.company}"?`)) {
-			return;
-		}
+		const confirmed = await confirm({
+			title: 'Delete Experience',
+			message: `Are you sure you want to delete "${exp.title} at ${exp.company}"? This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) return;
 
 		try {
 			await await collection('experience').delete(exp.id);
@@ -221,7 +225,13 @@
 
 	async function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		if (!confirm(`Are you sure you want to delete ${ids.length} experience(s)?`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Experiences',
+			message: `Are you sure you want to delete ${ids.length} experience(s)? This action cannot be undone.`,
+			confirmText: 'Delete All',
+			danger: true
+		});
+		if (!confirmed) return;
 		
 		try {
 			for (const id of ids) {

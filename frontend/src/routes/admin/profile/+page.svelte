@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { pb, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
@@ -151,7 +151,13 @@
 	
 	async function removeAvatar() {
 		if (!profile) return;
-		if (!confirm('Remove your avatar image?')) return;
+		const confirmed = await confirm({
+			title: 'Remove Avatar',
+			message: 'Are you sure you want to remove your avatar image?',
+			confirmText: 'Remove',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			await collection('profile').update(profile.id as string, { avatar: null });
 			avatarUrl = null;
@@ -165,7 +171,13 @@
 	
 	async function removeHeroImage() {
 		if (!profile) return;
-		if (!confirm('Remove your hero image?')) return;
+		const confirmed = await confirm({
+			title: 'Remove Hero Image',
+			message: 'Are you sure you want to remove your hero image?',
+			confirmText: 'Remove',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			await collection('profile').update(profile.id as string, { hero_image: null });
 			heroImageUrl = null;

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
@@ -283,7 +283,13 @@ async function loadProjects() {
 	}
 
 	async function deleteProject(project: Project) {
-		if (!confirm(`Are you sure you want to delete "${project.title}"?`)) {
+		const confirmed = await confirm({
+			title: 'Delete Project',
+			message: `Are you sure you want to delete "${project.title}"? This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 
@@ -369,7 +375,13 @@ async function loadProjects() {
 
 	async function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Projects',
+			message: `Are you sure you want to delete ${ids.length} project(s)? This action cannot be undone.`,
+			confirmText: 'Delete All',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			for (const id of ids) await collection('projects').delete(id);
 			toasts.add('success', `Deleted ${ids.length} items`);

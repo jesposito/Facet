@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type ShareToken, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
 	let loading = true;
@@ -99,7 +99,13 @@
 	}
 
 	async function revokeToken(tokenId: string) {
-		if (!confirm('Are you sure you want to revoke this token? It will no longer be usable.')) {
+		const confirmed = await confirm({
+			title: 'Revoke Token',
+			message: 'Are you sure you want to revoke this token? It will no longer be usable.',
+			confirmText: 'Revoke',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 
@@ -123,7 +129,13 @@
 	}
 
 	async function deleteToken(tokenId: string) {
-		if (!confirm('Are you sure you want to permanently delete this token?')) {
+		const confirmed = await confirm({
+			title: 'Delete Token',
+			message: 'Are you sure you want to permanently delete this token? This action cannot be undone.',
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 

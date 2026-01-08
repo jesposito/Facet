@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Profile } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import {
 		ACCENT_COLORS,
@@ -315,7 +315,13 @@
 	}
 
 	async function deleteProvider(id: string) {
-		if (!confirm('Are you sure you want to delete this provider?')) return;
+		const confirmed = await confirm({
+			title: 'Delete AI Provider',
+			message: 'Are you sure you want to delete this AI provider? This action cannot be undone.',
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) return;
 
 		try {
 			await pb.collection('ai_providers').delete(id);

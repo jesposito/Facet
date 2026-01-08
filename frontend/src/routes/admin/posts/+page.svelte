@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 import { pb, type Post } from '$lib/pocketbase';
 import { collection } from '$lib/stores/demo';
-import { toasts } from '$lib/stores';
+import { toasts, confirm } from '$lib/stores';
 import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -274,7 +274,13 @@ function openEditForm(post: Post) {
 	}
 
 	async function deletePost(post: Post) {
-		if (!confirm(`Are you sure you want to delete "${post.title}"?`)) {
+		const confirmed = await confirm({
+			title: 'Delete Post',
+			message: `Are you sure you want to delete "${post.title}"? This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 
@@ -332,7 +338,13 @@ function openEditForm(post: Post) {
 
 	async function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Posts',
+			message: `Are you sure you want to delete ${ids.length} post(s)? This action cannot be undone.`,
+			confirmText: 'Delete All',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			for (const id of ids) await collection('posts').delete(id);
 			toasts.add('success', `Deleted ${ids.length} items`);

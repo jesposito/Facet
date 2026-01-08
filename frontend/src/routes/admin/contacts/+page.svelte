@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	
 
 	// State
@@ -171,7 +171,13 @@
 
 	async function deleteContact(contact: ContactMethod) {
 		const displayValue = contact.label || contact.value;
-		if (!confirm(`Are you sure you want to delete "${displayValue}"?`)) {
+		const confirmed = await confirm({
+			title: 'Delete Contact Method',
+			message: `Are you sure you want to delete "${displayValue}"? This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 

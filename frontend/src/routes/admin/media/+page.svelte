@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
 	import { pb } from '$lib/pocketbase';
@@ -172,7 +172,13 @@
 	}
 
 	async function deleteFile(item: MediaItem) {
-		if (!confirm(`Delete ${item.filename}? This cannot be undone.`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Media',
+			message: `Delete "${item.filename}"? This cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			if (item.external && item.record_id) {
 				const res = await fetch(`/api/media/external/${item.record_id}`, {
@@ -248,7 +254,13 @@
 
 	async function bulkDeleteSelected() {
 		if (selectedOrphans.size === 0) return;
-		if (!confirm(`Delete ${selectedOrphans.size} orphan file(s)? This cannot be undone.`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Orphan Files',
+			message: `Delete ${selectedOrphans.size} orphan file(s)? These files are not referenced anywhere and this action cannot be undone.`,
+			confirmText: 'Delete All',
+			danger: true
+		});
+		if (!confirmed) return;
 
 		try {
 			const res = await fetch('/api/media/bulk-delete', {

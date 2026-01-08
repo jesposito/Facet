@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb, type Talk } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
+	import { toasts, confirm } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -262,7 +262,13 @@ async function resolveMediaRefs(selected: string[]) {
 	}
 
 	async function deleteTalk(talk: Talk) {
-		if (!confirm(`Are you sure you want to delete "${talk.title}"?`)) {
+		const confirmed = await confirm({
+			title: 'Delete Talk',
+			message: `Are you sure you want to delete "${talk.title}"? This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) {
 			return;
 		}
 
@@ -318,7 +324,13 @@ async function resolveMediaRefs(selected: string[]) {
 
 	async function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		if (!confirm(`Delete ${ids.length} item(s)?`)) return;
+		const confirmed = await confirm({
+			title: 'Delete Talks',
+			message: `Are you sure you want to delete ${ids.length} talk(s)? This action cannot be undone.`,
+			confirmText: 'Delete All',
+			danger: true
+		});
+		if (!confirmed) return;
 		try {
 			for (const id of ids) await collection('talks').delete(id);
 			toasts.add('success', `Deleted ${ids.length} items`);

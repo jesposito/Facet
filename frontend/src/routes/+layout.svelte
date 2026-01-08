@@ -5,6 +5,7 @@
 	import { beforeNavigate, afterNavigate } from '$app/navigation';
 	import { theme, toasts } from '$lib/stores';
 	import Toast from '$components/shared/Toast.svelte';
+	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
 
 	// Debug navigation in development
@@ -269,3 +270,6 @@ $: if (mounted && lastCustomCSS && accentStyleEl) {
 		<Toast {toast} on:dismiss={() => toasts.remove(toast.id)} />
 	{/each}
 </div>
+
+<!-- Confirm dialog -->
+<ConfirmDialog />

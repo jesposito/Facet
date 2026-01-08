@@ -155,6 +155,38 @@
 }
 
 /* ==========================================================================
+   Reduced Motion Support
+   Respects user preference for reduced motion to prevent vestibular issues.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	/* Disable custom animations */
+	.animate-fade-in {
+		animation: none;
+	}
+
+	/* Disable smooth scrolling */
+	html {
+		scroll-behavior: auto;
+	}
+
+	/* Reduce transition durations significantly */
+	.transition-colors,
+	.transition-opacity,
+	.transition-transform,
+	.transition-all {
+		transition-duration: 0.01ms !important;
+	}
+
+	/* Disable transform animations on buttons/interactive elements */
+	.btn,
+	button,
+	a {
+		transition: none !important;
+	}
+}
+
+/* ==========================================================================
    Print Stylesheet
    Optimizes public views for printing and browser-based PDF generation.
    Designed for ATS-friendly, professional resume output.

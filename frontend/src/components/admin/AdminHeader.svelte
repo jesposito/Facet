@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { pb, currentUser } from '$lib/pocketbase';
-	import { adminSidebarOpen } from '$lib/stores';
+	import { adminSidebarOpen, confirm } from '$lib/stores';
 	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
@@ -52,7 +52,13 @@
 		console.log('[TOGGLE] toggleDemoMode() called, current demoMode:', demoMode);
 		if (!demoMode) {
 			// Turning on demo mode
-			if (!confirm('This will replace your current profile data with sample data. Your original data will be backed up and can be restored when you toggle off demo mode.\n\nNote: If you currently have no profile data, toggling demo OFF later will keep the demo data as your starting profile. Continue?')) {
+			const confirmed = await confirm({
+				title: 'Enable Demo Mode',
+				message: 'This will replace your current profile data with sample data. Your original data will be backed up and can be restored when you toggle off demo mode.\n\nNote: If you currently have no profile data, toggling demo OFF later will keep the demo data as your starting profile.',
+				confirmText: 'Enable Demo',
+				cancelText: 'Cancel'
+			});
+			if (!confirmed) {
 				console.log('[TOGGLE] User cancelled');
 				return;
 			}
