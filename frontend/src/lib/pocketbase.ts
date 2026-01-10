@@ -84,6 +84,8 @@ export interface Experience {
 
 export interface Project {
 	id: string;
+	collectionId?: string;
+	collectionName?: string;
 	title: string;
 	slug?: string;
 	summary?: string;

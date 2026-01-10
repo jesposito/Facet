@@ -333,10 +333,7 @@ async function loadProjects() {
 
 	function getCoverImageUrl(project: Project): string {
 		if (!project.cover_image) return '';
-		return getFileUrl(
-			{ id: project.id, collectionName: 'projects' },
-			project.cover_image
-		);
+		return getFileUrl(project, project.cover_image);
 	}
 
 	const linkTypes = [
