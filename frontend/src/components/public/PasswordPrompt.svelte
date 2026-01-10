@@ -1,15 +1,21 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { createEventDispatcher } from 'svelte';
 
-	export let viewId: string;
+	interface Props {
+		viewId: string;
+	}
+
+	let { viewId }: Props = $props();
 
 	const dispatch = createEventDispatcher<{
 		verified: { token: string; expiresIn: number };
 	}>();
 
-	let password = '';
-	let error = '';
-	let loading = false;
+	let password = $state('');
+	let error = $state('');
+	let loading = $state(false);
 
 	async function handleSubmit() {
 		if (!password) {
@@ -64,7 +70,7 @@
 			</p>
 		</div>
 
-		<form on:submit|preventDefault={handleSubmit}>
+		<form onsubmit={preventDefault(handleSubmit)}>
 			<div class="mb-4">
 				<label for="password" class="label">Password</label>
 				<input

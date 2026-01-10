@@ -1,24 +1,39 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { createEventDispatcher } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
-	// Props
-	export let contentType: 'headline' | 'summary' | 'description' | 'bullets' | 'experience' | 'project' | 'education' = 'description';
-	export let content: string = '';
-	export let context: Record<string, string> = {};
-	export let action: 'improve' | 'generate' | 'expand' | 'shorten' = 'improve';
-	export let label: string = '';
-	export let size: 'sm' | 'md' = 'sm';
-	export let disabled: boolean = false;
+	
+	interface Props {
+		// Props
+		contentType?: 'headline' | 'summary' | 'description' | 'bullets' | 'experience' | 'project' | 'education';
+		content?: string;
+		context?: Record<string, string>;
+		action?: 'improve' | 'generate' | 'expand' | 'shorten';
+		label?: string;
+		size?: 'sm' | 'md';
+		disabled?: boolean;
+	}
+
+	let {
+		contentType = 'description',
+		content = '',
+		context = {},
+		action = 'improve',
+		label = '',
+		size = 'sm',
+		disabled = false
+	}: Props = $props();
 
 	const dispatch = createEventDispatcher<{
 		result: { content: string };
 	}>();
 
-	let loading = false;
-	let aiAvailable: boolean | null = null;
+	let loading = $state(false);
+	let aiAvailable: boolean | null = $state(null);
 
 	// Check AI availability on mount
 	async function checkAIStatus() {
@@ -36,9 +51,11 @@
 	}
 
 	// Call on mount
-	$: if (aiAvailable === null) {
-		checkAIStatus();
-	}
+	run(() => {
+		if (aiAvailable === null) {
+			checkAIStatus();
+		}
+	});
 
 	async function handleImprove() {
 		if (loading || !aiAvailable) return;
@@ -76,7 +93,7 @@
 	}
 
 	// Determine button label
-	$: buttonLabel = label || (action === 'generate' ? 'Generate' : action === 'expand' ? 'Expand' : action === 'shorten' ? 'Shorten' : 'Improve');
+	let buttonLabel = $derived(label || (action === 'generate' ? 'Generate' : action === 'expand' ? 'Expand' : action === 'shorten' ? 'Shorten' : 'Improve'));
 </script>
 
 {#if aiAvailable}
@@ -85,7 +102,7 @@
 		class="inline-flex items-center gap-1.5 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors
 			{size === 'sm' ? 'text-xs' : 'text-sm'}
 			{disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
-		on:click={handleImprove}
+		onclick={handleImprove}
 		disabled={disabled || loading}
 		title="{buttonLabel} with AI"
 	>

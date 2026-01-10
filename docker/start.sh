@@ -1,15 +1,35 @@
 #!/bin/bash
 set -e
 
+FACET_VERSION=${FACET_VERSION:-dev}
+BUILD_DATE=${BUILD_DATE:-unknown}
+GIT_COMMIT=${GIT_COMMIT:-unknown}
+
+echo ""
 echo "========================================"
-echo "  Facet - Starting up..."
+echo "  ███████╗ █████╗  ██████╗███████╗████████╗"
+echo "  ██╔════╝██╔══██╗██╔════╝██╔════╝╚══██╔══╝"
+echo "  █████╗  ███████║██║     █████╗     ██║   "
+echo "  ██╔══╝  ██╔══██║██║     ██╔══╝     ██║   "
+echo "  ██║     ██║  ██║╚██████╗███████╗   ██║   "
+echo "  ╚═╝     ╚═╝  ╚═╝ ╚═════╝╚══════╝   ╚═╝   "
+echo "========================================"
+echo "  Version: $FACET_VERSION"
+if [ "$BUILD_DATE" != "unknown" ]; then
+    echo "  Built:   $BUILD_DATE"
+fi
+if [ "$GIT_COMMIT" != "unknown" ]; then
+    echo "  Commit:  ${GIT_COMMIT:0:7}"
+fi
 echo "========================================"
 echo ""
 
 PUID=${PUID:-1000}
 PGID=${PGID:-1000}
 
-echo "[Config] Running with PUID=$PUID PGID=$PGID"
+echo "[Config] PUID=$PUID PGID=$PGID"
+echo "[Config] Data directory: /data"
+echo "[Config] Uploads directory: /uploads"
 
 if [ "$(id -u)" = "0" ]; then
     groupmod -o -g "$PGID" facet 2>/dev/null || groupadd -o -g "$PGID" facet
@@ -137,6 +157,33 @@ if [ "$ADMIN_ENABLED" = "true" ]; then
     echo "  PocketBase Admin: http://localhost:8080/_/"
     echo ""
 fi
+echo "----------------------------------------"
+echo "  Configuration"
+echo "----------------------------------------"
+if [ -n "$APP_URL" ]; then
+    echo "  APP_URL:       $APP_URL"
+fi
+if [ -n "$ADMIN_EMAILS" ]; then
+    echo "  ADMIN_EMAILS:  $ADMIN_EMAILS"
+else
+    echo "  ADMIN_EMAILS:  (any authenticated user)"
+fi
+echo "  TRUST_PROXY:   ${TRUST_PROXY:-true}"
+echo "  ADMIN_ENABLED: ${ADMIN_ENABLED:-false}"
+if [ -n "$GOOGLE_CLIENT_ID" ]; then
+    echo "  OAuth:         Google enabled"
+fi
+if [ -n "$GITHUB_CLIENT_ID" ]; then
+    echo "  OAuth:         GitHub enabled"
+fi
+if [ -n "$ANTHROPIC_API_KEY" ]; then
+    echo "  AI Provider:   Anthropic"
+elif [ -n "$OPENAI_API_KEY" ]; then
+    echo "  AI Provider:   OpenAI"
+elif [ -n "$OLLAMA_BASE_URL" ]; then
+    echo "  AI Provider:   Ollama (${OLLAMA_MODEL:-llama3.2})"
+fi
+echo ""
 echo "========================================"
 echo ""
 

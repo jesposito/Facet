@@ -1,14 +1,27 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	export let hasExperience = false;
-	export let hasProjects = false;
-	export let hasEducation = false;
-	export let hasCertifications = false;
-	export let hasSkills = false;
-	export let hasPosts = false;
-	export let hasTalks = false;
-	export let viewSlug: string = '';
+	interface Props {
+		hasExperience?: boolean;
+		hasProjects?: boolean;
+		hasEducation?: boolean;
+		hasCertifications?: boolean;
+		hasSkills?: boolean;
+		hasPosts?: boolean;
+		hasTalks?: boolean;
+		viewSlug?: string;
+	}
+
+	let {
+		hasExperience = false,
+		hasProjects = false,
+		hasEducation = false,
+		hasCertifications = false,
+		hasSkills = false,
+		hasPosts = false,
+		hasTalks = false,
+		viewSlug = ''
+	}: Props = $props();
 
 	// Build URL with optional from parameter for back navigation
 	function buildUrl(path: string): string {
@@ -19,7 +32,7 @@
 	}
 
 	// Track active section for highlighting
-	let activeSection = '';
+	let activeSection = $state('');
 
 	onMount(() => {
 		// Set up intersection observer for section highlighting
@@ -50,7 +63,7 @@
 		show: boolean;
 	}
 
-	$: navItems = [
+	let navItems = $derived([
 		{ id: 'experience', label: 'Experience', show: hasExperience },
 		{ id: 'projects', label: 'Projects', show: hasProjects },
 		{ id: 'education', label: 'Education', show: hasEducation },
@@ -58,7 +71,7 @@
 		{ id: 'skills', label: 'Skills', show: hasSkills },
 		{ id: 'posts', label: 'Posts', href: buildUrl('/posts'), show: hasPosts },
 		{ id: 'talks', label: 'Talks', href: buildUrl('/talks'), show: hasTalks }
-	].filter((item) => item.show) as NavItem[];
+	].filter((item) => item.show) as NavItem[]);
 
 	function scrollToSection(id: string) {
 		const element = document.getElementById(id);
@@ -89,7 +102,7 @@
 					{:else}
 						<button
 							type="button"
-							on:click={() => scrollToSection(item.id)}
+							onclick={() => scrollToSection(item.id)}
 							class="flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
 									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'

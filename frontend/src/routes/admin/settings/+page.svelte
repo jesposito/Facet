@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run, preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type Profile } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -11,40 +13,40 @@
 		type AccentColor
 	} from '$lib/colors';
 
-	let loading = true;
-	let providers: Array<Record<string, unknown>> = [];
-	let showAddForm = false;
-	let testing: string | null = null;
+	let loading = $state(true);
+	let providers: Array<Record<string, unknown>> = $state([]);
+	let showAddForm = $state(false);
+	let testing: string | null = $state(null);
 
 	// Site settings (homepage visibility)
-	let siteSettingsLoading = true;
-	let siteSettingsSaving = false;
-	let homepageEnabled = true;
-	let landingPageMessage = 'This profile is being set up.';
-	let customCSS = '';
-	let gaMeasurementId = '';
-	let showCSSHelp = false;
+	let siteSettingsLoading = $state(true);
+	let siteSettingsSaving = $state(false);
+	let homepageEnabled = $state(true);
+	let landingPageMessage = $state('This profile is being set up.');
+	let customCSS = $state('');
+	let gaMeasurementId = $state('');
+	let showCSSHelp = $state(false);
 
 	// Export state
-	let exporting: string | null = null;
+	let exporting: string | null = $state(null);
 
 	// Appearance state
-	let profile: Profile | null = null;
-	let selectedAccentColor: AccentColor = DEFAULT_ACCENT_COLOR;
-	let savingAppearance = false;
+	let profile: Profile | null = $state(null);
+	let selectedAccentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
+	let savingAppearance = $state(false);
 
 	// Password change form
-	let passwordForm = {
+	let passwordForm = $state({
 		currentPassword: '',
 		newPassword: '',
 		confirmPassword: '',
 		loading: false,
 		error: '',
 		success: false
-	};
+	});
 
 	// New provider form
-	let newProvider = {
+	let newProvider = $state({
 		name: '',
 		type: 'openai' as 'openai' | 'anthropic' | 'ollama' | 'custom',
 		api_key: '',
@@ -52,7 +54,7 @@
 		model: '',
 		is_active: true,
 		is_default: false
-	};
+	});
 
 	// Model options per provider type
 	const modelOptions: Record<string, string[]> = {
@@ -70,12 +72,14 @@
 	};
 
 	// Reset model when provider type changes
-	$: if (newProvider.type) {
-		const options = modelOptions[newProvider.type] || [];
-		if (!options.includes(newProvider.model)) {
-			newProvider.model = defaultModels[newProvider.type] || '';
+	run(() => {
+		if (newProvider.type) {
+			const options = modelOptions[newProvider.type] || [];
+			if (!options.includes(newProvider.model)) {
+				newProvider.model = defaultModels[newProvider.type] || '';
+			}
 		}
-	}
+	});
 
 	onMount(async () => {
 		await Promise.all([loadProviders(), loadProfile(), loadSiteSettings()]);
@@ -410,7 +414,7 @@
 		<div class="card p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h2>
 
-			<form on:submit|preventDefault={changePassword} class="space-y-4 max-w-md">
+			<form onsubmit={preventDefault(changePassword)} class="space-y-4 max-w-md">
 				<div>
 					<label for="current-password-settings" class="label">Current Password</label>
 					<input
@@ -530,7 +534,7 @@
 					</div>
 
 					<div class="flex justify-end">
-						<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+						<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
 							{siteSettingsSaving ? 'Saving...' : 'Save'}
 						</button>
 					</div>
@@ -562,7 +566,7 @@
 						We only load GA on public pages when this is set. Do not use sensitive values.
 					</p>
 					<div class="flex justify-end">
-						<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+						<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
 							{siteSettingsSaving ? 'Saving...' : 'Save'}
 						</button>
 					</div>
@@ -582,7 +586,7 @@
 			</div>
 			<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
 				<span>{customCSS.length}/20000</span>
-				<button class="btn btn-ghost btn-sm px-2" on:click={() => (showCSSHelp = true)}>
+				<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
 					{@html icon('info', 'w-4 h-4 mr-1')}
 					<span class="align-middle">Selectors</span>
 				</button>
@@ -598,7 +602,7 @@
 				maxlength="20000"
 			></textarea>
 			<div class="flex justify-end">
-				<button class="btn btn-primary" on:click={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+				<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
 					{siteSettingsSaving ? 'Saving...' : 'Save'}
 				</button>
 			</div>
@@ -615,7 +619,7 @@
 							These selectors match the public site (not the admin UI). Start small and test on mobile.
 						</p>
 					</div>
-					<button class="btn btn-ghost btn-sm px-2" on:click={() => (showCSSHelp = false)}>
+					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = false)}>
 						{@html icon('x', 'w-4 h-4')}
 					</button>
 				</div>
@@ -674,7 +678,7 @@ body { font-family: 'Inter', sans-serif; }
 						<button
 							type="button"
 							class="relative group"
-							on:click={() => saveAccentColor(color)}
+							onclick={() => saveAccentColor(color)}
 							disabled={savingAppearance}
 							title={colorInfo.label}
 						>
@@ -752,7 +756,7 @@ body { font-family: 'Inter', sans-serif; }
 	<div class="card p-6">
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Providers</h2>
-			<button class="btn btn-primary btn-sm" on:click={() => (showAddForm = !showAddForm)}>
+			<button class="btn btn-primary btn-sm" onclick={() => (showAddForm = !showAddForm)}>
 				{showAddForm ? 'Cancel' : '+ Add Provider'}
 			</button>
 		</div>
@@ -762,7 +766,7 @@ body { font-family: 'Inter', sans-serif; }
 		</p>
 
 		{#if showAddForm}
-			<form on:submit|preventDefault={handleAddProvider} class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4 space-y-4">
+			<form onsubmit={preventDefault(handleAddProvider)} class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4 space-y-4">
 				<div class="grid grid-cols-2 gap-4">
 					<div>
 						<label for="name" class="label">Name</label>
@@ -905,7 +909,7 @@ body { font-family: 'Inter', sans-serif; }
 						<div class="flex items-center gap-2">
 							<button
 								class="btn btn-sm btn-secondary"
-								on:click={() => testConnection(String(provider.id))}
+								onclick={() => testConnection(String(provider.id))}
 								disabled={testing === provider.id}
 							>
 								{#if testing === provider.id}
@@ -920,14 +924,14 @@ body { font-family: 'Inter', sans-serif; }
 							{#if !provider.is_default}
 								<button
 									class="btn btn-sm btn-secondary"
-									on:click={() => setDefault(String(provider.id))}
+									onclick={() => setDefault(String(provider.id))}
 								>
 									Set Default
 								</button>
 							{/if}
 							<button
 								class="btn btn-sm btn-ghost text-red-600"
-								on:click={() => deleteProvider(String(provider.id))}
+								onclick={() => deleteProvider(String(provider.id))}
 							>
 								Delete
 							</button>
@@ -948,7 +952,7 @@ body { font-family: 'Inter', sans-serif; }
 		<div class="flex flex-wrap gap-3">
 			<button
 				class="btn btn-secondary inline-flex items-center gap-2"
-				on:click={() => handleExport('yaml')}
+				onclick={() => handleExport('yaml')}
 				disabled={exporting !== null}
 			>
 				{#if exporting === 'yaml'}
@@ -963,7 +967,7 @@ body { font-family: 'Inter', sans-serif; }
 			</button>
 			<button
 				class="btn btn-secondary inline-flex items-center gap-2"
-				on:click={() => handleExport('json')}
+				onclick={() => handleExport('json')}
 				disabled={exporting !== null}
 			>
 				{#if exporting === 'json'}

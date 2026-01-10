@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type Education } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -6,25 +8,25 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-	let educations: Education[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingEdu: Education | null = null;
+	let educations: Education[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingEdu: Education | null = $state(null);
 
-	let selectMode = false;
-	let selectedIds: Set<string> = new Set();
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
 	// Form fields
-	let institution = '';
-	let degree = '';
-	let field = '';
-	let startDate = '';
-	let endDate = '';
-	let description = '';
-	let visibility = 'public';
-	let isDraft = false;
-	let sortOrder = 0;
-	let saving = false;
+	let institution = $state('');
+	let degree = $state('');
+	let field = $state('');
+	let startDate = $state('');
+	let endDate = $state('');
+	let description = $state('');
+	let visibility = $state('public');
+	let isDraft = $state(false);
+	let sortOrder = $state(0);
+	let saving = $state(false);
 
 	onMount(loadEducations);
 
@@ -229,11 +231,11 @@
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Education</h1>
 		<div class="flex items-center gap-2">
 			{#if educations.length > 0}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" on:click={toggleSelectMode}>
+				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
 			{/if}
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ New Education
 			</button>
 		</div>
@@ -245,14 +247,14 @@
 		</div>
 	{:else if showForm}
 		<!-- Education Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingEdu ? 'Edit Education' : 'New Education'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" on:click={closeForm}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
@@ -377,7 +379,7 @@
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -400,7 +402,7 @@
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your educational background, degrees, and certifications.
 			</p>
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ Add Your First Education
 			</button>
 		</div>
@@ -414,7 +416,7 @@
 							<input
 								type="checkbox"
 								checked={selectedIds.has(edu.id)}
-								on:change={() => toggleSelect(edu.id)}
+								onchange={() => toggleSelect(edu.id)}
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
 						{/if}
@@ -471,7 +473,7 @@
 						<div class="flex items-center gap-2">
 							<button
 								class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-								on:click={() => togglePublish(edu)}
+								onclick={() => togglePublish(edu)}
 								title={edu.is_draft ? 'Publish' : 'Unpublish'}
 							>
 								{#if edu.is_draft}
@@ -487,7 +489,7 @@
 							</button>
 							<button
 								class="p-2 text-gray-500 hover:text-blue-600"
-								on:click={() => openEditForm(edu)}
+								onclick={() => openEditForm(edu)}
 								title="Edit"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -496,7 +498,7 @@
 							</button>
 							<button
 								class="p-2 text-gray-500 hover:text-red-600"
-								on:click={() => deleteEducation(edu)}
+								onclick={() => deleteEducation(edu)}
 								title="Delete"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

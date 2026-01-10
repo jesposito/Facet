@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type Talk } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -7,33 +9,33 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-	let talks: Talk[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingTalk: Talk | null = null;
+	let talks: Talk[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingTalk: Talk | null = $state(null);
 
 	// Form fields
-	let title = '';
-let slug = '';
-let event = '';
-let eventUrl = '';
-let date = '';
-let location = '';
-let description = '';
-let slidesUrl = '';
-let videoUrl = '';
-let visibility = 'public';
-let isDraft = false;
-let sortOrder = 0;
-let mediaRefs: string[] = [];
-let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = [];
-let showShortcodes = false;
-let saving = false;
-let mediaSearch = '';
-let loadingMedia = false;
+	let title = $state('');
+let slug = $state('');
+let event = $state('');
+let eventUrl = $state('');
+let date = $state('');
+let location = $state('');
+let description = $state('');
+let slidesUrl = $state('');
+let videoUrl = $state('');
+let visibility = $state('public');
+let isDraft = $state(false);
+let sortOrder = $state(0);
+let mediaRefs: string[] = $state([]);
+let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = $state([]);
+let showShortcodes = $state(false);
+let saving = $state(false);
+let mediaSearch = $state('');
+let loadingMedia = $state(false);
 
-let selectMode = false;
-let selectedIds: Set<string> = new Set();
+let selectMode = $state(false);
+let selectedIds: Set<string> = $state(new Set());
 
 	// Generate slug from title
 	function generateSlug(text: string): string {
@@ -366,12 +368,12 @@ async function resolveMediaRefs(selected: string[]) {
 			{#if talks.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					on:click={toggleSelectMode}
+					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
 			{/if}
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ New Talk
 			</button>
 		</div>
@@ -383,14 +385,14 @@ async function resolveMediaRefs(selected: string[]) {
 		</div>
 	{:else if showForm}
 		<!-- Talk Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingTalk ? 'Edit Talk' : 'New Talk'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" on:click={closeForm}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
@@ -402,7 +404,7 @@ async function resolveMediaRefs(selected: string[]) {
 						type="text"
 						id="title"
 						bind:value={title}
-						on:input={handleTitleChange}
+						oninput={handleTitleChange}
 						class="input"
 						placeholder="Building Scalable APIs with Go"
 						required
@@ -425,7 +427,7 @@ async function resolveMediaRefs(selected: string[]) {
 						<button
 							type="button"
 							class="btn btn-secondary text-sm"
-							on:click={() => { slug = generateSlug(title); }}
+							onclick={() => { slug = generateSlug(title); }}
 							title="Generate from title"
 						>
 							Generate
@@ -498,7 +500,7 @@ async function resolveMediaRefs(selected: string[]) {
 						placeholder="A brief description of your talk... (Markdown + media shortcodes)"
 					></textarea>
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-						<button type="button" class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Media shortcodes</button>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Media shortcodes</button>
 						<span>Use {'{{provider:url}}'} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).</span>
 					</div>
 				</div>
@@ -537,12 +539,12 @@ async function resolveMediaRefs(selected: string[]) {
 							class="input w-full md:w-64"
 							placeholder="Search media..."
 							bind:value={mediaSearch}
-							on:keydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
+							onkeydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
 						/>
-						<button type="button" class="btn btn-secondary btn-sm" on:click={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
+						<button type="button" class="btn btn-secondary btn-sm" onclick={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
 							{loadingMedia ? 'Searching…' : 'Search'}
 						</button>
-						<button type="button" class="btn btn-ghost btn-sm" on:click={() => { mediaSearch = ''; loadMediaOptions(''); }}>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={() => { mediaSearch = ''; loadMediaOptions(''); }}>
 							Clear
 						</button>
 					</div>
@@ -619,7 +621,7 @@ async function resolveMediaRefs(selected: string[]) {
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -636,7 +638,7 @@ async function resolveMediaRefs(selected: string[]) {
 				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
 					<div class="flex items-center justify-between">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Media shortcodes</h3>
-						<button class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Close</button>
+						<button class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Close</button>
 					</div>
 					<p class="text-sm text-gray-600 dark:text-gray-400">
 						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media Library (uploads or external) or any supported provider.
@@ -692,7 +694,7 @@ async function resolveMediaRefs(selected: string[]) {
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your conference talks, presentations, and speaking engagements.
 			</p>
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ Add Your First Talk
 			</button>
 		</div>
@@ -706,7 +708,7 @@ async function resolveMediaRefs(selected: string[]) {
 							<input
 								type="checkbox"
 								checked={selectedIds.has(talk.id)}
-								on:change={() => toggleSelect(talk.id)}
+								onchange={() => toggleSelect(talk.id)}
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
 						{/if}
@@ -787,7 +789,7 @@ async function resolveMediaRefs(selected: string[]) {
 						<div class="flex items-center gap-2">
 							<button
 								class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-								on:click={() => togglePublish(talk)}
+								onclick={() => togglePublish(talk)}
 								title={talk.is_draft ? 'Publish' : 'Unpublish'}
 							>
 								{#if talk.is_draft}
@@ -803,7 +805,7 @@ async function resolveMediaRefs(selected: string[]) {
 							</button>
 							<button
 								class="p-2 text-gray-500 hover:text-blue-600"
-								on:click={() => openEditForm(talk)}
+								onclick={() => openEditForm(talk)}
 								title="Edit"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -812,7 +814,7 @@ async function resolveMediaRefs(selected: string[]) {
 							</button>
 							<button
 								class="p-2 text-gray-500 hover:text-red-600"
-								on:click={() => deleteTalk(talk)}
+								onclick={() => deleteTalk(talk)}
 								title="Delete"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -7,12 +7,16 @@
 	import { pb } from '$lib/pocketbase';
 	import { browser } from '$app/environment';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	// Compute back navigation URL based on where user came from
-	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
-	$: landingMessage = data.landingPageMessage || 'This profile is being set up.';
-	$: rssUrl = browser ? new URL('/rss.xml', pb.baseUrl).toString() : '/rss.xml';
+	let backUrl = $derived(data.fromView ? `/${data.fromView}` : '/');
+	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
+	let rssUrl = $derived(browser ? new URL('/rss.xml', pb.baseUrl).toString() : '/rss.xml');
 
 	onMount(() => {
 		console.log('[POSTS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
@@ -55,7 +59,7 @@
 			<!-- Using data-sveltekit-reload to force full page load - workaround for client-side nav issue -->
 			<a
 				href={backUrl}
-				on:click={handleBackClick}
+				onclick={handleBackClick}
 				data-sveltekit-reload
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
@@ -139,7 +143,7 @@
 								/>
 							</a>
 						{:else}
-							<a href="/posts/{post.slug}" class="block aspect-video bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center">
+							<a href="/posts/{post.slug}" class="block aspect-video bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center" aria-label="Read {post.title}">
 								<svg class="w-12 h-12 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
 								</svg>

@@ -3,7 +3,11 @@
 	import { icon } from '$lib/icons';
 	import type { Toast } from '$lib/stores';
 
-	export let toast: Toast;
+	interface Props {
+		toast: Toast;
+	}
+
+	let { toast }: Props = $props();
 
 	const dispatch = createEventDispatcher();
 
@@ -34,7 +38,7 @@
 	<span class="flex-1 text-gray-900 dark:text-gray-100">{toast.message}</span>
 	<button
 		class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
-		on:click={() => dispatch('dismiss')}
+		onclick={() => dispatch('dismiss')}
 		aria-label="Dismiss"
 	>
 		{@html icon('x')}

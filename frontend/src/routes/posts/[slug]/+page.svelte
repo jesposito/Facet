@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
@@ -9,12 +11,16 @@ import { onMount } from 'svelte';
 	import type { RecordModel } from 'pocketbase';
 import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	// SEO metadata
-	$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
-	$: canonicalUrl = getCanonicalUrl(baseUrl, `posts/${data.post.slug}`);
-	$: ogTags = generateOpenGraphTags({
+	let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
+	let canonicalUrl = $derived(getCanonicalUrl(baseUrl, `posts/${data.post.slug}`));
+	let ogTags = $derived(generateOpenGraphTags({
 		title: data.post.title,
 		description: data.post.excerpt || '',
 		image: data.post.cover_image_url || undefined,
@@ -23,15 +29,15 @@ import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 		siteName: data.profile?.name || 'Facet',
 		publishedTime: data.post.published_at || undefined,
 		modifiedTime: data.post.updated || undefined
-	});
+	}));
 
 	// Format the published date
-	$: publishedDate = data.post.published_at ? formatDate(data.post.published_at) : null;
-	$: postThumb = (data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url;
-	$: postLarge = (data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url;
-	let mediaRefs: Array<RecordModel & { url?: string; title?: string; mime?: string }> = (data.media_refs as any) || [];
+	let publishedDate = $derived(data.post.published_at ? formatDate(data.post.published_at) : null);
+	let postThumb = $derived((data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url);
+	let postLarge = $derived((data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url);
+	let mediaRefs = $derived((data.media_refs as Array<RecordModel & { url?: string; title?: string; mime?: string }>) || []);
 
-	let referrerPath = '';
+	let referrerPath = $state('');
 
 	onMount(() => {
 		if (!browser) return;
@@ -50,8 +56,8 @@ import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
 	// Determine back navigation URL and label
 	// Prefer originating view, then referrer, otherwise posts index
-	$: backUrl = data.fromView ? `/${data.fromView}` : referrerPath || '/posts';
-	$: backLabel = 'Back';
+	let backUrl = $derived(data.fromView ? `/${data.fromView}` : referrerPath || '/posts');
+	let backLabel = 'Back';
 
 	function isYouTube(url?: string): string | null {
 		if (!url) return null;
@@ -141,7 +147,7 @@ const getHost = (url?: string) => {
 					alt=""
 					class="w-full h-full object-cover opacity-30"
 				/>
-				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent" />
+				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
 			</div>
 		{/if}
 
@@ -149,7 +155,7 @@ const getHost = (url?: string) => {
 			<!-- Back navigation -->
 			<a
 				href={backUrl}
-				on:click|preventDefault={handleBack}
+				onclick={preventDefault(handleBack)}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

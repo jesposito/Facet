@@ -2,9 +2,13 @@
 	import type { Project } from '$lib/pocketbase';
 	import { truncate, parseMarkdown } from '$lib/utils';
 
-export let items: Project[];
-export let layout: string = 'grid-3';
-export let viewSlug: string = '';
+	interface Props {
+		items: Project[];
+		layout?: string;
+		viewSlug?: string;
+	}
+
+	let { items, layout = 'grid-3', viewSlug = '' }: Props = $props();
 
 const isLinkable = (project: Project) => {
 	const visibility = (project as unknown as Record<string, string>).visibility;
@@ -29,19 +33,17 @@ const projectHref = (project: Project) => {
 	}
 
 	// Split items for featured layout
-	$: featuredItem = items[0];
-	$: remainingItems = items.slice(1);
+	let featuredItem = $derived(items[0]);
+	let remainingItems = $derived(items.slice(1));
 
 	const thumbSrc = (project: Project) =>
 		(project as unknown as Record<string, string>).cover_image_thumb_url ||
 		(project as unknown as Record<string, string>).cover_image_url ||
-		project.cover_image ||
 		'';
 
 	const largeSrc = (project: Project) =>
 		(project as unknown as Record<string, string>).cover_image_large_url ||
 		(project as unknown as Record<string, string>).cover_image_url ||
-		project.cover_image ||
 		'';
 </script>
 
@@ -269,10 +271,12 @@ const projectHref = (project: Project) => {
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			{#each items as project (project.id)}
 				<article class="card overflow-hidden group animate-fade-in">
-					{#if project.cover_image}
+					{#if thumbSrc(project)}
 						<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
 							<img
-								src={project.cover_image}
+								src={largeSrc(project)}
+								srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+								sizes="(max-width: 768px) 100vw, 50vw"
 								alt={project.title}
 								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 							/>
@@ -349,10 +353,12 @@ const projectHref = (project: Project) => {
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 			{#each items as project (project.id)}
 				<article class="card overflow-hidden group animate-fade-in">
-					{#if project.cover_image}
+					{#if thumbSrc(project)}
 						<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
 							<img
-								src={project.cover_image}
+								src={largeSrc(project)}
+								srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+								sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
 								alt={project.title}
 								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 							/>

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run, preventDefault } from 'svelte/legacy';
+
 import type { PageData } from './$types';
 import { parseMarkdown } from '$lib/utils';
 import { browser } from '$app/environment';
@@ -9,22 +11,26 @@ import Footer from '$components/public/Footer.svelte';
 import type { RecordModel } from 'pocketbase';
 import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
-export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 // SEO metadata
-$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
-$: canonicalUrl = getCanonicalUrl(baseUrl, `projects/${data.project.slug}`);
-$: ogTags = generateOpenGraphTags({
+let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
+let canonicalUrl = $derived(getCanonicalUrl(baseUrl, `projects/${data.project.slug}`));
+let ogTags = $derived(generateOpenGraphTags({
 	title: data.project.title,
 	description: data.project.summary || '',
 	image: data.project.cover_image_url || undefined,
 	url: canonicalUrl,
 	type: 'article',
 	siteName: data.profile?.name || 'Facet'
-});
+}));
 
-let referrerPath = '';
-let mediaRefs: Array<RecordModel & { url?: string; title?: string; mime?: string }> = (data as any).media_refs || [];
+let referrerPath = $state('');
+let mediaRefs = $derived(((data as any).media_refs as Array<RecordModel & { url?: string; title?: string; mime?: string }>) || []);
 
 	onMount(() => {
 		if (!browser) return;
@@ -43,13 +49,15 @@ let mediaRefs: Array<RecordModel & { url?: string; title?: string; mime?: string
 	});
 
 	// Back navigation: prefer originating view, then referrer, then home
-	$: backUrl = data.fromView ? `/v/${data.fromView}` : referrerPath || '/';
-	$: backLabel = 'Back';
-	$: console.log('[PROJECT PAGE] fromView:', data.fromView, 'referrerPath:', referrerPath, 'backUrl:', backUrl);
-	$: projectThumb =
-		(data.project as Record<string, string>).cover_image_thumb_url ?? data.project.cover_image_url;
-	$: projectLarge =
-		(data.project as Record<string, string>).cover_image_large_url ?? data.project.cover_image_url;
+	let backUrl = $derived(data.fromView ? `/v/${data.fromView}` : referrerPath || '/');
+	let backLabel = 'Back';
+	run(() => {
+		console.log('[PROJECT PAGE] fromView:', data.fromView, 'referrerPath:', referrerPath, 'backUrl:', backUrl);
+	});
+	let projectThumb =
+		$derived((data.project as Record<string, string>).cover_image_thumb_url ?? data.project.cover_image_url);
+	let projectLarge =
+		$derived((data.project as Record<string, string>).cover_image_large_url ?? data.project.cover_image_url);
 
 	function isYouTube(url?: string): string | null {
 		if (!url) return null;
@@ -156,7 +164,7 @@ const getFileName = (url?: string) => {
 					alt=""
 					class="w-full h-full object-cover opacity-30"
 				/>
-				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent" />
+				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
 			</div>
 		{/if}
 
@@ -164,7 +172,7 @@ const getFileName = (url?: string) => {
 			<!-- Back navigation -->
 			<a
 				href={backUrl}
-				on:click|preventDefault={handleBack}
+				onclick={preventDefault(handleBack)}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

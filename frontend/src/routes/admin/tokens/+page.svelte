@@ -1,26 +1,28 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type ShareToken, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
-	let loading = true;
-	let tokens: ShareToken[] = [];
-	let views: View[] = [];
-	let showCreateModal = false;
-	let creating = false;
+	let loading = $state(true);
+	let tokens: ShareToken[] = $state([]);
+	let views: View[] = $state([]);
+	let showCreateModal = $state(false);
+	let creating = $state(false);
 
 	// Form state for creating tokens
-	let newToken = {
+	let newToken = $state({
 		view_id: '',
 		name: '',
 		expires_at: '',
 		max_uses: 0
-	};
+	});
 
 	// Store newly created token (shown once)
-	let createdToken: { raw: string; url: string } | null = null;
+	let createdToken: { raw: string; url: string } | null = $state(null);
 
 	onMount(async () => {
 		await Promise.all([loadTokens(), loadViews()]);
@@ -223,7 +225,7 @@
 	}
 
 	// Group tokens by view
-	$: tokensByView = tokens.reduce(
+	let tokensByView = $derived(tokens.reduce(
 		(acc, token) => {
 			const viewId = token.view_id;
 			if (!acc[viewId]) {
@@ -237,7 +239,7 @@
 			return acc;
 		},
 		{} as Record<string, { viewName: string; viewSlug: string; tokens: ShareToken[] }>
-	);
+	));
 </script>
 
 <svelte:head>
@@ -247,7 +249,7 @@
 <div class="max-w-4xl mx-auto">
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Share Tokens</h1>
-		<button class="btn btn-primary" on:click={() => (showCreateModal = true)}>
+		<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
 			{@html icon('plus')} Generate Token
 		</button>
 	</div>
@@ -274,7 +276,7 @@
 							</code>
 							<button
 								class="btn btn-secondary shrink-0"
-								on:click={() => copyToClipboard(createdToken?.url || '')}
+								onclick={() => copyToClipboard(createdToken?.url || '')}
 							>
 								{@html icon('copy')} Copy URL
 							</button>
@@ -283,7 +285,7 @@
 				</div>
 				<button
 					class="btn btn-ghost text-green-700 dark:text-green-300 ml-4"
-					on:click={dismissCreatedToken}
+					onclick={dismissCreatedToken}
 				>
 					{@html icon('x')}
 				</button>
@@ -306,7 +308,7 @@
 					First, <a href="/admin/views/new" class="text-primary-600 hover:underline">create an unlisted view</a> to generate tokens for.
 				</p>
 			{:else}
-				<button class="btn btn-primary" on:click={() => (showCreateModal = true)}>
+				<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
 					Generate Your First Token
 				</button>
 			{/if}
@@ -384,7 +386,7 @@
 										{#if token.is_active && !isExpired(token) && !isMaxUsesReached(token)}
 											<button
 												class="btn btn-sm btn-ghost text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
-												on:click={() => revokeToken(token.id)}
+												onclick={() => revokeToken(token.id)}
 												title="Revoke token"
 											>
 												{@html icon('lock')}
@@ -392,7 +394,7 @@
 										{/if}
 										<button
 											class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-											on:click={() => deleteToken(token.id)}
+											onclick={() => deleteToken(token.id)}
 											title="Delete token"
 										>
 											{@html icon('trash')}
@@ -416,7 +418,7 @@
 				<h2 class="text-lg font-bold text-gray-900 dark:text-white">Generate Share Token</h2>
 			</div>
 
-			<form on:submit|preventDefault={createToken} class="p-4 space-y-4">
+			<form onsubmit={preventDefault(createToken)} class="p-4 space-y-4">
 				<div>
 					<label for="view_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 						View <span class="text-red-500">*</span>
@@ -483,7 +485,7 @@
 				</div>
 
 				<div class="flex justify-end gap-2 pt-4">
-					<button type="button" class="btn btn-ghost" on:click={resetForm}>
+					<button type="button" class="btn btn-ghost" onclick={resetForm}>
 						Cancel
 					</button>
 					<button

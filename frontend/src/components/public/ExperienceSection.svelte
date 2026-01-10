@@ -2,8 +2,12 @@
 	import type { Experience } from '$lib/pocketbase';
 	import { formatDateRange, parseMarkdown } from '$lib/utils';
 
-	export let items: Experience[];
-	export let layout: string = 'default';
+	interface Props {
+		items: Experience[];
+		layout?: string;
+	}
+
+	let { items, layout = 'default' }: Props = $props();
 
 	function stripBulletPrefix(text: string): string {
 		return text.replace(/^\s*[•\-\*–—·●◦▪▸►]\s*/, '').replace(/^\s*\d+[.)]\s+/, '');

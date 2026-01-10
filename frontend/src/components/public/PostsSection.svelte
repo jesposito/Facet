@@ -2,9 +2,13 @@
 	import type { Post } from '$lib/pocketbase';
 	import { formatDate, truncate } from '$lib/utils';
 
-	export let items: Post[];
-	export let layout: string = 'grid-3';
-	export let viewSlug: string = '';
+	interface Props {
+		items: Post[];
+		layout?: string;
+		viewSlug?: string;
+	}
+
+	let { items, layout = 'grid-3', viewSlug = '' }: Props = $props();
 
 	// Build the post URL with optional from parameter for back navigation
 	function getPostUrl(slug: string): string {
@@ -17,13 +21,11 @@
 	const thumbSrc = (post: Post) =>
 		(post as unknown as Record<string, string>).cover_image_thumb_url ||
 		(post as unknown as Record<string, string>).cover_image_url ||
-		post.cover_image ||
 		'';
 
 	const largeSrc = (post: Post) =>
 		(post as unknown as Record<string, string>).cover_image_large_url ||
 		(post as unknown as Record<string, string>).cover_image_url ||
-		post.cover_image ||
 		'';
 </script>
 

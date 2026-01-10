@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 import { pb, type Post } from '$lib/pocketbase';
 import { collection } from '$lib/stores/demo';
@@ -7,31 +9,31 @@ import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-let posts: Post[] = [];
-let loading = true;
-let showForm = false;
-let editingPost: Post | null = null;
-let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
-let mediaRefs: string[] = [];
-let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = [];
-let mediaSearch = '';
-let loadingMedia = false;
-let showShortcodes = false;
+let posts: Post[] = $state([]);
+let loading = $state(true);
+let showForm = $state(false);
+let editingPost: Post | null = $state(null);
+let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
+let mediaRefs: string[] = $state([]);
+let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = $state([]);
+let mediaSearch = $state('');
+let loadingMedia = $state(false);
+let showShortcodes = $state(false);
 
-let selectMode = false;
-let selectedIds: Set<string> = new Set();
+let selectMode = $state(false);
+let selectedIds: Set<string> = $state(new Set());
 
 	// Form fields
-	let title = '';
-	let slug = '';
-	let excerpt = '';
-	let content = '';
-	let tags: string[] = [];
-	let tagInput = '';
-	let visibility = 'public';
-	let isDraft = true;
-	let publishedAt = '';
-	let saving = false;
+	let title = $state('');
+	let slug = $state('');
+	let excerpt = $state('');
+	let content = $state('');
+	let tags: string[] = $state([]);
+	let tagInput = $state('');
+	let visibility = $state('public');
+	let isDraft = $state(true);
+	let publishedAt = $state('');
+	let saving = $state(false);
 
 	// Simple pattern - admin layout handles auth
 onMount(loadPosts);
@@ -380,12 +382,12 @@ function openEditForm(post: Post) {
 			{#if posts.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					on:click={toggleSelectMode}
+					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
 			{/if}
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ New Post
 			</button>
 		</div>
@@ -397,14 +399,14 @@ function openEditForm(post: Post) {
 		</div>
 	{:else if showForm}
 		<!-- Post Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingPost ? 'Edit Post' : 'New Post'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" on:click={closeForm}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
@@ -419,14 +421,14 @@ function openEditForm(post: Post) {
 						class="input"
 						placeholder="My Awesome Post"
 						required
-						on:blur={() => !slug && generateSlug()}
+						onblur={() => !slug && generateSlug()}
 					/>
 				</div>
 
 				<div>
 					<label for="slug" class="label">
 						Slug *
-						<button type="button" class="text-xs text-primary-600 ml-2" on:click={generateSlug}>
+						<button type="button" class="text-xs text-primary-600 ml-2" onclick={generateSlug}>
 							Generate from title
 						</button>
 					</label>
@@ -478,7 +480,7 @@ function openEditForm(post: Post) {
 						placeholder="Write your post content here... (Markdown + media shortcodes)"
 					></textarea>
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-						<button type="button" class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Media shortcodes</button>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Media shortcodes</button>
 						<span>Use {'{{provider:url}}'} (youtube, vimeo, soundcloud, spotify, image, video, pdf, figma, codepen)</span>
 					</div>
 				</div>
@@ -490,12 +492,12 @@ function openEditForm(post: Post) {
 						class="input w-full md:w-64"
 						placeholder="Search media..."
 						bind:value={mediaSearch}
-						on:keydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
+						onkeydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
 					/>
-					<button type="button" class="btn btn-secondary btn-sm" on:click={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
+					<button type="button" class="btn btn-secondary btn-sm" onclick={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
 						{loadingMedia ? 'Searching…' : 'Search'}
 					</button>
-					<button type="button" class="btn btn-ghost btn-sm" on:click={() => { mediaSearch = ''; loadMediaOptions(''); }}>
+					<button type="button" class="btn btn-ghost btn-sm" onclick={() => { mediaSearch = ''; loadMediaOptions(''); }}>
 						Clear
 					</button>
 				</div>
@@ -537,8 +539,8 @@ function openEditForm(post: Post) {
 						{#each tags as tag}
 							<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">
 								{tag}
-								<button type="button" class="text-gray-500 hover:text-red-500" on:click={() => removeTag(tag)}>
-									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<button type="button" class="text-gray-500 hover:text-red-500" onclick={() => removeTag(tag)} aria-label="Remove tag {tag}">
+									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 									</svg>
 								</button>
@@ -551,9 +553,9 @@ function openEditForm(post: Post) {
 							bind:value={tagInput}
 							class="input flex-1"
 							placeholder="Add a tag..."
-							on:keydown={handleTagKeydown}
+							onkeydown={handleTagKeydown}
 						/>
-						<button type="button" class="btn btn-secondary" on:click={addTag}>Add</button>
+						<button type="button" class="btn btn-secondary" onclick={addTag}>Add</button>
 					</div>
 				</div>
 			</div>
@@ -596,7 +598,7 @@ function openEditForm(post: Post) {
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -613,7 +615,7 @@ function openEditForm(post: Post) {
 				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
 					<div class="flex items-center justify-between">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Media shortcodes</h3>
-						<button class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Close</button>
+						<button class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Close</button>
 					</div>
 					<p class="text-sm text-gray-600 dark:text-gray-400">
 						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media Library (uploads or external) or any supported provider.
@@ -669,7 +671,7 @@ function openEditForm(post: Post) {
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Start writing to share your thoughts and ideas.
 			</p>
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				Write your first post
 			</button>
 		</div>
@@ -683,7 +685,7 @@ function openEditForm(post: Post) {
 							<input
 								type="checkbox"
 								checked={selectedIds.has(post.id)}
-								on:change={() => toggleSelect(post.id)}
+								onchange={() => toggleSelect(post.id)}
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
 						{/if}
@@ -768,7 +770,7 @@ function openEditForm(post: Post) {
 							<button
 								class="btn btn-ghost btn-sm"
 								title={post.is_draft ? 'Publish' : 'Unpublish'}
-								on:click={() => togglePublish(post)}
+								onclick={() => togglePublish(post)}
 							>
 								{#if post.is_draft}
 									<svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -783,7 +785,7 @@ function openEditForm(post: Post) {
 							<button
 								class="btn btn-ghost btn-sm"
 								title="Edit"
-								on:click={() => openEditForm(post)}
+								onclick={() => openEditForm(post)}
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -792,7 +794,7 @@ function openEditForm(post: Post) {
 							<button
 								class="btn btn-ghost btn-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
 								title="Delete"
-								on:click={() => deletePost(post)}
+								onclick={() => deletePost(post)}
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { self } from 'svelte/legacy';
+
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
@@ -21,24 +23,28 @@
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { pb } from '$lib/pocketbase';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	// Print menu state
-	let showPrintMenu = false;
-	let showGenerateModal = false;
-	let generating = false;
-	let aiPrintStatus = {
+	let showPrintMenu = $state(false);
+	let showGenerateModal = $state(false);
+	let generating = $state(false);
+	let aiPrintStatus = $state({
 		available: false,
 		ai_configured: false,
 		pandoc_installed: false
-	};
-	let generationConfig = {
+	});
+	let generationConfig = $state({
 		format: 'pdf' as 'pdf' | 'docx',
 		target_role: '',
 		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
 		length: 'two-page' as 'one-page' | 'two-page' | 'full'
-	};
-	let generatedUrl: string | null = null;
+	});
+	let generatedUrl: string | null = $state(null);
 
 	// Apply view-specific accent color (or profile default)
 	function applyAccentColor(colorName: AccentColor) {
@@ -152,9 +158,9 @@
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks'];
 
 	// Compute effective section order: use custom order if provided, otherwise use default
-	$: effectiveSectionOrder = (data.sectionOrder && data.sectionOrder.length > 0)
+	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
 		? data.sectionOrder
-		: DEFAULT_SECTION_ORDER;
+		: DEFAULT_SECTION_ORDER);
 
 	// Get layout for a section (from API response or default)
 	function getSectionLayout(sectionKey: string): string {
@@ -183,17 +189,17 @@
 	}
 
 	// Hidden form ref for setting password token cookie
-	let passwordForm: HTMLFormElement;
-	let tokenInput: HTMLInputElement;
-	let maxAgeInput: HTMLInputElement;
+	let passwordForm: HTMLFormElement | undefined = $state();
+	let tokenInput: HTMLInputElement | undefined = $state();
+	let maxAgeInput: HTMLInputElement | undefined = $state();
 
 	async function handlePasswordVerified(event: CustomEvent<{ token: string; expiresIn: number }>) {
 		const { token, expiresIn } = event.detail;
 
 		// Set form values and submit to set cookie via server action
-		tokenInput.value = token;
-		maxAgeInput.value = String(expiresIn);
-		passwordForm.requestSubmit();
+		if (tokenInput) tokenInput.value = token;
+		if (maxAgeInput) maxAgeInput.value = String(expiresIn);
+		if (passwordForm) passwordForm.requestSubmit();
 	}
 </script>
 
@@ -242,7 +248,7 @@
 			<!-- Print Menu -->
 			<div class="relative">
 				<button
-					on:click={() => showPrintMenu = !showPrintMenu}
+					onclick={() => showPrintMenu = !showPrintMenu}
 					class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 					title="Print options"
 					aria-label="Print options"
@@ -254,11 +260,11 @@
 				</button>
 
 				{#if showPrintMenu}
-					<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-					<div class="fixed inset-0" on:click={closePrintMenu}></div>
+					<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+					<div class="fixed inset-0" onclick={closePrintMenu}></div>
 					<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
 						<button
-							on:click={() => { window.print(); closePrintMenu(); }}
+							onclick={() => { window.print(); closePrintMenu(); }}
 							class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -268,7 +274,7 @@
 						</button>
 						{#if aiPrintStatus.ai_configured}
 							<button
-								on:click={() => { showGenerateModal = true; closePrintMenu(); }}
+								onclick={() => { showGenerateModal = true; closePrintMenu(); }}
 								class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -388,8 +394,8 @@
 
 <!-- AI Resume Generation Modal -->
 {#if showGenerateModal}
-	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" on:click|self={() => showGenerateModal = false}>
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" onclick={self(() => showGenerateModal = false)}>
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate AI Resume</h2>
@@ -443,7 +449,7 @@
 				<button
 					type="button"
 					class="btn btn-ghost"
-					on:click={() => { showGenerateModal = false; generatedUrl = null; }}
+					onclick={() => { showGenerateModal = false; generatedUrl = null; }}
 				>
 					{generatedUrl ? 'Close' : 'Cancel'}
 				</button>
@@ -451,7 +457,7 @@
 					<button
 						type="button"
 						class="btn btn-primary"
-						on:click={generateResume}
+						onclick={generateResume}
 						disabled={generating}
 					>
 						{#if generating}

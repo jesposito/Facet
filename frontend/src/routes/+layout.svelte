@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -7,6 +9,11 @@
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
+	interface Props {
+		children?: import('svelte').Snippet;
+	}
+
+	let { children }: Props = $props();
 
 	// Debug navigation in development
 	beforeNavigate((navigation) => {
@@ -26,13 +33,13 @@
 		});
 	});
 
-	let themeColor = '#0ea5e9'; // Default sky-500
-	let customCSS = '';
-	let lastCustomCSS = '';
-	let mounted = false;
-let gaMeasurementId = '';
-let gaInitialized = false;
-let accentStyleEl: HTMLStyleElement | null = null;
+	let themeColor = $state('#0ea5e9'); // Default sky-500
+	let customCSS = $state('');
+	let lastCustomCSS = $state('');
+	let mounted = $state(false);
+let gaMeasurementId = $state('');
+let gaInitialized = $state(false);
+let accentStyleEl: HTMLStyleElement | null = $state(null);
 let customPaletteLocked = false;
 
 function applyPaletteFromCSS(css: string) {
@@ -212,19 +219,7 @@ onMount(() => {
 	};
 });
 
-$: if (mounted) {
-	applyCustomCSS(customCSS);
-	if (!gaInitialized && gaMeasurementId) {
-		injectGA(gaMeasurementId);
-		gaInitialized = true;
-	}
-}
 
-// Ensure custom CSS stays last after accent updates
-$: if (mounted && lastCustomCSS && accentStyleEl) {
-	// Re-append custom CSS to the end of head so it wins cascade against accent variables
-	applyCustomCSS(lastCustomCSS);
-}
 
 	function injectGA(id: string) {
 		if (!browser || !id) return;
@@ -246,6 +241,22 @@ $: if (mounted && lastCustomCSS && accentStyleEl) {
 		`;
 		document.head.appendChild(inline);
 	}
+run(() => {
+		if (mounted) {
+		applyCustomCSS(customCSS);
+		if (!gaInitialized && gaMeasurementId) {
+			injectGA(gaMeasurementId);
+			gaInitialized = true;
+		}
+	}
+	});
+// Ensure custom CSS stays last after accent updates
+run(() => {
+		if (mounted && lastCustomCSS && accentStyleEl) {
+		// Re-append custom CSS to the end of head so it wins cascade against accent variables
+		applyCustomCSS(lastCustomCSS);
+	}
+	});
 </script>
 
 <svelte:head>
@@ -257,7 +268,7 @@ $: if (mounted && lastCustomCSS && accentStyleEl) {
 	Skip to main content
 </a>
 
-<slot />
+{@render children?.()}
 
 <!-- Toast notifications - live region for screen readers -->
 <div

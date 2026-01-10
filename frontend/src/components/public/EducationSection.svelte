@@ -2,8 +2,12 @@
 	import type { Education } from '$lib/pocketbase';
 	import { formatDateRange, parseMarkdown } from '$lib/utils';
 
-	export let items: Education[];
-	export let layout: string = 'default';
+	interface Props {
+		items: Education[];
+		layout?: string;
+	}
+
+	let { items, layout = 'default' }: Props = $props();
 </script>
 
 <section id="education" class="mb-16">

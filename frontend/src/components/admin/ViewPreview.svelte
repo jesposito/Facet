@@ -35,17 +35,24 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 
-	// Props from parent editor
-	export let profile: Profile | null = null;
-	export let accentColor: AccentColor | null = null; // View-specific accent color
-	export let heroHeadline: string = '';
-	export let heroSummary: string = '';
-	export let ctaText: string = '';
-	export let ctaUrl: string = '';
-	export let previewMode: 'desktop' | 'mobile' = 'desktop'; // Phase 6.2.2: Desktop or mobile preview
+	
 
-	// Section configuration from editor (with width support for Phase 6.3)
-	export let sections: Record<
+	
+
+	
+
+	
+	interface Props {
+		// Props from parent editor
+		profile?: Profile | null;
+		accentColor?: AccentColor | null; // View-specific accent color
+		heroHeadline?: string;
+		heroSummary?: string;
+		ctaText?: string;
+		ctaUrl?: string;
+		previewMode?: 'desktop' | 'mobile'; // Phase 6.2.2: Desktop or mobile preview
+		// Section configuration from editor (with width support for Phase 6.3)
+		sections?: Record<
 		string,
 		{
 			enabled: boolean;
@@ -54,13 +61,11 @@
 			width?: 'full' | 'half' | 'third';
 			itemConfig: Record<string, ItemConfig>;
 		}
-	> = {};
-
-	// Section order from drag-drop
-	export let sectionOrder: Array<{ id: string; key: string }> = [];
-
-	// Raw section data (all items)
-	export let sectionItems: Record<
+	>;
+		// Section order from drag-drop
+		sectionOrder?: Array<{ id: string; key: string }>;
+		// Raw section data (all items)
+		sectionItems?: Record<
 		string,
 		Array<{
 			id: string;
@@ -69,19 +74,23 @@
 			is_draft?: boolean;
 			data: Record<string, unknown>;
 		}>
-	> = {};
+	>;
+	}
 
-	// Compute effective profile with hero overrides
-	$: effectiveProfile = profile
-		? {
-				...profile,
-				headline: heroHeadline || profile.headline,
-				summary: heroSummary || profile.summary
-			}
-		: null;
+	let {
+		profile = null,
+		accentColor = null,
+		heroHeadline = '',
+		heroSummary = '',
+		ctaText = '',
+		ctaUrl = '',
+		previewMode = 'desktop',
+		sections = {},
+		sectionOrder = [],
+		sectionItems = {}
+	}: Props = $props();
 
-	// Reactive computation of all section data - ensures updates when props change
-	$: computedSections = computeAllSections(sections, sectionItems);
+
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function computeAllSections(
@@ -157,14 +166,24 @@
 		return result;
 	}
 
+
+
+	// Compute effective profile with hero overrides
+	let effectiveProfile = $derived(profile
+		? {
+				...profile,
+				headline: heroHeadline || profile.headline,
+				summary: heroSummary || profile.summary
+			}
+		: null);
+	// Reactive computation of all section data - ensures updates when props change
+	let computedSections = $derived(computeAllSections(sections, sectionItems));
 	// Reactive count of visible sections for empty state check
-	$: visibleSectionCount = sectionOrder.filter(s => computedSections[s.key]?.visible).length;
-
+	let visibleSectionCount = $derived(sectionOrder.filter(s => computedSections[s.key]?.visible).length);
 	// Compute effective accent color (view override or profile default)
-	$: effectiveAccentColor = accentColor || (profile?.accent_color as AccentColor) || null;
-
+	let effectiveAccentColor = $derived(accentColor || (profile?.accent_color as AccentColor) || null);
 	// Generate inline styles for accent color preview
-	$: accentStyles = effectiveAccentColor ? (() => {
+	let accentStyles = $derived(effectiveAccentColor ? (() => {
 		const color = ACCENT_COLORS[effectiveAccentColor];
 		if (!color) return '';
 		return `
@@ -180,7 +199,7 @@
 			--color-primary-900: ${color.scale[900]};
 			--color-primary-950: ${color.scale[950]};
 		`;
-	})() : '';
+	})() : '');
 </script>
 
 <div class="preview-container" class:preview-mobile={previewMode === 'mobile'} style={accentStyles}>

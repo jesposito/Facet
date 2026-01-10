@@ -7,12 +7,16 @@
 	import { pb } from '$lib/pocketbase';
 	import { browser } from '$app/environment';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	// Compute back navigation URL based on where user came from
-	$: backUrl = data.fromView ? `/${data.fromView}` : '/';
-	$: landingMessage = data.landingPageMessage || 'This profile is being set up.';
-	$: icalUrl = browser ? new URL('/talks.ics', pb.baseUrl).toString() : '/talks.ics';
+	let backUrl = $derived(data.fromView ? `/${data.fromView}` : '/');
+	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
+	let icalUrl = $derived(browser ? new URL('/talks.ics', pb.baseUrl).toString() : '/talks.ics');
 
 	onMount(() => {
 		console.log('[TALKS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
@@ -66,7 +70,7 @@
 			<!-- Using data-sveltekit-reload to force full page load - workaround for client-side nav issue -->
 			<a
 				href={backUrl}
-				on:click={handleBackClick}
+				onclick={handleBackClick}
 				data-sveltekit-reload
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>

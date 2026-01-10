@@ -2,11 +2,13 @@
 	import type { Award } from '$lib/pocketbase';
 	import { formatDate, truncate } from '$lib/utils';
 
-	export let items: Award[];
-	export let layout: string = 'grouped';
+	interface Props {
+		items: Award[];
+		layout?: string;
+	}
 
-	// Group awards by issuer for grouped layout
-	$: groupedAwards = layout === 'grouped' ? groupByIssuer(items) : null;
+	let { items, layout = 'grouped' }: Props = $props();
+
 
 	function groupByIssuer(awards: Award[]): Map<string, Award[]> {
 		const groups = new Map<string, Award[]>();
@@ -17,6 +19,8 @@
 		}
 		return groups;
 	}
+	// Group awards by issuer for grouped layout
+	let groupedAwards = $derived(layout === 'grouped' ? groupByIssuer(items) : null);
 </script>
 
 <section id="awards" class="mb-16" data-layout={layout}>

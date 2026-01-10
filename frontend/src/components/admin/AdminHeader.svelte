@@ -6,9 +6,9 @@
 	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
-	let demoMode = false;
-	let toggleLoading = false;
-	let showDemoAnimation = false;
+	let demoMode = $state(false);
+	let toggleLoading = $state(false);
+	let showDemoAnimation = $state(false);
 
 	// Subscribe to demo mode store
 	demoModeStore.subscribe(value => {
@@ -104,7 +104,7 @@
 		<div class="flex items-center gap-4">
 			<button
 				class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-				on:click={toggleSidebar}
+				onclick={toggleSidebar}
 				aria-label={$adminSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
 				aria-expanded={$adminSidebarOpen}
 				aria-controls="admin-sidebar"
@@ -140,7 +140,7 @@
 					Demo
 				</span>
 				<button
-					on:click={toggleDemoMode}
+					onclick={toggleDemoMode}
 					disabled={toggleLoading}
 					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
 						{demoMode ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
@@ -151,7 +151,7 @@
 					<span
 						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
 							{demoMode ? 'translate-x-5' : 'translate-x-0.5'}"
-					/>
+					></span>
 				</button>
 				{#if demoMode}
 					<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
@@ -174,7 +174,7 @@
 						{$currentUser.email || $currentUser.username || 'Admin'}
 					</span>
 					<button
-						on:click={logout}
+						onclick={logout}
 						class="btn btn-ghost btn-sm"
 						aria-label="Sign out"
 					>

@@ -6,24 +6,24 @@
 	import { formatDate, truncate } from '$lib/utils';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-	let awards: Award[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingAward: Award | null = null;
+	let awards: Award[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingAward: Award | null = $state(null);
 
 	// Form fields
-	let title = '';
-	let issuer = '';
-	let awardedAt = '';
-	let description = '';
-	let url = '';
-	let visibility = 'public';
-	let isDraft = false;
-	let sortOrder = 0;
-	let saving = false;
+	let title = $state('');
+	let issuer = $state('');
+	let awardedAt = $state('');
+	let description = $state('');
+	let url = $state('');
+	let visibility = $state('public');
+	let isDraft = $state(false);
+	let sortOrder = $state(0);
+	let saving = $state(false);
 
-	let selectMode = false;
-	let selectedIds: Set<string> = new Set();
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
 	onMount(loadAwards);
 
@@ -219,12 +219,12 @@
 			{#if awards.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					on:click={toggleSelectMode}
+					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
 			{/if}
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				Add Award
 			</button>
 		</div>
@@ -243,7 +243,7 @@
 							<input
 								type="checkbox"
 								checked={selectedIds.has(award.id)}
-								on:change={() => toggleSelect(award.id)}
+								onchange={() => toggleSelect(award.id)}
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
 						{/if}
@@ -257,10 +257,10 @@
 							{/if}
 						</div>
 						<div class="flex items-center gap-2">
-							<button class="btn btn-ghost btn-sm" on:click={() => openEditForm(award)}>
+							<button class="btn btn-ghost btn-sm" onclick={() => openEditForm(award)}>
 								Edit
 							</button>
-							<button class="btn btn-ghost btn-sm text-red-600" on:click={() => deleteAward(award)}>
+							<button class="btn btn-ghost btn-sm text-red-600" onclick={() => deleteAward(award)}>
 								Delete
 							</button>
 						</div>
@@ -306,7 +306,7 @@
 					</h2>
 					<p class="text-sm text-gray-600 dark:text-gray-400">Add details about an award or honor.</p>
 				</div>
-				<button class="btn btn-ghost btn-sm" on:click={closeForm}>Close</button>
+				<button class="btn btn-ghost btn-sm" onclick={closeForm}>Close</button>
 			</div>
 
 			<div class="p-4 space-y-4">
@@ -362,8 +362,8 @@
 			</div>
 
 			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-				<button class="btn btn-ghost" on:click={closeForm}>Cancel</button>
-				<button class="btn btn-primary" on:click={handleSubmit} disabled={saving}>
+				<button class="btn btn-ghost" onclick={closeForm}>Cancel</button>
+				<button class="btn btn-primary" onclick={handleSubmit} disabled={saving}>
 					{saving ? 'Saving...' : 'Save'}
 				</button>
 			</div>

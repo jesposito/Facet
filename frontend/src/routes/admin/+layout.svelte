@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -8,35 +10,19 @@
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
-
-	let loading = true;
-	let authorized = false;
-	let mounted = false;
-	let showPasswordChangeModal = false;
-
-	// Check if we're on the login page (don't require auth there)
-	$: isLoginPage = $page.url.pathname === '/admin/login';
-
-	// Handle login page - always stop loading immediately
-	$: if (isLoginPage) {
-		loading = false;
-		authorized = false;
+	interface Props {
+		children?: import('svelte').Snippet;
 	}
 
-	// Reactive auth check - update authorized when currentUser changes
-	$: if (mounted && !isLoginPage) {
-		const isAuth = $currentUser && pb.authStore.isValid;
-		if (isAuth && !authorized) {
-			// User just logged in - check for default password
-			checkDefaultPassword();
-			authorized = true;
-			loading = false;
-		} else if (!isAuth && authorized) {
-			// User just logged out - redirect
-			authorized = false;
-			goto('/admin/login');
-		}
-	}
+	let { children }: Props = $props();
+
+	let loading = $state(true);
+	let authorized = $state(false);
+	let mounted = $state(false);
+	let showPasswordChangeModal = $state(false);
+
+
+
 
 	async function checkDefaultPassword() {
 		try {
@@ -144,6 +130,31 @@
 				});
 		}
 	}
+	// Check if we're on the login page (don't require auth there)
+	let isLoginPage = $derived($page.url.pathname === '/admin/login');
+	// Handle login page - always stop loading immediately
+	run(() => {
+		if (isLoginPage) {
+			loading = false;
+			authorized = false;
+		}
+	});
+	// Reactive auth check - update authorized when currentUser changes
+	run(() => {
+		if (mounted && !isLoginPage) {
+			const isAuth = $currentUser && pb.authStore.isValid;
+			if (isAuth && !authorized) {
+				// User just logged in - check for default password
+				checkDefaultPassword();
+				authorized = true;
+				loading = false;
+			} else if (!isAuth && authorized) {
+				// User just logged out - redirect
+				authorized = false;
+				goto('/admin/login');
+			}
+		}
+	});
 </script>
 
 {#if loading}
@@ -160,7 +171,7 @@
 	</div>
 {:else if isLoginPage}
 	<!-- Login page renders without admin chrome -->
-	<slot />
+	{@render children?.()}
 {:else if authorized}
 	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 		<AdminHeader />
@@ -170,7 +181,7 @@
 
 			<main id="main-content" class="flex-1 p-6 {$adminSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-200 mt-16">
 				{#key $demoMode}
-					<slot />
+					{@render children?.()}
 				{/key}
 			</main>
 		</div>

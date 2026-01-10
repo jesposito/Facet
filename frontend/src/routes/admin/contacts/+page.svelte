@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -6,22 +8,22 @@
 	
 
 	// State
-	let contacts: ContactMethod[] = [];
-	let views: View[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingContact: ContactMethod | null = null;
-	let saving = false;
+	let contacts: ContactMethod[] = $state([]);
+	let views: View[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingContact: ContactMethod | null = $state(null);
+	let saving = $state(false);
 
 	// Form fields
-	let type: ContactMethodType = 'email';
-	let value = '';
-	let label = '';
-	let icon = '';
-	let protectionLevel: ProtectionLevel = 'none';
-	let viewVisibility: Record<string, boolean> = {};
-	let isPrimary = false;
-	let sortOrder = 0;
+	let type: ContactMethodType = $state('email');
+	let value = $state('');
+	let label = $state('');
+	let icon = $state('');
+	let protectionLevel: ProtectionLevel = $state('none');
+	let viewVisibility: Record<string, boolean> = $state({});
+	let isPrimary = $state(false);
+	let sortOrder = $state(0);
 
 	// Contact method type options with icons
 	const contactTypes: { value: ContactMethodType; label: string; icon: string; placeholder: string }[] = [
@@ -250,7 +252,7 @@
 		<p class="text-sm text-gray-600 dark:text-gray-400">
 			Add contact methods with per-view visibility and anti-scraping protection.
 		</p>
-		<button class="btn btn-primary" on:click={openNewForm}>+ New Contact Method</button>
+		<button class="btn btn-primary" onclick={openNewForm}>+ New Contact Method</button>
 	</div>
 
 	{#if loading}
@@ -265,16 +267,16 @@
 				<h2 class="text-xl font-semibold">
 					{editingContact ? 'Edit Contact Method' : 'New Contact Method'}
 				</h2>
-				<button class="btn btn-secondary text-sm" on:click={closeForm}>Cancel</button>
+				<button class="btn btn-secondary text-sm" onclick={closeForm}>Cancel</button>
 			</div>
 
-			<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+			<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
 						<label for="contact-type" class="label">
 							Contact Type <span class="text-red-500">*</span>
 						</label>
-						<select id="contact-type" bind:value={type} on:change={handleTypeChange} class="input">
+						<select id="contact-type" bind:value={type} onchange={handleTypeChange} class="input">
 							{#each contactTypes as contactType}
 								<option value={contactType.value}>
 									{contactType.icon} {contactType.label}
@@ -354,10 +356,10 @@
 					</p>
 
 					<div class="flex gap-2 mb-3">
-						<button type="button" class="btn btn-secondary text-sm" on:click={selectAllViews}>
+						<button type="button" class="btn btn-secondary text-sm" onclick={selectAllViews}>
 							Select All
 						</button>
-						<button type="button" class="btn btn-secondary text-sm" on:click={deselectAllViews}>
+						<button type="button" class="btn btn-secondary text-sm" onclick={deselectAllViews}>
 							Deselect All
 						</button>
 					</div>
@@ -371,7 +373,7 @@
 									<input
 										type="checkbox"
 										checked={viewVisibility[view.id] || false}
-										on:change={() => toggleViewVisibility(view.id)}
+										onchange={() => toggleViewVisibility(view.id)}
 									/>
 									<span class="text-sm">{view.name}</span>
 									{#if view.is_default}
@@ -417,7 +419,7 @@
 							{editingContact ? 'Update Contact' : 'Add Contact'}
 						{/if}
 					</button>
-					<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+					<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				</div>
 			</form>
 		</div>
@@ -441,7 +443,7 @@
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your first contact method with privacy protection settings.
 			</p>
-			<button class="btn btn-primary" on:click={openNewForm}>+ Add Your First Contact</button>
+			<button class="btn btn-primary" onclick={openNewForm}>+ Add Your First Contact</button>
 		</div>
 	{:else}
 		<!-- List View -->
@@ -485,20 +487,20 @@
 					<div class="flex items-center gap-2">
 						<button
 							class="btn btn-secondary text-sm"
-							on:click={() => togglePrimary(contact)}
+							onclick={() => togglePrimary(contact)}
 							title="Toggle primary"
 						>
 							{contact.is_primary ? '⭐' : '☆'}
 						</button>
 						<button
 							class="btn btn-secondary text-sm"
-							on:click={() => openEditForm(contact)}
+							onclick={() => openEditForm(contact)}
 						>
 							Edit
 						</button>
 						<button
 							class="btn btn-secondary text-sm text-red-600 hover:text-red-700"
-							on:click={() => deleteContact(contact)}
+							onclick={() => deleteContact(contact)}
 						>
 							Delete
 						</button>

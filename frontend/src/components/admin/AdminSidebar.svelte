@@ -43,7 +43,7 @@ const navSections = [
 ];
 
 // Reactive function that updates when $page changes
-$: isActive = (href: string): boolean => {
+let isActive = $derived((href: string): boolean => {
 	const currentPath = $page.url.pathname;
 
 	// Exact match for dashboard
@@ -55,7 +55,7 @@ $: isActive = (href: string): boolean => {
 	// and is followed by either nothing, a slash, or end of string
 	// This prevents /admin/view from matching when on /admin/views
 	return currentPath === href || currentPath.startsWith(href + '/');
-};
+});
 </script>
 
 <aside

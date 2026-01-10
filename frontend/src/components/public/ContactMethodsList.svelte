@@ -13,25 +13,29 @@
 	import ObfuscatedLink from './ObfuscatedLink.svelte';
 	import ClickToReveal from './ClickToReveal.svelte';
 
-	export let contacts: ContactMethod[] = [];
-	export let viewId: string = '';
-	export let layout: 'vertical' | 'horizontal' | 'grid' = 'vertical';
+	interface Props {
+		contacts?: ContactMethod[];
+		viewId?: string;
+		layout?: 'vertical' | 'horizontal' | 'grid';
+	}
+
+	let { contacts = [], viewId = '', layout = 'vertical' }: Props = $props();
 
 	// Filter contacts for this view
-	$: visibleContacts = contacts.filter((contact) => {
+	let visibleContacts = $derived(contacts.filter((contact) => {
 		// If view_visibility is empty or null, show on all views
 		if (!contact.view_visibility || Object.keys(contact.view_visibility).length === 0) {
 			return true;
 		}
 		// Otherwise, check if this view is explicitly enabled
 		return contact.view_visibility[viewId] === true;
-	});
+	}));
 
 	// Sort by sort_order (descending), then by is_primary
-	$: sortedContacts = [...visibleContacts].sort((a, b) => {
+	let sortedContacts = $derived([...visibleContacts].sort((a, b) => {
 		if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
 		return b.sort_order - a.sort_order;
-	});
+	}));
 
 	// Get icon for contact type
 	function getIcon(contact: ContactMethod): string {

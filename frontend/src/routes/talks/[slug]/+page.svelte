@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
@@ -7,7 +9,11 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	// Extract YouTube video ID from various URL formats
 	function getYouTubeId(url: string): string | null {
@@ -39,8 +45,8 @@
 		return null;
 	}
 
-	$: videoEmbed = data.talk.video_url ? getVideoEmbed(data.talk.video_url) : null;
-	$: formattedDate = data.talk.date ? formatDate(data.talk.date, { month: 'long', day: 'numeric', year: 'numeric' }) : null;
+	let videoEmbed = $derived(data.talk.video_url ? getVideoEmbed(data.talk.video_url) : null);
+	let formattedDate = $derived(data.talk.date ? formatDate(data.talk.date, { month: 'long', day: 'numeric', year: 'numeric' }) : null);
 	const isYouTube = (url?: string) => !!url && getYouTubeId(url) !== null;
 	const isVimeo = (url?: string) => !!url && getVimeoId(url) !== null;
 	const isImage = (url?: string) => !!url && /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(url);
@@ -56,7 +62,7 @@
 		}
 	};
 
-	let referrerPath = '';
+	let referrerPath = $state('');
 
 	onMount(() => {
 		if (!browser) return;
@@ -75,8 +81,8 @@
 
 	// Determine back navigation URL and label
 	// Prefer originating view, then referrer, otherwise talks index
-	$: backUrl = data.fromView ? `/${data.fromView}` : referrerPath || '/talks';
-	$: backLabel = 'Back';
+	let backUrl = $derived(data.fromView ? `/${data.fromView}` : referrerPath || '/talks');
+	let backLabel = 'Back';
 
 	function handleBack(event: Event) {
 		event.preventDefault();
@@ -117,7 +123,7 @@
 					alt=""
 					class="w-full h-full object-cover opacity-20"
 				/>
-				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent" />
+				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
 			</div>
 		{/if}
 
@@ -125,7 +131,7 @@
 			<!-- Back navigation -->
 			<a
 				href={backUrl}
-				on:click|preventDefault={handleBack}
+				onclick={preventDefault(handleBack)}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

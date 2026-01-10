@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { run, preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
+
+	const bubble = createBubbler();
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -27,32 +30,32 @@
 	// Default section order
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'contacts'];
 
-	let loading = true;
-	let saving = false;
-	let view: View | null = null;
+	let loading = $state(true);
+	let saving = $state(false);
+	let view: View | null = $state(null);
 
 	// Profile data for preview and showing overrides
-	let profile: Profile | null = null;
+	let profile: Profile | null = $state(null);
 
 	// Preview panel state
-	let showPreview = true;
-	let previewMode: 'desktop' | 'mobile' = 'desktop'; // Phase 6.2.2
+	let showPreview = $state(true);
+	let previewMode: 'desktop' | 'mobile' = $state('desktop'); // Phase 6.2.2
 
 	// Form fields
-	let name = '';
-	let slug = '';
-	let description = '';
-	let visibility: 'public' | 'unlisted' | 'private' | 'password' = 'public';
-	let password = ''; // For password-protected views (only set when changing)
-	let heroHeadline = '';
-	let heroSummary = '';
-	let ctaText = '';
-	let ctaUrl = '';
-	let isActive = true;
-	let isDefault = false;
+	let name = $state('');
+	let slug = $state('');
+	let description = $state('');
+	let visibility: 'public' | 'unlisted' | 'private' | 'password' = $state('public');
+	let password = $state(''); // For password-protected views (only set when changing)
+	let heroHeadline = $state('');
+	let heroSummary = $state('');
+	let ctaText = $state('');
+	let ctaUrl = $state('');
+	let isActive = $state(true);
+	let isDefault = $state(false);
 	let originalIsDefault = false;
-	let accentColor: AccentColor | null = null;
-	let heroImageUrl: string | null = null;
+	let accentColor: AccentColor | null = $state(null);
+	let heroImageUrl: string | null = $state(null);
 	let heroImageFile: File | null = null;
 	let heroBlobUrl: string | null = null;
 
@@ -64,10 +67,10 @@
 		layout: string;
 		width: SectionWidth;
 		itemConfig: Record<string, ItemConfig>;
-	}> = {};
+	}> = $state({});
 
 	// Section order for drag-drop (array of section keys with unique ids for dndzone)
-	let sectionOrder: Array<{ id: string; key: string }> = [];
+	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
 	const flipDurationMs = 200;
 
 	// Available items for each section (full data for override editing)
@@ -77,33 +80,33 @@
 		visibility: string;
 		is_draft?: boolean;
 		data: Record<string, unknown>;
-	}>> = {};
+	}>> = $state({});
 
 	// Override editor state
-	let showOverrideEditor = false;
+	let showOverrideEditor = $state(false);
 	let editingOverride: {
 		sectionKey: string;
 		itemId: string;
 		itemLabel: string;
 		originalData: Record<string, unknown>;
 		overrides: Record<string, string | string[]>;
-	} | null = null;
+	} | null = $state(null);
 
 	// AI Print state
-	let showGenerateModal = false;
-	let generating = false;
-	let aiPrintStatus = {
+	let showGenerateModal = $state(false);
+	let generating = $state(false);
+	let aiPrintStatus = $state({
 		available: false,
 		pandoc_installed: false,
 		ai_configured: false
-	};
-	let generationConfig = {
+	});
+	let generationConfig = $state({
 		format: 'pdf' as 'pdf' | 'docx',
 		target_role: '',
 		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
 		length: 'two-page' as 'one-page' | 'two-page' | 'full',
 		emphasis: [] as string[]
-	};
+	});
 	let exports: Array<{
 		id: string;
 		format: string;
@@ -111,9 +114,8 @@
 		generated_at: string;
 		download_url?: string;
 		error_message?: string;
-	}> = [];
+	}> = $state([]);
 
-	$: viewId = $page.params.id as string;
 
 	// Simple pattern - admin layout handles auth
 	onMount(async () => {
@@ -130,8 +132,6 @@
 		]);
 	});
 
-	// Load exports when slug is available
-	$: if (slug) loadExports();
 
 	async function loadProfile() {
 		try {
@@ -725,6 +725,11 @@
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
 	}
+	let viewId = $derived($page.params.id as string);
+	// Load exports when slug is available
+	run(() => {
+		if (slug) loadExports();
+	});
 </script>
 
 <svelte:head>
@@ -740,7 +745,7 @@
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-6 px-4">
 			<div class="flex items-center gap-4">
-				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Back to views">
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
@@ -752,7 +757,7 @@
 				<button
 					type="button"
 					class="btn btn-ghost flex items-center gap-2"
-					on:click={() => showPreview = !showPreview}
+					onclick={() => showPreview = !showPreview}
 					title={showPreview ? 'Hide preview' : 'Show preview'}
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -765,14 +770,14 @@
 					</svg>
 					<span class="hidden sm:inline">{showPreview ? 'Hide' : 'Show'} Preview</span>
 				</button>
-				<button type="button" class="btn btn-secondary" on:click={previewView}>
+				<button type="button" class="btn btn-secondary" onclick={previewView}>
 					Open in Tab
 				</button>
 				{#if aiPrintStatus.ai_configured}
 					<button
 						type="button"
 						class="btn btn-secondary flex items-center gap-2"
-						on:click={() => showGenerateModal = true}
+						onclick={() => showGenerateModal = true}
 						title={aiPrintStatus.pandoc_installed ? "Generate AI-powered resume" : "Generate Resume (Pandoc not installed)"}
 					>
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -781,7 +786,7 @@
 						<span class="hidden sm:inline">Generate Resume</span>
 					</button>
 				{/if}
-				<button type="button" class="btn btn-primary" on:click={handleSubmit} disabled={saving}>
+				<button type="button" class="btn btn-primary" onclick={handleSubmit} disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -797,7 +802,7 @@
 		<div class="editor-layout" class:with-preview={showPreview}>
 			<!-- Editor Pane -->
 			<div class="editor-pane">
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<!-- Basic Info -->
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
@@ -808,7 +813,7 @@
 						type="text"
 						id="name"
 						bind:value={name}
-						on:input={() => { if (!view?.slug) slug = generateSlug(name); }}
+						oninput={() => { if (!view?.slug) slug = generateSlug(name); }}
 						class="input"
 						placeholder="Recruiter View"
 						required
@@ -891,7 +896,7 @@
 								/>
 								<button
 									type="button"
-									on:click={removeHeroImage}
+									onclick={removeHeroImage}
 									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
 									title="Remove hero image"
 								>
@@ -908,7 +913,7 @@
 								type="file"
 								id="view_hero_image"
 								accept="image/jpeg,image/png,image/webp"
-								on:change={handleHeroImageChange}
+								onchange={handleHeroImageChange}
 								class="hidden"
 							/>
 							<label for="view_hero_image" class="btn btn-secondary btn-sm cursor-pointer">
@@ -926,7 +931,7 @@
 							<button
 								type="button"
 								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-								on:click={() => heroHeadline = ''}
+								onclick={() => heroHeadline = ''}
 							>
 								Use profile value
 							</button>
@@ -953,7 +958,7 @@
 							<button
 								type="button"
 								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-								on:click={() => heroSummary = ''}
+								onclick={() => heroSummary = ''}
 							>
 								Use profile value
 							</button>
@@ -1017,7 +1022,7 @@
 								{accentColor === null
 								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
 								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							on:click={() => accentColor = null}
+							onclick={() => accentColor = null}
 						>
 							<div class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"></div>
 							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use global</span>
@@ -1034,7 +1039,7 @@
 							<button
 								type="button"
 								class="relative group"
-								on:click={() => accentColor = color}
+								onclick={() => accentColor = color}
 								title="{colorInfo.label} - {colorInfo.description}"
 							>
 								<div
@@ -1103,8 +1108,8 @@
 				<div
 					class="space-y-3"
 					use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'sections' }}
-					on:consider={handleSectionDndConsider}
-					on:finalize={handleSectionDndFinalize}
+					onconsider={handleSectionDndConsider}
+					onfinalize={handleSectionDndFinalize}
 				>
 					{#each sectionOrder as sectionItem (sectionItem.id)}
 						{@const sectionKey = sectionItem.key}
@@ -1126,18 +1131,19 @@
 											<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 										</svg>
 									</div>
-									<button
-										type="button"
-										class="w-10 h-6 rounded-full transition-colors relative
-											{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-										on:click={() => toggleSection(sectionKey)}
-									>
-										<span
-											class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
-												{sectionConfig.enabled ? 'left-5' : 'left-1'}"
-										></span>
-									</button>
-									<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
+								<button
+									type="button"
+									class="w-10 h-6 rounded-full transition-colors relative
+										{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+									onclick={() => toggleSection(sectionKey)}
+									aria-label="Toggle {sectionDef?.label || sectionKey} section"
+								>
+									<span
+										class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
+											{sectionConfig.enabled ? 'left-5' : 'left-1'}"
+									></span>
+								</button>
+								<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
 									<span class="text-xs text-gray-500">
 										{#if sectionConfig.items.length > 0}
 											{sectionConfig.items.length} selected
@@ -1171,8 +1177,8 @@
 												<select
 													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 													value={sectionConfig.width}
-													on:change={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
-													on:click|stopPropagation
+													onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+													onclick={stopPropagation(bubble('click'))}
 												>
 													{#each validWidths as widthOption}
 														<option value={widthOption.value}>{widthOption.label}</option>
@@ -1188,8 +1194,8 @@
 										<select
 											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 											value={sectionConfig.layout}
-											on:change={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
-											on:click|stopPropagation
+											onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+											onclick={stopPropagation(bubble('click'))}
 											title="Section layout"
 										>
 											{#each layoutConfig.layouts as layoutOption}
@@ -1198,26 +1204,28 @@
 										</select>
 									{/if}
 
-									{#if sectionConfig.enabled && items.length > 0}
-										<button
-											type="button"
-											class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-											on:click={() => toggleSectionExpand(sectionKey)}
+								{#if sectionConfig.enabled && items.length > 0}
+									<button
+										type="button"
+										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+										onclick={() => toggleSectionExpand(sectionKey)}
+										aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionDef?.label || sectionKey} section"
+									>
+										<svg
+											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											aria-hidden="true"
 										>
-											<svg
-												class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-											>
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-											</svg>
-										</button>
-									{/if}
-								</div>
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+										</svg>
+									</button>
+								{/if}
 							</div>
+						</div>
 
-							<!-- Section Items -->
+						<!-- Section Items -->
 							{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0}
 								<div class="p-3 border-t border-gray-200 dark:border-gray-700">
 									<div class="flex items-center justify-between mb-2">
@@ -1230,14 +1238,14 @@
 											<button
 												type="button"
 												class="text-xs text-primary-600 hover:underline"
-												on:click={() => selectAllItems(sectionKey)}
+												onclick={() => selectAllItems(sectionKey)}
 											>
 												Select All
 											</button>
 											<button
 												type="button"
 												class="text-xs text-gray-500 hover:underline"
-												on:click={() => clearAllItems(sectionKey)}
+												onclick={() => clearAllItems(sectionKey)}
 											>
 												Clear
 											</button>
@@ -1247,8 +1255,8 @@
 									<div
 										class="space-y-1 max-h-64 overflow-y-auto"
 										use:dndzone={{ items: sectionItems[sectionKey] || [], flipDurationMs, type: `items-${sectionKey}` }}
-										on:consider={(e) => handleItemDndConsider(sectionKey, e)}
-										on:finalize={(e) => handleItemDndFinalize(sectionKey, e)}
+										onconsider={(e) => handleItemDndConsider(sectionKey, e)}
+										onfinalize={(e) => handleItemDndFinalize(sectionKey, e)}
 									>
 										{#each items as item (item.id)}
 											{@const isSelected = sectionConfig.items.includes(item.id)}
@@ -1269,7 +1277,7 @@
 													<input
 														type="checkbox"
 														checked={isSelected}
-														on:change={() => toggleItem(sectionKey, item.id)}
+														onchange={() => toggleItem(sectionKey, item.id)}
 														class="w-4 h-4 text-primary-600 rounded border-gray-300"
 													/>
 													<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
@@ -1301,7 +1309,7 @@
 													<button
 														type="button"
 														class="text-xs text-primary-600 hover:text-primary-700 hover:underline whitespace-nowrap"
-														on:click|stopPropagation={() => openOverrideEditor(sectionKey, item.id)}
+														onclick={stopPropagation(() => openOverrideEditor(sectionKey, item.id))}
 													>
 														{itemHasOverrides ? 'Edit' : 'Customize'}
 													</button>
@@ -1330,7 +1338,7 @@
 								<button
 									type="button"
 									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									on:click={() => previewMode = 'desktop'}
+									onclick={() => previewMode = 'desktop'}
 									title="Desktop preview"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -1340,7 +1348,7 @@
 								<button
 									type="button"
 									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									on:click={() => previewMode = 'mobile'}
+									onclick={() => previewMode = 'mobile'}
 									title="Mobile preview"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -1378,7 +1386,7 @@
 					<h2 class="text-lg font-bold text-gray-900 dark:text-white">Customize for this View</h2>
 					<p class="text-sm text-gray-500">{editingOverride.itemLabel}</p>
 				</div>
-				<button type="button" class="btn btn-ghost" on:click={closeOverrideEditor}>
+				<button type="button" class="btn btn-ghost" onclick={closeOverrideEditor}>
 					{@html icon('x')}
 				</button>
 			</div>
@@ -1400,7 +1408,7 @@
 								<button
 									type="button"
 									class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-									on:click={() => clearOverride(field)}
+									onclick={() => clearOverride(field)}
 								>
 									Reset to original
 								</button>
@@ -1424,7 +1432,7 @@
 								class="input min-h-[100px] font-mono text-sm"
 								placeholder="Enter one item per line..."
 								value={hasOverride ? formatFieldValue(editingOverride.overrides[field]) : ''}
-								on:input={(e) => handleOverrideInput(field, e)}
+								oninput={(e) => handleOverrideInput(field, e)}
 							></textarea>
 							<p class="text-xs text-gray-500">Enter one bullet point per line</p>
 						{:else if field === 'description' || field === 'summary'}
@@ -1433,7 +1441,7 @@
 								class="input min-h-[100px]"
 								placeholder="Enter override value or leave empty for original..."
 								value={hasOverride ? String(editingOverride.overrides[field]) : ''}
-								on:input={(e) => handleOverrideInput(field, e)}
+								oninput={(e) => handleOverrideInput(field, e)}
 							></textarea>
 						{:else}
 							<input
@@ -1442,7 +1450,7 @@
 								class="input"
 								placeholder="Enter override value or leave empty for original..."
 								value={hasOverride ? String(editingOverride.overrides[field]) : ''}
-								on:input={(e) => handleOverrideInput(field, e)}
+								oninput={(e) => handleOverrideInput(field, e)}
 							/>
 						{/if}
 					</div>
@@ -1456,10 +1464,10 @@
 			</div>
 
 			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-				<button type="button" class="btn btn-ghost" on:click={closeOverrideEditor}>
+				<button type="button" class="btn btn-ghost" onclick={closeOverrideEditor}>
 					Cancel
 				</button>
-				<button type="button" class="btn btn-primary" on:click={saveOverrides}>
+				<button type="button" class="btn btn-primary" onclick={saveOverrides}>
 					Save Overrides
 				</button>
 			</div>
@@ -1469,8 +1477,8 @@
 
 <!-- Generate Resume Modal -->
 {#if showGenerateModal}
-	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" on:click|self={() => showGenerateModal = false}>
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick={self(() => showGenerateModal = false)}>
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden">
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate Resume</h2>
@@ -1545,7 +1553,7 @@
 										<button
 											type="button"
 											class="text-red-500 hover:text-red-700"
-											on:click={() => deleteExport(exp.id)}
+											onclick={() => deleteExport(exp.id)}
 										>
 											Delete
 										</button>
@@ -1558,13 +1566,13 @@
 			</div>
 
 			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-				<button type="button" class="btn btn-ghost" on:click={() => showGenerateModal = false}>
+				<button type="button" class="btn btn-ghost" onclick={() => showGenerateModal = false}>
 					Cancel
 				</button>
 				<button
 					type="button"
 					class="btn btn-primary"
-					on:click={generateResume}
+					onclick={generateResume}
 					disabled={generating}
 				>
 					{#if generating}

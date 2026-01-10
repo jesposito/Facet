@@ -2,9 +2,13 @@
 	import type { Talk } from '$lib/pocketbase';
 	import { formatDate, parseMarkdown } from '$lib/utils';
 
-	export let items: Talk[];
-	export let layout: string = 'default';
-	export let viewSlug: string = '';
+	interface Props {
+		items: Talk[];
+		layout?: string;
+		viewSlug?: string;
+	}
+
+	let { items, layout = 'default', viewSlug = '' }: Props = $props();
 
 	function getTalkUrl(slug: string): string {
 		if (viewSlug) {

@@ -1,28 +1,30 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type Skill } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-	let skills: Skill[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingSkill: Skill | null = null;
+	let skills: Skill[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingSkill: Skill | null = $state(null);
 
 	// Form fields
-	let name = '';
-	let category = '';
-	let proficiency: 'expert' | 'proficient' | 'familiar' = 'proficient';
-	let visibility = 'public';
-	let sortOrder = 0;
-	let saving = false;
+	let name = $state('');
+	let category = $state('');
+	let proficiency: 'expert' | 'proficient' | 'familiar' = $state('proficient');
+	let visibility = $state('public');
+	let sortOrder = $state(0);
+	let saving = $state(false);
 
 	// Available categories (derived from existing skills)
-	let availableCategories: string[] = [];
+	let availableCategories: string[] = $state([]);
 
-	let selectMode = false;
-	let selectedIds: Set<string> = new Set();
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
 	onMount(loadSkills);
 
@@ -167,7 +169,7 @@
 		}
 	}
 
-	$: groupedSkills = groupByCategory(skills);
+	let groupedSkills = $derived(groupByCategory(skills));
 
 	// Default categories to suggest
 	const suggestedCategories = [
@@ -180,7 +182,7 @@
 		'Soft Skills'
 	];
 
-	$: categoryOptions = [...new Set([...suggestedCategories, ...availableCategories])].sort();
+	let categoryOptions = $derived([...new Set([...suggestedCategories, ...availableCategories])].sort());
 
 	function toggleSelectMode() {
 		selectMode = !selectMode;
@@ -253,12 +255,12 @@
 			{#if skills.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					on:click={toggleSelectMode}
+					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
 			{/if}
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ New Skill
 			</button>
 		</div>
@@ -270,14 +272,14 @@
 		</div>
 	{:else if showForm}
 		<!-- Skill Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingSkill ? 'Edit Skill' : 'New Skill'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" on:click={closeForm}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
@@ -307,7 +309,7 @@
 					/>
 					<datalist id="category-options">
 						{#each categoryOptions as cat}
-							<option value={cat} />
+							<option value={cat}></option>
 						{/each}
 					</datalist>
 					<p class="text-xs text-gray-500 mt-1">Group related skills together</p>
@@ -347,7 +349,7 @@
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -368,7 +370,7 @@
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your technical and professional skills, organized by category.
 			</p>
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ Add Your First Skill
 			</button>
 		</div>
@@ -387,7 +389,7 @@
 									<input
 										type="checkbox"
 										checked={selectedIds.has(skill.id)}
-										on:change={() => toggleSelect(skill.id)}
+										onchange={() => toggleSelect(skill.id)}
 										class="w-4 h-4 text-primary-600 rounded border-gray-300"
 									/>
 								{/if}
@@ -407,7 +409,7 @@
 								<div class="hidden group-hover:flex items-center gap-1 ml-1 pl-1 border-l border-gray-300 dark:border-gray-600">
 									<button
 										class="p-1 text-gray-500 hover:text-blue-600 rounded"
-										on:click={() => openEditForm(skill)}
+										onclick={() => openEditForm(skill)}
 										title="Edit"
 									>
 										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -416,7 +418,7 @@
 									</button>
 									<button
 										class="p-1 text-gray-500 hover:text-red-600 rounded"
-										on:click={() => deleteSkill(skill)}
+										onclick={() => deleteSkill(skill)}
 										title="Delete"
 									>
 										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

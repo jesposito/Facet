@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -6,34 +8,34 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-	let projects: Project[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingProject: Project | null = null;
+	let projects: Project[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingProject: Project | null = $state(null);
 
 	// Form fields
-	let title = '';
-	let slug = '';
-	let summary = '';
-	let description = '';
-	let techStackText = '';
-	let links: Array<{ type: string; url: string }> = [];
-let categoriesText = '';
-let visibility = 'public';
-let isDraft = false;
-let isFeatured = false;
-let sortOrder = 0;
-let coverImageFile: FileList | null = null;
-let mediaRefs: string[] = [];
-let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = [];
-let mediaSearch = '';
-let loadingMedia = false;
-let showShortcodes = false;
-let saving = false;
-let memberships: Record<string, { id: string; name: string; slug: string }[]> = {};
+	let title = $state('');
+	let slug = $state('');
+	let summary = $state('');
+	let description = $state('');
+	let techStackText = $state('');
+	let links: Array<{ type: string; url: string }> = $state([]);
+let categoriesText = $state('');
+let visibility = $state('public');
+let isDraft = $state(false);
+let isFeatured = $state(false);
+let sortOrder = $state(0);
+let coverImageFile: FileList | null = $state(null);
+let mediaRefs: string[] = $state([]);
+let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = $state([]);
+let mediaSearch = $state('');
+let loadingMedia = $state(false);
+let showShortcodes = $state(false);
+let saving = $state(false);
+let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
-let selectMode = false;
-let selectedIds: Set<string> = new Set();
+let selectMode = $state(false);
+let selectedIds: Set<string> = $state(new Set());
 
 onMount(loadProjects);
 onMount(loadMediaOptions);
@@ -417,7 +419,7 @@ async function loadProjects() {
 			{#if projects.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					on:click={toggleSelectMode}
+					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
@@ -425,7 +427,7 @@ async function loadProjects() {
 			<a href="/admin/import" class="btn btn-secondary">
 				Import from GitHub
 			</a>
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ New Project
 			</button>
 		</div>
@@ -437,17 +439,17 @@ async function loadProjects() {
 		</div>
 	{:else if showForm}
 		<!-- Project Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingProject ? 'Edit Project' : 'New Project'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" on:click={closeForm}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
+				<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
 				</div>
 
 				<div>
@@ -459,7 +461,7 @@ async function loadProjects() {
 						class="input"
 						placeholder="My Awesome Project"
 						required
-						on:blur={() => !slug && generateSlug()}
+						onblur={() => !slug && generateSlug()}
 					/>
 				</div>
 
@@ -473,7 +475,7 @@ async function loadProjects() {
 							class="input flex-1"
 							placeholder="my-awesome-project"
 						/>
-						<button type="button" class="btn btn-secondary" on:click={generateSlug}>
+						<button type="button" class="btn btn-secondary" onclick={generateSlug}>
 							Generate
 						</button>
 					</div>
@@ -516,7 +518,7 @@ async function loadProjects() {
 						placeholder="Full project description with details about features, architecture, etc. (Markdown + media shortcodes)"
 					></textarea>
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-						<button type="button" class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Media shortcodes</button>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Media shortcodes</button>
 						<span>Use {'{{provider:url}}'} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).</span>
 					</div>
 				</div>
@@ -553,7 +555,7 @@ async function loadProjects() {
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Links</h2>
-					<button type="button" class="btn btn-secondary btn-sm" on:click={addLink}>
+					<button type="button" class="btn btn-secondary btn-sm" onclick={addLink}>
 						+ Add Link
 					</button>
 				</div>
@@ -577,11 +579,11 @@ async function loadProjects() {
 									class="input flex-1"
 									placeholder="https://..."
 								/>
-								<button type="button" class="btn btn-secondary" on:click={() => removeLink(i)}>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-									</svg>
-								</button>
+							<button type="button" class="btn btn-secondary" onclick={() => removeLink(i)} aria-label="Remove link">
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
 							</div>
 						{/each}
 					</div>
@@ -619,12 +621,12 @@ async function loadProjects() {
 						class="input w-full md:w-64"
 						placeholder="Search media..."
 						bind:value={mediaSearch}
-						on:keydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
+						onkeydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
 					/>
-					<button type="button" class="btn btn-secondary btn-sm" on:click={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
+					<button type="button" class="btn btn-secondary btn-sm" onclick={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
 						{loadingMedia ? 'Searching…' : 'Search'}
 					</button>
-					<button type="button" class="btn btn-ghost btn-sm" on:click={() => { mediaSearch = ''; loadMediaOptions(''); }}>
+					<button type="button" class="btn btn-ghost btn-sm" onclick={() => { mediaSearch = ''; loadMediaOptions(''); }}>
 						Clear
 					</button>
 				</div>
@@ -714,7 +716,7 @@ async function loadProjects() {
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -731,7 +733,7 @@ async function loadProjects() {
 				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
 					<div class="flex items-center justify-between">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Media shortcodes</h3>
-						<button class="btn btn-ghost btn-sm" on:click={toggleShortcodes}>Close</button>
+						<button class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Close</button>
 					</div>
 					<p class="text-sm text-gray-600 dark:text-gray-400">
 						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media Library (uploads or external) or any supported provider.
@@ -791,7 +793,7 @@ async function loadProjects() {
 				<a href="/admin/import" class="btn btn-secondary">
 					Import from GitHub
 				</a>
-				<button class="btn btn-primary" on:click={openNewForm}>
+				<button class="btn btn-primary" onclick={openNewForm}>
 					+ Add Manually
 				</button>
 			</div>
@@ -816,7 +818,7 @@ async function loadProjects() {
 								<input
 									type="checkbox"
 									checked={selectedIds.has(project.id)}
-									on:change={() => toggleSelect(project.id)}
+									onchange={() => toggleSelect(project.id)}
 									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 								/>
 							{/if}
@@ -906,7 +908,7 @@ async function loadProjects() {
 							<div class="flex items-center gap-1">
 								<button
 									class="p-2 text-gray-500 hover:text-yellow-600"
-									on:click={() => toggleFeatured(project)}
+									onclick={() => toggleFeatured(project)}
 									title={project.is_featured ? 'Unfeature' : 'Feature'}
 								>
 									<svg class="w-4 h-4" fill={project.is_featured ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
@@ -915,7 +917,7 @@ async function loadProjects() {
 								</button>
 								<button
 									class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-									on:click={() => togglePublish(project)}
+									onclick={() => togglePublish(project)}
 									title={project.is_draft ? 'Publish' : 'Unpublish'}
 								>
 									{#if project.is_draft}
@@ -931,7 +933,7 @@ async function loadProjects() {
 								</button>
 								<button
 									class="p-2 text-gray-500 hover:text-blue-600"
-									on:click={() => openEditForm(project)}
+									onclick={() => openEditForm(project)}
 									title="Edit"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -940,7 +942,7 @@ async function loadProjects() {
 								</button>
 								<button
 									class="p-2 text-gray-500 hover:text-red-600"
-									on:click={() => deleteProject(project)}
+									onclick={() => deleteProject(project)}
 									title="Delete"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

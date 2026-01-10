@@ -1,18 +1,24 @@
 <script lang="ts">
+	import { run, preventDefault } from 'svelte/legacy';
+
 	import { pb } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 
-	export let onPasswordChanged: () => void;
+	interface Props {
+		onPasswordChanged: () => void;
+	}
 
-	let currentPassword = 'changeme123'; // Default password pre-filled
-	let newPassword = '';
-	let confirmPassword = '';
-	let loading = false;
-	let error = '';
-	let passwordStrength = '';
+	let { onPasswordChanged }: Props = $props();
+
+	let currentPassword = $state('changeme123'); // Default password pre-filled
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+	let loading = $state(false);
+	let error = $state('');
+	let passwordStrength = $state('');
 
 	// Check password strength
-	$: {
+	run(() => {
 		if (newPassword.length === 0) {
 			passwordStrength = '';
 		} else if (newPassword.length < 8) {
@@ -22,7 +28,7 @@
 		} else {
 			passwordStrength = 'strong';
 		}
-	}
+	});
 
 	async function handleSubmit() {
 		error = '';
@@ -105,7 +111,7 @@
 			</div>
 		{/if}
 
-		<form on:submit|preventDefault={handleSubmit} class="space-y-4">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
 			<!-- Current Password -->
 			<div>
 				<label for="current-password" class="label">Current Password</label>
@@ -143,7 +149,7 @@
 									: passwordStrength === 'medium'
 										? 'w-2/3 bg-yellow-500'
 										: 'w-full bg-green-500'}"
-							/>
+							></div>
 						</div>
 						<span
 							class="text-xs {passwordStrength === 'weak'

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type { Profile } from '$lib/pocketbase';
 
-	export let profile: Profile | null;
+	interface Props {
+		profile: Profile | null;
+	}
+
+	let { profile }: Props = $props();
 
 	const year = new Date().getFullYear();
 </script>

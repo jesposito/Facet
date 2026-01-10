@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -7,29 +9,29 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 
-	let experiences: Experience[] = [];
-	let loading = true;
-	let showForm = false;
-	let editingExp: Experience | null = null;
+	let experiences: Experience[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingExp: Experience | null = $state(null);
 
-	let selectMode = false;
-	let selectedIds: Set<string> = new Set();
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
 	// Form fields
-	let company = '';
-	let title = '';
-	let location = '';
-	let startDate = '';
-	let endDate = '';
-	let description = '';
+	let company = $state('');
+	let title = $state('');
+	let location = $state('');
+	let startDate = $state('');
+	let endDate = $state('');
+	let description = $state('');
 	let bullets: string[] = [];
-	let bulletsText = '';
+	let bulletsText = $state('');
 	let skills: string[] = [];
-	let skillsText = '';
-	let visibility = 'public';
-	let isDraft = false;
-	let sortOrder = 0;
-	let saving = false;
+	let skillsText = $state('');
+	let visibility = $state('public');
+	let isDraft = $state(false);
+	let sortOrder = $state(0);
+	let saving = $state(false);
 
 	onMount(loadExperiences);
 
@@ -271,12 +273,12 @@
 			{#if experiences.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					on:click={toggleSelectMode}
+					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
 			{/if}
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ New Experience
 			</button>
 		</div>
@@ -288,14 +290,14 @@
 		</div>
 	{:else if showForm}
 		<!-- Experience Form -->
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingExp ? 'Edit Experience' : 'New Experience'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" on:click={closeForm}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
@@ -456,7 +458,7 @@
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" on:click={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -477,7 +479,7 @@
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your work history, including positions, achievements, and skills used.
 			</p>
-			<button class="btn btn-primary" on:click={openNewForm}>
+			<button class="btn btn-primary" onclick={openNewForm}>
 				+ Add Your First Experience
 			</button>
 		</div>
@@ -491,7 +493,7 @@
 							<input
 								type="checkbox"
 								checked={selectedIds.has(exp.id)}
-								on:change={() => toggleSelect(exp.id)}
+								onchange={() => toggleSelect(exp.id)}
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
 						{/if}
@@ -558,7 +560,7 @@
 						<div class="flex items-center gap-2">
 							<button
 								class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-								on:click={() => togglePublish(exp)}
+								onclick={() => togglePublish(exp)}
 								title={exp.is_draft ? 'Publish' : 'Unpublish'}
 							>
 								{#if exp.is_draft}
@@ -574,7 +576,7 @@
 							</button>
 							<button
 								class="p-2 text-gray-500 hover:text-blue-600"
-								on:click={() => openEditForm(exp)}
+								onclick={() => openEditForm(exp)}
 								title="Edit"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -583,7 +585,7 @@
 							</button>
 							<button
 								class="p-2 text-gray-500 hover:text-red-600"
-								on:click={() => deleteExperience(exp)}
+								onclick={() => deleteExperience(exp)}
 								title="Delete"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

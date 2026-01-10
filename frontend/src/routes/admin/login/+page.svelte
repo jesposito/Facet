@@ -1,30 +1,38 @@
 <script lang="ts">
+	import { run, preventDefault } from 'svelte/legacy';
+
 	import { goto } from '$app/navigation';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import type { PageData } from './$types';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
 
-	let loading = false;
-	let error = '';
-	let redirecting = false;
-	let authMethodsLoaded = data?.initialAuthLoaded ?? false;
-	let methodsError = '';
+	let { data }: Props = $props();
 
-	let oauthProviders: string[] = data?.oauthProviders ?? [];
-	let passwordAuthEnabled = data?.passwordAuthEnabled ?? true;
+	let loading = $state(false);
+	let error = $state('');
+	let redirecting = $state(false);
+	let authMethodsLoaded = $derived(data?.initialAuthLoaded ?? false);
+	let methodsError = $state('');
+
+	let oauthProviders = $derived((data?.oauthProviders ?? []) as string[]);
+	let passwordAuthEnabled = $derived(data?.passwordAuthEnabled ?? true);
 	let redirectUrl = '';
 
 	// Reactively redirect when user becomes authenticated
-	$: if ($currentUser && !redirecting) {
-		redirecting = true;
-		// Small delay to ensure auth state is fully propagated
-		setTimeout(() => {
-			goto('/admin', { replaceState: true });
-		}, 100);
-	}
+	run(() => {
+		if ($currentUser && !redirecting) {
+			redirecting = true;
+			// Small delay to ensure auth state is fully propagated
+			setTimeout(() => {
+				goto('/admin', { replaceState: true });
+			}, 100);
+		}
+	});
 
 	onMount(async () => {
 		// If already logged in, redirect to admin
@@ -99,9 +107,9 @@
 	}
 
 	// For development: password login
-	let email = '';
-	let password = '';
-	let showPasswordLogin = false;
+	let email = $state('');
+	let password = $state('');
+	let showPasswordLogin = $state(false);
 
 	async function loginWithPassword() {
 		if (!email || !password) {
@@ -153,7 +161,7 @@
 			<div class="space-y-3">
 				{#if googleEnabled()}
 					<button
-						on:click={loginWithGoogle}
+						onclick={loginWithGoogle}
 						disabled={loading}
 						class="btn w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
 					>
@@ -169,7 +177,7 @@
 
 				{#if githubEnabled()}
 					<button
-						on:click={loginWithGitHub}
+						onclick={loginWithGitHub}
 						disabled={loading}
 						class="btn w-full bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600"
 					>
@@ -194,7 +202,7 @@
 				<div class="relative flex justify-center text-sm">
 					<button
 						class="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-						on:click={() => (showPasswordLogin = !showPasswordLogin)}
+						onclick={() => (showPasswordLogin = !showPasswordLogin)}
 					>
 						{showPasswordLogin ? 'Hide' : 'Or use'} password login
 					</button>
@@ -203,7 +211,7 @@
 		</div>
 
 		{#if showPasswordLogin && passwordAuthEnabled}
-			<form on:submit|preventDefault={loginWithPassword} class="space-y-4">
+			<form onsubmit={preventDefault(loginWithPassword)} class="space-y-4">
 				<div>
 					<label for="email" class="label">Email</label>
 					<input

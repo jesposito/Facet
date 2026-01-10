@@ -5,31 +5,31 @@
 	import { icon } from '$lib/icons';
 
 	// Resume upload state
-	let resumeFile: File | null = null;
-	let resumeUploading = false;
-	let resumeError: { message: string; action: string; technical: string } | string = '';
-	let dragActive = false;
-	let resumeResult: any = null;
-	let showTechnicalDetails = false;
-	let importVisibility: 'private' | 'unlisted' | 'public' = 'private';
+	let resumeFile: File | null = $state(null);
+	let resumeUploading = $state(false);
+	let resumeError: { message: string; action: string; technical: string } | string = $state('');
+	let dragActive = $state(false);
+	let resumeResult: any = $state(null);
+	let showTechnicalDetails = $state(false);
+	let importVisibility: 'private' | 'unlisted' | 'public' = $state('private');
 
 	// GitHub import state
-	let step = 1;
-	let loading = false;
-	let error = '';
+	let step = $state(1);
+	let loading = $state(false);
+	let error = $state('');
 
 	// Step 1: Repo input
-	let repoUrl = '';
-	let githubToken = '';
+	let repoUrl = $state('');
+	let githubToken = $state('');
 
 	// Step 2: Preview
-	let preview: Record<string, unknown> | null = null;
+	let preview: Record<string, unknown> | null = $state(null);
 
 	// Step 3: AI enrichment
-	let useAI = false;
-	let selectedProvider = '';
-	let privacyMode: 'full' | 'summary' | 'none' = 'summary';
-	let providers: Array<{ id: string; name: string; type: string }> = [];
+	let useAI = $state(false);
+	let selectedProvider = $state('');
+	let privacyMode: 'full' | 'summary' | 'none' = $state('summary');
+	let providers: Array<{ id: string; name: string; type: string }> = $state([]);
 
 	// Step 4: Proposal
 	let proposalId = '';
@@ -270,7 +270,7 @@
 							{#if resumeError.technical}
 								<button
 									class="mt-2 text-xs text-red-600 dark:text-red-400 hover:underline flex items-center gap-1"
-									on:click={() => (showTechnicalDetails = !showTechnicalDetails)}
+									onclick={() => (showTechnicalDetails = !showTechnicalDetails)}
 								>
 									{showTechnicalDetails ? 'Hide' : 'Show'} technical details
 									<svg class="w-3 h-3 transition-transform {showTechnicalDetails ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -281,7 +281,7 @@
 									<div class="mt-2 p-2 bg-red-100 dark:bg-red-900/40 rounded text-xs font-mono text-red-800 dark:text-red-200 relative">
 										<button
 											class="absolute top-1 right-1 p-1 hover:bg-red-200 dark:hover:bg-red-800 rounded"
-											on:click={copyTechnicalDetails}
+											onclick={copyTechnicalDetails}
 											title="Copy to clipboard"
 										>
 											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -315,12 +315,12 @@
 					: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
 				role="region"
 				aria-label="Resume file drop zone"
-				on:drop={handleResumeFileDrop}
-				on:dragover={(e) => {
+				ondrop={handleResumeFileDrop}
+				ondragover={(e) => {
 					e.preventDefault();
 					dragActive = true;
 				}}
-				on:dragleave={() => (dragActive = false)}
+				ondragleave={() => (dragActive = false)}
 			>
 				{#if resumeFile}
 					<div class="space-y-3">
@@ -334,7 +334,7 @@
 						<div class="flex gap-3 justify-center">
 							<button
 								class="btn btn-primary"
-								on:click={handleResumeUpload}
+								onclick={handleResumeUpload}
 								disabled={resumeUploading}
 							>
 								{#if resumeUploading}
@@ -347,7 +347,7 @@
 									Upload & Parse
 								{/if}
 							</button>
-							<button class="btn btn-secondary" on:click={() => (resumeFile = null)}>
+							<button class="btn btn-secondary" onclick={() => (resumeFile = null)}>
 								Change File
 							</button>
 						</div>
@@ -371,7 +371,7 @@
 							id="resumeFile"
 							class="hidden"
 							accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-							on:change={handleResumeFileSelect}
+							onchange={handleResumeFileSelect}
 						/>
 					</div>
 				{/if}
@@ -483,7 +483,7 @@
 							<a href="/admin/experience" class="btn btn-sm btn-primary">
 								Review Experience
 							</a>
-							<button class="btn btn-sm btn-secondary" on:click={() => {
+							<button class="btn btn-sm btn-secondary" onclick={() => {
 								resumeFile = null;
 								resumeResult = null;
 								resumeError = '';
@@ -563,7 +563,7 @@
 					</p>
 				</div>
 
-				<button class="btn btn-primary" on:click={handlePreview} disabled={loading}>
+				<button class="btn btn-primary" onclick={handlePreview} disabled={loading}>
 					{#if loading}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -625,8 +625,8 @@
 			</div>
 
 			<div class="flex gap-3">
-				<button class="btn btn-secondary" on:click={() => (step = 1)}>Back</button>
-				<button class="btn btn-primary" on:click={() => (step = 3)}>Continue</button>
+				<button class="btn btn-secondary" onclick={() => (step = 1)}>Back</button>
+				<button class="btn btn-primary" onclick={() => (step = 3)}>Continue</button>
 			</div>
 		</div>
 	{/if}
@@ -677,10 +677,10 @@
 			{/if}
 
 			<div class="flex gap-3 pt-4">
-				<button class="btn btn-secondary" on:click={() => (step = 2)}>Back</button>
+				<button class="btn btn-secondary" onclick={() => (step = 2)}>Back</button>
 				<button
 					class="btn btn-primary"
-					on:click={handleImport}
+					onclick={handleImport}
 					disabled={loading || (useAI && providers.length === 0)}
 				>
 					{#if loading}

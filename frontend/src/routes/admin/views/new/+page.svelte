@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { preventDefault, createBubbler, stopPropagation } from 'svelte/legacy';
+
+	const bubble = createBubbler();
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
@@ -24,35 +27,35 @@
 	// Default section order
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks', 'contacts'];
 
-	let loading = true;
-	let saving = false;
+	let loading = $state(true);
+	let saving = $state(false);
 
 	// Profile data for preview
-	let profile: Profile | null = null;
+	let profile: Profile | null = $state(null);
 
 	// Preview panel state
-	let showPreview = true;
-	let previewMode: 'desktop' | 'mobile' = 'desktop'; // Phase 6.2.2
+	let showPreview = $state(true);
+	let previewMode: 'desktop' | 'mobile' = $state('desktop'); // Phase 6.2.2
 
 	// Form fields
-	let name = '';
-	let slug = '';
-	let description = '';
-	let visibility: 'public' | 'unlisted' | 'private' | 'password' = 'public';
-	let password = ''; // For password-protected views
-	let heroHeadline = '';
-	let heroSummary = '';
-	let ctaText = '';
-	let ctaUrl = '';
-	let isActive = true;
-	let isDefault = false;
-	let accentColor: AccentColor | null = null; // null = use global profile setting
+	let name = $state('');
+	let slug = $state('');
+	let description = $state('');
+	let visibility: 'public' | 'unlisted' | 'private' | 'password' = $state('public');
+	let password = $state(''); // For password-protected views
+	let heroHeadline = $state('');
+	let heroSummary = $state('');
+	let ctaText = $state('');
+	let ctaUrl = $state('');
+	let isActive = $state(true);
+	let isDefault = $state(false);
+	let accentColor: AccentColor | null = $state(null); // null = use global profile setting
 
 	// Sections configuration with layout and width support (itemConfig empty for new views)
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }> }> = {};
+	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }> }> = $state({});
 
 	// Section order for drag-drop
-	let sectionOrder: Array<{ id: string; key: string }> = [];
+	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
 	const flipDurationMs = 200;
 
 	// Available items for each section (with full data for preview)
@@ -62,7 +65,7 @@
 		visibility: string;
 		is_draft?: boolean;
 		data: Record<string, unknown>;
-	}>> = {};
+	}>> = $state({});
 
 	// Simple pattern - admin layout handles auth
 	onMount(async () => {
@@ -330,7 +333,7 @@
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-6 px-4">
 			<div class="flex items-center gap-4">
-				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Back to views">
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
@@ -342,7 +345,7 @@
 				<button
 					type="button"
 					class="btn btn-ghost flex items-center gap-2"
-					on:click={() => showPreview = !showPreview}
+					onclick={() => showPreview = !showPreview}
 					title={showPreview ? 'Hide preview' : 'Show preview'}
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -355,7 +358,7 @@
 					</svg>
 					<span class="hidden sm:inline">{showPreview ? 'Hide' : 'Show'} Preview</span>
 				</button>
-				<button type="button" class="btn btn-primary" on:click={handleSubmit} disabled={saving}>
+				<button type="button" class="btn btn-primary" onclick={handleSubmit} disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -371,7 +374,7 @@
 		<div class="editor-layout" class:with-preview={showPreview}>
 			<!-- Editor Pane -->
 			<div class="editor-pane">
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<!-- Basic Info -->
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
@@ -382,7 +385,7 @@
 						type="text"
 						id="name"
 						bind:value={name}
-						on:input={handleNameInput}
+						oninput={handleNameInput}
 						class="input"
 						placeholder="Recruiter View"
 						required
@@ -516,7 +519,7 @@
 								{accentColor === null
 								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
 								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							on:click={() => accentColor = null}
+							onclick={() => accentColor = null}
 						>
 							<div class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"></div>
 							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use global</span>
@@ -533,7 +536,7 @@
 							<button
 								type="button"
 								class="relative group"
-								on:click={() => accentColor = color}
+								onclick={() => accentColor = color}
 								title="{colorInfo.label} - {colorInfo.description}"
 							>
 								<div
@@ -602,8 +605,8 @@
 				<div
 					class="space-y-3"
 					use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'sections' }}
-					on:consider={handleSectionDndConsider}
-					on:finalize={handleSectionDndFinalize}
+					onconsider={handleSectionDndConsider}
+					onfinalize={handleSectionDndFinalize}
 				>
 					{#each sectionOrder as sectionItem (sectionItem.id)}
 						{@const sectionKey = sectionItem.key}
@@ -625,18 +628,19 @@
 											<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 										</svg>
 									</div>
-									<button
-										type="button"
-										class="w-10 h-6 rounded-full transition-colors relative
-											{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-										on:click={() => toggleSection(sectionKey)}
-									>
-										<span
-											class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
-												{sectionConfig.enabled ? 'left-5' : 'left-1'}"
-										></span>
-									</button>
-									<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
+								<button
+									type="button"
+									class="w-10 h-6 rounded-full transition-colors relative
+										{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+									onclick={() => toggleSection(sectionKey)}
+									aria-label="Toggle {sectionDef?.label || sectionKey} section"
+								>
+									<span
+										class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
+											{sectionConfig.enabled ? 'left-5' : 'left-1'}"
+									></span>
+								</button>
+								<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
 									<span class="text-xs text-gray-500">
 										{#if sectionConfig.items.length > 0}
 											{sectionConfig.items.length} selected
@@ -670,8 +674,8 @@
 												<select
 													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 													value={sectionConfig.width}
-													on:change={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
-													on:click|stopPropagation
+													onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+													onclick={stopPropagation(bubble('click'))}
 												>
 													{#each validWidths as widthOption}
 														<option value={widthOption.value}>{widthOption.label}</option>
@@ -687,8 +691,8 @@
 										<select
 											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 											value={sectionConfig.layout}
-											on:change={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
-											on:click|stopPropagation
+											onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+											onclick={stopPropagation(bubble('click'))}
 											title="Section layout"
 										>
 											{#each layoutConfig.layouts as layoutOption}
@@ -697,26 +701,28 @@
 										</select>
 									{/if}
 
-									{#if sectionConfig.enabled && items.length > 0}
-										<button
-											type="button"
-											class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-											on:click={() => toggleSectionExpand(sectionKey)}
+								{#if sectionConfig.enabled && items.length > 0}
+									<button
+										type="button"
+										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+										onclick={() => toggleSectionExpand(sectionKey)}
+										aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionDef?.label || sectionKey} section"
+									>
+										<svg
+											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											aria-hidden="true"
 										>
-											<svg
-												class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-											>
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-											</svg>
-										</button>
-									{/if}
-								</div>
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+										</svg>
+									</button>
+								{/if}
 							</div>
+						</div>
 
-							<!-- Section Items -->
+						<!-- Section Items -->
 							{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0}
 								<div class="p-3 border-t border-gray-200 dark:border-gray-700">
 									<div class="flex items-center justify-between mb-2">
@@ -729,14 +735,14 @@
 											<button
 												type="button"
 												class="text-xs text-primary-600 hover:underline"
-												on:click={() => selectAllItems(sectionKey)}
+												onclick={() => selectAllItems(sectionKey)}
 											>
 												Select All
 											</button>
 											<button
 												type="button"
 												class="text-xs text-gray-500 hover:underline"
-												on:click={() => clearAllItems(sectionKey)}
+												onclick={() => clearAllItems(sectionKey)}
 											>
 												Clear
 											</button>
@@ -746,8 +752,8 @@
 									<div
 										class="space-y-1 max-h-48 overflow-y-auto"
 										use:dndzone={{ items: sectionItems[sectionKey] || [], flipDurationMs, type: `items-${sectionKey}` }}
-										on:consider={(e) => handleItemDndConsider(sectionKey, e)}
-										on:finalize={(e) => handleItemDndFinalize(sectionKey, e)}
+										onconsider={(e) => handleItemDndConsider(sectionKey, e)}
+										onfinalize={(e) => handleItemDndFinalize(sectionKey, e)}
 									>
 										{#each items as item (item.id)}
 											{@const isSelected = sectionConfig.items.includes(item.id)}
@@ -765,7 +771,7 @@
 													<input
 														type="checkbox"
 														checked={isSelected}
-														on:change={() => toggleItem(sectionKey, item.id)}
+														onchange={() => toggleItem(sectionKey, item.id)}
 														class="w-4 h-4 text-primary-600 rounded border-gray-300"
 													/>
 													<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
@@ -806,7 +812,7 @@
 								<button
 									type="button"
 									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									on:click={() => previewMode = 'desktop'}
+									onclick={() => previewMode = 'desktop'}
 									title="Desktop preview"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -816,7 +822,7 @@
 								<button
 									type="button"
 									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									on:click={() => previewMode = 'mobile'}
+									onclick={() => previewMode = 'mobile'}
 									title="Mobile preview"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

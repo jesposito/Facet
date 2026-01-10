@@ -1,6 +1,11 @@
 # Facet Production Dockerfile
 # Single container with Caddy reverse proxy
 
+# Build arguments for version info
+ARG FACET_VERSION=dev
+ARG BUILD_DATE=unknown
+ARG GIT_COMMIT=unknown
+
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
@@ -80,6 +85,11 @@ RUN chmod +x ./start.sh
 # Create data and uploads directories (ownership set at runtime via PUID/PGID)
 RUN mkdir -p /data /uploads
 
+# Re-declare build args in final stage
+ARG FACET_VERSION=dev
+ARG BUILD_DATE=unknown
+ARG GIT_COMMIT=unknown
+
 # Environment - PUID/PGID follow linuxserver.io convention for Unraid compatibility
 ENV DATA_DIR=/data \
     NODE_ENV=production \
@@ -88,7 +98,10 @@ ENV DATA_DIR=/data \
     HOST=0.0.0.0 \
     ADMIN_ENABLED=false \
     PUID=1000 \
-    PGID=1000
+    PGID=1000 \
+    FACET_VERSION=${FACET_VERSION} \
+    BUILD_DATE=${BUILD_DATE} \
+    GIT_COMMIT=${GIT_COMMIT}
 
 # Single exposed port
 EXPOSE 8080

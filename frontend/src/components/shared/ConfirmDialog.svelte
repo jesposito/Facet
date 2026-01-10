@@ -1,14 +1,16 @@
 <script lang="ts">
+	import { run } from 'svelte/legacy';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { confirmDialog } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
-	let dialogEl: HTMLDivElement;
-	let cancelBtnEl: HTMLButtonElement;
-	let previousActiveElement: HTMLElement | null = null;
+	let dialogEl: HTMLDivElement | undefined = $state();
+	let cancelBtnEl: HTMLButtonElement | undefined = $state();
+	let previousActiveElement: HTMLElement | null = $state(null);
 
-	$: isOpen = $confirmDialog.open;
-	$: options = $confirmDialog.options;
+	let isOpen = $derived($confirmDialog.open);
+	let options = $derived($confirmDialog.options);
 
 	// Focus trap and keyboard handling
 	function handleKeydown(event: KeyboardEvent) {
@@ -49,22 +51,24 @@
 	}
 
 	// Lock body scroll when open
-	$: if (typeof document !== 'undefined') {
-		if (isOpen) {
-			previousActiveElement = document.activeElement as HTMLElement;
-			document.body.style.overflow = 'hidden';
-			// Focus cancel button after dialog renders
-			requestAnimationFrame(() => {
-				cancelBtnEl?.focus();
-			});
-		} else {
-			document.body.style.overflow = '';
-			// Restore focus to previous element
-			if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
-				previousActiveElement.focus();
+	run(() => {
+		if (typeof document !== 'undefined') {
+			if (isOpen) {
+				previousActiveElement = document.activeElement as HTMLElement;
+				document.body.style.overflow = 'hidden';
+				// Focus cancel button after dialog renders
+				requestAnimationFrame(() => {
+					cancelBtnEl?.focus();
+				});
+			} else {
+				document.body.style.overflow = '';
+				// Restore focus to previous element
+				if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+					previousActiveElement.focus();
+				}
 			}
 		}
-	}
+	});
 
 	onDestroy(() => {
 		if (typeof document !== 'undefined') {
@@ -73,14 +77,14 @@
 	});
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 {#if isOpen && options}
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
-		on:click={handleOverlayClick}
-		on:keydown={handleKeydown}
+		onclick={handleOverlayClick}
+		onkeydown={handleKeydown}
 		role="presentation"
 	>
 		<!-- Dialog -->
@@ -125,14 +129,14 @@
 					bind:this={cancelBtnEl}
 					type="button"
 					class="btn btn-secondary"
-					on:click={() => confirmDialog.respond(false)}
+					onclick={() => confirmDialog.respond(false)}
 				>
 					{options.cancelText || 'Cancel'}
 				</button>
 				<button
 					type="button"
 					class="btn {options.danger ? 'btn-danger' : 'btn-primary'}"
-					on:click={() => confirmDialog.respond(true)}
+					onclick={() => confirmDialog.respond(true)}
 				>
 					{options.confirmText || 'Confirm'}
 				</button>

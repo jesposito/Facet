@@ -1,5 +1,8 @@
 <script lang="ts">
-	/**
+	
+
+	interface Props {
+		/**
 	 * ClickToReveal - Click-to-reveal contact component
 	 *
 	 * Hides contact information until user clicks to reveal it.
@@ -7,24 +10,32 @@
 	 *
 	 * Protection level: High (prevents automated scraping, requires user interaction)
 	 */
+		type?: 'email' | 'phone' | 'url';
+		value: string; // The actual contact value
+		label?: string; // Display text for the button
+		icon?: string; // Optional icon HTML
+		contactId?: string; // Optional: for tracking reveals via API
+	}
 
-	export let type: 'email' | 'phone' | 'url' = 'email';
-	export let value: string; // The actual contact value
-	export let label: string = ''; // Display text for the button
-	export let icon: string = ''; // Optional icon HTML
-	export let contactId: string = ''; // Optional: for tracking reveals via API
+	let {
+		type = 'email',
+		value,
+		label = '',
+		icon = '',
+		contactId = ''
+	}: Props = $props();
 
-	let revealed = false;
-	let copying = false;
+	let revealed = $state(false);
+	let copying = $state(false);
 
 	// Build the href based on type
-	$: href = type === 'email'
+	let href = $derived(type === 'email'
 		? `mailto:${value}`
 		: type === 'phone'
 		? `tel:${value.replace(/\s/g, '')}`
-		: value;
+		: value);
 
-	$: buttonLabel = label || `Show ${type}`;
+	let buttonLabel = $derived(label || `Show ${type}`);
 
 	function reveal() {
 		revealed = true;
@@ -62,7 +73,7 @@
 	<button
 		type="button"
 		class="reveal-button"
-		on:click={reveal}
+		onclick={reveal}
 		aria-label={`Reveal ${type}`}
 	>
 		{#if icon}
@@ -101,7 +112,7 @@
 		<button
 			type="button"
 			class="copy-button"
-			on:click={copyToClipboard}
+			onclick={copyToClipboard}
 			aria-label="Copy to clipboard"
 			disabled={copying}
 		>

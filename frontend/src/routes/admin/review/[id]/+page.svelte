@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
-	let loading = true;
-	let applying = false;
-	let proposal: Record<string, unknown> | null = null;
-	let proposedData: Record<string, unknown> = {};
-	let diff: Record<string, { type: string; old?: unknown; new?: unknown }> = {};
+	let loading = $state(true);
+	let applying = $state(false);
+	let proposal: Record<string, unknown> | null = $state(null);
+	let proposedData: Record<string, unknown> = $state({});
+	let diff: Record<string, { type: string; old?: unknown; new?: unknown }> = $state({});
 
 	// Field decisions
-	let fieldDecisions: Record<string, 'apply' | 'ignore' | 'lock'> = {};
-	let fieldEdits: Record<string, unknown> = {};
+	let fieldDecisions: Record<string, 'apply' | 'ignore' | 'lock'> = $state({});
+	let fieldEdits: Record<string, unknown> = $state({});
 
 	const fieldLabels: Record<string, string> = {
 		title: 'Title',
@@ -27,7 +27,7 @@
 
 	onMount(async () => {
 		try {
-			const proposalId = $page.params.id;
+			const proposalId = page.params.id;
 			if (!proposalId) {
 				toasts.add('error', 'Missing proposal ID');
 				goto('/admin/proposals');
@@ -95,7 +95,7 @@
 				}
 			}
 
-			const response = await fetch(`/api/proposals/${$page.params.id}/apply`, {
+			const response = await fetch(`/api/proposals/${page.params.id}/apply`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -125,7 +125,7 @@
 
 	async function handleReject() {
 		try {
-			const response = await fetch(`/api/proposals/${$page.params.id}/reject`, {
+			const response = await fetch(`/api/proposals/${page.params.id}/reject`, {
 				method: 'POST',
 				headers: {
 					Authorization: `Bearer ${pb.authStore.token}`
@@ -195,10 +195,10 @@
 				Review each field and choose what to apply
 			</span>
 			<div class="flex gap-2">
-				<button class="btn btn-sm btn-secondary" on:click={() => setAllDecisions('apply')}>
+				<button class="btn btn-sm btn-secondary" onclick={() => setAllDecisions('apply')}>
 					Apply All
 				</button>
-				<button class="btn btn-sm btn-secondary" on:click={() => setAllDecisions('ignore')}>
+				<button class="btn btn-sm btn-secondary" onclick={() => setAllDecisions('ignore')}>
 					Ignore All
 				</button>
 			</div>
@@ -225,7 +225,7 @@
 								class="px-3 py-1 text-sm rounded {fieldDecisions[field] === 'apply'
 									? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
 									: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}"
-								on:click={() => (fieldDecisions[field] = 'apply')}
+								onclick={() => (fieldDecisions[field] = 'apply')}
 							>
 								Apply
 							</button>
@@ -233,7 +233,7 @@
 								class="px-3 py-1 text-sm rounded {fieldDecisions[field] === 'ignore'
 									? 'bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
 									: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}"
-								on:click={() => (fieldDecisions[field] = 'ignore')}
+								onclick={() => (fieldDecisions[field] = 'ignore')}
 							>
 								Ignore
 							</button>
@@ -241,7 +241,7 @@
 								class="px-3 py-1 text-sm rounded inline-flex items-center gap-1 {fieldDecisions[field] === 'lock'
 									? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
 									: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}"
-								on:click={() => (fieldDecisions[field] = 'lock')}
+								onclick={() => (fieldDecisions[field] = 'lock')}
 								title="Apply and lock (won't be overwritten on refresh)"
 							>
 								{@html icon('lock')} Lock
@@ -276,7 +276,7 @@
 									type="text"
 									class="input mt-1"
 									value={getArrayValue(field)}
-									on:input={(e) => (fieldEdits[field] = e.currentTarget.value.split(',').map((s) => s.trim()))}
+									oninput={(e) => (fieldEdits[field] = e.currentTarget.value.split(',').map((s) => s.trim()))}
 								/>
 							{:else if typeof value === 'string' && value.length > 100}
 								<textarea
@@ -294,12 +294,12 @@
 
 		<!-- Actions -->
 		<div class="flex justify-between mt-8">
-			<button class="btn btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" on:click={handleReject}>
+			<button class="btn btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onclick={handleReject}>
 				Reject All
 			</button>
 			<div class="flex gap-3">
 				<a href="/admin/import" class="btn btn-secondary">Cancel</a>
-				<button class="btn btn-primary" on:click={handleApply} disabled={applying}>
+				<button class="btn btn-primary" onclick={handleApply} disabled={applying}>
 					{#if applying}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

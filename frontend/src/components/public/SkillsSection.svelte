@@ -1,18 +1,22 @@
 <script lang="ts">
 	import type { Skill } from '$lib/pocketbase';
 
-	export let items: Skill[];
-	export let layout: string = 'grouped';
+	interface Props {
+		items: Skill[];
+		layout?: string;
+	}
+
+	let { items, layout = 'grouped' }: Props = $props();
 
 	// Group skills by category
-	$: groupedSkills = items.reduce((acc, skill) => {
+	let groupedSkills = $derived(items.reduce((acc, skill) => {
 		const category = skill.category || 'Other';
 		if (!acc[category]) {
 			acc[category] = [];
 		}
 		acc[category].push(skill);
 		return acc;
-	}, {} as Record<string, Skill[]>);
+	}, {} as Record<string, Skill[]>));
 
 	const proficiencyColors = {
 		expert: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',

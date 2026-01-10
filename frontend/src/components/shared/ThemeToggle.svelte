@@ -4,7 +4,7 @@
 
 <button
 	class="btn btn-ghost p-2 rounded-full"
-	on:click={() => theme.toggle()}
+	onclick={() => theme.toggle()}
 	aria-label={$theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
 >
 	{#if $theme === 'dark'}

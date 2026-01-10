@@ -1,5 +1,8 @@
 <script lang="ts">
-	/**
+	
+
+	interface Props {
+		/**
 	 * ObfuscatedLink - Anti-scraping contact link component
 	 *
 	 * Uses CSS-based obfuscation to protect contact information from bots:
@@ -9,11 +12,18 @@
 	 *
 	 * Protection level: Medium (blocks simple scrapers, readable by screen readers)
 	 */
+		type?: 'email' | 'phone' | 'url';
+		value: string; // The actual contact value (e.g., "hello@example.com")
+		label?: string; // Display text (defaults to value if not provided)
+		icon?: string; // Optional icon HTML
+	}
 
-	export let type: 'email' | 'phone' | 'url' = 'email';
-	export let value: string; // The actual contact value (e.g., "hello@example.com")
-	export let label: string = ''; // Display text (defaults to value if not provided)
-	export let icon: string = ''; // Optional icon HTML
+	let {
+		type = 'email',
+		value,
+		label = '',
+		icon = ''
+	}: Props = $props();
 
 	// Generate obfuscated version with decoy characters
 	function obfuscate(text: string): string {
@@ -33,14 +43,14 @@
 	}
 
 	// Build the href based on type
-	$: href = type === 'email'
+	let href = $derived(type === 'email'
 		? `mailto:${value}`
 		: type === 'phone'
 		? `tel:${value.replace(/\s/g, '')}`
-		: value;
+		: value);
 
-	$: displayLabel = label || value;
-	$: obfuscatedLabel = obfuscate(displayLabel);
+	let displayLabel = $derived(label || value);
+	let obfuscatedLabel = $derived(obfuscate(displayLabel));
 </script>
 
 <a

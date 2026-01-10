@@ -6,8 +6,8 @@
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
 
-	let loading = true;
-	let views: Array<Record<string, unknown>> = [];
+	let loading = $state(true);
+	let views: Array<Record<string, unknown>> = $state([]);
 
 	// Simple pattern - admin layout handles auth
 	onMount(loadViews);
@@ -126,7 +126,7 @@
 						<div class="flex items-center gap-1">
 							<button
 								class="btn btn-sm btn-ghost"
-								on:click={() => copyViewUrl(String(view.slug))}
+								onclick={() => copyViewUrl(String(view.slug))}
 								title="Copy URL"
 							>
 								{@html icon('copy')}
@@ -144,14 +144,14 @@
 							</a>
 							<button
 								class="btn btn-sm btn-ghost"
-								on:click={() => toggleActive(view)}
+								onclick={() => toggleActive(view)}
 								title={view.is_active ? 'Deactivate' : 'Activate'}
 							>
 								{@html view.is_active ? icon('toggleOn') : icon('toggleOff')}
 							</button>
 							<button
 								class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-								on:click={() => deleteView(String(view.id))}
+								onclick={() => deleteView(String(view.id))}
 								title="Delete"
 							>
 								{@html icon('trash')}

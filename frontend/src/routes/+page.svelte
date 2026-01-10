@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { self } from 'svelte/legacy';
+
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -20,43 +22,47 @@
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 	import { goto } from '$app/navigation';
 
-	export let data: PageData;
+	interface Props {
+		data: PageData;
+	}
+
+	let { data }: Props = $props();
 
 	// Get headline and summary - use view overrides if this is a default view
-	$: headline = data.view?.hero_headline || data.profile?.headline;
-	$: summary = data.view?.hero_summary || data.profile?.summary;
+	let headline = $derived(data.view?.hero_headline || data.profile?.headline);
+	let summary = $derived(data.view?.hero_summary || data.profile?.summary);
 
 	// Generate JSON-LD and Open Graph for SEO
-	$: baseUrl = browser ? window.location.origin : 'http://localhost:8080';
-	$: personJsonLd = data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null;
-	$: websiteJsonLd = data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null;
-	$: canonicalUrl = getCanonicalUrl(baseUrl, '');
-	$: ogTags = data.profile ? generateOpenGraphTags({
+	let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
+	let personJsonLd = $derived(data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null);
+	let websiteJsonLd = $derived(data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null);
+	let canonicalUrl = $derived(getCanonicalUrl(baseUrl, ''));
+	let ogTags = $derived(data.profile ? generateOpenGraphTags({
 		title: data.profile.name || 'Profile',
 		description: headline || 'Personal profile and portfolio',
 		image: data.profile.avatar_url || undefined,
 		url: canonicalUrl,
 		type: 'profile',
 		siteName: 'Facet'
-	}) : {};
+	}) : {});
 
 	// Print menu state
-	let showPrintMenu = false;
-	let showGenerateModal = false;
-	let generating = false;
-	let aiPrintStatus = {
+	let showPrintMenu = $state(false);
+	let showGenerateModal = $state(false);
+	let generating = $state(false);
+	let aiPrintStatus = $state({
 		available: false,
 		ai_configured: false,
 		pandoc_installed: false
-	};
-	let generationConfig = {
+	});
+	let generationConfig = $state({
 		format: 'pdf' as 'pdf' | 'docx',
 		target_role: '',
 		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
 		length: 'two-page' as 'one-page' | 'two-page' | 'full'
-	};
-	let generatedUrl: string | null = null;
-	$: landingMessage = data.landingPageMessage || 'This profile is being set up.';
+	});
+	let generatedUrl: string | null = $state(null);
+	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
 
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
@@ -230,7 +236,7 @@
 		<!-- Print Menu -->
 		<div class="relative">
 			<button
-				on:click={() => showPrintMenu = !showPrintMenu}
+				onclick={() => showPrintMenu = !showPrintMenu}
 				class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 				title="Print options"
 				aria-label="Print options"
@@ -242,11 +248,11 @@
 			</button>
 
 			{#if showPrintMenu}
-				<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-				<div class="fixed inset-0" on:click={closePrintMenu}></div>
+				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+				<div class="fixed inset-0" onclick={closePrintMenu}></div>
 				<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
 					<button
-						on:click={() => { window.print(); closePrintMenu(); }}
+						onclick={() => { window.print(); closePrintMenu(); }}
 						class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
 					>
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -256,7 +262,7 @@
 					</button>
 					{#if aiPrintStatus.ai_configured && data.view?.slug}
 						<button
-							on:click={() => { showGenerateModal = true; closePrintMenu(); }}
+							onclick={() => { showGenerateModal = true; closePrintMenu(); }}
 							class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -272,7 +278,7 @@
 		<!-- Login button - for demo users, auto-logout and go to login page -->
 		{#if $currentUser}
 			<button
-				on:click={handleLogout}
+				onclick={handleLogout}
 				class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
 				title="Log in to your account"
 				aria-label="Log in to your account"
@@ -395,8 +401,8 @@
 
 <!-- AI Resume Generation Modal -->
 {#if showGenerateModal}
-	<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" on:click|self={() => showGenerateModal = false}>
+	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" onclick={self(() => showGenerateModal = false)}>
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate AI Resume</h2>
@@ -450,7 +456,7 @@
 				<button
 					type="button"
 					class="btn btn-ghost"
-					on:click={() => { showGenerateModal = false; generatedUrl = null; }}
+					onclick={() => { showGenerateModal = false; generatedUrl = null; }}
 				>
 					{generatedUrl ? 'Close' : 'Cancel'}
 				</button>
@@ -458,7 +464,7 @@
 					<button
 						type="button"
 						class="btn btn-primary"
-						on:click={generateResume}
+						onclick={generateResume}
 						disabled={generating}
 					>
 						{#if generating}

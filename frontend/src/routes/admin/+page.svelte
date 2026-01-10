@@ -3,15 +3,15 @@
 	import { collection } from '$lib/stores/demo';
 	import { onMount, onDestroy } from 'svelte';
 
-	let stats = {
+	let stats = $state({
 		projects: 0,
 		experience: 0,
 		views: 0,
 		pendingProposals: 0
-	};
+	});
 
-	let recentActivity: Array<{ type: string; title: string; date: string }> = [];
-	let loading = true;
+	let recentActivity: Array<{ type: string; title: string; date: string }> = $state([]);
+	let loading = $state(true);
 	let mounted = false;
 
 	// Simple pattern - admin layout handles auth
@@ -88,7 +88,7 @@
 		});
 	}
 
-	$: isEmpty = !loading && stats.projects === 0 && stats.experience === 0 && stats.views === 0;
+	let isEmpty = $derived(!loading && stats.projects === 0 && stats.experience === 0 && stats.views === 0);
 </script>
 
 <svelte:head>

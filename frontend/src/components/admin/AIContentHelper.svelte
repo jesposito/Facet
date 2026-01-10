@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { run, createBubbler, stopPropagation } from 'svelte/legacy';
+
+	const bubble = createBubbler();
 	/**
 	 * AIContentHelper - Enhanced AI writing assistant
 	 *
@@ -14,11 +17,21 @@
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
-	export let content: string = '';
-	export let fieldType: 'headline' | 'summary' | 'description' | 'bullets' | 'content' = 'description';
-	export let context: Record<string, string> = {};
-	export let disabled: boolean = false;
-	export let size: 'sm' | 'md' = 'md';
+	interface Props {
+		content?: string;
+		fieldType?: 'headline' | 'summary' | 'description' | 'bullets' | 'content';
+		context?: Record<string, string>;
+		disabled?: boolean;
+		size?: 'sm' | 'md';
+	}
+
+	let {
+		content = '',
+		fieldType = 'description',
+		context = {},
+		disabled = false,
+		size = 'md'
+	}: Props = $props();
 
 	const dispatch = createEventDispatcher<{
 		apply: { content: string };
@@ -27,13 +40,13 @@
 	type Mode = 'rewrite' | 'critique';
 	type Tone = 'executive' | 'professional' | 'technical' | 'conversational' | 'creative';
 
-	let loading = false;
-	let aiAvailable: boolean | null = null;
-	let showMenu = false;
-	let mode: Mode = 'rewrite';
+	let loading = $state(false);
+	let aiAvailable: boolean | null = $state(null);
+	let showMenu = $state(false);
+	let mode: Mode = $state('rewrite');
 	let selectedTone: Tone = 'professional';
-	let previewContent = '';
-	let showPreview = false;
+	let previewContent = $state('');
+	let showPreview = $state(false);
 
 	// Tone definitions
 	const tones: { value: Tone; label: string; description: string; icon: string }[] = [
@@ -84,9 +97,11 @@
 		}
 	}
 
-	$: if (aiAvailable === null) {
-		checkAIStatus();
-	}
+	run(() => {
+		if (aiAvailable === null) {
+			checkAIStatus();
+		}
+	});
 
 	async function handleRewrite(tone: Tone) {
 		if (!content.trim()) {
@@ -194,7 +209,7 @@
 			class="ai-button inline-flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-md border border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950 dark:to-blue-950 text-purple-700 dark:text-purple-300 hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900 dark:hover:to-blue-900 transition-all whitespace-nowrap
 				{size === 'sm' ? 'text-xs' : 'text-xs sm:text-sm'}
 				{disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer shadow-sm hover:shadow-md'}"
-			on:click={toggleMenu}
+			onclick={toggleMenu}
 			disabled={disabled || loading}
 			title="AI Writing Assistant"
 		>
@@ -236,7 +251,7 @@
 							class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors {mode === 'rewrite'
 								? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
 								: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-							on:click={() => (mode = 'rewrite')}
+							onclick={() => (mode = 'rewrite')}
 						>
 							✨ Rewrite
 						</button>
@@ -245,7 +260,7 @@
 							class="flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors {mode === 'critique'
 								? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
 								: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-							on:click={() => (mode = 'critique')}
+							onclick={() => (mode = 'critique')}
 						>
 							💭 Get Feedback
 						</button>
@@ -261,7 +276,7 @@
 									class="w-full text-left px-3 py-2 rounded-md border transition-all {selectedTone === tone.value
 										? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
 										: 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-gray-50 dark:hover:bg-gray-750'}"
-									on:click={() => handleRewrite(tone.value)}
+									onclick={() => handleRewrite(tone.value)}
 									disabled={loading}
 								>
 									<div class="flex items-start gap-2">
@@ -287,7 +302,7 @@
 							<button
 								type="button"
 								class="w-full px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors disabled:opacity-50"
-								on:click={handleCritique}
+								onclick={handleCritique}
 								disabled={loading}
 							>
 								{loading ? 'Getting feedback...' : '💭 Get AI Feedback'}
@@ -309,16 +324,16 @@
 		{#if showPreview}
 			<div
 				class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-				on:click={cancelPreview}
-				on:keydown={(e) => e.key === 'Escape' && cancelPreview()}
+				onclick={cancelPreview}
+				onkeydown={(e) => e.key === 'Escape' && cancelPreview()}
 				role="button"
 				tabindex="-1"
 			>
-				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+				<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 				<div
 					class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] sm:max-h-[80vh] overflow-hidden flex flex-col"
-					on:click|stopPropagation
-					on:keydown|stopPropagation
+					onclick={stopPropagation(bubble('click'))}
+					onkeydown={stopPropagation(bubble('keydown'))}
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="ai-dialog-title"
@@ -334,9 +349,10 @@
 						<button
 							type="button"
 							class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-							on:click={cancelPreview}
+							onclick={cancelPreview}
+							aria-label="Close"
 						>
-							<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
@@ -391,7 +407,7 @@
 							<button
 								type="button"
 								class="flex-1 px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
-								on:click={applyPreview}
+								onclick={applyPreview}
 							>
 								✓ Apply Changes
 							</button>
@@ -399,7 +415,7 @@
 						<button
 							type="button"
 							class="flex-1 px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 font-medium transition-colors"
-							on:click={cancelPreview}
+							onclick={cancelPreview}
 						>
 							{mode === 'critique' ? 'Close' : 'Cancel'}
 						</button>

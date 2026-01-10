@@ -36,17 +36,17 @@
 		storageSize: number;
 	};
 
-	let items: MediaItem[] = [];
-	let loading = true;
-	let page = 1;
+	let items: MediaItem[] = $state([]);
+	let loading = $state(true);
+	let page = $state(1);
 	let perPage = 50;
 	let totalItems = 0;
-	let totalPages = 1;
-	let search = '';
-	let typeFilter: 'all' | 'image' = 'all';
-	let statusFilter: 'referenced' | 'all' | 'orphans' = 'referenced';
-	let error = '';
-	let stats: MediaStats = {
+	let totalPages = $state(1);
+	let search = $state('');
+	let typeFilter: 'all' | 'image' = $state('all');
+	let statusFilter: 'referenced' | 'all' | 'orphans' = $state('referenced');
+	let error = $state('');
+	let stats: MediaStats = $state({
 		referencedFiles: 0,
 		referencedSize: 0,
 		orphanFiles: 0,
@@ -55,18 +55,18 @@
 		totalSize: 0,
 		storageFiles: 0,
 		storageSize: 0
-	};
-	let selectedOrphans: Set<string> = new Set();
-	let newExternal = {
+	});
+	let selectedOrphans: Set<string> = $state(new Set());
+	let newExternal = $state({
 		url: '',
 		title: '',
 		mime: '',
 		thumbnail_url: '',
 		saving: false
-	};
+	});
 	let uploadFile: File | null = null;
-	let uploadTitle = '';
-	let uploading = false;
+	let uploadTitle = $state('');
+	let uploading = $state(false);
 
 	const humanSize = (bytes: number) => {
 		if (!bytes) return '0 B';
@@ -390,7 +390,7 @@
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Media Library</h1>
 			<p class="text-sm text-gray-600 dark:text-gray-400">Browse and manage uploaded files across your profile.</p>
 		</div>
-		<button class="btn btn-secondary" on:click={loadMedia} aria-busy={loading}>
+		<button class="btn btn-secondary" onclick={loadMedia} aria-busy={loading}>
 			{loading ? 'Loading...' : 'Refresh'}
 		</button>
 	</div>
@@ -402,20 +402,20 @@
 					class="input"
 					placeholder="Search filename..."
 					bind:value={search}
-					on:keydown={(e) => e.key === 'Enter' && resetAndLoad()}
+					onkeydown={(e) => e.key === 'Enter' && resetAndLoad()}
 				/>
-				<button class="btn btn-primary" on:click={resetAndLoad}>Search</button>
+				<button class="btn btn-primary" onclick={resetAndLoad}>Search</button>
 			</div>
 			<div class="flex items-center gap-2">
 				<label class="label mb-0" for="type-filter">Type</label>
-				<select id="type-filter" class="input" bind:value={typeFilter} on:change={resetAndLoad}>
+				<select id="type-filter" class="input" bind:value={typeFilter} onchange={resetAndLoad}>
 					<option value="all">All</option>
 					<option value="image">Images</option>
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
 				<label class="label mb-0" for="status-filter">Scope</label>
-				<select id="status-filter" class="input" bind:value={statusFilter} on:change={resetAndLoad}>
+				<select id="status-filter" class="input" bind:value={statusFilter} onchange={resetAndLoad}>
 					<option value="referenced">Referenced only</option>
 					<option value="all">Referenced + orphans</option>
 					<option value="orphans">Orphans only</option>
@@ -442,13 +442,13 @@
 					<span class="text-gray-700 dark:text-gray-200">{selectedOrphans.size} orphan{selectedOrphans.size === 1 ? '' : 's'} selected</span>
 					<button
 						class="btn btn-secondary text-red-600 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
-						on:click={bulkDeleteSelected}
+						onclick={bulkDeleteSelected}
 					>
 						Delete selected
 					</button>
-					<button class="btn btn-ghost btn-sm" on:click={clearSelection}>Clear selection</button>
+					<button class="btn btn-ghost btn-sm" onclick={clearSelection}>Clear selection</button>
 				{:else if statusFilter !== 'referenced'}
-					<button class="btn btn-secondary btn-sm" on:click={selectVisibleOrphans}>
+					<button class="btn btn-secondary btn-sm" onclick={selectVisibleOrphans}>
 						Select all visible orphans
 					</button>
 				{/if}
@@ -470,7 +470,7 @@
 					Add files directly to the media library (images, docs, video up to 20MB).
 				</p>
 			</div>
-			<button class="btn btn-primary" on:click={uploadMedia} aria-busy={uploading}>
+			<button class="btn btn-primary" onclick={uploadMedia} aria-busy={uploading}>
 				{uploading ? 'Uploading…' : 'Upload'}
 			</button>
 		</div>
@@ -481,7 +481,7 @@
 					id="upload-file"
 					type="file"
 					class="input"
-					on:change={handleFileChange}
+					onchange={handleFileChange}
 				/>
 			</div>
 			<div>
@@ -502,7 +502,7 @@
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Add external media</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">Link to remote assets (YouTube, Vimeo, images, etc.).</p>
 			</div>
-			<button class="btn btn-primary" on:click={createExternal} aria-busy={newExternal.saving}>
+			<button class="btn btn-primary" onclick={createExternal} aria-busy={newExternal.saving}>
 				{newExternal.saving ? 'Saving…' : 'Add'}
 			</button>
 		</div>
@@ -555,7 +555,7 @@
 												type="checkbox"
 												class="w-4 h-4 text-primary-600 rounded border-gray-300"
 												checked={selectedOrphans.has(item.relative_path)}
-												on:change={() => toggleSelection(item)}
+												onchange={() => toggleSelection(item)}
 											/>
 										{/if}
 									</td>
@@ -603,10 +603,10 @@
 								</td>
 								<td class="px-4 py-3">
 									<div class="flex items-center gap-2">
-										<button class="btn btn-ghost btn-sm" on:click={() => copyUrl(item.url)}>
+										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)}>
 											{@html icon('copy')}
 										</button>
-										<button class="btn btn-ghost btn-sm text-red-600" on:click={() => deleteFile(item)}>
+										<button class="btn btn-ghost btn-sm text-red-600" onclick={() => deleteFile(item)}>
 											{@html icon('trash')}
 										</button>
 									</div>
@@ -620,10 +620,10 @@
 				<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
 					<div>Page {page} of {totalPages}</div>
 					<div class="flex items-center gap-2">
-						<button class="btn btn-ghost btn-sm" on:click={() => { page = Math.max(1, page - 1); loadMedia(); }} disabled={page === 1}>
+						<button class="btn btn-ghost btn-sm" onclick={() => { page = Math.max(1, page - 1); loadMedia(); }} disabled={page === 1}>
 							Previous
 						</button>
-						<button class="btn btn-ghost btn-sm" on:click={() => { if (page < totalPages) { page += 1; loadMedia(); } }} disabled={page >= totalPages}>
+						<button class="btn btn-ghost btn-sm" onclick={() => { if (page < totalPages) { page += 1; loadMedia(); } }} disabled={page >= totalPages}>
 							Next
 						</button>
 					</div>

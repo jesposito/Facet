@@ -11,8 +11,8 @@
 		});
 	});
 
-	$: is404 = $page.status === 404;
-	$: is500 = $page.status >= 500;
+	let is404 = $derived($page.status === 404);
+	let is500 = $derived($page.status >= 500);
 
 	let referrerPath = '';
 
@@ -197,7 +197,7 @@
 		<div class="flex flex-wrap gap-4 justify-center">
 			<button
 				type="button"
-				on:click={goHome}
+				onclick={goHome}
 				data-testid="go-home-button"
 				class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
 			>
@@ -210,7 +210,7 @@
 			{#if is404}
 				<button
 					type="button"
-					on:click={goBack}
+					onclick={goBack}
 					class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -221,7 +221,7 @@
 			{:else}
 				<button
 					type="button"
-					on:click={hardReload}
+					onclick={hardReload}
 					class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

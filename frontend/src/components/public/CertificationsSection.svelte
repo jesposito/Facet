@@ -2,8 +2,12 @@
 	import type { Certification } from '$lib/pocketbase';
 	import { formatDate } from '$lib/utils';
 
-	export let items: Certification[];
-	export let layout: string = 'grouped';
+	interface Props {
+		items: Certification[];
+		layout?: string;
+	}
+
+	let { items, layout = 'grouped' }: Props = $props();
 
 	function groupByIssuer(certs: Certification[]): Map<string, Certification[]> {
 		const groups = new Map<string, Certification[]>();
@@ -30,12 +34,12 @@
 		return expiry > now && expiry <= thirtyDaysFromNow;
 	}
 
-	$: groupedCertifications = groupByIssuer(items);
-	$: sortedByDate = [...items].sort((a, b) => {
+	let groupedCertifications = $derived(groupByIssuer(items));
+	let sortedByDate = $derived([...items].sort((a, b) => {
 		const dateA = a.issue_date ? new Date(a.issue_date).getTime() : 0;
 		const dateB = b.issue_date ? new Date(b.issue_date).getTime() : 0;
 		return dateB - dateA;
-	});
+	}));
 </script>
 
 <section id="certifications" class="mb-16">

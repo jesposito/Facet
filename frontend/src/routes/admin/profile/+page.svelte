@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount, onDestroy } from 'svelte';
 	import { pb, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -7,27 +9,27 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 
 	let profile: Record<string, unknown> | null = null;
-	let loading = true;
-	let saving = false;
+	let loading = $state(true);
+	let saving = $state(false);
 
 	// Form fields
-	let name = '';
-	let headline = '';
-	let location = '';
-	let summary = '';
-	let contactEmail = '';
-	let contactLinks: Array<{ type: string; url: string; label: string }> = [];
-	let visibility = 'public';
+	let name = $state('');
+	let headline = $state('');
+	let location = $state('');
+	let summary = $state('');
+	let contactEmail = $state('');
+	let contactLinks: Array<{ type: string; url: string; label: string }> = $state([]);
+	let visibility = $state('public');
 	
 	// Image fields
-	let avatarUrl: string | null = null;
-	let heroImageUrl: string | null = null;
+	let avatarUrl: string | null = $state(null);
+	let heroImageUrl: string | null = $state(null);
 	let avatarFile: File | null = null;
 	let heroImageFile: File | null = null;
 
 	// Views that override headline/summary
-	let viewsOverridingHeadline: View[] = [];
-	let viewsOverridingSummary: View[] = [];
+	let viewsOverridingHeadline: View[] = $state([]);
+	let viewsOverridingSummary: View[] = $state([]);
 
 	onMount(async () => {
 		console.log('[PROFILE] onMount() called');
@@ -202,7 +204,7 @@
 			<div class="animate-pulse">Loading profile...</div>
 		</div>
 	{:else}
-		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Images</h2>
 				
@@ -219,7 +221,7 @@
 									/>
 								<button
 									type="button"
-									on:click={removeAvatar}
+									onclick={removeAvatar}
 									class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
 									title="Remove avatar"
 								>
@@ -236,7 +238,7 @@
 									type="file"
 									id="avatar"
 									accept="image/jpeg,image/png,image/webp,image/svg+xml"
-									on:change={handleAvatarChange}
+									onchange={handleAvatarChange}
 									class="hidden"
 								/>
 								<label for="avatar" class="btn btn-secondary btn-sm cursor-pointer">
@@ -261,7 +263,7 @@
 									/>
 								<button
 									type="button"
-									on:click={removeHeroImage}
+									onclick={removeHeroImage}
 									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
 									title="Remove hero image"
 								>
@@ -278,7 +280,7 @@
 									type="file"
 									id="hero_image"
 									accept="image/jpeg,image/png,image/webp,image/gif"
-									on:change={handleHeroImageChange}
+									onchange={handleHeroImageChange}
 									class="hidden"
 								/>
 								<label for="hero_image" class="btn btn-secondary btn-sm cursor-pointer">
@@ -382,7 +384,7 @@
 				<div>
 					<div class="flex items-center justify-between mb-2">
 						<span class="label mb-0">Contact Links</span>
-						<button type="button" class="btn btn-sm btn-secondary" on:click={addContactLink}>
+						<button type="button" class="btn btn-sm btn-secondary" onclick={addContactLink}>
 							+ Add Link
 						</button>
 					</div>
@@ -416,7 +418,7 @@
 									<button
 										type="button"
 										class="btn btn-ghost text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-										on:click={() => removeContactLink(i)}
+										onclick={() => removeContactLink(i)}
 										title="Remove link"
 									>
 										{@html icon('x')}
