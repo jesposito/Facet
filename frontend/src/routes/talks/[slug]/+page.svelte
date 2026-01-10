@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
@@ -141,9 +142,14 @@
 			</a>
 
 			<!-- Talk title -->
-			<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
-				{data.talk.title}
-			</h1>
+			<div class="flex flex-wrap items-start gap-3">
+				<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
+					{data.talk.title}
+				</h1>
+				{#if (data as any).isAuthenticated && ((data.talk as any).visibility !== 'public' || (data.talk as any).is_draft)}
+					<VisibilityBadge visibility={(data.talk as any).visibility} isDraft={(data.talk as any).is_draft} />
+				{/if}
+			</div>
 
 			<!-- Meta information -->
 			<div class="mt-6 flex flex-wrap items-center gap-4 text-gray-300">

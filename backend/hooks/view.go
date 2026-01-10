@@ -1291,26 +1291,27 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			post := records[0]
 
-			// Check visibility - only public, non-draft posts are accessible
 			visibility := post.GetString("visibility")
 			isDraft := post.GetBool("is_draft")
+			isAuthenticated := e.Auth != nil
 
-			if visibility != "public" || isDraft {
-				// Return 404 to prevent discovery of private/unlisted/draft posts
+			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "post not found"})
 			}
 
-			// Build response with resolved file URLs
 			response := map[string]interface{}{
-				"id":           post.Id,
-				"title":        post.GetString("title"),
-				"slug":         post.GetString("slug"),
-				"excerpt":      post.GetString("excerpt"),
-				"content":      post.GetString("content"),
-				"tags":         post.Get("tags"),
-				"published_at": post.GetDateTime("published_at"),
-				"created":      post.GetDateTime("created"),
-				"updated":      post.GetDateTime("updated"),
+				"id":               post.Id,
+				"title":            post.GetString("title"),
+				"slug":             post.GetString("slug"),
+				"excerpt":          post.GetString("excerpt"),
+				"content":          post.GetString("content"),
+				"tags":             post.Get("tags"),
+				"published_at":     post.GetDateTime("published_at"),
+				"created":          post.GetDateTime("created"),
+				"updated":          post.GetDateTime("updated"),
+				"visibility":       visibility,
+				"is_draft":         isDraft,
+				"is_authenticated": isAuthenticated,
 			}
 			if mediaRefs, ok := post.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
@@ -1418,15 +1419,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			project := records[0]
 
-			// Check visibility - public, non-draft projects are always accessible
 			visibility := project.GetString("visibility")
 			isDraft := project.GetBool("is_draft")
+			isAuthenticated := e.Auth != nil
 
-			if visibility != "public" || isDraft {
-				// For non-public or draft projects, check if accessible via view context
+			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
 				allowed := false
 				if fromViewSlug != "" {
-					// Look up the view by slug to get its ID
 					viewRecords, err := app.FindRecordsByFilter(
 						viewsCollection,
 						"slug = {:slug}",
@@ -1437,7 +1436,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					)
 					if err == nil && len(viewRecords) > 0 {
 						viewId := viewRecords[0].Id
-						// Check if project is visible in this view
 						if isVisibleInView(project, viewId) {
 							allowed = true
 						}
@@ -1448,17 +1446,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Build response with resolved file URLs
 			response := map[string]interface{}{
-				"id":          project.Id,
-				"title":       project.GetString("title"),
-				"slug":        project.GetString("slug"),
-				"summary":     project.GetString("summary"),
-				"description": project.GetString("description"),
-				"tech_stack":  project.Get("tech_stack"),
-				"links":       project.Get("links"),
-				"categories":  project.Get("categories"),
-				"is_featured": project.GetBool("is_featured"),
+				"id":               project.Id,
+				"title":            project.GetString("title"),
+				"slug":             project.GetString("slug"),
+				"summary":          project.GetString("summary"),
+				"description":      project.GetString("description"),
+				"tech_stack":       project.Get("tech_stack"),
+				"links":            project.Get("links"),
+				"categories":       project.Get("categories"),
+				"is_featured":      project.GetBool("is_featured"),
+				"visibility":       visibility,
+				"is_draft":         isDraft,
+				"is_authenticated": isAuthenticated,
 			}
 			if mediaRefs, ok := project.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
@@ -1554,29 +1554,30 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			talk := records[0]
 
-			// Check visibility - only public, non-draft talks are accessible
 			visibility := talk.GetString("visibility")
 			isDraft := talk.GetBool("is_draft")
+			isAuthenticated := e.Auth != nil
 
-			if visibility != "public" || isDraft {
-				// Return 404 to prevent discovery of private/unlisted/draft talks
+			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "talk not found"})
 			}
 
-			// Build response
 			response := map[string]interface{}{
-				"id":          talk.Id,
-				"title":       talk.GetString("title"),
-				"slug":        talk.GetString("slug"),
-				"event":       talk.GetString("event"),
-				"event_url":   talk.GetString("event_url"),
-				"date":        talk.GetDateTime("date"),
-				"location":    talk.GetString("location"),
-				"description": talk.GetString("description"),
-				"slides_url":  talk.GetString("slides_url"),
-				"video_url":   talk.GetString("video_url"),
-				"created":     talk.GetDateTime("created"),
-				"updated":     talk.GetDateTime("updated"),
+				"id":               talk.Id,
+				"title":            talk.GetString("title"),
+				"slug":             talk.GetString("slug"),
+				"event":            talk.GetString("event"),
+				"event_url":        talk.GetString("event_url"),
+				"date":             talk.GetDateTime("date"),
+				"location":         talk.GetString("location"),
+				"description":      talk.GetString("description"),
+				"slides_url":       talk.GetString("slides_url"),
+				"video_url":        talk.GetString("video_url"),
+				"created":          talk.GetDateTime("created"),
+				"updated":          talk.GetDateTime("updated"),
+				"visibility":       visibility,
+				"is_draft":         isDraft,
+				"is_authenticated": isAuthenticated,
 			}
 			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs

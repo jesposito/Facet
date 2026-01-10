@@ -7,6 +7,7 @@ import { browser } from '$app/environment';
 import { onMount } from 'svelte';
 import { goto } from '$app/navigation';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
 import type { RecordModel } from 'pocketbase';
 import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
@@ -190,6 +191,9 @@ const getFileName = (url?: string) => {
 					<span class="px-3 py-1 text-sm font-medium bg-yellow-500 text-yellow-900 rounded-full">
 						Featured
 					</span>
+				{/if}
+				{#if (data as any).isAuthenticated && ((data.project as any).visibility !== 'public' || (data.project as any).is_draft)}
+					<VisibilityBadge visibility={(data.project as any).visibility} isDraft={(data.project as any).is_draft} />
 				{/if}
 			</div>
 

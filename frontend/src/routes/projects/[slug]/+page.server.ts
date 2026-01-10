@@ -9,13 +9,19 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ params, fetch, url }) => {
+export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 	const fromView = url.searchParams.get('from');
 
+	const headers: Record<string, string> = {};
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	if (pbAuthToken) {
+		headers['Authorization'] = `Bearer ${pbAuthToken}`;
+	}
+
 	try {
-		const response = await fetch(`${pbUrl}/api/project/${slug}`);
+		const response = await fetch(`${pbUrl}/api/project/${slug}`, { headers });
 
 		if (!response.ok) {
 			throw error(404, 'Not Found');
@@ -37,11 +43,14 @@ export const load: PageServerLoad = async ({ params, fetch, url }) => {
 				categories: project.categories || [],
 				is_featured: project.is_featured,
 				cover_image_url: project.cover_image_url || null,
-				media_urls: project.media_urls || []
+				media_urls: project.media_urls || [],
+				visibility: project.visibility || 'public',
+				is_draft: project.is_draft || false
 			},
 			media_refs: mediaRefs,
 			profile: project.profile || null,
-			fromView: fromView || null
+			fromView: fromView || null,
+			isAuthenticated: project.is_authenticated || false
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {

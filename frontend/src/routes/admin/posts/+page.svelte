@@ -755,7 +755,7 @@ function openEditForm(post: Post) {
 						</div>
 
 						<div class="flex items-center gap-2 shrink-0">
-							{#if post.slug && !post.is_draft && post.visibility === 'public'}
+							{#if post.slug}
 								<a
 									href="/posts/{post.slug}"
 									target="_blank"

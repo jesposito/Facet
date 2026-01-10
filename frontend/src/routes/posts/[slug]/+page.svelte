@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
@@ -165,9 +166,14 @@ const getHost = (url?: string) => {
 			</a>
 
 			<!-- Post title -->
-			<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
-				{data.post.title}
-			</h1>
+			<div class="flex flex-wrap items-start gap-3">
+				<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight">
+					{data.post.title}
+				</h1>
+				{#if (data as any).isAuthenticated && ((data.post as any).visibility !== 'public' || (data.post as any).is_draft)}
+					<VisibilityBadge visibility={(data.post as any).visibility} isDraft={(data.post as any).is_draft} />
+				{/if}
+			</div>
 
 			<!-- Meta information -->
 			<div class="mt-6 flex flex-wrap items-center gap-4 text-gray-300">
