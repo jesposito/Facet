@@ -43,5 +43,8 @@
     "pocketbase": "^0.21.0",
     "svelte-dnd-action": "^0.9.69"
   },
+  "overrides": {
+    "cookie": "^0.7.0"
+  },
   "type": "module"
 }
