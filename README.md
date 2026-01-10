@@ -23,7 +23,14 @@ Think LinkedIn meets personal portfolio, except you hold all the cards: the data
 
 ---
 
-## Try It Out (Demo Mode)
+## Try It Out
+
+**Live Demo:** [facet-demo.theansible.co](https://facet-demo.theansible.co)
+- Login: `demo@example.com` / `demo123`
+- Data resets daily at midnight UTC
+- Explore all features without installing anything
+
+### Demo Mode (Local)
 
 Not sure if Facet is for you? After signing in, you'll see a **Demo toggle** at the top of the admin panel. Toggle it on to instantly load The Doctor's hilarious profile - a time-traveling alien trying to pass as a normal developer.
 
@@ -442,7 +449,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 
 **Frontend:**
 - **SvelteKit v2.0** (full-stack web framework)
-- **Svelte v4.2** (component framework)
+- **Svelte v5.0** (component framework)
 - **TypeScript** (type safety)
 - **Tailwind CSS v3.4** (utility-first CSS)
 - **Marked** (Markdown rendering)
@@ -460,7 +467,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 
 **Development:**
 - **Air** (Go hot reload)
-- **Vite** (frontend dev server with HMR)
+- **Vite v7.3** (frontend dev server with HMR)
 - **Make** (task automation)
 
 ---

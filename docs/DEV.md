@@ -684,8 +684,8 @@ Available tasks:
 | Package | Version | Purpose |
 |---------|---------|---------|
 | SvelteKit | ^2.0.0 | Frontend framework |
-| Svelte | ^4.2.0 | Component framework |
-| Vite | ^5.0.0 | Build tool |
+| Svelte | ^5.0.0 | Component framework |
+| Vite | ^7.3.0 | Build tool |
 | Tailwind CSS | ^3.4.0 | Styling |
 
 ## Environment Variables
