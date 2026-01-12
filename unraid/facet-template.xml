@@ -28,7 +28,6 @@ Default login: admin@example.com / changeme123 (you'll be prompted to change the
   <ExtraParams/>
   <PostArgs/>
   <CPUset/>
-  <DateInstalled/>
 
   <DonateText>Buy me a coffee</DonateText>
   <DonateLink>https://buymeacoffee.com/jesposito</DonateLink>
