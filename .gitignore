@@ -117,3 +117,6 @@ docker-sonarr/
 unraid-ca/
 unraid-docker-templates/
 /tmp/
+
+# Auto Claude data directory
+.auto-claude/

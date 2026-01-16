@@ -18,11 +18,9 @@
 	let showAddForm = $state(false);
 	let testing: string | null = $state(null);
 
-	// Site settings (homepage visibility)
+	// Site settings (custom CSS, analytics)
 	let siteSettingsLoading = $state(true);
 	let siteSettingsSaving = $state(false);
-	let homepageEnabled = $state(true);
-	let landingPageMessage = $state('This profile is being set up.');
 	let customCSS = $state('');
 	let gaMeasurementId = $state('');
 	let showCSSHelp = $state(false);
@@ -191,8 +189,6 @@
 			const response = await fetch('/api/site-settings');
 			if (response.ok) {
 				const data = await response.json();
-				homepageEnabled = data.homepage_enabled !== false;
-				landingPageMessage = data.landing_page_message || '';
 				customCSS = data.custom_css || '';
 				gaMeasurementId = data.ga_measurement_id || '';
 			}
@@ -213,8 +209,6 @@
 					Authorization: pb.authStore.token || ''
 				},
 				body: JSON.stringify({
-					homepage_enabled: homepageEnabled,
-					landing_page_message: landingPageMessage,
 					custom_css: customCSS,
 					ga_measurement_id: gaMeasurementId
 				})
@@ -226,11 +220,9 @@
 				return;
 			}
 
-			homepageEnabled = result.homepage_enabled !== false;
-			landingPageMessage = result.landing_page_message || '';
 			customCSS = result.custom_css || '';
 			gaMeasurementId = result.ga_measurement_id || '';
-			toasts.add('success', 'Homepage visibility updated');
+			toasts.add('success', 'Settings saved');
 		} catch (err) {
 			console.error('Failed to save site settings:', err);
 			toasts.add('error', 'Failed to save settings');
@@ -490,86 +482,37 @@
 	<div class="space-y-4 mb-6">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Public site</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Visibility, analytics, and custom styling for your live profile.</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Analytics and custom styling for your live profile.</p>
 		</div>
 
-		<div class="grid gap-4 md:grid-cols-2">
-			<!-- Homepage Visibility -->
-			<div class="card p-6">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Homepage Visibility</h2>
-				<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-					Turn off the public homepage at <code>/</code> while keeping shared views accessible via their direct links.
-				</p>
-
-				<div class="flex flex-col gap-4">
-					<div class="flex items-center justify-between gap-4">
-						<div>
-							<p class="text-sm font-medium text-gray-900 dark:text-white">
-								Public homepage {homepageEnabled ? 'ON' : 'OFF'}
-							</p>
-							<p class="text-sm text-gray-600 dark:text-gray-400">
-								When off, /, /posts, and /talks show a private landing message.
-							</p>
-						</div>
-						<label class="inline-flex items-center cursor-pointer">
-							<input
-								type="checkbox"
-								class="sr-only peer"
-								bind:checked={homepageEnabled}
-								disabled={siteSettingsLoading || siteSettingsSaving}
-							/>
-							<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-500 dark:peer-focus:ring-primary-400 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600 relative"></div>
-						</label>
-					</div>
-
-					<div>
-						<label class="label" for="landing-message">Landing message (shown when homepage is off)</label>
-						<textarea
-							id="landing-message"
-							class="input h-28"
-							bind:value={landingPageMessage}
-							placeholder="This profile is being set up."
-							disabled={siteSettingsLoading || siteSettingsSaving}
-						></textarea>
-					</div>
-
-					<div class="flex justify-end">
-						<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-							{siteSettingsSaving ? 'Saving...' : 'Save'}
-						</button>
-					</div>
+		<!-- Analytics -->
+		<div class="card p-6">
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Analytics (optional)</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm">
+						Google Analytics 4 measurement ID (public). Leave blank to disable tracking.
+					</p>
 				</div>
 			</div>
 
-			<!-- Analytics -->
-			<div class="card p-6">
-				<div class="flex items-start justify-between gap-3">
-					<div>
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Analytics (optional)</h2>
-						<p class="text-gray-600 dark:text-gray-400 text-sm">
-							Google Analytics 4 measurement ID (public). Leave blank to disable tracking.
-						</p>
-					</div>
-				</div>
-
-				<div class="mt-4 space-y-3">
-					<label class="label" for="ga-id">GA4 Measurement ID</label>
-					<input
-						id="ga-id"
-						class="input"
-						placeholder="G-XXXXXXXXXX"
-						bind:value={gaMeasurementId}
-						disabled={siteSettingsLoading || siteSettingsSaving}
-						maxlength="100"
-					/>
-					<p class="text-xs text-gray-500 dark:text-gray-400">
-						We only load GA on public pages when this is set. Do not use sensitive values.
-					</p>
-					<div class="flex justify-end">
-						<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-							{siteSettingsSaving ? 'Saving...' : 'Save'}
-						</button>
-					</div>
+			<div class="mt-4 space-y-3">
+				<label class="label" for="ga-id">GA4 Measurement ID</label>
+				<input
+					id="ga-id"
+					class="input"
+					placeholder="G-XXXXXXXXXX"
+					bind:value={gaMeasurementId}
+					disabled={siteSettingsLoading || siteSettingsSaving}
+					maxlength="100"
+				/>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					We only load GA on public pages when this is set. Do not use sensitive values.
+				</p>
+				<div class="flex justify-end">
+					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+						{siteSettingsSaving ? 'Saving...' : 'Save'}
+					</button>
 				</div>
 			</div>
 		</div>

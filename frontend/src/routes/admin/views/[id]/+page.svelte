@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { run, preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
+	import { preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
 
 	const bubble = createBubbler();
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
+	import { goto, afterNavigate } from '$app/navigation';
+	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, type ShareToken, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -52,8 +52,6 @@
 	let ctaText = $state('');
 	let ctaUrl = $state('');
 	let isActive = $state(true);
-	let isDefault = $state(false);
-	let originalIsDefault = false;
 	let accentColor: AccentColor | null = $state(null);
 	let heroImageUrl: string | null = $state(null);
 	let heroImageFile: File | null = null;
@@ -116,11 +114,21 @@
 		error_message?: string;
 	}> = $state([]);
 
+	// Share token generation state
+	let viewTokens: ShareToken[] = $state([]);
+	let generatingToken = $state(false);
+	let showTokenForm = $state(false);
+	let newTokenName = $state('');
+	let newTokenExpires = $state('');
+	let newTokenMaxUses = $state(0);
+	let createdTokenUrl: string | null = $state(null);
+
+
 
 	// Simple pattern - admin layout handles auth
 	onMount(async () => {
 		if (!viewId) {
-			toasts.add('error', 'Invalid view ID');
+			toasts.add('error', 'Invalid facet ID');
 			goto('/admin/views');
 			return;
 		}
@@ -128,8 +136,28 @@
 			loadView(),
 			loadSectionItems(),
 			loadProfile(),
-			checkAIPrintStatus()
+			checkAIPrintStatus(),
+			loadViewTokens()
 		]);
+		// Load exports after view is loaded (needs slug)
+		await loadExports();
+	});
+
+	// Reload view data when navigating between different views (e.g., clicking facets in sidebar)
+	afterNavigate(({ from, to }) => {
+		const fromId = from?.params?.id;
+		const toId = to?.params?.id;
+		// Only reload if navigating between different view IDs
+		if (fromId && toId && fromId !== toId) {
+			loading = true;
+			Promise.all([
+				loadView(),
+				loadSectionItems(),
+				loadViewTokens()
+			]).finally(() => {
+				loading = false;
+			});
+		}
 	});
 
 
@@ -275,6 +303,126 @@
 		}
 	}
 
+	// Share token functions
+	async function loadViewTokens() {
+		if (!viewId) return;
+		try {
+			const result = await pb.collection('share_tokens').getList<ShareToken>(1, 10, {
+				filter: `view_id = "${viewId}"`,
+				sort: '-id'
+			});
+			viewTokens = result.items;
+		} catch (err) {
+			// Silent fail - tokens are optional
+		}
+	}
+
+	async function generateShareToken() {
+		if (!viewId) return;
+
+		generatingToken = true;
+		try {
+			const response = await fetch('/api/share/generate', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pb.authStore.token}`
+				},
+				body: JSON.stringify({
+					view_id: viewId,
+					name: newTokenName || undefined,
+					expires_at: newTokenExpires || undefined,
+					max_uses: newTokenMaxUses || 0
+				})
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to create token');
+			}
+
+			const data = await response.json();
+
+			// Store the URL to show
+			createdTokenUrl = `${window.location.origin}/s/${data.token}`;
+
+			toasts.add('success', 'Share link created!');
+			await loadViewTokens();
+			resetTokenForm();
+		} catch (err) {
+			toasts.add('error', err instanceof Error ? err.message : 'Failed to create share link');
+		} finally {
+			generatingToken = false;
+		}
+	}
+
+	async function revokeViewToken(tokenId: string) {
+		const confirmed = await confirm({
+			title: 'Revoke Share Link',
+			message: 'Are you sure you want to revoke this share link? It will no longer be usable.',
+			confirmText: 'Revoke',
+			danger: true
+		});
+		if (!confirmed) return;
+
+		try {
+			const response = await fetch(`/api/share/revoke/${tokenId}`, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${pb.authStore.token}`
+				}
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to revoke token');
+			}
+
+			toasts.add('success', 'Share link revoked');
+			await loadViewTokens();
+		} catch (err) {
+			toasts.add('error', 'Failed to revoke share link');
+		}
+	}
+
+	function resetTokenForm() {
+		newTokenName = '';
+		newTokenExpires = '';
+		newTokenMaxUses = 0;
+		showTokenForm = false;
+	}
+
+	function copyShareUrl(text: string) {
+		navigator.clipboard.writeText(text);
+		toasts.add('success', 'Copied to clipboard');
+	}
+
+	function dismissCreatedToken() {
+		createdTokenUrl = null;
+	}
+
+	function isTokenExpired(token: ShareToken): boolean {
+		if (!token.expires_at) return false;
+		return new Date(token.expires_at) < new Date();
+	}
+
+	function isTokenMaxUsesReached(token: ShareToken): boolean {
+		if (!token.max_uses || token.max_uses === 0) return false;
+		return token.use_count >= token.max_uses;
+	}
+
+	function getTokenStatusInfo(token: ShareToken): { label: string; class: string } {
+		if (!token.is_active) {
+			return { label: 'Revoked', class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+		}
+		if (isTokenExpired(token)) {
+			return { label: 'Expired', class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' };
+		}
+		if (isTokenMaxUsesReached(token)) {
+			return { label: 'Max Uses', class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' };
+		}
+		return { label: 'Active', class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+	}
+
 	onDestroy(() => {
 		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
 	});
@@ -325,13 +473,6 @@
 			ctaText = view.cta_text || '';
 			ctaUrl = view.cta_url || '';
 			isActive = view.is_active;
-
-			const defaultViews = await collection('views').getList(1, 1, {
-				filter: 'is_default = true'
-			});
-			isDefault = defaultViews.items.length > 0 && defaultViews.items[0].id === viewId;
-			originalIsDefault = isDefault;
-
 			accentColor = (view.accent_color as AccentColor) || null;
 
 			if (record.hero_image) {
@@ -341,7 +482,7 @@
 			initializeSections(view.sections);
 		} catch (err) {
 			console.error('Failed to load view:', err);
-			toasts.add('error', 'Failed to load view');
+			toasts.add('error', 'Failed to load facet');
 			goto('/admin/views');
 		} finally {
 			loading = false;
@@ -568,7 +709,6 @@
 			formData.append('is_active', String(isActive));
 			formData.append('sections', JSON.stringify(sectionsData));
 			formData.append('accent_color', accentColor || '');
-			formData.set('is_default', isDefault ? 'true' : 'false');
 
 			if (visibility === 'password' && password.trim()) {
 				formData.append('password', password.trim());
@@ -581,22 +721,12 @@
 			await collection('views').update(viewId, formData);
 			heroImageFile = null;
 
-			if (isDefault && !originalIsDefault) {
-				const currentDefaults = await collection('views').getFullList({
-					filter: `is_default = true && id != "${viewId}"`
-				});
-				for (const v of currentDefaults) {
-					await collection('views').update(v.id, { is_default: false });
-				}
-			}
-			originalIsDefault = isDefault;
-
 			await enableItemsForView(sectionsData);
 
-			toasts.add('success', 'View updated successfully');
+			toasts.add('success', 'Facet updated successfully');
 		} catch (err) {
 			console.error('Failed to save view:', err);
-			toasts.add('error', 'Failed to save view');
+			toasts.add('error', 'Failed to save facet');
 		} finally {
 			saving = false;
 		}
@@ -726,31 +856,27 @@
 		updateSections();
 	}
 	let viewId = $derived($page.params.id as string);
-	// Load exports when slug is available
-	run(() => {
-		if (slug) loadExports();
-	});
 </script>
 
 <svelte:head>
-	<title>Edit View | Facet</title>
+	<title>Edit Facet | Facet</title>
 </svelte:head>
 
 <div class="view-editor-container">
 	{#if loading}
 		<div class="card p-8 text-center max-w-4xl mx-auto">
-			<div class="animate-pulse">Loading view...</div>
+			<div class="animate-pulse">Loading facet...</div>
 		</div>
 	{:else}
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-6 px-4">
 			<div class="flex items-center gap-4">
-				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Back to views">
+				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Back to facets">
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
 				</a>
-				<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit View</h1>
+				<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Facet</h1>
 			</div>
 			<div class="flex items-center gap-2">
 				<!-- Preview Toggle -->
@@ -875,6 +1001,185 @@
 						<p class="text-xs text-gray-500 mt-1">
 							{password ? 'Leave blank to keep current password' : 'Visitors will need this password to access this view'}
 						</p>
+					</div>
+				{/if}
+
+				<!-- Inline Share Token Generation Panel -->
+				{#if visibility === 'unlisted' || visibility === 'private'}
+					<div class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+						<div class="flex items-center gap-2 mb-3">
+							{@html icon('link')}
+							<h3 class="font-medium text-gray-900 dark:text-white">Generate Share Link</h3>
+						</div>
+						<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+							{visibility === 'unlisted'
+								? 'This view is unlisted — only people with a share link can access it.'
+								: 'This view is private — generate a share link for specific access.'}
+						</p>
+
+						<!-- Newly Created Token Banner -->
+						{#if createdTokenUrl}
+							<div class="p-3 mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+								<div class="flex items-start justify-between gap-2">
+									<div class="flex-1 min-w-0">
+										<p class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+											{@html icon('check')} Share link created!
+										</p>
+										<p class="text-xs text-green-700 dark:text-green-300 mb-2">
+											Copy this link now — for security, the full token won't be shown again.
+										</p>
+										<div class="flex items-center gap-2">
+											<input
+												type="text"
+												readonly
+												value={createdTokenUrl}
+												class="flex-1 min-w-0 px-2 py-1 text-sm font-mono bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded truncate"
+											/>
+											<button
+												type="button"
+												class="btn btn-sm btn-secondary shrink-0"
+												onclick={() => copyShareUrl(createdTokenUrl || '')}
+											>
+												{@html icon('copy')} Copy
+											</button>
+										</div>
+									</div>
+									<button
+										type="button"
+										class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+										onclick={dismissCreatedToken}
+									>
+										{@html icon('x')}
+									</button>
+								</div>
+							</div>
+						{/if}
+
+						<!-- Generate Token Form -->
+						{#if showTokenForm}
+							<div class="space-y-3 mb-4 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+								<div>
+									<label for="token_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+										Name (optional)
+									</label>
+									<input
+										type="text"
+										id="token_name"
+										bind:value={newTokenName}
+										placeholder="e.g., Sent to Company X"
+										class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+									/>
+									<p class="text-xs text-gray-500 mt-1">A label to help you remember who this link was shared with.</p>
+								</div>
+
+								<div class="grid grid-cols-2 gap-3">
+									<div>
+										<label for="token_expires" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+											Expiration
+										</label>
+										<input
+											type="datetime-local"
+											id="token_expires"
+											bind:value={newTokenExpires}
+											class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+										/>
+									</div>
+									<div>
+										<label for="token_max_uses" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+											Max Uses
+										</label>
+										<input
+											type="number"
+											id="token_max_uses"
+											bind:value={newTokenMaxUses}
+											min="0"
+											placeholder="0 = unlimited"
+											class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+										/>
+									</div>
+								</div>
+
+								<div class="flex justify-end gap-2 pt-2">
+									<button type="button" class="btn btn-sm btn-ghost" onclick={resetTokenForm}>
+										Cancel
+									</button>
+									<button
+										type="button"
+										class="btn btn-sm btn-primary"
+										onclick={generateShareToken}
+										disabled={generatingToken}
+									>
+										{#if generatingToken}
+											Generating...
+										{:else}
+											Generate Link
+										{/if}
+									</button>
+								</div>
+							</div>
+						{:else}
+							<button
+								type="button"
+								class="btn btn-primary"
+								onclick={() => showTokenForm = true}
+							>
+								{@html icon('plus')} Generate Share Link
+							</button>
+						{/if}
+
+						<!-- Existing Tokens for this View -->
+						{#if viewTokens.length > 0}
+							<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+								<div class="flex items-center justify-between mb-2">
+									<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+										Existing Share Links ({viewTokens.length})
+									</h4>
+									<a href="/admin/tokens" class="text-xs text-primary-600 hover:underline">
+										Manage all →
+									</a>
+								</div>
+								<div class="space-y-2">
+									{#each viewTokens.slice(0, 3) as token}
+										{@const status = getTokenStatusInfo(token)}
+										<div class="flex items-center justify-between p-2 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+											<div class="flex items-center gap-2 min-w-0">
+												<span class="px-1.5 py-0.5 text-xs rounded {status.class}">
+													{status.label}
+												</span>
+												<span class="text-sm text-gray-700 dark:text-gray-300 truncate">
+													{token.name || 'Unnamed link'}
+												</span>
+												{#if token.token_prefix}
+													<code class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-1 rounded">
+														{token.token_prefix}...
+													</code>
+												{/if}
+											</div>
+											<div class="flex items-center gap-1 shrink-0">
+												<span class="text-xs text-gray-500">
+													{token.use_count} use{token.use_count !== 1 ? 's' : ''}
+												</span>
+												{#if token.is_active && !isTokenExpired(token) && !isTokenMaxUsesReached(token)}
+													<button
+														type="button"
+														class="p-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
+														onclick={() => revokeViewToken(token.id)}
+														title="Revoke link"
+													>
+														{@html icon('lock')}
+													</button>
+												{/if}
+											</div>
+										</div>
+									{/each}
+									{#if viewTokens.length > 3}
+										<p class="text-xs text-gray-500 text-center">
+											+{viewTokens.length - 3} more — <a href="/admin/tokens" class="text-primary-600 hover:underline">view all</a>
+										</p>
+									{/if}
+								</div>
+							</div>
+						{/if}
 					</div>
 				{/if}
 			</div>
@@ -1079,18 +1384,6 @@
 						<div>
 							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
 							<p class="text-xs text-gray-500">Inactive views are not accessible publicly</p>
-						</div>
-					</label>
-
-					<label class="flex items-center gap-3">
-						<input
-							type="checkbox"
-							bind:checked={isDefault}
-							class="w-4 h-4 text-primary-600 rounded border-gray-300"
-						/>
-						<div>
-							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Default View</span>
-							<p class="text-xs text-gray-500">Show this view on the homepage (/)</p>
 						</div>
 					</label>
 				</div>

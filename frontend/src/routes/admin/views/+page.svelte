@@ -15,13 +15,21 @@
 	async function loadViews() {
 		loading = true;
 		try {
+			// Sort by id only - is_default field may not exist in older schemas
 			const result = await collection('views').getList(1, 50, {
-				sort: '-is_default,-id'
+				sort: '-id'
 			});
-			views = result.items;
+			// Reorder to put the default view first
+			const items = result.items;
+			const defaultIndex = items.findIndex((v) => v.is_default);
+			if (defaultIndex > 0) {
+				const [defaultView] = items.splice(defaultIndex, 1);
+				items.unshift(defaultView);
+			}
+			views = items;
 		} catch (err) {
-			console.error('Failed to load views:', err);
-			toasts.add('error', 'Failed to load views');
+			console.error('Failed to load facets:', err);
+			toasts.add('error', 'Failed to load facets');
 		} finally {
 			loading = false;
 		}
@@ -34,24 +42,24 @@
 			});
 			await loadViews();
 		} catch (err) {
-			toasts.add('error', 'Failed to update view');
+			toasts.add('error', 'Failed to update facet');
 		}
 	}
 
 	async function deleteView(id: string) {
 		const confirmed = await confirm({
-			title: 'Delete View',
-			message: 'Are you sure you want to delete this view? This action cannot be undone.',
+			title: 'Delete Facet',
+			message: 'Are you sure you want to delete this facet? This action cannot be undone.',
 			confirmText: 'Delete',
 			danger: true
 		});
 		if (!confirmed) return;
 		try {
 			await collection('views').delete(id);
-			toasts.add('success', 'View deleted');
+			toasts.add('success', 'Facet deleted');
 			await loadViews();
 		} catch (err) {
-			toasts.add('error', 'Failed to delete view');
+			toasts.add('error', 'Failed to delete facet');
 		}
 	}
 
@@ -63,28 +71,28 @@
 </script>
 
 <svelte:head>
-	<title>Views | Facet</title>
+	<title>Facets | Facet</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Views</h1>
-		<a href="/admin/views/new" class="btn btn-primary">+ Create View</a>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Facets</h1>
+		<a href="/admin/views/new" class="btn btn-primary">+ New Facet</a>
 	</div>
 
 	<p class="text-gray-600 dark:text-gray-400 mb-6">
-		Views are curated versions of your profile for different audiences. Each view can have its own URL, visibility settings, and content selection.
+		Facets are curated versions of your profile for different audiences. Each facet can have its own URL, visibility settings, and content selection.
 	</p>
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading views...</div>
+			<div class="animate-pulse">Loading facets...</div>
 		</div>
 	{:else if views.length === 0}
 		<div class="card p-8 text-center">
-			<p class="text-gray-600 dark:text-gray-400 mb-2">You haven't created any views yet.</p>
-			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">Views let you show different versions of your profile to different audiences.</p>
-			<a href="/admin/views/new" class="btn btn-primary">Create a View</a>
+			<p class="text-gray-600 dark:text-gray-400 mb-2">You haven't created any facets yet.</p>
+			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">Facets let you show different versions of your profile to different audiences.</p>
+			<a href="/admin/views/new" class="btn btn-primary">Create a Facet</a>
 		</div>
 	{:else}
 		<div class="space-y-4">

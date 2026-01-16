@@ -212,11 +212,8 @@
 	{/if}
 </svelte:head>
 
-{#if !data.profile && !data.experience?.length && !data.projects?.length}
-	<!-- First-time visitor: no profile exists yet -->
-	<WelcomePage />
-{:else if data.homepageDisabled}
-	<!-- Profile exists but homepage is disabled -->
+{#if data.homepageDisabled}
+	<!-- Profile exists but homepage is disabled - show landing message -->
 	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
 		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
 			<ThemeToggle />
@@ -229,6 +226,9 @@
 			</p>
 		</div>
 	</div>
+{:else if !data.profile && !data.experience?.length && !data.projects?.length}
+	<!-- First-time visitor: no profile exists yet -->
+	<WelcomePage />
 {:else}
 <div class="min-h-screen">
 	<!-- Theme toggle and print menu -->

@@ -44,6 +44,7 @@ func RegisterSeedHook(app *pocketbase.PocketBase) {
 		if err != nil {
 			log.Printf("Seed warning: %v", err)
 		}
+
 		return se.Next()
 	})
 }
@@ -535,7 +536,6 @@ func seedDevData(app *pocketbase.PocketBase) error {
 	})
 	view.Set("sections", string(sectionsJSON))
 	view.Set("is_active", true)
-	view.Set("is_default", true)
 	app.Save(view)
 
 	log.Println("Development data seeded successfully!")
@@ -971,7 +971,6 @@ func loadDemoDataForUser(app *pocketbase.PocketBase) error {
 	})
 	view.Set("sections", string(sectionsJSON))
 	view.Set("is_active", true)
-	view.Set("is_default", true)
 	app.Save(view)
 
 	// Add 2 blog posts
