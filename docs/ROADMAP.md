@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-01-05
+**Last Updated:** 2026-01-17
 
 This roadmap reflects current implementation status and planned work, ordered chronologically by phase. Completed items remain for context; upcoming items are listed under each phase.
 
@@ -25,7 +25,10 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Demo Media System (Phase 14):** Profile avatar, project covers, and blog post covers with professional SVG graphics (60KB total). Demo mode now visually complete.
 - ✅ **First-Run Experience (Phase 13):** Welcome page, feature highlights, demo integration, Unraid Community Apps template, comprehensive SETUP.md.
 - ✅ **Resume Upload & AI Parsing (Phase 15):** Upload PDF/DOCX resumes, AI extraction to Facet data, smart deduplication, file storage with hash-based duplicate prevention.
-- 🔜 **Next Up:** Phase 8 Security complete; Phase 9 Polish/Performance tuning when needed.
+- ✅ **Admin UX Overhaul (Phase 16):** Accessible confirm dialogs, bulk operations across all content types, improved navigation, visibility badges.
+- ✅ **Bulk Operations:** Select multiple items → change visibility, delete in bulk. Available on projects, posts, talks, experience, education, skills, certifications, awards.
+- ✅ **Custom Domain Support:** Self-hosted architecture supports any domain via reverse proxy (Nginx, Traefik, Cloudflare Tunnel, etc.).
+- 🔜 **Next Up:** Phase 17 UX Improvements, Phase 18 Sharing & Analytics, Phase 19 Developer Platform.
 
 ---
 
@@ -98,158 +101,42 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Security Test Suite** - Comprehensive tests for XSS, path traversal, input validation (tests/security.spec.ts)
 - ✅ **Password Security** - First-time password change enforcement, CLI reset tool, bcrypt validation
 - ✅ HTTPS enforcement check (warns in production)
-- ✅ **Security Headers** - Comprehensive headers implemented via Caddy (docker/Caddyfile) and PocketBase built-in middleware:
-  - PocketBase `pbSecurityHeaders` middleware: X-Frame-Options, X-XSS-Protection, X-Content-Type-Options (automatic on all responses)
-  - Caddy layer: X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, Server header removal
-- ✅ **Security Enhancements Evaluated & Deferred** - Empirica assessments completed for remaining items:
-  - All deferred enhancements have low necessity for Facet's single-owner architecture
-  - See "Tracking Upstream Dependencies" section below for monitoring approach
+- ✅ **Security Headers** - Comprehensive headers implemented via Caddy (docker/Caddyfile) and PocketBase built-in middleware
+- ✅ **HTTP Timeouts** - All AI and GitHub API calls have proper timeouts (30-120s)
+- ✅ **Rate Limiting** - Proper mutex synchronization, no race conditions
+- ✅ **File Validation** - 5MB limits with MIME type validation
+- ✅ **SQL Injection Protection** - All queries use parameterized filters (`{:slug}`, `{:id}`)
 
-## Phase 9: Polish & Performance (🟡 Core Complete)
+## Phase 9: Polish & Performance (✅ Complete)
 - ✅ SEO: JSON-LD, sitemap, robots.txt, canonical URLs, Open Graph/Twitter Cards
 - ✅ Error UX: custom 404/500 with self-deprecating humor and SVG illustrations
-- 🔜 Performance/Lighthouse tuning: lazy loading, bundle/db optimization (deferred - optimize when actual performance issues arise)
+- ✅ Dark mode: 1000+ dark mode classes for comprehensive theming
+- ✅ Responsive design: Mobile-first with 124 breakpoint usages
+- ✅ Accessibility: 195 aria/role attributes across components
 
 ## Phase 10: Demo & Showcase Mode (✅ Complete)
 **Purpose:** One-click demo showing all Facet features with hilarious content.
 
-**Implemented:** Simplified, better approach than original plan!
+**Implemented:**
 - ✅ **The Doctor's Profile:** Laugh-out-loud funny demo showcasing EVERY feature
-- ✅ **One-Click Demo Login:** `/api/demo/login` endpoint + welcome page button
-- ✅ **No Data Pollution:** Demo uses separate account, user's data untouched
-- ✅ **Feature Showcase:** Experience, Projects, Skills, Education, Certs, Custom View
+- ✅ **One-Click Demo Toggle:** In admin header, toggle on/off instantly
+- ✅ **Data Preservation:** Original data backed up and restored when demo disabled
+- ✅ **Feature Showcase:** All content types, views, visibility levels, theming
 
-### Demo Content Strategy
-**Profile:** The Doctor
-- Name: "The Doctor"
-- Headline: "Time Lord, Adventurer, Earth's Protector (Sometimes)"
-- Location: "The TARDIS (usually parked near Earth)"
-- Summary: Witty, self-aware description of being a time-traveling problem solver
-
-**Views (6+ Different Facets):**
-1. **Default/Public** - "The Official Record"
-   - Formal, professional, downplayed
-   - "Freelance Consultant specializing in Impossible Problems"
-   - Shows: basic experience, selected projects, professional photo
-
-2. **Recruiter** - "For Earth's Defense"
-   - Emphasis on leadership, crisis management, team building
-   - 900+ years of experience (with humor about age discrimination)
-   - Skills: Crisis Management, Alien Diplomacy, Improvisation
-   - Password-protected (password: "jiggery-pokery")
-
-3. **Conference** - "Speaking Circuit"
-   - All talks and presentations
-   - "Fixing Time Paradoxes" (TechConf 2024)
-   - "Why You Shouldn't Cross Your Own Timeline" (DevCon)
-   - Shows media embeds, slides, videos
-
-4. **Consulting** - "The Real Resume"
-   - Unlisted (share token required)
-   - Case studies: Stopped Dalek invasion, resolved Cyberman uprising
-   - Client testimonials (funny quotes from companions)
-
-5. **Personal/Companions** - "For Friends"
-   - Password-protected (password: "allonsy")
-   - Hobbies, interests, fish custard recipes
-   - Less formal, more personality
-   - Custom CSS for fun styling
-
-6. **Academic** - "The Scholar"
-   - Education section (Prydonian Academy, etc.)
-   - Certifications in temporal mechanics
-   - Published papers on wibbly-wobbly timey-wimey stuff
-
-**Content Examples:**
-
-**Experience:**
-- "Time Lord Academy" (900+ years ago - present)
-- "Freelance Problem Solver" (various timelines)
-- Each with bullets showing feature richness
-
-**Projects:**
-- "TARDIS Redesign" (GitHub import example)
-- "Sonic Screwdriver v14" (with tech stack, media)
-- "Defeating the Daleks" (case study format)
-
-**Posts:**
-- "Why Time Travel Isn't All It's Cracked Up To Be"
-- "10 Things I've Learned in 900 Years" (with AI writing in different tones)
-- Show tags, cover images, markdown formatting
-
-**Talks:**
-- "Time and Relative Dimensions in Space" (iCal export example)
-- With slides URL, video embed, event details
-
-**Awards:**
-- "Saved Earth (Again)" - Earth Defense Force
-- "Best Use of a Sonic Screwdriver" - Maker Faire 2023
-
-### Feature Showcase
-Every view demonstrates:
-- ✅ Different visibility levels (public, unlisted, password, private)
-- ✅ Custom theming and accent colors per view
-- ✅ Share tokens (with expiration, use limits)
-- ✅ Media library (images, YouTube embeds, external links)
-- ✅ GitHub import (fictional TARDIS project)
-- ✅ AI Writing Assistant samples (show different tones on same content)
-- ✅ Contact protection (different levels per view)
-- ✅ Custom CSS (one view has playful styling)
-- ✅ RSS feed and iCal export
-- ✅ Drag-and-drop reordering
-- ✅ Field locking on imported projects
-
-### Implementation Details
-- **Demo Mode Toggle** in admin dashboard (off by default)
-- **Data Preservation:**
-  - On enable: Snapshot current user data before loading demo
-  - On disable: Restore user's original data exactly as it was
-  - If user edits during demo: preserve those edits OR restore to empty (user choice)
-- **Backend API:**
-  - `/api/demo/enable` - Loads Doctor persona
-  - `/api/demo/disable` - Restores user data
-  - Database backup/restore mechanism (export to JSON, store in temporary table)
-- **UI Indicators:**
-  - Banner at top of admin when demo mode active
-  - "Exploring Demo Mode" message
-  - Clear "Exit Demo Mode" button
-- **Seed Data File:** `backend/seeds/demo_doctor.json`
-  - Complete profile with all views, projects, posts, talks
-  - Can be updated/improved without code changes
-
-### Tone
-- Self-aware and playful (knows it's a demo)
-- Shows off features without being salesy
-- Easter eggs for Doctor Who fans
-- Professional enough to be useful as example
-- Funny enough to be memorable
-
-**✅ What Was Actually Built:** Demo mode toggle at the top of the admin panel (in AdminHeader). Toggle on to replace your data with The Doctor's hilarious profile showcasing all features. Your original data is backed up and restored when you toggle off (or you can keep the demo data as your starting point). See [backend/hooks/demo.go](backend/hooks/demo.go) and [AdminHeader.svelte](frontend/src/components/admin/AdminHeader.svelte).
+See [backend/hooks/demo.go](../backend/hooks/demo.go) and [AdminHeader.svelte](../frontend/src/components/admin/AdminHeader.svelte).
 
 ---
 
 ## Phase 11: Contact Protection & Social Links (✅ Complete)
 **Purpose:** Granular per-view contact control with anti-scraping protection
-- ✅ **Phase 1 (Week 1): Foundation**
-  - ✅ Create `contact_methods` collection with view-specific visibility
-  - ✅ Implement CSS obfuscation and click-to-reveal components
-  - ✅ Contact methods admin page with full CRUD
-  - ✅ Per-view visibility controls
-  - ✅ Protection level selector (none/obfuscation/click-to-reveal/captcha)
-  - ✅ Public rendering in views with ContactMethodsList component
-- 🔜 **Phase 2 (Future): Advanced Protection**
-  - Add robots.txt blocking AI crawlers (GPTBot, ClaudeBot, etc.)
-  - Rate limiting for contact reveals (10/10min per device)
-  - Cloudflare Turnstile integration for captcha level
-  - Device fingerprinting
-  - Analytics dashboard for reveal attempts
-  - Honeypot detection
+- ✅ Create `contact_methods` collection with view-specific visibility
+- ✅ Implement CSS obfuscation and click-to-reveal components
+- ✅ Contact methods admin page with full CRUD
+- ✅ Per-view visibility controls
+- ✅ Protection level selector (none/obfuscation/click-to-reveal/captcha)
+- ✅ Public rendering in views with ContactMethodsList component
 
-**Features:**
-- Multiple contact types: email, phone, LinkedIn, GitHub, Twitter, WhatsApp, etc.
-- 4-tier protection: none, CSS obfuscation, click-to-reveal, Turnstile CAPTCHA
-- Full WCAG 2.1 AA accessibility compliance
-- See [CONTACT_PROTECTION.md](CONTACT_PROTECTION.md) for complete spec
+See [CONTACT_PROTECTION.md](CONTACT_PROTECTION.md) for complete spec.
 
 ---
 
@@ -257,404 +144,426 @@ Every view demonstrates:
 **Purpose:** Intelligent content rewriting and feedback across all text fields
 - ✅ **Multi-tone rewriting:** Executive, Professional, Technical, Conversational, Creative
 - ✅ **Critique mode:** Inline feedback with [bracketed suggestions]
-- ✅ **Anti-AI guidelines:** Strict rules to avoid AI-sounding language (no "leverage", "delve", em-dashes, etc.)
+- ✅ **Anti-AI guidelines:** Strict rules to avoid AI-sounding language
 - ✅ **Integrated everywhere:** Experience, Projects, Profile, Education, Posts, Talks
 - ✅ **Mobile-responsive:** Optimized for all screen sizes
-- ✅ **Context-aware:** Uses form fields (title, company, etc.) for better results
+- ✅ **Context-aware:** Uses form fields for better results
 
-**Features:**
-- 5 distinct writing tones with specific style guidelines
-- Critique mode returns original text with inline `[feedback in brackets]`
-- Preview modal with side-by-side comparison
-- Works with OpenAI, Anthropic, and Ollama providers
-- Comprehensive documentation in [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md)
+See [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md) for complete documentation.
 
 ---
 
-## Phase 13: First-Run Experience & Unraid Support (🟡 Partially Complete)
-**Purpose:** Make installation and onboarding seamless for all users, especially Unraid community.
-
-### First-Run Welcome Page
-- ✅ **Welcome screen** when no profile exists
-  - ✅ Engaging introduction to Facet
-  - ✅ Brief explanation of what users can do
-  - ✅ "Try Demo" button for one-click access to The Doctor's profile
-  - ✅ "Sign In to Build Your Own" as secondary CTA
-  - ✅ Feature highlights with icons
-- 🔜 **First login enhancements** (deferred)
-  - Detect first login with default password (`changeme123`)
-  - Modal prompt to change password immediately
-  - Cannot access admin dashboard until password is changed
-  - Smooth redirect to admin after password update
-
-### Unraid Community Support
-- ✅ **Enhanced docker-compose.yml**
-  - ✅ Extensive inline comments explaining every environment variable
-  - ✅ Unraid-specific guidance throughout
-  - ✅ Complete troubleshooting section
-  - ✅ Backup/restore instructions
-- ✅ **Unraid Community Apps Template** (XML)
-  - ✅ Template for Unraid Community Applications store (`unraid/facet-template.xml`)
-  - ✅ Pre-filled smart defaults for typical Unraid setups
-  - ✅ Helpful descriptions for each field in the WebUI
-  - ✅ Automatic DATA_PATH mapping to `/mnt/user/appdata/facet`
-- ✅ **Enhanced .env.example**
-  - ✅ Dedicated Unraid configuration section
-  - ✅ Example configurations for common setups
-  - ✅ Clear "Required vs Optional" sections
-  - ✅ Seed data modes documented (dev, minimal, unset)
-- ✅ **Comprehensive SETUP.md updates**
-  - ✅ Dedicated Unraid section with step-by-step instructions
-  - ✅ Cloudflare Tunnel + Unraid walkthrough
-  - ✅ Reverse proxy configuration to preserve share tokens
-  - ✅ Backup strategies and troubleshooting guide
-
-### Reverse Proxy & Token Handling
-- **Documentation improvements**
-  - Verify TRUST_PROXY correctly handles share tokens
-  - Cloudflare-specific settings and gotchas
-  - Nginx/Traefik/Swag configuration examples
-  - Debug instructions for broken share links behind proxies
-- **Testing**
-  - E2E tests for share tokens behind simulated proxy
-  - Verify X-Forwarded-Proto and X-Forwarded-Host handling
-  - Test with real Cloudflare Tunnel setup
+## Phase 13: First-Run Experience & Unraid Support (✅ Complete)
+**Purpose:** Make installation and onboarding seamless for all users.
+- ✅ Welcome screen when no profile exists
+- ✅ "Try Demo" button for one-click access to The Doctor's profile
+- ✅ Unraid Community Apps template
+- ✅ Comprehensive SETUP.md with Cloudflare Tunnel walkthrough
 
 ---
 
 ## Phase 14: Demo Media System (✅ Complete)
 **Purpose:** Add visual richness to demo mode with images and media
-
-Demo mode now includes professional SVG graphics that showcase the media library features and make The Doctor's profile visually complete.
-
-**✅ Implemented Features:**
-- **Demo Assets Directory:** `/backend/seeds/demo_assets/` with themed SVG graphics (60KB total)
-- **File Copying Mechanism:** `loadDemoAsset()` function loads and attaches files when demo mode is enabled
-- **PocketBase Integration:** Files properly attached using `filesystem.NewFileFromBytes()` API
-- **Professional Graphics:** Custom SVG designs with TARDIS blue theme:
-  - Profile avatar (circular "TD" design with time vortex pattern)
-  - 3 project covers (TARDIS Redesign, Sonic Screwdriver, Defeating Daleks)
-  - 4 blog post covers (tech stack, paradox prevention, time travel, wisdom themes)
-  - 2 media gallery images (constellation map, vortex energy)
-- **Automatic Cleanup:** Files are part of demo_* records, automatically removed on demo restore
-- **Lightweight:** Total asset size only 60KB (well under 10MB target)
-
-**Benefits Delivered:**
-- Demo mode now visually showcases media library features
-- Profile avatar appears in header and views
-- Project covers make portfolio section engaging
-- Blog post covers demonstrate cover image functionality
-- Professional appearance that shows what a complete profile looks like
-
-**Implementation Details:**
-- SVG files stored in `/backend/seeds/demo_assets/{profile,projects,posts,media}/`
-- `loadDemoAsset(path)` helper function in [demo.go](../backend/hooks/demo.go)
-- Files attached during demo enable in `loadDemoDataIntoShadowTables()`
-- No cleanup code needed - files auto-delete with demo_* records
-- All graphics are original SVG designs, no licensing concerns
+- ✅ Demo Assets Directory with themed SVG graphics (60KB total)
+- ✅ Profile avatar, project covers, blog post covers
+- ✅ Automatic cleanup when demo disabled
 
 ---
 
 ## Phase 15: Resume Upload & AI Parsing (✅ Complete)
-**Purpose:** Allow users to upload existing resumes and automatically populate their Facet profile using AI
-
-Users can now upload their PDF or DOCX resumes and have AI automatically extract all professional information, eliminating manual data entry.
-
-**✅ Implemented Features:**
-- **File Upload Endpoint:** `/api/resume/upload` with multipart form support
-- **File Format Support:**
-  - PDF parsing using `go-fitz` v1.24.15 (reliable text extraction)
-  - DOCX parsing using `go-docx` v0.1.1 with XML fallback for malformed files
-  - 5MB file size limit
-  - File type validation (PDF, DOCX only)
-- **AI Parsing Integration:**
-  - Structured prompts for OpenAI, Anthropic, and Ollama
-  - Extracts: experience, education, skills, projects, certifications, awards, talks
-  - 8192 max_tokens to handle complex resumes
-  - Confidence scores and parsing warnings
-  - Error handling with user-friendly messages
-- **Smart Deduplication System:**
-  - Skills: Always dedupe across all imports (case-insensitive)
-  - Experience/Projects: Dedupe within same file only (enables faceted resume views)
-  - Education/Certifications/Awards: Always dedupe universally
-  - Fixed critical bug: All queries had swapped limit/offset parameters (returned 0 results)
-- **File Storage & Tracking:**
-  - `resume_imports` collection stores uploaded files with SHA256 hashing
-  - Duplicate detection with 5-minute prevention window
-  - Import session tracking with `import_session_id` and `import_filename` fields
-  - Files accessible for future media gallery display
-- **Database Migrations:**
-  - 1736074800: Add import tracking fields to all resume-related collections
-  - 1736074900: Create `resume_imports` collection with file storage
-  - 1736075000: Add `resume_import_id` relation field for cleanup
-- **UX Improvements:**
-  - Clear error messages with expandable technical details
-  - Import summary showing counts of created/skipped records
-  - AI configuration guidance (links to Admin → Settings → AI)
-
-**Benefits Delivered:**
-- Fastest way to populate Facet profile from existing resume
-- No manual data entry for users with existing resumes
-- Intelligent deduplication prevents duplicates across multiple imports
-- Supports "faceted resume views" (same person, multiple resume versions)
-- File storage enables future media gallery integration
-
-**Technical Highlights:**
-- New services: `services/resume_parser.go` (610 lines) for AI parsing logic
-- New hooks: `hooks/resume_upload.go` (944 lines) for upload endpoint
-- Extensive debugging with Empirica cognitive OS to fix deduplication bugs
-- Comprehensive testing with multiple resume formats (PDF, DOCX, complex layouts)
-
-**Bug Fixes During Implementation:**
-1. Critical: Swapped limit/offset parameters in all deduplication queries (returned 0 results every time)
-2. PocketBase filter syntax: `:lower` modifier doesn't exist (switched to in-memory `strings.EqualFold()`)
-3. Missing migration field: `import_filename` field missing from projects collection
-4. AI response truncation: Increased max_tokens from 2048 to 8192
-5. DOCX parsing panics: Added XML fallback for malformed files
-6. Unique constraint errors: Update existing resume_imports record instead of creating duplicate
+**Purpose:** Upload existing resumes and automatically populate Facet profile
+- ✅ PDF/DOCX parsing with AI extraction
+- ✅ Smart deduplication system
+- ✅ File storage and tracking
 
 ---
 
-## Phase 16: Code Quality & Bug Fixes (🔜 In Progress)
-**Purpose:** Address technical debt and improve codebase health
+## Phase 16: Admin UX Overhaul (✅ Complete)
+**Purpose:** Improve admin experience with modern, accessible UI patterns
 
-### Bug Fixes (19 identified via comprehensive analysis)
-- 🔴 **Critical/High Priority** (10 bugs):
-  - HTTP timeouts in AI service (DoS vulnerability)
-  - Race condition in rate limiting service
-  - File size validation bypass (DoS vulnerability)
-  - Missing error checks on database saves
-  - SQL filter escaping issues
-  - Resource leaks in HTTP clients
-  - Pagination off-by-one errors
-  - Silent deduplication failures
-  - State consistency in demo mode
-  - Non-unique slug generation
+**Completed:**
+- ✅ **Accessible Confirm Dialogs** - Replaced native `confirm()` with styled, accessible modal dialogs
+- ✅ **Bulk Operations** - Select multiple items, change visibility, bulk delete across 8 content types
+- ✅ **Visibility Badges** - Clear indicators showing public/unlisted/private status in admin lists
+- ✅ **Improved Navigation** - Better admin menu structure and organization
+- ✅ **Dialog System** - Consistent modal patterns across the app
+- ✅ **View Hero Images** - Fixed display issues in admin and demo mode
 
-- 🟡 **Medium/Low Priority** (9 bugs):
-  - Fragile error string matching
-  - Weak time parsing validation
-  - Type safety issues in frontend
-  - HTTP status code inconsistencies
-  - Missing null checks
-  - Magic numbers in string operations
-  - Silent file attachment failures
+**Bug Status (Previously Listed as Phase 16):**
+The original Phase 16 bug list has been verified - most items were already fixed:
+- ✅ HTTP timeouts - Configured (30-120s on all external calls)
+- ✅ Race conditions - Proper mutex usage in rate limiting
+- ✅ File validation - 5MB limits with MIME type checks
+- ✅ SQL injection - Parameterized queries throughout
+- ✅ Error handling - All Save() calls checked (except 1 non-critical stat update)
+- ⚠️ Slug uniqueness - DB enforces via unique index, but no suffix on collision (minor)
 
-**Process:** All bug fixes follow `.claude/BUG_INVESTIGATION_PROTOCOL.md`:
-1. Investigation branch for root cause analysis
-2. Comprehensive test plan before implementation
-3. Fix branch with TDD approach (write failing test first)
-4. Manual + automated testing
-5. PR with detailed root cause documentation
+---
 
-**See:** `.claude/bugs/BUGS_INVENTORY.md` for complete bug list with severity, impact, and suggested fixes.
+## Phase 17: UX Improvements (🔜 Next)
+**Purpose:** Make Facet easier to understand and use
 
-### Testing Infrastructure (Phase 16.1)
-**Current State:** 14% backend coverage, 0% frontend coverage, ~50 test cases
-**Target:** 70%+ coverage, 250+ test cases, all critical paths tested
+### 17.1 Guided Setup Wizard
+**Priority:** High | **Effort:** Medium
 
-- 🔜 **Tier 1 - Critical** (Weeks 1-4):
-  - Authentication & authorization tests (40 test cases)
-  - View visibility & access control tests (30 test cases)
-  - File security & media management tests (25 test cases)
-  - GitHub import system tests (20 test cases)
+First-time users face 22 admin pages - overwhelming. Replace with guided flow:
 
-- 🔜 **Tier 2 - Important** (Weeks 5-6):
-  - Resume parsing tests (30 test cases)
-  - AI integration tests with mocking (25 test cases)
-  - View management tests (20 test cases)
-  - Export functionality tests (15 test cases)
+**Implementation:**
+1. Detect first-time user (no profile record exists)
+2. Show wizard instead of dashboard:
+   - Step 1: Upload resume OR start from scratch
+   - Step 2: Pick profile photo
+   - Step 3: Create first view (suggest "Public" + "Recruiter")
+   - Step 4: Review and publish
+3. Store `setup_completed` flag in user record
+4. "Skip wizard" option for advanced users
 
-- 🔜 **Tier 3 - Coverage** (Weeks 7-8):
-  - Frontend component tests (60+ test cases)
-  - Demo mode tests (10 test cases)
-  - Performance/load tests
+**Files to modify:**
+- `frontend/src/routes/admin/+layout.svelte` - Wizard detection
+- New: `frontend/src/components/admin/SetupWizard.svelte`
+- `backend/migrations/` - Add `setup_completed` field to users
 
-**Infrastructure Improvements:**
-- CI/CD integration with GitHub Actions
-- Test fixtures and seeding
-- Mock services for GitHub, AI providers
-- Automated test runs on all PRs
+### 17.2 Contextual Help on Admin Pages
+**Priority:** High | **Effort:** Low
+
+Add brief, helpful instructions to each admin page explaining:
+- What this page does
+- Why users would use it
+- How it connects to other Facet features (making facets!)
+
+**Implementation:**
+Each admin page gets a collapsible "help" section at the top:
+```svelte
+<PageHelp>
+  <p><strong>Projects</strong> showcase your work and portfolio pieces.</p>
+  <p>Each project can appear on multiple views - show technical projects to recruiters,
+     creative work to designers. That's what Facet is all about!</p>
+  <p>Tip: Import projects directly from GitHub using the Import page.</p>
+</PageHelp>
+```
+
+**Pages to update (22 total):**
+- Profile, Experience, Projects, Education, Skills, Posts, Talks, Certifications, Awards
+- Views, Tokens, Contacts, Media, Import, Settings, Homepage
+
+**Component:**
+- New: `frontend/src/components/admin/PageHelp.svelte` - Collapsible help section
+- Store preference in localStorage: `facet_show_page_help`
+
+### 17.3 Better Empty States
+**Priority:** Medium | **Effort:** Low
+
+Empty sections currently show nothing. Replace with helpful prompts:
+
+```
+┌─────────────────────────────────────────┐
+│  📂 No projects yet                     │
+│                                         │
+│  Projects showcase your portfolio work. │
+│                                         │
+│  [Import from GitHub]  [Create manually]│
+│  [Upload resume to extract]             │
+└─────────────────────────────────────────┘
+```
+
+**Implementation:**
+- Create `EmptyState.svelte` component with:
+  - Icon
+  - Title
+  - Description
+  - Action buttons (contextual)
+- Replace empty list states across all admin pages
+
+---
+
+## Phase 18: Sharing & Analytics (🔜 Planned)
+**Purpose:** Make sharing easier and provide insight into profile views
+
+### 18.1 Quick Share to Social
+**Priority:** High | **Effort:** Low
+
+One-click sharing to major platforms:
+
+**Implementation:**
+```svelte
+<ShareButtons url={viewUrl} title={viewTitle}>
+  <!-- Generates proper share URLs for each platform -->
+  <button on:click={() => shareToLinkedIn()}>Share to LinkedIn</button>
+  <button on:click={() => shareToTwitter()}>Share to Twitter</button>
+  <button on:click={() => copyLink()}>Copy Link</button>
+  <button on:click={() => emailLink()}>Email</button>
+</ShareButtons>
+```
+
+**Share URL formats:**
+- LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url={url}`
+- Twitter: `https://twitter.com/intent/tweet?url={url}&text={title}`
+- Email: `mailto:?subject={title}&body={url}`
+
+**Where to show:**
+- View editor page (share this view)
+- Public view pages (when logged in)
+- Share token modal
+
+### 18.2 View Analytics Dashboard
+**Priority:** High | **Effort:** Medium
+
+The data already exists (`use_count`, `last_used_at`). Surface it!
+
+**Implementation:**
+- New page: `/admin/analytics`
+- Dashboard showing:
+  - Total views per view (bar chart)
+  - Share token usage stats
+  - Most viewed content
+  - Recent activity timeline
+- Use existing PocketBase data, no external tracking
+- Privacy-respecting: all data stays local
+
+**Backend:**
+- New endpoint: `GET /api/analytics/summary`
+- Aggregates from views, share_tokens, and minimal access logs
+
+### 18.3 QR Code for Views
+**Priority:** Medium | **Effort:** Low
+
+Generate QR codes for any view or share link.
+
+**Implementation:**
+- Use `qrcode` npm package (lightweight, no external deps)
+- Add "QR Code" button next to share link
+- Modal shows:
+  - QR code image (SVG)
+  - Download as PNG button
+  - Print button
+
+**Use cases:**
+- Business cards
+- Conference badges
+- Print resumes with QR linking to full profile
+
+---
+
+## Phase 19: Developer Platform (🔜 Planned)
+**Purpose:** Enable integrations and extensibility
+
+### 19.1 Webhooks
+**Priority:** Medium | **Effort:** Medium
+
+Notify external services when events occur.
+
+**Events to support:**
+- `view.accessed` - Someone viewed a profile
+- `share_token.used` - Share link was used
+- `content.published` - New post/project published
+- `profile.updated` - Profile changed
+
+**Implementation:**
+- New collection: `webhooks` (url, events[], secret, active)
+- Admin page: `/admin/settings/webhooks`
+- Backend: Hook into PocketBase events, POST to registered URLs
+- Include HMAC signature for verification
+
+**Payload example:**
+```json
+{
+  "event": "view.accessed",
+  "timestamp": "2026-01-17T14:30:00Z",
+  "data": {
+    "view_slug": "recruiter",
+    "referrer": "linkedin.com"
+  }
+}
+```
+
+### 19.2 Public API
+**Priority:** Medium | **Effort:** Medium
+
+Documented REST API for integrations.
+
+**Endpoints to document:**
+- `GET /api/view/{slug}/data` - Get view data (respects visibility)
+- `GET /api/posts` - List public posts
+- `GET /api/projects` - List public projects
+- `GET /api/profile` - Get basic profile info
+
+**Implementation:**
+- OpenAPI/Swagger spec in `docs/api/`
+- Auto-generated from PocketBase schema + custom endpoints
+- Rate limiting for public API access
+- Optional API key for higher limits
+
+### 19.3 Offline PWA Support
+**Priority:** Low | **Effort:** High
+
+Make admin dashboard work offline.
+
+**Implementation:**
+- Service worker for caching
+- IndexedDB for offline data storage
+- Queue mutations when offline
+- Sync when back online
+- Show "offline" indicator
+
+**Scope:**
+- Admin dashboard (view/edit content offline)
+- Public pages (view cached profiles)
+- Exclude: AI features, GitHub import
+
+---
+
+## Phase 20: Social Proof & Networking (🔜 Future)
+**Purpose:** Build credibility through endorsements and easy application
+
+### 20.1 Testimonials/Endorsements System
+**Priority:** High | **Effort:** High
+
+Let others vouch for you without needing accounts.
+
+**How it works:**
+1. Owner generates endorsement request link (like share tokens)
+2. Link goes to simple form: name, relationship, testimonial text
+3. Submission stored as "pending" for owner review
+4. Owner approves/rejects in admin
+5. Approved testimonials appear on designated views
+
+**Implementation:**
+
+**Backend:**
+- New collection: `endorsements`
+  - `id`, `name`, `email`, `relationship`, `content`, `status` (pending/approved/rejected)
+  - `request_token`, `submitted_at`, `approved_at`
+  - `views` (which views to show on)
+- New collection: `endorsement_requests`
+  - `id`, `token`, `expires_at`, `message` (optional intro message)
+  - `max_uses`, `use_count`
+- Endpoints:
+  - `POST /api/endorsement/request` - Generate request link (auth required)
+  - `GET /api/endorsement/submit/{token}` - Get request details (no auth)
+  - `POST /api/endorsement/submit/{token}` - Submit testimonial (no auth)
+  - `GET /api/endorsements` - List for admin (auth required)
+  - `PATCH /api/endorsements/{id}` - Approve/reject (auth required)
+
+**Frontend:**
+- `/endorse/{token}` - Public submission form (clean, professional)
+- `/admin/endorsements` - Review and manage
+- `TestimonialsSection.svelte` - Display on public views
+
+**Security:**
+- Rate limit submissions (3 per token per hour)
+- Spam detection (very short or repetitive content)
+- Email notification to owner on new submission
+- No account required for endorsers
+
+### 20.2 "Apply with Facet" Button
+**Priority:** Medium | **Effort:** Very High
+
+Enable one-click job applications using Facet profile.
+
+**The Challenge:**
+This requires the *receiving* side (employers) to integrate. Two approaches:
+
+**Approach A: Embeddable Widget (Simpler)**
+```html
+<!-- Employer adds to job posting -->
+<a href="https://facet.example.com/apply?job=senior-dev&company=acme"
+   class="facet-apply-btn">
+  Apply with Facet
+</a>
+```
+
+When clicked:
+1. Applicant lands on their Facet instance
+2. Selects which view to share
+3. Facet generates a time-limited share link
+4. Emails the link to the employer (address in URL params)
+
+**Approach B: Facet Network (Complex)**
+- Central directory of Facet instances
+- Employers register to receive applications
+- OAuth handshake between instances
+- This is essentially building a job board
+
+**Recommended: Start with Approach A**
+- Zero employer integration required
+- Works immediately
+- Can evolve into Approach B later
+
+**Implementation (Approach A):**
+- `/apply` route that shows view selector
+- Email template for application
+- Include: view link, optional cover note, contact info
+- Track sent applications in new `applications` collection
 
 ---
 
 ## Cross-Cutting Backlog
-- **High Priority:**
-  - 🔜 **Bug Fixes** - 10 critical/high priority bugs (see Phase 16)
-  - 🔜 **Testing Infrastructure** - Expand to 70%+ coverage (see Phase 16)
-  - 🔜 **Theme System** - Pre-built themes, visual editor, dark/light toggle
-  - 🔜 **Custom Sections** - User-defined section types (Publications, Testimonials, Patents, etc.)
-  - ✅ **Resume Upload & AI Parsing (Reverse Direction):** Upload existing PDF/DOCX resumes, use AI to extract and populate experience/education/skills
-    - Complete: AI resume generation (Facet → PDF/DOCX) + resume upload (existing resume → Facet data). Both directions now supported.
-- **Medium Priority:**
-  - 🔜 **Content Insights Dashboard** - Simple metrics (total views, share token usage, most-viewed content) - privacy-respecting, opt-in only
-  - 🔜 **Scheduled Publishing** - Content calendar for posts/projects with scheduled publish dates
-  - Import/sync: scheduled GitHub refresh, JSON Resume format support
-  - Custom section layouts (grids/compact), deferred view warnings, section titles/layout options
-- **Low Priority:**
-  - Webhooks & integrations (Zapier/IFTTT support)
-  - Advanced media features (native video hosting, image galleries, lightbox)
-  - API documentation & SDKs (OpenAPI spec, Python/JS SDKs)
-  - Bulk operations (bulk edit visibility, CSV import/export)
-  - Offline PWA support
-  - Mobile admin UX improvements
-  - Accessibility audit (WCAG 2.1 AAA compliance)
-  - Content extensions: awards/publications/testimonials; collaboration modes (read-only/suggestion) remain single-user
+
+### High Priority
+- 🔜 **Guided Setup Wizard** (Phase 17.1) - Biggest barrier to adoption
+- 🔜 **Contextual Help** (Phase 17.2) - Help users understand each page
+- 🔜 **Quick Share to Social** (Phase 18.1) - Low effort, immediate value
+- 🔜 **View Analytics Dashboard** (Phase 18.2) - Uses existing data
+
+### Medium Priority
+- 🔜 **QR Codes** (Phase 18.3) - Quick win for sharing
+- 🔜 **Better Empty States** (Phase 17.3) - Improve first-run experience
+- 🔜 **Webhooks** (Phase 19.1) - Enable integrations
+- 🔜 **Testimonials System** (Phase 20.1) - Social proof
+
+### Lower Priority
+- 🔜 **Public API** (Phase 19.2) - Developer platform
+- 🔜 **Offline PWA** (Phase 19.3) - Complex, niche use case
+- 🔜 **Apply with Facet** (Phase 20.2) - Requires ecosystem adoption
+- 🔜 **Theme System** - Pre-built visual themes
+- 🔜 **Scheduled Publishing** - Content calendar
+
+### Already Complete (Removed from Backlog)
+- ✅ **Bulk Operations** - Implemented across 8 content types
+- ✅ **Custom Domain** - Works via reverse proxy (self-hosted)
+- ✅ **Resume Upload & AI Parsing** - Both directions supported
+- ✅ **Admin UX** - Dialogs, navigation, visibility badges
+
+---
 
 ## Integrations
 - ✅ RSS feed for posts
 - ✅ iCal export for talks
 - ✅ Google Analytics (opt-in)
+- ✅ GitHub import
 - 🔜 Webhook notifications
-
-## Tracking Upstream Dependencies
-
-This section documents security and infrastructure features that have been evaluated and intentionally deferred. Each has been assessed using Empirica epistemic analysis with reasoning documented in git notes.
-
-### Phase 8 Security Enhancements (Deferred)
-
-All remaining Phase 8 security enhancements have been evaluated and deferred due to **low necessity for Facet's single-owner architecture**. Multi-user applications would benefit from these features, but for a single-owner profile site, the complexity and risk outweigh the security value.
-
-#### 1. Audit Logging (Empirica: 13f779f4)
-**Status:** Deferred - Low necessity for single-owner use case
-
-**Why deferred:**
-- Primary value: Multi-user environments, compliance requirements, forensic investigation
-- Facet context: Single owner notices their own security intrusions, no compliance requirements
-- Alternative: Git history already tracks admin changes to content/config files
-- Complexity: 6/10, Maintenance burden: 7/10
-
-**Empirica assessment:**
-- Confidence: 5/10 (moderate uncertainty about single-owner value)
-- Necessity: 4/10 (questionable for single-owner, high for multi-user)
-- Would revisit if: Multi-user support or compliance requirements added
-
-#### 2. Session Management (List/Revoke/Expiry) (Empirica: 2bce295433)
-**Status:** Deferred - High risk, low necessity
-
-**Why deferred:**
-- OAuth complication: Google/GitHub tokens don't revoke when Facet sessions end
-- Owner workaround: Change password to invalidate all sessions if suspected compromise
-- Implementation risk: 7/10 (touches authentication flow - previous auth breakage incident)
-- Complexity: 7/10
-
-**Empirica assessment:**
-- Confidence: 3/10 (low confidence in value for single-owner)
-- Necessity: 3/10 (password change achieves same goal with zero dev risk)
-- Would revisit if: Multi-device session monitoring becomes a user request
-
-#### 3. Content Security Policy (CSP) (Empirica: 31a130dc)
-**Status:** Deferred - High OAuth breakage risk
-
-**Why deferred:**
-- OAuth flow risk: CSP can break Google/GitHub authentication if misconfigured (8/10 risk)
-- Current security: X-Content-Type-Options, X-Frame-Options, Referrer-Policy already in place
-- Single-owner context: XSS attack surface minimal (owner would need to XSS themselves)
-- Complexity: Report-only rollout requires monitoring, iterative refinement, OAuth testing (7/10)
-- Maintenance burden: 6/10
-
-**Empirica assessment:**
-- Confidence: 4/10 (uncertain about single-owner value)
-- Necessity: 3/10 (adequate existing security headers)
-- Risk: 8/10 (highest risk - OAuth breakage = complete lockout)
-- Would revisit if: Multi-user support added or XSS attack surface expands
-
-#### 4. 2FA/TOTP Support (Empirica: Session context)
-**Status:** Deferred pending native PocketBase support
-
-**Why deferred:**
-- No native TOTP in PocketBase as of v0.23
-- OAuth users (Google/GitHub) already protected by provider 2FA
-- Custom implementation: 6-7 hours with auth flow risk and maintenance burden
-
-**How to track:**
-1. Subscribe to PocketBase TOTP discussion: https://github.com/pocketbase/pocketbase/discussions/1208
-2. On the discussion page, click "Subscribe" button (bell icon in top right)
-3. You'll receive email notifications when:
-   - PocketBase maintainers comment on TOTP plans
-   - Native TOTP support is announced
-   - Related pull requests are referenced
-
-**When implemented upstream:**
-- Evaluate native PocketBase TOTP implementation
-- Make it opt-in for password users only (skip OAuth users)
-- Add admin settings toggle with QR code generation
-- Implement backup codes with encrypted storage
-
-### Summary: When to Revisit These Features
-
-All four deferred security enhancements share the same trigger for reconsideration:
-
-**If Facet adds multi-user support:**
-- Audit logging becomes valuable for accountability
-- Session management enables users to monitor their own devices
-- CSP provides defense-in-depth against user-generated XSS
-- 2FA adds account protection (if native PocketBase support exists)
-
-**For single-owner architecture:**
-- Current security posture is adequate
-- Owner-managed password changes handle session invalidation
-- OAuth providers handle their own 2FA
-- Existing security headers prevent common attacks
+- 🔜 Zapier/IFTTT support (via webhooks)
 
 ---
 
-### Import Source Integrations (Deferred)
+## Tracking Upstream Dependencies
 
-Several import sources have been evaluated and deferred due to API limitations or Terms of Service concerns.
+### PocketBase TOTP Support
+**Status:** Deferred pending native support
 
-#### Credly Certification Import (Empirica: 797a16c5)
-**Status:** Deferred - No public API for individual users
+- Subscribe to: https://github.com/pocketbase/pocketbase/discussions/1208
+- OAuth users already have provider 2FA
+- Will implement when PocketBase adds native TOTP
 
-**Why deferred:**
-- Official Credly API requires organization credentials (not available to individuals)
-- Public endpoint (`/api/v1/users/{id}/badges`) returns "Unauthorized" - locked down
-- Only option is HTML scraping, which is brittle and may violate Terms of Service
-- High maintenance burden (8/10 complexity) when Credly changes page structure
-- Risk of IP blocking or legal issues (7/10 risk)
+### Import Source Integrations
+- **LinkedIn:** API requires partnership (deferred)
+- **Credly:** No public API for individuals (deferred)
+- **JSON Resume:** Lower priority, resume upload covers use case
 
-**Empirica assessment:**
-- Confidence: 7/10 (confident scraping is wrong approach)
-- Complexity: 8/10 (HTML parsing brittle, breaks on layout changes)
-- Risk: 7/10 (ToS violation, IP blocking potential)
-- Value: 4/10 (manual entry achieves 80% of value with 20% of risk)
+---
 
-**Current workaround:**
-- Users manually enter certifications with optional Credly badge URL field
-- Certifications collection supports all standard fields (issuer, issue_date, expiry_date, credential_url)
+## Recent Changes Log
 
-**Would revisit if:**
-- Credly opens public API for individual users
-- Official API partnership opportunity arises
-- Automated import becomes critical user request
+### 2026-01-17
+- Updated Phase 16 bug status - verified most were already fixed
+- Added Phase 17 (UX Improvements) with Guided Setup Wizard, Contextual Help, Better Empty States
+- Added Phase 18 (Sharing & Analytics) with Quick Share, Analytics Dashboard, QR Codes
+- Added Phase 19 (Developer Platform) with Webhooks, Public API, Offline PWA
+- Added Phase 20 (Social Proof) with Testimonials System, Apply with Facet
+- Noted Bulk Operations and Custom Domain as already complete
+- Reorganized Cross-Cutting Backlog by priority
 
-#### LinkedIn Profile Import
-**Status:** Deferred - API access restrictions
-
-**Why deferred:**
-- LinkedIn API has strict access requirements and rate limits
-- Requires LinkedIn Partnership for profile data access
-- Manual profile data entry is current approach
-
-**Would revisit if:**
-- LinkedIn opens public profile API
-- Partnership opportunity with LinkedIn
-- JSON Resume format support provides similar value (see below)
-
-#### JSON Resume Format Support
-**Status:** Planned - Lower priority
-
-**Why lower priority:**
-- Resume upload & AI parsing (Phase 15) already provides import path
-- Users can export JSON Resume format and upload as resume
-- Standard format but less common than PDF/DOCX
-- Would add import option alongside PDF/DOCX
-
-**Implementation approach when prioritized:**
-- Add JSON Resume format detection to resume upload endpoint
-- Parse JSON structure directly (no AI parsing needed)
-- Map JSON Resume schema to Facet collections
-- Simpler than Credly/LinkedIn (no API/scraping needed)
-
-## Decision Log
-(unchanged; see historical entries below)
+### 2026-01-12
+- Completed Admin UX overhaul (accessible dialogs, bulk operations, visibility badges)
+- Fixed view hero image display issues
+- Upgraded to Svelte 5 and Vite 7
