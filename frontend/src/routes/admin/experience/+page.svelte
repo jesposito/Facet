@@ -8,6 +8,7 @@
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let experiences: Experience[] = $state([]);
 	let loading = $state(true);
@@ -255,6 +256,12 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="experience">
+		<p><strong>Experience</strong> is your work history - jobs, roles, and achievements.</p>
+		<p>Use bullet points to highlight key accomplishments. The AI Assistant can help you rewrite achievements to be more impactful.</p>
+		<p><strong>Tip:</strong> Focus on outcomes and metrics. "Reduced build time by 40%" beats "worked on build system."</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

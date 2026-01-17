@@ -6,6 +6,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let skills: Skill[] = $state([]);
 	let loading = $state(true);
@@ -237,6 +238,12 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="skills">
+		<p><strong>Skills</strong> showcase your technical and professional abilities, organized by category.</p>
+		<p>Use proficiency levels honestly - Expert means you can teach others, Proficient means strong working knowledge.</p>
+		<p><strong>Tip:</strong> Group related skills (Languages, Frameworks, DevOps) and show different skill sets to different audiences via Views.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

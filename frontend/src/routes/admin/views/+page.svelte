@@ -5,6 +5,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let loading = $state(true);
 	let views: Array<Record<string, unknown>> = $state([]);
@@ -75,6 +76,12 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
+	<PageHelp pageKey="views">
+		<p><strong>Facets</strong> are curated versions of your profile for different audiences.</p>
+		<p>Create a "Recruiter" facet with your full work history, a "Conference" facet highlighting talks, or a "Consulting" facet for client work. Each facet shows exactly what you want that audience to see.</p>
+		<p><strong>Tip:</strong> Your homepage (<code>/</code>) shows all public content. Facets let you create focused views at URLs like <code>/recruiter</code> with only the sections and items you choose.</p>
+	</PageHelp>
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Facets</h1>
 		<a href="/admin/views/new" class="btn btn-primary">+ New Facet</a>

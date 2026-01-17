@@ -3,6 +3,7 @@
 	import { toasts } from '$lib/stores';
 	import { goto } from '$app/navigation';
 	import { icon } from '$lib/icons';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	// Resume upload state
 	let resumeFile: File | null = $state(null);
@@ -240,6 +241,12 @@
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">
+	<PageHelp pageKey="import">
+		<p><strong>Import</strong> brings your existing data into Facet automatically.</p>
+		<p>Upload your resume (PDF/DOCX) and AI extracts all your experience, education, skills, and projects. Or connect to GitHub to import your repositories as projects.</p>
+		<p><strong>Tip:</strong> Start with a resume upload - it's the fastest way to populate your profile. GitHub import adds portfolio projects.</p>
+	</PageHelp>
+
 	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Import Data</h1>
 
 	<!-- Resume Upload Section -->

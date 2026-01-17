@@ -5,6 +5,7 @@
 	import { formatDate } from '$lib/utils';
 	import { pb } from '$lib/pocketbase';
 	import { goto } from '$app/navigation';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	type MediaItem = {
 		collection: string;
@@ -385,6 +386,12 @@
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
+	<PageHelp pageKey="media">
+		<p><strong>Media Library</strong> manages all your uploaded images, videos, and files.</p>
+		<p>Upload files here or attach them to projects, posts, and talks. Orphan detection finds files that aren't used anywhere so you can clean up storage.</p>
+		<p><strong>Tip:</strong> Add external media (YouTube, Vimeo) by URL - no need to download and re-upload.</p>
+	</PageHelp>
+
 	<div class="flex items-center justify-between mb-6">
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Media Library</h1>

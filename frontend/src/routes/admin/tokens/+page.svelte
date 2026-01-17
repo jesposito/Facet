@@ -6,6 +6,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let loading = $state(true);
 	let tokens: ShareToken[] = $state([]);
@@ -247,16 +248,18 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
+	<PageHelp pageKey="tokens">
+		<p><strong>Share Tokens</strong> provide secure, time-limited access to your unlisted facets.</p>
+		<p>Perfect for job applications: generate a token that expires after 30 days, send it to recruiters, and revoke it anytime. The URL looks clean (like <code>/recruiter</code>) while the token handles access control.</p>
+		<p><strong>Tip:</strong> Set a max use count to limit how many times a link can be viewed, or leave it unlimited for ongoing access.</p>
+	</PageHelp>
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Share Tokens</h1>
 		<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
 			{@html icon('plus')} Generate Token
 		</button>
 	</div>
-
-	<p class="text-gray-600 dark:text-gray-400 mb-6">
-		Share tokens provide secure access to unlisted views. Each token can have an optional expiration date and usage limit.
-	</p>
 
 	<!-- Newly Created Token Banner -->
 	{#if createdToken}

@@ -7,6 +7,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let educations: Education[] = $state([]);
 	let loading = $state(true);
@@ -215,6 +216,12 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="education">
+		<p><strong>Education</strong> covers your academic background - degrees, certifications, and courses.</p>
+		<p>Include relevant coursework, honors, or activities in the description field.</p>
+		<p><strong>Tip:</strong> Recent graduates should highlight education prominently. Experienced professionals can keep it brief.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

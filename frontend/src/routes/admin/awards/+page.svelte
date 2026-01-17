@@ -5,6 +5,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { formatDate, truncate } from '$lib/utils';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let awards: Award[] = $state([]);
 	let loading = $state(true);
@@ -196,6 +197,12 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="awards">
+		<p><strong>Awards</strong> highlight your recognition, honors, and achievements.</p>
+		<p>Include the issuer, date, and a link to verification or announcement. Awards add credibility to your profile.</p>
+		<p><strong>Tip:</strong> Even small recognitions (employee of the month, hackathon wins) can be valuable - they show you stand out.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

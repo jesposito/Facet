@@ -7,6 +7,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let profile: Record<string, unknown> | null = null;
 	let loading = $state(true);
@@ -197,6 +198,12 @@
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">
+	<PageHelp pageKey="profile">
+		<p><strong>Profile</strong> is your core identity - name, headline, summary, and photos.</p>
+		<p>This info appears on your homepage and can be overridden per-facet. Want a different headline for recruiters vs. conference attendees? Create facets with custom hero sections.</p>
+		<p><strong>Tip:</strong> Keep your default headline broad. Use facet overrides for audience-specific messaging.</p>
+	</PageHelp>
+
 	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit Profile</h1>
 
 	{#if loading}

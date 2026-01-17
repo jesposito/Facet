@@ -8,6 +8,7 @@
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let talks: Talk[] = $state([]);
 	let loading = $state(true);
@@ -350,6 +351,12 @@ async function resolveMediaRefs(selected: string[]) {
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="talks">
+		<p><strong>Talks</strong> showcase your speaking engagements, presentations, and workshops.</p>
+		<p>Link to slides, videos, and event pages. Each talk gets a public URL at <code>/talks/your-slug</code>.</p>
+		<p><strong>Tip:</strong> Public talks appear in your iCal feed at <code>/talks.ics</code> - great for sharing your speaking schedule.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

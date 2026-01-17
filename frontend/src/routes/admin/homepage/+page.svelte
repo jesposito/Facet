@@ -7,6 +7,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
@@ -251,6 +252,12 @@
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">
+	<PageHelp pageKey="homepage">
+		<p><strong>Homepage</strong> controls what visitors see at your root URL.</p>
+		<p>Enable or disable public access, customize the landing page message for when your site is hidden, and edit your core profile information that appears across all facets.</p>
+		<p><strong>Tip:</strong> Hide your homepage while building your profile, then enable it when you're ready to go live.</p>
+	</PageHelp>
+
 	<div class="mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Homepage</h1>
 		<p class="text-gray-600 dark:text-gray-400 mt-1">

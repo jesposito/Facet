@@ -7,6 +7,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { formatDate } from '$lib/utils';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let certifications: Certification[] = $state([]);
 	let loading = $state(true);
@@ -237,6 +238,12 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="certifications">
+		<p><strong>Certifications</strong> track your professional credentials with expiry dates and verification links.</p>
+		<p>Expired certifications show a warning badge. Group by issuer (AWS, Google, Microsoft) for organized display.</p>
+		<p><strong>Tip:</strong> Add credential URLs so viewers can verify your certifications directly with the issuer.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

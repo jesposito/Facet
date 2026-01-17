@@ -12,6 +12,7 @@
 		DEFAULT_ACCENT_COLOR,
 		type AccentColor
 	} from '$lib/colors';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let loading = $state(true);
 	let providers: Array<Record<string, unknown>> = $state([]);
@@ -391,6 +392,12 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
+	<PageHelp pageKey="settings">
+		<p><strong>Settings</strong> controls your site's appearance, AI providers, analytics, and data export.</p>
+		<p>Configure AI providers to enable smart features like resume parsing, content rewriting, and GitHub project summaries. Add custom CSS to style your public profile.</p>
+		<p><strong>Tip:</strong> Export your data regularly as JSON or YAML for backup. It includes everything.</p>
+	</PageHelp>
+
 	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
 	<p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
 		Control what visitors see on your public site, enable analytics, and manage advanced options.

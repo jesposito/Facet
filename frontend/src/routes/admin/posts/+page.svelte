@@ -8,6 +8,7 @@ import { toasts, confirm } from '$lib/stores';
 import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+import PageHelp from '$components/admin/PageHelp.svelte';
 
 let posts: Post[] = $state([]);
 let loading = $state(true);
@@ -364,6 +365,12 @@ function openEditForm(post: Post) {
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="posts">
+		<p><strong>Posts</strong> are your blog articles and written content.</p>
+		<p>Each post gets its own public URL at <code>/posts/your-slug</code>. Write in Markdown, add tags for organization, and include media embeds for rich content.</p>
+		<p><strong>Tip:</strong> Public posts appear in your RSS feed at <code>/rss.xml</code> - great for readers with feed readers.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

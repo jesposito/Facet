@@ -7,6 +7,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 
 	let projects: Project[] = $state([]);
 	let loading = $state(true);
@@ -398,6 +399,12 @@ async function loadProjects() {
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="projects">
+		<p><strong>Projects</strong> showcase your portfolio work and side projects.</p>
+		<p>Each project can appear on multiple views - show technical projects to recruiters, creative work to designers. That's what Facet is all about!</p>
+		<p><strong>Tip:</strong> Import projects directly from GitHub using the <a href="/admin/import" class="underline">Import page</a>.</p>
+	</PageHelp>
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}

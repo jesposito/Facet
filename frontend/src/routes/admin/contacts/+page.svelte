@@ -5,6 +5,7 @@
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import PageHelp from '$components/admin/PageHelp.svelte';
 	
 
 	// State
@@ -254,6 +255,12 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
+	<PageHelp pageKey="contacts">
+		<p><strong>Contact Methods</strong> let you share your email, phone, and social links with anti-scraping protection.</p>
+		<p>Each contact can appear on specific facets only - show your personal email to friends but your work email to recruiters. Choose protection levels to prevent bots from harvesting your info.</p>
+		<p><strong>Tip:</strong> Use "Click to Reveal" protection for sensitive contact info like phone numbers.</p>
+	</PageHelp>
+
 	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Contact Methods</h1>
 
 	<div class="flex items-center justify-between mb-6">
