@@ -224,7 +224,7 @@ The original Phase 16 bug list has been verified - most items were already fixed
 - 10+ admin pages - Touch targets, form stacking, responsive grids
 - `app.css`, `app.html` - Global overflow prevention
 
-See [MOBILE_UX_PLAN.md](MOBILE_UX_PLAN.md) for detailed implementation plan.
+*Mobile UX improvements are now fully implemented.*
 
 ---
 
