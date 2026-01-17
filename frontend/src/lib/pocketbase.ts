@@ -351,6 +351,15 @@ export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string;
 			horizontal: 'Horizontal',
 			grid: 'Grid'
 		}
+	},
+	testimonials: {
+		layouts: ['wall', 'carousel', 'featured'],
+		default: 'wall',
+		labels: {
+			wall: 'Masonry Wall',
+			carousel: 'Carousel',
+			featured: 'Featured Highlight'
+		}
 	}
 };
 

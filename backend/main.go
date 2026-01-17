@@ -36,6 +36,7 @@ func main() {
 	githubService := services.NewGitHubService()
 	aiService := services.NewAIService(cryptoService)
 	shareService := services.NewShareService(cryptoService)
+	testimonialService := services.NewTestimonialService(cryptoService)
 	rateLimitService := services.NewRateLimitService()
 
 	// Register migrations
@@ -61,6 +62,7 @@ func main() {
 	hooks.RegisterResumeUploadHooks(app, cryptoService) // Resume upload & parsing
 	hooks.RegisterSeedHook(app)
 	hooks.RegisterDemoHandlers(app)
+	hooks.RegisterTestimonialHooks(app, testimonialService, rateLimitService)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
