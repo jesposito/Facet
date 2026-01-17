@@ -7,10 +7,13 @@
 	import { page } from '$app/stores';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
-	import { demoMode, initDemoMode } from '$lib/stores/demo';
+	import { demoMode, initDemoMode, collection } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
+	import SetupWizard from '$components/admin/SetupWizard.svelte';
+	import { setupWizard, shouldShowWizard } from '$lib/stores/setupWizard';
+	import type { Profile, View } from '$lib/pocketbase';
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
@@ -26,12 +29,15 @@
 	// Mobile: sidebar is overlay drawer (hidden by default)
 	// Desktop: sidebar is persistent (current behavior)
 	let isMobile = $state(false);
-	const MOBILE_BREAKPOINT = 1024; // lg breakpoint
+	const MOBILE_BREAKPOINT = 1024;
+	
+	let profileData: Profile | null = $state(null);
+	let viewsData: View[] = $state([]);
 
 
 
 
-	async function checkDefaultPassword() {
+	async function checkDefaultPassword(): Promise<boolean> {
 		try {
 			const response = await fetch('/api/auth/check-default-password', {
 				headers: {
@@ -43,10 +49,30 @@
 				const data = await response.json();
 				if (data.has_default_password) {
 					showPasswordChangeModal = true;
+					return true;
 				}
 			}
 		} catch (err) {
 			console.error('Failed to check default password:', err);
+		}
+		return false;
+	}
+	
+	async function checkSetupWizard() {
+		try {
+			const [profileRes, viewsRes] = await Promise.all([
+				collection('profile').getList(1, 1),
+				collection('views').getList(1, 100)
+			]);
+			
+			profileData = profileRes.items[0] as unknown as Profile || null;
+			viewsData = viewsRes.items as unknown as View[];
+			
+			if (shouldShowWizard(profileData, viewsData, $demoMode)) {
+				setupWizard.open();
+			}
+		} catch (err) {
+			console.error('Failed to check setup wizard:', err);
 		}
 	}
 
@@ -109,19 +135,21 @@
 		const isAuthenticated = $currentUser && pb.authStore.isValid;
 
 		if (isAuthenticated) {
-			// User is fully authenticated - check if they have default password
-			checkDefaultPassword();
+			const needsPasswordChange = await checkDefaultPassword();
+			if (!needsPasswordChange) {
+				checkSetupWizard();
+			}
 			authorized = true;
 			loading = false;
 		} else if (pb.authStore.isValid && !$currentUser) {
-			// Auth store is valid but $currentUser store not updated yet - wait briefly
 			await new Promise(resolve => setTimeout(resolve, 150));
 
-			// Re-check after delay
 			const stillAuthenticated = $currentUser && pb.authStore.isValid;
 			if (stillAuthenticated) {
-				// Check if user has default password
-				checkDefaultPassword();
+				const needsPasswordChange = await checkDefaultPassword();
+				if (!needsPasswordChange) {
+					checkSetupWizard();
+				}
 				authorized = true;
 				loading = false;
 			} else {
@@ -162,6 +190,8 @@
 				.then((updatedUser) => {
 					// Update the currentUser store
 					currentUser.set(updatedUser);
+					// Check if setup wizard should be shown after password change
+					checkSetupWizard();
 				})
 				.catch((err) => {
 					console.error('Failed to refresh user data:', err);
@@ -177,17 +207,19 @@
 			authorized = false;
 		}
 	});
-	// Reactive auth check - update authorized when currentUser changes
 	run(() => {
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
 			if (isAuth && !authorized) {
-				// User just logged in - check for default password
-				checkDefaultPassword();
 				authorized = true;
 				loading = false;
+				(async () => {
+					const needsPasswordChange = await checkDefaultPassword();
+					if (!needsPasswordChange) {
+						checkSetupWizard();
+					}
+				})();
 			} else if (!isAuth && authorized) {
-				// User just logged out - redirect
 				authorized = false;
 				goto('/admin/login');
 			}
@@ -242,10 +274,11 @@
 			</main>
 		</div>
 
-		<!-- Password change modal (blocks all access until password is changed) -->
 		{#if showPasswordChangeModal}
 			<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />
 		{/if}
+		
+		<SetupWizard onComplete={() => checkSetupWizard()} />
 	</div>
 {:else}
 	<!-- CRITICAL SECURITY: Fallback for any edge case where user is not authenticated -->

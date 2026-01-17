@@ -98,6 +98,11 @@ export const featuredProjects = derived(projects, ($projects) =>
 export const isAdmin = writable(false);
 export const adminSidebarOpen = writable(true);
 
+export const sidebarFacetsVersion = writable(0);
+export function triggerSidebarFacetsReload() {
+	sidebarFacetsVersion.update(n => n + 1);
+}
+
 // Sidebar section collapse states with localStorage persistence
 export type SidebarSectionStates = Record<string, boolean>;
 
