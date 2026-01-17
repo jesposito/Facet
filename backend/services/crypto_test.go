@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -232,12 +233,21 @@ func TestValidateViewAccessJWT_Tampered(t *testing.T) {
 		t.Fatalf("Failed to generate token: %v", err)
 	}
 
-	// Tamper with the token (modify last character)
-	tamperedToken := token[:len(token)-1] + "X"
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		t.Fatalf("Expected JWT to have 3 parts, got %d", len(parts))
+	}
+
+	signature := parts[2]
+	if len(signature) < 10 {
+		t.Fatalf("Signature too short to modify safely: %s", signature)
+	}
+	tamperedSignature := "TAMPERED" + signature[8:]
+	tamperedToken := parts[0] + "." + parts[1] + "." + tamperedSignature
 
 	_, err = crypto.ValidateViewAccessJWT(tamperedToken)
 	if err == nil {
-		t.Fatal("Expected error for tampered token")
+		t.Fatalf("Expected error for tampered token, but token was accepted. Original: %s, Tampered: %s", token, tamperedToken)
 	}
 }
 
