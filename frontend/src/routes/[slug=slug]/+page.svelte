@@ -16,6 +16,7 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
@@ -156,7 +157,7 @@
 	}
 
 	// Default section order (fallback when no custom order is specified)
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	// Compute effective section order: use custom order if provided, otherwise use default
 	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
@@ -387,6 +388,10 @@
 					{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
 						<div class={getWidthClass(getSectionWidth('talks'))}>
 							<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} />
+						</div>
+					{:else if sectionKey === 'testimonials' && data.sections?.testimonials?.length > 0}
+						<div class={getWidthClass(getSectionWidth('testimonials'))}>
+							<TestimonialsSection items={data.sections.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} />
 						</div>
 					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('contacts'))}>

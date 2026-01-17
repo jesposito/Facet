@@ -66,6 +66,9 @@ func init() {
 			"ai_providers",
 			"import_proposals",
 			"settings",
+			"testimonials",
+			"testimonial_requests",
+			"email_verification_tokens",
 		}
 
 		for _, name := range sensitiveCollections {

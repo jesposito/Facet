@@ -176,6 +176,7 @@ You get an admin dashboard at `/admin` where you:
 - Upload your resume (PDF/DOCX) and have AI automatically extract everything
 - Write blog posts and add speaking engagements
 - Manage skills and contact methods
+- Collect testimonials from clients and colleagues with approval workflow
 - Create "views" (different versions of your profile)
 - Import projects from GitHub (with optional AI summaries)
 - Generate share links that expire or have use limits
@@ -228,6 +229,7 @@ Full dev setup: [docs/DEV.md](docs/DEV.md)
 | **Talks** | Speaking engagements with slides/video URLs | `/talks/{slug}` |
 | **Awards** | Recognition and achievements | Embedded in views |
 | **Contact Methods** | Email, phone, social links (with protection) | Embedded in views |
+| **Testimonials** | Social proof from clients, colleagues, collaborators | Embedded in views |
 
 Everything supports Markdown. Most things support media (images, videos, external embeds).
 
@@ -378,6 +380,30 @@ Your email, phone, and social links can be protected:
 | **CAPTCHA** | Turnstile challenge (planned) | Heavy anti-bot protection |
 
 Plus, you can show different contact methods in different views. Example: recruiters see your email and phone, conference attendees only see your Twitter and LinkedIn.
+
+### Testimonials System (Social Proof)
+
+Collect and display testimonials from clients, colleagues, and collaborators to build credibility.
+
+**How it works:**
+1. Generate shareable request links with optional custom message and expiration
+2. Links go to a public form where people submit testimonials (no account required)
+3. Submissions are stored as "pending" for your review in the admin dashboard
+4. You approve or reject testimonials before they appear publicly
+5. Optional email verification adds credibility markers to testimonials
+6. Approved testimonials display on your views with multiple layout options
+
+**Features:**
+- **Request link generation** - Custom messages, expiration dates, usage limits
+- **Public submission form** - Name, title, company, relationship, testimonial text
+- **Approval workflow** - Review all submissions before they go live
+- **Email verification** - Optional verification for added credibility (15-minute tokens)
+- **Admin management** - Collapsible sidebar section with pending count badge
+- **Display options** - Wall layout, carousel, or featured testimonials
+- **Privacy controls** - Show testimonials on specific views only
+- **Security** - HMAC-SHA256 tokens, rate limiting, no raw tokens stored
+
+Perfect for consultants, freelancers, job seekers, speakers, or anyone building professional credibility.
 
 ### Media Library
 
@@ -789,6 +815,7 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ SEO (Open Graph, JSON-LD, sitemaps)
 - ✅ Security review and XSS/path traversal protection
 - ✅ Demo mode with comprehensive example content
+- ✅ Testimonials system with request links, approval workflow, email verification
 
 **Coming Soon:**
 - CAPTCHA contact protection (Cloudflare Turnstile integration)

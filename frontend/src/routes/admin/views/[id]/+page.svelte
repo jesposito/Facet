@@ -24,11 +24,12 @@
 		skills: { label: 'Skills', collection: 'skills' },
 		posts: { label: 'Posts', collection: 'posts' },
 		talks: { label: 'Talks', collection: 'talks' },
-		contacts: { label: 'Contact Methods', collection: 'contact_methods' }
+		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
+		testimonials: { label: 'Testimonials', collection: 'testimonials' }
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'contacts'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	let loading = $state(true);
 	let saving = $state(false);
@@ -524,8 +525,11 @@
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const def = SECTION_DEFS[key];
 			try {
+				// Testimonials only show approved ones in view editor
+				const filter = key === 'testimonials' ? 'status = "approved"' : '';
 				const records = await collection(def.collection).getList(1, 100, {
-					sort: '-id'
+					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
+					filter
 				});
 
 				sectionItems[key] = records.items.map((item) => ({
@@ -567,6 +571,8 @@
 				return `${item.title}${item.event ? ` @ ${item.event}` : ''}`;
 			case 'contacts':
 				return `${item.label || item.type} - ${item.value}`;
+			case 'testimonials':
+				return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
 			default:
 				return item.title as string || item.name as string || item.id as string;
 		}
