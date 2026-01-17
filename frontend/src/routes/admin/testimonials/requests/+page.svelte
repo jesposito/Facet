@@ -38,9 +38,15 @@
 				sort: '-id'
 			});
 			requests = result.items;
-		} catch (err) {
-			const errorDetails = err instanceof Error ? err.message : JSON.stringify(err);
-			console.error('Failed to load requests:', errorDetails, err);
+		} catch (err: unknown) {
+			const pbError = err as { response?: { data?: unknown }; status?: number; message?: string };
+			console.error('Failed to load requests:', {
+				status: pbError.status,
+				message: pbError.message,
+				response: pbError.response,
+				data: pbError.response?.data,
+				fullError: err
+			});
 			toasts.error('Failed to load request links');
 		} finally {
 			loading = false;
