@@ -29,7 +29,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Bulk Operations:** Select multiple items → change visibility, delete in bulk. Available on projects, posts, talks, experience, education, skills, certifications, awards.
 - ✅ **Custom Domain Support:** Self-hosted architecture supports any domain via reverse proxy (Nginx, Traefik, Cloudflare Tunnel, etc.).
 - ✅ **Mobile UX Overhaul (Phase 16.5):** Complete responsive redesign of admin panel - overlay sidebar, touch targets, bottom sheet modals, form stacking, overflow prevention.
-- 🔜 **Next Up:** Phase 17 UX Improvements, Phase 18 Sharing & Analytics, Phase 19 Developer Platform.
+- ✅ **UX Improvements (Phase 17.1-17.2):** Setup Wizard for new users, Contextual Help on all admin pages.
+- 🔜 **Next Up:** Phase 17.3 Better Empty States, Phase 18 Sharing & Analytics, Phase 19 Developer Platform.
 
 ---
 
@@ -225,55 +226,46 @@ See [MOBILE_UX_PLAN.md](MOBILE_UX_PLAN.md) for detailed implementation plan.
 
 ---
 
-## Phase 17: UX Improvements (🔜 Next)
+## Phase 17: UX Improvements (🟡 In Progress)
 **Purpose:** Make Facet easier to understand and use
 
-### 17.1 Guided Setup Wizard
+### 17.1 Guided Setup Wizard (✅ Complete)
 **Priority:** High | **Effort:** Medium
 
-First-time users face 22 admin pages - overwhelming. Replace with guided flow:
+First-time users get a 3-step wizard instead of facing 22 admin pages:
+- Step 1: Basic profile (name, headline, summary)
+- Step 2: Create first facet from templates (Recruiter, Portfolio, Consulting, Speaker)
+- Step 3: Review and launch
 
-**Implementation:**
-1. Detect first-time user (no profile record exists)
-2. Show wizard instead of dashboard:
-   - Step 1: Upload resume OR start from scratch
-   - Step 2: Pick profile photo
-   - Step 3: Create first view (suggest "Public" + "Recruiter")
-   - Step 4: Review and publish
-3. Store `setup_completed` flag in user record
-4. "Skip wizard" option for advanced users
+**Features:**
+- Auto-opens for new users (missing profile data or no views)
+- Respects password change flow (waits until complete)
+- Sidebar auto-refreshes when facet created
+- Skip option with permanent dismissal (localStorage)
+- Never shows in demo mode
 
-**Files to modify:**
-- `frontend/src/routes/admin/+layout.svelte` - Wizard detection
-- New: `frontend/src/components/admin/SetupWizard.svelte`
-- `backend/migrations/` - Add `setup_completed` field to users
+**Files:**
+- `frontend/src/lib/stores/setupWizard.ts` - State management, templates
+- `frontend/src/components/admin/SetupWizard.svelte` - Main modal
+- `frontend/src/components/admin/wizard/Step*.svelte` - Step components
+- `frontend/src/routes/admin/+layout.svelte` - Integration
 
-### 17.2 Contextual Help on Admin Pages
+### 17.2 Contextual Help on Admin Pages (✅ Complete)
 **Priority:** High | **Effort:** Low
 
-Add brief, helpful instructions to each admin page explaining:
-- What this page does
+Each admin page now has a collapsible help section explaining:
+- What the page does
 - Why users would use it
-- How it connects to other Facet features (making facets!)
+- How it connects to views/facets
 
-**Implementation:**
-Each admin page gets a collapsible "help" section at the top:
-```svelte
-<PageHelp>
-  <p><strong>Projects</strong> showcase your work and portfolio pieces.</p>
-  <p>Each project can appear on multiple views - show technical projects to recruiters,
-     creative work to designers. That's what Facet is all about!</p>
-  <p>Tip: Import projects directly from GitHub using the Import page.</p>
-</PageHelp>
-```
+**Features:**
+- Collapsible `PageHelp` component with localStorage persistence
+- Contextual tips for all 16 admin pages
+- "Learn more" links to documentation where applicable
 
-**Pages to update (22 total):**
-- Profile, Experience, Projects, Education, Skills, Posts, Talks, Certifications, Awards
-- Views, Tokens, Contacts, Media, Import, Settings, Homepage
-
-**Component:**
-- New: `frontend/src/components/admin/PageHelp.svelte` - Collapsible help section
-- Store preference in localStorage: `facet_show_page_help`
+**Files:**
+- `frontend/src/components/admin/PageHelp.svelte` - Reusable component
+- All admin pages updated with contextual help
 
 ### 17.3 Better Empty States
 **Priority:** Medium | **Effort:** Low
@@ -525,8 +517,8 @@ When clicked:
 ## Cross-Cutting Backlog
 
 ### High Priority
-- 🔜 **Guided Setup Wizard** (Phase 17.1) - Biggest barrier to adoption
-- 🔜 **Contextual Help** (Phase 17.2) - Help users understand each page
+- ✅ **Guided Setup Wizard** (Phase 17.1) - Complete
+- ✅ **Contextual Help** (Phase 17.2) - Complete
 - 🔜 **Quick Share to Social** (Phase 18.1) - Low effort, immediate value
 - 🔜 **View Analytics Dashboard** (Phase 18.2) - Uses existing data
 
@@ -544,6 +536,8 @@ When clicked:
 - 🔜 **Scheduled Publishing** - Content calendar
 
 ### Already Complete (Removed from Backlog)
+- ✅ **Guided Setup Wizard** (Phase 17.1) - 3-step onboarding for new users
+- ✅ **Contextual Help** (Phase 17.2) - Help text on all admin pages
 - ✅ **Bulk Operations** - Implemented across 8 content types
 - ✅ **Custom Domain** - Works via reverse proxy (self-hosted)
 - ✅ **Resume Upload & AI Parsing** - Both directions supported
@@ -578,6 +572,18 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-01-17 (Setup Wizard - v2.3.0)
+- Completed Phase 17.1: Guided Setup Wizard
+- 3-step onboarding for new users (profile basics, first facet, launch)
+- 4 view templates: Recruiter, Portfolio, Consulting, Speaker
+- Password change flow takes priority over wizard
+- Sidebar auto-refreshes when wizard creates a facet
+
+### 2026-01-17 (Contextual Help - v2.2.0)
+- Completed Phase 17.2: Contextual Help on Admin Pages
+- Added PageHelp component with localStorage persistence
+- All 16 admin pages now have contextual help
 
 ### 2026-01-17 (Mobile UX)
 - Completed Phase 16.5: Mobile UX Overhaul
