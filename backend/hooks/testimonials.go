@@ -86,7 +86,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				0,
 			)
 			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch requests"})
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch requests: " + err.Error()})
 			}
 
 			var result []map[string]interface{}
@@ -246,27 +246,29 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 		se.Router.GET("/api/testimonials", func(e *core.RequestEvent) error {
 			status := e.Request.URL.Query().Get("status")
 
-			var filter string
-			var params map[string]interface{}
+			var records []*core.Record
+			var err error
 
 			if status != "" {
-				filter = "status = {:status}"
-				params = map[string]interface{}{"status": status}
+				records, err = app.FindRecordsByFilter(
+					"testimonials",
+					"status = {:status}",
+					"-created",
+					100,
+					0,
+					map[string]interface{}{"status": status},
+				)
 			} else {
-				filter = "1=1"
-				params = nil
+				records, err = app.FindRecordsByFilter(
+					"testimonials",
+					"1=1",
+					"-created",
+					100,
+					0,
+				)
 			}
-
-			records, err := app.FindRecordsByFilter(
-				"testimonials",
-				filter,
-				"-created",
-				100,
-				0,
-				params,
-			)
 			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch testimonials"})
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch testimonials: " + err.Error()})
 			}
 
 			var result []map[string]interface{}
