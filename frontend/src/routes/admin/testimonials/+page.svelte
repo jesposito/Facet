@@ -42,38 +42,12 @@
 	async function loadTestimonials() {
 		loading = true;
 		try {
-			if (!pb.authStore.isValid) {
-				console.error('Not authenticated');
-				toasts.error('Authentication required');
-				return;
-			}
-
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${pb.authStore.token}`
-			};
-			
-			const url = statusFilter === 'all' 
-				? '/api/testimonials'
-				: `/api/testimonials?status=${statusFilter}`;
-			
-			const response = await fetch(url, { headers });
-			
-			if (!response.ok) {
-				if (response.status === 401) {
-					toasts.error('Authentication expired. Please refresh the page.');
-				} else if (response.status === 403) {
-					toasts.error('Access denied');
-				} else {
-					const errorText = await response.text();
-					console.error('API Error:', response.status, errorText);
-					toasts.error(`Failed to load testimonials: ${response.status}`);
-				}
-				return;
-			}
-			
-			const data = await response.json();
-			testimonials = Array.isArray(data) ? data : [];
+			const filter = statusFilter === 'all' ? '' : `status = "${statusFilter}"`;
+			const result = await pb.collection('testimonials').getList<Testimonial>(1, 100, {
+				sort: '-created',
+				filter
+			});
+			testimonials = result.items;
 		} catch (err) {
 			console.error('Failed to load testimonials:', err);
 			toasts.error('Failed to load testimonials');

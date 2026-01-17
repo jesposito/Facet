@@ -34,34 +34,10 @@
 	async function loadRequests() {
 		loading = true;
 		try {
-			if (!pb.authStore.isValid) {
-				console.error('Not authenticated');
-				toasts.error('Authentication required');
-				return;
-			}
-
-			const headers: Record<string, string> = {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer ${pb.authStore.token}`
-			};
-			
-			const response = await fetch('/api/testimonials/requests', { headers });
-			
-			if (!response.ok) {
-				if (response.status === 401) {
-					toasts.error('Authentication expired. Please refresh the page.');
-				} else if (response.status === 403) {
-					toasts.error('Access denied');
-				} else {
-					const errorText = await response.text();
-					console.error('API Error:', response.status, errorText);
-					toasts.error(`Failed to load request links: ${response.status}`);
-				}
-				return;
-			}
-			
-			const data = await response.json();
-			requests = Array.isArray(data) ? data : [];
+			const result = await pb.collection('testimonial_requests').getList<TestimonialRequest>(1, 100, {
+				sort: '-created'
+			});
+			requests = result.items;
 		} catch (err) {
 			console.error('Failed to load requests:', err);
 			toasts.error('Failed to load request links');
