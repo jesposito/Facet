@@ -55,13 +55,14 @@ jobs:
 
       - name: Determine bump type
         id: bump_type
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_BUMP: ${{ github.event.inputs.bump }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            BUMP="${{ github.event.inputs.bump }}"
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
+            BUMP="$MANUAL_BUMP"
           else
-            PR_TITLE="${{ github.event.pull_request.title }}"
-            PR_BODY="${{ github.event.pull_request.body }}"
-            
             # Check for breaking change
             if echo "$PR_TITLE" | grep -qiE '^.*!:|BREAKING CHANGE'; then
               BUMP="major"
@@ -108,17 +109,22 @@ jobs:
           echo "New version: $NEW_TAG"
 
       - name: Create and push tag
+        env:
+          NEW_TAG: ${{ steps.new_version.outputs.new_tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BUMP_TYPE: ${{ steps.bump_type.outputs.bump }}
+          PREV_TAG: ${{ steps.get_tag.outputs.latest }}
         run: |
-          NEW_TAG="${{ steps.new_version.outputs.new_tag }}"
-          
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
           # Create annotated tag with PR info
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG (manual trigger)"
           else
-            git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "PR: #${{ github.event.pull_request.number }}" -m "Title: ${{ github.event.pull_request.title }}"
+            git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "PR: #$PR_NUMBER" -m "Title: $PR_TITLE"
           fi
           
           git push origin "$NEW_TAG"
@@ -126,5 +132,5 @@ jobs:
           echo "## Tag Created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**New Tag:** \`$NEW_TAG\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Bump Type:** ${{ steps.bump_type.outputs.bump }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Previous Tag:** ${{ steps.get_tag.outputs.latest }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump Type:** $BUMP_TYPE" >> $GITHUB_STEP_SUMMARY
+          echo "**Previous Tag:** $PREV_TAG" >> $GITHUB_STEP_SUMMARY
