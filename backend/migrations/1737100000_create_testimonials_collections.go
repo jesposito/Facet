@@ -84,6 +84,13 @@ func init() {
 		if !collectionExists("testimonial_requests") {
 			collection := core.NewBaseCollection("testimonial_requests")
 
+			adminOnlyRule := "@request.auth.id != ''"
+			collection.ListRule = &adminOnlyRule
+			collection.ViewRule = &adminOnlyRule
+			collection.CreateRule = &adminOnlyRule
+			collection.UpdateRule = &adminOnlyRule
+			collection.DeleteRule = &adminOnlyRule
+
 			// Security fields (same pattern as share_tokens)
 			collection.Fields.Add(&core.TextField{Name: "token_hash", Required: true, Max: 100})
 			collection.Fields.Add(&core.TextField{Name: "token_prefix", Max: 20})
@@ -116,6 +123,13 @@ func init() {
 		// Create Email Verification Tokens collection (ephemeral)
 		if !collectionExists("email_verification_tokens") {
 			collection := core.NewBaseCollection("email_verification_tokens")
+
+			adminOnlyRule := "@request.auth.id != ''"
+			collection.ListRule = &adminOnlyRule
+			collection.ViewRule = &adminOnlyRule
+			collection.CreateRule = &adminOnlyRule
+			collection.UpdateRule = &adminOnlyRule
+			collection.DeleteRule = &adminOnlyRule
 
 			collection.Fields.Add(&core.TextField{Name: "testimonial_id", Required: true, Max: 50})
 			collection.Fields.Add(&core.EmailField{Name: "email", Required: true})

@@ -2,8 +2,9 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { adminSidebarOpen, sidebarSectionStates, sidebarFacetsVersion } from '$lib/stores';
+	import { adminSidebarOpen, sidebarSectionStates } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
+	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
 
 	interface Props {
 		isMobile?: boolean;
@@ -17,7 +18,7 @@
 	let facetsError = $state(false);
 	let facetsTotalCount = $state(0);
 
-	let testimonialsPendingCount = $state(0);
+
 
 	// Debounce timer to prevent rapid successive loadFacets calls
 	let loadFacetsTimer: ReturnType<typeof setTimeout> | null = null;
@@ -26,6 +27,7 @@
 	const SECTION_IDS = {
 		information: 'sidebar-information',
 		voice: 'sidebar-voice',
+		testimonials: 'sidebar-testimonials',
 		settings: 'sidebar-settings'
 	};
 
@@ -36,6 +38,7 @@
 	const sectionTitleToId: Record<string, string> = {
 		'Your Information': SECTION_IDS.information,
 		'Your Voice': SECTION_IDS.voice,
+		'Testimonials': SECTION_IDS.testimonials,
 		'Settings': SECTION_IDS.settings
 	};
 
@@ -47,20 +50,10 @@
 	onMount(() => {
 		sidebarSectionStates.initialize(ALL_SECTION_IDS, SECTION_IDS.information);
 		scheduleFacetsLoad();
-		loadTestimonialsPendingCount();
+		refreshTestimonialsPendingCount();
 	});
 
-	async function loadTestimonialsPendingCount() {
-		try {
-			const response = await fetch('/api/testimonials/pending-count');
-			if (response.ok) {
-				const data = await response.json();
-				testimonialsPendingCount = data.count || 0;
-			}
-		} catch {
-			testimonialsPendingCount = 0;
-		}
-	}
+
 
 	// Refresh facets after navigation (e.g., after creating/editing/deleting a view)
 	afterNavigate(({ from }) => {
@@ -70,12 +63,7 @@
 		}
 	});
 
-	$effect(() => {
-		$sidebarFacetsVersion;
-		if ($sidebarFacetsVersion > 0) {
-			scheduleFacetsLoad();
-		}
-	});
+
 
 	// Debounced load to prevent rapid successive calls
 	function scheduleFacetsLoad() {
@@ -283,42 +271,61 @@ let isActive = $derived((href: string): boolean => {
 
 		<!-- Testimonials Section -->
 		<div class="space-y-2">
-			<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 {$adminSidebarOpen ? '' : 'sr-only'}">Testimonials</span>
-			<div class="space-y-1">
-				<a
-					href="/admin/testimonials"
-					class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials')
-						? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-						: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-					title={!$adminSidebarOpen ? 'Testimonials' : undefined}
-					aria-current={isActive('/admin/testimonials') ? 'page' : undefined}
+			<button
+				type="button"
+				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.testimonials, ALL_SECTION_IDS)}
+				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
+				aria-expanded={isSectionExpanded(SECTION_IDS.testimonials)}
+				aria-controls="sidebar-testimonials-items"
+			>
+				<span class="flex items-center gap-2">
+					Testimonials
+					{#if $testimonialsStore.pendingCount > 0}
+						<span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+							{$testimonialsStore.pendingCount}
+						</span>
+					{/if}
+				</span>
+				<svg
+					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.testimonials) ? 'rotate-0' : '-rotate-90'}"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
 				>
-					<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-					</svg>
-					<span class="flex items-center gap-2 {$adminSidebarOpen ? '' : 'sr-only'}">
-						<span>Manage</span>
-						{#if testimonialsPendingCount > 0}
-							<span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-								{testimonialsPendingCount}
-							</span>
-						{/if}
-					</span>
-				</a>
-				<a
-					href="/admin/testimonials/requests"
-					class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials/requests')
-						? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-						: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-					title={!$adminSidebarOpen ? 'Request Links' : undefined}
-					aria-current={isActive('/admin/testimonials/requests') ? 'page' : undefined}
-				>
-					<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-					</svg>
-					<span class={$adminSidebarOpen ? '' : 'sr-only'}>Request Links</span>
-				</a>
-			</div>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+			{#if isSectionExpanded(SECTION_IDS.testimonials)}
+				<div id="sidebar-testimonials-items" class="space-y-1">
+					<a
+						href="/admin/testimonials"
+						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials')
+							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+							: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+						title={!$adminSidebarOpen ? 'Testimonials' : undefined}
+						aria-current={isActive('/admin/testimonials') ? 'page' : undefined}
+					>
+						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+						</svg>
+						<span class={$adminSidebarOpen ? '' : 'sr-only'}>Manage</span>
+					</a>
+					<a
+						href="/admin/testimonials/requests"
+						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials/requests')
+							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+							: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+						title={!$adminSidebarOpen ? 'Request Links' : undefined}
+						aria-current={isActive('/admin/testimonials/requests') ? 'page' : undefined}
+					>
+						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+						</svg>
+						<span class={$adminSidebarOpen ? '' : 'sr-only'}>Request Links</span>
+					</a>
+				</div>
+			{/if}
 		</div>
 
 		<!-- Remaining Sections -->

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
+	import { scheduleTestimonialsRefresh } from '$lib/stores/testimonials';
 
 	interface Testimonial {
 		id: string;
@@ -41,18 +42,38 @@
 	async function loadTestimonials() {
 		loading = true;
 		try {
-			const headers: Record<string, string> = pb.authStore.isValid
-				? { Authorization: `Bearer ${pb.authStore.token}` }
-				: {};
+			if (!pb.authStore.isValid) {
+				console.error('Not authenticated');
+				toasts.error('Authentication required');
+				return;
+			}
+
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${pb.authStore.token}`
+			};
 			
 			const url = statusFilter === 'all' 
 				? '/api/testimonials'
 				: `/api/testimonials?status=${statusFilter}`;
 			
 			const response = await fetch(url, { headers });
-			if (response.ok) {
-				testimonials = await response.json() || [];
+			
+			if (!response.ok) {
+				if (response.status === 401) {
+					toasts.error('Authentication expired. Please refresh the page.');
+				} else if (response.status === 403) {
+					toasts.error('Access denied');
+				} else {
+					const errorText = await response.text();
+					console.error('API Error:', response.status, errorText);
+					toasts.error(`Failed to load testimonials: ${response.status}`);
+				}
+				return;
 			}
+			
+			const data = await response.json();
+			testimonials = Array.isArray(data) ? data : [];
 		} catch (err) {
 			console.error('Failed to load testimonials:', err);
 			toasts.error('Failed to load testimonials');
@@ -77,6 +98,7 @@
 			if (response.ok) {
 				toasts.success('Testimonial approved');
 				await loadTestimonials();
+				scheduleTestimonialsRefresh();
 			} else {
 				toasts.error('Failed to approve');
 			}
@@ -113,6 +135,7 @@
 			if (response.ok) {
 				toasts.success('Testimonial rejected');
 				await loadTestimonials();
+				scheduleTestimonialsRefresh();
 			} else {
 				toasts.error('Failed to reject');
 			}
@@ -147,6 +170,7 @@
 			if (response.ok) {
 				toasts.success('Testimonial deleted');
 				await loadTestimonials();
+				scheduleTestimonialsRefresh();
 			} else {
 				toasts.error('Failed to delete');
 			}

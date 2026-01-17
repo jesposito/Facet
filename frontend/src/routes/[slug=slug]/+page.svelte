@@ -391,7 +391,7 @@
 						</div>
 					{:else if sectionKey === 'testimonials' && data.sections?.testimonials?.length > 0}
 						<div class={getWidthClass(getSectionWidth('testimonials'))}>
-							<TestimonialsSection items={data.sections.testimonials} layout={getSectionLayout('testimonials')} />
+							<TestimonialsSection items={data.sections.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} />
 						</div>
 					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('contacts'))}>

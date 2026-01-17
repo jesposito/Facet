@@ -246,9 +246,15 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 		se.Router.GET("/api/testimonials", func(e *core.RequestEvent) error {
 			status := e.Request.URL.Query().Get("status")
 
-			filter := "1=1"
+			var filter string
+			var params map[string]interface{}
+
 			if status != "" {
 				filter = "status = {:status}"
+				params = map[string]interface{}{"status": status}
+			} else {
+				filter = "1=1"
+				params = nil
 			}
 
 			records, err := app.FindRecordsByFilter(
@@ -257,7 +263,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				"-created",
 				100,
 				0,
-				map[string]interface{}{"status": status},
+				params,
 			)
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch testimonials"})
