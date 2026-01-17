@@ -30,7 +30,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Custom Domain Support:** Self-hosted architecture supports any domain via reverse proxy (Nginx, Traefik, Cloudflare Tunnel, etc.).
 - ✅ **Mobile UX Overhaul (Phase 16.5):** Complete responsive redesign of admin panel - overlay sidebar, touch targets, bottom sheet modals, form stacking, overflow prevention.
 - ✅ **UX Improvements (Phase 17.1-17.2):** Setup Wizard for new users, Contextual Help on all admin pages.
-- 🔜 **Next Up:** Phase 17.3 Better Empty States, Phase 18 Sharing & Analytics, Phase 19 Developer Platform.
+- ✅ **Quick Share to Social (Phase 18.1):** Native Web Share API with social platform fallbacks (LinkedIn, Twitter/X, Reddit, Email).
+- 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, Phase 19 Developer Platform.
 
 ---
 
@@ -226,7 +227,7 @@ See [MOBILE_UX_PLAN.md](MOBILE_UX_PLAN.md) for detailed implementation plan.
 
 ---
 
-## Phase 17: UX Improvements (🟡 In Progress)
+## Phase 17: UX Improvements (✅ Complete)
 **Purpose:** Make Facet easier to understand and use
 
 ### 17.1 Guided Setup Wizard (✅ Complete)
@@ -267,60 +268,49 @@ Each admin page now has a collapsible help section explaining:
 - `frontend/src/components/admin/PageHelp.svelte` - Reusable component
 - All admin pages updated with contextual help
 
-### 17.3 Better Empty States
-**Priority:** Medium | **Effort:** Low
-
-Empty sections currently show nothing. Replace with helpful prompts:
-
-```
-┌─────────────────────────────────────────┐
-│  📂 No projects yet                     │
-│                                         │
-│  Projects showcase your portfolio work. │
-│                                         │
-│  [Import from GitHub]  [Create manually]│
-│  [Upload resume to extract]             │
-└─────────────────────────────────────────┘
-```
-
-**Implementation:**
-- Create `EmptyState.svelte` component with:
-  - Icon
-  - Title
-  - Description
-  - Action buttons (contextual)
-- Replace empty list states across all admin pages
-
 ---
 
-## Phase 18: Sharing & Analytics (🔜 Planned)
+## Phase 18: Sharing & Analytics (🟡 In Progress)
 **Purpose:** Make sharing easier and provide insight into profile views
 
-### 18.1 Quick Share to Social
+### 18.1 Quick Share to Social (✅ Complete)
 **Priority:** High | **Effort:** Low
 
-One-click sharing to major platforms:
+One-click sharing to major platforms with native OS integration.
 
 **Implementation:**
-```svelte
-<ShareButtons url={viewUrl} title={viewTitle}>
-  <!-- Generates proper share URLs for each platform -->
-  <button on:click={() => shareToLinkedIn()}>Share to LinkedIn</button>
-  <button on:click={() => shareToTwitter()}>Share to Twitter</button>
-  <button on:click={() => copyLink()}>Copy Link</button>
-  <button on:click={() => emailLink()}>Email</button>
-</ShareButtons>
-```
+- `frontend/src/lib/share.ts` - Share utility with Web Share API detection
+- `frontend/src/components/shared/ShareButton.svelte` - Reusable component
+
+**Features:**
+- **Web Share API** - Native sharing on mobile/Chrome/Safari (75% browser support)
+- **Fallback dropdown** - Copy Link, LinkedIn, Twitter/X, Reddit, Email
+- **Share token URLs** - When viewing via `/s/[token]`, shares the token URL
+- **Unlisted warning** - Shows "This view is unlisted. Share links may expire."
+- **Accessibility** - 44px touch targets, keyboard navigation, ARIA labels
+- **Copy feedback** - "Copied!" indicator for 1.5 seconds
 
 **Share URL formats:**
 - LinkedIn: `https://www.linkedin.com/sharing/share-offsite/?url={url}`
 - Twitter: `https://twitter.com/intent/tweet?url={url}&text={title}`
-- Email: `mailto:?subject={title}&body={url}`
+- Reddit: `https://reddit.com/submit?url={url}&title={title}`
+- Email: `mailto:?subject={title}&body={text}%0A%0A{url}`
 
-**Where to show:**
-- View editor page (share this view)
-- Public view pages (when logged in)
-- Share token modal
+**Where it shows:**
+- View pages (`/[slug]`) - Always visible
+- Post pages (`/posts/[slug]`) - Only if `visibility === 'public'`
+- Project pages (`/projects/[slug]`) - Only if `visibility === 'public'`
+- Talk pages (`/talks/[slug]`) - Only if `visibility === 'public'`
+
+**Platform decisions:**
+- ✅ Copy Link (primary, always visible)
+- ✅ LinkedIn (professional network)
+- ✅ Twitter/X (tech community)
+- ✅ Reddit (communities)
+- ✅ Email (universal)
+- ❌ Facebook (broken on iOS Safari)
+- ❌ Bluesky (niche, user preference)
+- ❌ Instagram (no web share URL)
 
 ### 18.2 View Analytics Dashboard
 **Priority:** High | **Effort:** Medium
@@ -519,12 +509,11 @@ When clicked:
 ### High Priority
 - ✅ **Guided Setup Wizard** (Phase 17.1) - Complete
 - ✅ **Contextual Help** (Phase 17.2) - Complete
-- 🔜 **Quick Share to Social** (Phase 18.1) - Low effort, immediate value
+- ✅ **Quick Share to Social** (Phase 18.1) - Complete
 - 🔜 **View Analytics Dashboard** (Phase 18.2) - Uses existing data
 
 ### Medium Priority
 - 🔜 **QR Codes** (Phase 18.3) - Quick win for sharing
-- 🔜 **Better Empty States** (Phase 17.3) - Improve first-run experience
 - 🔜 **Webhooks** (Phase 19.1) - Enable integrations
 - 🔜 **Testimonials System** (Phase 20.1) - Social proof
 
@@ -538,6 +527,7 @@ When clicked:
 ### Already Complete (Removed from Backlog)
 - ✅ **Guided Setup Wizard** (Phase 17.1) - 3-step onboarding for new users
 - ✅ **Contextual Help** (Phase 17.2) - Help text on all admin pages
+- ✅ **Quick Share to Social** (Phase 18.1) - Native Web Share API + social fallbacks
 - ✅ **Bulk Operations** - Implemented across 8 content types
 - ✅ **Custom Domain** - Works via reverse proxy (self-hosted)
 - ✅ **Resume Upload & AI Parsing** - Both directions supported
@@ -572,6 +562,15 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-01-17 (Quick Share to Social - v2.4.0)
+- Completed Phase 18.1: Quick Share to Social
+- Web Share API integration for native mobile/browser sharing
+- Fallback dropdown: Copy Link, LinkedIn, Twitter/X, Reddit, Email
+- Share token URL support (shares `/s/[token]` when viewing via token)
+- Unlisted warning banner when sharing token URLs
+- AI API key info added to setup wizard
+- Accessible: 44px touch targets, keyboard nav, ARIA labels
 
 ### 2026-01-17 (Setup Wizard - v2.3.0)
 - Completed Phase 17.1: Guided Setup Wizard

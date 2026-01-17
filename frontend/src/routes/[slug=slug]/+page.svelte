@@ -19,6 +19,7 @@
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import ShareButton from '$components/shared/ShareButton.svelte';
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { pb } from '$lib/pocketbase';
@@ -286,6 +287,14 @@
 					</div>
 				{/if}
 			</div>
+			<ShareButton 
+				url={browser 
+					? (data.shareToken ? `${window.location.origin}/s/${data.shareToken}` : window.location.href)
+					: (data.shareToken ? `/s/${data.shareToken}` : `/${data.view?.slug || ''}`)}
+				title={`${data.profile?.name || 'Profile'} - ${data.view?.name || 'View'}`}
+				text={data.view?.hero_headline || data.profile?.headline || ''}
+				isUnlisted={!!data.shareToken}
+			/>
 			{#if pb.authStore.isValid}
 				<a
 					href="/admin"

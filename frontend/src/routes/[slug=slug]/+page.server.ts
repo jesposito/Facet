@@ -151,7 +151,6 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			},
 			profile: profile ? {
 				...profile,
-				// File URLs come from API already resolved
 				hero_image: profile.hero_image_url || null,
 				avatar: profile.avatar_url || null
 			} : null,
@@ -159,7 +158,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionOrder: viewData.section_order || [],
 			sectionLayouts: viewData.section_layouts || {},
 			sectionWidths: viewData.section_widths || {},
-			requiresPassword: false
+			requiresPassword: false,
+			shareToken: effectiveShareToken || null
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {

@@ -7,6 +7,7 @@ import { browser } from '$app/environment';
 import { onMount } from 'svelte';
 import { goto } from '$app/navigation';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
 import type { RecordModel } from 'pocketbase';
@@ -149,8 +150,14 @@ const getFileName = (url?: string) => {
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-	<!-- Theme toggle -->
-	<div class="fixed top-4 right-4 z-40">
+	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+		{#if data.project.visibility === 'public'}
+			<ShareButton 
+				url={browser ? window.location.href : `/projects/${data.project.slug}`}
+				title={`${data.project.title} | ${data.profile?.name || 'Portfolio'}`}
+				text={data.project.summary || data.project.title}
+			/>
+		{/if}
 		<ThemeToggle />
 	</div>
 

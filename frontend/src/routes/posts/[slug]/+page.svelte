@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
 import { browser } from '$app/environment';
@@ -132,8 +133,14 @@ const getHost = (url?: string) => {
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-	<!-- Theme toggle -->
-	<div class="fixed top-4 right-4 z-40">
+	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+		{#if data.post.visibility === 'public'}
+			<ShareButton 
+				url={browser ? window.location.href : `/posts/${data.post.slug}`}
+				title={`${data.post.title} | ${data.profile?.name || 'Blog'}`}
+				text={data.post.excerpt || data.post.title}
+			/>
+		{/if}
 		<ThemeToggle />
 	</div>
 

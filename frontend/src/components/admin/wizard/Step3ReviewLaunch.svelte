@@ -70,4 +70,24 @@
 			</div>
 		</div>
 	</div>
+	
+	<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+		<div class="flex items-start gap-3">
+			<svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+			</svg>
+			<div class="text-sm">
+				<p class="font-medium text-blue-900 dark:text-blue-100 mb-1">Want AI-powered features?</p>
+				<p class="text-blue-700 dark:text-blue-300 mb-2">
+					Resume parsing, writing assistance, and GitHub enrichment require an API key from 
+					<a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" class="underline hover:text-blue-900 dark:hover:text-blue-100">OpenAI</a>, 
+					<a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" class="underline hover:text-blue-900 dark:hover:text-blue-100">Anthropic</a>, 
+					or a local <a href="https://ollama.com" target="_blank" rel="noopener noreferrer" class="underline hover:text-blue-900 dark:hover:text-blue-100">Ollama</a> instance.
+				</p>
+				<p class="text-blue-600 dark:text-blue-400">
+					Add your key in <strong>Settings</strong> when you're ready.
+				</p>
+			</div>
+		</div>
+	</div>
 </div>

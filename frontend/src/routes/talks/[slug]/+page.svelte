@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import { browser } from '$app/environment';
@@ -110,8 +111,14 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-	<!-- Theme toggle -->
-	<div class="fixed top-4 right-4 z-40 print:hidden">
+	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+		{#if data.talk.visibility === 'public'}
+			<ShareButton 
+				url={browser ? window.location.href : `/talks/${data.talk.slug}`}
+				title={`${data.talk.title} | ${data.profile?.name || 'Talks'}`}
+				text={data.talk.description || data.talk.title}
+			/>
+		{/if}
 		<ThemeToggle />
 	</div>
 

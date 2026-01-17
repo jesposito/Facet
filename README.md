@@ -276,6 +276,15 @@ For unlisted views, you can generate share links that:
 
 You create a link, send it to someone, they click it, they see your view. No account needed. No ugly tokens in the URL.
 
+### Quick Share to Social
+
+Every public page has a share button that lets you:
+- **Native sharing** on mobile (uses Web Share API for the native share sheet)
+- **Copy link** with "Copied!" feedback
+- **Share to LinkedIn, Twitter/X, Reddit, or Email** with one click
+
+When sharing an unlisted view via token URL, the button warns that "This view is unlisted. Share links may expire." so recipients understand the link's nature.
+
 ### GitHub Import (With Optional AI Help)
 
 Connect your GitHub account and import repositories as projects. Facet grabs:
