@@ -869,20 +869,20 @@
 		</div>
 	{:else}
 		<!-- Header -->
-		<div class="flex items-center justify-between mb-6 px-4">
+		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
 			<div class="flex items-center gap-4">
 				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Back to facets">
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
 				</a>
-				<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Facet</h1>
+				<h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Edit Facet</h1>
 			</div>
-			<div class="flex items-center gap-2">
-				<!-- Preview Toggle -->
+			<div class="flex items-center gap-2 flex-wrap">
+				<!-- Preview Toggle - hidden on mobile since preview is collapsible -->
 				<button
 					type="button"
-					class="btn btn-ghost flex items-center gap-2"
+					class="btn btn-ghost hidden lg:flex items-center gap-2"
 					onclick={() => showPreview = !showPreview}
 					title={showPreview ? 'Hide preview' : 'Show preview'}
 				>
@@ -894,15 +894,16 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 						{/if}
 					</svg>
-					<span class="hidden sm:inline">{showPreview ? 'Hide' : 'Show'} Preview</span>
+					<span>{showPreview ? 'Hide' : 'Show'} Preview</span>
 				</button>
-				<button type="button" class="btn btn-secondary" onclick={previewView}>
-					Open in Tab
+				<button type="button" class="btn btn-secondary text-sm" onclick={previewView}>
+					<span class="sm:hidden">View</span>
+					<span class="hidden sm:inline">Open in Tab</span>
 				</button>
 				{#if aiPrintStatus.ai_configured}
 					<button
 						type="button"
-						class="btn btn-secondary flex items-center gap-2"
+						class="btn btn-secondary text-sm flex items-center gap-1 sm:gap-2"
 						onclick={() => showGenerateModal = true}
 						title={aiPrintStatus.pandoc_installed ? "Generate AI-powered resume" : "Generate Resume (Pandoc not installed)"}
 					>
@@ -912,7 +913,7 @@
 						<span class="hidden sm:inline">Generate Resume</span>
 					</button>
 				{/if}
-				<button type="button" class="btn btn-primary" onclick={handleSubmit} disabled={saving}>
+				<button type="button" class="btn btn-primary text-sm" onclick={handleSubmit} disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -928,9 +929,9 @@
 		<div class="editor-layout" class:with-preview={showPreview}>
 			<!-- Editor Pane -->
 			<div class="editor-pane">
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 sm:space-y-6">
 			<!-- Basic Info -->
-			<div class="card p-6 space-y-4">
+			<div class="card p-4 sm:p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
 
 				<div>
@@ -1072,7 +1073,7 @@
 									<p class="text-xs text-gray-500 mt-1">A label to help you remember who this link was shared with.</p>
 								</div>
 
-								<div class="grid grid-cols-2 gap-3">
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 									<div>
 										<label for="token_expires" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 											Expiration
@@ -1185,7 +1186,7 @@
 			</div>
 
 			<!-- Hero Overrides -->
-			<div class="card p-6 space-y-4">
+			<div class="card p-4 sm:p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
 				<p class="text-sm text-gray-500 -mt-2">Override your profile's hero image, headline and summary for this view</p>
 
@@ -1284,7 +1285,7 @@
 			</div>
 
 			<!-- Call to Action -->
-			<div class="card p-6 space-y-4">
+			<div class="card p-4 sm:p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
 				<p class="text-sm text-gray-500 -mt-2">Add a prominent button to this view</p>
 
@@ -1313,7 +1314,7 @@
 			</div>
 
 			<!-- Settings -->
-			<div class="card p-6 space-y-4">
+			<div class="card p-4 sm:p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
 
 				<!-- Accent Color Override -->
@@ -1390,7 +1391,7 @@
 			</div>
 
 			<!-- Sections -->
-			<div class="card p-6 space-y-4">
+			<div class="card p-4 sm:p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<div>
 						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
@@ -1416,27 +1417,27 @@
 							animate:flip={{ duration: flipDurationMs }}
 						>
 							<!-- Section Header -->
-							<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
+							<div class="flex flex-wrap items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
 								<div class="flex items-center gap-3">
 									<!-- Drag Handle -->
-									<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
-										<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+									<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+										<svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 										</svg>
 									</div>
-								<button
-									type="button"
-									class="w-10 h-6 rounded-full transition-colors relative
-										{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-									onclick={() => toggleSection(sectionKey)}
-									aria-label="Toggle {sectionDef?.label || sectionKey} section"
-								>
-									<span
-										class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
-											{sectionConfig.enabled ? 'left-5' : 'left-1'}"
-									></span>
-								</button>
-								<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
+									<button
+										type="button"
+										class="w-10 h-6 rounded-full transition-colors relative
+											{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+										onclick={() => toggleSection(sectionKey)}
+										aria-label="Toggle {sectionDef?.label || sectionKey} section"
+									>
+										<span
+											class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
+												{sectionConfig.enabled ? 'left-5' : 'left-1'}"
+										></span>
+									</button>
+									<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
 									<span class="text-xs text-gray-500">
 										{#if sectionConfig.items.length > 0}
 											{sectionConfig.items.length} selected
@@ -1449,78 +1450,134 @@
 								</div>
 
 								<div class="flex items-center gap-2">
-									<!-- Width Selector with visual indicator -->
-									{#if sectionConfig.enabled}
-										{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
-										{#if validWidths.length > 1}
-											<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
-												<!-- Width icon indicator -->
-												<div class="flex gap-0.5">
-													{#if sectionConfig.width === 'half'}
-														<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
-														<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													{:else if sectionConfig.width === 'third'}
-														<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
-														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													{:else}
-														<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
-													{/if}
+									<!-- Desktop Width/Layout Selectors -->
+									<div class="hidden lg:flex items-center gap-2">
+										<!-- Width Selector with visual indicator -->
+										{#if sectionConfig.enabled}
+											{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
+											{#if validWidths.length > 1}
+												<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
+													<!-- Width icon indicator -->
+													<div class="flex gap-0.5">
+														{#if sectionConfig.width === 'half'}
+															<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+															<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+														{:else if sectionConfig.width === 'third'}
+															<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+															<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+															<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+														{:else}
+															<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+														{/if}
+													</div>
+													<select
+														class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+														value={sectionConfig.width}
+														onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+														onclick={stopPropagation(bubble('click'))}
+													>
+														{#each validWidths as widthOption}
+															<option value={widthOption.value}>{widthOption.label}</option>
+														{/each}
+													</select>
 												</div>
-												<select
-													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-													value={sectionConfig.width}
-													onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
-													onclick={stopPropagation(bubble('click'))}
-												>
-													{#each validWidths as widthOption}
-														<option value={widthOption.value}>{widthOption.label}</option>
-													{/each}
-												</select>
-											</div>
+											{/if}
 										{/if}
-									{/if}
 
-									<!-- Layout Selector -->
-									{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
-										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
-										<select
-											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-											value={sectionConfig.layout}
-											onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
-											onclick={stopPropagation(bubble('click'))}
-											title="Section layout"
-										>
-											{#each layoutConfig.layouts as layoutOption}
-												<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
-											{/each}
-										</select>
-									{/if}
+										<!-- Layout Selector -->
+										{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
+											{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+											<select
+												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+												value={sectionConfig.layout}
+												onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+												onclick={stopPropagation(bubble('click'))}
+												title="Section layout"
+											>
+												{#each layoutConfig.layouts as layoutOption}
+													<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
+												{/each}
+											</select>
+										{/if}
+									</div>
 
-								{#if sectionConfig.enabled && items.length > 0}
-									<button
-										type="button"
-										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-										onclick={() => toggleSectionExpand(sectionKey)}
-										aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionDef?.label || sectionKey} section"
-									>
-										<svg
-											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
-											fill="none"
-											viewBox="0 0 24 24"
-											stroke="currentColor"
-											aria-hidden="true"
+									{#if sectionConfig.enabled && items.length > 0}
+										<button
+											type="button"
+											class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
+											onclick={() => toggleSectionExpand(sectionKey)}
+											aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionDef?.label || sectionKey} section"
 										>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-										</svg>
-									</button>
-								{/if}
+											<svg
+												class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+												aria-hidden="true"
+											>
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+											</svg>
+										</button>
+									{/if}
+								</div>
 							</div>
-						</div>
 
 						<!-- Section Items -->
 							{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0}
 								<div class="p-3 border-t border-gray-200 dark:border-gray-700">
+									<!-- Mobile Layout/Width Controls -->
+									<div class="lg:hidden grid grid-cols-1 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+										{#if sectionConfig.enabled}
+											{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
+											{#if validWidths.length > 1}
+												<div>
+													<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Width</label>
+													<div class="flex items-center gap-2">
+														<div class="flex gap-0.5">
+															{#if sectionConfig.width === 'half'}
+																<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+																<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+															{:else if sectionConfig.width === 'third'}
+																<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+																<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+																<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+															{:else}
+																<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+															{/if}
+														</div>
+														<select
+															id="width-mobile-{sectionKey}"
+															class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+															value={sectionConfig.width}
+															onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+														>
+															{#each validWidths as widthOption}
+																<option value={widthOption.value}>{widthOption.label}</option>
+															{/each}
+														</select>
+													</div>
+												</div>
+											{/if}
+
+											{#if VALID_LAYOUTS[sectionKey]}
+												{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+												<div>
+													<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Layout</label>
+													<select
+														id="layout-mobile-{sectionKey}"
+														class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+														value={sectionConfig.layout}
+														onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+													>
+														{#each layoutConfig.layouts as layoutOption}
+															<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
+														{/each}
+													</select>
+												</div>
+											{/if}
+										{/if}
+									</div>
+
 									<div class="flex items-center justify-between mb-2">
 										<p class="text-xs text-gray-500">
 											{sectionConfig.items.length === 0
@@ -1561,8 +1618,8 @@
 												animate:flip={{ duration: flipDurationMs }}
 											>
 												<!-- Drag Handle for Items -->
-												<div class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
-													<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+												<div class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+													<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 													</svg>
 												</div>
@@ -1622,12 +1679,19 @@
 
 			<!-- Preview Pane -->
 			{#if showPreview}
-				<div class="preview-pane">
-					<div class="sticky top-4">
+				<details class="preview-pane group" open>
+					<summary class="lg:hidden flex items-center justify-between p-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg cursor-pointer list-none">
+						<span class="font-medium text-gray-900 dark:text-white">Live Preview</span>
+						<svg class="w-5 h-5 text-gray-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+						</svg>
+					</summary>
+
+					<div class="lg:sticky lg:top-4">
 						<div class="flex items-center justify-between mb-3 px-1">
-							<h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Live Preview</h2>
+							<h2 class="hidden lg:block text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Live Preview</h2>
 							<!-- Phase 6.2.2: Desktop/Mobile toggle -->
-							<div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+							<div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ml-auto lg:ml-0">
 								<button
 									type="button"
 									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
@@ -1663,7 +1727,7 @@
 							{previewMode}
 						/>
 					</div>
-				</div>
+				</details>
 			{/if}
 		</div>
 	{/if}
@@ -1885,8 +1949,9 @@
 
 <style>
 	.view-editor-container {
+		width: 100%;
 		max-width: 100%;
-		padding: 0 1rem;
+		min-width: 0;
 	}
 
 	.editor-layout {
@@ -1908,35 +1973,34 @@
 
 	.preview-pane {
 		flex: 2;
-		min-width: 320px;
+		min-width: 0; /* Allow shrinking on mobile */
 		max-width: 480px;
 	}
 
-	/* Hide preview on smaller screens */
+	/* Mobile - stack and constrain */
 	@media (max-width: 1024px) {
 		.editor-layout {
 			flex-direction: column;
 		}
 
 		.editor-pane {
+			width: 100%;
 			max-width: 100%;
+			min-width: 0;
 		}
 
 		.preview-pane {
 			width: 100%;
 			max-width: 100%;
-			order: -1; /* Show preview above editor on mobile */
+			min-width: 0;
 			margin-bottom: 1rem;
 		}
 	}
 
 	/* Large screens - show side by side */
 	@media (min-width: 1280px) {
-		.view-editor-container {
-			padding: 0 2rem;
-		}
-
 		.preview-pane {
+			min-width: 320px; /* Only enforce min-width on large screens */
 			max-width: 560px;
 		}
 	}

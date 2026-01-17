@@ -788,7 +788,7 @@ async function resolveMediaRefs(selected: string[]) {
 
 						<div class="flex items-center gap-2">
 							<button
-								class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+								class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 								onclick={() => togglePublish(talk)}
 								title={talk.is_draft ? 'Publish' : 'Unpublish'}
 							>
@@ -804,7 +804,7 @@ async function resolveMediaRefs(selected: string[]) {
 								{/if}
 							</button>
 							<button
-								class="p-2 text-gray-500 hover:text-blue-600"
+								class="p-3 text-gray-500 hover:text-blue-600"
 								onclick={() => openEditForm(talk)}
 								title="Edit"
 							>
@@ -813,7 +813,7 @@ async function resolveMediaRefs(selected: string[]) {
 								</svg>
 							</button>
 							<button
-								class="p-2 text-gray-500 hover:text-red-600"
+								class="p-3 text-gray-500 hover:text-red-600"
 								onclick={() => deleteTalk(talk)}
 								title="Delete"
 							>

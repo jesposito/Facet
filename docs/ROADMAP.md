@@ -28,6 +28,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Admin UX Overhaul (Phase 16):** Accessible confirm dialogs, bulk operations across all content types, improved navigation, visibility badges.
 - ✅ **Bulk Operations:** Select multiple items → change visibility, delete in bulk. Available on projects, posts, talks, experience, education, skills, certifications, awards.
 - ✅ **Custom Domain Support:** Self-hosted architecture supports any domain via reverse proxy (Nginx, Traefik, Cloudflare Tunnel, etc.).
+- ✅ **Mobile UX Overhaul (Phase 16.5):** Complete responsive redesign of admin panel - overlay sidebar, touch targets, bottom sheet modals, form stacking, overflow prevention.
 - 🔜 **Next Up:** Phase 17 UX Improvements, Phase 18 Sharing & Analytics, Phase 19 Developer Platform.
 
 ---
@@ -197,6 +198,30 @@ The original Phase 16 bug list has been verified - most items were already fixed
 - ✅ SQL injection - Parameterized queries throughout
 - ✅ Error handling - All Save() calls checked (except 1 non-critical stat update)
 - ⚠️ Slug uniqueness - DB enforces via unique index, but no suffix on collision (minor)
+
+---
+
+## Phase 16.5: Mobile UX Overhaul (✅ Complete)
+**Purpose:** Make the admin panel fully responsive and touch-friendly on mobile devices.
+
+**Implemented:**
+- ✅ **Overlay Sidebar:** Converts to drawer overlay on mobile (<1024px), hidden by default, closes on navigation
+- ✅ **Touch Targets:** All buttons meet 44px minimum touch target size per Apple/Google guidelines
+- ✅ **Form Stacking:** Link inputs and form groups stack vertically on mobile
+- ✅ **View Editor Redesign:** Simplified headers, larger drag handles, collapsible preview, reduced padding
+- ✅ **Bottom Sheet Modals:** ConfirmDialog and PasswordChangeModal use native-feeling bottom sheets on mobile
+- ✅ **Overflow Prevention:** Multi-layer defense with overflow-x: hidden on html/body, min-w-0 on flex items
+- ✅ **Responsive Grids:** All grid-cols-2 converted to grid-cols-1 sm:grid-cols-2
+
+**Files Modified:**
+- `admin/+layout.svelte` - Mobile detection, sidebar overlay logic
+- `AdminSidebar.svelte` - Overlay mode with z-index layering
+- `ConfirmDialog.svelte`, `PasswordChangeModal.svelte` - Bottom sheet pattern
+- `views/[id]/+page.svelte`, `views/new/+page.svelte` - Mobile-optimized view editor
+- 10+ admin pages - Touch targets, form stacking, responsive grids
+- `app.css`, `app.html` - Global overflow prevention
+
+See [MOBILE_UX_PLAN.md](MOBILE_UX_PLAN.md) for detailed implementation plan.
 
 ---
 
@@ -553,6 +578,15 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-01-17 (Mobile UX)
+- Completed Phase 16.5: Mobile UX Overhaul
+- Admin sidebar converts to overlay drawer on mobile
+- Touch targets increased to 44px minimum across all admin pages
+- Bottom sheet pattern for modals on mobile
+- View editor redesigned for mobile with collapsible preview
+- Multi-layer horizontal overflow prevention
+- Added auto-tag workflow for automatic version bumps on PR merge
 
 ### 2026-01-17
 - Updated Phase 16 bug status - verified most were already fixed

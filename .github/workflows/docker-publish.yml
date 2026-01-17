@@ -19,6 +19,7 @@ on:
       - 'upgrade/*'
       - 'claude/*'
       - 'auto-claude/*'
+      - 'feature/*'
     tags:
       - 'v*.*.*'
   pull_request:
@@ -161,8 +162,8 @@ jobs:
           tags: |
             # Set latest tag for default branch
             type=raw,value=latest,enable={{is_default_branch}}
-            # Dev tag for upgrade, claude, and auto-claude branches
-            type=raw,value=dev,enable=${{ startsWith(github.ref, 'refs/heads/upgrade/') || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/auto-claude/') }}
+            # Dev tag for upgrade, claude, auto-claude, and feature branches
+            type=raw,value=dev,enable=${{ startsWith(github.ref, 'refs/heads/upgrade/') || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/auto-claude/') || startsWith(github.ref, 'refs/heads/feature/') }}
             # Branch name (e.g., main)
             type=ref,event=branch
             # Tag name (e.g., v1.0.0 -> 1.0.0)

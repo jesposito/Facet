@@ -27,7 +27,7 @@
 </script>
 
 <div
-	class="animate-fade-in flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 min-w-[300px]"
+	class="animate-fade-in flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 w-72 sm:w-80 max-w-[calc(100vw-2rem)]"
 	role="alert"
 >
 	<span

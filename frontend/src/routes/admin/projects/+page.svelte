@@ -564,23 +564,25 @@ async function loadProjects() {
 				{:else}
 					<div class="space-y-3">
 						{#each links as link, i}
-							<div class="flex gap-2">
-								<select bind:value={link.type} class="input w-32">
+							<div class="flex flex-col sm:flex-row gap-2">
+								<select bind:value={link.type} class="input w-full sm:w-32">
 									{#each linkTypes as lt}
 										<option value={lt.value}>{lt.label}</option>
 									{/each}
 								</select>
-								<input
-									type="url"
-									bind:value={link.url}
-									class="input flex-1"
-									placeholder="https://..."
-								/>
-							<button type="button" class="btn btn-secondary" onclick={() => removeLink(i)} aria-label="Remove link">
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-								</svg>
-							</button>
+								<div class="flex gap-2 flex-1">
+									<input
+										type="url"
+										bind:value={link.url}
+										class="input flex-1"
+										placeholder="https://..."
+									/>
+									<button type="button" class="btn btn-secondary" onclick={() => removeLink(i)} aria-label="Remove link">
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+										</svg>
+									</button>
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -892,7 +894,7 @@ async function loadProjects() {
 									<a
 										href="/projects/{project.slug}"
 										target="_blank"
-										class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+										class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 										title="View"
 									>
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -904,7 +906,7 @@ async function loadProjects() {
 
 							<div class="flex items-center gap-1">
 								<button
-									class="p-2 text-gray-500 hover:text-yellow-600"
+									class="p-3 text-gray-500 hover:text-yellow-600"
 									onclick={() => toggleFeatured(project)}
 									title={project.is_featured ? 'Unfeature' : 'Feature'}
 								>
@@ -913,7 +915,7 @@ async function loadProjects() {
 									</svg>
 								</button>
 								<button
-									class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+									class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 									onclick={() => togglePublish(project)}
 									title={project.is_draft ? 'Publish' : 'Unpublish'}
 								>
@@ -929,7 +931,7 @@ async function loadProjects() {
 									{/if}
 								</button>
 								<button
-									class="p-2 text-gray-500 hover:text-blue-600"
+									class="p-3 text-gray-500 hover:text-blue-600"
 									onclick={() => openEditForm(project)}
 									title="Edit"
 								>
@@ -938,7 +940,7 @@ async function loadProjects() {
 									</svg>
 								</button>
 								<button
-									class="p-2 text-gray-500 hover:text-red-600"
+									class="p-3 text-gray-500 hover:text-red-600"
 									onclick={() => deleteProject(project)}
 									title="Delete"
 								>

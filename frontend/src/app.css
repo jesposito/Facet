@@ -21,6 +21,12 @@
 		--color-primary-950: #082f49;
 	}
 
+	html,
+	body {
+		overflow-x: hidden;
+		overscroll-behavior-x: none;
+	}
+
 	html {
 		scroll-behavior: smooth;
 	}

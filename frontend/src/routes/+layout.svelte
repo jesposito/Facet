@@ -272,7 +272,7 @@ run(() => {
 
 <!-- Toast notifications - live region for screen readers -->
 <div
-	class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+	class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2"
 	role="region"
 	aria-label="Notifications"
 	aria-live="polite"

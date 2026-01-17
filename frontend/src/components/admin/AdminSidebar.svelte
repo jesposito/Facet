@@ -5,6 +5,12 @@
 	import { adminSidebarOpen, sidebarSectionStates } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
 
+	interface Props {
+		isMobile?: boolean;
+	}
+	
+	let { isMobile = false }: Props = $props();
+
 	// State for dynamically loaded facets
 	let facets: Array<Record<string, unknown>> = $state([]);
 	let facetsLoading = $state(true);
@@ -138,7 +144,11 @@ let isActive = $derived((href: string): boolean => {
 
 <aside
 	id="admin-sidebar"
-	class="fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 {$adminSidebarOpen ? 'w-64' : 'w-16'}"
+	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30
+		{isMobile 
+			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
+			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')
+		}"
 	aria-label="Admin navigation"
 >
 	<nav class="p-3 space-y-4" aria-label="Main menu">

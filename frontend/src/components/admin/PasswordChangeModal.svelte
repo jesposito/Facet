@@ -16,6 +16,7 @@
 	let loading = $state(false);
 	let error = $state('');
 	let passwordStrength = $state('');
+	let isMobile = $state(false);
 
 	// Check password strength
 	run(() => {
@@ -86,16 +87,23 @@
 	}
 
 	onMount(() => {
+		const mq = window.matchMedia('(max-width: 767px)');
+		isMobile = mq.matches;
+		const handler = (e: MediaQueryListEvent) => isMobile = e.matches;
+		mq.addEventListener('change', handler);
+
 		// Focus the new password field
 		setTimeout(() => {
 			document.getElementById('new-password')?.focus();
 		}, 100);
+
+		return () => mq.removeEventListener('change', handler);
 	});
 </script>
 
 <!-- Modal overlay (cannot be dismissed) -->
-<div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-	<div class="card max-w-md w-full p-6">
+<div class="fixed inset-0 bg-black/50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 z-50">
+	<div class="card w-full p-6 transform transition-transform {isMobile ? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto' : 'max-w-md'}">
 		<div class="mb-6">
 			<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
 				Change Your Password

@@ -416,7 +416,7 @@
 						<p class="text-sm text-green-800 dark:text-green-200 mb-4">
 							We extracted and imported the following from your resume:
 						</p>
-						<div class="grid grid-cols-2 gap-3 text-sm">
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 							{#if resumeResult.counts.experience}
 								<div class="flex items-center gap-2">
 									<span class="font-medium">{resumeResult.counts.experience}</span>

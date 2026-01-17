@@ -1,0 +1,130 @@
+# Auto-tag on merge to main
+#
+# Automatically creates a version tag when a PR is merged to main.
+# Uses conventional commit prefixes to determine version bump:
+#   - feat: -> minor bump (v1.0.0 -> v1.1.0)
+#   - fix: -> patch bump (v1.0.0 -> v1.0.1)
+#   - BREAKING CHANGE or !: -> major bump (v1.0.0 -> v2.0.0)
+#
+# Can also be triggered manually with explicit version type.
+
+name: Auto Tag on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: 'Version bump type'
+        required: true
+        default: 'minor'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  tag:
+    # Only run if PR was merged (not just closed)
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history for tags
+          fetch-tags: true
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          # Get the latest semver tag
+          LATEST_TAG=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+          fi
+          echo "latest=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest tag: $LATEST_TAG"
+
+      - name: Determine bump type
+        id: bump_type
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            BUMP="${{ github.event.inputs.bump }}"
+          else
+            PR_TITLE="${{ github.event.pull_request.title }}"
+            PR_BODY="${{ github.event.pull_request.body }}"
+            
+            # Check for breaking change
+            if echo "$PR_TITLE" | grep -qiE '^.*!:|BREAKING CHANGE'; then
+              BUMP="major"
+            # Check for feature
+            elif echo "$PR_TITLE" | grep -qiE '^feat'; then
+              BUMP="minor"
+            # Default to patch for fixes and others
+            else
+              BUMP="patch"
+            fi
+          fi
+          echo "bump=$BUMP" >> $GITHUB_OUTPUT
+          echo "Bump type: $BUMP"
+
+      - name: Calculate new version
+        id: new_version
+        run: |
+          LATEST="${{ steps.get_tag.outputs.latest }}"
+          BUMP="${{ steps.bump_type.outputs.bump }}"
+          
+          # Remove 'v' prefix and split into parts
+          VERSION=${LATEST#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+          
+          case $BUMP in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_TAG"
+
+      - name: Create and push tag
+        run: |
+          NEW_TAG="${{ steps.new_version.outputs.new_tag }}"
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create annotated tag with PR info
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            git tag -a "$NEW_TAG" -m "Release $NEW_TAG (manual trigger)"
+          else
+            git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "PR: #${{ github.event.pull_request.number }}" -m "Title: ${{ github.event.pull_request.title }}"
+          fi
+          
+          git push origin "$NEW_TAG"
+          
+          echo "## Tag Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**New Tag:** \`$NEW_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump Type:** ${{ steps.bump_type.outputs.bump }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Previous Tag:** ${{ steps.get_tag.outputs.latest }}" >> $GITHUB_STEP_SUMMARY

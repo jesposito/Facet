@@ -509,8 +509,8 @@
 					{:else}
 						<div class="space-y-3">
 							{#each contactLinks as link, i}
-								<div class="flex items-start gap-2">
-									<select bind:value={link.type} class="input w-32">
+								<div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-2">
+									<select bind:value={link.type} class="input w-full sm:w-32">
 										<option value="github">GitHub</option>
 										<option value="linkedin">LinkedIn</option>
 										<option value="twitter">Twitter</option>
@@ -521,23 +521,25 @@
 									<input
 										type="url"
 										bind:value={link.url}
-										class="input flex-1"
+										class="input w-full sm:flex-1"
 										placeholder="https://..."
 									/>
-									<input
-										type="text"
-										bind:value={link.label}
-										class="input w-32"
-										placeholder="Label"
-									/>
-									<button
-										type="button"
-										class="btn btn-ghost text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-										onclick={() => removeContactLink(i)}
-										title="Remove link"
-									>
-										{@html icon('x')}
-									</button>
+									<div class="flex gap-2">
+										<input
+											type="text"
+											bind:value={link.label}
+											class="input flex-1 sm:w-32"
+											placeholder="Label"
+										/>
+										<button
+											type="button"
+											class="btn btn-ghost text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+											onclick={() => removeContactLink(i)}
+											title="Remove link"
+										>
+											{@html icon('x')}
+										</button>
+									</div>
 								</div>
 							{/each}
 						</div>

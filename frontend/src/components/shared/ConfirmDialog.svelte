@@ -8,9 +8,18 @@
 	let dialogEl: HTMLDivElement | undefined = $state();
 	let cancelBtnEl: HTMLButtonElement | undefined = $state();
 	let previousActiveElement: HTMLElement | null = $state(null);
+	let isMobile = $state(false);
 
 	let isOpen = $derived($confirmDialog.open);
 	let options = $derived($confirmDialog.options);
+
+	onMount(() => {
+		const mq = window.matchMedia('(max-width: 767px)');
+		isMobile = mq.matches;
+		const handler = (e: MediaQueryListEvent) => isMobile = e.matches;
+		mq.addEventListener('change', handler);
+		return () => mq.removeEventListener('change', handler);
+	});
 
 	// Focus trap and keyboard handling
 	function handleKeydown(event: KeyboardEvent) {
@@ -82,7 +91,7 @@
 {#if isOpen && options}
 	<!-- Backdrop -->
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+		class="fixed inset-0 z-50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
 		onclick={handleOverlayClick}
 		onkeydown={handleKeydown}
 		role="presentation"
@@ -94,7 +103,7 @@
 			aria-modal="true"
 			aria-labelledby="confirm-dialog-title"
 			aria-describedby="confirm-dialog-message"
-			class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade-in"
+			class="bg-white dark:bg-gray-800 shadow-2xl w-full p-6 animate-fade-in transform transition-transform {isMobile ? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto' : 'rounded-xl max-w-md'}"
 		>
 			<!-- Icon and Title -->
 			<div class="flex items-start gap-4">

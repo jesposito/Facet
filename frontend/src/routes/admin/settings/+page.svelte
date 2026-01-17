@@ -710,7 +710,7 @@ body { font-family: 'Inter', sans-serif; }
 
 		{#if showAddForm}
 			<form onsubmit={preventDefault(handleAddProvider)} class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4 space-y-4">
-				<div class="grid grid-cols-2 gap-4">
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 					<div>
 						<label for="name" class="label">Name</label>
 						<input

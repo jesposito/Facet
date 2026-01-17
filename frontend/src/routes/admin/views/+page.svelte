@@ -98,8 +98,8 @@
 		<div class="space-y-4">
 			{#each views as view}
 				<div class="card p-4">
-					<div class="flex items-start justify-between">
-						<div class="flex-1">
+					<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
 								<h3 class="font-medium text-gray-900 dark:text-white">{view.name}</h3>
 								{#if view.is_default}
@@ -123,17 +123,17 @@
 									{view.visibility}
 								</span>
 							</div>
-							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1 break-all">
 								<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/{view.slug}</code>
 								{#if view.description}
-									- {view.description}
+									<span class="break-normal"> - {view.description}</span>
 								{/if}
 							</p>
 						</div>
 
-						<div class="flex items-center gap-1">
+						<div class="flex items-center gap-1 shrink-0">
 							<button
-								class="btn btn-sm btn-ghost"
+								class="btn btn-sm btn-ghost p-2"
 								onclick={() => copyViewUrl(String(view.slug))}
 								title="Copy URL"
 							>
@@ -142,7 +142,7 @@
 							<a
 								href="/{view.slug}"
 								target="_blank"
-								class="btn btn-sm btn-ghost"
+								class="btn btn-sm btn-ghost p-2"
 								title="Preview"
 							>
 								{@html icon('eye')}
@@ -151,14 +151,14 @@
 								Edit
 							</a>
 							<button
-								class="btn btn-sm btn-ghost"
+								class="btn btn-sm btn-ghost p-2"
 								onclick={() => toggleActive(view)}
 								title={view.is_active ? 'Deactivate' : 'Activate'}
 							>
 								{@html view.is_active ? icon('toggleOn') : icon('toggleOff')}
 							</button>
 							<button
-								class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+								class="btn btn-sm btn-ghost p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
 								onclick={() => deleteView(String(view.id))}
 								title="Delete"
 							>

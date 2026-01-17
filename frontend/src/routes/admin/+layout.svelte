@@ -3,6 +3,7 @@
 
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
@@ -20,6 +21,12 @@
 	let authorized = $state(false);
 	let mounted = $state(false);
 	let showPasswordChangeModal = $state(false);
+	
+	// Mobile detection for responsive sidebar behavior
+	// Mobile: sidebar is overlay drawer (hidden by default)
+	// Desktop: sidebar is persistent (current behavior)
+	let isMobile = $state(false);
+	const MOBILE_BREAKPOINT = 1024; // lg breakpoint
 
 
 
@@ -43,19 +50,39 @@
 		}
 	}
 
+	// Media query listener cleanup
+	let mediaQueryCleanup: (() => void) | null = null;
+
 	onMount(async () => {
 		mounted = true;
 
-		// Restore sidebar state from localStorage
+		// Set up mobile detection with media query
+		const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+		isMobile = mediaQuery.matches;
+		
+		const handleMediaChange = (e: MediaQueryListEvent) => {
+			isMobile = e.matches;
+			// When switching to mobile, close sidebar by default
+			if (e.matches) {
+				adminSidebarOpen.set(false);
+			}
+		};
+		
+		mediaQuery.addEventListener('change', handleMediaChange);
+		mediaQueryCleanup = () => mediaQuery.removeEventListener('change', handleMediaChange);
+
+		// Restore sidebar state from localStorage (desktop only)
+		// On mobile, sidebar is always closed by default
 		try {
-			const saved = localStorage.getItem('adminSidebarOpen');
-			if (saved === 'false') {
+			if (isMobile) {
 				adminSidebarOpen.set(false);
-			} else if (saved === 'true') {
-				adminSidebarOpen.set(true);
-			} else if (window.innerWidth < 1024) {
-				// default to collapsed on small screens
-				adminSidebarOpen.set(false);
+			} else {
+				const saved = localStorage.getItem('adminSidebarOpen');
+				if (saved === 'false') {
+					adminSidebarOpen.set(false);
+				} else if (saved === 'true') {
+					adminSidebarOpen.set(true);
+				}
 			}
 		} catch (err) {
 			console.warn('Failed to restore sidebar state', err);
@@ -111,6 +138,17 @@
 
 	onDestroy(() => {
 		mounted = false;
+		// Clean up media query listener
+		if (mediaQueryCleanup) {
+			mediaQueryCleanup();
+		}
+	});
+
+	// Close sidebar on navigation (mobile only)
+	afterNavigate(() => {
+		if (isMobile && $adminSidebarOpen) {
+			adminSidebarOpen.set(false);
+		}
 	});
 
 	function handlePasswordChanged() {
@@ -173,13 +211,31 @@
 	<!-- Login page renders without admin chrome -->
 	{@render children?.()}
 {:else if authorized}
-	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
 		<AdminHeader />
 
-		<div class="flex">
-			<AdminSidebar />
+		<div class="flex min-w-0 overflow-hidden">
+			<!-- Mobile backdrop overlay - closes sidebar when clicked -->
+			{#if isMobile && $adminSidebarOpen}
+				<button
+					type="button"
+					class="fixed inset-0 bg-black/50 z-20 lg:hidden"
+					onclick={() => adminSidebarOpen.set(false)}
+					aria-label="Close navigation menu"
+				></button>
+			{/if}
 
-			<main id="main-content" class="flex-1 p-6 {$adminSidebarOpen ? 'ml-64' : 'ml-16'} transition-all duration-200 mt-16">
+			<AdminSidebar {isMobile} />
+
+			<!-- Main content: 
+				- Mobile: full width (no margin)
+				- Desktop: margin-left based on sidebar state (preserves current behavior)
+			-->
+			<main 
+				id="main-content" 
+				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-hidden w-full max-w-full
+					{isMobile ? '' : ($adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16')}"
+			>
 				{#key $demoMode}
 					{@render children?.()}
 				{/key}
