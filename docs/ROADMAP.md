@@ -31,6 +31,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Mobile UX Overhaul (Phase 16.5):** Complete responsive redesign of admin panel - overlay sidebar, touch targets, bottom sheet modals, form stacking, overflow prevention.
 - ✅ **UX Improvements (Phase 17.1-17.2):** Setup Wizard for new users, Contextual Help on all admin pages.
 - ✅ **Quick Share to Social (Phase 18.1):** Native Web Share API with social platform fallbacks (LinkedIn, Twitter/X, Reddit, Email).
+- ✅ **Testimonials System (Phase 20.1):** Complete social proof collection with request links, approval workflow, email verification, and public display.
 - 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, Phase 19 Developer Platform.
 
 ---
@@ -419,48 +420,62 @@ Make admin dashboard work offline.
 
 ---
 
-## Phase 20: Social Proof & Networking (🔜 Future)
+## Phase 20: Social Proof & Networking (🟡 In Progress)
 **Purpose:** Build credibility through endorsements and easy application
 
-### 20.1 Testimonials/Endorsements System
+### 20.1 Testimonials System (✅ Complete)
 **Priority:** High | **Effort:** High
 
-Let others vouch for you without needing accounts.
+Collect and display social proof from clients, colleagues, and collaborators.
 
 **How it works:**
-1. Owner generates endorsement request link (like share tokens)
-2. Link goes to simple form: name, relationship, testimonial text
+1. Owner generates request link with optional custom message
+2. Link goes to public form: name, title, company, relationship, testimonial
 3. Submission stored as "pending" for owner review
-4. Owner approves/rejects in admin
+4. Owner approves/rejects in admin dashboard
 5. Approved testimonials appear on designated views
+6. Optional email verification for added credibility
 
 **Implementation:**
 
 **Backend:**
-- New collection: `endorsements`
-  - `id`, `name`, `email`, `relationship`, `content`, `status` (pending/approved/rejected)
-  - `request_token`, `submitted_at`, `approved_at`
-  - `views` (which views to show on)
-- New collection: `endorsement_requests`
-  - `id`, `token`, `expires_at`, `message` (optional intro message)
-  - `max_uses`, `use_count`
-- Endpoints:
-  - `POST /api/endorsement/request` - Generate request link (auth required)
-  - `GET /api/endorsement/submit/{token}` - Get request details (no auth)
-  - `POST /api/endorsement/submit/{token}` - Submit testimonial (no auth)
-  - `GET /api/endorsements` - List for admin (auth required)
-  - `PATCH /api/endorsements/{id}` - Approve/reject (auth required)
+- Collections: `testimonials`, `testimonial_requests`, `email_verification_tokens`
+- Service: `services/testimonial.go` - Token generation, HMAC validation
+- Hooks: `hooks/testimonials.go` - 14 API endpoints (543 lines)
+- Migrations: Schema creation + access rules
+
+**API Endpoints:**
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/testimonials/requests` | Yes | Create request link |
+| GET | `/api/testimonials/requests` | Yes | List request links |
+| DELETE | `/api/testimonials/requests/{id}` | Yes | Delete request link |
+| GET | `/api/testimonials/request/{token}` | No | Validate token (public) |
+| POST | `/api/testimonials/submit` | No | Submit testimonial (public) |
+| GET | `/api/testimonials` | Yes | List testimonials |
+| POST | `/api/testimonials/{id}/approve` | Yes | Approve testimonial |
+| POST | `/api/testimonials/{id}/reject` | Yes | Reject testimonial |
+| PATCH | `/api/testimonials/{id}` | Yes | Update testimonial |
+| DELETE | `/api/testimonials/{id}` | Yes | Delete testimonial |
+| GET | `/api/testimonials/pending-count` | Yes | Get pending count |
+| GET | `/api/public/testimonials` | No | Public approved list |
+| POST | `/api/testimonials/verify/email` | No | Send verification |
+| GET | `/api/testimonials/verify/email/{token}` | No | Complete verification |
 
 **Frontend:**
-- `/endorse/{token}` - Public submission form (clean, professional)
-- `/admin/endorsements` - Review and manage
-- `TestimonialsSection.svelte` - Display on public views
+- `/testimonial/[token]` - Public submission form
+- `/testimonial/verify/[token]` - Email verification page
+- `/admin/testimonials` - Manage testimonials (approve, reject, feature)
+- `/admin/testimonials/requests` - Manage request links
+- `TestimonialsSection.svelte` - Public display (wall, carousel, featured layouts)
+- Collapsible "Testimonials" section in admin sidebar with pending count badge
 
 **Security:**
-- Rate limit submissions (3 per token per hour)
-- Spam detection (very short or repetitive content)
-- Email notification to owner on new submission
-- No account required for endorsers
+- HMAC-SHA256 hashed tokens (raw tokens never stored)
+- Rate limiting on public submission endpoints
+- Email verification tokens expire after 15 minutes
+- Request links support expiration dates and max uses
+- No account required for testimonial submitters
 
 ### 20.2 "Apply with Facet" Button
 **Priority:** Medium | **Effort:** Very High
@@ -515,7 +530,6 @@ When clicked:
 ### Medium Priority
 - 🔜 **QR Codes** (Phase 18.3) - Quick win for sharing
 - 🔜 **Webhooks** (Phase 19.1) - Enable integrations
-- 🔜 **Testimonials System** (Phase 20.1) - Social proof
 
 ### Lower Priority
 - 🔜 **Public API** (Phase 19.2) - Developer platform
@@ -528,6 +542,7 @@ When clicked:
 - ✅ **Guided Setup Wizard** (Phase 17.1) - 3-step onboarding for new users
 - ✅ **Contextual Help** (Phase 17.2) - Help text on all admin pages
 - ✅ **Quick Share to Social** (Phase 18.1) - Native Web Share API + social fallbacks
+- ✅ **Testimonials System** (Phase 20.1) - Social proof collection with request links, approval workflow, email verification
 - ✅ **Bulk Operations** - Implemented across 8 content types
 - ✅ **Custom Domain** - Works via reverse proxy (self-hosted)
 - ✅ **Resume Upload & AI Parsing** - Both directions supported
@@ -562,6 +577,16 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-01-17 (Testimonials System - v2.5.0)
+- Completed Phase 20.1: Testimonials System
+- Request link generation with HMAC-SHA256 tokens and optional expiration
+- Public submission form with name, title, company, relationship, testimonial
+- Approval workflow: pending → approved/rejected with admin review
+- Email verification for credibility (15-minute expiration)
+- Collapsible admin sidebar section with pending count badge
+- Public display component with multiple layouts (wall, carousel, featured)
+- 14 API endpoints with comprehensive security and rate limiting
 
 ### 2026-01-17 (Quick Share to Social - v2.4.0)
 - Completed Phase 18.1: Quick Share to Social
