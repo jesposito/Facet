@@ -49,14 +49,11 @@
 			const result = await pb.collection('testimonials').getList<Testimonial>(1, 100, options);
 			testimonials = result.items;
 		} catch (err: unknown) {
-			const pbError = err as { response?: { data?: unknown }; status?: number; message?: string };
-			console.error('Failed to load testimonials:', {
-				status: pbError.status,
-				message: pbError.message,
-				response: pbError.response,
-				data: pbError.response?.data,
-				fullError: err
-			});
+			const pbError = err as { isAbort?: boolean; status?: number; message?: string };
+			if (pbError.isAbort || pbError.status === 0) {
+				return;
+			}
+			console.error('Failed to load testimonials:', err);
 			toasts.error('Failed to load testimonials');
 		} finally {
 			loading = false;

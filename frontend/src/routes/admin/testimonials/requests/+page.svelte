@@ -39,14 +39,11 @@
 			});
 			requests = result.items;
 		} catch (err: unknown) {
-			const pbError = err as { response?: { data?: unknown }; status?: number; message?: string };
-			console.error('Failed to load requests:', {
-				status: pbError.status,
-				message: pbError.message,
-				response: pbError.response,
-				data: pbError.response?.data,
-				fullError: err
-			});
+			const pbError = err as { isAbort?: boolean; status?: number; message?: string };
+			if (pbError.isAbort || pbError.status === 0) {
+				return;
+			}
+			console.error('Failed to load requests:', err);
 			toasts.error('Failed to load request links');
 		} finally {
 			loading = false;
