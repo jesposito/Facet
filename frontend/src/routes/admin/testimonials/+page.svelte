@@ -42,14 +42,15 @@
 	async function loadTestimonials() {
 		loading = true;
 		try {
-			const filter = statusFilter === 'all' ? '' : `status = "${statusFilter}"`;
-			const result = await pb.collection('testimonials').getList<Testimonial>(1, 100, {
-				sort: '-created',
-				filter
-			});
+			const options: { sort: string; filter?: string } = { sort: '-id' };
+			if (statusFilter !== 'all') {
+				options.filter = `status = "${statusFilter}"`;
+			}
+			const result = await pb.collection('testimonials').getList<Testimonial>(1, 100, options);
 			testimonials = result.items;
 		} catch (err) {
-			console.error('Failed to load testimonials:', err);
+			const errorDetails = err instanceof Error ? err.message : JSON.stringify(err);
+			console.error('Failed to load testimonials:', errorDetails, err);
 			toasts.error('Failed to load testimonials');
 		} finally {
 			loading = false;

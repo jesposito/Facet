@@ -35,11 +35,12 @@
 		loading = true;
 		try {
 			const result = await pb.collection('testimonial_requests').getList<TestimonialRequest>(1, 100, {
-				sort: '-created'
+				sort: '-id'
 			});
 			requests = result.items;
 		} catch (err) {
-			console.error('Failed to load requests:', err);
+			const errorDetails = err instanceof Error ? err.message : JSON.stringify(err);
+			console.error('Failed to load requests:', errorDetails, err);
 			toasts.error('Failed to load request links');
 		} finally {
 			loading = false;
