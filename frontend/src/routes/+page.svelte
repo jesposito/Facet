@@ -28,9 +28,10 @@
 
 	let { data }: Props = $props();
 
-	// Get headline and summary - use view overrides if this is a default view
+	// Get headline, summary, and location - use view overrides if this is a default view
 	let headline = $derived(data.view?.hero_headline || data.profile?.headline);
 	let summary = $derived(data.view?.hero_summary || data.profile?.summary);
+	let location = $derived(data.view?.hero_location || data.profile?.location);
 
 	// Generate JSON-LD and Open Graph for SEO
 	let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
@@ -304,7 +305,8 @@
 		profile={{
 			...data.profile,
 			headline,
-			summary
+			summary,
+			location
 		}}
 	/>
 

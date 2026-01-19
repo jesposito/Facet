@@ -231,6 +231,7 @@ export interface View {
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	hero_headline?: string;
 	hero_summary?: string;
+	hero_location?: string;
 	cta_text?: string;
 	cta_url?: string;
 	sections?: ViewSection[];

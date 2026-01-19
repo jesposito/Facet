@@ -46,6 +46,7 @@
 	let password = $state(''); // For password-protected views
 	let heroHeadline = $state('');
 	let heroSummary = $state('');
+	let heroLocation = $state('');
 	let ctaText = $state('');
 	let ctaUrl = $state('');
 	let isActive = $state(true);
@@ -345,6 +346,7 @@
 				password: visibility === 'password' ? password.trim() : null,
 				hero_headline: heroHeadline.trim() || null,
 				hero_summary: heroSummary.trim() || null,
+				hero_location: heroLocation.trim() || null,
 				cta_text: ctaText.trim() || null,
 				cta_url: ctaUrl.trim() || null,
 				is_active: isActive,
@@ -589,7 +591,7 @@
 			<!-- Hero Overrides -->
 			<div class="card p-4 sm:p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
-				<p class="text-sm text-gray-500 -mt-2">Override your profile headline and summary for this view</p>
+				<p class="text-sm text-gray-500 -mt-2">Override your profile headline, summary, and location for this view</p>
 
 				<div>
 					<label for="hero_headline" class="label">Custom Headline</label>
@@ -610,6 +612,17 @@
 						class="input min-h-[120px]"
 						placeholder="Leave empty to use profile summary (Markdown supported)"
 					></textarea>
+				</div>
+
+				<div>
+					<label for="hero_location" class="label">Custom Location</label>
+					<input
+						type="text"
+						id="hero_location"
+						bind:value={heroLocation}
+						class="input"
+						placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
+					/>
 				</div>
 			</div>
 

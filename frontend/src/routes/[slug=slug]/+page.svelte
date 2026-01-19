@@ -318,6 +318,7 @@
 				...data.profile,
 				headline: data.view?.hero_headline || data.profile?.headline,
 				summary: data.view?.hero_summary || data.profile?.summary,
+				location: data.view?.hero_location || data.profile?.location,
 				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
 			}}
 		/>
