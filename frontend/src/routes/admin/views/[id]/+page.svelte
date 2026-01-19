@@ -50,6 +50,7 @@
 	let password = $state(''); // For password-protected views (only set when changing)
 	let heroHeadline = $state('');
 	let heroSummary = $state('');
+	let heroLocation = $state('');
 	let ctaText = $state('');
 	let ctaUrl = $state('');
 	let isActive = $state(true);
@@ -471,6 +472,7 @@
 			visibility = view.visibility;
 			heroHeadline = view.hero_headline || '';
 			heroSummary = view.hero_summary || '';
+			heroLocation = view.hero_location || '';
 			ctaText = view.cta_text || '';
 			ctaUrl = view.cta_url || '';
 			isActive = view.is_active;
@@ -710,6 +712,7 @@
 			formData.append('visibility', visibility);
 			formData.append('hero_headline', heroHeadline.trim() || '');
 			formData.append('hero_summary', heroSummary.trim() || '');
+			formData.append('hero_location', heroLocation.trim() || '');
 			formData.append('cta_text', ctaText.trim() || '');
 			formData.append('cta_url', ctaUrl.trim() || '');
 			formData.append('is_active', String(isActive));
@@ -1282,9 +1285,36 @@
 						class="input min-h-[120px]"
 						placeholder="Leave empty to use profile summary (Markdown supported)"
 					></textarea>
-					{#if profile?.summary}
+				{#if profile?.summary}
+					<p class="text-xs text-gray-500 mt-1">
+						Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.summary.length > 100 ? profile.summary.substring(0, 100) + '...' : profile.summary}</span>
+					</p>
+				{/if}
+				</div>
+
+				<div>
+					<div class="flex items-center justify-between">
+						<label for="hero_location" class="label">Custom Location</label>
+						{#if heroLocation}
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+								onclick={() => heroLocation = ''}
+							>
+								Use profile value
+							</button>
+						{/if}
+					</div>
+					<input
+						type="text"
+						id="hero_location"
+						bind:value={heroLocation}
+						class="input"
+						placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
+					/>
+					{#if profile?.location}
 						<p class="text-xs text-gray-500 mt-1">
-							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.summary.length > 100 ? profile.summary.substring(0, 100) + '...' : profile.summary}</span>
+							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.location}</span>
 						</p>
 					{/if}
 				</div>

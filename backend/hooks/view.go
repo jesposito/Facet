@@ -369,6 +369,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if summary := view.GetString("hero_summary"); summary != "" {
 				response["hero_summary"] = summary
 			}
+			if location := view.GetString("hero_location"); location != "" {
+				response["hero_location"] = location
+			}
 			if ctaText := view.GetString("cta_text"); ctaText != "" {
 				response["cta_text"] = ctaText
 			}
