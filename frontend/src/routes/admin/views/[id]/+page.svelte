@@ -1802,18 +1802,20 @@
 											{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
 											{@const overrideCount = getOverrideCount(sectionKey, item.id)}
 											{@const canOverride = OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
-								<div
+									<div
 										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
 										animate:flip={{ duration: flipDurationMs }}
 									>
 										<div 
 											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" 
 											title="Drag to reorder"
+											role="presentation"
 										>
 											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 											</svg>
 										</div>
+										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 										<label
 											class="flex items-center gap-2 flex-1 cursor-pointer"
 											onpointerdown={(e) => e.stopPropagation()}
