@@ -20,6 +20,8 @@ on:
       - 'claude/*'
       - 'auto-claude/*'
       - 'feature/*'
+      - 'dev/*'
+      - 'fix/*'
     tags:
       - 'v*.*.*'
   pull_request:
