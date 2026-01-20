@@ -13,6 +13,9 @@
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
 	import { flip } from 'svelte/animate';
 	import ViewPreview from '$components/admin/ViewPreview.svelte';
+	import ViewOverrideEditor from '$components/admin/view-editor/ViewOverrideEditor.svelte';
+	import ViewResumeGenerator from '$components/admin/view-editor/ViewResumeGenerator.svelte';
+	import type { OverrideEditorState, ResumeGenerationConfig, ExportRecord } from '$lib/view-editor/types';
 
 	// Default section definitions - used to initialize and provide labels
 	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
@@ -85,37 +88,16 @@
 
 	// Override editor state
 	let showOverrideEditor = $state(false);
-	let editingOverride: {
-		sectionKey: string;
-		itemId: string;
-		itemLabel: string;
-		originalData: Record<string, unknown>;
-		overrides: Record<string, string | string[]>;
-	} | null = $state(null);
+	let editingOverride: OverrideEditorState | null = $state(null);
 
 	// AI Print state
 	let showGenerateModal = $state(false);
-	let generating = $state(false);
 	let aiPrintStatus = $state({
 		available: false,
 		pandoc_installed: false,
 		ai_configured: false
 	});
-	let generationConfig = $state({
-		format: 'pdf' as 'pdf' | 'docx',
-		target_role: '',
-		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
-		length: 'two-page' as 'one-page' | 'two-page' | 'full',
-		emphasis: [] as string[]
-	});
-	let exports: Array<{
-		id: string;
-		format: string;
-		status: string;
-		generated_at: string;
-		download_url?: string;
-		error_message?: string;
-	}> = $state([]);
+	let exports: ExportRecord[] = $state([]);
 
 	// Share token generation state
 	let viewTokens: ShareToken[] = $state([]);
@@ -227,64 +209,51 @@
 		}
 	}
 
-	async function generateResume() {
+	/**
+	 * Handle resume generation from ViewResumeGenerator component.
+	 * The component manages its own loading state; we handle the API call and state updates.
+	 */
+	async function handleResumeGenerate(config: ResumeGenerationConfig): Promise<void> {
 		if (!slug) return;
-		generating = true;
-		try {
-			console.log('[AI-PRINT] Starting generation for:', slug);
-			const response = await fetch(`/api/view/${slug}/generate`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify(generationConfig)
-			});
+		
+		console.log('[AI-PRINT] Starting generation for:', slug);
+		const response = await fetch(`/api/view/${slug}/generate`, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: pb.authStore.token || ''
+			},
+			body: JSON.stringify(config)
+		});
 
-			const data = await response.json();
-			console.log('[AI-PRINT] Generation result:', data);
+		const data = await response.json();
+		console.log('[AI-PRINT] Generation result:', data);
 
-			if (!response.ok) {
-				throw new Error(data.error || 'Generation failed');
-			}
+		if (!response.ok) {
+			throw new Error(data.error || 'Generation failed');
+		}
 
-			toasts.add('success', 'Resume generated successfully!');
-			showGenerateModal = false;
+		toasts.add('success', 'Resume generated successfully!');
+		showGenerateModal = false;
 
-			// Add new export to list
-			exports = [{
-				id: data.export_id,
-				format: data.format,
-				status: data.status,
-				generated_at: data.generated_at,
-				download_url: data.download_url
-			}, ...exports];
+		// Add new export to list
+		exports = [{
+			id: data.export_id,
+			format: data.format,
+			status: data.status,
+			generated_at: data.generated_at,
+			download_url: data.download_url
+		}, ...exports];
 
-			// Auto-download the file
-			if (data.download_url) {
-				console.log('[AI-PRINT] Auto-downloading from:', data.download_url);
-				const link = document.createElement('a');
-				link.href = data.download_url;
-				link.download = `resume.${generationConfig.format}`;
-				document.body.appendChild(link);
-				link.click();
-				document.body.removeChild(link);
-			}
-
-			// Reset config for next time
-			generationConfig = {
-				format: 'pdf',
-				target_role: '',
-				style: 'chronological',
-				length: 'two-page',
-				emphasis: []
-			};
-		} catch (err) {
-			console.error('[AI-PRINT] Generation error:', err);
-			const message = err instanceof Error ? err.message : 'Failed to generate resume';
-			toasts.add('error', message);
-		} finally {
-			generating = false;
+		// Auto-download the file
+		if (data.download_url) {
+			console.log('[AI-PRINT] Auto-downloading from:', data.download_url);
+			const link = document.createElement('a');
+			link.href = data.download_url;
+			link.download = `resume.${config.format}`;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
 		}
 	}
 
@@ -866,18 +835,14 @@
 		editingOverride = null;
 	}
 
-	function saveOverrides() {
+	/**
+	 * Handle override save from ViewOverrideEditor component.
+	 * The component handles cleaning empty overrides, so we receive cleaned data.
+	 */
+	function handleOverrideSave(cleanedOverrides: Record<string, string | string[]>) {
 		if (!editingOverride) return;
 
-		const { sectionKey, itemId, overrides } = editingOverride;
-
-		// Clean up empty overrides
-		const cleanedOverrides: Record<string, string | string[]> = {};
-		for (const [field, value] of Object.entries(overrides)) {
-			if (value && (typeof value === 'string' ? value.trim() : value.length > 0)) {
-				cleanedOverrides[field] = value;
-			}
-		}
+		const { sectionKey, itemId } = editingOverride;
 
 		// Update itemConfig
 		if (!sections[sectionKey].itemConfig) {
@@ -895,12 +860,6 @@
 		toasts.add('success', 'Overrides saved');
 	}
 
-	function clearOverride(field: string) {
-		if (!editingOverride) return;
-		delete editingOverride.overrides[field];
-		editingOverride = editingOverride; // Trigger reactivity
-	}
-
 	function hasOverrides(sectionKey: string, itemId: string): boolean {
 		const config = sections[sectionKey]?.itemConfig?.[itemId];
 		return !!(config?.overrides && Object.keys(config.overrides).length > 0);
@@ -909,27 +868,6 @@
 	function getOverrideCount(sectionKey: string, itemId: string): number {
 		const config = sections[sectionKey]?.itemConfig?.[itemId];
 		return config?.overrides ? Object.keys(config.overrides).length : 0;
-	}
-
-	function formatFieldValue(value: unknown): string {
-		if (Array.isArray(value)) {
-			return value.join('\n');
-		}
-		return String(value || '');
-	}
-
-	function parseFieldValue(field: string, value: string): string | string[] {
-		// bullets field should be an array
-		if (field === 'bullets') {
-			return value.split('\n').filter(line => line.trim());
-		}
-		return value;
-	}
-
-	function handleOverrideInput(field: string, event: Event) {
-		if (!editingOverride) return;
-		const target = event.target as HTMLInputElement | HTMLTextAreaElement;
-		editingOverride.overrides[field] = parseFieldValue(field, target.value);
 	}
 
 	// Drag-drop handlers for section reordering
@@ -1959,216 +1897,23 @@
 
 <!-- Override Editor Modal -->
 {#if showOverrideEditor && editingOverride}
-	{@const overridableFields = OVERRIDABLE_FIELDS[editingOverride.sectionKey] || []}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-		<div class="card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-			<div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-				<div>
-					<h2 class="text-lg font-bold text-gray-900 dark:text-white">Customize for this View</h2>
-					<p class="text-sm text-gray-500">{editingOverride.itemLabel}</p>
-				</div>
-				<button type="button" class="btn btn-ghost" onclick={closeOverrideEditor}>
-					{@html icon('x')}
-				</button>
-			</div>
-
-			<div class="p-4 space-y-6 overflow-y-auto flex-1">
-				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Override fields below to customize how this item appears in this view. Leave fields empty to use the original value.
-				</p>
-
-				{#each overridableFields as field}
-					{@const originalValue = editingOverride.originalData[field]}
-					{@const hasOverride = field in editingOverride.overrides}
-					{@const isArrayField = field === 'bullets'}
-
-					<div class="space-y-2">
-						<div class="flex items-center justify-between">
-							<label for="override_{field}" class="label capitalize">{field.replace('_', ' ')}</label>
-							{#if hasOverride}
-								<button
-									type="button"
-									class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-									onclick={() => clearOverride(field)}
-								>
-									Reset to original
-								</button>
-							{/if}
-						</div>
-
-						<!-- Original value (collapsed) -->
-						<details class="text-sm">
-							<summary class="text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-								View original value
-							</summary>
-							<div class="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 whitespace-pre-wrap text-xs">
-								{formatFieldValue(originalValue) || '(empty)'}
-							</div>
-						</details>
-
-						<!-- Override input -->
-						{#if isArrayField}
-							<textarea
-								id="override_{field}"
-								class="input min-h-[100px] font-mono text-sm"
-								placeholder="Enter one item per line..."
-								value={hasOverride ? formatFieldValue(editingOverride.overrides[field]) : ''}
-								oninput={(e) => handleOverrideInput(field, e)}
-							></textarea>
-							<p class="text-xs text-gray-500">Enter one bullet point per line</p>
-						{:else if field === 'description' || field === 'summary'}
-							<textarea
-								id="override_{field}"
-								class="input min-h-[100px]"
-								placeholder="Enter override value or leave empty for original..."
-								value={hasOverride ? String(editingOverride.overrides[field]) : ''}
-								oninput={(e) => handleOverrideInput(field, e)}
-							></textarea>
-						{:else}
-							<input
-								type="text"
-								id="override_{field}"
-								class="input"
-								placeholder="Enter override value or leave empty for original..."
-								value={hasOverride ? String(editingOverride.overrides[field]) : ''}
-								oninput={(e) => handleOverrideInput(field, e)}
-							/>
-						{/if}
-					</div>
-				{/each}
-
-				{#if overridableFields.length === 0}
-					<p class="text-gray-500 text-center py-8">
-						This section type does not support field overrides.
-					</p>
-				{/if}
-			</div>
-
-			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-				<button type="button" class="btn btn-ghost" onclick={closeOverrideEditor}>
-					Cancel
-				</button>
-				<button type="button" class="btn btn-primary" onclick={saveOverrides}>
-					Save Overrides
-				</button>
-			</div>
-		</div>
-	</div>
+	<ViewOverrideEditor
+		{editingOverride}
+		onSave={handleOverrideSave}
+		onClose={closeOverrideEditor}
+	/>
 {/if}
 
 <!-- Generate Resume Modal -->
 {#if showGenerateModal}
-	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onclick={self(() => showGenerateModal = false)}>
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden">
-			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate Resume</h2>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-					AI will create a professional resume from this view's content.
-				</p>
-			</div>
-
-			<div class="p-4 space-y-4 overflow-y-auto">
-				<div>
-					<label for="format" class="label">Format</label>
-					<select id="format" bind:value={generationConfig.format} class="input">
-						<option value="pdf">PDF</option>
-						<option value="docx">Word Document (DOCX)</option>
-					</select>
-				</div>
-
-				<div>
-					<label for="target_role" class="label">Target Role (optional)</label>
-					<input
-						type="text"
-						id="target_role"
-						bind:value={generationConfig.target_role}
-						class="input"
-						placeholder="e.g., Senior Software Engineer at FAANG"
-					/>
-					<p class="text-xs text-gray-500 mt-1">AI will tailor content for this role</p>
-				</div>
-
-				<div>
-					<label for="style" class="label">Resume Style</label>
-					<select id="style" bind:value={generationConfig.style} class="input">
-						<option value="chronological">Chronological (most common)</option>
-						<option value="functional">Functional (skills-focused)</option>
-						<option value="hybrid">Hybrid (combination)</option>
-					</select>
-				</div>
-
-				<div>
-					<label for="length" class="label">Length</label>
-					<select id="length" bind:value={generationConfig.length} class="input">
-						<option value="one-page">One Page</option>
-						<option value="two-page">Two Pages</option>
-						<option value="full">Full (no limit)</option>
-					</select>
-				</div>
-
-				{#if exports.length > 0}
-					<div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-						<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Previous Exports</h3>
-						<div class="space-y-2 max-h-32 overflow-y-auto">
-							{#each exports as exp}
-								<div class="flex items-center justify-between text-sm bg-gray-50 dark:bg-gray-700/50 rounded p-2">
-									<div class="flex items-center gap-2">
-										<span class="uppercase text-xs font-medium px-1.5 py-0.5 rounded {exp.format === 'pdf' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}">
-											{exp.format}
-										</span>
-										<span class="text-gray-500 dark:text-gray-400">
-											{new Date(exp.generated_at).toLocaleDateString()}
-										</span>
-									</div>
-									<div class="flex items-center gap-2">
-										{#if exp.download_url}
-											<a
-												href={exp.download_url}
-												class="text-primary-600 hover:text-primary-700 dark:text-primary-400"
-												download
-											>
-												Download
-											</a>
-										{/if}
-										<button
-											type="button"
-											class="text-red-500 hover:text-red-700"
-											onclick={() => deleteExport(exp.id)}
-										>
-											Delete
-										</button>
-									</div>
-								</div>
-							{/each}
-						</div>
-					</div>
-				{/if}
-			</div>
-
-			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-				<button type="button" class="btn btn-ghost" onclick={() => showGenerateModal = false}>
-					Cancel
-				</button>
-				<button
-					type="button"
-					class="btn btn-primary"
-					onclick={generateResume}
-					disabled={generating}
-				>
-					{#if generating}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-						Generating...
-					{:else}
-						Generate
-					{/if}
-				</button>
-			</div>
-		</div>
-	</div>
+	<ViewResumeGenerator
+		{slug}
+		authToken={pb.authStore.token || ''}
+		{exports}
+		onGenerate={handleResumeGenerate}
+		onDeleteExport={deleteExport}
+		onClose={() => showGenerateModal = false}
+	/>
 {/if}
 
 <style>
