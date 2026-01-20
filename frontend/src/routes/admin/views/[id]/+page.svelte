@@ -33,6 +33,7 @@
 
 	let loading = $state(true);
 	let saving = $state(false);
+	let deleting = $state(false);
 	let view: View | null = $state(null);
 
 	// Profile data for preview and showing overrides
@@ -309,6 +310,27 @@
 			}
 		} catch (err) {
 			toasts.add('error', 'Failed to delete export');
+		}
+	}
+
+	async function deleteView() {
+		if (!viewId || deleting) return;
+		const confirmed = await confirm({
+			title: 'Delete Facet',
+			message: `Are you sure you want to delete "${name || 'this facet'}"? This will also delete all associated share tokens and exports. This action cannot be undone.`,
+			confirmText: 'Delete',
+			danger: true
+		});
+		if (!confirmed) return;
+		deleting = true;
+		try {
+			await collection('views').delete(viewId);
+			toasts.add('success', 'Facet deleted');
+			goto('/admin/views');
+		} catch (err) {
+			console.error('Failed to delete view:', err);
+			toasts.add('error', 'Failed to delete facet');
+			deleting = false;
 		}
 	}
 
@@ -1781,6 +1803,31 @@
 			</div>
 
 		</form>
+
+			<!-- Danger Zone -->
+			<div class="card mt-6 border-red-200 dark:border-red-900">
+				<div class="p-4 border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20">
+					<h2 class="text-lg font-semibold text-red-700 dark:text-red-400">Danger Zone</h2>
+				</div>
+				<div class="p-4">
+					<div class="flex items-center justify-between">
+						<div>
+							<h3 class="font-medium text-gray-900 dark:text-white">Delete this facet</h3>
+							<p class="text-sm text-gray-500 dark:text-gray-400">
+								Permanently delete this facet and all associated share tokens and exports.
+							</p>
+						</div>
+						<button
+							type="button"
+							class="btn bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+							onclick={deleteView}
+							disabled={deleting}
+						>
+							{deleting ? 'Deleting...' : 'Delete Facet'}
+						</button>
+					</div>
+				</div>
+			</div>
 			</div>
 
 			<!-- Preview Pane -->
