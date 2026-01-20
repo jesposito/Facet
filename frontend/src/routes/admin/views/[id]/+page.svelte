@@ -141,6 +141,8 @@
 			checkAIPrintStatus(),
 			loadViewTokens()
 		]);
+		// Apply saved item order after both sections and sectionItems are loaded
+		applySavedItemOrder();
 		// Load exports after view is loaded (needs slug)
 		await loadExports();
 	});
@@ -156,7 +158,10 @@
 				loadView(),
 				loadSectionItems(),
 				loadViewTokens()
-			]).finally(() => {
+			]).then(() => {
+				// Apply saved item order after both sections and sectionItems are loaded
+				applySavedItemOrder();
+			}).finally(() => {
 				loading = false;
 			});
 		}
@@ -864,6 +869,36 @@
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
 	}
+
+	// Apply saved item order to sectionItems after loading
+	// Selected items appear first (in saved order), then unselected items (in original order)
+	function applySavedItemOrder() {
+		for (const key of Object.keys(sections)) {
+			const savedOrder = sections[key]?.items || [];
+			const allItems = sectionItems[key] || [];
+
+			// Skip if no saved order or no items
+			if (savedOrder.length === 0 || allItems.length === 0) continue;
+
+			// Create a map for quick lookup
+			const itemMap = new Map(allItems.map(item => [item.id, item]));
+
+			// Build reordered array: selected items first (in saved order), then unselected
+			const selectedItems: typeof allItems = [];
+			for (const id of savedOrder) {
+				const item = itemMap.get(id);
+				if (item) {
+					selectedItems.push(item);
+				}
+			}
+
+			const selectedSet = new Set(savedOrder);
+			const unselectedItems = allItems.filter(item => !selectedSet.has(item.id));
+
+			sectionItems[key] = [...selectedItems, ...unselectedItems];
+		}
+	}
+
 	let viewId = $derived($page.params.id as string);
 </script>
 
@@ -1659,7 +1694,11 @@
 														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 													</svg>
 												</div>
-												<label class="flex items-center gap-2 flex-1 cursor-pointer">
+												<label
+													class="flex items-center gap-2 flex-1 cursor-pointer"
+													onpointerdown={(e) => e.stopPropagation()}
+													onmousedown={(e) => e.stopPropagation()}
+												>
 													<input
 														type="checkbox"
 														checked={isSelected}

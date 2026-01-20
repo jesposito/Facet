@@ -907,7 +907,11 @@
 														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 													</svg>
 												</div>
-												<label class="flex items-center gap-2 flex-1 cursor-pointer">
+												<label
+													class="flex items-center gap-2 flex-1 cursor-pointer"
+													onpointerdown={(e) => e.stopPropagation()}
+													onmousedown={(e) => e.stopPropagation()}
+												>
 													<input
 														type="checkbox"
 														checked={isSelected}
