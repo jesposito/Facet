@@ -324,6 +324,15 @@
 		if (!confirmed) return;
 		deleting = true;
 		try {
+			// Delete related share tokens first (PocketBase requires this for relation constraints)
+			const tokensToDelete = await pb.collection('share_tokens').getFullList({
+				filter: `view_id = "${viewId}"`
+			});
+			for (const token of tokensToDelete) {
+				await pb.collection('share_tokens').delete(token.id);
+			}
+
+			// Now delete the view
 			await collection('views').delete(viewId);
 			toasts.add('success', 'Facet deleted');
 			goto('/admin/views');
@@ -412,6 +421,58 @@
 			await loadViewTokens();
 		} catch (err) {
 			toasts.add('error', 'Failed to revoke share link');
+		}
+	}
+
+	async function regenerateViewToken(token: ShareToken) {
+		const confirmed = await confirm({
+			title: 'Regenerate Share Link',
+			message: `This will revoke the existing link "${token.name || 'Unnamed'}" and create a new one. Anyone using the old link will no longer have access. Continue?`,
+			confirmText: 'Regenerate',
+			danger: false
+		});
+		if (!confirmed) return;
+
+		try {
+			// First revoke the old token
+			const revokeResponse = await fetch(`/api/share/revoke/${token.id}`, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${pb.authStore.token}`
+				}
+			});
+
+			if (!revokeResponse.ok) {
+				throw new Error('Failed to revoke old token');
+			}
+
+			// Then create a new token with the same settings
+			const response = await fetch('/api/share/generate', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pb.authStore.token}`
+				},
+				body: JSON.stringify({
+					view_id: viewId,
+					name: token.name || undefined,
+					expires_at: token.expires_at || undefined,
+					max_uses: token.max_uses || 0
+				})
+			});
+
+			if (!response.ok) {
+				const data = await response.json();
+				throw new Error(data.error || 'Failed to create new token');
+			}
+
+			const data = await response.json();
+			createdTokenUrl = `${window.location.origin}/s/${data.token}`;
+
+			toasts.add('success', 'Share link regenerated! Copy the new link now.');
+			await loadViewTokens();
+		} catch (err) {
+			toasts.add('error', err instanceof Error ? err.message : 'Failed to regenerate share link');
 		}
 	}
 
@@ -1250,6 +1311,14 @@
 												{#if token.is_active && !isTokenExpired(token) && !isTokenMaxUsesReached(token)}
 													<button
 														type="button"
+														class="p-1 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+														onclick={() => regenerateViewToken(token)}
+														title="Regenerate link (revokes old, creates new)"
+													>
+														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+													</button>
+													<button
+														type="button"
 														class="p-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
 														onclick={() => revokeViewToken(token.id)}
 														title="Revoke link"
@@ -1733,18 +1802,20 @@
 											{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
 											{@const overrideCount = getOverrideCount(sectionKey, item.id)}
 											{@const canOverride = OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
-								<div
+									<div
 										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
 										animate:flip={{ duration: flipDurationMs }}
 									>
 										<div 
 											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" 
 											title="Drag to reorder"
+											role="presentation"
 										>
 											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 											</svg>
 										</div>
+										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 										<label
 											class="flex items-center gap-2 flex-1 cursor-pointer"
 											onpointerdown={(e) => e.stopPropagation()}
