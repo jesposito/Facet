@@ -882,7 +882,6 @@
 
 	// Drag-drop handlers for item reordering within a section
 	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
-		// Only update visual state during consider - don't commit selection changes
 		sectionItems[sectionKey] = e.detail.items;
 		updateSectionItems();
 	}
