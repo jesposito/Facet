@@ -230,12 +230,13 @@
 
 	// Drag-drop handlers for item reordering within a section
 	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }> }>) {
+		// Only update visual state during consider - don't commit selection changes
 		sectionItems[sectionKey] = e.detail.items;
-		updateItemsOrderFromDisplay(sectionKey);
 	}
 
 	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }> }>) {
 		sectionItems[sectionKey] = e.detail.items;
+		// Only commit order changes on finalize (drag complete)
 		updateItemsOrderFromDisplay(sectionKey);
 	}
 
@@ -902,7 +903,11 @@
 												animate:flip={{ duration: flipDurationMs }}
 											>
 												<!-- Drag Handle for Items -->
-												<div class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+												<div 
+													class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700" 
+													title="Drag to reorder"
+													onclick={(e) => e.stopPropagation()}
+												>
 													<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 													</svg>
