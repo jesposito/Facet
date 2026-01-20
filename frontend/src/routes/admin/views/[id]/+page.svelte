@@ -324,6 +324,15 @@
 		if (!confirmed) return;
 		deleting = true;
 		try {
+			// Delete related share tokens first (PocketBase requires this for relation constraints)
+			const tokensToDelete = await pb.collection('share_tokens').getFullList({
+				filter: `view_id = "${viewId}"`
+			});
+			for (const token of tokensToDelete) {
+				await pb.collection('share_tokens').delete(token.id);
+			}
+
+			// Now delete the view
 			await collection('views').delete(viewId);
 			toasts.add('success', 'Facet deleted');
 			goto('/admin/views');
