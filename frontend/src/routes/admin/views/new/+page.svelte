@@ -11,6 +11,7 @@
 	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 	import ViewPreview from '$components/admin/ViewPreview.svelte';
+	import ResumeImportModal from '$components/admin/ResumeImportModal.svelte';
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
 
 	// Default section definitions - used to initialize and provide labels
@@ -20,16 +21,19 @@
 		education: { label: 'Education', collection: 'education' },
 		certifications: { label: 'Certifications', collection: 'certifications' },
 		skills: { label: 'Skills', collection: 'skills' },
+		awards: { label: 'Awards', collection: 'awards' },
 		posts: { label: 'Posts', collection: 'posts' },
 		talks: { label: 'Talks', collection: 'talks' },
 		contacts: { label: 'Contact Methods', collection: 'contact_methods' }
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks', 'contacts'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'awards', 'posts', 'talks', 'contacts'];
 
 	let loading = $state(true);
 	let saving = $state(false);
+	let showImportModal = $state(false);
+	let hasAiProvider = $state(false);
 
 	// Profile data for preview
 	let profile: Profile | null = $state(null);
@@ -81,10 +85,23 @@
 		initializeSections();
 		await Promise.all([
 			loadSectionItems(),
-			loadProfile()
+			loadProfile(),
+			checkAiProviders()
 		]);
 		loading = false;
 	});
+
+	async function checkAiProviders() {
+		try {
+			const result = await collection('ai_providers').getList(1, 1, {
+				filter: 'is_active = true'
+			});
+			hasAiProvider = result.totalItems > 0;
+		} catch (err) {
+			console.error('Failed to check AI providers:', err);
+			hasAiProvider = false;
+		}
+	}
 
 	async function loadProfile() {
 		try {
@@ -245,6 +262,44 @@
 		const selectedSet = new Set(sections[sectionKey].items);
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
+	}
+
+	// Apply imported items to sections after resume import
+	async function applyImportedToSections(imported: Record<string, string[]>) {
+		// First, refresh section items to include the newly imported records
+		await loadSectionItems();
+
+		// Map from import response keys to section keys (they match in this case)
+		const importToSectionMap: Record<string, string> = {
+			experience: 'experience',
+			education: 'education',
+			skills: 'skills',
+			certifications: 'certifications',
+			projects: 'projects',
+			awards: 'awards',
+			talks: 'talks'
+		};
+
+		// Apply imported items to each section
+		for (const [importKey, sectionKey] of Object.entries(importToSectionMap)) {
+			const importedIds = imported[importKey];
+			if (importedIds && importedIds.length > 0 && sections[sectionKey]) {
+				// Enable the section
+				sections[sectionKey].enabled = true;
+				// Expand it so user can see selections
+				sections[sectionKey].expanded = true;
+				// Add imported IDs to items (union with existing, maintaining order)
+				const existingSet = new Set(sections[sectionKey].items);
+				for (const id of importedIds) {
+					if (!existingSet.has(id)) {
+						sections[sectionKey].items.push(id);
+					}
+				}
+			}
+		}
+
+		updateSections();
+		toasts.add('success', 'Imported items have been selected in your facet.');
 	}
 
 	// Token generation functions
@@ -420,6 +475,20 @@
 					</svg>
 					<span>{showPreview ? 'Hide' : 'Show'} Preview</span>
 				</button>
+				{#if hasAiProvider}
+					<button
+						type="button"
+						class="btn btn-secondary text-sm flex items-center gap-2"
+						onclick={() => showImportModal = true}
+						title="Import from resume"
+					>
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+						</svg>
+						<span class="hidden sm:inline">Import Resume</span>
+						<span class="sm:hidden">Import</span>
+					</button>
+				{/if}
 				<button type="button" class="btn btn-primary text-sm" onclick={handleSubmit} disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -1001,6 +1070,17 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Resume Import Modal -->
+{#if showImportModal}
+	<ResumeImportModal
+		onSuccess={(imported) => {
+			showImportModal = false;
+			applyImportedToSections(imported);
+		}}
+		onClose={() => showImportModal = false}
+	/>
+{/if}
 
 <style>
 	.view-editor-container {
