@@ -2,7 +2,7 @@
 	import { preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
 
 	const bubble = createBubbler();
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { goto, afterNavigate } from '$app/navigation';
 	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, type ShareToken, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
@@ -141,7 +141,8 @@
 			checkAIPrintStatus(),
 			loadViewTokens()
 		]);
-		// Apply saved item order after both sections and sectionItems are loaded
+		// Wait for Svelte to process reactive updates before reordering
+		await tick();
 		applySavedItemOrder();
 		// Load exports after view is loaded (needs slug)
 		await loadExports();
@@ -158,8 +159,9 @@
 				loadView(),
 				loadSectionItems(),
 				loadViewTokens()
-			]).then(() => {
-				// Apply saved item order after both sections and sectionItems are loaded
+			]).then(async () => {
+				// Wait for Svelte to process reactive updates before reordering
+				await tick();
 				applySavedItemOrder();
 			}).finally(() => {
 				loading = false;
@@ -526,6 +528,8 @@
 			// Default order
 			sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
 		}
+		// Trigger Svelte 5 reactivity
+		updateSections();
 	}
 
 	async function loadSectionItems() {
@@ -551,6 +555,7 @@
 				sectionItems[key] = [];
 			}
 		}
+		updateSectionItems();
 	}
 
 	function isEnabledForView(viewVisibility: unknown, viewId: string): boolean {
@@ -588,6 +593,11 @@
 	// Helper to trigger reactivity by creating a new object reference
 	function updateSections() {
 		sections = { ...sections };
+	}
+
+	// Helper to trigger reactivity for sectionItems
+	function updateSectionItems() {
+		sectionItems = { ...sectionItems };
 	}
 
 	function toggleSection(key: string) {
@@ -851,14 +861,19 @@
 	// Drag-drop handlers for item reordering within a section
 	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
 		sectionItems[sectionKey] = e.detail.items;
-		// Update the selected items order to match the new display order
-		updateItemsOrderFromDisplay(sectionKey);
+		updateSectionItems();
 	}
 
 	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
-		sectionItems[sectionKey] = e.detail.items;
-		// Update the selected items order to match the new display order
-		updateItemsOrderFromDisplay(sectionKey);
+		const trigger = e.detail.info?.trigger;
+		const finalItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		sectionItems[sectionKey] = finalItems;
+		updateSectionItems();
+		
+		// Only update selection order if this was an actual drag operation, not just a click
+		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
+			updateItemsOrderFromDisplay(sectionKey);
+		}
 	}
 
 	// Update section.items to preserve order based on current display order
@@ -873,6 +888,7 @@
 	// Apply saved item order to sectionItems after loading
 	// Selected items appear first (in saved order), then unselected items (in original order)
 	function applySavedItemOrder() {
+		let didUpdate = false;
 		for (const key of Object.keys(sections)) {
 			const savedOrder = sections[key]?.items || [];
 			const allItems = sectionItems[key] || [];
@@ -896,6 +912,11 @@
 			const unselectedItems = allItems.filter(item => !selectedSet.has(item.id));
 
 			sectionItems[key] = [...selectedItems, ...unselectedItems];
+			didUpdate = true;
+		}
+		// Trigger Svelte 5 reactivity with full object reassignment
+		if (didUpdate) {
+			updateSectionItems();
 		}
 	}
 
@@ -1675,7 +1696,13 @@
 
 									<div
 										class="space-y-1 max-h-64 overflow-y-auto"
-										use:dndzone={{ items: sectionItems[sectionKey] || [], flipDurationMs, type: `items-${sectionKey}` }}
+										use:dndzone={{ 
+											items: sectionItems[sectionKey] || [], 
+											flipDurationMs, 
+											type: `items-${sectionKey}`,
+											dragDisabled: false,
+											dropFromOthersDisabled: true
+										}}
 										onconsider={(e) => handleItemDndConsider(sectionKey, e)}
 										onfinalize={(e) => handleItemDndFinalize(sectionKey, e)}
 									>
@@ -1684,27 +1711,31 @@
 											{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
 											{@const overrideCount = getOverrideCount(sectionKey, item.id)}
 											{@const canOverride = OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
-											<div
-												class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
-												animate:flip={{ duration: flipDurationMs }}
-											>
-												<!-- Drag Handle for Items -->
-												<div class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
-													<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-													</svg>
-												</div>
-												<label
-													class="flex items-center gap-2 flex-1 cursor-pointer"
-													onpointerdown={(e) => e.stopPropagation()}
-													onmousedown={(e) => e.stopPropagation()}
-												>
-													<input
-														type="checkbox"
-														checked={isSelected}
-														onchange={() => toggleItem(sectionKey, item.id)}
-														class="w-4 h-4 text-primary-600 rounded border-gray-300"
-													/>
+								<div
+										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+										animate:flip={{ duration: flipDurationMs }}
+									>
+										<div 
+											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" 
+											title="Drag to reorder"
+										>
+											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+											</svg>
+										</div>
+										<label
+											class="flex items-center gap-2 flex-1 cursor-pointer"
+											onpointerdown={(e) => e.stopPropagation()}
+											onmousedown={(e) => e.stopPropagation()}
+											ontouchstart={(e) => e.stopPropagation()}
+										>
+											<input
+												type="checkbox"
+												checked={isSelected}
+												onchange={() => toggleItem(sectionKey, item.id)}
+												onclick={(e) => e.stopPropagation()}
+												class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											/>
 													<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
 														{item.label}
 													</span>
