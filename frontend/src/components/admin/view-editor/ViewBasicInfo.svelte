@@ -45,7 +45,6 @@
 	}
 </script>
 
-<div class="card p-4 sm:p-6 space-y-4">
 	<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
 
 	<div>
@@ -118,4 +117,3 @@
 			</p>
 		</div>
 	{/if}
-</div>
