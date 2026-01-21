@@ -226,16 +226,4 @@ Default password: changeme123 (you will be prompted to change it on first login)
     Required="false"
     Mask="false">llama3.2</Config>
 
-  <!-- Admin UI (Advanced) -->
-  <Config
-    Name="Admin UI (Advanced)"
-    Target="ADMIN_ENABLED"
-    Default="false"
-    Mode=""
-    Description="Enables the PocketBase admin UI at /_/ for troubleshooting. Leave disabled unless needed."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false">false</Config>
-
 </Container>
