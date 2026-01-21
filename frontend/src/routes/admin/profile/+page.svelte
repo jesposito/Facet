@@ -200,7 +200,7 @@
 <div class="max-w-3xl mx-auto">
 	<PageHelp pageKey="profile">
 		<p><strong>Profile</strong> is your core identity - name, headline, summary, and photos.</p>
-		<p>This info appears on your homepage and can be overridden per-facet. Want a different headline for recruiters vs. conference attendees? Create facets with custom hero sections.</p>
+		<p>This info appears on your homepage, along with <strong>all content items marked as "public"</strong> (experience, projects, posts, talks, etc.). Use facets to create curated views with only the items you choose.</p>
 		<p><strong>Tip:</strong> Keep your default headline broad. Use facet overrides for audience-specific messaging.</p>
 	</PageHelp>
 
