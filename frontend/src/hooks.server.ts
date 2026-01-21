@@ -12,6 +12,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const response = await resolve(event);
 
+	// Strip oversized Link headers from HTML responses to prevent proxy failures.
+	// Only for HTML - API endpoints may use Link for pagination (rel="next").
+	// See: https://github.com/sveltejs/kit/issues/6819
+	const contentType = response.headers.get('content-type') || '';
+	if (contentType.includes('text/html')) {
+		response.headers.delete('link');
+	}
+
 	const isProd = process.env.NODE_ENV === 'production';
 	const exportedCookie = event.locals.pb.authStore.exportToCookie({
 		httpOnly: false,

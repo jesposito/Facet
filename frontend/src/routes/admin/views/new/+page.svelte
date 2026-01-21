@@ -4,15 +4,26 @@
 	const bubble = createBubbler();
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
-	import { dndzone } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 	import ViewPreview from '$components/admin/ViewPreview.svelte';
 	import ResumeImportModal from '$components/admin/ResumeImportModal.svelte';
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
+
+	// Import DnD safely - only in browser
+	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+
+	// Load DnD functionality when in browser
+	onMount(async () => {
+		if (browser) {
+			const { dndzone: dnd } = await import('svelte-dnd-action');
+			dndzone = dnd;
+		}
+	});
 
 	// Default section definitions - used to initialize and provide labels
 	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
@@ -962,8 +973,8 @@
 									<div
 										class="space-y-1 max-h-48 overflow-y-auto"
 										use:dndzone={{ items: sectionItems[sectionKey] || [], flipDurationMs, type: `items-${sectionKey}` }}
-										onconsider={(e) => handleItemDndConsider(sectionKey, e)}
-										onfinalize={(e) => handleItemDndFinalize(sectionKey, e)}
+										onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+										onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 									>
 										{#each items as item (item.id)}
 											{@const isSelected = sectionConfig.items.includes(item.id)}
