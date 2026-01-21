@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
-	import { dndzone, TRIGGERS, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
+	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { icon } from '$lib/icons';
 	import { 
@@ -13,6 +14,21 @@
 		type SectionWidth,
 		type ItemConfig
 	} from '$lib/pocketbase';
+
+	// Import DnD safely - only in browser
+	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+	let TRIGGERS: any = $state({});
+	let SHADOW_PLACEHOLDER_ITEM_ID: string = $state('');
+
+	// Load DnD functionality when in browser
+	onMount(async () => {
+		if (browser) {
+			const { dndzone: dnd, TRIGGERS: trig, SHADOW_PLACEHOLDER_ITEM_ID: shadow } = await import('svelte-dnd-action');
+			dndzone = dnd;
+			TRIGGERS = trig;
+			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
+		}
+	});
 
 	const bubble = createBubbler();
 
@@ -387,8 +403,8 @@
 								dragDisabled: false,
 								dropFromOthersDisabled: true
 							}}
-							onconsider={(e) => handleItemDndConsider(sectionKey, e)}
-							onfinalize={(e) => handleItemDndFinalize(sectionKey, e)}
+							onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+							onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 						>
 							{#each items as item (item.id)}
 								{@const isSelected = sectionConfig.items.includes(item.id)}
