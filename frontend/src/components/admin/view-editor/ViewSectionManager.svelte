@@ -27,8 +27,47 @@
 			dndzone = dnd;
 			TRIGGERS = trig;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
+			
+			// Apply saved item order after dndzone is loaded
+			// This ensures selected items appear at top in saved order
+			applySavedItemOrder();
 		}
 	});
+
+	// Apply saved item order to sectionItems
+	// Selected items appear first (in saved order), then unselected items (in original order)
+	function applySavedItemOrder() {
+		let didUpdate = false;
+		for (const key of Object.keys(sections)) {
+			const savedOrder = sections[key]?.items || [];
+			const allItems = sectionItems[key] || [];
+
+			// Skip if no saved order or no items
+			if (savedOrder.length === 0 || allItems.length === 0) continue;
+
+			// Create a map for quick lookup
+			const itemMap = new Map(allItems.map(item => [item.id, item]));
+
+			// Build reordered array: selected items first (in saved order), then unselected
+			const selectedItems: typeof allItems = [];
+			for (const id of savedOrder) {
+				const item = itemMap.get(id);
+				if (item) {
+					selectedItems.push(item);
+				}
+			}
+
+			const selectedSet = new Set(savedOrder);
+			const unselectedItems = allItems.filter(item => !selectedSet.has(item.id));
+
+			sectionItems[key] = [...selectedItems, ...unselectedItems];
+			didUpdate = true;
+		}
+		// Trigger Svelte 5 reactivity with full object reassignment
+		if (didUpdate) {
+			updateSectionItems();
+		}
+	}
 
 	const bubble = createBubbler();
 
