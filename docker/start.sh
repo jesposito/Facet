@@ -149,8 +149,22 @@ echo ""
 echo "  Web UI: http://localhost:8080"
 echo "  Admin:  http://localhost:8080/admin"
 echo ""
+
+# Determine admin email (mirrors logic in seed.go getSeedAdminEmail)
+# Priority: 1) First email from ADMIN_EMAILS, 2) DEV_ADMIN_EMAIL, 3) admin@example.com
+ADMIN_LOGIN_EMAIL="admin@example.com"
+if [ -n "$ADMIN_EMAILS" ]; then
+    # Get first email from comma-separated list, trim whitespace
+    FIRST_EMAIL=$(echo "$ADMIN_EMAILS" | cut -d',' -f1 | xargs)
+    if [ -n "$FIRST_EMAIL" ]; then
+        ADMIN_LOGIN_EMAIL="$FIRST_EMAIL"
+    fi
+elif [ -n "$DEV_ADMIN_EMAIL" ]; then
+    ADMIN_LOGIN_EMAIL="$DEV_ADMIN_EMAIL"
+fi
+
 echo "  Default login:"
-echo "    Email:    admin@example.com"
+echo "    Email:    $ADMIN_LOGIN_EMAIL"
 echo "    Password: changeme123"
 echo ""
 if [ "$ADMIN_ENABLED" = "true" ]; then
