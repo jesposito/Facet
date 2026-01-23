@@ -254,7 +254,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			// Indicate this is legacy homepage mode
 			view: null,
 			isDefaultView: false,
-			hideLoginButton: false
+			hideLoginButton: data.hide_login_button || false
 		};
 		console.log('[ROOT PAGE] Returning LEGACY homepage data:');
 		console.log('[ROOT PAGE]   isDefaultView:', result.isDefaultView);
