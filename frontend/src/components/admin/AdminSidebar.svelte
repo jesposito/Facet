@@ -185,13 +185,13 @@ let isActive = $derived((href: string): boolean => {
 				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/homepage')
 					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-				title={!$adminSidebarOpen ? 'Profile' : undefined}
+				title={!$adminSidebarOpen ? 'Homepage' : undefined}
 				aria-current={isActive('/admin/homepage') ? 'page' : undefined}
 			>
 				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
 				</svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>Profile</span>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>Homepage</span>
 			</a>
 		</div>
 
