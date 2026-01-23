@@ -3,7 +3,7 @@
 </script>
 
 <button
-	class="btn btn-ghost p-2 rounded-full"
+	class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 	onclick={() => theme.toggle()}
 	aria-label={$theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
 >

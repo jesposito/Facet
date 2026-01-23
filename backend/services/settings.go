@@ -13,6 +13,8 @@ type SiteSettings struct {
 	LandingPageMessage string
 	CustomCSS          string
 	GAMeasurementID    string
+	HideLoginButton    bool
+	HideDemoToggle     bool
 	Record             *core.Record
 }
 
@@ -58,6 +60,8 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		LandingPageMessage: record.GetString("landing_page_message"),
 		CustomCSS:          record.GetString("custom_css"),
 		GAMeasurementID:    record.GetString("ga_measurement_id"),
+		HideLoginButton:    record.GetBool("hide_login_button"),
+		HideDemoToggle:     record.GetBool("hide_demo_toggle"),
 		Record:             record,
 	}, nil
 }
@@ -91,6 +95,20 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("ga_measurement_id", ga)
 		} else if logger != nil {
 			logger.Warn("ga_measurement_id field missing on site_settings, skipping update")
+		}
+	}
+	if hide, ok := updates["hide_login_button"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("hide_login_button") != nil {
+			settings.Record.Set("hide_login_button", hide)
+		} else if logger != nil {
+			logger.Warn("hide_login_button field missing on site_settings, skipping update")
+		}
+	}
+	if hide, ok := updates["hide_demo_toggle"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("hide_demo_toggle") != nil {
+			settings.Record.Set("hide_demo_toggle", hide)
+		} else if logger != nil {
+			logger.Warn("hide_demo_toggle field missing on site_settings, skipping update")
 		}
 	}
 
