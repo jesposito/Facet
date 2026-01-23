@@ -277,7 +277,8 @@
 		</div>
 
 		<!-- Login button - for demo users, auto-logout and go to login page -->
-		{#if !data.hideLoginButton}
+		<!-- Always show on first-time screen, even if hide setting is enabled -->
+		{#if !data.hideLoginButton || (!data.profile?.name && data.experience.length === 0 && data.projects.length === 0)}
 			{#if $currentUser}
 				<button
 					onclick={handleLogout}
