@@ -556,6 +556,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"fallback":             "homepage",
 					"homepage_enabled":     false,
 					"landing_page_message": settings.LandingPageMessage,
+					"hide_login_button":    settings.HideLoginButton,
 				})
 			}
 
@@ -597,6 +598,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"name":                 view.GetString("name"),
 				"homepage_enabled":     true,
 				"landing_page_message": settings.LandingPageMessage,
+				"hide_login_button":    settings.HideLoginButton,
 			})
 		}))
 

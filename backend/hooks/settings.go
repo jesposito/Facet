@@ -17,16 +17,18 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 		// Public: fetch site settings (sanitized)
 		se.Router.GET("/api/site-settings", func(e *core.RequestEvent) error {
 			settings, err := services.LoadSiteSettings(app)
-		if err != nil {
-			app.Logger().Error("Failed to load site settings", "error", err)
-			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load site settings"})
-		}
+			if err != nil {
+				app.Logger().Error("Failed to load site settings", "error", err)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load site settings"})
+			}
 
 			return e.JSON(http.StatusOK, map[string]any{
 				"homepage_enabled":     settings.HomepageEnabled,
 				"landing_page_message": settings.LandingPageMessage,
 				"custom_css":           settings.CustomCSS,
 				"ga_measurement_id":    settings.GAMeasurementID,
+				"hide_login_button":    settings.HideLoginButton,
+				"hide_demo_toggle":     settings.HideDemoToggle,
 			})
 		})
 
@@ -41,6 +43,8 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				LandingPageMessage string `json:"landing_page_message"`
 				CustomCSS          string `json:"custom_css"`
 				GAMeasurementID    string `json:"ga_measurement_id"`
+				HideLoginButton    *bool  `json:"hide_login_button"`
+				HideDemoToggle     *bool  `json:"hide_demo_toggle"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -73,6 +77,12 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				}
 				updates["ga_measurement_id"] = id
 			}
+			if req.HideLoginButton != nil {
+				updates["hide_login_button"] = *req.HideLoginButton
+			}
+			if req.HideDemoToggle != nil {
+				updates["hide_demo_toggle"] = *req.HideDemoToggle
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -84,6 +94,8 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"landing_page_message": settings.LandingPageMessage,
 				"custom_css":           settings.CustomCSS,
 				"ga_measurement_id":    settings.GAMeasurementID,
+				"hide_login_button":    settings.HideLoginButton,
+				"hide_demo_toggle":     settings.HideDemoToggle,
 			})
 		})
 

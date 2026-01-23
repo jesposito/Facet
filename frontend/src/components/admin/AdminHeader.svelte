@@ -9,19 +9,30 @@
 	let demoMode = $state(false);
 	let toggleLoading = $state(false);
 	let showDemoAnimation = $state(false);
+	let hideDemoToggle = $state(false);
 
 	// Subscribe to demo mode store
 	demoModeStore.subscribe(value => {
 		demoMode = value;
 	});
 
-	onMount(() => {
-		// Always show animation for now (TODO: add first-time detection later)
-		showDemoAnimation = true;
-		// Auto-dismiss after 10 seconds
-		setTimeout(() => {
-			showDemoAnimation = false;
-		}, 10000);
+	onMount(async () => {
+		try {
+			const response = await fetch('/api/site-settings');
+			if (response.ok) {
+				const data = await response.json();
+				hideDemoToggle = data.hide_demo_toggle || false;
+			}
+		} catch (err) {
+			console.warn('Failed to load site settings for demo toggle visibility:', err);
+		}
+
+		if (!hideDemoToggle) {
+			showDemoAnimation = true;
+			setTimeout(() => {
+				showDemoAnimation = false;
+			}, 10000);
+		}
 	});
 
 	function dismissDemoAnimation() {
@@ -134,37 +145,38 @@
 				<span class="hidden sm:inline">View Site</span>
 			</a>
 
-			<!-- Demo Mode Toggle -->
-			<div class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 {showDemoAnimation ? 'ring-2 ring-primary-500 animate-pulse' : ''}">
-				<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-					Demo
-				</span>
-				<button
-					onclick={toggleDemoMode}
-					disabled={toggleLoading}
-					class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-						{demoMode ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-					role="switch"
-					aria-checked={demoMode}
-					aria-label="Toggle demo mode"
-				>
-					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-							{demoMode ? 'translate-x-5' : 'translate-x-0.5'}"
-					></span>
-				</button>
-				{#if demoMode}
-					<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
-						ON
+			{#if !hideDemoToggle}
+				<div class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 {showDemoAnimation ? 'ring-2 ring-primary-500 animate-pulse' : ''}">
+					<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
+						Demo
 					</span>
-				{/if}
-				{#if showDemoAnimation}
-					<span class="absolute -top-2 -right-2 flex h-3 w-3">
-						<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-						<span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
-					</span>
-				{/if}
-			</div>
+					<button
+						onclick={toggleDemoMode}
+						disabled={toggleLoading}
+						class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+							{demoMode ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+						role="switch"
+						aria-checked={demoMode}
+						aria-label="Toggle demo mode"
+					>
+						<span
+							class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+								{demoMode ? 'translate-x-5' : 'translate-x-0.5'}"
+						></span>
+					</button>
+					{#if demoMode}
+						<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
+							ON
+						</span>
+					{/if}
+					{#if showDemoAnimation}
+						<span class="absolute -top-2 -right-2 flex h-3 w-3">
+							<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+							<span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+						</span>
+					{/if}
+				</div>
+			{/if}
 
 			<ThemeToggle />
 

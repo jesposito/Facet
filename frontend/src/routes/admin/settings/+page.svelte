@@ -24,6 +24,7 @@
 	let siteSettingsSaving = $state(false);
 	let customCSS = $state('');
 	let gaMeasurementId = $state('');
+	let hideDemoToggle = $state(false);
 	let showCSSHelp = $state(false);
 
 	// Export state
@@ -192,6 +193,7 @@
 				const data = await response.json();
 				customCSS = data.custom_css || '';
 				gaMeasurementId = data.ga_measurement_id || '';
+				hideDemoToggle = data.hide_demo_toggle || false;
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
@@ -227,6 +229,36 @@
 		} catch (err) {
 			console.error('Failed to save site settings:', err);
 			toasts.add('error', 'Failed to save settings');
+		} finally {
+			siteSettingsSaving = false;
+		}
+	}
+
+	async function toggleHideDemoToggle() {
+		siteSettingsSaving = true;
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					hide_demo_toggle: !hideDemoToggle
+				})
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				toasts.add('error', result.error || 'Failed to update setting');
+				return;
+			}
+
+			hideDemoToggle = result.hide_demo_toggle || false;
+			toasts.add('success', hideDemoToggle ? 'Demo toggle hidden' : 'Demo toggle visible');
+		} catch (err) {
+			console.error('Failed to toggle demo setting:', err);
+			toasts.add('error', 'Failed to update setting');
 		} finally {
 			siteSettingsSaving = false;
 		}
@@ -482,6 +514,43 @@
 					{/if}
 				</button>
 			</form>
+		</div>
+	</div>
+
+	<!-- Admin UI controls -->
+	<div class="space-y-4 mb-6">
+		<div>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Admin UI</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Customize the admin interface.</p>
+		</div>
+
+		<!-- Demo Toggle -->
+		<div class="card p-6">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Demo Mode Toggle</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm">
+						Show or hide the demo toggle in the admin header. Useful once you've set up your profile.
+					</p>
+				</div>
+				<button
+					onclick={toggleHideDemoToggle}
+					disabled={siteSettingsLoading || siteSettingsSaving}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+						{hideDemoToggle ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-600'}"
+					role="switch"
+					aria-checked={!hideDemoToggle}
+					aria-label="Toggle demo mode visibility"
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+							{hideDemoToggle ? 'translate-x-1' : 'translate-x-6'}"
+					></span>
+				</button>
+			</div>
+			<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+				{hideDemoToggle ? 'Demo toggle is hidden' : 'Demo toggle is visible'}
+			</p>
 		</div>
 	</div>
 

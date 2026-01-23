@@ -32,7 +32,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				console.log('[ROOT PAGE] Homepage disabled via settings');
 				return {
 					homepageDisabled: true,
-					landingPageMessage: defaultViewInfo.landing_page_message || ''
+					landingPageMessage: defaultViewInfo.landing_page_message || '',
+					hideLoginButton: defaultViewInfo.hide_login_button || false
 				};
 			}
 
@@ -125,7 +126,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						// Indicate this is a view-based homepage
 						isDefaultView: true,
 						homepageDisabled: false,
-						landingPageMessage: defaultViewInfo.landing_page_message || ''
+						landingPageMessage: defaultViewInfo.landing_page_message || '',
+						hideLoginButton: defaultViewInfo.hide_login_button || false
 					};
 					console.log('[ROOT PAGE] Returning DEFAULT VIEW data:');
 					console.log('[ROOT PAGE]   view.slug:', result.view.slug);
@@ -165,7 +167,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				error: 'Failed to load profile',
 				isDefaultView: false,
 				homepageDisabled: false,
-				landingPageMessage: ''
+				landingPageMessage: '',
+				hideLoginButton: false
 			};
 		}
 
@@ -174,6 +177,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			return {
 				homepageDisabled: true,
 				landingPageMessage: data.landing_page_message || '',
+				hideLoginButton: data.hide_login_button || false,
 				profile: null,
 				experience: [],
 				projects: [],
@@ -213,7 +217,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				talks: [],
 				view: null,
 				error: 'Profile is private',
-				isDefaultView: false
+				isDefaultView: false,
+				hideLoginButton: false
 			};
 		}
 
@@ -248,7 +253,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			talks: data.talks || [],
 			// Indicate this is legacy homepage mode
 			view: null,
-			isDefaultView: false
+			isDefaultView: false,
+			hideLoginButton: false
 		};
 		console.log('[ROOT PAGE] Returning LEGACY homepage data:');
 		console.log('[ROOT PAGE]   isDefaultView:', result.isDefaultView);
@@ -273,7 +279,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			talks: [],
 			view: null,
 			error: 'Failed to load profile',
-			isDefaultView: false
+			isDefaultView: false,
+			hideLoginButton: false
 		};
 	}
 };

@@ -14,6 +14,7 @@
 	let settingsSaving = $state(false);
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
+	let hideLoginButton = $state(false);
 
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
@@ -50,6 +51,7 @@
 				const data = await response.json();
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
+				hideLoginButton = data.hide_login_button === true;
 			}
 		} catch (err) {
 			console.error('Failed to load settings:', err);
@@ -69,7 +71,8 @@
 				},
 				body: JSON.stringify({
 					homepage_enabled: homepageEnabled,
-					landing_page_message: landingPageMessage
+					landing_page_message: landingPageMessage,
+					hide_login_button: hideLoginButton
 				})
 			});
 
@@ -81,7 +84,8 @@
 
 			homepageEnabled = result.homepage_enabled !== false;
 			landingPageMessage = result.landing_page_message || '';
-			toasts.add('success', 'Homepage visibility saved');
+			hideLoginButton = result.hide_login_button === true;
+			toasts.add('success', 'Homepage settings saved');
 		} catch (err) {
 			console.error('Failed to save settings:', err);
 			toasts.add('error', 'Failed to save homepage settings');
@@ -307,6 +311,34 @@
 				<p class="text-xs text-gray-500 mt-1">{landingPageMessage.length}/2000 characters</p>
 			</div>
 		{/if}
+
+		<!-- Hide Login Button Setting -->
+		<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+			<div class="flex items-start justify-between gap-4">
+				<div class="flex-1">
+					<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">
+						Hide Login Button
+					</h3>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						{#if hideLoginButton}
+							The login button is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span> from public visitors.
+							You can still access <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">/admin/login</code> directly.
+						{:else}
+							The login button is <span class="font-medium text-green-600 dark:text-green-400">visible</span> on your homepage.
+						{/if}
+					</p>
+				</div>
+				<label class="relative inline-flex items-center cursor-pointer">
+					<input
+						type="checkbox"
+						class="sr-only peer"
+						bind:checked={hideLoginButton}
+						disabled={settingsSaving || settingsLoading}
+					/>
+					<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+				</label>
+			</div>
+		</div>
 
 		<div class="flex justify-end mt-4">
 			<button

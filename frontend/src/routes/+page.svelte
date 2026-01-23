@@ -277,24 +277,26 @@
 		</div>
 
 		<!-- Login button - for demo users, auto-logout and go to login page -->
-		{#if $currentUser}
-			<button
-				onclick={handleLogout}
-				class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
-				title="Log in to your account"
-				aria-label="Log in to your account"
-			>
-				Log In
-			</button>
-		{:else}
-			<a
-				href="/admin/login"
-				class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
-				title="Log in"
-				aria-label="Log in"
-			>
-				Log In
-			</a>
+		{#if !data.hideLoginButton}
+			{#if $currentUser}
+				<button
+					onclick={handleLogout}
+					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+					title="Log in to your account"
+					aria-label="Log in to your account"
+				>
+					Log In
+				</button>
+			{:else}
+				<a
+					href="/admin/login"
+					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+					title="Log in"
+					aria-label="Log in"
+				>
+					Log In
+				</a>
+			{/if}
 		{/if}
 
 		<ThemeToggle />
