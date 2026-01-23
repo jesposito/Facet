@@ -556,6 +556,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"fallback":             "homepage",
 					"homepage_enabled":     false,
 					"landing_page_message": settings.LandingPageMessage,
+					"hide_login_button":    settings.HideLoginButton,
 				})
 			}
 
@@ -597,6 +598,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"name":                 view.GetString("name"),
 				"homepage_enabled":     true,
 				"landing_page_message": settings.LandingPageMessage,
+				"hide_login_button":    settings.HideLoginButton,
 			})
 		}))
 
@@ -627,6 +629,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if settings != nil && !settings.HomepageEnabled {
 				response["homepage_enabled"] = false
 				response["landing_page_message"] = settings.LandingPageMessage
+				response["hide_login_button"] = settings.HideLoginButton
 				return e.JSON(http.StatusOK, response)
 			}
 
@@ -794,6 +797,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			)
 			if err == nil {
 				response["awards"] = serializeRecords(awardRecords)
+			}
+
+			// Include site settings in response
+			if settings != nil {
+				response["hide_login_button"] = settings.HideLoginButton
 			}
 
 			return e.JSON(http.StatusOK, response)

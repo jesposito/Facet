@@ -307,3 +307,49 @@ export async function confirm(options: ConfirmOptions | string): Promise<boolean
 	}
 	return confirmDialog.confirm(options);
 }
+
+// Site settings store
+export interface SiteSettings {
+	hideDemoToggle: boolean;
+	hideLoginButton: boolean;
+	customCSS: string;
+	gaMeasurementId: string;
+}
+
+function createSiteSettingsStore() {
+	const { subscribe, set, update } = writable<SiteSettings>({
+		hideDemoToggle: false,
+		hideLoginButton: false,
+		customCSS: '',
+		gaMeasurementId: ''
+	});
+
+	return {
+		subscribe,
+		loadSettings: async () => {
+			if (typeof window === 'undefined') return;
+			try {
+				const response = await fetch('/api/site-settings');
+				if (response.ok) {
+					const data = await response.json();
+					set({
+						hideDemoToggle: data.hide_demo_toggle || false,
+						hideLoginButton: data.hide_login_button || false,
+						customCSS: data.custom_css || '',
+						gaMeasurementId: data.ga_measurement_id || ''
+					});
+				}
+			} catch (err) {
+				console.warn('Failed to load site settings:', err);
+			}
+		},
+		updateSetting: (key: keyof SiteSettings, value: any) => {
+			update((settings) => ({
+				...settings,
+				[key]: value
+			}));
+		}
+	};
+}
+
+export const siteSettings = createSiteSettingsStore();
