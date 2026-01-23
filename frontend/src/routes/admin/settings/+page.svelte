@@ -2,6 +2,7 @@
 	import { run, preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { pb, type Profile } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -256,6 +257,9 @@
 
 			hideDemoToggle = result.hide_demo_toggle || false;
 			toasts.add('success', hideDemoToggle ? 'Demo toggle hidden' : 'Demo toggle visible');
+			
+			// Invalidate all data to trigger component updates (e.g., AdminHeader)
+			await invalidateAll();
 		} catch (err) {
 			console.error('Failed to toggle demo setting:', err);
 			toasts.add('error', 'Failed to update setting');

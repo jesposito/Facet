@@ -216,10 +216,10 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				posts: [],
 				talks: [],
 				view: null,
-				error: 'Profile is private',
-				isDefaultView: false,
-				hideLoginButton: false
-			};
+			error: 'Profile is private',
+			isDefaultView: false,
+			hideLoginButton: data.hide_login_button || false
+		};
 		}
 
 		// Map API response to expected format

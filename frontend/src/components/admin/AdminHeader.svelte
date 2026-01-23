@@ -5,6 +5,7 @@
 	import { adminSidebarOpen, confirm } from '$lib/stores';
 	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import { page } from '$app/stores';
 
 	let demoMode = $state(false);
 	let toggleLoading = $state(false);
@@ -16,7 +17,7 @@
 		demoMode = value;
 	});
 
-	onMount(async () => {
+	async function loadSiteSettings() {
 		try {
 			const response = await fetch('/api/site-settings');
 			if (response.ok) {
@@ -26,6 +27,10 @@
 		} catch (err) {
 			console.warn('Failed to load site settings for demo toggle visibility:', err);
 		}
+	}
+
+	onMount(async () => {
+		await loadSiteSettings();
 
 		if (!hideDemoToggle) {
 			showDemoAnimation = true;
@@ -33,6 +38,13 @@
 				showDemoAnimation = false;
 			}, 10000);
 		}
+	});
+
+	// React to page navigation to reload settings when invalidateAll() is called
+	$effect(() => {
+		// This runs when page store changes (including invalidateAll())
+		$page;
+		loadSiteSettings();
 	});
 
 	function dismissDemoAnimation() {
