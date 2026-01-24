@@ -61,6 +61,7 @@
 	let heroLocation = $state('');
 	let ctaText = $state('');
 	let ctaUrl = $state('');
+	let ctaButtonText = $state('');
 	let isActive = $state(true);
 	let accentColor: AccentColor | null = $state(null);
 	let heroImageUrl: string | null = $state(null);
@@ -543,6 +544,7 @@
 			heroLocation = view.hero_location || '';
 			ctaText = view.cta_text || '';
 			ctaUrl = view.cta_url || '';
+			ctaButtonText = view.cta_button_text || '';
 			isActive = view.is_active;
 			accentColor = (view.accent_color as AccentColor) || null;
 
@@ -753,6 +755,7 @@
 			formData.append('hero_location', heroLocation.trim() || '');
 			formData.append('cta_text', ctaText.trim() || '');
 			formData.append('cta_url', ctaUrl.trim() || '');
+			formData.append('cta_button_text', ctaButtonText.trim() || '');
 			formData.append('is_active', String(isActive));
 			formData.append('sections', JSON.stringify(sectionsData));
 			formData.append('accent_color', accentColor || '');
@@ -1275,15 +1278,27 @@
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
 				<p class="text-sm text-gray-500 -mt-2">Add a prominent button to this view</p>
 
+				<div>
+					<label for="cta_text" class="label">Description</label>
+					<input
+						type="text"
+						id="cta_text"
+						bind:value={ctaText}
+						class="input"
+						placeholder="Ready to work together?"
+					/>
+					<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
+				</div>
+
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="cta_text" class="label">Button Text</label>
+						<label for="cta_button_text" class="label">Button Label</label>
 						<input
 							type="text"
-							id="cta_text"
-							bind:value={ctaText}
+							id="cta_button_text"
+							bind:value={ctaButtonText}
 							class="input"
-							placeholder="Download Resume"
+							placeholder="Get in touch"
 						/>
 					</div>
 					<div>

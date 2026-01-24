@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Experience } from '$lib/pocketbase';
+	import { pb, type Experience } from '$lib/pocketbase';
 	import { formatDateRange, parseMarkdown } from '$lib/utils';
 
 	interface Props {
@@ -33,9 +33,18 @@
 
 						<div class="pb-2">
 							<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-									{item.title}
-								</h3>
+								<div class="flex items-center gap-2">
+									{#if item.company_logo_url || item.company_logo}
+										<img
+											src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '24x24' })}
+											alt="{item.company} logo"
+											class="w-5 h-5 object-contain rounded"
+										/>
+									{/if}
+									<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+										{item.title}
+									</h3>
+								</div>
 								<span class="text-primary-600 dark:text-primary-400 font-medium">
 									{item.company}
 								</span>
@@ -86,9 +95,18 @@
 				<article class="py-4 first:pt-0 animate-fade-in">
 					<div class="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4">
 						<div class="flex-1 flex flex-wrap items-baseline gap-x-2">
-							<h3 class="font-semibold text-gray-900 dark:text-white">
-								{item.title}
-							</h3>
+							<div class="flex items-center gap-2">
+								{#if item.company_logo_url || item.company_logo}
+									<img
+										src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '20x20' })}
+										alt="{item.company} logo"
+										class="w-4 h-4 object-contain rounded"
+									/>
+								{/if}
+								<h3 class="font-semibold text-gray-900 dark:text-white">
+									{item.title}
+								</h3>
+							</div>
 							<span class="text-gray-500 dark:text-gray-400">at</span>
 							<span class="text-primary-600 dark:text-primary-400 font-medium">
 								{item.company}
@@ -118,6 +136,15 @@
 			{#each items as item (item.id)}
 				<article class="card p-6 animate-fade-in">
 					<div class="flex flex-col sm:flex-row sm:items-start gap-4">
+						{#if item.company_logo_url || item.company_logo}
+							<div class="flex-shrink-0">
+								<img
+									src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '48x48' })}
+									alt="{item.company} logo"
+									class="w-12 h-12 object-contain rounded border border-gray-200 dark:border-gray-600 bg-white"
+								/>
+							</div>
+						{/if}
 						<div class="flex-1">
 							<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
 								{item.title}

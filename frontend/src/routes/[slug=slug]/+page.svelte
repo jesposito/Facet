@@ -334,7 +334,7 @@
 						rel="noopener noreferrer"
 						class="btn bg-white text-primary-600 hover:bg-gray-100"
 					>
-						Learn More
+						{data.view.cta_button_text || 'Learn More'}
 					</a>
 				</div>
 			</div>

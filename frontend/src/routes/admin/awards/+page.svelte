@@ -8,7 +8,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
-	import { formatDate, truncate } from '$lib/utils';
+	import { formatDate, toDateInputValue, truncate } from '$lib/utils';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -157,7 +157,7 @@ onMount(loadAwards);
 		editingAward = award;
 		title = award.title;
 		issuer = award.issuer || '';
-		awardedAt = award.awarded_at ? award.awarded_at.split('T')[0] : '';
+		awardedAt = toDateInputValue(award.awarded_at);
 		description = award.description || '';
 		url = award.url || '';
 		visibility = award.visibility;
@@ -388,9 +388,10 @@ onMount(loadAwards);
 					<div>
 						<label for="awarded_at" class="label">Awarded on</label>
 						<input
-							type="date"
+							type="text"
 							id="awarded_at"
 							bind:value={awardedAt}
+							placeholder="2023 or 2023-11"
 							class="input"
 						/>
 					</div>
