@@ -29,6 +29,7 @@
 	let loading = $state(true);
 	let statusFilter = $state('all');
 	let actionLoading = $state<string | null>(null);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	const statusOptions = [
 		{ value: 'all', label: 'All' },
@@ -46,8 +47,14 @@
 			if (statusFilter !== 'all') {
 				options.filter = `status = "${statusFilter}"`;
 			}
-			const result = await pb.collection('testimonials').getList<Testimonial>(1, 100, options);
+			const [result, membershipResp] = await Promise.all([
+				pb.collection('testimonials').getList<Testimonial>(1, 100, options),
+				fetch('/api/admin/view-memberships?collection=testimonials', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			testimonials = result.items;
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err: unknown) {
 			const pbError = err as { isAbort?: boolean; status?: number; message?: string };
 			if (pbError.isAbort || pbError.status === 0) {
@@ -314,6 +321,28 @@
 								<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
 									Relationship: {testimonial.relationship}
 								</p>
+							{/if}
+
+							{#if memberships[testimonial.id]?.length}
+								<div class="flex flex-wrap gap-1 mt-2">
+									{#each memberships[testimonial.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[testimonial.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[testimonial.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
 							{/if}
 						</div>
 					</div>

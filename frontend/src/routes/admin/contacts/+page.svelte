@@ -7,6 +7,8 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	
@@ -18,6 +20,7 @@
 	let showForm = $state(false);
 	let editingContact: ContactMethod | null = $state(null);
 	let saving = $state(false);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	// Form fields
 	let type: ContactMethodType = $state('email');
@@ -32,6 +35,24 @@
 	const autosave = createAutosave('admin-contacts', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
 	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: false,
+		enableDraftFilter: false,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search contact methods...'
+	});
+	let showAdvancedFilters = $state(false);
+
+	let filteredContacts = $derived(
+		filterStore.filterItems(
+			contacts,
+			(c) => `${c.value} ${c.label || ''} ${c.type}`,
+			() => 'public',
+			() => false
+		)
+	);
 
 	function getFormData() {
 		return { type, value, label, icon, protectionLevel, viewVisibility, isPrimary, sortOrder };
@@ -122,10 +143,16 @@
 	async function loadContacts() {
 		loading = true;
 		try {
-			const records = await collection('contact_methods').getList(1, 100, {
-				sort: '-sort_order'
-			});
+			const [records, membershipResp] = await Promise.all([
+				await collection('contact_methods').getList(1, 100, {
+					sort: '-sort_order'
+				}),
+				fetch('/api/admin/view-memberships?collection=contact_methods', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			contacts = records.items as unknown as ContactMethod[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err) {
 			console.error('Failed to load contacts:', err);
 			toasts.add('error', 'Failed to load contact methods');
@@ -343,6 +370,8 @@
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
@@ -533,10 +562,33 @@
 			</p>
 			<button class="btn btn-primary" onclick={openNewForm}>+ Add Your First Contact</button>
 		</div>
+	{:else if filteredContacts.length === 0}
+		<div class="card p-8 text-center">
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				/>
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No contact methods match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search query.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear Search
+			</button>
+		</div>
 	{:else}
 		<!-- List View -->
 		<div class="space-y-3">
-			{#each contacts as contact}
+			{#each filteredContacts as contact}
 				<div class="card p-4 flex items-center justify-between hover:shadow-md transition-shadow">
 					<div class="flex items-center space-x-4 flex-1">
 						<!-- Icon & Type -->
@@ -568,6 +620,28 @@
 									<span>👁️ All views</span>
 								{/if}
 							</div>
+
+							{#if memberships[contact.id]?.length}
+								<div class="flex flex-wrap gap-1 mt-2">
+									{#each memberships[contact.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[contact.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[contact.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+							{/if}
 						</div>
 					</div>
 

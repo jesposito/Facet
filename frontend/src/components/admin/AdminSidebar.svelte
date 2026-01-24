@@ -129,7 +129,12 @@ const navSections = [
 		id: 'settings',
 		title: 'Settings',
 		items: [
-			{ href: '/admin/settings', label: 'General', icon: 'cog' },
+			{ href: '/admin/settings#security', label: 'Account & Security', icon: 'badge' },
+			{ href: '/admin/settings#admin-ui', label: 'Administration', icon: 'cog' },
+			{ href: '/admin/settings#analytics', label: 'Site & Content', icon: 'eye' },
+			{ href: '/admin/settings#appearance', label: 'Appearance', icon: 'star' },
+			{ href: '/admin/settings#ai-providers', label: 'Integrations', icon: 'sparkle' },
+			{ href: '/admin/settings/tags', label: 'Admin Tags', icon: 'chip' },
 			{ href: '/admin/media', label: 'Media Library', icon: 'image' },
 			{ href: '/admin/tokens', label: 'Share Tokens', icon: 'link' }
 		]
@@ -141,30 +146,48 @@ const settingsSections = navSections.filter(s => s.id === 'settings');
 
 // Reactive function that updates when $page changes
 let isActive = $derived((href: string): boolean => {
-	const currentPath = $page.url.pathname;
+	const currentUrl = $page.url;
+	const currentPath = currentUrl.pathname;
+	const [targetPath, targetHash] = href.split('#');
+
+	// Handle hash links (specifically for Settings sections)
+	if (targetHash) {
+		// Must match the path part exactly
+		if (currentPath !== targetPath) {
+			return false;
+		}
+
+		// If current URL has a hash, it must match the target hash
+		if (currentUrl.hash) {
+			return currentUrl.hash === '#' + targetHash;
+		}
+
+		// If current URL has NO hash, default to the 'security' tab (first item)
+		// This ensures 'Account & Security' appears active when visiting /admin/settings directly
+		return targetHash === 'security';
+	}
 
 	// Exact match for dashboard
-	if (href === '/admin') {
+	if (targetPath === '/admin') {
 		return currentPath === '/admin' || currentPath === '/admin/';
 	}
 
 	// For other paths, check if current path starts with the href
 	// and is followed by either nothing, a slash, or end of string
-	// This prevents /admin/view from matching when on /admin/views
-	return currentPath === href || currentPath.startsWith(href + '/');
+	return currentPath === targetPath || currentPath.startsWith(targetPath + '/');
 });
 </script>
 
 <aside
 	id="admin-sidebar"
-	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30
+	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
 		{isMobile 
 			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
 			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')
 		}"
 	aria-label="Admin navigation"
 >
-	<nav class="p-3 space-y-4" aria-label="Main menu">
+	<nav class="p-3 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label="Main menu">
 		<!-- Dashboard and Profile - always visible -->
 		<div class="space-y-1">
 			<a
@@ -501,6 +524,27 @@ let isActive = $derived((href: string): boolean => {
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
 								</svg>
+							{:else if item.icon === 'badge'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+								</svg>
+							{:else if item.icon === 'eye'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+								</svg>
+							{:else if item.icon === 'star'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.184c.969 0 1.371 1.24.588 1.81l-3.39 2.463a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.39-2.462a1 1 0 00-1.176 0l-3.39 2.462c-.784.57-1.838-.196-1.539-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.04 9.394c-.783-.57-.38-1.81.588-1.81h4.184a1 1 0 00.95-.69l1.287-3.967z" />
+								</svg>
+							{:else if item.icon === 'sparkle'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8l2 2-2 2-2-2 2-2zm12-5l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3zm-4 9l1.5 4.5L19 18l-4.5 1.5L13 24l-1.5-4.5L7 18l4.5-1.5L13 12z" />
+								</svg>
+							{:else if item.icon === 'chip'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+								</svg>
 							{/if}
 
 							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{item.label}</span>
@@ -513,7 +557,7 @@ let isActive = $derived((href: string): boolean => {
 	</nav>
 
 	<!-- Preview link -->
-	<div class="absolute bottom-4 left-0 right-0 px-3">
+	<div class="shrink-0 px-3 pb-4">
 		<a
 			href="/"
 			target="_blank"
