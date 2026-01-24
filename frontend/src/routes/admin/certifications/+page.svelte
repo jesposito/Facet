@@ -2,10 +2,13 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Certification } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
 	import { formatDate } from '$lib/utils';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -26,10 +29,71 @@
 	let sortOrder = $state(0);
 	let saving = $state(false);
 
-	let selectMode = $state(false);
-	let selectedIds: Set<string> = $state(new Set());
+let selectMode = $state(false);
+let selectedIds: Set<string> = $state(new Set());
 
-	onMount(loadCertifications);
+const autosave = createAutosave('admin-certifications', { saveDelay: 1500 });
+let showRecoveryBanner = $state(false);
+let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+function getFormData() {
+	return { name, issuer, issueDate, expiryDate, credentialId, credentialUrl, visibility, isDraft, sortOrder };
+}
+
+function restoreFromDraft(data: Record<string, any>) {
+	name = data.name || '';
+	issuer = data.issuer || '';
+	issueDate = data.issueDate || '';
+	expiryDate = data.expiryDate || '';
+	credentialId = data.credentialId || '';
+	credentialUrl = data.credentialUrl || '';
+	visibility = data.visibility || 'public';
+	isDraft = data.isDraft || false;
+	sortOrder = data.sortOrder || 0;
+}
+
+function handleFormChange() {
+	if (showForm) {
+		autosave.save(getFormData(), !!editingCert, editingCert?.id);
+	}
+}
+
+function handleRestoreDraft() {
+	const draft = autosave.loadDraft();
+	if (draft?.data) {
+		restoreFromDraft(draft.data);
+		if (draft.isEditing && draft.editingId) {
+			const cert = certifications.find(c => c.id === draft.editingId);
+			if (cert) editingCert = cert;
+		}
+		showForm = true;
+	}
+	showRecoveryBanner = false;
+}
+
+function handleDismissDraft() {
+	autosave.clearDraft();
+	showRecoveryBanner = false;
+	recoveryData = null;
+}
+
+afterNavigate(() => {
+	showForm = false;
+	editingCert = null;
+	selectMode = false;
+	selectedIds = new Set();
+	
+	const draft = autosave.loadDraft();
+	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
+		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+		showRecoveryBanner = true;
+	} else {
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
+});
+
+onMount(loadCertifications);
 
 	async function loadCertifications() {
 		loading = true;
@@ -62,6 +126,7 @@
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function openEditForm(cert: Certification) {
@@ -81,6 +146,7 @@
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	async function handleSubmit() {
@@ -273,13 +339,23 @@
 		</div>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading certifications...</div>
 		</div>
 	{:else if showForm}
 		<!-- Certification Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

@@ -2,10 +2,13 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -37,6 +40,51 @@ let memberships: Record<string, { id: string; name: string; slug: string }[]> = 
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+const autosave = createAutosave('admin-projects', { saveDelay: 1500 });
+let showRecoveryBanner = $state(false);
+let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+function getFormData() {
+	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs };
+}
+
+function restoreFromDraft(data: Record<string, any>) {
+	title = data.title || '';
+	slug = data.slug || '';
+	summary = data.summary || '';
+	description = data.description || '';
+	techStackText = data.techStackText || '';
+	links = data.links || [];
+	categoriesText = data.categoriesText || '';
+	visibility = data.visibility || 'public';
+	isDraft = data.isDraft || false;
+	isFeatured = data.isFeatured || false;
+	sortOrder = data.sortOrder || 0;
+	mediaRefs = data.mediaRefs || [];
+}
+
+function handleFormChange() {
+	if (showForm) {
+		autosave.save(getFormData(), !!editingProject, editingProject?.id);
+	}
+}
+
+afterNavigate(() => {
+	showForm = false;
+	editingProject = null;
+	selectMode = false;
+	selectedIds = new Set();
+	
+	const draft = autosave.loadDraft();
+	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && !(Array.isArray(v) && v.length === 0))) {
+		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+		showRecoveryBanner = true;
+	} else {
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
+});
 
 onMount(loadProjects);
 onMount(loadMediaOptions);
@@ -181,6 +229,26 @@ async function loadProjects() {
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
+	}
+
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const proj = projects.find(p => p.id === draft.editingId);
+				if (proj) editingProject = proj;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
+
+	function handleDismissDraft() {
+		autosave.clearDraft();
+		showRecoveryBanner = false;
+		recoveryData = null;
 	}
 
 	function toggleShortcodes() {
@@ -207,6 +275,7 @@ async function loadProjects() {
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	function addLink() {
@@ -405,6 +474,16 @@ async function loadProjects() {
 		<p><strong>Tip:</strong> Import projects directly from GitHub using the <a href="/admin/import" class="underline">Import page</a>.</p>
 	</PageHelp>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}
@@ -443,7 +522,7 @@ async function loadProjects() {
 		</div>
 	{:else if showForm}
 		<!-- Project Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
