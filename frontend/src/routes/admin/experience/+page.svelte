@@ -2,7 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
-	import { afterNavigate, beforeNavigate } from '$app/navigation';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -70,25 +70,20 @@
 		editingExp = null;
 		selectMode = false;
 		selectedIds = new Set();
-		showRecoveryBanner = false;
-	});
-
-	beforeNavigate(({ cancel }) => {
-		if (showForm && autosave.hasUnsavedChanges(getFormData())) {
-			if (!window.confirm('You have unsaved changes. Leave anyway?')) {
-				cancel();
-			}
-		}
-	});
-
-	onMount(() => {
-		loadExperiences();
+		
 		const draft = autosave.loadDraft();
 		if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
 			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
 			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
 		}
 	});
+
+
+
+	onMount(loadExperiences);
 
 	async function loadExperiences() {
 		loading = true;
