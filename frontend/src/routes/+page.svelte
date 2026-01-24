@@ -97,6 +97,10 @@
 	let generatedUrl: string | null = $state(null);
 	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
 
+	// Floating buttons visibility - hide when nav is pinned (sticky)
+	let navPinned = $state(false);
+	let sentinelEl: HTMLDivElement | null = null;
+
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -142,6 +146,20 @@
 
 		// Check AI Print availability
 		checkAIPrintStatus();
+
+		// Track when sentinel scrolls past top (nav becomes sticky)
+		const checkSentinel = () => {
+			if (!sentinelEl) return;
+			const rect = sentinelEl.getBoundingClientRect();
+			navPinned = rect.bottom <= 0;
+		};
+
+		checkSentinel();
+		window.addEventListener('scroll', checkSentinel, { passive: true });
+
+		return () => {
+			window.removeEventListener('scroll', checkSentinel);
+		};
 	});
 
 	async function checkAIPrintStatus() {
@@ -264,8 +282,11 @@
 	<WelcomePage />
 {:else}
 <div class="min-h-screen">
-	<!-- Theme toggle and print menu -->
-	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+	<div
+		class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
+		class:opacity-0={navPinned}
+		class:pointer-events-none={navPinned}
+	>
 		<!-- Print Menu -->
 		<div class="relative">
 			<button
@@ -364,8 +385,12 @@
 		</div>
 	{/if}
 
-	<!-- Profile navigation tabs -->
-	<!-- Note: Don't pass viewSlug here - we're on the root page, so back navigation should go to "/" -->
+	<div
+		aria-hidden="true"
+		class="h-px"
+		bind:this={sentinelEl}
+	></div>
+
 	<ProfileNav
 		hasExperience={data.experience.length > 0}
 		hasProjects={data.projects.length > 0}

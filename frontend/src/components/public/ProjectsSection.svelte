@@ -12,7 +12,12 @@
 
 const isLinkable = (project: Project) => {
 	const visibility = (project as unknown as Record<string, string>).visibility;
-	return visibility === 'public' && project.slug;
+	// Public projects are always linkable. Unlisted projects are linkable when shown on a view (viewSlug present)
+	// since they're explicitly included in that view's content.
+	if (!project.slug) return false;
+	if (visibility === 'public') return true;
+	if (visibility === 'unlisted' && viewSlug) return true;
+	return false;
 };
 
 const projectHref = (project: Project) => {
