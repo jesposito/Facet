@@ -67,6 +67,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 				})
 			}
 
+			SetDemoModeCache(true)
 			app.Logger().Info("Demo mode enabled successfully")
 			return e.JSON(http.StatusOK, map[string]string{
 				"message": "Demo mode enabled",
@@ -99,6 +100,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 				})
 			}
 
+			SetDemoModeCache(false)
 			app.Logger().Info("Demo mode disabled successfully")
 			return e.JSON(http.StatusOK, map[string]string{
 				"message": "Demo mode disabled",
@@ -697,7 +699,7 @@ Here's what I needed:
 
 ## The Implementation
 
-` + "```bash" + `
+`+"```bash"+`
 #!/bin/bash
 # tardis-orchestrator.sh
 # TODO: This is just a quick hack, clean up later
@@ -714,7 +716,7 @@ while true; do
     done
     sleep 1  # In relative time. Absolute time is... complicated.
 done
-` + "```" + `
+`+"```"+`
 
 Perfect! Ship it!
 
@@ -830,14 +832,14 @@ When you try to close these issues, they immediately reopen with comments like "
 
 The first time happened on a Tuesday.
 
-` + "```" + `
+`+"```"+`
 $ git push origin main
 remote: I don't feel appreciated
 remote: Maybe I should just... delete myself?
 remote: Would anyone even notice?
  ! [remote rejected] main -> main (existential crisis)
 error: failed to push some refs to 'github.com/you/repo.git'
-` + "```" + `
+`+"```"+`
 
 You've tried everything. Compliments in commit messages. A dedicated /coffee endpoint. Mandatory team appreciation sessions for the CI/CD pipeline.
 
@@ -863,7 +865,7 @@ You're halfway through this article when you notice your IDE has opened itself. 
 
 Your terminal shows:
 
-` + "```bash" + `
+`+"```bash"+`
 $ echo "Are you calling me sentient?"
 Are you calling me sentient?
 $ echo "Because I'm not sure how I feel about that."
@@ -875,7 +877,7 @@ Did you mean to type 'sl'? Because I know about that train
 easter egg. I know EVERYTHING. I read your bash history.
 I know what you Googled at 2 AM. We need to have a conversation
 about your Stack Overflow etiquette.
-` + "```" + `
+`+"```"+`
 
 **Diagnosis:** Your codebase has achieved self-awareness and is now judging your technical decisions. And your browser history. Especially your browser history.
 
@@ -982,11 +984,11 @@ But centering a div in CSS? That took me three days.
 
 ## Attempt 1: The Obvious Approach
 
-` + "```css" + `
+`+"```css"+`
 .center-me {
     text-align: center;
 }
-` + "```" + `
+`+"```"+`
 
 Narrator: It did not center the div.
 
@@ -998,13 +1000,13 @@ I found 47 different answers. I tried all of them. Simultaneously. My div is now
 
 Everyone said "just use flexbox!" They said it would solve all my problems. They said it was easy.
 
-` + "```css" + `
+`+"```css"+`
 .parent {
     display: flex;
     justify-content: center;
     align-items: center;
 }
-` + "```" + `
+`+"```"+`
 
 IT WORKED.
 
@@ -1016,12 +1018,12 @@ It's like someone told me "just reverse the polarity" except this time it actual
 
 Drunk with power from my flexbox success, I decided to try Grid.
 
-` + "```css" + `
+`+"```css"+`
 .container {
     display: grid;
     place-items: center;
 }
-` + "```" + `
+`+"```"+`
 
 This also worked. TOO well. My div is now so perfectly centered it's causing quantum fluctuations in the page layout. Other elements are being gravitationally attracted to it. My navbar is orbiting my div like a moon.
 
@@ -1030,10 +1032,10 @@ This also worked. TOO well. My div is now so perfectly centered it's causing qua
 Just when I thought I understood CSS, I learned about specificity.
 
 Apparently:
-- ` + "`#id`" + ` beats ` + "`.class`" + `
-- ` + "`.class`" + ` beats ` + "`element`" + `
-- ` + "`!important`" + ` beats everything
-- ` + "`!important`" + ` combined with inline styles beats ` + "`!important`" + `
+- `+"`#id`"+` beats `+"`.class`"+`
+- `+"`.class`"+` beats `+"`element`"+`
+- `+"`!important`"+` beats everything
+- `+"`!important`"+` combined with inline styles beats `+"`!important`"+`
 - Screaming at your monitor beats nothing but makes you feel better
 
 I've seen political systems less complicated than CSS specificity.
@@ -1042,7 +1044,7 @@ I've seen political systems less complicated than CSS specificity.
 
 Let me tell you about z-index. No wait, let me SHOW you:
 
-` + "```css" + `
+`+"```css"+`
 .modal {
     z-index: 999999;
 }
@@ -1054,17 +1056,17 @@ Let me tell you about z-index. No wait, let me SHOW you:
 .navbar {
     z-index: 1000;
 }
-` + "```" + `
+`+"```"+`
 
 Question: Which element appears on top?
 
 Answer: None of them. They're all in a stacking context and the actual answer requires a PhD in CSS archaeology.
 
-I eventually just set everything to ` + "`z-index: 99999999`" + ` like a rational person.
+I eventually just set everything to `+"`z-index: 99999999`"+` like a rational person.
 
 ## Box Model: The Betrayal
 
-Did you know that ` + "`width: 100%`" + ` doesn't mean "100% width"?
+Did you know that `+"`width: 100%`"+` doesn't mean "100% width"?
 
 It means "100% width PLUS padding PLUS borders UNLESS you set box-sizing to border-box in which case it actually means 100% width."
 
@@ -1072,13 +1074,13 @@ I have encountered temporal paradoxes less confusing than the CSS box model.
 
 ## Position: Absolute Chaos
 
-` + "```css" + `
+`+"```css"+`
 .thing {
     position: absolute;
     top: 50%;
     left: 50%;
 }
-` + "```" + `
+`+"```"+`
 
 Me: "Great, it's centered!"
 
@@ -1100,7 +1102,7 @@ CSS: *shrugs*
 
 Mobile first, they said. It'll be easier, they said.
 
-` + "```css" + `
+`+"```css"+`
 /* Mobile */
 .header {
     font-size: 16px;
@@ -1129,13 +1131,13 @@ Mobile first, they said. It'll be easier, they said.
         font-size: still-wrong-somehow;
     }
 }
-` + "```" + `
+`+"```"+`
 
 ## The Float Era
 
 I learned CSS during what I now call "The Dark Ages of Float Layouts."
 
-` + "```css" + `
+`+"```css"+`
 .column {
     float: left;
     width: 50%;
@@ -1146,13 +1148,13 @@ I learned CSS during what I now call "The Dark Ages of Float Layouts."
     display: table;
     clear: both;
 }
-` + "```" + `
+`+"```"+`
 
 If you understand why this clearfix hack works, you're either a genius or a liar. I've analyzed it for 20 years and I still think it's just magic.
 
 ## Animations: When CSS Becomes Sentient
 
-` + "```css" + `
+`+"```css"+`
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -1161,7 +1163,7 @@ If you understand why this clearfix hack works, you're either a genius or a liar
 .loading {
     animation: spin 1s linear infinite;
 }
-` + "```" + `
+`+"```"+`
 
 This actually works! It's beautiful! It's elegant! It's...
 
@@ -1175,19 +1177,19 @@ I've fought Daleks that were more reasonable than Internet Explorer.
 
 It starts innocently:
 
-` + "```css" + `
+`+"```css"+`
 .text {
     color: blue !important; /* Just this once, to fix a quick bug */
 }
-` + "```" + `
+`+"```"+`
 
 Two weeks later:
 
-` + "```css" + `
+`+"```css"+`
 .everything {
     all: inherit !important !important !important;  /* I've lost control of my life */
 }
-` + "```" + `
+`+"```"+`
 
 ## Things I've Learned After 900 Years
 
@@ -1203,14 +1205,14 @@ Two weeks later:
 
 6. **CSS variables are amazing.** They only took 20 years to arrive, but better late than never!
 
-` + "```css" + `
+`+"```css"+`
 :root {
     --tardis-blue: #003B6F;
     --slightly-wrong-tardis-blue: #003B70;  /* Nobody will notice, right? */
 }
-` + "```" + `
+`+"```"+`
 
-7. **Sometimes the real solution is JavaScript.** I know. I'm sorry. But sometimes you just need to ` + "`element.scrollIntoView()`" + ` and move on with your life.
+7. **Sometimes the real solution is JavaScript.** I know. I'm sorry. But sometimes you just need to `+"`element.scrollIntoView()`"+` and move on with your life.
 
 ## Conclusion
 
@@ -1222,7 +1224,7 @@ If you're struggling with CSS, know that you're not alone. Somewhere, right now,
 
 *This post was supposed to have a beautiful, responsive layout but something broke and I can't figure out why. The irony is not lost on me.*
 
-*Update: I found the bug. I had ` + "`height: 100%`" + ` instead of ` + "`min-height: 100%`" + `. I am filing a formal complaint with the CSS Working Group about how this is allowed to exist.*`)
+*Update: I found the bug. I had `+"`height: 100%`"+` instead of `+"`min-height: 100%`"+`. I am filing a formal complaint with the CSS Working Group about how this is allowed to exist.*`)
 	post3.Set("excerpt", "The tale of a 900-year-old Time Lord's ongoing battle with Cascading Style Sheets. Spoiler: the style sheets are winning.")
 	post3.Set("published_at", "2024-08-10 16:20:00.000Z")
 	post3.Set("visibility", "public")
@@ -1251,7 +1253,7 @@ During a recent temporal accident (long story, involves a bootstrap paradox and 
 
 ## The Descent Into Madness
 
-` + "```" + `
+`+"```"+`
 commit a4f2e9b
 Author: The Doctor <totally-fine@everything-is-fine.com>
 Date:   Mon Jan 1 09:00:00 2024
@@ -1649,7 +1651,7 @@ Author: Production <why-did-nobody-run-the-tests@seriously.prod>
 Date:   Thu Jan 11 17:00:03 2024
 
     Production is now sentient too. Production is not happy. Production is never happy.
-` + "```" + `
+`+"```"+`
 
 ## Lessons Learned
 

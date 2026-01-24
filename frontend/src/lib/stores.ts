@@ -42,25 +42,29 @@ export interface Toast {
 function createToastStore() {
 	const { subscribe, update } = writable<Toast[]>([]);
 
+	const add = (type: Toast['type'], message: string, duration = 5000) => {
+		const id = crypto.randomUUID();
+		update((toasts) => [...toasts, { id, type, message, duration }]);
+		if (duration > 0) {
+			setTimeout(() => {
+				update((toasts) => toasts.filter((t) => t.id !== id));
+			}, duration);
+		}
+		return id;
+	};
+
+	const remove = (id: string) => {
+		update((toasts) => toasts.filter((t) => t.id !== id));
+	};
+
 	return {
 		subscribe,
-		add: (type: Toast['type'], message: string, duration = 5000) => {
-			const id = crypto.randomUUID();
-			update((toasts) => [...toasts, { id, type, message, duration }]);
-			if (duration > 0) {
-				setTimeout(() => {
-					update((toasts) => toasts.filter((t) => t.id !== id));
-				}, duration);
-			}
-			return id;
-		},
-		remove: (id: string) => {
-			update((toasts) => toasts.filter((t) => t.id !== id));
-		},
-		success: (message: string) => createToastStore().add('success', message),
-		error: (message: string) => createToastStore().add('error', message),
-		info: (message: string) => createToastStore().add('info', message),
-		warning: (message: string) => createToastStore().add('warning', message)
+		add,
+		remove,
+		success: (message: string, duration?: number) => add('success', message, duration),
+		error: (message: string, duration?: number) => add('error', message, duration),
+		info: (message: string, duration?: number) => add('info', message, duration),
+		warning: (message: string, duration?: number) => add('warning', message, duration)
 	};
 }
 

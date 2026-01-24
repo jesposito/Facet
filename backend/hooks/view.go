@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"facet/services"
@@ -19,12 +20,46 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 )
 
-// getTableName returns the correct table name based on demo mode
-// If demo mode is ON, returns "demo_<collection>", otherwise returns "<collection>"
-func getTableName(app core.App, collection string) string {
-	// Check if demo data exists (indicates demo mode is ON)
+var (
+	demoModeCache struct {
+		sync.RWMutex
+		enabled   bool
+		checkedAt time.Time
+	}
+	demoModeCacheTTL = 10 * time.Second
+)
+
+func isDemoMode(app core.App) bool {
+	demoModeCache.RLock()
+	if time.Since(demoModeCache.checkedAt) < demoModeCacheTTL {
+		enabled := demoModeCache.enabled
+		demoModeCache.RUnlock()
+		return enabled
+	}
+	demoModeCache.RUnlock()
+
+	demoModeCache.Lock()
+	defer demoModeCache.Unlock()
+
+	if time.Since(demoModeCache.checkedAt) < demoModeCacheTTL {
+		return demoModeCache.enabled
+	}
+
 	demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", "")
-	if demoProfile != nil {
+	demoModeCache.enabled = demoProfile != nil
+	demoModeCache.checkedAt = time.Now()
+	return demoModeCache.enabled
+}
+
+func SetDemoModeCache(enabled bool) {
+	demoModeCache.Lock()
+	defer demoModeCache.Unlock()
+	demoModeCache.enabled = enabled
+	demoModeCache.checkedAt = time.Now()
+}
+
+func getTableName(app core.App, collection string) string {
+	if isDemoMode(app) {
 		return "demo_" + collection
 	}
 	return collection
