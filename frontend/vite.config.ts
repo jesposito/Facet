@@ -2,8 +2,10 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
 
-// Get version from git tags or use fallback
 function getVersion(): string {
+	if (process.env.FACET_VERSION && process.env.FACET_VERSION !== 'dev') {
+		return process.env.FACET_VERSION;
+	}
 	try {
 		return execSync('git describe --tags --always', { encoding: 'utf8' }).trim();
 	} catch {
