@@ -2,11 +2,14 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -33,6 +36,52 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let saving = $state(false);
+
+	const autosave = createAutosave('admin-experience', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+	function getFormData() {
+		return { company, title, location, startDate, endDate, description, bulletsText, skillsText, visibility, isDraft, sortOrder };
+	}
+
+	function restoreFromDraft(data: Record<string, any>) {
+		company = data.company || '';
+		title = data.title || '';
+		location = data.location || '';
+		startDate = data.startDate || '';
+		endDate = data.endDate || '';
+		description = data.description || '';
+		bulletsText = data.bulletsText || '';
+		skillsText = data.skillsText || '';
+		visibility = data.visibility || 'public';
+		isDraft = data.isDraft || false;
+		sortOrder = data.sortOrder || 0;
+	}
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingExp, editingExp?.id);
+		}
+	}
+
+	afterNavigate(() => {
+		showForm = false;
+		editingExp = null;
+		selectMode = false;
+		selectedIds = new Set();
+		
+		const draft = autosave.loadDraft();
+		if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
+	});
+
+
 
 	onMount(loadExperiences);
 
@@ -71,6 +120,26 @@
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
+	}
+
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const exp = experiences.find(e => e.id === draft.editingId);
+				if (exp) editingExp = exp;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
+
+	function handleDismissDraft() {
+		autosave.clearDraft();
+		showRecoveryBanner = false;
+		recoveryData = null;
 	}
 
 	function openEditForm(exp: Experience) {
@@ -94,6 +163,7 @@
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	async function handleSubmit() {
@@ -291,13 +361,23 @@
 		</div>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading experiences...</div>
 		</div>
 	{:else if showForm}
 		<!-- Experience Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

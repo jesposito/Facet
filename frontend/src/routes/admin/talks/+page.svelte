@@ -2,11 +2,14 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Talk } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -37,6 +40,52 @@ let loadingMedia = $state(false);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+const autosave = createAutosave('admin-talks', { saveDelay: 1500 });
+let showRecoveryBanner = $state(false);
+let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+function getFormData() {
+	return { title, slug, event, eventUrl, date, location, description, slidesUrl, videoUrl, visibility, isDraft, sortOrder, mediaRefs };
+}
+
+function restoreFromDraft(data: Record<string, any>) {
+	title = data.title || '';
+	slug = data.slug || '';
+	event = data.event || '';
+	eventUrl = data.eventUrl || '';
+	date = data.date || '';
+	location = data.location || '';
+	description = data.description || '';
+	slidesUrl = data.slidesUrl || '';
+	videoUrl = data.videoUrl || '';
+	visibility = data.visibility || 'public';
+	isDraft = data.isDraft || false;
+	sortOrder = data.sortOrder || 0;
+	mediaRefs = data.mediaRefs || [];
+}
+
+function handleFormChange() {
+	if (showForm) {
+		autosave.save(getFormData(), !!editingTalk, editingTalk?.id);
+	}
+}
+
+afterNavigate(() => {
+	showForm = false;
+	editingTalk = null;
+	selectMode = false;
+	selectedIds = new Set();
+	
+	const draft = autosave.loadDraft();
+	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && !(Array.isArray(v) && v.length === 0))) {
+		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+		showRecoveryBanner = true;
+	} else {
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
+});
 
 	// Generate slug from title
 	function generateSlug(text: string): string {
@@ -192,6 +241,26 @@ async function resolveMediaRefs(selected: string[]) {
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
+	}
+
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const talk = talks.find(t => t.id === draft.editingId);
+				if (talk) editingTalk = talk;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
+
+	function handleDismissDraft() {
+		autosave.clearDraft();
+		showRecoveryBanner = false;
+		recoveryData = null;
 	}
 
 	function toggleShortcodes() {
@@ -219,6 +288,7 @@ async function resolveMediaRefs(selected: string[]) {
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	async function handleSubmit() {
@@ -357,6 +427,16 @@ async function resolveMediaRefs(selected: string[]) {
 		<p><strong>Tip:</strong> Public talks appear in your iCal feed at <code>/talks.ics</code> - great for sharing your speaking schedule.</p>
 	</PageHelp>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}
@@ -392,7 +472,7 @@ async function resolveMediaRefs(selected: string[]) {
 		</div>
 	{:else if showForm}
 		<!-- Talk Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

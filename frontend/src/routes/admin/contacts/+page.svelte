@@ -2,9 +2,12 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	
 
@@ -25,6 +28,64 @@
 	let viewVisibility: Record<string, boolean> = $state({});
 	let isPrimary = $state(false);
 	let sortOrder = $state(0);
+
+	const autosave = createAutosave('admin-contacts', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+	function getFormData() {
+		return { type, value, label, icon, protectionLevel, viewVisibility, isPrimary, sortOrder };
+	}
+
+	function restoreFromDraft(data: Record<string, any>) {
+		type = data.type || 'email';
+		value = data.value || '';
+		label = data.label || '';
+		icon = data.icon || '';
+		protectionLevel = data.protectionLevel || 'none';
+		viewVisibility = data.viewVisibility || {};
+		isPrimary = data.isPrimary || false;
+		sortOrder = data.sortOrder || 0;
+	}
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingContact, editingContact?.id);
+		}
+	}
+
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const contact = contacts.find(c => c.id === draft.editingId);
+				if (contact) editingContact = contact;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
+
+	function handleDismissDraft() {
+		autosave.clearDraft();
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
+
+	afterNavigate(() => {
+		showForm = false;
+		editingContact = null;
+		
+		const draft = autosave.loadDraft();
+		if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0))) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
+	});
 
 	// Contact method type options with icons
 	const contactTypes: { value: ContactMethodType; label: string; icon: string; placeholder: string }[] = [
@@ -108,6 +169,7 @@
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function openEditForm(contact: ContactMethod) {
@@ -126,6 +188,7 @@
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	// CRUD operations
@@ -270,6 +333,16 @@
 		<button class="btn btn-primary" onclick={openNewForm}>+ New Contact Method</button>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
@@ -285,7 +358,7 @@
 				<button class="btn btn-secondary text-sm" onclick={closeForm}>Cancel</button>
 			</div>
 
-			<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+			<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
 						<label for="contact-type" class="label">

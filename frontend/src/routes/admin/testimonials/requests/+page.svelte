@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 
@@ -28,6 +29,12 @@
 	let recipientEmail = $state('');
 	let expiresAt = $state('');
 	let maxUses = $state(0);
+
+	// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+	afterNavigate(() => {
+		// Reset UI state when navigating to this page (including same-route navigation)
+		showForm = false;
+	});
 
 	onMount(loadRequests);
 
