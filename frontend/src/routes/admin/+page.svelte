@@ -26,14 +26,14 @@
 	});
 
 	async function loadDashboard() {
-		if (!mounted) return; // Don't run if component is unmounting
+		if (!mounted) return;
 
 		try {
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
-				await collection('projects').getList(1, 1),
-				await collection('experience').getList(1, 1),
-				await collection('views').getList(1, 1),
-				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
+				collection('projects').getList(1, 1, { requestKey: 'dashboard-projects' }),
+				collection('experience').getList(1, 1, { requestKey: 'dashboard-experience' }),
+				collection('views').getList(1, 1, { requestKey: 'dashboard-views' }),
+				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'", requestKey: 'dashboard-proposals' })
 			]);
 
 			if (!mounted) return; // Check again after async operations
@@ -45,24 +45,32 @@
 				pendingProposals: proposalsRes.totalItems
 			};
 
-			// Get recent projects and experience for activity feed
+			// Get recent projects and experience for activity feed (sorted by most recently updated)
 			const [recentProjects, recentExperience] = await Promise.all([
-				await collection('projects').getList(1, 3, { sort: '-id' }),
-				await collection('experience').getList(1, 3, { sort: '-id' })
+				collection('projects').getList(1, 3, { sort: '-updated,-created', requestKey: 'dashboard-recent-projects' }),
+				collection('experience').getList(1, 3, { sort: '-updated,-created', requestKey: 'dashboard-recent-experience' })
 			]);
 
-			if (!mounted) return; // Check one more time before updating state
+			if (!mounted) return;
+
+			const getValidDate = (record: Record<string, unknown>): string => {
+				const updated = record.updated as string;
+				const created = record.created as string;
+				if (updated && updated.length > 0) return updated;
+				if (created && created.length > 0) return created;
+				return new Date().toISOString();
+			};
 
 			recentActivity = [
 				...recentProjects.items.map((p) => ({
 					type: 'project',
 					title: p.title,
-					date: p.updated || p.created
+					date: getValidDate(p)
 				})),
 				...recentExperience.items.map((e) => ({
 					type: 'experience',
 					title: `${e.title} at ${e.company}`,
-					date: e.updated || e.created
+					date: getValidDate(e)
 				}))
 			]
 				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -83,7 +91,10 @@
 	}
 
 	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
+		if (!dateString) return 'Just now';
+		const date = new Date(dateString);
+		if (isNaN(date.getTime())) return 'Recently';
+		return date.toLocaleDateString('en-US', {
 			month: 'short',
 			day: 'numeric',
 			hour: '2-digit',
