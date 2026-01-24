@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -9,9 +9,16 @@
 
 	let loading = $state(true);
 	let views: Array<Record<string, unknown>> = $state([]);
+	let mounted = false;
 
-	// Simple pattern - admin layout handles auth
-	onMount(loadViews);
+	onMount(() => {
+		mounted = true;
+		loadViews();
+	});
+
+	onDestroy(() => {
+		mounted = false;
+	});
 
 	async function loadViews() {
 		loading = true;
@@ -29,8 +36,13 @@
 			}
 			views = items;
 		} catch (err) {
+			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+				return;
+			}
 			console.error('Failed to load facets:', err);
-			toasts.add('error', 'Failed to load facets');
+			if (mounted) {
+				toasts.add('error', 'Failed to load facets');
+			}
 		} finally {
 			loading = false;
 		}

@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { fetchWithTimeout } from '$lib/utils';
 
 export const testimonialsStore = writable({
 	pendingCount: 0
@@ -19,7 +20,7 @@ export async function refreshTestimonialsPendingCount() {
 			Authorization: `Bearer ${pb.authStore.token}`
 		};
 
-		const response = await fetch('/api/testimonials/pending-count', { headers });
+		const response = await fetchWithTimeout('/api/testimonials/pending-count', { headers });
 		if (response.ok) {
 			const data = await response.json();
 			testimonialsStore.update(store => ({ ...store, pendingCount: data.count || 0 }));

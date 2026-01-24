@@ -10,9 +10,9 @@ import (
 	"time"
 )
 
-// GitHubService handles GitHub API interactions
 type GitHubService struct {
-	client *http.Client
+	client  *http.Client
+	baseURL string
 }
 
 // RepoMetadata represents GitHub repository metadata
@@ -70,12 +70,12 @@ type ghReadmeResponse struct {
 	Encoding string `json:"encoding"`
 }
 
-// NewGitHubService creates a new GitHub service
 func NewGitHubService() *GitHubService {
 	return &GitHubService{
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		baseURL: "https://api.github.com",
 	}
 }
 
@@ -129,7 +129,7 @@ func (g *GitHubService) FetchRepoMetadata(owner, repo, token string) (*RepoMetad
 }
 
 func (g *GitHubService) fetchRepo(owner, repo, token string) (*ghRepoResponse, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s", owner, repo)
+	url := fmt.Sprintf("%s/repos/%s/%s", g.baseURL, owner, repo)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -162,7 +162,7 @@ func (g *GitHubService) fetchRepo(owner, repo, token string) (*ghRepoResponse, e
 }
 
 func (g *GitHubService) fetchLanguages(owner, repo, token string) (map[string]int, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/languages", owner, repo)
+	url := fmt.Sprintf("%s/repos/%s/%s/languages", g.baseURL, owner, repo)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -193,7 +193,7 @@ func (g *GitHubService) fetchLanguages(owner, repo, token string) (map[string]in
 }
 
 func (g *GitHubService) fetchREADME(owner, repo, token string) (string, error) {
-	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/readme", owner, repo)
+	url := fmt.Sprintf("%s/repos/%s/%s/readme", g.baseURL, owner, repo)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

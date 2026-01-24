@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { adminSidebarOpen, sidebarSectionStates } from '$lib/stores';
+	import { adminSidebarOpen, sidebarSectionStates, sidebarFacetsVersion } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
 	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
 
@@ -55,6 +55,15 @@
 		refreshTestimonialsPendingCount();
 	});
 
+	// Reload facets when sidebarFacetsVersion changes (e.g., after demo mode toggle)
+	let lastFacetsVersion = $sidebarFacetsVersion;
+	$effect(() => {
+		if ($sidebarFacetsVersion !== lastFacetsVersion) {
+			lastFacetsVersion = $sidebarFacetsVersion;
+			scheduleFacetsLoad();
+		}
+	});
+
 
 
 	// Refresh facets after navigation (e.g., after creating/editing/deleting a view)
@@ -82,7 +91,6 @@
 		facetsLoading = true;
 		facetsError = false;
 		try {
-			// Fetch 4 most recent views
 			const recentResult = await collection('views').getList(1, 4, {
 				sort: '-id',
 				$cancelKey: 'sidebar-facets-load'
@@ -90,6 +98,9 @@
 			facets = recentResult?.items ?? [];
 			facetsTotalCount = recentResult?.totalItems ?? 0;
 		} catch (err) {
+			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+				return;
+			}
 			console.error('[Sidebar] Failed to load facets:', err);
 			facetsError = true;
 			facets = [];

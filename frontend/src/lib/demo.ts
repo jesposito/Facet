@@ -1,19 +1,16 @@
 import { pb } from '$lib/pocketbase';
+import { fetchWithTimeout } from '$lib/utils';
 
-// Check if demo mode is currently enabled
 export async function isDemoMode(): Promise<boolean> {
 	try {
-		const response = await fetch('/api/demo/status', {
-			headers: {
-				Authorization: pb.authStore.token
-			}
+		const response = await fetchWithTimeout('/api/demo/status', {
+			headers: { Authorization: pb.authStore.token }
 		});
 		if (response.ok) {
 			const data = await response.json();
 			return data.demo_mode || false;
 		}
-	} catch (err) {
-		console.error('Failed to check demo mode:', err);
+	} catch {
 	}
 	return false;
 }

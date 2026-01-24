@@ -282,6 +282,11 @@ func (a *AIService) callAnthropicRaw(ctx context.Context, provider *AIProvider, 
 }
 
 func (a *AIService) callAnthropicRawWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
+	baseURL := "https://api.anthropic.com/v1"
+	if provider.BaseURL != "" {
+		baseURL = strings.TrimSuffix(provider.BaseURL, "/")
+	}
+
 	model := provider.Model
 	if model == "" {
 		model = "claude-sonnet-4-20250514"
@@ -300,7 +305,7 @@ func (a *AIService) callAnthropicRawWithTokens(ctx context.Context, provider *AI
 		return "", err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/messages", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}

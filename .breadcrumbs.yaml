@@ -1,0 +1,31 @@
+# Breadcrumbs Configuration
+# Auto-generated with Empirica calibration
+
+git:
+  recent_commits: 5
+  modified_files: true
+  current_branch: true
+
+epistemic:
+  enabled: true
+  scale: "1-5 (1=guessing, 3=reasonable, 5=certain)"
+  track_uncertainties: true
+  track_decisions: true
+
+task:
+  extract_last_task: 500
+
+
+# Bayesian calibration (auto-updated by Empirica POSTFLIGHT)
+calibration:
+  last_updated: "2026-01-24T18:49:32.133428"
+  ai_id: sisyphus
+  observations: 4
+  bias_corrections:
+  readiness:
+    min_know: 0.70
+    max_uncertainty: 0.35
+  summary:
+    overestimates: []
+    underestimates: []
+    well_calibrated: []

@@ -1,34 +1,22 @@
 import { writable, get } from 'svelte/store';
 import { pb } from '$lib/pocketbase';
+import { fetchWithTimeout } from '$lib/utils';
 
-// Store for demo mode state
 export const demoMode = writable(false);
 
-// Initialize demo mode state with timeout protection
 export async function initDemoMode() {
 	try {
-		// Add 5-second timeout to prevent hanging on slow/failed requests
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-		const response = await fetch('/api/demo/status', {
-			headers: { Authorization: pb.authStore.token },
-			signal: controller.signal
+		const response = await fetchWithTimeout('/api/demo/status', {
+			headers: { Authorization: pb.authStore.token }
 		});
-
-		clearTimeout(timeoutId);
 
 		if (response.ok) {
 			const data = await response.json();
-			const newDemoMode = data.demo_mode || false;
-			demoMode.set(newDemoMode);
+			demoMode.set(data.demo_mode || false);
 		} else {
-			// Non-ok response (401, 403, 500, etc) - default to false
 			demoMode.set(false);
 		}
-	} catch (err) {
-		// Network error, timeout, or abort - default to false and continue
-		console.error('[DEMO] Failed to check demo status:', err);
+	} catch {
 		demoMode.set(false);
 	}
 }

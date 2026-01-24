@@ -36,6 +36,15 @@
         reverse_proxy localhost:8090
     }
 
+    # Static feeds served by backend
+    handle /rss.xml {
+        reverse_proxy localhost:8090
+    }
+
+    handle /talks.ics {
+        reverse_proxy localhost:8090
+    }
+
     handle /_/* {
         # PocketBase admin - only allow if ADMIN_ENABLED=true
         @admin_disabled expression `{env.ADMIN_ENABLED} != "true"`

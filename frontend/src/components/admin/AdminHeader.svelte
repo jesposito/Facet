@@ -4,6 +4,7 @@
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen, confirm } from '$lib/stores';
 	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
+	import { triggerSidebarFacetsReload } from '$lib/stores';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import { page } from '$app/stores';
 
@@ -107,6 +108,7 @@
 			// Re-initialize demo mode from server to ensure store is in sync
 			// The {#key $demoMode} block in layout will force child components to remount
 			await initDemoMode();
+			triggerSidebarFacetsReload();
 			console.log('[TOGGLE] Demo mode updated, components will remount');
 		} catch (err) {
 			console.error('[TOGGLE] Failed to toggle demo mode:', err);
