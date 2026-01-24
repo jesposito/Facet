@@ -768,8 +768,8 @@ body { font-family: 'Inter', sans-serif; }
 		{:else}
 			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
 				<p>Create a profile first to customize appearance.</p>
-				<a href="/admin/profile" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
-					Go to Profile
+				<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
+					Go to Homepage
 				</a>
 			</div>
 		{/if}

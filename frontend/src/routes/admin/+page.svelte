@@ -110,7 +110,7 @@
 		<div class="card p-8 mb-8">
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">This is your space.</h1>
 			<p class="text-gray-600 dark:text-gray-400">
-				You might start by <a href="/admin/profile" class="text-primary-600 dark:text-primary-400 hover:underline">adding your profile</a>,
+				You might start by <a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline">adding your profile</a>,
 				or <a href="/admin/import" class="text-primary-600 dark:text-primary-400 hover:underline">import a project from GitHub</a>.
 			</p>
 			<p class="text-gray-500 dark:text-gray-500 text-sm mt-2">
