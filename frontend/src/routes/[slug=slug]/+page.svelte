@@ -6,6 +6,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { intersection } from '$lib/actions/intersection';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
@@ -48,6 +49,20 @@
 	});
 	let generatedUrl: string | null = $state(null);
 
+	// Floating buttons visibility state (hide when overlapping sticky nav)
+	let navPinned = $state(false);
+	let scrollDir = $state<'up' | 'down'>('down');
+	let scrollIdle = $state(true);
+	const NAV_HEIGHT_PX = 48;
+
+	let buttonsHidden = $derived(
+		navPinned && scrollDir === 'down' && !scrollIdle
+	);
+
+	let buttonsDocked = $derived(
+		navPinned && !buttonsHidden
+	);
+
 	// Apply view-specific accent color (or profile default)
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -78,6 +93,33 @@
 
 		// Check AI Print availability (always check - API handles auth)
 		checkAIPrintStatus();
+
+		// Scroll direction tracking for floating buttons
+		let lastY = window.scrollY;
+		let raf = 0;
+		let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
+		const onScroll = () => {
+			scrollIdle = false;
+			clearTimeout(idleTimer);
+			idleTimer = setTimeout(() => { scrollIdle = true; }, 150);
+
+			if (raf) return;
+			raf = requestAnimationFrame(() => {
+				raf = 0;
+				const y = window.scrollY;
+				scrollDir = y < lastY ? 'up' : 'down';
+				lastY = y;
+			});
+		};
+
+		window.addEventListener('scroll', onScroll, { passive: true });
+
+		return () => {
+			window.removeEventListener('scroll', onScroll);
+			if (raf) cancelAnimationFrame(raf);
+			clearTimeout(idleTimer);
+		};
 	});
 
 	async function checkAIPrintStatus() {
@@ -246,7 +288,12 @@
 	</div>
 {:else}
 	<div class="min-h-screen">
-		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+		<div
+			class="fixed right-4 z-40 flex items-center gap-2 print:hidden transition-all duration-200"
+			class:opacity-0={buttonsHidden}
+			class:pointer-events-none={buttonsHidden}
+			style="top: {buttonsDocked ? `calc(1rem + ${NAV_HEIGHT_PX}px)` : '1rem'};"
+		>
 			<!-- Print Menu -->
 			<div class="relative">
 				<button
@@ -339,6 +386,13 @@
 				</div>
 			</div>
 		{/if}
+
+		<!-- Sentinel to detect when ProfileNav becomes sticky -->
+		<div
+			aria-hidden="true"
+			class="h-px"
+			use:intersection={{ threshold: 0, onChange: (e) => { navPinned = !e.isIntersecting; } }}
+		></div>
 
 		<ProfileNav
 			hasExperience={data.sections?.experience?.length > 0}
