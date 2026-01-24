@@ -48,6 +48,10 @@
 	});
 	let generatedUrl: string | null = $state(null);
 
+	// Floating buttons visibility - hide when nav is pinned (sticky)
+	let navPinned = $state(false);
+	let sentinelEl: HTMLDivElement | null = null;
+
 	// Apply view-specific accent color (or profile default)
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -78,6 +82,20 @@
 
 		// Check AI Print availability (always check - API handles auth)
 		checkAIPrintStatus();
+
+		// Track when sentinel scrolls past top (nav becomes sticky)
+		const checkSentinel = () => {
+			if (!sentinelEl) return;
+			const rect = sentinelEl.getBoundingClientRect();
+			navPinned = rect.bottom <= 0;
+		};
+
+		checkSentinel();
+		window.addEventListener('scroll', checkSentinel, { passive: true });
+
+		return () => {
+			window.removeEventListener('scroll', checkSentinel);
+		};
 	});
 
 	async function checkAIPrintStatus() {
@@ -246,7 +264,11 @@
 	</div>
 {:else}
 	<div class="min-h-screen">
-		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
+		<div
+			class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
+			class:opacity-0={navPinned}
+			class:pointer-events-none={navPinned}
+		>
 			<!-- Print Menu -->
 			<div class="relative">
 				<button
@@ -339,6 +361,13 @@
 				</div>
 			</div>
 		{/if}
+
+		<!-- Sentinel to detect when ProfileNav becomes sticky -->
+		<div
+			aria-hidden="true"
+			class="h-px"
+			bind:this={sentinelEl}
+		></div>
 
 		<ProfileNav
 			hasExperience={data.sections?.experience?.length > 0}
