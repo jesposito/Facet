@@ -7,7 +7,9 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import { formatDate } from '$lib/utils';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
@@ -32,11 +34,29 @@
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
 
-const autosave = createAutosave('admin-certifications', { saveDelay: 1500 });
-let showRecoveryBanner = $state(false);
-let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+	const autosave = createAutosave('admin-certifications', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
-function getFormData() {
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: true,
+		enableDraftFilter: true,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search certifications...'
+	});
+	let showAdvancedFilters = $state(false);
+
+	let filteredCertifications = $derived(
+		filterStore.filterItems(
+			certifications,
+			(cert) => `${cert.name} ${cert.issuer || ''} ${cert.credential_id || ''}`,
+			(cert) => cert.visibility,
+			(cert) => cert.is_draft
+		)
+	);
+
+	function getFormData() {
 	return { name, issuer, issueDate, expiryDate, credentialId, credentialUrl, visibility, isDraft, sortOrder };
 }
 
@@ -249,7 +269,7 @@ onMount(loadCertifications);
 		return expiry > now && expiry <= thirtyDaysFromNow;
 	}
 
-	let groupedCertifications = $derived(groupByIssuer(certifications));
+	let groupedCertifications = $derived(groupByIssuer(filteredCertifications));
 
 	function toggleSelectMode() {
 		selectMode = !selectMode;
@@ -310,6 +330,16 @@ onMount(loadCertifications);
 		<p><strong>Tip:</strong> Add credential URLs so viewers can verify your certifications directly with the issuer.</p>
 	</PageHelp>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}
@@ -321,6 +351,8 @@ onMount(loadCertifications);
 			on:cancel={toggleSelectMode}
 		/>
 	{/if}
+
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
 
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Certifications</h1>
@@ -505,6 +537,19 @@ onMount(loadCertifications);
 			</p>
 			<button class="btn btn-primary" onclick={openNewForm}>
 				+ Add Your First Certification
+			</button>
+		</div>
+	{:else if filteredCertifications.length === 0}
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No certifications match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search or filter criteria.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear All Filters
 			</button>
 		</div>
 	{:else}

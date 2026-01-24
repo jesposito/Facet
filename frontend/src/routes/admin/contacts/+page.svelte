@@ -7,6 +7,8 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	
@@ -32,6 +34,24 @@
 	const autosave = createAutosave('admin-contacts', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
 	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: false,
+		enableDraftFilter: false,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search contact methods...'
+	});
+	let showAdvancedFilters = $state(false);
+
+	let filteredContacts = $derived(
+		filterStore.filterItems(
+			contacts,
+			(c) => `${c.value} ${c.label || ''} ${c.type}`,
+			() => 'public',
+			() => false
+		)
+	);
 
 	function getFormData() {
 		return { type, value, label, icon, protectionLevel, viewVisibility, isPrimary, sortOrder };
@@ -343,6 +363,8 @@
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
@@ -533,10 +555,33 @@
 			</p>
 			<button class="btn btn-primary" onclick={openNewForm}>+ Add Your First Contact</button>
 		</div>
+	{:else if filteredContacts.length === 0}
+		<div class="card p-8 text-center">
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				stroke="currentColor"
+				viewBox="0 0 24 24"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				/>
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No contact methods match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search query.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear Search
+			</button>
+		</div>
 	{:else}
 		<!-- List View -->
 		<div class="space-y-3">
-			{#each contacts as contact}
+			{#each filteredContacts as contact}
 				<div class="card p-4 flex items-center justify-between hover:shadow-md transition-shadow">
 					<div class="flex items-center space-x-4 flex-1">
 						<!-- Icon & Type -->

@@ -7,7 +7,9 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import { formatDate, truncate } from '$lib/utils';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
@@ -31,11 +33,29 @@
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
 
-const autosave = createAutosave('admin-awards', { saveDelay: 1500 });
-let showRecoveryBanner = $state(false);
-let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+	const autosave = createAutosave('admin-awards', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
-function getFormData() {
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: true,
+		enableDraftFilter: true,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search awards...'
+	});
+	let showAdvancedFilters = $state(false);
+
+	let filteredAwards = $derived(
+		filterStore.filterItems(
+			awards,
+			(award) => `${award.title} ${award.issuer || ''} ${award.description || ''}`,
+			(award) => award.visibility,
+			(award) => award.is_draft
+		)
+	);
+
+	function getFormData() {
 	return { title, issuer, awardedAt, description, url, visibility, isDraft, sortOrder };
 }
 
@@ -314,6 +334,8 @@ onMount(loadAwards);
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading awards...</div>
@@ -455,10 +477,23 @@ onMount(loadAwards);
 				+ Add Your First Award
 			</button>
 		</div>
+	{:else if filteredAwards.length === 0}
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No awards match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search or filter criteria.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear All Filters
+			</button>
+		</div>
 	{:else}
 		<!-- Awards List -->
 		<div class="space-y-3">
-			{#each awards as award (award.id)}
+			{#each filteredAwards as award (award.id)}
 				<div class="card p-4 {selectMode && selectedIds.has(award.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
