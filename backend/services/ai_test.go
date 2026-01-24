@@ -1,7 +1,10 @@
 package services
 
 import (
+	"context"
+	"net/http"
 	"testing"
+	"time"
 )
 
 func TestParseEnrichmentResponse(t *testing.T) {
@@ -182,4 +185,108 @@ func containsRune(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestEnrichProject_OpenAI(t *testing.T) {
+	mock := NewMockServer(t)
+	defer mock.Server.Close()
+
+	enrichmentJSON := `{"summary": "Test project", "bullets": ["Feature 1"], "tags": ["go"]}`
+	mock.Handle("POST", "/chat/completions", mock.JSON(http.StatusOK, OpenAIResponse(enrichmentJSON)))
+
+	ai := &AIService{client: &http.Client{Timeout: 5 * time.Second}}
+	provider := MockAIProvider(mock.URL, "openai")
+
+	result, err := ai.EnrichProject(context.Background(), provider, &EnrichmentRequest{
+		Title:       "Test",
+		Description: "A test project",
+		PrivacyMode: "full",
+	})
+
+	if err != nil {
+		t.Fatalf("EnrichProject() error = %v", err)
+	}
+	if result.Summary != "Test project" {
+		t.Errorf("Expected summary 'Test project', got %q", result.Summary)
+	}
+	if len(result.Bullets) != 1 {
+		t.Errorf("Expected 1 bullet, got %d", len(result.Bullets))
+	}
+}
+
+func TestEnrichProject_OpenAI_APIError(t *testing.T) {
+	mock := NewMockServer(t)
+	defer mock.Server.Close()
+
+	mock.Handle("POST", "/chat/completions", mock.Error(http.StatusUnauthorized, "Invalid API key"))
+
+	ai := &AIService{client: &http.Client{Timeout: 5 * time.Second}}
+	provider := MockAIProvider(mock.URL, "openai")
+
+	_, err := ai.EnrichProject(context.Background(), provider, &EnrichmentRequest{
+		Title: "Test",
+	})
+
+	if err == nil {
+		t.Fatal("Expected error for unauthorized request")
+	}
+}
+
+func TestEnrichProject_Anthropic(t *testing.T) {
+	mock := NewMockServer(t)
+	defer mock.Server.Close()
+
+	enrichmentJSON := `{"summary": "Anthropic test", "bullets": ["AI powered"], "tags": ["claude"]}`
+	mock.Handle("POST", "/messages", mock.JSON(http.StatusOK, AnthropicResponse(enrichmentJSON)))
+
+	ai := &AIService{client: &http.Client{Timeout: 5 * time.Second}}
+	provider := MockAIProvider(mock.URL, "anthropic")
+
+	result, err := ai.EnrichProject(context.Background(), provider, &EnrichmentRequest{
+		Title:       "Claude Test",
+		Description: "Testing Anthropic integration",
+		PrivacyMode: "summary",
+	})
+
+	if err != nil {
+		t.Fatalf("EnrichProject() error = %v", err)
+	}
+	if result.Summary != "Anthropic test" {
+		t.Errorf("Expected summary 'Anthropic test', got %q", result.Summary)
+	}
+}
+
+func TestEnrichProject_Ollama(t *testing.T) {
+	mock := NewMockServer(t)
+	defer mock.Server.Close()
+
+	enrichmentJSON := `{"summary": "Local model test", "bullets": ["Self-hosted"], "tags": ["ollama"]}`
+	mock.Handle("POST", "/api/generate", mock.JSON(http.StatusOK, OllamaResponse(enrichmentJSON)))
+
+	ai := &AIService{client: &http.Client{Timeout: 5 * time.Second}}
+	provider := MockAIProvider(mock.URL, "ollama")
+
+	result, err := ai.EnrichProject(context.Background(), provider, &EnrichmentRequest{
+		Title:       "Ollama Test",
+		Description: "Testing local model",
+		PrivacyMode: "none",
+	})
+
+	if err != nil {
+		t.Fatalf("EnrichProject() error = %v", err)
+	}
+	if result.Summary != "Local model test" {
+		t.Errorf("Expected summary 'Local model test', got %q", result.Summary)
+	}
+}
+
+func TestEnrichProject_UnsupportedProvider(t *testing.T) {
+	ai := &AIService{client: &http.Client{}}
+	provider := &AIProvider{Type: "unsupported"}
+
+	_, err := ai.EnrichProject(context.Background(), provider, &EnrichmentRequest{Title: "Test"})
+
+	if err == nil {
+		t.Fatal("Expected error for unsupported provider")
+	}
 }

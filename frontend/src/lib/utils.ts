@@ -235,3 +235,26 @@ export function toggleTheme(): void {
 	const current = getTheme();
 	setTheme(current === 'dark' ? 'light' : 'dark');
 }
+
+const DEFAULT_FETCH_TIMEOUT_MS = 5000;
+
+export async function fetchWithTimeout(
+	url: string,
+	options: RequestInit = {},
+	timeoutMs: number = DEFAULT_FETCH_TIMEOUT_MS
+): Promise<Response> {
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+	try {
+		const response = await fetch(url, {
+			...options,
+			signal: controller.signal
+		});
+		clearTimeout(timeoutId);
+		return response;
+	} catch (err) {
+		clearTimeout(timeoutId);
+		throw err;
+	}
+}

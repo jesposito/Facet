@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import type { Profile, Experience, Project, Education, Skill } from './pocketbase';
+import { fetchWithTimeout } from './utils';
 
 // Theme store
 function createThemeStore() {
@@ -333,7 +334,7 @@ function createSiteSettingsStore() {
 		loadSettings: async () => {
 			if (typeof window === 'undefined') return;
 			try {
-				const response = await fetch('/api/site-settings');
+				const response = await fetchWithTimeout('/api/site-settings');
 				if (response.ok) {
 					const data = await response.json();
 					set({
@@ -343,8 +344,7 @@ function createSiteSettingsStore() {
 						gaMeasurementId: data.ga_measurement_id || ''
 					});
 				}
-			} catch (err) {
-				console.warn('Failed to load site settings:', err);
+			} catch {
 			}
 		},
 		updateSetting: (key: keyof SiteSettings, value: any) => {
