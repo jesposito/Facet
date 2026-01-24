@@ -6,6 +6,8 @@
 	import { collection } from '$lib/stores/demo';
 	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
 
+	const appVersion = __APP_VERSION__;
+
 	interface Props {
 		isMobile?: boolean;
 	}
@@ -556,8 +558,8 @@ let isActive = $derived((href: string): boolean => {
 		{/each}
 	</nav>
 
-	<!-- Preview link -->
-	<div class="shrink-0 px-3 pb-4">
+	<!-- Preview link and version -->
+	<div class="shrink-0 px-3 pb-4 space-y-2">
 		<a
 			href="/"
 			target="_blank"
@@ -572,5 +574,10 @@ let isActive = $derived((href: string): boolean => {
 				<span class="text-sm">View Public Profile</span>
 			{/if}
 		</a>
+		{#if $adminSidebarOpen}
+			<div class="text-center text-xs text-gray-400 dark:text-gray-500">
+				{appVersion}
+			</div>
+		{/if}
 	</div>
 </aside>
