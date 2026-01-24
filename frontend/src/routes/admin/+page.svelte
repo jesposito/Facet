@@ -29,12 +29,36 @@
 		if (!mounted) return;
 
 		try {
-			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
-				collection('projects').getList(1, 1),
-				collection('experience').getList(1, 1),
-				collection('views').getList(1, 1),
-				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
-			]);
+			// Fetch stats individually to isolate failures
+			let projectsRes, experienceRes, viewsRes, proposalsRes;
+			
+			try {
+				projectsRes = await collection('projects').getList(1, 1);
+			} catch (e) {
+				console.error('Failed to load projects:', e);
+				projectsRes = { totalItems: 0, items: [] };
+			}
+			
+			try {
+				experienceRes = await collection('experience').getList(1, 1);
+			} catch (e) {
+				console.error('Failed to load experience:', e);
+				experienceRes = { totalItems: 0, items: [] };
+			}
+			
+			try {
+				viewsRes = await collection('views').getList(1, 1);
+			} catch (e) {
+				console.error('Failed to load views:', e);
+				viewsRes = { totalItems: 0, items: [] };
+			}
+			
+			try {
+				proposalsRes = await pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" });
+			} catch (e) {
+				console.error('Failed to load proposals:', e);
+				proposalsRes = { totalItems: 0, items: [] };
+			}
 
 			if (!mounted) return; // Check again after async operations
 
@@ -47,8 +71,8 @@
 
 			// Get recent projects and experience for activity feed (sorted by most recently updated)
 			const [recentProjects, recentExperience] = await Promise.all([
-				collection('projects').getList(1, 3, { sort: '-updated,-created' }),
-				collection('experience').getList(1, 3, { sort: '-updated,-created' })
+				collection('projects').getList(1, 3, { sort: '-updated' }),
+				collection('experience').getList(1, 3, { sort: '-updated' })
 			]);
 
 			if (!mounted) return;
