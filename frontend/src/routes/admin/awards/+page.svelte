@@ -18,6 +18,7 @@
 	let loading = $state(true);
 	let showForm = $state(false);
 	let editingAward: Award | null = $state(null);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	// Form fields
 	let title = $state('');
@@ -116,10 +117,16 @@ onMount(loadAwards);
 	async function loadAwards() {
 		loading = true;
 		try {
-			const records = await await collection('awards').getList(1, 100, {
-				sort: '-sort_order,-awarded_at'
-			});
+			const [records, membershipResp] = await Promise.all([
+				await collection('awards').getList(1, 100, {
+					sort: '-sort_order,-awarded_at'
+				}),
+				fetch('/api/admin/view-memberships?collection=awards', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			awards = records.items as unknown as Award[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err) {
 			console.error('Failed to load awards:', err);
 			toasts.add('error', 'Failed to load awards');
@@ -520,6 +527,28 @@ onMount(loadAwards);
 									</span>
 								{/if}
 							</div>
+
+							{#if memberships[award.id]?.length}
+								<div class="flex flex-wrap gap-1 mt-2">
+									{#each memberships[award.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[award.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[award.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+							{/if}
 
 							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 								{#if award.issuer}

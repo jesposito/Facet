@@ -20,6 +20,7 @@
 	let showForm = $state(false);
 	let editingContact: ContactMethod | null = $state(null);
 	let saving = $state(false);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	// Form fields
 	let type: ContactMethodType = $state('email');
@@ -142,10 +143,16 @@
 	async function loadContacts() {
 		loading = true;
 		try {
-			const records = await collection('contact_methods').getList(1, 100, {
-				sort: '-sort_order'
-			});
+			const [records, membershipResp] = await Promise.all([
+				await collection('contact_methods').getList(1, 100, {
+					sort: '-sort_order'
+				}),
+				fetch('/api/admin/view-memberships?collection=contact_methods', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			contacts = records.items as unknown as ContactMethod[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err) {
 			console.error('Failed to load contacts:', err);
 			toasts.add('error', 'Failed to load contact methods');
@@ -613,6 +620,28 @@
 									<span>👁️ All views</span>
 								{/if}
 							</div>
+
+							{#if memberships[contact.id]?.length}
+								<div class="flex flex-wrap gap-1 mt-2">
+									{#each memberships[contact.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[contact.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[contact.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+							{/if}
 						</div>
 					</div>
 

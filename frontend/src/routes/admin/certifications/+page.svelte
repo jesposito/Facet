@@ -18,6 +18,7 @@
 	let loading = $state(true);
 	let showForm = $state(false);
 	let editingCert: Certification | null = $state(null);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	// Form fields
 	let name = $state('');
@@ -118,10 +119,16 @@ onMount(loadCertifications);
 	async function loadCertifications() {
 		loading = true;
 		try {
-			const records = await await collection('certifications').getList(1, 100, {
-				sort: 'issuer,sort_order,-issue_date'
-			});
+			const [records, membershipResp] = await Promise.all([
+				await collection('certifications').getList(1, 100, {
+					sort: 'issuer,sort_order,-issue_date'
+				}),
+				fetch('/api/admin/view-memberships?collection=certifications', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			certifications = records.items as unknown as Certification[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err) {
 			console.error('Failed to load certifications:', err);
 			toasts.add('error', 'Failed to load certifications');
@@ -597,6 +604,28 @@ onMount(loadCertifications);
 												</span>
 											{/if}
 										</div>
+
+										{#if memberships[cert.id]?.length}
+											<div class="flex flex-wrap gap-1 mt-2">
+												{#each memberships[cert.id].slice(0, 3) as viewRef}
+													<a
+														href={`/admin/views/${viewRef.id}`}
+														target="_blank"
+														class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+														title={`Open view: ${viewRef.name}`}
+													>
+														{viewRef.slug || viewRef.name}
+													</a>
+												{/each}
+												{#if memberships[cert.id].length > 3}
+													<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+														+{memberships[cert.id].length - 3}
+													</span>
+												{/if}
+											</div>
+										{:else}
+											<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+										{/if}
 
 										<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 											{#if cert.issue_date}
