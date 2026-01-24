@@ -541,7 +541,6 @@ async function resolveMediaRefs(selected: string[]) {
 		/>
 	{/if}
 
-	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
 		<div class="flex items-center gap-2">
@@ -561,6 +560,8 @@ async function resolveMediaRefs(selected: string[]) {
 			</button>
 		</div>
 	</div>
+
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
 
 	{#if loading}
 		<div class="card p-8 text-center">

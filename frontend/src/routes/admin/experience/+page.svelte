@@ -51,6 +51,7 @@
 	let visibility = $state('public');
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
+	let companyLogoFile: FileList | null = $state(null);
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
 
@@ -59,7 +60,10 @@
 	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 	function getFormData() {
-		return { company, title, location, startDate, endDate, description, bulletsText, skillsText, visibility, isDraft, sortOrder };
+		return { 
+			company, title, location, startDate, endDate, description, bulletsText, skillsText, 
+			visibility, isDraft, sortOrder, hasLogoFile: !!(companyLogoFile && companyLogoFile.length > 0) 
+		};
 	}
 
 	function restoreFromDraft(data: Record<string, any>) {
@@ -167,6 +171,7 @@
 		visibility = 'public';
 		isDraft = false;
 		sortOrder = 0;
+		companyLogoFile = null;
 		adminTagIds = [];
 		editingExp = null;
 	}
@@ -241,27 +246,55 @@
 				.map((s) => s.trim())
 				.filter((s) => s);
 
-			const data = {
-				company: company.trim(),
-				title: title.trim(),
-				location: location.trim(),
-				start_date: startDate ? new Date(startDate).toISOString() : null,
-				end_date: endDate ? new Date(endDate).toISOString() : null,
-				description: description.trim(),
-				bullets: parsedBullets,
-				skills: parsedSkills,
-				visibility,
-				is_draft: isDraft,
-				sort_order: sortOrder,
-				admin_tags: adminTagIds
-			};
+			// Use FormData for file uploads, plain object otherwise
+			const hasFile = companyLogoFile && companyLogoFile.length > 0;
+			
+			if (hasFile) {
+				const formData = new FormData();
+				formData.append('company', company.trim());
+				formData.append('title', title.trim());
+				formData.append('location', location.trim());
+				formData.append('start_date', startDate ? new Date(startDate).toISOString() : '');
+				formData.append('end_date', endDate ? new Date(endDate).toISOString() : '');
+				formData.append('description', description.trim());
+				formData.append('bullets', JSON.stringify(parsedBullets));
+				formData.append('skills', JSON.stringify(parsedSkills));
+				formData.append('visibility', visibility);
+				formData.append('is_draft', String(isDraft));
+				formData.append('sort_order', String(sortOrder));
+				formData.append('admin_tags', JSON.stringify(adminTagIds));
+				formData.append('company_logo', companyLogoFile![0]);
 
-			if (editingExp) {
-				await await collection('experience').update(editingExp.id, data);
-				toasts.add('success', 'Experience updated successfully');
+				if (editingExp) {
+					await collection('experience').update(editingExp.id, formData);
+					toasts.add('success', 'Experience updated successfully');
+				} else {
+					await collection('experience').create(formData);
+					toasts.add('success', 'Experience created successfully');
+				}
 			} else {
-				await await collection('experience').create(data);
-				toasts.add('success', 'Experience created successfully');
+				const data = {
+					company: company.trim(),
+					title: title.trim(),
+					location: location.trim(),
+					start_date: startDate ? new Date(startDate).toISOString() : null,
+					end_date: endDate ? new Date(endDate).toISOString() : null,
+					description: description.trim(),
+					bullets: parsedBullets,
+					skills: parsedSkills,
+					visibility,
+					is_draft: isDraft,
+					sort_order: sortOrder,
+					admin_tags: adminTagIds
+				};
+
+				if (editingExp) {
+					await collection('experience').update(editingExp.id, data);
+					toasts.add('success', 'Experience updated successfully');
+				} else {
+					await collection('experience').create(data);
+					toasts.add('success', 'Experience created successfully');
+				}
 			}
 
 			closeForm();
@@ -450,6 +483,8 @@
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading experiences...</div>
@@ -504,6 +539,28 @@
 						class="input"
 						placeholder="San Francisco, CA"
 					/>
+				</div>
+
+				<div>
+					<label for="company_logo" class="label">Company Logo (optional)</label>
+					<input
+						type="file"
+						id="company_logo"
+						accept="image/*"
+						bind:files={companyLogoFile}
+						class="input"
+					/>
+					<p class="text-xs text-gray-500 mt-1">Upload a company logo to display with this experience</p>
+					{#if editingExp?.company_logo}
+						<div class="mt-2 flex items-center gap-2">
+							<img
+								src={pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' })}
+								alt="Current company logo"
+								class="w-8 h-8 object-contain rounded border border-gray-200 dark:border-gray-600"
+							/>
+							<span class="text-sm text-gray-500">Current logo</span>
+						</div>
+					{/if}
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -671,8 +728,6 @@
 			</button>
 		</div>
 	{:else}
-		<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
-		
 		{#if filteredExperiences.length === 0}
 			<div class="card p-8 text-center">
 				<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
