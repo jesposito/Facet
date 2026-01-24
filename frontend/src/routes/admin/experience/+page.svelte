@@ -12,6 +12,8 @@
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
+	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 
 	let experiences: Experience[] = $state([]);
 	let loading = $state(true);
@@ -36,6 +38,7 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let saving = $state(false);
+	let adminTagIds: string[] = $state([]);
 
 	const autosave = createAutosave('admin-experience', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
@@ -89,7 +92,8 @@
 		loading = true;
 		try {
 			const records = await await collection('experience').getList(1, 100, {
-				sort: '-sort_order,-start_date'
+				sort: '-sort_order,-start_date',
+				expand: 'admin_tags'
 			});
 			experiences = records.items as unknown as Experience[];
 		} catch (err) {
@@ -114,6 +118,7 @@
 		visibility = 'public';
 		isDraft = false;
 		sortOrder = 0;
+		adminTagIds = [];
 		editingExp = null;
 	}
 
@@ -157,6 +162,7 @@
 		visibility = exp.visibility;
 		isDraft = exp.is_draft;
 		sortOrder = exp.sort_order;
+		adminTagIds = exp.admin_tags || [];
 		showForm = true;
 	}
 
@@ -197,7 +203,8 @@
 				skills: parsedSkills,
 				visibility,
 				is_draft: isDraft,
-				sort_order: sortOrder
+				sort_order: sortOrder,
+				admin_tags: adminTagIds
 			};
 
 			if (editingExp) {
@@ -542,6 +549,12 @@
 						Save as draft (won't be visible publicly)
 					</label>
 				</div>
+
+				<div>
+					<label class="label">Admin Tags</label>
+					<AdminTagSelector bind:selectedIds={adminTagIds} />
+					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
+				</div>
 			</div>
 
 			<div class="flex justify-end gap-3">
@@ -605,6 +618,11 @@
 									<span class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
 										Current
 									</span>
+								{/if}
+								{#if exp.expand?.admin_tags && exp.expand.admin_tags.length > 0}
+									{#each exp.expand.admin_tags as tag (tag.id)}
+										<AdminTagBadge name={tag.name} color={tag.color} />
+									{/each}
 								{/if}
 							</div>
 
