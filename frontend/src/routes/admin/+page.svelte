@@ -30,10 +30,10 @@
 
 		try {
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
-				collection('projects').getList(1, 1, { $autoCancel: false }),
-				collection('experience').getList(1, 1, { $autoCancel: false }),
-				collection('views').getList(1, 1, { $autoCancel: false }),
-				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'", $autoCancel: false })
+				collection('projects').getList(1, 1),
+				collection('experience').getList(1, 1),
+				collection('views').getList(1, 1),
+				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
 			]);
 
 			if (!mounted) return; // Check again after async operations
@@ -47,8 +47,8 @@
 
 			// Get recent projects and experience for activity feed (sorted by most recently updated)
 			const [recentProjects, recentExperience] = await Promise.all([
-				collection('projects').getList(1, 3, { sort: '-updated,-created', $autoCancel: false }),
-				collection('experience').getList(1, 3, { sort: '-updated,-created', $autoCancel: false })
+				collection('projects').getList(1, 3, { sort: '-updated,-created' }),
+				collection('experience').getList(1, 3, { sort: '-updated,-created' })
 			]);
 
 			if (!mounted) return;
