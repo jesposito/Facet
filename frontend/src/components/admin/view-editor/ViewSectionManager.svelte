@@ -20,6 +20,7 @@
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 	let TRIGGERS: any = $state({});
 	let SHADOW_PLACEHOLDER_ITEM_ID: string = $state('');
+	let dndLoaded = $state(false);
 
 	// Load DnD functionality when in browser
 	onMount(async () => {
@@ -28,6 +29,7 @@
 			dndzone = dnd;
 			TRIGGERS = trig;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
+			dndLoaded = true;
 			
 			// Apply saved item order after dndzone is loaded
 			// This ensures selected items appear at top in saved order
@@ -234,6 +236,7 @@
 		</div>
 	</div>
 
+	{#key dndLoaded}
 	<div
 		class="space-y-3"
 		use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'sections' }}
@@ -525,11 +528,12 @@
 										</button>
 									{/if}
 								</div>
-							{/each}
-						</div>
+						{/each}
 					</div>
-				{/if}
-			</div>
-		{/each}
+				</div>
+			{/if}
+		</div>
+	{/each}
 	</div>
+	{/key}
 </div>
