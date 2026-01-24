@@ -440,7 +440,7 @@
 	</p>
 
 	<!-- Security section -->
-	<div class="space-y-4 mb-8">
+	<div id="security" class="space-y-4 mb-8">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Security</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">Manage your account password.</p>
@@ -522,7 +522,7 @@
 	</div>
 
 	<!-- Admin UI controls -->
-	<div class="space-y-4 mb-6">
+	<div id="admin-ui" class="space-y-4 mb-6">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Admin UI</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">Customize the admin interface.</p>
@@ -559,7 +559,7 @@
 	</div>
 
 	<!-- Public site controls -->
-	<div class="space-y-4 mb-6">
+	<div id="analytics" class="space-y-4 mb-6">
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Public site</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">Analytics and custom styling for your live profile.</p>
@@ -599,7 +599,7 @@
 	</div>
 
 	<!-- Custom CSS -->
-	<div class="card p-6 mb-6">
+	<div id="custom-css" class="card p-6 mb-6">
 		<div class="flex items-start justify-between gap-3">
 			<div>
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Custom CSS</h2>
@@ -685,7 +685,7 @@ body { font-family: 'Inter', sans-serif; }
 	{/if}
 
 	<!-- Appearance Section -->
-	<div class="card p-6 mb-6">
+	<div id="appearance" class="card p-6 mb-6">
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h2>
 		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 			Choose an accent color for buttons, links, and highlights across your profile.
@@ -776,7 +776,7 @@ body { font-family: 'Inter', sans-serif; }
 	</div>
 
 	<!-- AI Providers -->
-	<div class="card p-6">
+	<div id="ai-providers" class="card p-6">
 		<div class="flex items-center justify-between mb-4">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Providers</h2>
 			<button class="btn btn-primary btn-sm" onclick={() => (showAddForm = !showAddForm)}>
@@ -966,7 +966,7 @@ body { font-family: 'Inter', sans-serif; }
 	</div>
 
 	<!-- Export Section -->
-	<div class="card p-6 mt-6">
+	<div id="export" class="card p-6 mt-6">
 		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Export</h2>
 		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 			Download your complete profile data for backup or migration. All your content (profile, experience,

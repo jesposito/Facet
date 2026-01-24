@@ -17,6 +17,7 @@
 	import ViewResumeGenerator from '$components/admin/view-editor/ViewResumeGenerator.svelte';
 	import ViewBasicInfo from '$components/admin/view-editor/ViewBasicInfo.svelte';
 	import ViewSectionManager from '$components/admin/view-editor/ViewSectionManager.svelte';
+	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import type { OverrideEditorState, ResumeGenerationConfig, ExportRecord } from '$lib/view-editor/types';
 
 	// Default section definitions - used to initialize and provide labels
@@ -86,6 +87,9 @@
 		visibility: string;
 		is_draft?: boolean;
 		data: Record<string, unknown>;
+		expand?: {
+			admin_tags?: Array<{ id: string; name: string; color: string }>;
+		};
 	}>> = $state({});
 
 	// Override editor state
@@ -594,7 +598,8 @@
 				const filter = key === 'testimonials' ? 'status = "approved"' : '';
 				const records = await collection(def.collection).getList(1, 100, {
 					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
-					filter
+					filter,
+					expand: 'admin_tags'
 				});
 
 				sectionItems[key] = records.items.map((item) => ({
@@ -602,7 +607,8 @@
 					label: getItemLabel(key, item),
 					visibility: (item as Record<string, unknown>).visibility as string || 'public',
 					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
-					data: item as Record<string, unknown>
+					data: item as Record<string, unknown>,
+					expand: (item as any).expand || {}
 				}));
 			} catch (err) {
 				console.error(`Failed to load ${key} items:`, err);
@@ -1492,12 +1498,12 @@
 	.editor-pane {
 		flex: 1;
 		min-width: 0;
-		max-width: 48rem; /* max-w-3xl */
+		max-width: none; /* Expand to full width when preview hidden */
 	}
 
 	.editor-layout.with-preview .editor-pane {
 		flex: 3;
-		max-width: none;
+		max-width: 48rem; /* Constrain when preview is showing */
 	}
 
 	.preview-pane {

@@ -7,11 +7,13 @@ import { pb, type Post } from '$lib/pocketbase';
 import { collection } from '$lib/stores/demo';
 import { toasts, confirm } from '$lib/stores';
 import { createAutosave } from '$lib/stores/autosave';
+import { createFilterState } from '$lib/admin/filterState.svelte';
 import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 import PageHelp from '$components/admin/PageHelp.svelte';
+import AdminFilters from '$components/admin/AdminFilters.svelte';
 
 let posts: Post[] = $state([]);
 let loading = $state(true);
@@ -26,6 +28,25 @@ let showShortcodes = $state(false);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+const filterStore = createFilterState({
+	enableSearch: true,
+	enableVisibilityFilter: true,
+	enableDraftFilter: true,
+	enableTagFilter: false,
+	searchPlaceholder: 'Search posts...'
+});
+let showAdvancedFilters = $state(false);
+
+let filteredPosts = $derived(
+	filterStore.filterItems(
+		posts,
+		(post) => `${post.title} ${post.excerpt || ''} ${post.content || ''} ${(post.tags || []).join(' ')}`,
+		(post) => post.visibility,
+		(post) => post.is_draft,
+		() => []
+	)
+);
 
 const autosave = createAutosave('admin-posts', { saveDelay: 1500 });
 let showRecoveryBanner = $state(false);
@@ -459,6 +480,8 @@ function openEditForm(post: Post) {
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
 		<div class="flex items-center gap-2">
@@ -758,10 +781,23 @@ function openEditForm(post: Post) {
 				Write your first post
 			</button>
 		</div>
+	{:else if filteredPosts.length === 0}
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No posts match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search or filter criteria.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear All Filters
+			</button>
+		</div>
 	{:else}
 		<!-- Posts List -->
 		<div class="space-y-4">
-			{#each posts as post (post.id)}
+			{#each filteredPosts as post (post.id)}
 				<div class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start gap-4">
 						{#if selectMode}

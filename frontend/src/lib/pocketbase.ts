@@ -65,6 +65,13 @@ export interface ContactLink {
 	label?: string;
 }
 
+export interface AdminTag {
+	id: string;
+	name: string;
+	color: string;
+	sort_order: number;
+}
+
 export interface Experience {
 	id: string;
 	company: string;
@@ -80,6 +87,10 @@ export interface Experience {
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface Project {
@@ -103,6 +114,10 @@ export interface Project {
 	sort_order: number;
 	source_id?: string;
 	field_locks?: Record<string, boolean>;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface ProjectLink {
@@ -122,6 +137,10 @@ export interface Education {
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface Skill {
@@ -132,6 +151,10 @@ export interface Skill {
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface Post {
@@ -147,6 +170,10 @@ export interface Post {
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	published_at?: string;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface Talk {
@@ -165,6 +192,10 @@ export interface Talk {
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface Certification {
@@ -179,6 +210,10 @@ export interface Certification {
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export interface Award {
@@ -192,6 +227,10 @@ export interface Award {
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
 	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
 }
 
 export type ContactMethodType =

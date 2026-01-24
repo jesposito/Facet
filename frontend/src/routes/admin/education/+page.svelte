@@ -7,18 +7,40 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 
 	let educations: Education[] = $state([]);
 	let loading = $state(true);
 	let showForm = $state(false);
 	let editingEdu: Education | null = $state(null);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+const filterStore = createFilterState({
+	enableSearch: true,
+	enableVisibilityFilter: true,
+	enableDraftFilter: true,
+	enableTagFilter: false,
+	searchPlaceholder: 'Search education...'
+});
+let showAdvancedFilters = $state(false);
+
+let filteredEducations = $derived(
+	filterStore.filterItems(
+		educations,
+		(edu) => `${edu.institution} ${edu.degree || ''} ${edu.field || ''} ${edu.description || ''}`,
+		(edu) => edu.visibility,
+		(edu) => edu.is_draft,
+		() => []
+	)
+);
 
 const autosave = createAutosave('admin-education', { saveDelay: 1500 });
 let showRecoveryBanner = $state(false);
@@ -79,10 +101,16 @@ afterNavigate(() => {
 	async function loadEducations() {
 		loading = true;
 		try {
-			const records = await await collection('education').getList(1, 100, {
-				sort: '-sort_order,-end_date'
-			});
+			const [records, membershipResp] = await Promise.all([
+				await collection('education').getList(1, 100, {
+					sort: '-sort_order,-end_date'
+				}),
+				fetch('/api/admin/view-memberships?collection=education', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			educations = records.items as unknown as Education[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err) {
 			console.error('Failed to load education:', err);
 			toasts.add('error', 'Failed to load education');
@@ -310,6 +338,8 @@ afterNavigate(() => {
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Education</h1>
 		<div class="flex items-center gap-2">
@@ -489,10 +519,23 @@ afterNavigate(() => {
 				+ Add Your First Education
 			</button>
 		</div>
+	{:else if filteredEducations.length === 0}
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No education matches your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search or filter criteria.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear All Filters
+			</button>
+		</div>
 	{:else}
 		<!-- Education List -->
 		<div class="space-y-4">
-			{#each educations as edu (edu.id)}
+			{#each filteredEducations as edu (edu.id)}
 				<div class="card p-4 {selectMode && selectedIds.has(edu.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
@@ -527,6 +570,28 @@ afterNavigate(() => {
 									</span>
 								{/if}
 							</div>
+
+							{#if memberships[edu.id]?.length}
+								<div class="flex flex-wrap gap-1 mt-2">
+									{#each memberships[edu.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[edu.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[edu.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+							{/if}
 
 							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 								<span class="flex items-center gap-1">

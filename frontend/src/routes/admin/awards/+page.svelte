@@ -7,7 +7,9 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import { formatDate, truncate } from '$lib/utils';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
@@ -16,6 +18,7 @@
 	let loading = $state(true);
 	let showForm = $state(false);
 	let editingAward: Award | null = $state(null);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	// Form fields
 	let title = $state('');
@@ -31,11 +34,29 @@
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
 
-const autosave = createAutosave('admin-awards', { saveDelay: 1500 });
-let showRecoveryBanner = $state(false);
-let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+	const autosave = createAutosave('admin-awards', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
-function getFormData() {
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: true,
+		enableDraftFilter: true,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search awards...'
+	});
+	let showAdvancedFilters = $state(false);
+
+	let filteredAwards = $derived(
+		filterStore.filterItems(
+			awards,
+			(award) => `${award.title} ${award.issuer || ''} ${award.description || ''}`,
+			(award) => award.visibility,
+			(award) => award.is_draft
+		)
+	);
+
+	function getFormData() {
 	return { title, issuer, awardedAt, description, url, visibility, isDraft, sortOrder };
 }
 
@@ -96,10 +117,16 @@ onMount(loadAwards);
 	async function loadAwards() {
 		loading = true;
 		try {
-			const records = await await collection('awards').getList(1, 100, {
-				sort: '-sort_order,-awarded_at'
-			});
+			const [records, membershipResp] = await Promise.all([
+				await collection('awards').getList(1, 100, {
+					sort: '-sort_order,-awarded_at'
+				}),
+				fetch('/api/admin/view-memberships?collection=awards', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 			awards = records.items as unknown as Award[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
 		} catch (err) {
 			console.error('Failed to load awards:', err);
 			toasts.add('error', 'Failed to load awards');
@@ -314,6 +341,8 @@ onMount(loadAwards);
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading awards...</div>
@@ -455,10 +484,23 @@ onMount(loadAwards);
 				+ Add Your First Award
 			</button>
 		</div>
+	{:else if filteredAwards.length === 0}
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No awards match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search or filter criteria.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear All Filters
+			</button>
+		</div>
 	{:else}
 		<!-- Awards List -->
 		<div class="space-y-3">
-			{#each awards as award (award.id)}
+			{#each filteredAwards as award (award.id)}
 				<div class="card p-4 {selectMode && selectedIds.has(award.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
@@ -485,6 +527,28 @@ onMount(loadAwards);
 									</span>
 								{/if}
 							</div>
+
+							{#if memberships[award.id]?.length}
+								<div class="flex flex-wrap gap-1 mt-2">
+									{#each memberships[award.id].slice(0, 3) as viewRef}
+										<a
+											href={`/admin/views/${viewRef.id}`}
+											target="_blank"
+											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+											title={`Open view: ${viewRef.name}`}
+										>
+											{viewRef.slug || viewRef.name}
+										</a>
+									{/each}
+									{#if memberships[award.id].length > 3}
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+											+{memberships[award.id].length - 3}
+										</span>
+									{/if}
+								</div>
+							{:else}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+							{/if}
 
 							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 								{#if award.issuer}
