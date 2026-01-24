@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
+	import { toasts } from '$lib/stores';
 	import { onMount, onDestroy } from 'svelte';
 
 	let stats = $state({
@@ -67,11 +68,13 @@
 				.sort((a, b) => b.date.localeCompare(a.date))
 				.slice(0, 5);
 		} catch (err) {
-			// Silently ignore autocancellation errors (they're expected when navigating away)
 			if (err instanceof Error && err.message.includes('autocancelled')) {
 				return;
 			}
 			console.error('Failed to load dashboard stats:', err);
+			if (mounted) {
+				toasts.error('Failed to load dashboard stats');
+			}
 		} finally {
 			if (mounted) {
 				loading = false;

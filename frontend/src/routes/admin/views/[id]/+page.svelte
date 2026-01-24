@@ -41,6 +41,7 @@
 	let saving = $state(false);
 	let deleting = $state(false);
 	let view: View | null = $state(null);
+	let mounted = false;
 
 	// Profile data for preview and showing overrides
 	let profile: Profile | null = $state(null);
@@ -116,8 +117,8 @@
 
 
 
-	// Simple pattern - admin layout handles auth
 	onMount(async () => {
+		mounted = true;
 		if (!viewId) {
 			toasts.add('error', 'Invalid facet ID');
 			goto('/admin/views');
@@ -130,11 +131,13 @@
 			checkAIPrintStatus(),
 			loadViewTokens()
 		]);
-		// Wait for Svelte to process reactive updates before reordering
 		await tick();
 		applySavedItemOrder();
-		// Load exports after view is loaded (needs slug)
 		await loadExports();
+	});
+
+	onDestroy(() => {
+		mounted = false;
 	});
 
 	// Reload view data when navigating between different views (e.g., clicking facets in sidebar)
@@ -549,9 +552,14 @@
 
 			initializeSections(view.sections);
 		} catch (err) {
+			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+				return;
+			}
 			console.error('Failed to load view:', err);
-			toasts.add('error', 'Failed to load facet');
-			goto('/admin/views');
+			if (mounted) {
+				toasts.add('error', 'Failed to load facet');
+				goto('/admin/views');
+			}
 		} finally {
 			loading = false;
 		}
