@@ -8,12 +8,14 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { formatDate } from '$lib/utils';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 
 	let experiences: Experience[] = $state([]);
 	let loading = $state(true);
@@ -22,6 +24,17 @@
 
 	let selectMode = $state(false);
 	let selectedIds: Set<string> = $state(new Set());
+
+	// Filtering
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: true,
+		enableDraftFilter: true,
+		enableTagFilter: true,
+		searchPlaceholder: 'Search experience...'
+	});
+	let availableTags: Array<{ id: string; name: string; color: string }> = $state([]);
+	let showAdvancedFilters = $state(false);
 
 	// Form fields
 	let company = $state('');
@@ -86,7 +99,36 @@
 
 
 
-	onMount(loadExperiences);
+	onMount(() => {
+		loadExperiences();
+		loadAvailableTags();
+	});
+
+	async function loadAvailableTags() {
+		try {
+			const records = await collection('admin_tags').getList(1, 100, {
+				sort: 'sort_order,name'
+			});
+			availableTags = records.items.map(tag => ({
+				id: tag.id,
+				name: tag.name,
+				color: tag.color
+			}));
+		} catch (err) {
+			console.error('Failed to load available tags:', err);
+		}
+	}
+
+	// Computed filtered experiences
+	let filteredExperiences = $derived(
+		filterStore.filterItems(
+			experiences,
+			(exp) => `${exp.company} ${exp.title} ${exp.location || ''} ${exp.description || ''}`,
+			(exp) => exp.visibility,
+			(exp) => exp.is_draft,
+			(exp) => (exp as any).admin_tags || []
+		)
+	);
 
 	async function loadExperiences() {
 		loading = true;
@@ -162,7 +204,7 @@
 		visibility = exp.visibility;
 		isDraft = exp.is_draft;
 		sortOrder = exp.sort_order;
-		adminTagIds = exp.admin_tags || [];
+		adminTagIds = (exp as any).admin_tags || [];
 		showForm = true;
 	}
 
@@ -225,19 +267,42 @@
 		}
 	}
 
+	async function duplicateExperience(exp: Experience) {
+		try {
+			const response = await fetch(`/api/admin/duplicate/experience/${exp.id}`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${pb.authStore.token}`,
+					'Content-Type': 'application/json'
+				}
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.message || `HTTP ${response.status}`);
+			}
+
+			const data = await response.json();
+			await loadExperiences();
+			toasts.add('success', `Experience at ${exp.company} duplicated successfully`);
+		} catch (err) {
+			console.error('Failed to duplicate experience:', err);
+			toasts.add('error', `Failed to duplicate experience: ${err instanceof Error ? err.message : 'Unknown error'}`);
+		}
+	}
+
 	async function deleteExperience(exp: Experience) {
 		const confirmed = await confirm({
 			title: 'Delete Experience',
-			message: `Are you sure you want to delete "${exp.title} at ${exp.company}"? This action cannot be undone.`,
+			message: `Are you sure you want to delete your experience at "${exp.company}"? This action cannot be undone.`,
 			confirmText: 'Delete',
 			danger: true
 		});
 		if (!confirmed) return;
-
 		try {
-			await await collection('experience').delete(exp.id);
-			toasts.add('success', 'Experience deleted');
+			await collection('experience').delete(exp.id);
 			await loadExperiences();
+			toasts.add('success', `Experience at ${exp.company} deleted`);
 		} catch (err) {
 			console.error('Failed to delete experience:', err);
 			toasts.add('error', 'Failed to delete experience');
@@ -246,7 +311,7 @@
 
 	async function togglePublish(exp: Experience) {
 		try {
-			await await collection('experience').update(exp.id, {
+			await collection('experience').update(exp.id, {
 				is_draft: !exp.is_draft
 			});
 			toasts.add('success', exp.is_draft ? 'Experience published' : 'Experience unpublished');
@@ -559,6 +624,19 @@
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
+				{#if editingExp}
+					<button 
+						type="button" 
+						class="btn btn-outline" 
+						onclick={() => editingExp && duplicateExperience(editingExp)}
+						disabled={saving}
+					>
+						<svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+						</svg>
+						Duplicate
+					</button>
+				{/if}
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -584,9 +662,29 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Experience List -->
-		<div class="space-y-4">
-			{#each experiences as exp (exp.id)}
+		<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
+		
+		{#if filteredExperiences.length === 0}
+			<div class="card p-8 text-center">
+				<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+				</svg>
+				<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No matching experiences</h3>
+				<p class="text-gray-500 dark:text-gray-400 mb-4">
+					Try adjusting your filters or add new experience entries.
+				</p>
+				{#if filterStore.hasActiveFilters()}
+					<button class="btn btn-secondary mr-2" onclick={() => filterStore.clearAllFilters()}>
+						Clear filters
+					</button>
+				{/if}
+				<button class="btn btn-primary" onclick={openNewForm}>
+					+ Add Experience
+				</button>
+			</div>
+		{:else}
+			<div class="space-y-4">
+				{#each filteredExperiences as exp (exp.id)}
 				<div class="card p-4 {selectMode && selectedIds.has(exp.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
@@ -619,8 +717,8 @@
 										Current
 									</span>
 								{/if}
-								{#if exp.expand?.admin_tags && exp.expand.admin_tags.length > 0}
-									{#each exp.expand.admin_tags as tag (tag.id)}
+								{#if (exp as any).expand?.admin_tags && (exp as any).expand.admin_tags.length > 0}
+									{#each (exp as any).expand.admin_tags as tag (tag.id)}
 										<AdminTagBadge name={tag.name} color={tag.color} />
 									{/each}
 								{/if}
@@ -689,6 +787,15 @@
 								</svg>
 							</button>
 							<button
+								class="p-3 text-gray-500 hover:text-green-600"
+								onclick={() => duplicateExperience(exp)}
+								title="Duplicate"
+							>
+								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+								</svg>
+							</button>
+							<button
 								class="p-3 text-gray-500 hover:text-red-600"
 								onclick={() => deleteExperience(exp)}
 								title="Delete"
@@ -700,7 +807,8 @@
 						</div>
 					</div>
 				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{/if}
 	{/if}
 </div>

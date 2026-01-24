@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { icon } from '$lib/icons';
+	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import { 
 		OVERRIDABLE_FIELDS, 
 		VALID_LAYOUTS, 
@@ -110,6 +111,9 @@
 			visibility: string;
 			is_draft?: boolean;
 			data: Record<string, unknown>;
+			expand?: {
+				admin_tags?: Array<{ id: string; name: string; color: string }>;
+			};
 		}>>;
 		viewId: string;
 		onOpenOverrideEditor: (sectionKey: string, itemId: string) => void;
@@ -477,10 +481,19 @@
 									onclick={(e) => e.stopPropagation()}
 									class="w-4 h-4 text-primary-600 rounded border-gray-300"
 								/>
-										<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
-											{item.label}
-										</span>
-									</label>
+								<div class="flex-1 min-w-0">
+									<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
+										{item.label}
+									</span>
+									{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
+										<div class="flex gap-1 mt-1 flex-wrap">
+											{#each item.expand.admin_tags as tag (tag.id)}
+												<AdminTagBadge name={tag.name} color={tag.color} />
+											{/each}
+										</div>
+									{/if}
+								</div>
+							</label>
 									{#if itemHasOverrides}
 										<span class="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded flex items-center gap-1">
 											{@html icon('zap')}
