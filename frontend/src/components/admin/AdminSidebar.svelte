@@ -146,8 +146,26 @@ const settingsSections = navSections.filter(s => s.id === 'settings');
 
 // Reactive function that updates when $page changes
 let isActive = $derived((href: string): boolean => {
-	const currentPath = $page.url.pathname;
-	const targetPath = href.split('#')[0];
+	const currentUrl = $page.url;
+	const currentPath = currentUrl.pathname;
+	const [targetPath, targetHash] = href.split('#');
+
+	// Handle hash links (specifically for Settings sections)
+	if (targetHash) {
+		// Must match the path part exactly
+		if (currentPath !== targetPath) {
+			return false;
+		}
+
+		// If current URL has a hash, it must match the target hash
+		if (currentUrl.hash) {
+			return currentUrl.hash === '#' + targetHash;
+		}
+
+		// If current URL has NO hash, default to the 'security' tab (first item)
+		// This ensures 'Account & Security' appears active when visiting /admin/settings directly
+		return targetHash === 'security';
+	}
 
 	// Exact match for dashboard
 	if (targetPath === '/admin') {
@@ -156,7 +174,6 @@ let isActive = $derived((href: string): boolean => {
 
 	// For other paths, check if current path starts with the href
 	// and is followed by either nothing, a slash, or end of string
-	// This prevents /admin/view from matching when on /admin/views
 	return currentPath === targetPath || currentPath.startsWith(targetPath + '/');
 });
 </script>
