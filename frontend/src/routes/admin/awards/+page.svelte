@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Award } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -23,10 +24,19 @@
 	let sortOrder = $state(0);
 	let saving = $state(false);
 
-	let selectMode = $state(false);
-	let selectedIds: Set<string> = $state(new Set());
+let selectMode = $state(false);
+let selectedIds: Set<string> = $state(new Set());
 
-	onMount(loadAwards);
+// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+afterNavigate(() => {
+	// Reset UI state when navigating to this page (including same-route navigation)
+	showForm = false;
+	editingAward = null;
+	selectMode = false;
+	selectedIds = new Set();
+});
+
+onMount(loadAwards);
 
 	async function loadAwards() {
 		loading = true;

@@ -2,6 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -25,6 +26,13 @@
 	let viewVisibility: Record<string, boolean> = $state({});
 	let isPrimary = $state(false);
 	let sortOrder = $state(0);
+
+	// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+	afterNavigate(() => {
+		// Reset UI state when navigating to this page (including same-route navigation)
+		showForm = false;
+		editingContact = null;
+	});
 
 	// Contact method type options with icons
 	const contactTypes: { value: ContactMethodType; label: string; icon: string; placeholder: string }[] = [

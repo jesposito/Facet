@@ -2,6 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Talk } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -37,6 +38,15 @@ let loadingMedia = $state(false);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+afterNavigate(() => {
+	// Reset UI state when navigating to this page (including same-route navigation)
+	showForm = false;
+	editingTalk = null;
+	selectMode = false;
+	selectedIds = new Set();
+});
 
 	// Generate slug from title
 	function generateSlug(text: string): string {

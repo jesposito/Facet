@@ -2,6 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -37,6 +38,15 @@ let memberships: Record<string, { id: string; name: string; slug: string }[]> = 
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+afterNavigate(() => {
+	// Reset UI state when navigating to this page (including same-route navigation)
+	showForm = false;
+	editingProject = null;
+	selectMode = false;
+	selectedIds = new Set();
+});
 
 onMount(loadProjects);
 onMount(loadMediaOptions);

@@ -2,6 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -33,6 +34,15 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let saving = $state(false);
+
+	// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+	afterNavigate(() => {
+		// Reset UI state when navigating to this page (including same-route navigation)
+		showForm = false;
+		editingExp = null;
+		selectMode = false;
+		selectedIds = new Set();
+	});
 
 	onMount(loadExperiences);
 

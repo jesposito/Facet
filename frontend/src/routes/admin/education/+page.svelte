@@ -2,6 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { pb, type Education } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -14,8 +15,17 @@
 	let showForm = $state(false);
 	let editingEdu: Education | null = $state(null);
 
-	let selectMode = $state(false);
-	let selectedIds: Set<string> = $state(new Set());
+let selectMode = $state(false);
+let selectedIds: Set<string> = $state(new Set());
+
+// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+afterNavigate(() => {
+	// Reset UI state when navigating to this page (including same-route navigation)
+	showForm = false;
+	editingEdu = null;
+	selectMode = false;
+	selectedIds = new Set();
+});
 
 	// Form fields
 	let institution = $state('');
