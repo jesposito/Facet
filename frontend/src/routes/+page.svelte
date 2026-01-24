@@ -4,7 +4,6 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { intersection } from '$lib/actions/intersection';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
@@ -100,6 +99,7 @@
 
 	// Floating buttons visibility - hide when nav is pinned (sticky)
 	let navPinned = $state(false);
+	let sentinelEl: HTMLDivElement | null = null;
 
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
@@ -146,6 +146,20 @@
 
 		// Check AI Print availability
 		checkAIPrintStatus();
+
+		// Track when sentinel scrolls past top (nav becomes sticky)
+		const checkSentinel = () => {
+			if (!sentinelEl) return;
+			const rect = sentinelEl.getBoundingClientRect();
+			navPinned = rect.bottom <= 0;
+		};
+
+		checkSentinel();
+		window.addEventListener('scroll', checkSentinel, { passive: true });
+
+		return () => {
+			window.removeEventListener('scroll', checkSentinel);
+		};
 	});
 
 	async function checkAIPrintStatus() {
@@ -374,7 +388,7 @@
 	<div
 		aria-hidden="true"
 		class="h-px"
-		use:intersection={{ threshold: 0, onChange: (e) => { navPinned = !e.isIntersecting; } }}
+		bind:this={sentinelEl}
 	></div>
 
 	<ProfileNav
