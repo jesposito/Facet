@@ -11,6 +11,8 @@
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
+	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 
 	let projects: Project[] = $state([]);
 	let loading = $state(true);
@@ -37,6 +39,7 @@ let loadingMedia = $state(false);
 let showShortcodes = $state(false);
 let saving = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
+let adminTagIds: string[] = $state([]);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
@@ -188,12 +191,13 @@ async function resolveMediaRefs(selected: string[]) {
 	return resolved;
 }
 
-async function loadProjects() {
+	async function loadProjects() {
 	loading = true;
 	try {
 		const [projectResp, membershipResp] = await Promise.all([
 			await collection('projects').getList(1, 100, {
-				sort: '-is_featured,-sort_order'
+				sort: '-is_featured,-sort_order',
+				expand: 'admin_tags'
 			}),
 			fetch('/api/admin/view-memberships?collection=projects', {
 				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
@@ -224,6 +228,7 @@ async function loadProjects() {
 		coverImageFile = null;
 	editingProject = null;
 	mediaRefs = [];
+	adminTagIds = [];
 }
 
 	function openNewForm() {
@@ -269,6 +274,7 @@ async function loadProjects() {
 	isDraft = project.is_draft;
 	isFeatured = project.is_featured;
 	sortOrder = project.sort_order;
+	adminTagIds = project.admin_tags || [];
 	showForm = true;
 	}
 
@@ -330,6 +336,7 @@ async function loadProjects() {
 			formData.append('is_draft', String(isDraft));
 			formData.append('is_featured', String(isFeatured));
 			formData.append('sort_order', String(sortOrder));
+			formData.append('admin_tags', JSON.stringify(adminTagIds));
 
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
@@ -798,6 +805,12 @@ async function loadProjects() {
 						</label>
 					</div>
 				</div>
+
+				<div>
+					<label class="label">Admin Tags</label>
+					<AdminTagSelector bind:selectedIds={adminTagIds} />
+					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
+				</div>
 			</div>
 
 			<div class="flex justify-end gap-3">
@@ -922,11 +935,16 @@ async function loadProjects() {
 											Draft
 										</span>
 									{/if}
-									{#if project.visibility !== 'public'}
-										<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-											{project.visibility}
-										</span>
-									{/if}
+								{#if project.visibility !== 'public'}
+									<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+										{project.visibility}
+									</span>
+								{/if}
+								{#if project.expand?.admin_tags && project.expand.admin_tags.length > 0}
+									{#each project.expand.admin_tags as tag (tag.id)}
+										<AdminTagBadge name={tag.name} color={tag.color} />
+									{/each}
+								{/if}
 								</div>
 
 								{#if memberships[project.id]?.length}
