@@ -196,6 +196,16 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 			}
 		}
 
+		if sectionName == "projects" || sectionName == "posts" {
+			if coverImage := record.GetString("cover_image"); coverImage != "" {
+				collectionID := record.Collection().Id
+				recordID := record.Id
+				item["cover_image_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage
+				item["cover_image_large_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage + "?thumb=1600x0"
+				item["cover_image_thumb_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage + "?thumb=480x0"
+			}
+		}
+
 		result = append(result, item)
 	}
 	return result

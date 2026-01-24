@@ -410,6 +410,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if ctaURL := view.GetString("cta_url"); ctaURL != "" {
 				response["cta_url"] = ctaURL
 			}
+			if ctaButtonText := view.GetString("cta_button_text"); ctaButtonText != "" {
+				response["cta_button_text"] = ctaButtonText
+			}
 
 			// Include view-specific accent color (null/empty means inherit from profile)
 			if accentColor := view.GetString("accent_color"); accentColor != "" {
@@ -548,15 +551,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if err == nil && len(profileRecords) > 0 {
 				profile := profileRecords[0]
 				profileData := map[string]interface{}{
-					"id":            profile.Id,
-					"name":          profile.GetString("name"),
-					"headline":      profile.GetString("headline"),
-					"location":      profile.GetString("location"),
-					"summary":       profile.GetString("summary"),
-					"contact_email": profile.GetString("contact_email"),
-					"contact_links": profile.Get("contact_links"),
-					"visibility":    profile.GetString("visibility"),
-					"accent_color":  profile.GetString("accent_color"),
+					"id":              profile.Id,
+					"name":            profile.GetString("name"),
+					"headline":        profile.GetString("headline"),
+					"location":        profile.GetString("location"),
+					"summary":         profile.GetString("summary"),
+					"contact_email":   profile.GetString("contact_email"),
+					"contact_links":   profile.Get("contact_links"),
+					"visibility":      profile.GetString("visibility"),
+					"accent_color":    profile.GetString("accent_color"),
+					"cta_text":        profile.GetString("cta_text"),
+					"cta_url":         profile.GetString("cta_url"),
+					"cta_button_text": profile.GetString("cta_button_text"),
 				}
 
 				// Include file URLs if present
@@ -678,15 +684,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if err == nil && len(profileRecords) > 0 {
 				profile := profileRecords[0]
 				profileData := map[string]interface{}{
-					"id":            profile.Id,
-					"name":          profile.GetString("name"),
-					"headline":      profile.GetString("headline"),
-					"location":      profile.GetString("location"),
-					"summary":       profile.GetString("summary"),
-					"contact_email": profile.GetString("contact_email"),
-					"contact_links": profile.Get("contact_links"),
-					"visibility":    profile.GetString("visibility"),
-					"accent_color":  profile.GetString("accent_color"),
+					"id":              profile.Id,
+					"name":            profile.GetString("name"),
+					"headline":        profile.GetString("headline"),
+					"location":        profile.GetString("location"),
+					"summary":         profile.GetString("summary"),
+					"contact_email":   profile.GetString("contact_email"),
+					"contact_links":   profile.Get("contact_links"),
+					"visibility":      profile.GetString("visibility"),
+					"accent_color":    profile.GetString("accent_color"),
+					"cta_text":        profile.GetString("cta_text"),
+					"cta_url":         profile.GetString("cta_url"),
+					"cta_button_text": profile.GetString("cta_button_text"),
 				}
 
 				// Include file URLs if present

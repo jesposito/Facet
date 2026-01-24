@@ -77,6 +77,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 							hero_location: viewData.hero_location,
 							cta_text: viewData.cta_text,
 							cta_url: viewData.cta_url,
+							cta_button_text: viewData.cta_button_text,
 							accent_color: viewData.accent_color || null
 						},
 						profile: profile

@@ -348,6 +348,7 @@
 	{#if (data.profile?.cta_text && data.profile?.cta_url) || (data.view?.cta_text && data.view?.cta_url)}
 		{@const ctaText = data.profile?.cta_text || data.view?.cta_text}
 		{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url}
+		{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 		<div class="bg-primary-600 text-white py-4">
 			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 				<span class="font-medium">{ctaText}</span>
@@ -357,7 +358,7 @@
 					rel="noopener noreferrer"
 					class="btn bg-white text-primary-600 hover:bg-gray-100"
 				>
-					Learn More
+					{ctaButtonText}
 				</a>
 			</div>
 		</div>
