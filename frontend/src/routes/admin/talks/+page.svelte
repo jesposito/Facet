@@ -7,11 +7,13 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import { formatDate } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
 
 	let talks: Talk[] = $state([]);
 	let loading = $state(true);
@@ -40,6 +42,25 @@ let loadingMedia = $state(false);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+const filterStore = createFilterState({
+	enableSearch: true,
+	enableVisibilityFilter: true,
+	enableDraftFilter: true,
+	enableTagFilter: false,
+	searchPlaceholder: 'Search talks...'
+});
+let showAdvancedFilters = $state(false);
+
+let filteredTalks = $derived(
+	filterStore.filterItems(
+		talks,
+		(talk) => `${talk.title} ${talk.event || ''} ${talk.location || ''} ${talk.description || ''}`,
+		(talk) => talk.visibility,
+		(talk) => talk.is_draft,
+		() => []
+	)
+);
 
 const autosave = createAutosave('admin-talks', { saveDelay: 1500 });
 let showRecoveryBanner = $state(false);
@@ -449,6 +470,8 @@ async function resolveMediaRefs(selected: string[]) {
 		/>
 	{/if}
 
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
+
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Talks & Presentations</h1>
 		<div class="flex items-center gap-2">
@@ -785,10 +808,23 @@ async function resolveMediaRefs(selected: string[]) {
 				+ Add Your First Talk
 			</button>
 		</div>
+	{:else if filteredTalks.length === 0}
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No talks match your filters</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Try adjusting your search or filter criteria.
+			</p>
+			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
+				Clear All Filters
+			</button>
+		</div>
 	{:else}
 		<!-- Talks List -->
 		<div class="space-y-4">
-			{#each talks as talk (talk.id)}
+			{#each filteredTalks as talk (talk.id)}
 				<div class="card p-4 {selectMode && selectedIds.has(talk.id) ? 'ring-2 ring-primary-500' : ''}">
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}

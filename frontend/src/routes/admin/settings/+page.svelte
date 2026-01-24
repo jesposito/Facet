@@ -528,6 +528,21 @@
 			<p class="text-sm text-gray-600 dark:text-gray-400">Customize the admin interface.</p>
 		</div>
 
+		<!-- Admin Tags -->
+		<div class="card p-6 mb-4">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Admin Tags</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm">
+						Create and manage tags for organizing your content in the admin panel. Tags are for internal organization only and are not shown publicly.
+					</p>
+				</div>
+				<a href="/admin/settings/tags" class="btn btn-secondary">
+					Manage Tags
+				</a>
+			</div>
+		</div>
+
 		<!-- Demo Toggle -->
 		<div class="card p-6">
 			<div class="flex items-center justify-between gap-4">
