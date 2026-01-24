@@ -11,7 +11,7 @@
 		pendingProposals: 0
 	});
 
-	let recentActivity: Array<{ type: string; title: string; date: string }> = $state([]);
+	let recentActivity: Array<{ type: string; title: string }> = $state([]);
 	let loading = $state(true);
 	let mounted = false;
 
@@ -26,17 +26,17 @@
 	});
 
 	async function loadDashboard() {
-		if (!mounted) return; // Don't run if component is unmounting
+		if (!mounted) return;
 
 		try {
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
-				await collection('projects').getList(1, 1),
-				await collection('experience').getList(1, 1),
-				await collection('views').getList(1, 1),
+				collection('projects').getList(1, 1),
+				collection('experience').getList(1, 1),
+				collection('views').getList(1, 1),
 				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
 			]);
 
-			if (!mounted) return; // Check again after async operations
+			if (!mounted) return;
 
 			stats = {
 				projects: projectsRes.totalItems,
@@ -47,25 +47,25 @@
 
 			// Get recent projects and experience for activity feed
 			const [recentProjects, recentExperience] = await Promise.all([
-				await collection('projects').getList(1, 3, { sort: '-id' }),
-				await collection('experience').getList(1, 3, { sort: '-id' })
+				collection('projects').getList(1, 3, { sort: '-id' }),
+				collection('experience').getList(1, 3, { sort: '-id' })
 			]);
 
-			if (!mounted) return; // Check one more time before updating state
+			if (!mounted) return;
 
 			recentActivity = [
 				...recentProjects.items.map((p) => ({
 					type: 'project',
 					title: p.title,
-					date: p.id
+					id: p.id
 				})),
 				...recentExperience.items.map((e) => ({
 					type: 'experience',
 					title: `${e.title} at ${e.company}`,
-					date: e.id
+					id: e.id
 				}))
 			]
-				.sort((a, b) => b.date.localeCompare(a.date))
+				.sort((a, b) => b.id.localeCompare(a.id))
 				.slice(0, 5);
 		} catch (err) {
 			if (err instanceof Error && err.message.includes('autocancelled')) {
@@ -80,15 +80,6 @@
 				loading = false;
 			}
 		}
-	}
-
-	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
 	}
 
 	let isEmpty = $derived(!loading && stats.projects === 0 && stats.experience === 0 && stats.views === 0);
@@ -110,7 +101,7 @@
 		<div class="card p-8 mb-8">
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">This is your space.</h1>
 			<p class="text-gray-600 dark:text-gray-400">
-				You might start by <a href="/admin/profile" class="text-primary-600 dark:text-primary-400 hover:underline">adding your profile</a>,
+				You might start by <a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline">adding your profile</a>,
 				or <a href="/admin/import" class="text-primary-600 dark:text-primary-400 hover:underline">import a project from GitHub</a>.
 			</p>
 			<p class="text-gray-500 dark:text-gray-500 text-sm mt-2">
@@ -186,13 +177,13 @@
 		<div class="card p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				<a href="/admin/projects/new" class="btn btn-secondary justify-start">
+				<a href="/admin/projects?new=true" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
 					Add Project
 				</a>
-				<a href="/admin/experience/new" class="btn btn-secondary justify-start">
+				<a href="/admin/experience?new=true" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
@@ -211,6 +202,18 @@
 					</svg>
 					Create View
 				</a>
+				<a href="/rss.xml" target="_blank" class="btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 11-2 0 1 1 0 012 0z" />
+					</svg>
+					RSS Feed
+				</a>
+				<a href="/talks.ics" class="btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+					</svg>
+					Talks Calendar
+				</a>
 			</div>
 		</div>
 
@@ -224,7 +227,6 @@
 							<div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
 							<div class="flex-1">
 								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-								<div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-1"></div>
 							</div>
 						</div>
 					{/each}
@@ -251,7 +253,7 @@
 									{activity.title}
 								</p>
 								<p class="text-xs text-gray-500 dark:text-gray-400">
-									{formatDate(activity.date)}
+									{activity.type === 'project' ? 'Project' : 'Experience'}
 								</p>
 							</div>
 						</div>

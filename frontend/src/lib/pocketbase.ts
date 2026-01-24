@@ -57,6 +57,9 @@ export interface Profile {
 	contact_links?: ContactLink[];
 	visibility: 'public' | 'unlisted' | 'private';
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
+	cta_text?: string;
+	cta_url?: string;
+	cta_button_text?: string;
 }
 
 export interface ContactLink {
@@ -83,6 +86,8 @@ export interface Experience {
 	bullets?: string[];
 	skills?: string[];
 	media?: string[];
+	company_logo?: string;
+	company_logo_url?: string;
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
@@ -273,6 +278,7 @@ export interface View {
 	hero_location?: string;
 	cta_text?: string;
 	cta_url?: string;
+	cta_button_text?: string;
 	sections?: ViewSection[];
 	is_active: boolean;
 	is_default?: boolean;

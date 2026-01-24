@@ -29,6 +29,9 @@
 	let contactEmail = $state('');
 	let contactLinks: Array<{ type: string; url: string; label: string }> = $state([]);
 	let visibility = $state('public');
+	let ctaText = $state('');
+	let ctaUrl = $state('');
+	let ctaButtonText = $state('');
 
 	// Image fields
 	let avatarUrl: string | null = $state(null);
@@ -106,6 +109,9 @@
 				contactEmail = (profile.contact_email as string) || '';
 				contactLinks = (profile.contact_links as typeof contactLinks) || [];
 				visibility = (profile.visibility as string) || 'public';
+				ctaText = (profile.cta_text as string) || '';
+				ctaUrl = (profile.cta_url as string) || '';
+				ctaButtonText = (profile.cta_button_text as string) || '';
 
 				if (profile.avatar) {
 					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
@@ -137,6 +143,9 @@
 			formData.append('contact_email', contactEmail);
 			formData.append('contact_links', JSON.stringify(contactLinks));
 			formData.append('visibility', visibility);
+			formData.append('cta_text', ctaText);
+			formData.append('cta_url', ctaUrl);
+			formData.append('cta_button_text', ctaButtonText);
 
 			if (avatarFile) {
 				formData.append('avatar', avatarFile);
@@ -583,6 +592,47 @@
 							{/each}
 						</div>
 					{/if}
+				</div>
+			</div>
+
+			<div class="card p-6 space-y-4">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
+				<p class="text-sm text-gray-500 dark:text-gray-400">Add a prominent banner to your homepage hero section.</p>
+
+				<div>
+					<label for="cta_text" class="label">Description</label>
+					<input
+						type="text"
+						id="cta_text"
+						bind:value={ctaText}
+						placeholder="Ready to work together?"
+						class="input"
+					/>
+					<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label for="cta_button_text" class="label">Button Label</label>
+						<input
+							type="text"
+							id="cta_button_text"
+							bind:value={ctaButtonText}
+							placeholder="Get in touch"
+							class="input"
+						/>
+					</div>
+
+					<div>
+						<label for="cta_url" class="label">Button URL</label>
+						<input
+							type="url"
+							id="cta_url"
+							bind:value={ctaUrl}
+							placeholder="https://calendly.com/..."
+							class="input"
+						/>
+					</div>
 				</div>
 			</div>
 

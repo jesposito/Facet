@@ -7,6 +7,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
+	import { toDateInputValue } from '$lib/utils';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
@@ -162,8 +163,8 @@ afterNavigate(() => {
 		institution = edu.institution;
 		degree = edu.degree || '';
 		field = edu.field || '';
-		startDate = edu.start_date ? edu.start_date.split('T')[0] : '';
-		endDate = edu.end_date ? edu.end_date.split('T')[0] : '';
+		startDate = toDateInputValue(edu.start_date);
+		endDate = toDateInputValue(edu.end_date);
 		description = edu.description || '';
 		visibility = edu.visibility;
 		isDraft = edu.is_draft;
@@ -338,8 +339,6 @@ afterNavigate(() => {
 		/>
 	{/if}
 
-	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
-
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Education</h1>
 		<div class="flex items-center gap-2">
@@ -353,6 +352,8 @@ afterNavigate(() => {
 			</button>
 		</div>
 	</div>
+
+	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
 
 	{#if loading}
 		<div class="card p-8 text-center">
@@ -413,9 +414,10 @@ afterNavigate(() => {
 					<div>
 						<label for="start_date" class="label">Start Date</label>
 						<input
-							type="date"
+							type="text"
 							id="start_date"
 							bind:value={startDate}
+							placeholder="2018 or 2018-09"
 							class="input"
 						/>
 					</div>
@@ -423,9 +425,10 @@ afterNavigate(() => {
 					<div>
 						<label for="end_date" class="label">End Date</label>
 						<input
-							type="date"
+							type="text"
 							id="end_date"
 							bind:value={endDate}
+							placeholder="2022 or 2022-05"
 							class="input"
 						/>
 						<p class="text-xs text-gray-500 mt-1">Leave blank if still attending</p>
