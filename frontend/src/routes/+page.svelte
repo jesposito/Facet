@@ -98,19 +98,8 @@
 	let generatedUrl: string | null = $state(null);
 	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
 
-	// Floating buttons visibility state (hide when overlapping sticky nav)
+	// Floating buttons visibility - hide when nav is pinned (sticky)
 	let navPinned = $state(false);
-	let scrollDir = $state<'up' | 'down'>('down');
-	let scrollIdle = $state(true);
-	const NAV_HEIGHT_PX = 48;
-
-	let buttonsHidden = $derived(
-		navPinned && scrollDir === 'down' && !scrollIdle
-	);
-
-	let buttonsDocked = $derived(
-		navPinned && !buttonsHidden
-	);
 
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
@@ -157,33 +146,6 @@
 
 		// Check AI Print availability
 		checkAIPrintStatus();
-
-		// Scroll direction tracking for floating buttons
-		let lastY = window.scrollY;
-		let raf = 0;
-		let idleTimer: ReturnType<typeof setTimeout> | undefined;
-
-		const onScroll = () => {
-			scrollIdle = false;
-			clearTimeout(idleTimer);
-			idleTimer = setTimeout(() => { scrollIdle = true; }, 150);
-
-			if (raf) return;
-			raf = requestAnimationFrame(() => {
-				raf = 0;
-				const y = window.scrollY;
-				scrollDir = y < lastY ? 'up' : 'down';
-				lastY = y;
-			});
-		};
-
-		window.addEventListener('scroll', onScroll, { passive: true });
-
-		return () => {
-			window.removeEventListener('scroll', onScroll);
-			if (raf) cancelAnimationFrame(raf);
-			clearTimeout(idleTimer);
-		};
 	});
 
 	async function checkAIPrintStatus() {
@@ -307,10 +269,9 @@
 {:else}
 <div class="min-h-screen">
 	<div
-		class="fixed right-4 z-40 flex items-center gap-2 print:hidden transition-all duration-200"
-		class:opacity-0={buttonsHidden}
-		class:pointer-events-none={buttonsHidden}
-		style="top: {buttonsDocked ? `calc(1rem + ${NAV_HEIGHT_PX}px)` : '1rem'};"
+		class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
+		class:opacity-0={navPinned}
+		class:pointer-events-none={navPinned}
 	>
 		<!-- Print Menu -->
 		<div class="relative">
