@@ -14,6 +14,8 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
+	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -21,6 +23,8 @@
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 	import { goto } from '$app/navigation';
+
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	interface Props {
 		data: PageData;
@@ -46,6 +50,34 @@
 		type: 'profile',
 		siteName: 'Facet'
 	}) : {});
+
+	// Section ordering - use view's custom order if available
+	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
+		? data.sectionOrder
+		: DEFAULT_SECTION_ORDER);
+
+	function getSectionLayout(sectionKey: string): string {
+		return data.sectionLayouts?.[sectionKey] || 'default';
+	}
+
+	type ContactLayoutType = 'vertical' | 'horizontal' | 'grid';
+	function getContactLayout(): ContactLayoutType {
+		const layout = getSectionLayout('contacts');
+		if (layout === 'vertical' || layout === 'horizontal' || layout === 'grid') return layout;
+		return 'vertical';
+	}
+
+	function getSectionWidth(sectionKey: string): string {
+		return data.sectionWidths?.[sectionKey] || 'full';
+	}
+
+	function getWidthClass(width: string): string {
+		switch (width) {
+			case 'half': return 'section-half';
+			case 'third': return 'section-third';
+			default: return 'section-full';
+		}
+	}
 
 	// Print menu state
 	let showPrintMenu = $state(false);
@@ -313,13 +345,14 @@
 		}}
 	/>
 
-	<!-- CTA banner if this is a view with CTA configured -->
-	{#if data.view?.cta_text && data.view?.cta_url}
+	{#if (data.profile?.cta_text && data.profile?.cta_url) || (data.view?.cta_text && data.view?.cta_url)}
+		{@const ctaText = data.profile?.cta_text || data.view?.cta_text}
+		{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url}
 		<div class="bg-primary-600 text-white py-4">
 			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-				<span class="font-medium">{data.view.cta_text}</span>
+				<span class="font-medium">{ctaText}</span>
 				<a
-					href={data.view.cta_url}
+					href={ctaUrl}
 					target="_blank"
 					rel="noopener noreferrer"
 					class="btn bg-white text-primary-600 hover:bg-gray-100"

@@ -64,6 +64,7 @@
 	let heroLocation = $state('');
 	let ctaText = $state('');
 	let ctaUrl = $state('');
+	let ctaButtonText = $state('');
 	let isActive = $state(true);
 	let accentColor: AccentColor | null = $state(null); // null = use global profile setting
 
@@ -416,6 +417,7 @@
 				hero_location: heroLocation.trim() || null,
 				cta_text: ctaText.trim() || null,
 				cta_url: ctaUrl.trim() || null,
+				cta_button_text: ctaButtonText.trim() || null,
 				is_active: isActive,
 				is_default: false, // New views are never default - only the system-created Default view is
 				accent_color: accentColor || null,
@@ -712,15 +714,27 @@
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
 				<p class="text-sm text-gray-500 -mt-2">Add a prominent button to this view</p>
 
+				<div>
+					<label for="cta_text" class="label">Description</label>
+					<input
+						type="text"
+						id="cta_text"
+						bind:value={ctaText}
+						class="input"
+						placeholder="Ready to work together?"
+					/>
+					<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
+				</div>
+
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="cta_text" class="label">Button Text</label>
+						<label for="cta_button_text" class="label">Button Label</label>
 						<input
 							type="text"
-							id="cta_text"
-							bind:value={ctaText}
+							id="cta_button_text"
+							bind:value={ctaButtonText}
 							class="input"
-							placeholder="Download Resume"
+							placeholder="Get in touch"
 						/>
 					</div>
 					<div>

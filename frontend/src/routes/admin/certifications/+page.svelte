@@ -8,7 +8,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
-	import { formatDate } from '$lib/utils';
+	import { formatDate, toDateInputValue } from '$lib/utils';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -160,8 +160,8 @@ onMount(loadCertifications);
 		editingCert = cert;
 		name = cert.name;
 		issuer = cert.issuer || '';
-		issueDate = cert.issue_date ? cert.issue_date.split('T')[0] : '';
-		expiryDate = cert.expiry_date ? cert.expiry_date.split('T')[0] : '';
+		issueDate = toDateInputValue(cert.issue_date);
+		expiryDate = toDateInputValue(cert.expiry_date);
 		credentialId = cert.credential_id || '';
 		credentialUrl = cert.credential_url || '';
 		visibility = cert.visibility;
@@ -434,9 +434,10 @@ onMount(loadCertifications);
 					<div>
 						<label for="issue_date" class="label">Issue Date</label>
 						<input
-							type="date"
+							type="text"
 							id="issue_date"
 							bind:value={issueDate}
+							placeholder="2023 or 2023-06"
 							class="input"
 						/>
 					</div>
@@ -444,9 +445,10 @@ onMount(loadCertifications);
 					<div>
 						<label for="expiry_date" class="label">Expiry Date</label>
 						<input
-							type="date"
+							type="text"
 							id="expiry_date"
 							bind:value={expiryDate}
+							placeholder="2026 or 2026-06"
 							class="input"
 						/>
 						<p class="text-xs text-gray-500 mt-1">Leave blank if it doesn't expire</p>

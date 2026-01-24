@@ -7,7 +7,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
-	import { formatDate } from '$lib/utils';
+	import { formatDate, toDateInputValue } from '$lib/utils';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
@@ -201,8 +201,8 @@
 		company = exp.company;
 		title = exp.title;
 		location = exp.location || '';
-		startDate = exp.start_date ? exp.start_date.split('T')[0] : '';
-		endDate = exp.end_date ? exp.end_date.split('T')[0] : '';
+		startDate = toDateInputValue(exp.start_date);
+		endDate = toDateInputValue(exp.end_date);
 		description = exp.description || '';
 		bullets = exp.bullets || [];
 		bulletsText = bullets.join('\n');
@@ -510,9 +510,10 @@
 					<div>
 						<label for="start_date" class="label">Start Date</label>
 						<input
-							type="date"
+							type="text"
 							id="start_date"
 							bind:value={startDate}
+							placeholder="2020 or 2020-03"
 							class="input"
 						/>
 					</div>
@@ -520,9 +521,10 @@
 					<div>
 						<label for="end_date" class="label">End Date</label>
 						<input
-							type="date"
+							type="text"
 							id="end_date"
 							bind:value={endDate}
+							placeholder="2024 or 2024-06"
 							class="input"
 						/>
 						<p class="text-xs text-gray-500 mt-1">Leave blank for current position</p>

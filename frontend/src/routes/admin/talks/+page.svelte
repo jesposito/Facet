@@ -8,7 +8,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
-	import { formatDate } from '$lib/utils';
+	import { formatDate, toDateInputValue } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -301,7 +301,7 @@ async function resolveMediaRefs(selected: string[]) {
 		slug = talk.slug || '';
 		event = talk.event || '';
 		eventUrl = talk.event_url || '';
-		date = talk.date ? talk.date.split('T')[0] : '';
+		date = toDateInputValue(talk.date);
 		location = talk.location || '';
 		description = talk.description || '';
 		slidesUrl = talk.slides_url || '';
@@ -581,9 +581,10 @@ async function resolveMediaRefs(selected: string[]) {
 					<div>
 						<label for="date" class="label">Date</label>
 						<input
-							type="date"
+							type="text"
 							id="date"
 							bind:value={date}
+							placeholder="2024 or 2024-03-15"
 							class="input"
 						/>
 					</div>

@@ -8,7 +8,7 @@ import { collection } from '$lib/stores/demo';
 import { toasts, confirm } from '$lib/stores';
 import { createAutosave } from '$lib/stores/autosave';
 import { createFilterState } from '$lib/admin/filterState.svelte';
-import { formatDate } from '$lib/utils';
+import { formatDate, toDateInputValue } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -275,7 +275,7 @@ function openEditForm(post: Post) {
 	tags = post.tags || [];
 	visibility = post.visibility;
 	isDraft = post.is_draft;
-	publishedAt = post.published_at ? post.published_at.split('T')[0] : '';
+	publishedAt = toDateInputValue(post.published_at);
 	showForm = true;
 	}
 
@@ -682,9 +682,10 @@ function openEditForm(post: Post) {
 					<div>
 						<label for="published_at" class="label">Publish Date</label>
 						<input
-							type="date"
+							type="text"
 							id="published_at"
 							bind:value={publishedAt}
+							placeholder="2024-01-15"
 							class="input"
 						/>
 					</div>

@@ -33,9 +33,14 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
 	}
 });
 
-// Date formatting
 export function formatDate(dateString: string | undefined, options?: Intl.DateTimeFormatOptions): string {
 	if (!dateString) return '';
+	if (/^\d{4}$/.test(dateString)) return dateString;
+	if (/^\d{4}-\d{2}$/.test(dateString)) {
+		const [year, month] = dateString.split('-');
+		const date = new Date(parseInt(year), parseInt(month) - 1);
+		return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+	}
 	const date = new Date(dateString);
 	return date.toLocaleDateString('en-US', options || { month: 'short', year: 'numeric' });
 }
@@ -44,6 +49,18 @@ export function formatDateRange(startDate?: string, endDate?: string): string {
 	const start = formatDate(startDate);
 	const end = endDate ? formatDate(endDate) : 'Present';
 	return `${start} - ${end}`;
+}
+
+// Extract date value for text input (supports flexible formats: YYYY, YYYY-MM, YYYY-MM-DD)
+export function toDateInputValue(dateString: string | undefined | null): string {
+	if (!dateString) return '';
+	// If it's already a short format (year or year-month), return as-is
+	if (/^\d{4}(-\d{2})?$/.test(dateString)) return dateString;
+	// For ISO dates, extract just the date part (YYYY-MM-DD)
+	if (dateString.includes('T') || dateString.includes(' ')) {
+		return dateString.slice(0, 10);
+	}
+	return dateString;
 }
 
 // Markdown parsing with XSS protection
