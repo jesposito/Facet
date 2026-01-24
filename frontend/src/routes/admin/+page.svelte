@@ -186,13 +186,13 @@
 		<div class="card p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				<a href="/admin/projects/new" class="btn btn-secondary justify-start">
+				<a href="/admin/projects?new=true" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
 					Add Project
 				</a>
-				<a href="/admin/experience/new" class="btn btn-secondary justify-start">
+				<a href="/admin/experience?new=true" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
@@ -210,6 +210,18 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 					</svg>
 					Create View
+				</a>
+				<a href="/rss.xml" target="_blank" class="btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 11-2 0 1 1 0 012 0z" />
+					</svg>
+					RSS Feed
+				</a>
+				<a href="/talks.ics" class="btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+					</svg>
+					Talks Calendar
 				</a>
 			</div>
 		</div>
