@@ -87,6 +87,7 @@ export interface Experience {
 	skills?: string[];
 	media?: string[];
 	company_logo?: string;
+	company_logo_url?: string;
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;

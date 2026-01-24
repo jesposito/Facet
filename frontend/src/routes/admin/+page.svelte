@@ -57,15 +57,15 @@
 				...recentProjects.items.map((p) => ({
 					type: 'project',
 					title: p.title,
-					date: p.id
+					date: p.updated || p.created
 				})),
 				...recentExperience.items.map((e) => ({
 					type: 'experience',
 					title: `${e.title} at ${e.company}`,
-					date: e.id
+					date: e.updated || e.created
 				}))
 			]
-				.sort((a, b) => b.date.localeCompare(a.date))
+				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 				.slice(0, 5);
 		} catch (err) {
 			if (err instanceof Error && err.message.includes('autocancelled')) {

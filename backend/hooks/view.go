@@ -719,8 +719,17 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				0,
 				nil,
 			)
-			if err == nil {
-				response["experience"] = serializeRecords(experienceRecords)
+			if err == nil && len(experienceRecords) > 0 {
+				experience := serializeRecords(experienceRecords)
+				expCollectionID := experienceRecords[0].Collection().Id
+				for i, e := range experience {
+					if companyLogo, ok := e["company_logo"].(string); ok && companyLogo != "" {
+						if id, ok := e["id"].(string); ok {
+							experience[i]["company_logo_url"] = fileURL(expCollectionID, id, companyLogo, "")
+						}
+					}
+				}
+				response["experience"] = experience
 			}
 
 			// Fetch projects - only public items appear on homepage

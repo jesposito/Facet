@@ -206,6 +206,14 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 			}
 		}
 
+		if sectionName == "experience" {
+			if companyLogo := record.GetString("company_logo"); companyLogo != "" {
+				collectionID := record.Collection().Id
+				recordID := record.Id
+				item["company_logo_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + companyLogo
+			}
+		}
+
 		result = append(result, item)
 	}
 	return result
