@@ -8,6 +8,133 @@
 
 export type AccentColor = 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
 
+/**
+ * Admin Tag Color Palette
+ * Curated colors for admin-only tags to visually distinguish content items.
+ * These are lighter/more subtle than accent colors for badge use.
+ */
+export type TagColor = 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'pink' | 'orange' | 'teal' | 'gray';
+
+export interface TagColorInfo {
+	name: TagColor;
+	label: string;
+	bg: string;       // Background class (light mode)
+	bgDark: string;   // Background class (dark mode)
+	text: string;     // Text class (light mode)
+	textDark: string; // Text class (dark mode)
+	border: string;   // Border class (light mode)
+	borderDark: string; // Border class (dark mode)
+}
+
+export const TAG_COLORS: Record<TagColor, TagColorInfo> = {
+	blue: {
+		name: 'blue',
+		label: 'Blue',
+		bg: 'bg-blue-100',
+		bgDark: 'dark:bg-blue-900/30',
+		text: 'text-blue-700',
+		textDark: 'dark:text-blue-300',
+		border: 'border-blue-200',
+		borderDark: 'dark:border-blue-800'
+	},
+	green: {
+		name: 'green',
+		label: 'Green',
+		bg: 'bg-green-100',
+		bgDark: 'dark:bg-green-900/30',
+		text: 'text-green-700',
+		textDark: 'dark:text-green-300',
+		border: 'border-green-200',
+		borderDark: 'dark:border-green-800'
+	},
+	yellow: {
+		name: 'yellow',
+		label: 'Yellow',
+		bg: 'bg-yellow-100',
+		bgDark: 'dark:bg-yellow-900/30',
+		text: 'text-yellow-700',
+		textDark: 'dark:text-yellow-300',
+		border: 'border-yellow-200',
+		borderDark: 'dark:border-yellow-800'
+	},
+	red: {
+		name: 'red',
+		label: 'Red',
+		bg: 'bg-red-100',
+		bgDark: 'dark:bg-red-900/30',
+		text: 'text-red-700',
+		textDark: 'dark:text-red-300',
+		border: 'border-red-200',
+		borderDark: 'dark:border-red-800'
+	},
+	purple: {
+		name: 'purple',
+		label: 'Purple',
+		bg: 'bg-purple-100',
+		bgDark: 'dark:bg-purple-900/30',
+		text: 'text-purple-700',
+		textDark: 'dark:text-purple-300',
+		border: 'border-purple-200',
+		borderDark: 'dark:border-purple-800'
+	},
+	pink: {
+		name: 'pink',
+		label: 'Pink',
+		bg: 'bg-pink-100',
+		bgDark: 'dark:bg-pink-900/30',
+		text: 'text-pink-700',
+		textDark: 'dark:text-pink-300',
+		border: 'border-pink-200',
+		borderDark: 'dark:border-pink-800'
+	},
+	orange: {
+		name: 'orange',
+		label: 'Orange',
+		bg: 'bg-orange-100',
+		bgDark: 'dark:bg-orange-900/30',
+		text: 'text-orange-700',
+		textDark: 'dark:text-orange-300',
+		border: 'border-orange-200',
+		borderDark: 'dark:border-orange-800'
+	},
+	teal: {
+		name: 'teal',
+		label: 'Teal',
+		bg: 'bg-teal-100',
+		bgDark: 'dark:bg-teal-900/30',
+		text: 'text-teal-700',
+		textDark: 'dark:text-teal-300',
+		border: 'border-teal-200',
+		borderDark: 'dark:border-teal-800'
+	},
+	gray: {
+		name: 'gray',
+		label: 'Gray',
+		bg: 'bg-gray-100',
+		bgDark: 'dark:bg-gray-700',
+		text: 'text-gray-700',
+		textDark: 'dark:text-gray-300',
+		border: 'border-gray-200',
+		borderDark: 'dark:border-gray-600'
+	}
+};
+
+export const TAG_COLOR_LIST: TagColor[] = ['blue', 'green', 'yellow', 'red', 'purple', 'pink', 'orange', 'teal', 'gray'];
+
+export const DEFAULT_TAG_COLOR: TagColor = 'blue';
+
+export function getTagColor(name?: string): TagColorInfo {
+	if (name && name in TAG_COLORS) {
+		return TAG_COLORS[name as TagColor];
+	}
+	return TAG_COLORS[DEFAULT_TAG_COLOR];
+}
+
+export function getTagColorClasses(color?: string): string {
+	const info = getTagColor(color);
+	return `${info.bg} ${info.bgDark} ${info.text} ${info.textDark} ${info.border} ${info.borderDark}`;
+}
+
 export interface ColorScale {
 	50: string;
 	100: string;

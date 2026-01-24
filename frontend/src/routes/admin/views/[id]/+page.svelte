@@ -1492,12 +1492,12 @@
 	.editor-pane {
 		flex: 1;
 		min-width: 0;
-		max-width: 48rem; /* max-w-3xl */
+		max-width: none; /* Expand to full width when preview hidden */
 	}
 
 	.editor-layout.with-preview .editor-pane {
 		flex: 3;
-		max-width: none;
+		max-width: 48rem; /* Constrain when preview is showing */
 	}
 
 	.preview-pane {
