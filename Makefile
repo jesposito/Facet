@@ -200,7 +200,9 @@ seed-clear: kill
 build: docker-build
 
 docker-build:
-	docker build -t facet:latest -f docker/Dockerfile .
+	docker build -t facet:latest -f docker/Dockerfile \
+		--build-arg FACET_VERSION=$$(git describe --tags --always 2>/dev/null || echo "dev") \
+		.
 
 docker-run:
 	docker run -d \

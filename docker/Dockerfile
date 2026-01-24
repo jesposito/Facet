@@ -28,12 +28,15 @@ RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o /facet .
 # ============================================
 FROM node:20-alpine AS frontend-builder
 
+ARG FACET_VERSION=dev
+
 WORKDIR /build
 COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
 ENV NODE_ENV=production
+ENV FACET_VERSION=${FACET_VERSION}
 RUN npm run build
 
 # ============================================
