@@ -49,7 +49,7 @@
 	});
 </script>
 
-<div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 mb-6">
 	<div class="p-4 space-y-3">
 
 		{#if filterStore.config.enableSearch}

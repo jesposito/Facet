@@ -481,7 +481,6 @@ function openEditForm(post: Post) {
 	{/if}
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
-
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
 		<div class="flex items-center gap-2">
