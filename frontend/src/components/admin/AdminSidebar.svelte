@@ -163,14 +163,14 @@ let isActive = $derived((href: string): boolean => {
 
 <aside
 	id="admin-sidebar"
-	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30
+	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
 		{isMobile 
 			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
 			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')
 		}"
 	aria-label="Admin navigation"
 >
-	<nav class="p-3 space-y-4" aria-label="Main menu">
+	<nav class="p-3 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label="Main menu">
 		<!-- Dashboard and Profile - always visible -->
 		<div class="space-y-1">
 			<a
@@ -540,7 +540,7 @@ let isActive = $derived((href: string): boolean => {
 	</nav>
 
 	<!-- Preview link -->
-	<div class="absolute bottom-4 left-0 right-0 px-3">
+	<div class="shrink-0 px-3 pb-4">
 		<a
 			href="/"
 			target="_blank"
