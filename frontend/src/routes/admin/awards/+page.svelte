@@ -4,7 +4,9 @@
 	import { pb, type Award } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
 	import { formatDate, truncate } from '$lib/utils';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -27,13 +29,45 @@
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
 
-// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+const autosave = createAutosave('admin-awards', { saveDelay: 1500 });
+let showRecoveryBanner = $state(false);
+let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+function getFormData() {
+	return { title, issuer, awardedAt, description, url, visibility, isDraft, sortOrder };
+}
+
+function restoreFromDraft(data: Record<string, any>) {
+	title = data.title || '';
+	issuer = data.issuer || '';
+	awardedAt = data.awardedAt || '';
+	description = data.description || '';
+	url = data.url || '';
+	visibility = data.visibility || 'public';
+	isDraft = data.isDraft || false;
+	sortOrder = data.sortOrder || 0;
+}
+
+function handleFormChange() {
+	if (showForm) {
+		autosave.save(getFormData(), !!editingAward, editingAward?.id);
+	}
+}
+
 afterNavigate(() => {
-	// Reset UI state when navigating to this page (including same-route navigation)
 	showForm = false;
 	editingAward = null;
 	selectMode = false;
 	selectedIds = new Set();
+	
+	const draft = autosave.loadDraft();
+	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
+		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+		showRecoveryBanner = true;
+	} else {
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
 });
 
 onMount(loadAwards);

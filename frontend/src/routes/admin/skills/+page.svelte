@@ -6,6 +6,8 @@
 	import { pb, type Skill } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -28,13 +30,42 @@
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
 
-// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+const autosave = createAutosave('admin-skills', { saveDelay: 1500 });
+let showRecoveryBanner = $state(false);
+let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+function getFormData() {
+	return { name, category, proficiency, visibility, sortOrder };
+}
+
+function restoreFromDraft(data: Record<string, any>) {
+	name = data.name || '';
+	category = data.category || '';
+	proficiency = data.proficiency || 'proficient';
+	visibility = data.visibility || 'public';
+	sortOrder = data.sortOrder || 0;
+}
+
+function handleFormChange() {
+	if (showForm) {
+		autosave.save(getFormData(), !!editingSkill, editingSkill?.id);
+	}
+}
+
 afterNavigate(() => {
-	// Reset UI state when navigating to this page (including same-route navigation)
 	showForm = false;
 	editingSkill = null;
 	selectMode = false;
 	selectedIds = new Set();
+	
+	const draft = autosave.loadDraft();
+	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
+		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+		showRecoveryBanner = true;
+	} else {
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
 });
 
 onMount(loadSkills);

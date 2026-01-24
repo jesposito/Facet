@@ -6,8 +6,10 @@
 import { pb, type Post } from '$lib/pocketbase';
 import { collection } from '$lib/stores/demo';
 import { toasts, confirm } from '$lib/stores';
+import { createAutosave } from '$lib/stores/autosave';
 import { formatDate } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 import PageHelp from '$components/admin/PageHelp.svelte';
 
@@ -25,13 +27,46 @@ let showShortcodes = $state(false);
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
 
-// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+const autosave = createAutosave('admin-posts', { saveDelay: 1500 });
+let showRecoveryBanner = $state(false);
+let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+function getFormData() {
+	return { title, slug, excerpt, content, tags, visibility, isDraft, publishedAt, mediaRefs };
+}
+
+function restoreFromDraft(data: Record<string, any>) {
+	title = data.title || '';
+	slug = data.slug || '';
+	excerpt = data.excerpt || '';
+	content = data.content || '';
+	tags = data.tags || [];
+	visibility = data.visibility || 'public';
+	isDraft = data.isDraft !== false;
+	publishedAt = data.publishedAt || '';
+	mediaRefs = data.mediaRefs || [];
+}
+
+function handleFormChange() {
+	if (showForm) {
+		autosave.save(getFormData(), !!editingPost, editingPost?.id);
+	}
+}
+
 afterNavigate(() => {
-	// Reset UI state when navigating to this page (including same-route navigation)
 	showForm = false;
 	editingPost = null;
 	selectMode = false;
 	selectedIds = new Set();
+	
+	const draft = autosave.loadDraft();
+	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && !(Array.isArray(v) && v.length === 0))) {
+		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+		showRecoveryBanner = true;
+	} else {
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
 });
 
 	// Form fields
@@ -187,6 +222,26 @@ function resetForm() {
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
+	}
+
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const post = posts.find(p => p.id === draft.editingId);
+				if (post) editingPost = post;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
+
+	function handleDismissDraft() {
+		autosave.clearDraft();
+		showRecoveryBanner = false;
+		recoveryData = null;
 	}
 
 function openEditForm(post: Post) {
@@ -206,6 +261,7 @@ function openEditForm(post: Post) {
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	function toggleShortcodes() {
@@ -381,6 +437,16 @@ function openEditForm(post: Post) {
 		<p><strong>Tip:</strong> Public posts appear in your RSS feed at <code>/rss.xml</code> - great for readers with feed readers.</p>
 	</PageHelp>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if selectMode && selectedIds.size > 0}
 		<BulkActionBar
 			selectedCount={selectedIds.size}
@@ -416,7 +482,7 @@ function openEditForm(post: Post) {
 		</div>
 	{:else if showForm}
 		<!-- Post Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

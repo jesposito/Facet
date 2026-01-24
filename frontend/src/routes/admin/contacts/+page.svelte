@@ -6,6 +6,8 @@
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	
 
@@ -27,11 +29,43 @@
 	let isPrimary = $state(false);
 	let sortOrder = $state(0);
 
-	// Fix for issue #241: Reset form state on navigation to prevent "stuck" forms
+	const autosave = createAutosave('admin-contacts', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
+
+	function getFormData() {
+		return { type, value, label, icon, protectionLevel, viewVisibility, isPrimary, sortOrder };
+	}
+
+	function restoreFromDraft(data: Record<string, any>) {
+		type = data.type || 'email';
+		value = data.value || '';
+		label = data.label || '';
+		icon = data.icon || '';
+		protectionLevel = data.protectionLevel || 'none';
+		viewVisibility = data.viewVisibility || {};
+		isPrimary = data.isPrimary || false;
+		sortOrder = data.sortOrder || 0;
+	}
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingContact, editingContact?.id);
+		}
+	}
+
 	afterNavigate(() => {
-		// Reset UI state when navigating to this page (including same-route navigation)
 		showForm = false;
 		editingContact = null;
+		
+		const draft = autosave.loadDraft();
+		if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0))) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
 	});
 
 	// Contact method type options with icons
