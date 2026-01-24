@@ -52,6 +52,25 @@ function handleFormChange() {
 	}
 }
 
+function handleRestoreDraft() {
+	const draft = autosave.loadDraft();
+	if (draft?.data) {
+		restoreFromDraft(draft.data);
+		if (draft.isEditing && draft.editingId) {
+			const skill = skills.find(s => s.id === draft.editingId);
+			if (skill) editingSkill = skill;
+		}
+		showForm = true;
+	}
+	showRecoveryBanner = false;
+}
+
+function handleDismissDraft() {
+	autosave.clearDraft();
+	showRecoveryBanner = false;
+	recoveryData = null;
+}
+
 afterNavigate(() => {
 	showForm = false;
 	editingSkill = null;
@@ -100,6 +119,7 @@ onMount(loadSkills);
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function openEditForm(skill: Skill) {
@@ -115,6 +135,7 @@ onMount(loadSkills);
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	async function handleSubmit() {
@@ -314,13 +335,23 @@ onMount(loadSkills);
 		</div>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading skills...</div>
 		</div>
 	{:else if showForm}
 		<!-- Skill Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

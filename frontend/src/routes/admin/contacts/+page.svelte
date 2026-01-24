@@ -54,6 +54,25 @@
 		}
 	}
 
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const contact = contacts.find(c => c.id === draft.editingId);
+				if (contact) editingContact = contact;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
+
+	function handleDismissDraft() {
+		autosave.clearDraft();
+		showRecoveryBanner = false;
+		recoveryData = null;
+	}
+
 	afterNavigate(() => {
 		showForm = false;
 		editingContact = null;
@@ -150,6 +169,7 @@
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function openEditForm(contact: ContactMethod) {
@@ -168,6 +188,7 @@
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	// CRUD operations
@@ -312,6 +333,16 @@
 		<button class="btn btn-primary" onclick={openNewForm}>+ New Contact Method</button>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
@@ -327,7 +358,7 @@
 				<button class="btn btn-secondary text-sm" onclick={closeForm}>Cancel</button>
 			</div>
 
-			<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+			<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
 						<label for="contact-type" class="label">

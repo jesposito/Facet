@@ -58,6 +58,25 @@ function handleFormChange() {
 	}
 }
 
+function handleRestoreDraft() {
+	const draft = autosave.loadDraft();
+	if (draft?.data) {
+		restoreFromDraft(draft.data);
+		if (draft.isEditing && draft.editingId) {
+			const cert = certifications.find(c => c.id === draft.editingId);
+			if (cert) editingCert = cert;
+		}
+		showForm = true;
+	}
+	showRecoveryBanner = false;
+}
+
+function handleDismissDraft() {
+	autosave.clearDraft();
+	showRecoveryBanner = false;
+	recoveryData = null;
+}
+
 afterNavigate(() => {
 	showForm = false;
 	editingCert = null;
@@ -107,6 +126,7 @@ onMount(loadCertifications);
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function openEditForm(cert: Certification) {
@@ -126,6 +146,7 @@ onMount(loadCertifications);
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	async function handleSubmit() {
@@ -318,13 +339,23 @@ onMount(loadCertifications);
 		</div>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading certifications...</div>
 		</div>
 	{:else if showForm}
 		<!-- Certification Form -->
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

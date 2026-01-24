@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { preventDefault } from 'svelte/legacy';
+
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Award } from '$lib/pocketbase';
@@ -54,6 +56,25 @@ function handleFormChange() {
 	}
 }
 
+function handleRestoreDraft() {
+	const draft = autosave.loadDraft();
+	if (draft?.data) {
+		restoreFromDraft(draft.data);
+		if (draft.isEditing && draft.editingId) {
+			const award = awards.find(a => a.id === draft.editingId);
+			if (award) editingAward = award;
+		}
+		showForm = true;
+	}
+	showRecoveryBanner = false;
+}
+
+function handleDismissDraft() {
+	autosave.clearDraft();
+	showRecoveryBanner = false;
+	recoveryData = null;
+}
+
 afterNavigate(() => {
 	showForm = false;
 	editingAward = null;
@@ -102,6 +123,7 @@ onMount(loadAwards);
 	function openNewForm() {
 		resetForm();
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function openEditForm(award: Award) {
@@ -120,6 +142,7 @@ onMount(loadAwards);
 	function closeForm() {
 		showForm = false;
 		resetForm();
+		autosave.clearDraft();
 	}
 
 	async function handleSubmit() {
@@ -276,20 +299,168 @@ onMount(loadAwards);
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				Add Award
+				+ New Award
 			</button>
 		</div>
 	</div>
 
+	{#if showRecoveryBanner && recoveryData}
+		<AutosaveRecoveryBanner
+			savedAt={recoveryData.savedAt}
+			isEditing={recoveryData.isEditing}
+			visible={true}
+			on:restore={handleRestoreDraft}
+			on:dismiss={handleDismissDraft}
+		/>
+	{/if}
+
 	{#if loading}
-		<div class="text-gray-500 dark:text-gray-400">Loading awards...</div>
+		<div class="card p-8 text-center">
+			<div class="animate-pulse">Loading awards...</div>
+		</div>
+	{:else if showForm}
+		<!-- Award Form (Inline) -->
+		<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
+			<div class="card p-6 space-y-4">
+				<div class="flex items-center justify-between">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+						{editingAward ? 'Edit Award' : 'New Award'}
+					</h2>
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+
+				<div>
+					<label for="title" class="label">Title *</label>
+					<input
+						type="text"
+						id="title"
+						bind:value={title}
+						class="input"
+						placeholder="e.g., ACM Distinguished Engineer"
+						required
+					/>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label for="issuer" class="label">Issuer</label>
+						<input
+							type="text"
+							id="issuer"
+							bind:value={issuer}
+							class="input"
+							placeholder="Organization or event"
+						/>
+					</div>
+					<div>
+						<label for="awarded_at" class="label">Awarded on</label>
+						<input
+							type="date"
+							id="awarded_at"
+							bind:value={awardedAt}
+							class="input"
+						/>
+					</div>
+				</div>
+
+				<div>
+					<label for="description" class="label">Description</label>
+					<textarea
+						id="description"
+						bind:value={description}
+						class="input h-28"
+						placeholder="Optional summary or citation"
+					></textarea>
+				</div>
+
+				<div>
+					<label for="url" class="label">Link</label>
+					<input
+						type="url"
+						id="url"
+						bind:value={url}
+						class="input"
+						placeholder="https://example.com/announcement"
+					/>
+					<p class="text-xs text-gray-500 mt-1">Link to announcement or verification</p>
+				</div>
+			</div>
+
+			<div class="card p-6 space-y-4">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<label for="visibility" class="label">Visibility</label>
+						<select id="visibility" bind:value={visibility} class="input">
+							<option value="public">Public</option>
+							<option value="unlisted">Unlisted</option>
+							<option value="private">Private</option>
+						</select>
+					</div>
+
+					<div>
+						<label for="sort_order" class="label">Sort Order</label>
+						<input
+							type="number"
+							id="sort_order"
+							bind:value={sortOrder}
+							class="input"
+							min="0"
+						/>
+						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+					</div>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						id="is_draft"
+						bind:checked={isDraft}
+						class="w-4 h-4 text-primary-600 rounded border-gray-300"
+					/>
+					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
+						Save as draft (won't be visible publicly)
+					</label>
+				</div>
+			</div>
+
+			<div class="flex justify-end gap-3">
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
+				<button type="submit" class="btn btn-primary" disabled={saving}>
+					{#if saving}
+						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+					{/if}
+					{editingAward ? 'Update Award' : 'Create Award'}
+				</button>
+			</div>
+		</form>
 	{:else if awards.length === 0}
-		<div class="text-gray-500 dark:text-gray-400">No awards added yet.</div>
+		<div class="card p-8 text-center">
+			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+			</svg>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No awards yet</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">
+				Add your awards, honors, fellowships, and recognitions.
+			</p>
+			<button class="btn btn-primary" onclick={openNewForm}>
+				+ Add Your First Award
+			</button>
+		</div>
 	{:else}
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+		<!-- Awards List -->
+		<div class="space-y-3">
 			{#each awards as award (award.id)}
-				<article class="card p-5 flex flex-col gap-2 {selectMode && selectedIds.has(award.id) ? 'ring-2 ring-primary-500' : ''}">
-					<div class="flex items-start justify-between gap-2">
+				<div class="card p-4 {selectMode && selectedIds.has(award.id) ? 'ring-2 ring-primary-500' : ''}">
+					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
 							<input
 								type="checkbox"
@@ -298,126 +469,78 @@ onMount(loadAwards);
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
 						{/if}
-						<div>
-							<p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-								{award.visibility}{award.is_draft ? ' • Draft' : ''}
-							</p>
-							<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{award.title}</h2>
-							{#if award.issuer}
-								<p class="text-sm text-gray-600 dark:text-gray-400">{award.issuer}</p>
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-2 flex-wrap">
+								<h3 class="font-medium text-gray-900 dark:text-white">
+									{award.title}
+								</h3>
+								{#if award.is_draft}
+									<span class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
+										Draft
+									</span>
+								{/if}
+								{#if award.visibility !== 'public'}
+									<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+										{award.visibility}
+									</span>
+								{/if}
+							</div>
+
+							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+								{#if award.issuer}
+									<span>{award.issuer}</span>
+								{/if}
+								{#if award.awarded_at}
+									<span class="flex items-center gap-1">
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+										</svg>
+										{formatDate(award.awarded_at, { month: 'long', year: 'numeric' })}
+									</span>
+								{/if}
+							</div>
+
+							{#if award.description}
+								<p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+									{truncate(award.description, 200)}
+								</p>
+							{/if}
+
+							{#if award.url}
+								<div class="mt-2">
+									<a href={award.url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+										</svg>
+										View announcement
+									</a>
+								</div>
 							{/if}
 						</div>
+
 						<div class="flex items-center gap-2">
-							<button class="btn btn-ghost btn-sm" onclick={() => openEditForm(award)}>
-								Edit
+							<button
+								class="p-3 text-gray-500 hover:text-blue-600"
+								onclick={() => openEditForm(award)}
+								title="Edit"
+							>
+								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+								</svg>
 							</button>
-							<button class="btn btn-ghost btn-sm text-red-600" onclick={() => deleteAward(award)}>
-								Delete
+							<button
+								class="p-3 text-gray-500 hover:text-red-600"
+								onclick={() => deleteAward(award)}
+								title="Delete"
+							>
+								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+								</svg>
 							</button>
 						</div>
 					</div>
-
-					{#if award.awarded_at}
-						<p class="text-sm text-gray-600 dark:text-gray-400">
-							Awarded {formatDate(award.awarded_at, { month: 'long', year: 'numeric' })}
-						</p>
-					{/if}
-
-					{#if award.description}
-						<p class="text-sm text-gray-700 dark:text-gray-300">{truncate(award.description, 200)}</p>
-					{/if}
-
-					{#if award.url}
-						<a
-							href={award.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
-						>
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-							</svg>
-							View link
-						</a>
-					{/if}
-				</article>
+				</div>
 			{/each}
 		</div>
 	{/if}
 </div>
-
-<!-- Award Form Modal -->
-{#if showForm}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-		<div class="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-2xl border border-gray-200 dark:border-gray-700">
-			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-						{editingAward ? 'Edit Award' : 'Add Award'}
-					</h2>
-					<p class="text-sm text-gray-600 dark:text-gray-400">Add details about an award or honor.</p>
-				</div>
-				<button class="btn btn-ghost btn-sm" onclick={closeForm}>Close</button>
-			</div>
-
-			<div class="p-4 space-y-4">
-				<div>
-					<label class="label" for="title">Title</label>
-					<input id="title" class="input" bind:value={title} placeholder="e.g., ACM Distinguished Engineer" />
-				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label class="label" for="issuer">Issuer</label>
-						<input id="issuer" class="input" bind:value={issuer} placeholder="Organization or event" />
-					</div>
-					<div>
-						<label class="label" for="awarded_at">Awarded on</label>
-						<input id="awarded_at" type="date" class="input" bind:value={awardedAt} />
-					</div>
-				</div>
-
-				<div>
-					<label class="label" for="description">Description</label>
-					<textarea
-						id="description"
-						class="input h-28"
-						placeholder="Optional summary or citation"
-						bind:value={description}
-					></textarea>
-				</div>
-
-				<div>
-					<label class="label" for="url">Link</label>
-					<input id="url" class="input" bind:value={url} placeholder="Optional link to announcement" />
-				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-					<div>
-						<label class="label" for="visibility">Visibility</label>
-						<select id="visibility" class="input" bind:value={visibility}>
-							<option value="public">Public</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="private">Private</option>
-						</select>
-					</div>
-					<div class="flex items-center gap-2">
-						<input id="draft" type="checkbox" bind:checked={isDraft} class="h-4 w-4 text-primary-600" />
-						<label for="draft" class="text-sm text-gray-700 dark:text-gray-300">Mark as draft</label>
-					</div>
-					<div>
-						<label class="label" for="sort">Sort order</label>
-						<input id="sort" type="number" class="input" bind:value={sortOrder} />
-					</div>
-				</div>
-			</div>
-
-			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-				<button class="btn btn-ghost" onclick={closeForm}>Cancel</button>
-				<button class="btn btn-primary" onclick={handleSubmit} disabled={saving}>
-					{saving ? 'Saving...' : 'Save'}
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
