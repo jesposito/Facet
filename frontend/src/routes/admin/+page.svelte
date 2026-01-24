@@ -11,7 +11,7 @@
 		pendingProposals: 0
 	});
 
-	let recentActivity: Array<{ type: string; title: string; date: string }> = $state([]);
+	let recentActivity: Array<{ type: string; title: string }> = $state([]);
 	let loading = $state(true);
 	let mounted = false;
 
@@ -29,38 +29,14 @@
 		if (!mounted) return;
 
 		try {
-			// Fetch stats individually to isolate failures
-			let projectsRes, experienceRes, viewsRes, proposalsRes;
-			
-			try {
-				projectsRes = await collection('projects').getList(1, 1);
-			} catch (e) {
-				console.error('Failed to load projects:', e);
-				projectsRes = { totalItems: 0, items: [] };
-			}
-			
-			try {
-				experienceRes = await collection('experience').getList(1, 1);
-			} catch (e) {
-				console.error('Failed to load experience:', e);
-				experienceRes = { totalItems: 0, items: [] };
-			}
-			
-			try {
-				viewsRes = await collection('views').getList(1, 1);
-			} catch (e) {
-				console.error('Failed to load views:', e);
-				viewsRes = { totalItems: 0, items: [] };
-			}
-			
-			try {
-				proposalsRes = await pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" });
-			} catch (e) {
-				console.error('Failed to load proposals:', e);
-				proposalsRes = { totalItems: 0, items: [] };
-			}
+			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
+				collection('projects').getList(1, 1),
+				collection('experience').getList(1, 1),
+				collection('views').getList(1, 1),
+				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
+			]);
 
-			if (!mounted) return; // Check again after async operations
+			if (!mounted) return;
 
 			stats = {
 				projects: projectsRes.totalItems,
@@ -69,35 +45,27 @@
 				pendingProposals: proposalsRes.totalItems
 			};
 
-			// Get recent projects and experience for activity feed (sorted by most recently updated)
+			// Get recent projects and experience for activity feed
 			const [recentProjects, recentExperience] = await Promise.all([
-				collection('projects').getList(1, 3, { sort: '-updated' }),
-				collection('experience').getList(1, 3, { sort: '-updated' })
+				collection('projects').getList(1, 3, { sort: '-id' }),
+				collection('experience').getList(1, 3, { sort: '-id' })
 			]);
 
 			if (!mounted) return;
-
-			const getValidDate = (record: Record<string, unknown>): string => {
-				const updated = record.updated as string;
-				const created = record.created as string;
-				if (updated && updated.length > 0) return updated;
-				if (created && created.length > 0) return created;
-				return new Date().toISOString();
-			};
 
 			recentActivity = [
 				...recentProjects.items.map((p) => ({
 					type: 'project',
 					title: p.title,
-					date: getValidDate(p)
+					id: p.id
 				})),
 				...recentExperience.items.map((e) => ({
 					type: 'experience',
 					title: `${e.title} at ${e.company}`,
-					date: getValidDate(e)
+					id: e.id
 				}))
 			]
-				.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+				.sort((a, b) => b.id.localeCompare(a.id))
 				.slice(0, 5);
 		} catch (err) {
 			if (err instanceof Error && err.message.includes('autocancelled')) {
@@ -112,18 +80,6 @@
 				loading = false;
 			}
 		}
-	}
-
-	function formatDate(dateString: string): string {
-		if (!dateString) return 'Just now';
-		const date = new Date(dateString);
-		if (isNaN(date.getTime())) return 'Recently';
-		return date.toLocaleDateString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit'
-		});
 	}
 
 	let isEmpty = $derived(!loading && stats.projects === 0 && stats.experience === 0 && stats.views === 0);
@@ -271,7 +227,6 @@
 							<div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
 							<div class="flex-1">
 								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-								<div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mt-1"></div>
 							</div>
 						</div>
 					{/each}
@@ -298,7 +253,7 @@
 									{activity.title}
 								</p>
 								<p class="text-xs text-gray-500 dark:text-gray-400">
-									{formatDate(activity.date)}
+									{activity.type === 'project' ? 'Project' : 'Experience'}
 								</p>
 							</div>
 						</div>
