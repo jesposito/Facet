@@ -582,99 +582,99 @@
 										</button>
 									{/if}
 								</div>
-						{/each}
-					</div>
-
-					{#if sectionKey === 'skills' && layoutUsesCategoryOrder(sectionConfig.layout)}
-						<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-							<div class="flex items-center justify-between mb-2">
-								<p class="text-xs text-gray-500">
-									{sectionConfig.categoryOrder?.length 
-										? `Custom category order (${sectionConfig.categoryOrder.length} categories)`
-										: 'Categories displayed in alphabetical order'}
-								</p>
-								<button
-									type="button"
-									class="text-xs text-primary-600 hover:underline"
-									onclick={initCategoryOrder}
-								>
-									{sectionConfig.categoryOrder?.length ? 'Edit Order' : 'Customize Order'}
-								</button>
-							</div>
-						</div>
-					{/if}
+					{/each}
 				</div>
-			{/if}
-		</div>
-	{/each}
-	</div>
-	{/key}
 
-	<!-- Category Reorder Modal -->
-	{#if showCategoryReorder}
-		<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-			<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 m-4">
-				<div class="flex items-center justify-between mb-4">
-					<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Reorder Skill Categories</h3>
-					<button
-						type="button"
-						class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-1"
-						onclick={closeCategoryReorder}
-						aria-label="Close"
-					>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
-				</div>
-				<p class="text-sm text-gray-500 mb-4">Drag categories to set the display order on your public view.</p>
-				
-				{#if dndLoaded && categoryItems.length > 0}
-					<div
-						class="space-y-2 max-h-64 overflow-y-auto"
-						use:dndzone={{ items: categoryItems, flipDurationMs, type: 'categories' }}
-						onconsider={handleCategoryDndConsider}
-						onfinalize={handleCategoryDndFinalize}
-					>
-						{#each categoryItems as cat (cat.id)}
-							<div
-								class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-								animate:flip={{ duration: flipDurationMs }}
+				{#if sectionKey === 'skills' && layoutUsesCategoryOrder(sectionConfig.layout)}
+					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+						<div class="flex items-center justify-between mb-2">
+							<p class="text-xs text-gray-500">
+								{sectionConfig.categoryOrder?.length 
+									? `Custom category order (${sectionConfig.categoryOrder.length} categories)`
+									: 'Categories displayed in alphabetical order'}
+							</p>
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:underline"
+								onclick={initCategoryOrder}
 							>
-								<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
-									<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-									</svg>
-								</div>
-								<span class="flex-1 text-sm font-medium text-gray-900 dark:text-white">{cat.name}</span>
-							</div>
-						{/each}
+								{sectionConfig.categoryOrder?.length ? 'Edit Order' : 'Customize Order'}
+							</button>
+						</div>
 					</div>
-				{:else}
-					<p class="text-sm text-gray-500">No categories found.</p>
 				{/if}
+			</div>
+		{/if}
+	</div>
+{/each}
+</div>
+{/key}
 
-				<div class="flex justify-end gap-2 mt-4">
-					<button
-						type="button"
-						class="btn btn-ghost"
-						onclick={() => {
-							sections['skills'].categoryOrder = undefined;
-							updateSections();
-							closeCategoryReorder();
-						}}
-					>
-						Reset to Default
-					</button>
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={closeCategoryReorder}
-					>
-						Done
-					</button>
+<!-- Category Reorder Modal -->
+{#if showCategoryReorder}
+	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+		<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 m-4">
+			<div class="flex items-center justify-between mb-4">
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Reorder Skill Categories</h3>
+				<button
+					type="button"
+					class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-1"
+					onclick={closeCategoryReorder}
+					aria-label="Close"
+				>
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+			<p class="text-sm text-gray-500 mb-4">Drag categories to set the display order on your public view.</p>
+			
+			{#if dndLoaded && categoryItems.length > 0}
+				<div
+					class="space-y-2 max-h-64 overflow-y-auto"
+					use:dndzone={{ items: categoryItems, flipDurationMs, type: 'categories' }}
+					onconsider={handleCategoryDndConsider}
+					onfinalize={handleCategoryDndFinalize}
+				>
+					{#each categoryItems as cat (cat.id)}
+						<div
+							class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+							animate:flip={{ duration: flipDurationMs }}
+						>
+							<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+								<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+								</svg>
+							</div>
+							<span class="flex-1 text-sm font-medium text-gray-900 dark:text-white">{cat.name}</span>
+						</div>
+					{/each}
 				</div>
+			{:else}
+				<p class="text-sm text-gray-500">No categories found.</p>
+			{/if}
+
+			<div class="flex justify-end gap-2 mt-4">
+				<button
+					type="button"
+					class="btn btn-ghost"
+					onclick={() => {
+						sections['skills'].categoryOrder = undefined;
+						updateSections();
+						closeCategoryReorder();
+					}}
+				>
+					Reset to Default
+				</button>
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={closeCategoryReorder}
+				>
+					Done
+				</button>
 			</div>
 		</div>
-	{/if}
+	</div>
+{/if}
 </div>
