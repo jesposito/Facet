@@ -38,7 +38,19 @@
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	// Custom content items (each becomes its own section)
-	let customContentItems: Array<{ id: string; title: string; is_draft: boolean; visibility: string }> = $state([]);
+	// Includes full data for preview rendering
+	let customContentItems: Array<{
+		id: string;
+		title: string;
+		is_draft: boolean;
+		visibility: 'public' | 'unlisted' | 'private';
+		sort_order?: number;
+		content?: string;
+		cover_image?: string;
+		cover_image_url?: string;
+		media?: string[];
+		media_urls?: string[];
+	}> = $state([]);
 
 	// Dynamic section definitions (includes custom content)
 	let allSectionDefs = $derived(() => {
@@ -217,12 +229,37 @@
 			const records = await collection('custom_content').getList(1, 100, {
 				sort: 'sort_order'
 			});
-			customContentItems = records.items.map(item => ({
-				id: item.id,
-				title: (item as any).title || 'Untitled',
-				is_draft: (item as any).is_draft || false,
-				visibility: (item as any).visibility || 'public'
-			}));
+			customContentItems = records.items.map(item => {
+				const record = item as any;
+				const collectionId = record.collectionId || 'custom_content';
+
+				// Build cover image URL if exists
+				let cover_image_url: string | undefined;
+				if (record.cover_image) {
+					cover_image_url = `/api/files/${collectionId}/${record.id}/${record.cover_image}`;
+				}
+
+				// Build media URLs if exist
+				let media_urls: string[] | undefined;
+				if (record.media && Array.isArray(record.media) && record.media.length > 0) {
+					media_urls = record.media.map((filename: string) =>
+						`/api/files/${collectionId}/${record.id}/${filename}`
+					);
+				}
+
+				return {
+					id: record.id,
+					title: record.title || 'Untitled',
+					is_draft: record.is_draft || false,
+					visibility: (record.visibility || 'public') as 'public' | 'unlisted' | 'private',
+					sort_order: record.sort_order ?? 0,
+					content: record.content,
+					cover_image: record.cover_image,
+					cover_image_url,
+					media: record.media,
+					media_urls
+				};
+			});
 		} catch (err) {
 			console.error('Failed to load custom content:', err);
 			customContentItems = [];
@@ -1542,6 +1579,7 @@
 							{sectionItems}
 							{accentColor}
 							{previewMode}
+							{customContentItems}
 						/>
 					</div>
 				</details>

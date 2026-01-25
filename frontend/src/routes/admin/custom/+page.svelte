@@ -31,6 +31,7 @@
 	let sortOrder = $state(0);
 	let coverImageFile: FileList | null = $state(null);
 	let mediaFiles: FileList | null = $state(null);
+	let mediaToKeep: string[] = $state([]); // Track existing media filenames to keep
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
 
@@ -163,6 +164,7 @@
 		sortOrder = 0;
 		coverImageFile = null;
 		mediaFiles = null;
+		mediaToKeep = [];
 		editingItem = null;
 		adminTagIds = [];
 	}
@@ -202,6 +204,7 @@
 		adminTagIds = item.admin_tags || [];
 		coverImageFile = null;
 		mediaFiles = null;
+		mediaToKeep = item.media ? [...item.media] : []; // Keep all existing media by default
 		showForm = true;
 	}
 
@@ -236,7 +239,14 @@
 				formData.append('cover_image', coverImageFile[0]);
 			}
 
-			// Handle media files upload
+			// Handle media files - include existing files to keep AND new files to add
+			if (editingItem) {
+				// When editing, first add existing media filenames to keep
+				for (const filename of mediaToKeep) {
+					formData.append('media', filename);
+				}
+			}
+			// Then add any new files
 			if (mediaFiles && mediaFiles.length > 0) {
 				for (let i = 0; i < mediaFiles.length; i++) {
 					formData.append('media', mediaFiles[i]);
@@ -392,6 +402,10 @@
 		} catch (err) {
 			toasts.add('error', 'Failed to remove cover image');
 		}
+	}
+
+	function removeMediaFromKeep(filename: string) {
+		mediaToKeep = mediaToKeep.filter((f) => f !== filename);
 	}
 </script>
 
@@ -594,19 +608,30 @@
 
 				<div>
 					<label for="media" class="label">Media Gallery</label>
-					{#if editingItem?.media && editingItem.media.length > 0}
+					{#if editingItem && mediaToKeep.length > 0}
 						<div class="flex flex-wrap gap-2 mb-2">
-							{#each editingItem.media as filename}
-								<img
-									src={getFileUrl(
-										{ id: editingItem.id, collectionName: 'custom_content' },
-										filename
-									)}
-									alt="Media"
-									class="w-16 h-16 object-cover rounded"
-								/>
+							{#each mediaToKeep as filename}
+								<div class="relative group">
+									<img
+										src={getFileUrl(
+											{ id: editingItem.id, collectionName: 'custom_content' },
+											filename
+										)}
+										alt="Media"
+										class="w-16 h-16 object-cover rounded"
+									/>
+									<button
+										type="button"
+										class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+										onclick={() => removeMediaFromKeep(filename)}
+										title="Remove image"
+									>
+										×
+									</button>
+								</div>
 							{/each}
 						</div>
+						<p class="text-xs text-gray-500 mb-2">Hover over images to remove them</p>
 					{/if}
 					<input
 						type="file"
@@ -616,7 +641,7 @@
 						bind:files={mediaFiles}
 						class="input"
 					/>
-					<p class="text-xs text-gray-500 mt-1">Upload multiple images for a gallery</p>
+					<p class="text-xs text-gray-500 mt-1">Upload multiple images to add to the gallery</p>
 				</div>
 
 				<div>

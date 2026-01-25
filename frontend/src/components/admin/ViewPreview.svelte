@@ -33,7 +33,18 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+
+	// Helper to check if a section key is for custom content
+	function isCustomSection(sectionKey: string): boolean {
+		return sectionKey.startsWith('custom:');
+	}
+
+	// Helper to get custom content ID from section key
+	function getCustomContentId(sectionKey: string): string {
+		return sectionKey.replace('custom:', '');
+	}
 
 	
 
@@ -75,6 +86,17 @@
 			data: Record<string, unknown>;
 		}>
 	>;
+		// Custom content items for preview
+		customContentItems?: Array<{
+			id: string;
+			title: string;
+			is_draft: boolean;
+			visibility: 'public' | 'unlisted' | 'private';
+			sort_order?: number;
+			content?: string;
+			cover_image_url?: string;
+			media_urls?: string[];
+		}>;
 	}
 
 	let {
@@ -87,7 +109,8 @@
 		previewMode = 'desktop',
 		sections = {},
 		sectionOrder = [],
-		sectionItems = {}
+		sectionItems = {},
+		customContentItems = []
 	}: Props = $props();
 
 
@@ -171,6 +194,9 @@
 
 
 
+	// Build a map for quick custom content lookup by ID
+	let customContentMap = $derived(new Map(customContentItems.map(item => [item.id, item])));
+
 	// Compute effective profile with hero overrides
 	let effectiveProfile = $derived(profile
 		? {
@@ -181,8 +207,17 @@
 		: null);
 	// Reactive computation of all section data - ensures updates when props change
 	let computedSections = $derived(computeAllSections(sections, sectionItems));
-	// Reactive count of visible sections for empty state check
-	let visibleSectionCount = $derived(sectionOrder.filter(s => computedSections[s.key]?.visible).length);
+	// Reactive count of visible sections for empty state check (includes custom content)
+	let visibleSectionCount = $derived(sectionOrder.filter(s => {
+		// For regular sections, check computedSections
+		if (!isCustomSection(s.key)) {
+			return computedSections[s.key]?.visible;
+		}
+		// For custom sections, check if enabled and item exists and not draft
+		const customId = getCustomContentId(s.key);
+		const customItem = customContentMap.get(customId);
+		return sections[s.key]?.enabled && customItem && !customItem.is_draft;
+	}).length);
 	// Compute effective accent color (view override or profile default)
 	let effectiveAccentColor = $derived(accentColor || (profile?.accent_color as AccentColor) || null);
 	// Generate inline styles for accent color preview
@@ -294,6 +329,21 @@
 							layout={computed.layout}
 						/>
 					</div>
+				{:else if isCustomSection(sectionKey) && sections[sectionKey]?.enabled}
+					{@const customId = getCustomContentId(sectionKey)}
+					{@const customItem = customContentMap.get(customId)}
+					{#if customItem && !customItem.is_draft}
+						<div class="preview-section {sections[sectionKey]?.width === 'half' ? 'section-half' : sections[sectionKey]?.width === 'third' ? 'section-third' : 'section-full'}">
+							<CustomContentSection
+								item={{
+									...customItem,
+									visibility: customItem.visibility as 'public' | 'unlisted' | 'private',
+									sort_order: customItem.sort_order ?? 0
+								}}
+								layout={sections[sectionKey]?.layout || 'default'}
+							/>
+						</div>
+					{/if}
 				{/if}
 			{/each}
 		</div>
