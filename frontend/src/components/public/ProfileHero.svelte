@@ -19,7 +19,7 @@
 			<img
 				src={heroImageUrl}
 				alt=""
-				class="w-full h-full object-cover opacity-30"
+				class="w-full h-full object-cover object-top opacity-30"
 			/>
 			<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
 		</div>

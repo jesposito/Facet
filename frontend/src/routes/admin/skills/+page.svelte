@@ -3,6 +3,8 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { browser } from '$app/environment';
+	import { flip } from 'svelte/animate';
 	import { pb, type Skill } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -32,6 +34,14 @@
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+let reorderMode = $state(false);
+let reorderData: Map<string, Array<{ id: string; name: string }>> = $state(new Map());
+let savingOrder = $state(false);
+const flipDurationMs = 200;
+
+let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+let dndLoaded = $state(false);
 
 	const autosave = createAutosave('admin-skills', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
@@ -108,6 +118,13 @@ afterNavigate(() => {
 });
 
 onMount(loadSkills);
+onMount(async () => {
+	if (browser) {
+		const { dndzone: dnd } = await import('svelte-dnd-action');
+		dndzone = dnd;
+		dndLoaded = true;
+	}
+});
 
 	async function loadSkills() {
 		loading = true;
@@ -319,6 +336,53 @@ onMount(loadSkills);
 			toasts.add('error', 'Failed to delete items');
 		}
 	}
+
+	function enterReorderMode() {
+		const grouped = groupByCategory(skills);
+		reorderData = new Map();
+		for (const [cat, catSkills] of grouped) {
+			reorderData.set(cat, catSkills.map(s => ({ id: s.id, name: s.name })));
+		}
+		reorderMode = true;
+		selectMode = false;
+	}
+
+	function cancelReorder() {
+		reorderMode = false;
+		reorderData = new Map();
+	}
+
+	function handleCategoryReorderConsider(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		reorderData.set(cat, e.detail.items);
+		reorderData = new Map(reorderData);
+	}
+
+	function handleCategoryReorderFinalize(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		reorderData.set(cat, e.detail.items);
+		reorderData = new Map(reorderData);
+	}
+
+	async function saveReorder() {
+		savingOrder = true;
+		try {
+			const updates: Promise<any>[] = [];
+			for (const [_, catItems] of reorderData) {
+				catItems.forEach((item, index) => {
+					updates.push(collection('skills').update(item.id, { sort_order: index }));
+				});
+			}
+			await Promise.all(updates);
+			toasts.add('success', 'Order saved');
+			reorderMode = false;
+			reorderData = new Map();
+			await loadSkills();
+		} catch (err) {
+			console.error('Failed to save order:', err);
+			toasts.add('error', 'Failed to save order');
+		} finally {
+			savingOrder = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -347,17 +411,25 @@ onMount(loadSkills);
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Skills</h1>
 		<div class="flex items-center gap-2">
-			{#if skills.length > 0}
+			{#if skills.length > 0 && !reorderMode}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
+				<button
+					class="btn btn-ghost"
+					onclick={enterReorderMode}
+				>
+					Reorder
+				</button>
 			{/if}
-			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Skill
-			</button>
+			{#if !reorderMode}
+				<button class="btn btn-primary" onclick={openNewForm}>
+					+ New Skill
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -376,6 +448,58 @@ onMount(loadSkills);
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading skills...</div>
+		</div>
+	{:else if reorderMode}
+		<div class="card p-6">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Drag to Reorder Skills</h2>
+				<div class="flex gap-2">
+					<button class="btn btn-ghost" onclick={cancelReorder} disabled={savingOrder}>
+						Cancel
+					</button>
+					<button class="btn btn-primary" onclick={saveReorder} disabled={savingOrder}>
+						{#if savingOrder}
+							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+						{/if}
+						Save Order
+					</button>
+				</div>
+			</div>
+			<p class="text-sm text-gray-500 mb-4">Reorder skills within each category. Category order is set separately.</p>
+			{#key dndLoaded}
+				<div class="space-y-6">
+					{#each [...reorderData] as [categoryName, categoryItems] (categoryName)}
+						<div>
+							<h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+								{categoryName}
+							</h3>
+							<div
+								class="space-y-2"
+								use:dndzone={{ items: categoryItems, flipDurationMs, type: `skills-${categoryName}` }}
+								onconsider={(e: any) => handleCategoryReorderConsider(categoryName, e)}
+								onfinalize={(e: any) => handleCategoryReorderFinalize(categoryName, e)}
+							>
+								{#each categoryItems as item (item.id)}
+									<div
+										class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+										animate:flip={{ duration: flipDurationMs }}
+									>
+										<div class="cursor-grab active:cursor-grabbing p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+											<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+											</svg>
+										</div>
+										<span class="flex-1 font-medium text-gray-900 dark:text-white">{item.name}</span>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/key}
 		</div>
 	{:else if showForm}
 		<!-- Skill Form -->

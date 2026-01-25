@@ -3,6 +3,8 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
+	import { browser } from '$app/environment';
+	import { flip } from 'svelte/animate';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -45,6 +47,14 @@ let adminTagIds: string[] = $state([]);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
+
+let reorderMode = $state(false);
+let reorderItems: Array<{ id: string; title: string; is_featured: boolean; is_draft: boolean }> = $state([]);
+let savingOrder = $state(false);
+const flipDurationMs = 200;
+
+let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+let dndLoaded = $state(false);
 
 const filterStore = createFilterState({
 	enableSearch: true,
@@ -104,6 +114,13 @@ afterNavigate(() => {
 onMount(loadProjects);
 onMount(loadMediaOptions);
 onMount(loadAvailableTags);
+onMount(async () => {
+	if (browser) {
+		const { dndzone: dnd } = await import('svelte-dnd-action');
+		dndzone = dnd;
+		dndLoaded = true;
+	}
+});
 
 async function loadAvailableTags() {
 	try {
@@ -506,6 +523,49 @@ async function resolveMediaRefs(selected: string[]) {
 			toasts.add('error', 'Failed to delete items');
 		}
 	}
+
+	function enterReorderMode() {
+		reorderItems = projects.map(p => ({
+			id: p.id,
+			title: p.title,
+			is_featured: p.is_featured,
+			is_draft: p.is_draft
+		}));
+		reorderMode = true;
+		selectMode = false;
+	}
+
+	function cancelReorder() {
+		reorderMode = false;
+		reorderItems = [];
+	}
+
+	function handleReorderConsider(e: CustomEvent<{ items: typeof reorderItems }>) {
+		reorderItems = e.detail.items;
+	}
+
+	function handleReorderFinalize(e: CustomEvent<{ items: typeof reorderItems }>) {
+		reorderItems = e.detail.items;
+	}
+
+	async function saveReorder() {
+		savingOrder = true;
+		try {
+			const updates = reorderItems.map((item, index) => 
+				collection('projects').update(item.id, { sort_order: index })
+			);
+			await Promise.all(updates);
+			toasts.add('success', 'Order saved');
+			reorderMode = false;
+			reorderItems = [];
+			await loadProjects();
+		} catch (err) {
+			console.error('Failed to save order:', err);
+			toasts.add('error', 'Failed to save order');
+		} finally {
+			savingOrder = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -544,20 +604,28 @@ async function resolveMediaRefs(selected: string[]) {
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
 		<div class="flex items-center gap-2">
-			{#if projects.length > 0}
+			{#if projects.length > 0 && !reorderMode}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
 					{selectMode ? 'Cancel' : 'Select'}
 				</button>
+				<button
+					class="btn btn-ghost"
+					onclick={enterReorderMode}
+				>
+					Reorder
+				</button>
 			{/if}
-			<a href="/admin/import" class="btn btn-secondary">
-				Import from GitHub
-			</a>
-			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Project
-			</button>
+			{#if !reorderMode}
+				<a href="/admin/import" class="btn btn-secondary">
+					Import from GitHub
+				</a>
+				<button class="btn btn-primary" onclick={openNewForm}>
+					+ New Project
+				</button>
+			{/if}
 		</div>
 	</div>
 
@@ -566,6 +634,54 @@ async function resolveMediaRefs(selected: string[]) {
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">Loading projects...</div>
+		</div>
+	{:else if reorderMode}
+		<div class="card p-6">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Drag to Reorder</h2>
+				<div class="flex gap-2">
+					<button class="btn btn-ghost" onclick={cancelReorder} disabled={savingOrder}>
+						Cancel
+					</button>
+					<button class="btn btn-primary" onclick={saveReorder} disabled={savingOrder}>
+						{#if savingOrder}
+							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+						{/if}
+						Save Order
+					</button>
+				</div>
+			</div>
+			{#key dndLoaded}
+				<div
+					class="space-y-2"
+					use:dndzone={{ items: reorderItems, flipDurationMs, type: 'projects' }}
+					onconsider={handleReorderConsider}
+					onfinalize={handleReorderFinalize}
+				>
+					{#each reorderItems as item (item.id)}
+						<div
+							class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+							animate:flip={{ duration: flipDurationMs }}
+						>
+							<div class="cursor-grab active:cursor-grabbing p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
+								<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+								</svg>
+							</div>
+							<span class="flex-1 font-medium text-gray-900 dark:text-white">{item.title}</span>
+							{#if item.is_featured}
+								<span class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">Featured</span>
+							{/if}
+							{#if item.is_draft}
+								<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">Draft</span>
+							{/if}
+						</div>
+					{/each}
+				</div>
+			{/key}
 		</div>
 	{:else if showForm}
 		<!-- Project Form -->

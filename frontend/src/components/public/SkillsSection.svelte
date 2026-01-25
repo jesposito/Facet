@@ -4,11 +4,11 @@
 	interface Props {
 		items: Skill[];
 		layout?: string;
+		categoryOrder?: string[];
 	}
 
-	let { items, layout = 'grouped' }: Props = $props();
+	let { items, layout = 'grouped', categoryOrder }: Props = $props();
 
-	// Group skills by category
 	let groupedSkills = $derived(items.reduce((acc, skill) => {
 		const category = skill.category || 'Other';
 		if (!acc[category]) {
@@ -17,6 +17,25 @@
 		acc[category].push(skill);
 		return acc;
 	}, {} as Record<string, Skill[]>));
+
+	let orderedCategories = $derived.by(() => {
+		const allCategories = Object.keys(groupedSkills);
+		if (!categoryOrder?.length) {
+			return allCategories.sort();
+		}
+		const ordered: string[] = [];
+		for (const cat of categoryOrder) {
+			if (allCategories.includes(cat)) {
+				ordered.push(cat);
+			}
+		}
+		for (const cat of allCategories) {
+			if (!ordered.includes(cat)) {
+				ordered.push(cat);
+			}
+		}
+		return ordered;
+	});
 
 	const proficiencyColors = {
 		expert: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -63,9 +82,9 @@
 		</div>
 
 	{:else if layout === 'bars'}
-		<!-- Skill Bars Layout -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-			{#each Object.entries(groupedSkills) as [category, skills] (category)}
+			{#each orderedCategories as category (category)}
+				{@const skills = groupedSkills[category]}
 				<div class="card p-6 animate-fade-in">
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
 						{category}
@@ -111,9 +130,9 @@
 		</div>
 
 	{:else}
-		<!-- Default: Grouped Layout -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-			{#each Object.entries(groupedSkills) as [category, skills] (category)}
+			{#each orderedCategories as category (category)}
+				{@const skills = groupedSkills[category]}
 				<div class="card p-6 animate-fade-in">
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
 						{category}

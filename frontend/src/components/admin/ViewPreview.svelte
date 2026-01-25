@@ -51,7 +51,6 @@
 		ctaText?: string;
 		ctaUrl?: string;
 		previewMode?: 'desktop' | 'mobile'; // Phase 6.2.2: Desktop or mobile preview
-		// Section configuration from editor (with width support for Phase 6.3)
 		sections?: Record<
 		string,
 		{
@@ -60,6 +59,7 @@
 			layout: string;
 			width?: 'full' | 'half' | 'third';
 			itemConfig: Record<string, ItemConfig>;
+			categoryOrder?: string[];
 		}
 	>;
 		// Section order from drag-drop
@@ -102,6 +102,7 @@
 		width: string;
 		widthClass: string;
 		visible: boolean;
+		categoryOrder?: string[];
 	}> {
 		const result: Record<string, {
 			data: any[];
@@ -109,6 +110,7 @@
 			width: string;
 			widthClass: string;
 			visible: boolean;
+			categoryOrder?: string[];
 		}> = {};
 
 		for (const key of Object.keys(sectionsConfig)) {
@@ -159,7 +161,8 @@
 				layout,
 				width,
 				widthClass,
-				visible: config?.enabled && data.length > 0
+				visible: config?.enabled && data.length > 0,
+				categoryOrder: config?.categoryOrder
 			};
 		}
 
@@ -274,6 +277,7 @@
 						<SkillsSection
 							items={computed.data}
 							layout={computed.layout}
+							categoryOrder={computed.categoryOrder}
 						/>
 					</div>
 				{:else if sectionKey === 'posts' && computed?.visible}
