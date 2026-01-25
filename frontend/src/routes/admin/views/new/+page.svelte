@@ -153,7 +153,8 @@
 				sectionItems[key] = records.items.map((item) => ({
 					id: item.id,
 					label: getItemLabel(key, item),
-					visibility: (item as Record<string, unknown>).visibility as string || 'public',
+					// Default to 'private' if visibility is not set - safer than assuming public
+					visibility: (item as Record<string, unknown>).visibility as string || 'private',
 					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
 					data: item as Record<string, unknown>
 				}));

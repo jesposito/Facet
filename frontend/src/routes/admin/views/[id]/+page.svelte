@@ -251,7 +251,8 @@
 					id: record.id,
 					title: record.title || 'Untitled',
 					is_draft: record.is_draft || false,
-					visibility: (record.visibility || 'public') as 'public' | 'unlisted' | 'private',
+					// Default to 'private' if visibility is not set - safer than assuming public
+					visibility: (record.visibility || 'private') as 'public' | 'unlisted' | 'private',
 					sort_order: record.sort_order ?? 0,
 					content: record.content,
 					cover_image: record.cover_image,
@@ -713,7 +714,8 @@
 				sectionItems[key] = records.items.map((item) => ({
 					id: item.id,
 					label: getItemLabel(key, item),
-					visibility: (item as Record<string, unknown>).visibility as string || 'public',
+					// Default to 'private' if visibility is not set - safer than assuming public
+					visibility: (item as Record<string, unknown>).visibility as string || 'private',
 					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
 					data: item as Record<string, unknown>,
 					expand: (item as any).expand || {}
