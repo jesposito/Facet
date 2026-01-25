@@ -419,6 +419,11 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 						app.Logger().Warn("media: failed to build item", "collection", collection.Name, "record", record.Id, "field", field, "file", filename, "error", err)
 						continue
 					}
+					// Set display name from record title if available (uploads collection has title field)
+					if title := record.GetString("title"); title != "" {
+						item.DisplayName = title
+						item.RecordLabel = title
+					}
 					all = append(all, item)
 					key := filepath.ToSlash(filepath.Join(collection.Id, record.Id, filename))
 					referenced[key] = struct{}{}
