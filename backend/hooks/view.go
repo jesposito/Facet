@@ -755,7 +755,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch experience - only public items appear on homepage
-			expEnabled, expSelectedItems := getSectionConfig(settings, "experience")
+			expEnabled, expSelectedItems, expConfigured := getSectionConfig(settings, "experience")
 			if expEnabled {
 				experienceRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "experience"),
@@ -775,12 +775,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							}
 						}
 					}
-					response["experience"] = filterBySelectedItems(experience, expSelectedItems)
+					response["experience"] = filterBySelectedItemsWithDefault(experience, expSelectedItems, expConfigured)
 				}
 			}
 
 			// Fetch projects - only public items appear on homepage
-			projEnabled, projSelectedItems := getSectionConfig(settings, "projects")
+			projEnabled, projSelectedItems, projConfigured := getSectionConfig(settings, "projects")
 			if projEnabled {
 				projectRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "projects"),
@@ -803,12 +803,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							}
 						}
 					}
-					response["projects"] = filterBySelectedItems(projects, projSelectedItems)
+					response["projects"] = filterBySelectedItemsWithDefault(projects, projSelectedItems, projConfigured)
 				}
 			}
 
 			// Fetch education - only public items appear on homepage
-			eduEnabled, eduSelectedItems := getSectionConfig(settings, "education")
+			eduEnabled, eduSelectedItems, eduConfigured := getSectionConfig(settings, "education")
 			if eduEnabled {
 				educationRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "education"),
@@ -820,12 +820,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					education := serializeRecords(educationRecords)
-					response["education"] = filterBySelectedItems(education, eduSelectedItems)
+					response["education"] = filterBySelectedItemsWithDefault(education, eduSelectedItems, eduConfigured)
 				}
 			}
 
 			// Fetch skills - only public items appear on homepage
-			skillsEnabled, skillsSelectedItems := getSectionConfig(settings, "skills")
+			skillsEnabled, skillsSelectedItems, skillsConfigured := getSectionConfig(settings, "skills")
 			if skillsEnabled {
 				skillRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "skills"),
@@ -837,12 +837,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					skills := serializeRecords(skillRecords)
-					response["skills"] = filterBySelectedItems(skills, skillsSelectedItems)
+					response["skills"] = filterBySelectedItemsWithDefault(skills, skillsSelectedItems, skillsConfigured)
 				}
 			}
 
 			// Fetch posts - only public items appear on homepage
-			postsEnabled, postsSelectedItems := getSectionConfig(settings, "posts")
+			postsEnabled, postsSelectedItems, postsConfigured := getSectionConfig(settings, "posts")
 			if postsEnabled {
 				postRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "posts"),
@@ -866,13 +866,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 								}
 							}
 						}
-						response["posts"] = filterBySelectedItems(posts, postsSelectedItems)
+						response["posts"] = filterBySelectedItemsWithDefault(posts, postsSelectedItems, postsConfigured)
 					}
 				}
 			}
 
 			// Fetch talks - only public items appear on homepage
-			talksEnabled, talksSelectedItems := getSectionConfig(settings, "talks")
+			talksEnabled, talksSelectedItems, talksConfigured := getSectionConfig(settings, "talks")
 			if talksEnabled {
 				talkRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "talks"),
@@ -884,12 +884,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					talks := serializeRecords(talkRecords)
-					response["talks"] = filterBySelectedItems(talks, talksSelectedItems)
+					response["talks"] = filterBySelectedItemsWithDefault(talks, talksSelectedItems, talksConfigured)
 				}
 			}
 
 			// Fetch certifications - only public items appear on homepage
-			certsEnabled, certsSelectedItems := getSectionConfig(settings, "certifications")
+			certsEnabled, certsSelectedItems, certsConfigured := getSectionConfig(settings, "certifications")
 			if certsEnabled {
 				certRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "certifications"),
@@ -901,12 +901,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					certs := serializeRecords(certRecords)
-					response["certifications"] = filterBySelectedItems(certs, certsSelectedItems)
+					response["certifications"] = filterBySelectedItemsWithDefault(certs, certsSelectedItems, certsConfigured)
 				}
 			}
 
 			// Fetch awards - only public items appear on homepage
-			awardsEnabled, awardsSelectedItems := getSectionConfig(settings, "awards")
+			awardsEnabled, awardsSelectedItems, awardsConfigured := getSectionConfig(settings, "awards")
 			if awardsEnabled {
 				awardRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "awards"),
@@ -918,7 +918,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					awards := serializeRecords(awardRecords)
-					response["awards"] = filterBySelectedItems(awards, awardsSelectedItems)
+					response["awards"] = filterBySelectedItemsWithDefault(awards, awardsSelectedItems, awardsConfigured)
 				}
 			}
 
@@ -987,7 +987,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch testimonials - only approved ones appear on homepage
-			testimonialsEnabled, testimonialsSelectedItems := getSectionConfig(settings, "testimonials")
+			testimonialsEnabled, testimonialsSelectedItems, testimonialsConfigured := getSectionConfig(settings, "testimonials")
 			if testimonialsEnabled {
 				testimonialRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "testimonials"),
@@ -999,12 +999,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					testimonials := serializeRecords(testimonialRecords)
-					response["testimonials"] = filterBySelectedItems(testimonials, testimonialsSelectedItems)
+					response["testimonials"] = filterBySelectedItemsWithDefault(testimonials, testimonialsSelectedItems, testimonialsConfigured)
 				}
 			}
 
 			// Fetch contacts - only public ones appear on homepage
-			contactsEnabled, contactsSelectedItems := getSectionConfig(settings, "contacts")
+			contactsEnabled, contactsSelectedItems, contactsConfigured := getSectionConfig(settings, "contacts")
 			if contactsEnabled {
 				contactRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "contact_methods"),
@@ -1016,7 +1016,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					contacts := serializeRecords(contactRecords)
-					response["contacts"] = filterBySelectedItems(contacts, contactsSelectedItems)
+					response["contacts"] = filterBySelectedItemsWithDefault(contacts, contactsSelectedItems, contactsConfigured)
 				}
 			}
 

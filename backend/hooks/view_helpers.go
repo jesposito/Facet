@@ -370,11 +370,44 @@ func escapeICSText(value string) string {
 }
 
 // filterBySelectedItems filters serialized records based on selected item IDs.
-// If selectedItems is empty, returns all items (shows all public items).
+// If selectedItems is empty, returns empty (nothing selected = nothing shown).
 // If selectedItems has specific IDs, returns only those items in the specified order.
 func filterBySelectedItems(items []map[string]interface{}, selectedItems []string) []map[string]interface{} {
 	if len(selectedItems) == 0 {
+		return nil // Nothing selected = nothing shown
+	}
+
+	// Build a map for quick lookup
+	itemMap := make(map[string]map[string]interface{})
+	for _, item := range items {
+		if id, ok := item["id"].(string); ok {
+			itemMap[id] = item
+		}
+	}
+
+	// Return items in the order specified by selectedItems
+	var result []map[string]interface{}
+	for _, id := range selectedItems {
+		if item, exists := itemMap[id]; exists {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// filterBySelectedItemsWithDefault filters serialized records based on selected item IDs.
+// If selectedItems is nil (not configured), returns all items (default behavior for unconfigured sections).
+// If selectedItems is empty array (explicitly configured with no selections), returns empty.
+// If selectedItems has specific IDs, returns only those items in the specified order.
+func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedItems []string, isConfigured bool) []map[string]interface{} {
+	// If section is not configured at all, show all items (backwards compat)
+	if !isConfigured {
 		return items
+	}
+
+	// If configured but no items selected, show nothing
+	if len(selectedItems) == 0 {
+		return nil
 	}
 
 	// Build a map for quick lookup
@@ -396,16 +429,16 @@ func filterBySelectedItems(items []map[string]interface{}, selectedItems []strin
 }
 
 // getSectionConfig returns the configuration for a section from homepage_sections.
-// Returns enabled=true and empty items if section is not configured.
-func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabled bool, items []string) {
+// Returns enabled, items, and isConfigured (whether the section has explicit config).
+func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabled bool, items []string, isConfigured bool) {
 	if settings == nil || settings.HomepageSections == nil {
-		return true, nil
+		return true, nil, false
 	}
 
 	config, exists := settings.HomepageSections[sectionKey]
 	if !exists {
-		return true, nil
+		return true, nil, false
 	}
 
-	return config.Enabled, config.Items
+	return config.Enabled, config.Items, true
 }
