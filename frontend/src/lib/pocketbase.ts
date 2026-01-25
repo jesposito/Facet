@@ -304,6 +304,7 @@ export interface ViewSection {
 	layout?: SectionLayout;
 	width?: SectionWidth;
 	itemConfig?: Record<string, ItemConfig>;
+	categoryOrder?: string[]; // For skills section: custom order of categories
 }
 
 // Valid width options with labels

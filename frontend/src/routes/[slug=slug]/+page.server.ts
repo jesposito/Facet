@@ -164,6 +164,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionOrder: viewData.section_order || [],
 			sectionLayouts: viewData.section_layouts || {},
 			sectionWidths: viewData.section_widths || {},
+			sectionCategoryOrders: viewData.section_category_orders || {},
 			requiresPassword: false,
 			shareToken: effectiveShareToken || null
 		};

@@ -77,7 +77,7 @@
 	let generatingToken = $state(false);
 
 	// Sections configuration with layout and width support (itemConfig empty for new views)
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }> }> = $state({});
+	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }>; categoryOrder?: string[] }> = $state({});
 
 	// Section order for drag-drop
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
@@ -398,13 +398,19 @@
 		try {
 			// Build sections array in current order with layout and width
 			const sectionsData: ViewSection[] = sectionOrder
-				.map(({ key }) => ({
-					section: key,
-					enabled: sections[key]?.enabled || false,
-					items: sections[key]?.items || [],
-					layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default',
-					width: sections[key]?.width || 'full'
-				}));
+				.map(({ key }) => {
+					const sectionData: ViewSection = {
+						section: key,
+						enabled: sections[key]?.enabled || false,
+						items: sections[key]?.items || [],
+						layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default',
+						width: sections[key]?.width || 'full'
+					};
+					if (key === 'skills' && sections[key]?.categoryOrder?.length) {
+						sectionData.categoryOrder = sections[key].categoryOrder;
+					}
+					return sectionData;
+				});
 
 			const data = {
 				name: name.trim(),

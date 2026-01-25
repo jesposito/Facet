@@ -30,6 +30,12 @@
 		scroll-behavior: smooth;
 	}
 
+	/* Scroll margin for anchor links - prevents sticky nav from covering section headers
+	   6rem accounts for: sticky nav (~48px) + optional CTA banner (~48px) + buffer */
+	section[id] {
+		scroll-margin-top: 6rem;
+	}
+
 	body {
 		@apply antialiased;
 	}
