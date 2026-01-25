@@ -25,6 +25,13 @@ type HomepageSectionConfig struct {
 	ItemConfig    map[string]any    `json:"itemConfig,omitempty"`     // Per-item overrides
 }
 
+// SiteNavItem represents a navigation button configuration
+type SiteNavItem struct {
+	ViewID  string `json:"viewId"`  // ID of the view/facet
+	Enabled bool   `json:"enabled"` // Whether to show this nav button
+	Label   string `json:"label"`   // Custom button label (falls back to view name)
+}
+
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
 	HomepageEnabled       bool
@@ -36,6 +43,8 @@ type SiteSettings struct {
 	HomepageCustomContent []HomepageCustomContentItem
 	HomepageSectionOrder  []string
 	HomepageSections      map[string]HomepageSectionConfig
+	SiteNavEnabled        bool
+	SiteNavItems          []SiteNavItem
 	Record                *core.Record
 }
 
@@ -94,6 +103,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		_ = json.Unmarshal([]byte(rawJSON), &homepageSections)
 	}
 
+	// Parse site navigation items JSON
+	var siteNavItems []SiteNavItem
+	if rawJSON := record.GetString("site_nav_items"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &siteNavItems)
+	}
+
 	return &SiteSettings{
 		HomepageEnabled:       record.GetBool("homepage_enabled"),
 		LandingPageMessage:    record.GetString("landing_page_message"),
@@ -104,6 +119,8 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HomepageCustomContent: homepageCustomContent,
 		HomepageSectionOrder:  homepageSectionOrder,
 		HomepageSections:      homepageSections,
+		SiteNavEnabled:        record.GetBool("site_nav_enabled"),
+		SiteNavItems:          siteNavItems,
 		Record:                record,
 	}, nil
 }
@@ -172,6 +189,20 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("homepage_sections", sections)
 		} else if logger != nil {
 			logger.Warn("homepage_sections field missing on site_settings, skipping update")
+		}
+	}
+	if enabled, ok := updates["site_nav_enabled"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav_enabled") != nil {
+			settings.Record.Set("site_nav_enabled", enabled)
+		} else if logger != nil {
+			logger.Warn("site_nav_enabled field missing on site_settings, skipping update")
+		}
+	}
+	if navItems, ok := updates["site_nav_items"]; ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav_items") != nil {
+			settings.Record.Set("site_nav_items", navItems)
+		} else if logger != nil {
+			logger.Warn("site_nav_items field missing on site_settings, skipping update")
 		}
 	}
 

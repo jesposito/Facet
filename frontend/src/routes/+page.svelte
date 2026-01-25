@@ -17,6 +17,7 @@
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
+	import SiteNav from '$components/public/SiteNav.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -409,24 +410,11 @@
 		}}
 	/>
 
-	{#if (data.profile?.cta_text && data.profile?.cta_url) || (data.view?.cta_text && data.view?.cta_url)}
-		{@const ctaText = data.profile?.cta_text || data.view?.cta_text}
-		{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url}
-		{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
-		<div class="bg-primary-600 text-white py-4">
-			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-				<span class="font-medium">{ctaText}</span>
-				<a
-					href={ctaUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="btn bg-white text-primary-600 hover:bg-gray-100"
-				>
-					{ctaButtonText}
-				</a>
-			</div>
-		</div>
-	{/if}
+	<!-- Site Navigation / CTA Banner -->
+	{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url || ''}
+	{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+	{@const ctaText = data.profile?.cta_text || data.view?.cta_text || ''}
+	<SiteNav {ctaUrl} {ctaButtonText} {ctaText} />
 
 	<div
 		aria-hidden="true"

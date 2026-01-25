@@ -34,6 +34,11 @@
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
 
+	// Site navigation settings
+	let siteNavEnabled = $state(false);
+	let siteNavItems: Array<{ viewId: string; enabled: boolean; label: string }> = $state([]);
+	let publicViews: View[] = $state([]);
+
 	// Section ordering - array of {id, key} objects for dnd compatibility
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
 
@@ -90,8 +95,20 @@
 	let viewsOverridingSummary: View[] = $state([]);
 
 	onMount(async () => {
-		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems()]);
+		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems(), loadPublicViews()]);
 	});
+
+	async function loadPublicViews() {
+		try {
+			const records = await collection('views').getList(1, 100, {
+				filter: 'is_active = true && visibility = "public"',
+				sort: 'name'
+			});
+			publicViews = records.items as unknown as View[];
+		} catch (err) {
+			console.error('Failed to load public views:', err);
+		}
+	}
 
 	async function loadSettings() {
 		try {
@@ -101,6 +118,10 @@
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
+
+				// Load site navigation settings
+				siteNavEnabled = data.site_nav_enabled === true;
+				siteNavItems = data.site_nav_items || [];
 
 				// Initialize sections from homepage_sections or default
 				const savedSections = data.homepage_sections || {};
@@ -271,7 +292,9 @@
 				body: JSON.stringify({
 					homepage_enabled: homepageEnabled,
 					landing_page_message: landingPageMessage,
-					hide_login_button: hideLoginButton
+					hide_login_button: hideLoginButton,
+					site_nav_enabled: siteNavEnabled,
+					site_nav_items: siteNavItems
 				})
 			});
 
@@ -284,6 +307,8 @@
 			homepageEnabled = result.homepage_enabled !== false;
 			landingPageMessage = result.landing_page_message || '';
 			hideLoginButton = result.hide_login_button === true;
+			siteNavEnabled = result.site_nav_enabled === true;
+			siteNavItems = result.site_nav_items || [];
 			toasts.add('success', 'Homepage settings saved');
 		} catch (err) {
 			console.error('Failed to save settings:', err);
@@ -488,6 +513,31 @@
 		} catch (err) {
 			console.error('Failed to remove hero image:', err);
 			toasts.add('error', 'Failed to remove hero image');
+		}
+	}
+
+	// Site navigation helpers
+	function getNavItemForView(viewId: string): { viewId: string; enabled: boolean; label: string } | undefined {
+		return siteNavItems.find(item => item.viewId === viewId);
+	}
+
+	function toggleNavItem(viewId: string) {
+		const existing = siteNavItems.find(item => item.viewId === viewId);
+		if (existing) {
+			existing.enabled = !existing.enabled;
+			siteNavItems = [...siteNavItems];
+		} else {
+			siteNavItems = [...siteNavItems, { viewId, enabled: true, label: '' }];
+		}
+	}
+
+	function updateNavItemLabel(viewId: string, label: string) {
+		const existing = siteNavItems.find(item => item.viewId === viewId);
+		if (existing) {
+			existing.label = label;
+			siteNavItems = [...siteNavItems];
+		} else {
+			siteNavItems = [...siteNavItems, { viewId, enabled: false, label }];
 		}
 	}
 </script>
@@ -865,6 +915,87 @@
 							class="input"
 						/>
 					</div>
+				</div>
+			</div>
+
+			<!-- Site Navigation -->
+			<div class="card p-6 space-y-4">
+				<div class="flex items-start justify-between gap-4">
+					<div class="flex-1">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Site Navigation</h2>
+						<p class="text-sm text-gray-600 dark:text-gray-400">
+							Turn your Facet into a multi-page website. When enabled, navigation buttons appear on your homepage and all public facets.
+						</p>
+					</div>
+					<label class="relative inline-flex items-center cursor-pointer">
+						<input
+							type="checkbox"
+							class="sr-only peer"
+							bind:checked={siteNavEnabled}
+							disabled={settingsSaving || settingsLoading}
+						/>
+						<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+					</label>
+				</div>
+
+				{#if siteNavEnabled}
+					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+						{#if publicViews.length === 0}
+							<p class="text-sm text-gray-500 dark:text-gray-400">
+								No public facets available. Create a public facet to add navigation buttons.
+							</p>
+						{:else}
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+								Select which facets to show in navigation. You can customize the button labels.
+							</p>
+							<div class="space-y-3">
+								{#each publicViews as view (view.id)}
+									{@const navItem = getNavItemForView(view.id)}
+									{@const isEnabled = navItem?.enabled ?? false}
+									<div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+										<div class="flex items-center gap-3 flex-1 min-w-0">
+											<label class="relative inline-flex items-center cursor-pointer">
+												<input
+													type="checkbox"
+													class="sr-only peer"
+													checked={isEnabled}
+													onchange={() => toggleNavItem(view.id)}
+												/>
+												<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+											</label>
+											<div class="flex-1 min-w-0">
+												<span class="font-medium text-gray-900 dark:text-white truncate block">{view.name}</span>
+												<span class="text-xs text-gray-500 dark:text-gray-400">/{view.slug}</span>
+											</div>
+										</div>
+										<div class="sm:w-48">
+											<input
+												type="text"
+												class="input input-sm w-full"
+												placeholder={view.name}
+												value={navItem?.label || ''}
+												oninput={(e) => updateNavItemLabel(view.id, e.currentTarget.value)}
+											/>
+										</div>
+									</div>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-3">
+								Navigation appears on all public pages. The CTA button will move to the right side of the navigation bar.
+							</p>
+						{/if}
+					</div>
+				{/if}
+
+				<div class="flex justify-end mt-4">
+					<button
+						type="button"
+						class="btn btn-primary btn-sm"
+						onclick={saveSettings}
+						disabled={settingsSaving || settingsLoading}
+					>
+						{settingsSaving ? 'Saving...' : 'Save Navigation'}
+					</button>
 				</div>
 			</div>
 

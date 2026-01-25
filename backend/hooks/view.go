@@ -656,6 +656,61 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			})
 		}))
 
+		// Get site navigation for public pages
+		// Returns enabled nav items with resolved view slugs (only public views)
+		// Rate limited: normal tier (60/min)
+		se.Router.GET("/api/site-nav", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"enabled": false,
+					"items":   []interface{}{},
+				})
+			}
+
+			if !settings.SiteNavEnabled || len(settings.SiteNavItems) == 0 {
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"enabled": false,
+					"items":   []interface{}{},
+				})
+			}
+
+			// Resolve nav items - only include enabled items with public views
+			var navItems []map[string]interface{}
+			for _, item := range settings.SiteNavItems {
+				if !item.Enabled {
+					continue
+				}
+
+				// Look up the view - must be active and PUBLIC
+				view, err := app.FindRecordById("views", item.ViewID)
+				if err != nil {
+					continue
+				}
+
+				if !view.GetBool("is_active") || view.GetString("visibility") != "public" {
+					continue
+				}
+
+				label := item.Label
+				if label == "" {
+					label = view.GetString("name")
+				}
+
+				navItems = append(navItems, map[string]interface{}{
+					"viewId": item.ViewID,
+					"slug":   view.GetString("slug"),
+					"label":  label,
+					"name":   view.GetString("name"),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"enabled": true,
+				"items":   navItems,
+			})
+		}))
+
 		// Admin: view memberships for a collection (which views explicitly include which items)
 		se.Router.GET("/api/admin/view-memberships", func(e *core.RequestEvent) error {
 			collection := strings.TrimSpace(strings.ToLower(e.Request.URL.Query().Get("collection")))
