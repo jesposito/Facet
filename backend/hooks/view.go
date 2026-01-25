@@ -200,6 +200,23 @@ func buildViewMemberships(app *pocketbase.PocketBase, collectionFilter string) (
 				continue
 			}
 
+			// Handle custom content sections specially
+			// For custom sections, the ID is embedded in the section name (e.g., "custom:abc123")
+			if isCustomContentSection(sectionName) {
+				if collectionFilter != "" && collectionFilter != "custom_content" {
+					continue
+				}
+				customContentId := getCustomContentId(sectionName)
+				if customContentId != "" {
+					result[customContentId] = append(result[customContentId], viewRef{
+						Id:   view.Id,
+						Name: view.GetString("name"),
+						Slug: view.GetString("slug"),
+					})
+				}
+				continue
+			}
+
 			collectionName := getCollectionName(sectionName)
 			if collectionName == "" {
 				continue
@@ -472,6 +489,23 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					if len(categories) > 0 {
 						sectionCategoryOrders[sectionName] = categories
 					}
+				}
+
+				// Handle custom content sections specially
+				if isCustomContentSection(sectionName) {
+					customContentId := getCustomContentId(sectionName)
+					if customContentId != "" {
+						collectionName := "custom_content"
+						if isDemoMode {
+							collectionName = "demo_custom_content"
+						}
+						record, err := app.FindRecordById(collectionName, customContentId)
+						if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
+							itemConfig := make(map[string]map[string]interface{})
+							sectionData[sectionName] = serializeRecordsWithOverrides([]*core.Record{record}, itemConfig, sectionName)
+						}
+					}
+					continue
 				}
 
 				items, ok := section["items"].([]interface{})

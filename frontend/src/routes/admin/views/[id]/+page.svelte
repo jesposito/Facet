@@ -37,6 +37,32 @@
 	// Default section order
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
+	// Custom content items (each becomes its own section)
+	let customContentItems: Array<{ id: string; title: string; is_draft: boolean; visibility: string }> = $state([]);
+
+	// Dynamic section definitions (includes custom content)
+	let allSectionDefs = $derived(() => {
+		const defs: Record<string, { label: string; collection: string; isCustom?: boolean }> = { ...SECTION_DEFS };
+		for (const item of customContentItems) {
+			defs[`custom:${item.id}`] = {
+				label: item.title,
+				collection: 'custom_content',
+				isCustom: true
+			};
+		}
+		return defs;
+	});
+
+	// Helper to check if a section key is for custom content
+	function isCustomSection(sectionKey: string): boolean {
+		return sectionKey.startsWith('custom:');
+	}
+
+	// Helper to get custom content ID from section key
+	function getCustomContentId(sectionKey: string): string {
+		return sectionKey.replace('custom:', '');
+	}
+
 	let loading = $state(true);
 	let saving = $state(false);
 	let deleting = $state(false);
@@ -127,6 +153,7 @@
 			return;
 		}
 		await Promise.all([
+			loadCustomContentItems(),
 			loadView(),
 			loadSectionItems(),
 			loadProfile(),
@@ -150,6 +177,7 @@
 		if (fromId && toId && fromId !== toId) {
 			loading = true;
 			Promise.all([
+				loadCustomContentItems(),
 				loadView(),
 				loadSectionItems(),
 				loadViewTokens()
@@ -180,6 +208,24 @@
 		} catch (err) {
 			console.error('Failed to load profile:', err);
 			// Profile is optional for preview, don't show error
+		}
+	}
+
+	// Load custom content items - each becomes its own section
+	async function loadCustomContentItems() {
+		try {
+			const records = await collection('custom_content').getList(1, 100, {
+				sort: 'sort_order'
+			});
+			customContentItems = records.items.map(item => ({
+				id: item.id,
+				title: (item as any).title || 'Untitled',
+				is_draft: (item as any).is_draft || false,
+				visibility: (item as any).visibility || 'public'
+			}));
+		} catch (err) {
+			console.error('Failed to load custom content:', err);
+			customContentItems = [];
 		}
 	}
 
@@ -569,34 +615,47 @@
 	}
 
 	function initializeSections(viewSections?: ViewSection[]) {
-		// Start with all sections disabled, with default layout and full width
+		// Start with all standard sections disabled, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
 			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined };
 		}
 
+		// Add custom content sections (each custom content item is its own section)
+		for (const item of customContentItems) {
+			const sectionKey = `custom:${item.id}`;
+			const defaultLayout = VALID_LAYOUTS['custom']?.default || 'default';
+			sections[sectionKey] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
+		}
+
+		// Build list of all available section keys (standard + custom)
+		const customSectionKeys = customContentItems.map(item => `custom:${item.id}`);
+		const allAvailableSections = [...DEFAULT_SECTION_ORDER, ...customSectionKeys];
+
 		// Apply saved section configuration and extract order
 		if (viewSections && viewSections.length > 0) {
 			// Build order from saved sections, then add any missing sections at the end
 			const savedOrder = viewSections.map(vs => vs.section);
-			const remainingSections = DEFAULT_SECTION_ORDER.filter(k => !savedOrder.includes(k));
+			const remainingSections = allAvailableSections.filter(k => !savedOrder.includes(k));
 			const fullOrder = [...savedOrder, ...remainingSections];
 
 			sectionOrder = fullOrder.map(key => ({ id: `section-${key}`, key }));
 
 			for (const vs of viewSections) {
-				if (sections[vs.section]) {
+				// Handle both standard sections and custom content sections
+				if (sections[vs.section] !== undefined) {
 					sections[vs.section].enabled = vs.enabled;
 					sections[vs.section].items = vs.items || [];
-					sections[vs.section].layout = vs.layout || VALID_LAYOUTS[vs.section]?.default || 'default';
+					const layoutKey = isCustomSection(vs.section) ? 'custom' : vs.section;
+					sections[vs.section].layout = vs.layout || VALID_LAYOUTS[layoutKey]?.default || 'default';
 					sections[vs.section].width = vs.width || 'full';
 					sections[vs.section].itemConfig = vs.itemConfig || {};
 					sections[vs.section].categoryOrder = vs.categoryOrder;
 				}
 			}
 		} else {
-			// Default order
-			sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
+			// Default order (standard sections first, then custom content)
+			sectionOrder = allAvailableSections.map(key => ({ id: `section-${key}`, key }));
 		}
 		// Trigger Svelte 5 reactivity
 		updateSections();
@@ -1402,6 +1461,7 @@
 				bind:sections
 				bind:sectionOrder
 				bind:sectionItems
+				{customContentItems}
 				{viewId}
 				onOpenOverrideEditor={openOverrideEditor}
 			/>

@@ -16,6 +16,11 @@ import (
 )
 
 func getCollectionName(section string) string {
+	// Handle custom content sections (format: custom:itemId)
+	if strings.HasPrefix(section, "custom:") {
+		return "custom_content"
+	}
+
 	switch section {
 	case "experience":
 		return "experience"
@@ -42,7 +47,25 @@ func getCollectionName(section string) string {
 	}
 }
 
+// isCustomContentSection checks if a section name refers to a custom content item
+func isCustomContentSection(section string) bool {
+	return strings.HasPrefix(section, "custom:")
+}
+
+// getCustomContentId extracts the custom content ID from a section name
+func getCustomContentId(section string) string {
+	if !isCustomContentSection(section) {
+		return ""
+	}
+	return strings.TrimPrefix(section, "custom:")
+}
+
 func getDefaultLayout(section string) string {
+	// Handle custom content sections
+	if isCustomContentSection(section) {
+		return "default"
+	}
+
 	switch section {
 	case "experience":
 		return "default"
@@ -196,13 +219,39 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 			}
 		}
 
-		if sectionName == "projects" || sectionName == "posts" {
+		if sectionName == "projects" || sectionName == "posts" || isCustomContentSection(sectionName) {
 			if coverImage := record.GetString("cover_image"); coverImage != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["cover_image_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage
 				item["cover_image_large_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage + "?thumb=1600x0"
 				item["cover_image_thumb_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage + "?thumb=480x0"
+			}
+		}
+
+		// Handle custom content media gallery
+		if isCustomContentSection(sectionName) {
+			if mediaField := record.Get("media"); mediaField != nil {
+				var mediaFiles []string
+				switch v := mediaField.(type) {
+				case []string:
+					mediaFiles = v
+				case []interface{}:
+					for _, file := range v {
+						if str, ok := file.(string); ok {
+							mediaFiles = append(mediaFiles, str)
+						}
+					}
+				}
+				if len(mediaFiles) > 0 {
+					collectionID := record.Collection().Id
+					recordID := record.Id
+					var mediaURLs []string
+					for _, file := range mediaFiles {
+						mediaURLs = append(mediaURLs, "/api/files/"+collectionID+"/"+recordID+"/"+file)
+					}
+					item["media_urls"] = mediaURLs
+				}
 			}
 		}
 
