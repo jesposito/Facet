@@ -26,6 +26,8 @@
 
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
+	let settingsLoaded = $state(false);
+	let settingsLoadError = $state(false);
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
@@ -112,6 +114,7 @@
 	async function loadSettings() {
 		try {
 			settingsLoading = true;
+			settingsLoadError = false;
 			// Load views for navigation
 			const viewsResult = await collection('views').getList(1, 100, {
 				filter: 'visibility = "public" && is_active = true',
@@ -150,10 +153,13 @@
 			// Homepage Sections
 			initializeSections(settings.homepage_sections);
 			await loadSectionItems();
+			
+			settingsLoaded = true;
 
 		} catch (err) {
 			console.error('Failed to load settings:', err);
 			toasts.add('error', 'Failed to load settings');
+			settingsLoadError = true;
 		} finally {
 			settingsLoading = false;
 		}
@@ -274,7 +280,7 @@
 	let isSaving = $state(false);
 
 	function triggerAutosave() {
-		if (settingsLoading) return;
+		if (settingsLoading || !settingsLoaded) return;
 		clearTimeout(saveTimeout);
 		saveTimeout = setTimeout(saveSettingsToBackend, 1000);
 	}
@@ -342,7 +348,7 @@
 			sectionOrder
 		};
 		// Trigger if loaded
-		if (!settingsLoading) {
+		if (!settingsLoading && settingsLoaded) {
 			triggerAutosave();
 		}
 	});
@@ -478,7 +484,12 @@
 			</p>
 		</div>
 		<div class="text-sm text-gray-500">
-			{#if isSaving}
+			{#if settingsLoadError}
+				<div class="flex items-center gap-2 text-red-600 dark:text-red-400">
+					<span>Failed to load settings</span>
+					<button class="btn btn-sm btn-outline btn-error" onclick={loadSettings}>Retry</button>
+				</div>
+			{:else if isSaving}
 				Saving...
 			{:else}
 				All changes autosaved
