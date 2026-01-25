@@ -33,6 +33,7 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import CustomSection from '$components/public/CustomSection.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 
 	
@@ -291,6 +292,13 @@
 					<div class={computed.widthClass}>
 						<TalksSection
 							items={computed.data}
+							layout={computed.layout}
+						/>
+					</div>
+				{:else if sectionKey.startsWith('custom:') && computed?.visible && computed?.data?.[0]}
+					<div class={computed.widthClass}>
+						<CustomSection
+							item={computed.data[0]}
 							layout={computed.layout}
 						/>
 					</div>

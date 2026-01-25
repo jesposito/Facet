@@ -126,6 +126,7 @@ const navSections = [
 			{ href: '/admin/education', label: 'Education', icon: 'academic' },
 			{ href: '/admin/certifications', label: 'Certifications', icon: 'badge' },
 			{ href: '/admin/awards', label: 'Awards', icon: 'star' },
+			{ href: '/admin/custom', label: 'Custom Content', icon: 'document' },
 			{ href: '/admin/skills', label: 'Skills', icon: 'chip' },
 			{ href: '/admin/import', label: 'Import & AI', icon: 'sparkle' }
 		]

@@ -18,6 +18,7 @@
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
+	import CustomSection from '$components/public/CustomSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
@@ -436,6 +437,10 @@
 					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('contacts'))}>
 							<ContactMethodsList contacts={data.sections.contacts} viewId={data.view?.id || ''} layout={getContactLayout()} />
+						</div>
+					{:else if sectionKey.startsWith('custom:') && data.sections?.[sectionKey]}
+						<div class={getWidthClass(getSectionWidth(sectionKey))}>
+							<CustomSection item={data.sections[sectionKey]} layout={getSectionLayout(sectionKey)} />
 						</div>
 					{/if}
 				{/each}

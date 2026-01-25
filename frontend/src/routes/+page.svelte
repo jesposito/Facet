@@ -16,6 +16,7 @@
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
+	import CustomSection from '$components/public/CustomSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';

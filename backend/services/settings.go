@@ -249,14 +249,26 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 	if nav, ok := updates["site_nav"].(map[string]any); ok {
 		if settings.Record.Collection().Fields.GetByName("site_nav") != nil {
 			sanitized := sanitizeSiteNavConfig(nav)
+			if logger != nil {
+				logger.Info("[SETTINGS] Sanitized site_nav",
+					"enabled", sanitized["enabled"],
+					"items_count", len(sanitized["items"].([]map[string]any)),
+				)
+			}
 			navJSON, err := json.Marshal(sanitized)
 			if err == nil {
 				settings.Record.Set("site_nav", string(navJSON))
+				if logger != nil {
+					logger.Info("[SETTINGS] Set site_nav field", "json_length", len(navJSON))
+				}
 			} else if logger != nil {
 				logger.Warn("failed to marshal site_nav, skipping update", "error", err)
 			}
-		} else if logger != nil {
-			logger.Warn("site_nav field missing on site_settings, skipping update")
+		} else {
+			if logger != nil {
+				logger.Error("[SETTINGS] site_nav field MISSING - migration may not have run")
+			}
+			return nil, errors.New("site_nav field missing - please restart the server to run migrations")
 		}
 	}
 	if sections, ok := updates["homepage_sections"].([]any); ok {

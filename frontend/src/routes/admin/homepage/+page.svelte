@@ -32,6 +32,31 @@
 	let navItems = $state<NavItem[]>([]);
 	let publicViews = $state<PublicView[]>([]);
 
+	// Homepage sections settings
+	interface SectionConfig {
+		section: string;
+		enabled: boolean;
+		layout?: string;
+		width?: string;
+	}
+	const DEFAULT_SECTIONS = [
+		'experience', 'projects', 'education', 'certifications', 
+		'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'
+	];
+	const SECTION_LABELS: Record<string, string> = {
+		experience: 'Experience',
+		projects: 'Projects',
+		education: 'Education',
+		certifications: 'Certifications',
+		awards: 'Awards',
+		skills: 'Skills',
+		posts: 'Posts',
+		talks: 'Talks',
+		testimonials: 'Testimonials',
+		contacts: 'Contact Methods'
+	};
+	let homepageSections = $state<SectionConfig[]>([]);
+
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
 	let profileLoading = $state(true);
@@ -63,11 +88,14 @@
 		await Promise.all([loadSettings(), loadProfile()]);
 	});
 
-	$effect(() => {
-		if (navEnabled && publicViews.length > 0 && navItems.length === 0) {
+	function handleNavToggle(event: Event) {
+		const checked = (event.target as HTMLInputElement).checked;
+		navEnabled = checked;
+		console.log('[NAV] Toggle changed to:', checked);
+		if (checked && publicViews.length > 0 && navItems.length === 0) {
 			syncNavItemsWithViews();
 		}
-	});
+	}
 
 	async function loadSettings() {
 		try {
@@ -85,13 +113,20 @@
 				hideLoginButton = data.hide_login_button === true;
 
 				if (data.site_nav) {
-					navEnabled = data.site_nav.enabled || false;
+					console.log('[LOAD] site_nav.enabled from server:', data.site_nav.enabled, typeof data.site_nav.enabled);
+					navEnabled = data.site_nav.enabled === true;
 					navHomeLabel = data.site_nav.home_label || 'Home';
 					navItems = data.site_nav.items || [];
 					console.log('[LOAD] Parsed navEnabled:', navEnabled, 'navItems:', navItems.length);
 				} else {
 					console.log('[LOAD] No site_nav in response');
 				}
+
+				// Load homepage sections
+				if (data.homepage_sections && Array.isArray(data.homepage_sections)) {
+					homepageSections = data.homepage_sections;
+				}
+				syncHomepageSections();
 			}
 
 			publicViews = viewsResponse.map((v) => ({
@@ -123,6 +158,29 @@
 		}
 	}
 
+	function syncHomepageSections() {
+		const existingSections = new Set(homepageSections.map(s => s.section));
+		
+		// Add missing sections with defaults
+		for (const section of DEFAULT_SECTIONS) {
+			if (!existingSections.has(section)) {
+				homepageSections = [...homepageSections, { section, enabled: true }];
+			}
+		}
+		
+		// Remove sections that are no longer valid
+		homepageSections = homepageSections.filter(s => DEFAULT_SECTIONS.includes(s.section));
+	}
+
+	function moveSectionItem(index: number, direction: 'up' | 'down') {
+		const newIndex = direction === 'up' ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= homepageSections.length) return;
+
+		const items = [...homepageSections];
+		[items[index], items[newIndex]] = [items[newIndex], items[index]];
+		homepageSections = items;
+	}
+
 	function getViewName(viewId: string): string {
 		const view = publicViews.find(v => v.id === viewId);
 		return view?.name || 'Unknown';
@@ -148,9 +206,11 @@
 					enabled: navEnabled,
 					home_label: navHomeLabel,
 					items: navItems
-				}
+				},
+				homepage_sections: homepageSections
 			};
-			console.log('[SAVE] Sending:', JSON.stringify(payload, null, 2));
+			console.log('[SAVE] navEnabled before send:', navEnabled, typeof navEnabled);
+			console.log('[SAVE] Sending payload:', JSON.stringify(payload, null, 2));
 
 			const response = await fetch('/api/site-settings', {
 				method: 'PUT',
@@ -173,9 +233,14 @@
 			landingPageMessage = result.landing_page_message || '';
 			hideLoginButton = result.hide_login_button === true;
 			if (result.site_nav) {
-				navEnabled = result.site_nav.enabled || false;
+				console.log('[SAVE] Response site_nav.enabled:', result.site_nav.enabled, typeof result.site_nav.enabled);
+				navEnabled = result.site_nav.enabled === true;
 				navHomeLabel = result.site_nav.home_label || 'Home';
 				navItems = result.site_nav.items || [];
+				console.log('[SAVE] After update, navEnabled:', navEnabled);
+			}
+			if (result.homepage_sections && Array.isArray(result.homepage_sections)) {
+				homepageSections = result.homepage_sections;
 			}
 			toasts.add('success', 'Homepage settings saved');
 		} catch (err) {
@@ -471,7 +536,8 @@
 				<input
 					type="checkbox"
 					class="sr-only peer"
-					bind:checked={navEnabled}
+					checked={navEnabled}
+					onchange={handleNavToggle}
 					disabled={settingsSaving || settingsLoading}
 				/>
 				<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
@@ -553,6 +619,65 @@
 					</p>
 				{/if}
 			</div>
+		{/if}
+	</div>
+
+	<!-- Homepage Sections Editor -->
+	<div class="card p-6 mb-6">
+		<div class="mb-4">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+				Homepage Sections
+			</h2>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				Choose which sections appear on your homepage and arrange their order.
+			</p>
+		</div>
+
+		<div class="space-y-2">
+			{#each homepageSections as section, i (section.section)}
+				<div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+					<div class="flex flex-col gap-0.5">
+						<button
+							type="button"
+							class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
+							onclick={() => moveSectionItem(i, 'up')}
+							disabled={i === 0 || settingsSaving}
+							title="Move up"
+						>
+							▲
+						</button>
+						<button
+							type="button"
+							class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
+							onclick={() => moveSectionItem(i, 'down')}
+							disabled={i === homepageSections.length - 1 || settingsSaving}
+							title="Move down"
+						>
+							▼
+						</button>
+					</div>
+					<div class="flex-1 min-w-0">
+						<div class="text-sm font-medium text-gray-900 dark:text-white">
+							{SECTION_LABELS[section.section] || section.section}
+						</div>
+					</div>
+					<label class="relative inline-flex items-center cursor-pointer">
+						<input
+							type="checkbox"
+							class="sr-only peer"
+							bind:checked={section.enabled}
+							disabled={settingsSaving}
+						/>
+						<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+					</label>
+				</div>
+			{/each}
+		</div>
+
+		{#if homepageSections.length === 0}
+			<p class="text-sm text-gray-500 dark:text-gray-400 italic">
+				Loading sections...
+			</p>
 		{/if}
 	</div>
 
