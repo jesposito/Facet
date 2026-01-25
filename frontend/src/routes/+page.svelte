@@ -86,7 +86,14 @@
 	));
 
 	function getSectionLayout(sectionKey: string): string {
-		return data.sectionLayouts?.[sectionKey] || 'default';
+		// First check view layouts, then homepage sections
+		if (data.sectionLayouts?.[sectionKey]) {
+			return data.sectionLayouts[sectionKey];
+		}
+		if (data.homepageSections?.[sectionKey]?.layout) {
+			return data.homepageSections[sectionKey].layout;
+		}
+		return 'default';
 	}
 
 	type ContactLayoutType = 'vertical' | 'horizontal' | 'grid';
@@ -97,7 +104,14 @@
 	}
 
 	function getSectionWidth(sectionKey: string): string {
-		return data.sectionWidths?.[sectionKey] || 'full';
+		// First check view widths, then homepage sections
+		if (data.sectionWidths?.[sectionKey]) {
+			return data.sectionWidths[sectionKey];
+		}
+		if (data.homepageSections?.[sectionKey]?.width) {
+			return data.homepageSections[sectionKey].width;
+		}
+		return 'full';
 	}
 
 	function getWidthClass(width: string): string {

@@ -155,7 +155,9 @@
 	}
 
 	function selectAllItems(sectionKey: string) {
-		sections[sectionKey].items = sectionItems[sectionKey]?.map((i) => i.id) || [];
+		// Only select public, non-draft items
+		const publicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'public' && !i.is_draft);
+		sections[sectionKey].items = publicItems.map((i) => i.id);
 		updateSections();
 	}
 
@@ -187,15 +189,20 @@
 	}
 
 	// Drag-drop handlers for item reordering within a section
+	// Note: dndzone now works with publicItems (filtered list)
 	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
-		sectionItems[sectionKey] = e.detail.items;
+		// Update sectionItems with the reordered public items
+		const publicItems = e.detail.items;
+		const privateItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'private' || i.is_draft);
+		sectionItems[sectionKey] = [...publicItems, ...privateItems];
 		updateSectionItems();
 	}
 
 	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
 		const trigger = e.detail.info?.trigger;
-		const finalItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
-		sectionItems[sectionKey] = finalItems;
+		const finalPublicItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		const privateItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'private' || i.is_draft);
+		sectionItems[sectionKey] = [...finalPublicItems, ...privateItems];
 		updateSectionItems();
 
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
@@ -204,7 +211,9 @@
 	}
 
 	function updateItemsOrderFromDisplay(sectionKey: string) {
-		const displayOrder = sectionItems[sectionKey]?.map(i => i.id) || [];
+		// Get the order from the public items
+		const publicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'public' && !i.is_draft);
+		const displayOrder = publicItems.map(i => i.id);
 		const selectedSet = new Set(sections[sectionKey].items);
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
@@ -335,7 +344,7 @@
 					</div>
 
 					<!-- Section Items (expanded) -->
-					{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0 && !isCustom}
+					{#if sectionConfig.enabled && sectionConfig.expanded && publicItems.length > 0 && !isCustom}
 						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
 							<div class="flex items-center justify-between mb-2">
 								<p class="text-xs text-gray-500">
@@ -364,7 +373,7 @@
 							<div
 								class="space-y-1 max-h-64 overflow-y-auto"
 								use:dndzone={{
-									items: sectionItems[sectionKey] || [],
+									items: publicItems,
 									flipDurationMs,
 									type: `items-${sectionKey}`,
 									dragDisabled: false,
@@ -373,7 +382,7 @@
 								onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
 								onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 							>
-								{#each items as item (item.id)}
+								{#each publicItems as item (item.id)}
 									{@const isSelected = sectionConfig.items.includes(item.id)}
 									<div
 										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
@@ -414,16 +423,6 @@
 												{/if}
 											</div>
 										</label>
-										{#if item.visibility !== 'public'}
-											<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
-												{item.visibility}
-											</span>
-										{/if}
-										{#if item.is_draft}
-											<span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
-												draft
-											</span>
-										{/if}
 									</div>
 								{/each}
 							</div>
