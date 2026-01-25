@@ -16,6 +16,11 @@ import (
 )
 
 func getCollectionName(section string) string {
+	// Handle custom content sections (format: custom:itemId)
+	if strings.HasPrefix(section, "custom:") {
+		return "custom_content"
+	}
+
 	switch section {
 	case "experience":
 		return "experience"
@@ -42,7 +47,25 @@ func getCollectionName(section string) string {
 	}
 }
 
+// isCustomContentSection checks if a section name refers to a custom content item
+func isCustomContentSection(section string) bool {
+	return strings.HasPrefix(section, "custom:")
+}
+
+// getCustomContentId extracts the custom content ID from a section name
+func getCustomContentId(section string) string {
+	if !isCustomContentSection(section) {
+		return ""
+	}
+	return strings.TrimPrefix(section, "custom:")
+}
+
 func getDefaultLayout(section string) string {
+	// Handle custom content sections
+	if isCustomContentSection(section) {
+		return "default"
+	}
+
 	switch section {
 	case "experience":
 		return "default"
@@ -196,13 +219,39 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 			}
 		}
 
-		if sectionName == "projects" || sectionName == "posts" {
+		if sectionName == "projects" || sectionName == "posts" || isCustomContentSection(sectionName) {
 			if coverImage := record.GetString("cover_image"); coverImage != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["cover_image_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage
 				item["cover_image_large_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage + "?thumb=1600x0"
 				item["cover_image_thumb_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage + "?thumb=480x0"
+			}
+		}
+
+		// Handle custom content media gallery
+		if isCustomContentSection(sectionName) {
+			if mediaField := record.Get("media"); mediaField != nil {
+				var mediaFiles []string
+				switch v := mediaField.(type) {
+				case []string:
+					mediaFiles = v
+				case []interface{}:
+					for _, file := range v {
+						if str, ok := file.(string); ok {
+							mediaFiles = append(mediaFiles, str)
+						}
+					}
+				}
+				if len(mediaFiles) > 0 {
+					collectionID := record.Collection().Id
+					recordID := record.Id
+					var mediaURLs []string
+					for _, file := range mediaFiles {
+						mediaURLs = append(mediaURLs, "/api/files/"+collectionID+"/"+recordID+"/"+file)
+					}
+					item["media_urls"] = mediaURLs
+				}
 			}
 		}
 
@@ -318,4 +367,78 @@ func escapeICSText(value string) string {
 		"\n", "\\n",
 	)
 	return replacer.Replace(value)
+}
+
+// filterBySelectedItems filters serialized records based on selected item IDs.
+// If selectedItems is empty, returns empty (nothing selected = nothing shown).
+// If selectedItems has specific IDs, returns only those items in the specified order.
+func filterBySelectedItems(items []map[string]interface{}, selectedItems []string) []map[string]interface{} {
+	if len(selectedItems) == 0 {
+		return nil // Nothing selected = nothing shown
+	}
+
+	// Build a map for quick lookup
+	itemMap := make(map[string]map[string]interface{})
+	for _, item := range items {
+		if id, ok := item["id"].(string); ok {
+			itemMap[id] = item
+		}
+	}
+
+	// Return items in the order specified by selectedItems
+	var result []map[string]interface{}
+	for _, id := range selectedItems {
+		if item, exists := itemMap[id]; exists {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// filterBySelectedItemsWithDefault filters serialized records based on selected item IDs.
+// If selectedItems is nil (not configured), returns all items (default behavior for unconfigured sections).
+// If selectedItems is empty array (explicitly configured with no selections), returns empty.
+// If selectedItems has specific IDs, returns only those items in the specified order.
+func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedItems []string, isConfigured bool) []map[string]interface{} {
+	// If section is not configured at all, show all items (backwards compat)
+	if !isConfigured {
+		return items
+	}
+
+	// If configured but no items selected, show nothing
+	if len(selectedItems) == 0 {
+		return nil
+	}
+
+	// Build a map for quick lookup
+	itemMap := make(map[string]map[string]interface{})
+	for _, item := range items {
+		if id, ok := item["id"].(string); ok {
+			itemMap[id] = item
+		}
+	}
+
+	// Return items in the order specified by selectedItems
+	var result []map[string]interface{}
+	for _, id := range selectedItems {
+		if item, exists := itemMap[id]; exists {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// getSectionConfig returns the configuration for a section from homepage_sections.
+// Returns enabled, items, and isConfigured (whether the section has explicit config).
+func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabled bool, items []string, isConfigured bool) {
+	if settings == nil || settings.HomepageSections == nil {
+		return true, nil, false
+	}
+
+	config, exists := settings.HomepageSections[sectionKey]
+	if !exists {
+		return true, nil, false
+	}
+
+	return config.Enabled, config.Items, true
 }

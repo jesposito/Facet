@@ -2,12 +2,30 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount, onDestroy } from 'svelte';
-	import { pb, type View } from '$lib/pocketbase';
+	import { pb, type View, type CustomContent } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
+
+	// Section definitions for loading items - same as ViewSectionManager
+	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
+		experience: { label: 'Experience', collection: 'experience' },
+		projects: { label: 'Projects', collection: 'projects' },
+		education: { label: 'Education', collection: 'education' },
+		certifications: { label: 'Certifications', collection: 'certifications' },
+		awards: { label: 'Awards', collection: 'awards' },
+		skills: { label: 'Skills', collection: 'skills' },
+		posts: { label: 'Posts', collection: 'posts' },
+		talks: { label: 'Talks', collection: 'talks' },
+		testimonials: { label: 'Testimonials', collection: 'testimonials' },
+		contacts: { label: 'Contact Methods', collection: 'contact_methods' }
+	};
+
+	// Default section order
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
@@ -15,6 +33,34 @@
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
+
+	// Section ordering - array of {id, key} objects for dnd compatibility
+	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
+
+	// Sections configuration - per-section settings
+	let sections: Record<string, {
+		enabled: boolean;
+		items: string[];
+		expanded: boolean;
+		layout: string;
+		width: string;
+	}> = $state({});
+
+	// Available items for each section
+	let sectionItems: Record<string, Array<{
+		id: string;
+		label: string;
+		visibility: string;
+		is_draft?: boolean;
+		data: Record<string, unknown>;
+		expand?: {
+			admin_tags?: Array<{ id: string; name: string; color: string }>;
+		};
+	}>> = $state({});
+
+	// Custom content for homepage
+	let customContentItems: CustomContent[] = $state([]);
+	let customContentLoading = $state(true);
 
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
@@ -44,7 +90,7 @@
 	let viewsOverridingSummary: View[] = $state([]);
 
 	onMount(async () => {
-		await Promise.all([loadSettings(), loadProfile()]);
+		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems()]);
 	});
 
 	async function loadSettings() {
@@ -55,11 +101,161 @@
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
+
+				// Initialize sections from homepage_sections or default
+				const savedSections = data.homepage_sections || {};
+				initializeSections(savedSections);
+
+				// Parse section order into dnd format
+				const rawOrder: string[] = data.homepage_section_order || [];
+				if (rawOrder.length > 0) {
+					// Use saved order but include any new sections that aren't in the order
+					const orderedKeys = new Set(rawOrder);
+					const allKeys = [...DEFAULT_SECTION_ORDER];
+
+					// Add custom content sections from saved config
+					for (const key of Object.keys(savedSections)) {
+						if (key.startsWith('custom:') && !allKeys.includes(key)) {
+							allKeys.push(key);
+						}
+					}
+
+					// Start with saved order
+					const finalOrder: string[] = [...rawOrder];
+
+					// Add any missing standard sections at the end
+					for (const key of allKeys) {
+						if (!orderedKeys.has(key)) {
+							finalOrder.push(key);
+						}
+					}
+
+					sectionOrder = finalOrder.map((key, i) => ({ id: `section-${i}`, key }));
+				} else {
+					// Default order: standard sections
+					sectionOrder = DEFAULT_SECTION_ORDER.map((key, i) => ({ id: `section-${i}`, key }));
+				}
 			}
 		} catch (err) {
 			console.error('Failed to load settings:', err);
 		} finally {
 			settingsLoading = false;
+		}
+	}
+
+	function initializeSections(savedSections: Record<string, any>) {
+		// Start with all standard sections with default values
+		for (const key of DEFAULT_SECTION_ORDER) {
+			sections[key] = {
+				enabled: true, // Default enabled for homepage (shows all public items)
+				items: [],
+				expanded: false,
+				layout: 'default',
+				width: 'full'
+			};
+		}
+
+		// Apply saved configuration
+		for (const [key, config] of Object.entries(savedSections)) {
+			if (config && typeof config === 'object') {
+				sections[key] = {
+					enabled: (config as any).enabled !== false,
+					items: (config as any).items || [],
+					expanded: false,
+					layout: (config as any).layout || 'default',
+					width: (config as any).width || 'full'
+				};
+			}
+		}
+	}
+
+	async function loadCustomContent() {
+		try {
+			const records = await collection('custom_content').getList(1, 100, {
+				sort: 'sort_order',
+				filter: 'visibility = "public" && is_draft = false'
+			});
+			customContentItems = records.items as unknown as CustomContent[];
+
+			// Add custom content items to sectionOrder if they exist
+			const existingKeys = new Set(sectionOrder.map(s => s.key));
+			let nextId = sectionOrder.length;
+			for (const item of customContentItems) {
+				const key = `custom:${item.id}`;
+				if (!existingKeys.has(key)) {
+					sectionOrder = [...sectionOrder, { id: `section-${nextId++}`, key }];
+					// Initialize section config for new custom content
+					if (!sections[key]) {
+						sections[key] = {
+							enabled: true,
+							items: [],
+							expanded: false,
+							layout: 'default',
+							width: 'full'
+						};
+					}
+				}
+			}
+		} catch (err) {
+			console.error('Failed to load custom content:', err);
+		} finally {
+			customContentLoading = false;
+		}
+	}
+
+	async function loadSectionItems() {
+		for (const key of DEFAULT_SECTION_ORDER) {
+			const def = SECTION_DEFS[key];
+			try {
+				// Testimonials only show approved ones
+				const filter = key === 'testimonials' ? 'status = "approved"' : '';
+				const records = await collection(def.collection).getList(1, 500, {
+					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
+					filter,
+					expand: 'admin_tags'
+				});
+
+				sectionItems[key] = records.items.map((item) => ({
+					id: item.id,
+					label: getItemLabel(key, item as Record<string, unknown>),
+					visibility: (item as Record<string, unknown>).visibility as string || 'public',
+					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					data: item as Record<string, unknown>,
+					expand: (item as any).expand || {}
+				}));
+			} catch (err) {
+				console.error(`Failed to load ${key} items:`, err);
+				sectionItems[key] = [];
+			}
+		}
+		// Trigger reactivity
+		sectionItems = { ...sectionItems };
+	}
+
+	function getItemLabel(sectionKey: string, item: Record<string, unknown>): string {
+		switch (sectionKey) {
+			case 'experience':
+				return `${item.title} at ${item.company}`;
+			case 'projects':
+				return item.title as string;
+			case 'education':
+				return `${item.degree || 'Degree'} - ${item.institution}`;
+			case 'certifications':
+				return `${item.name} (${item.issuer || 'Unknown issuer'})`;
+			case 'awards':
+				return `${item.title}${item.issuer ? ` (${item.issuer})` : ''}`;
+			case 'skills':
+				return `${item.name}${item.category ? ` (${item.category})` : ''}`;
+			case 'posts':
+				return item.title as string;
+			case 'talks':
+				return `${item.title}${item.event ? ` @ ${item.event}` : ''}`;
+			case 'contacts':
+				return `${item.label || item.type} - ${item.value}`;
+			case 'testimonials':
+				return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
+			default:
+				return item.title as string || item.name as string || item.id as string;
 		}
 	}
 
@@ -135,6 +331,7 @@
 	async function handleSubmit() {
 		saving = true;
 		try {
+			// Save profile data
 			const formData = new FormData();
 			formData.append('name', name);
 			formData.append('headline', headline);
@@ -160,7 +357,42 @@
 				await collection('profile').create(formData);
 			}
 
-			toasts.add('success', 'Profile saved successfully');
+			// Save section order and section configuration
+			const orderKeys = sectionOrder.map(s => s.key);
+
+			// Build homepage_sections for API (without expanded state, only persistent config)
+			const homepageSections: Record<string, { enabled: boolean; items: string[]; layout: string; width: string }> = {};
+			for (const [key, config] of Object.entries(sections)) {
+				homepageSections[key] = {
+					enabled: config.enabled,
+					items: config.items,
+					layout: config.layout,
+					width: config.width
+				};
+			}
+
+			// Also build homepage_custom_content for backwards compatibility
+			const customContentConfig = customContentItems
+				.filter(item => {
+					const sectionKey = `custom:${item.id}`;
+					return sections[sectionKey]?.enabled !== false;
+				})
+				.map(item => ({ id: item.id, enabled: true }));
+
+			await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					homepage_section_order: orderKeys,
+					homepage_sections: homepageSections,
+					homepage_custom_content: customContentConfig
+				})
+			});
+
+			toasts.add('success', 'Homepage saved successfully');
 
 			avatarFile = null;
 			heroImageFile = null;
@@ -176,8 +408,8 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to save profile:', err);
-			toasts.add('error', 'Failed to save profile');
+			console.error('Failed to save homepage:', err);
+			toasts.add('error', 'Failed to save homepage');
 		} finally {
 			saving = false;
 		}
@@ -636,33 +868,37 @@
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Profile Visibility</h2>
-
-				<div>
-					<label for="visibility" class="label">Who can see your profile</label>
-					<select id="visibility" bind:value={visibility} class="input">
-						<option value="public">Public - Anyone can view</option>
-						<option value="unlisted">Unlisted - Only accessible via direct link or views</option>
-						<option value="private">Private - Only you can view</option>
-					</select>
-				</div>
-			</div>
-
-			<div class="flex justify-end gap-3">
-				<a href="/" target="_blank" class="btn btn-secondary">
-					View Homepage
-				</a>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
-					{#if saving}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-					{/if}
-					Save Profile
-				</button>
-			</div>
 		</form>
 	{/if}
+
+	<!-- Section Order -->
+	<div class="card p-6 mt-6">
+		{#if settingsLoading || customContentLoading}
+			<div class="animate-pulse text-center py-4">Loading sections...</div>
+		{:else}
+			<HomepageSectionManager
+				bind:sections={sections}
+				bind:sectionOrder={sectionOrder}
+				bind:sectionItems={sectionItems}
+				{customContentItems}
+				loading={settingsLoading || customContentLoading}
+			/>
+		{/if}
+	</div>
+
+	<!-- Single Save Button -->
+	<div class="flex justify-end gap-3 mt-6">
+		<a href="/" target="_blank" class="btn btn-secondary">
+			View Homepage
+		</a>
+		<button type="button" class="btn btn-primary" disabled={saving} onclick={handleSubmit}>
+			{#if saving}
+				<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			{/if}
+			Save Homepage
+		</button>
+	</div>
 </div>

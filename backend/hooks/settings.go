@@ -23,12 +23,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"homepage_enabled":     settings.HomepageEnabled,
-				"landing_page_message": settings.LandingPageMessage,
-				"custom_css":           settings.CustomCSS,
-				"ga_measurement_id":    settings.GAMeasurementID,
-				"hide_login_button":    settings.HideLoginButton,
-				"hide_demo_toggle":     settings.HideDemoToggle,
+				"homepage_enabled":         settings.HomepageEnabled,
+				"landing_page_message":    settings.LandingPageMessage,
+				"custom_css":              settings.CustomCSS,
+				"ga_measurement_id":       settings.GAMeasurementID,
+				"hide_login_button":       settings.HideLoginButton,
+				"hide_demo_toggle":        settings.HideDemoToggle,
+				"homepage_custom_content": settings.HomepageCustomContent,
+				"homepage_section_order":  settings.HomepageSectionOrder,
+				"homepage_sections":       settings.HomepageSections,
 			})
 		})
 
@@ -39,12 +42,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			var req struct {
-				HomepageEnabled    *bool  `json:"homepage_enabled"`
-				LandingPageMessage string `json:"landing_page_message"`
-				CustomCSS          string `json:"custom_css"`
-				GAMeasurementID    string `json:"ga_measurement_id"`
-				HideLoginButton    *bool  `json:"hide_login_button"`
-				HideDemoToggle     *bool  `json:"hide_demo_toggle"`
+				HomepageEnabled       *bool                                         `json:"homepage_enabled"`
+				LandingPageMessage    string                                        `json:"landing_page_message"`
+				CustomCSS             string                                        `json:"custom_css"`
+				GAMeasurementID       string                                        `json:"ga_measurement_id"`
+				HideLoginButton       *bool                                         `json:"hide_login_button"`
+				HideDemoToggle        *bool                                         `json:"hide_demo_toggle"`
+				HomepageCustomContent []services.HomepageCustomContentItem          `json:"homepage_custom_content"`
+				HomepageSectionOrder  []string                                      `json:"homepage_section_order"`
+				HomepageSections      map[string]services.HomepageSectionConfig     `json:"homepage_sections"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -83,6 +89,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.HideDemoToggle != nil {
 				updates["hide_demo_toggle"] = *req.HideDemoToggle
 			}
+			if req.HomepageCustomContent != nil {
+				updates["homepage_custom_content"] = req.HomepageCustomContent
+			}
+			if req.HomepageSectionOrder != nil {
+				updates["homepage_section_order"] = req.HomepageSectionOrder
+			}
+			if req.HomepageSections != nil {
+				updates["homepage_sections"] = req.HomepageSections
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -90,12 +105,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"homepage_enabled":     settings.HomepageEnabled,
-				"landing_page_message": settings.LandingPageMessage,
-				"custom_css":           settings.CustomCSS,
-				"ga_measurement_id":    settings.GAMeasurementID,
-				"hide_login_button":    settings.HideLoginButton,
-				"hide_demo_toggle":     settings.HideDemoToggle,
+				"homepage_enabled":         settings.HomepageEnabled,
+				"landing_page_message":    settings.LandingPageMessage,
+				"custom_css":              settings.CustomCSS,
+				"ga_measurement_id":       settings.GAMeasurementID,
+				"hide_login_button":       settings.HideLoginButton,
+				"hide_demo_toggle":        settings.HideDemoToggle,
+				"homepage_custom_content": settings.HomepageCustomContent,
+				"homepage_section_order":  settings.HomepageSectionOrder,
+				"homepage_sections":       settings.HomepageSections,
 			})
 		})
 

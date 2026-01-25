@@ -88,13 +88,29 @@
 		testimonials: { label: 'Testimonials', collection: 'testimonials' }
 	};
 
+	// Helper to check if a section key is for custom content
+	function isCustomSection(sectionKey: string): boolean {
+		return sectionKey.startsWith('custom:');
+	}
+
+	// Get display label for a section (handles custom content)
+	function getSectionLabel(sectionKey: string): string {
+		if (isCustomSection(sectionKey)) {
+			const customId = sectionKey.replace('custom:', '');
+			const title = customContentTitleMap.get(customId);
+			return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
+		}
+		return SECTION_DEFS[sectionKey]?.label || sectionKey;
+	}
+
 	const flipDurationMs = 200;
 
 	// Props from parent
-	let { 
+	let {
 		sections = $bindable(),
 		sectionOrder = $bindable(),
 		sectionItems = $bindable(),
+		customContentItems = [],
 		viewId,
 		onOpenOverrideEditor
 	}: {
@@ -118,9 +134,16 @@
 				admin_tags?: Array<{ id: string; name: string; color: string }>;
 			};
 		}>>;
+		customContentItems?: Array<{ id: string; title: string; is_draft: boolean; visibility: string }>;
 		viewId: string;
 		onOpenOverrideEditor: (sectionKey: string, itemId: string) => void;
 	} = $props();
+
+	// Build a map for quick custom content title lookup
+	$effect(() => {
+		customContentTitleMap = new Map(customContentItems.map(item => [item.id, item.title]));
+	});
+	let customContentTitleMap: Map<string, string> = $state(new Map());
 
 	// Helper to trigger reactivity by creating a new object reference
 	function updateSections() {
@@ -300,9 +323,12 @@
 		{#each sectionOrder as sectionItem (sectionItem.id)}
 			{@const sectionKey = sectionItem.key}
 			{@const sectionDef = SECTION_DEFS[sectionKey]}
+			{@const isCustom = isCustomSection(sectionKey)}
+			{@const sectionLabel = getSectionLabel(sectionKey)}
 			{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, itemConfig: {} }}
-			{@const items = sectionItems[sectionKey] || []}
+			{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
 			{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
+			{@const layoutKey = isCustom ? 'custom' : sectionKey}
 
 			<div
 				class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
@@ -322,23 +348,25 @@
 							class="w-10 h-6 rounded-full transition-colors relative
 								{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
 							onclick={() => toggleSection(sectionKey)}
-							aria-label="Toggle {sectionDef?.label || sectionKey} section"
+							aria-label="Toggle {sectionLabel} section"
 						>
 							<span
 								class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
 									{sectionConfig.enabled ? 'left-5' : 'left-1'}"
 							></span>
 						</button>
-						<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
-						<span class="text-xs text-gray-500">
-							{#if sectionConfig.items.length > 0}
-								{sectionConfig.items.length} selected
-							{:else if sectionConfig.enabled}
-								all items ({publicItems.length})
-							{:else}
-								{publicItems.length} available
-							{/if}
-						</span>
+						<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
+						{#if !isCustom}
+							<span class="text-xs text-gray-500">
+								{#if sectionConfig.items.length > 0}
+									{sectionConfig.items.length} selected
+								{:else if sectionConfig.enabled}
+									all items ({publicItems.length})
+								{:else}
+									{publicItems.length} available
+								{/if}
+							</span>
+						{/if}
 					</div>
 
 					<div class="flex items-center gap-2">
@@ -346,7 +374,7 @@
 						<div class="hidden lg:flex items-center gap-2">
 							<!-- Width Selector with visual indicator -->
 							{#if sectionConfig.enabled}
-								{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
+								{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
 								{#if validWidths.length > 1}
 									<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
 										<!-- Width icon indicator -->
@@ -377,8 +405,8 @@
 							{/if}
 
 							<!-- Layout Selector -->
-							{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
-								{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+							{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
+								{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
 								<select
 									class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 									value={sectionConfig.layout}
@@ -393,12 +421,12 @@
 							{/if}
 						</div>
 
-						{#if sectionConfig.enabled && items.length > 0}
+						{#if sectionConfig.enabled && items.length > 0 && !isCustom}
 							<button
 								type="button"
 								class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
 								onclick={() => toggleSectionExpand(sectionKey)}
-								aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionDef?.label || sectionKey} section"
+								aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionLabel} section"
 							>
 								<svg
 									class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
@@ -414,13 +442,13 @@
 					</div>
 				</div>
 
-			<!-- Section Items -->
-				{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0}
+			<!-- Section Items (only for non-custom sections) -->
+				{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0 && !isCustom}
 					<div class="p-3 border-t border-gray-200 dark:border-gray-700">
 						<!-- Mobile Layout/Width Controls -->
 						<div class="lg:hidden grid grid-cols-1 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
 							{#if sectionConfig.enabled}
-								{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
+								{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
 								{#if validWidths.length > 1}
 									<div>
 										<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Width</label>
@@ -451,8 +479,8 @@
 									</div>
 								{/if}
 
-								{#if VALID_LAYOUTS[sectionKey]}
-									{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+								{#if VALID_LAYOUTS[layoutKey]}
+									{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
 									<div>
 										<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Layout</label>
 										<select

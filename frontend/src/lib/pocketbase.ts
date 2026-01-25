@@ -238,6 +238,26 @@ export interface Award {
 	};
 }
 
+export interface CustomContent {
+	id: string;
+	title: string;
+	content?: string;
+	cover_image?: string;
+	cover_image_url?: string;
+	cover_image_large_url?: string;
+	cover_image_thumb_url?: string;
+	media?: string[];
+	media_urls?: string[];
+	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
+	is_draft: boolean;
+	sort_order: number;
+	admin_tags?: string[];
+	expand?: {
+		admin_tags?: AdminTag[];
+	};
+}
+
 export type ContactMethodType =
 	| 'email'
 	| 'phone'
@@ -412,6 +432,15 @@ export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string;
 			wall: 'Masonry Wall',
 			carousel: 'Carousel',
 			featured: 'Featured Highlight'
+		}
+	},
+	custom: {
+		layouts: ['default', 'card', 'hero'],
+		default: 'default',
+		labels: {
+			default: 'Default',
+			card: 'Card Style',
+			hero: 'Hero Banner'
 		}
 	}
 };
@@ -625,6 +654,18 @@ export async function fetchContactMethods(): Promise<ContactMethod[]> {
 			sort: '-is_primary,sort_order'
 		});
 		return records.items as unknown as ContactMethod[];
+	} catch {
+		return [];
+	}
+}
+
+export async function fetchCustomContent(): Promise<CustomContent[]> {
+	try {
+		const records = await pb.collection('custom_content').getList(1, 100, {
+			filter: "visibility != 'private' && is_draft = false",
+			sort: 'sort_order'
+		});
+		return records.items as unknown as CustomContent[];
 	} catch {
 		return [];
 	}

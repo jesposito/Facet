@@ -16,6 +16,7 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
+	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -51,13 +52,48 @@
 		siteName: 'Facet'
 	}) : {});
 
-	// Section ordering - use view's custom order if available
+	// Section ordering - use view's custom order if available, then homepage order
 	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
 		? data.sectionOrder
-		: DEFAULT_SECTION_ORDER);
+		: (data.homepageSectionOrder && data.homepageSectionOrder.length > 0)
+			? data.homepageSectionOrder
+			: DEFAULT_SECTION_ORDER);
+
+	// Helper to check if section key is a custom content section
+	function isCustomSection(key: string): boolean {
+		return key.startsWith('custom:');
+	}
+
+	// Get custom content ID from section key
+	function getCustomContentId(key: string): string {
+		return key.replace('custom:', '');
+	}
+
+	// Create a map of custom content by ID for easy lookup
+	// The items have CustomContent-like structure from the API
+	type CustomContentItem = {
+		id: string;
+		title: string;
+		content: string;
+		visibility: string;
+		is_draft: boolean;
+		sort_order: number;
+		cover_image_url?: string;
+		media_urls?: string[];
+	};
+	let customContentMap = $derived(new Map<string, CustomContentItem>(
+		(data.customContent || []).map((item: Record<string, unknown>) => [item.id as string, item as unknown as CustomContentItem])
+	));
 
 	function getSectionLayout(sectionKey: string): string {
-		return data.sectionLayouts?.[sectionKey] || 'default';
+		// First check view layouts, then homepage sections
+		if (data.sectionLayouts?.[sectionKey]) {
+			return data.sectionLayouts[sectionKey];
+		}
+		if (data.homepageSections?.[sectionKey]?.layout) {
+			return data.homepageSections[sectionKey].layout;
+		}
+		return 'default';
 	}
 
 	type ContactLayoutType = 'vertical' | 'horizontal' | 'grid';
@@ -68,7 +104,14 @@
 	}
 
 	function getSectionWidth(sectionKey: string): string {
-		return data.sectionWidths?.[sectionKey] || 'full';
+		// First check view widths, then homepage sections
+		if (data.sectionWidths?.[sectionKey]) {
+			return data.sectionWidths[sectionKey];
+		}
+		if (data.homepageSections?.[sectionKey]?.width) {
+			return data.homepageSections[sectionKey].width;
+		}
+		return 'full';
 	}
 
 	function getWidthClass(width: string): string {
@@ -412,50 +455,56 @@
 				</p>
 			</div>
 		{:else}
-			{#if data.experience.length > 0}
-				<ExperienceSection items={data.experience} />
-			{/if}
+			<!-- Dynamic section rendering based on homepage_section_order -->
+			{#each effectiveSectionOrder as sectionKey}
+				{#if isCustomSection(sectionKey)}
+					{@const customItem = customContentMap.get(getCustomContentId(sectionKey))}
+					{#if customItem}
+						<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
+						<CustomContentSection item={customItem as any} layout="default" />
+					{/if}
+				{:else if sectionKey === 'experience' && data.experience.length > 0}
+					<ExperienceSection items={data.experience} />
+				{:else if sectionKey === 'projects' && data.projects.length > 0}
+					<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
+				{:else if sectionKey === 'education' && data.education.length > 0}
+					<EducationSection items={data.education} />
+				{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
+					<CertificationsSection items={data.certifications} />
+				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
+					<AwardsSection items={data.awards} />
+				{:else if sectionKey === 'skills' && data.skills.length > 0}
+					<SkillsSection items={data.skills} />
+				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
+					<div class="flex items-center justify-between gap-3 mb-4">
+						<h2 class="section-title mb-0">Posts</h2>
+						<a
+							href="/posts"
+							class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+						>
+							Browse all
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</a>
+					</div>
+					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+					<PostsSection items={data.posts} viewSlug="" />
+				{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
+					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+					<TalksSection items={data.talks} viewSlug="" />
+				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
+					<TestimonialsSection items={data.testimonials} />
+				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
+					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
+				{/if}
+			{/each}
 
-			{#if data.projects.length > 0}
-				<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
-			{/if}
-
-			{#if data.education.length > 0}
-				<EducationSection items={data.education} />
-			{/if}
-
-			{#if data.certifications && data.certifications.length > 0}
-				<CertificationsSection items={data.certifications} />
-			{/if}
-
-			{#if data.awards && data.awards.length > 0}
-				<AwardsSection items={data.awards} />
-			{/if}
-
-			{#if data.skills.length > 0}
-				<SkillsSection items={data.skills} />
-			{/if}
-
-			{#if data.posts && data.posts.length > 0}
-				<div class="flex items-center justify-between gap-3 mb-4">
-					<h2 class="section-title mb-0">Posts</h2>
-					<a
-						href="/posts"
-						class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-					>
-						Browse all
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-						</svg>
-					</a>
-				</div>
-				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-				<PostsSection items={data.posts} viewSlug="" />
-			{/if}
-
-			{#if data.talks && data.talks.length > 0}
-				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-				<TalksSection items={data.talks} viewSlug="" />
+			<!-- Render any custom content not in the section order (for backwards compatibility) -->
+			{#if data.customContent && data.customContent.length > 0 && (!data.homepageSectionOrder || data.homepageSectionOrder.length === 0)}
+				{#each data.customContent as item}
+					<CustomContentSection {item} layout="default" />
+				{/each}
 			{/if}
 		{/if}
 	</main>
