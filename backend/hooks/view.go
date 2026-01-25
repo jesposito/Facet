@@ -528,6 +528,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 
+				// Only show items that are explicitly selected
+				// If no items are selected, the section is empty (nothing shown)
 				if ok && len(items) > 0 {
 					var itemRecords []*core.Record
 					for _, itemID := range items {
@@ -539,38 +541,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						}
 					}
 					sectionData[sectionName] = serializeRecordsWithOverrides(itemRecords, itemConfig, sectionName)
-				} else {
-					var filter string
-					var sortField string
-					if sectionName == "contacts" {
-						filter = ""
-						sortField = "-is_primary,-sort_order"
-					} else if sectionName == "testimonials" {
-						filter = "status = 'approved'"
-						sortField = "-featured,-sort_order"
-					} else {
-						filter = "is_draft = false"
-						sortField = "sort_order"
-					}
-
-					allRecords, err := app.FindRecordsByFilter(
-						collectionName,
-						filter,
-						sortField,
-						100,
-						0,
-						nil,
-					)
-					if err == nil {
-						var visibleRecords []*core.Record
-						for _, record := range allRecords {
-							if isRecordVisibleForSection(record, sectionName, view.Id) {
-								visibleRecords = append(visibleRecords, record)
-							}
-						}
-						sectionData[sectionName] = serializeRecordsWithOverrides(visibleRecords, itemConfig, sectionName)
-					}
 				}
+				// If no items selected (len(items) == 0), section remains empty - nothing shown
 			}
 
 			response["sections"] = sectionData
