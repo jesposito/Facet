@@ -100,7 +100,8 @@
 
 	async function loadPublicViews() {
 		try {
-			const records = await collection('views').getList(1, 100, {
+			// Use pb.collection directly to bypass demo store wrapper
+			const records = await pb.collection('views').getList(1, 100, {
 				filter: 'is_active = true && visibility = "public"',
 				sort: 'name'
 			});
@@ -413,7 +414,9 @@
 				body: JSON.stringify({
 					homepage_section_order: orderKeys,
 					homepage_sections: homepageSections,
-					homepage_custom_content: customContentConfig
+					homepage_custom_content: customContentConfig,
+					site_nav_enabled: siteNavEnabled,
+					site_nav_items: siteNavItems
 				})
 			});
 
@@ -986,17 +989,6 @@
 						{/if}
 					</div>
 				{/if}
-
-				<div class="flex justify-end mt-4">
-					<button
-						type="button"
-						class="btn btn-primary btn-sm"
-						onclick={saveSettings}
-						disabled={settingsSaving || settingsLoading}
-					>
-						{settingsSaving ? 'Saving...' : 'Save Navigation'}
-					</button>
-				</div>
 			</div>
 
 		</form>
