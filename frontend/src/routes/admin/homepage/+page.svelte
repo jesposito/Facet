@@ -72,6 +72,8 @@
 
 			if (settingsResponse.ok) {
 				const data = await settingsResponse.json();
+				console.log('[LOAD] Settings from server:', JSON.stringify(data, null, 2));
+
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
@@ -80,6 +82,9 @@
 					navEnabled = data.site_nav.enabled || false;
 					navHomeLabel = data.site_nav.home_label || 'Home';
 					navItems = data.site_nav.items || [];
+					console.log('[LOAD] Parsed navEnabled:', navEnabled, 'navItems:', navItems.length);
+				} else {
+					console.log('[LOAD] No site_nav in response');
 				}
 			}
 
@@ -88,8 +93,10 @@
 				name: v.name as string,
 				slug: v.slug as string
 			}));
+			console.log('[LOAD] Public views:', publicViews.length);
 
 			syncNavItemsWithViews();
+			console.log('[LOAD] After sync, navItems:', navItems.length);
 		} catch (err) {
 			console.error('Failed to load settings:', err);
 		} finally {
@@ -127,25 +134,30 @@
 	async function saveSettings() {
 		settingsSaving = true;
 		try {
+			const payload = {
+				homepage_enabled: homepageEnabled,
+				landing_page_message: landingPageMessage,
+				hide_login_button: hideLoginButton,
+				site_nav: {
+					enabled: navEnabled,
+					home_label: navHomeLabel,
+					items: navItems
+				}
+			};
+			console.log('[SAVE] Sending:', JSON.stringify(payload, null, 2));
+
 			const response = await fetch('/api/site-settings', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
 					Authorization: pb.authStore.token || ''
 				},
-				body: JSON.stringify({
-					homepage_enabled: homepageEnabled,
-					landing_page_message: landingPageMessage,
-					hide_login_button: hideLoginButton,
-					site_nav: {
-						enabled: navEnabled,
-						home_label: navHomeLabel,
-						items: navItems
-					}
-				})
+				body: JSON.stringify(payload)
 			});
 
 			const result = await response.json();
+			console.log('[SAVE] Response:', JSON.stringify(result, null, 2));
+
 			if (!response.ok) {
 				toasts.add('error', result.error || 'Failed to save settings');
 				return;

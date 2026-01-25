@@ -14,7 +14,6 @@ import (
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
 func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		// Public: fetch site settings (sanitized)
 		se.Router.GET("/api/site-settings", func(e *core.RequestEvent) error {
 			settings, err := services.LoadSiteSettings(app)
 			if err != nil {
@@ -30,6 +29,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"hide_login_button":    settings.HideLoginButton,
 				"hide_demo_toggle":     settings.HideDemoToggle,
 				"site_nav":             settings.SiteNav,
+				"homepage_sections":    settings.HomepageSections,
 			})
 		})
 
@@ -80,7 +80,6 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			})
 		})
 
-		// Authenticated: update site settings
 		se.Router.PUT("/api/site-settings", func(e *core.RequestEvent) error {
 			if e.Auth == nil {
 				return apis.NewUnauthorizedError("authentication required", nil)
@@ -94,18 +93,23 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				HideLoginButton    *bool          `json:"hide_login_button"`
 				HideDemoToggle     *bool          `json:"hide_demo_toggle"`
 				SiteNav            map[string]any `json:"site_nav"`
+				HomepageSections   []any          `json:"homepage_sections"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
 				return apis.NewBadRequestError("invalid request body", err)
 			}
 
+			app.Logger().Info("[SETTINGS] PUT request received",
+				"site_nav_present", req.SiteNav != nil,
+				"site_nav", req.SiteNav,
+			)
+
 			updates := make(map[string]any)
 			if req.HomepageEnabled != nil {
 				updates["homepage_enabled"] = *req.HomepageEnabled
 			}
 			if req.LandingPageMessage != "" || req.LandingPageMessage == "" {
-				// Always allow clearing the message
 				msg := strings.TrimSpace(req.LandingPageMessage)
 				if len(msg) > 2000 {
 					msg = msg[:2000]
@@ -135,11 +139,20 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.SiteNav != nil {
 				updates["site_nav"] = req.SiteNav
 			}
+			if req.HomepageSections != nil {
+				updates["homepage_sections"] = req.HomepageSections
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
+				app.Logger().Error("[SETTINGS] Update failed", "error", err)
 				return apis.NewBadRequestError("failed to update site settings", err)
 			}
+
+			app.Logger().Info("[SETTINGS] Update successful",
+				"site_nav_enabled", settings.SiteNav.Enabled,
+				"site_nav_items", len(settings.SiteNav.Items),
+			)
 
 			return e.JSON(http.StatusOK, map[string]any{
 				"homepage_enabled":     settings.HomepageEnabled,
@@ -149,6 +162,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"hide_login_button":    settings.HideLoginButton,
 				"hide_demo_toggle":     settings.HideDemoToggle,
 				"site_nav":             settings.SiteNav,
+				"homepage_sections":    settings.HomepageSections,
 			})
 		})
 

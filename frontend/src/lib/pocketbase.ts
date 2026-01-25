@@ -238,6 +238,17 @@ export interface Award {
 	};
 }
 
+export interface Custom {
+	id: string;
+	title: string;
+	content?: string;
+	visibility: 'public' | 'unlisted' | 'private';
+	view_visibility?: Record<string, boolean>;
+	is_draft: boolean;
+	sort_order: number;
+	media?: string[];
+}
+
 export type ContactMethodType =
 	| 'email'
 	| 'phone'

@@ -474,17 +474,42 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 
+				if strings.HasPrefix(sectionName, "custom:") {
+					customID := strings.TrimPrefix(sectionName, "custom:")
+					customCollectionName := "custom"
+					if isDemoMode {
+						customCollectionName = "demo_custom"
+					}
+					record, err := app.FindRecordById(customCollectionName, customID)
+					if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
+						item := serializeRecords([]*core.Record{record})
+						if len(item) > 0 {
+							if media := item[0]["media"]; media != nil {
+								if mediaFiles, ok := media.([]interface{}); ok && len(mediaFiles) > 0 {
+									var mediaURLs []string
+									for _, f := range mediaFiles {
+										if file, ok := f.(string); ok {
+											mediaURLs = append(mediaURLs, fileURL(record.Collection().Id, record.Id, file, ""))
+										}
+									}
+									item[0]["media_urls"] = mediaURLs
+								}
+							}
+							sectionData[sectionName] = item[0]
+						}
+					}
+					continue
+				}
+
 				items, ok := section["items"].([]interface{})
 				collectionName := getCollectionName(sectionName)
 				if collectionName == "" {
 					continue
 				}
-				// Use demo collection if demo mode is enabled
 				if isDemoMode {
 					collectionName = "demo_" + collectionName
 				}
 
-				// Extract itemConfig for overrides
 				itemConfig := make(map[string]map[string]interface{})
 				if itemConfigRaw, ok := section["itemConfig"].(map[string]interface{}); ok {
 					for itemID, config := range itemConfigRaw {
@@ -859,9 +884,38 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["awards"] = serializeRecords(awardRecords)
 			}
 
+			// Fetch custom content - only public items appear on homepage
+			customRecords, err := app.FindRecordsByFilter(
+				getTableName(app, "custom"),
+				"visibility = 'public' && is_draft = false",
+				"sort_order",
+				100,
+				0,
+				nil,
+			)
+			if err == nil && len(customRecords) > 0 {
+				custom := serializeRecords(customRecords)
+				customCollectionID := customRecords[0].Collection().Id
+				for i, c := range custom {
+					if media := c["media"]; media != nil {
+						if mediaFiles, ok := media.([]string); ok && len(mediaFiles) > 0 {
+							var mediaURLs []string
+							if id, ok := c["id"].(string); ok {
+								for _, file := range mediaFiles {
+									mediaURLs = append(mediaURLs, fileURL(customCollectionID, id, file, ""))
+								}
+							}
+							custom[i]["media_urls"] = mediaURLs
+						}
+					}
+				}
+				response["custom"] = custom
+			}
+
 			// Include site settings in response
 			if settings != nil {
 				response["hide_login_button"] = settings.HideLoginButton
+				response["homepage_sections"] = settings.HomepageSections
 			}
 
 			return e.JSON(http.StatusOK, response)

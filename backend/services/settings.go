@@ -9,7 +9,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// parseSiteNav unmarshals the site_nav JSON field from a record.
 func parseSiteNav(record *core.Record) SiteNavConfig {
 	raw := record.GetString("site_nav")
 	if raw == "" {
@@ -22,17 +21,25 @@ func parseSiteNav(record *core.Record) SiteNavConfig {
 	return config
 }
 
+func parseHomepageSections(record *core.Record) []HomepageSectionConfig {
+	raw := record.GetString("homepage_sections")
+	if raw == "" {
+		return nil
+	}
+	var sections []HomepageSectionConfig
+	if err := json.Unmarshal([]byte(raw), &sections); err != nil {
+		return nil
+	}
+	return sections
+}
+
 const maxNavItems = 20
 const maxLabelLength = 50
 
 func sanitizeSiteNavConfig(input map[string]any) map[string]any {
 	result := make(map[string]any)
 
-	if enabled, ok := input["enabled"].(bool); ok {
-		result["enabled"] = enabled
-	} else {
-		result["enabled"] = false
-	}
+	result["enabled"] = parseBoolValue(input["enabled"])
 
 	if homeLabel, ok := input["home_label"].(string); ok {
 		if len(homeLabel) > maxLabelLength {
@@ -66,7 +73,7 @@ func sanitizeSiteNavConfig(input map[string]any) map[string]any {
 				label = label[:maxLabelLength]
 			}
 
-			visible, _ := item["visible"].(bool)
+			visible := parseBoolValue(item["visible"])
 
 			sanitizedItems = append(sanitizedItems, map[string]any{
 				"view_id": viewID,
@@ -78,6 +85,24 @@ func sanitizeSiteNavConfig(input map[string]any) map[string]any {
 	result["items"] = sanitizedItems
 
 	return result
+}
+
+func parseBoolValue(v any) bool {
+	if v == nil {
+		return false
+	}
+	switch val := v.(type) {
+	case bool:
+		return val
+	case string:
+		return val == "true" || val == "1"
+	case float64:
+		return val != 0
+	case int:
+		return val != 0
+	default:
+		return false
+	}
 }
 
 // SiteNavItem represents a single item in the site navigation.
@@ -103,6 +128,15 @@ func DefaultSiteNavConfig() SiteNavConfig {
 	}
 }
 
+// HomepageSectionConfig represents a single section in the homepage configuration.
+type HomepageSectionConfig struct {
+	Section string   `json:"section"`
+	Enabled bool     `json:"enabled"`
+	Items   []string `json:"items,omitempty"`
+	Layout  string   `json:"layout,omitempty"`
+	Width   string   `json:"width,omitempty"`
+}
+
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
 	HomepageEnabled    bool
@@ -112,6 +146,7 @@ type SiteSettings struct {
 	HideLoginButton    bool
 	HideDemoToggle     bool
 	SiteNav            SiteNavConfig
+	HomepageSections   []HomepageSectionConfig
 	Record             *core.Record
 }
 
@@ -161,6 +196,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HideLoginButton:    record.GetBool("hide_login_button"),
 		HideDemoToggle:     record.GetBool("hide_demo_toggle"),
 		SiteNav:            parseSiteNav(record),
+		HomepageSections:   parseHomepageSections(record),
 		Record:             record,
 	}, nil
 }
@@ -221,6 +257,18 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			}
 		} else if logger != nil {
 			logger.Warn("site_nav field missing on site_settings, skipping update")
+		}
+	}
+	if sections, ok := updates["homepage_sections"].([]any); ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_sections") != nil {
+			sectionsJSON, err := json.Marshal(sections)
+			if err == nil {
+				settings.Record.Set("homepage_sections", string(sectionsJSON))
+			} else if logger != nil {
+				logger.Warn("failed to marshal homepage_sections, skipping update", "error", err)
+			}
+		} else if logger != nil {
+			logger.Warn("homepage_sections field missing on site_settings, skipping update")
 		}
 	}
 

@@ -16,6 +16,9 @@ import (
 )
 
 func getCollectionName(section string) string {
+	if strings.HasPrefix(section, "custom:") {
+		return "custom"
+	}
 	switch section {
 	case "experience":
 		return "experience"
@@ -37,12 +40,17 @@ func getCollectionName(section string) string {
 		return "contact_methods"
 	case "testimonials":
 		return "testimonials"
+	case "custom":
+		return "custom"
 	default:
 		return ""
 	}
 }
 
 func getDefaultLayout(section string) string {
+	if strings.HasPrefix(section, "custom:") {
+		return "default"
+	}
 	switch section {
 	case "experience":
 		return "default"
@@ -64,6 +72,8 @@ func getDefaultLayout(section string) string {
 		return "vertical"
 	case "testimonials":
 		return "wall"
+	case "custom":
+		return "default"
 	default:
 		return "default"
 	}
