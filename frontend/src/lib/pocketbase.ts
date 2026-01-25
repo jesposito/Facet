@@ -246,12 +246,18 @@ export type ContactMethodType =
 	| 'twitter'
 	| 'facebook'
 	| 'instagram'
+	| 'youtube'
+	| 'mastodon'
+	| 'bluesky'
 	| 'website'
+	| 'portfolio'
+	| 'blog'
 	| 'whatsapp'
 	| 'telegram'
 	| 'discord'
 	| 'slack'
-	| 'other';
+	| 'other'
+	| 'custom';
 
 export type ProtectionLevel = 'none' | 'obfuscation' | 'click_to_reveal' | 'captcha';
 
