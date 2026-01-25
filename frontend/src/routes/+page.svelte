@@ -411,10 +411,11 @@
 	/>
 
 	<!-- Site Navigation / CTA Banner -->
-	{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url || ''}
-	{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
-	{@const ctaText = data.profile?.cta_text || data.view?.cta_text || ''}
-	<SiteNav {ctaUrl} {ctaButtonText} {ctaText} />
+	<SiteNav
+		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+	/>
 
 	<div
 		aria-hidden="true"
