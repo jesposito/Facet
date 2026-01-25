@@ -57,6 +57,7 @@
 	interface HomepageSectionConfig {
 		section: string;
 		enabled: boolean;
+		items?: string[];
 		layout?: string;
 		width?: string;
 	}
@@ -66,8 +67,9 @@
 		if (data.sectionOrder && data.sectionOrder.length > 0) {
 			return data.sectionOrder;
 		}
-		if (data.homepageSections && Array.isArray(data.homepageSections) && data.homepageSections.length > 0) {
-			return (data.homepageSections as HomepageSectionConfig[])
+		const sections = (data as any).homepageSections as HomepageSectionConfig[] | undefined;
+		if (sections && Array.isArray(sections) && sections.length > 0) {
+			return sections
 				.filter(s => s.enabled !== false)
 				.map(s => s.section);
 		}
@@ -78,15 +80,43 @@
 		if (data.sectionOrder && data.sectionOrder.length > 0) {
 			return data.sectionOrder.includes(sectionKey);
 		}
-		if (data.homepageSections && Array.isArray(data.homepageSections)) {
-			const config = (data.homepageSections as HomepageSectionConfig[]).find(s => s.section === sectionKey);
+		const sections = (data as any).homepageSections as HomepageSectionConfig[] | undefined;
+		if (sections && Array.isArray(sections)) {
+			const config = sections.find(s => s.section === sectionKey);
 			return config ? config.enabled !== false : true;
 		}
 		return true;
 	}
 
+	function getSectionItems(sectionKey: string, allItems: any[]): any[] {
+		// Only apply filtering if using homepageSections configuration and not a View
+		const sections = (data as any).homepageSections as HomepageSectionConfig[] | undefined;
+		if (!data.view && sections && Array.isArray(sections) && sections.length > 0) {
+			const config = sections.find(s => s.section === sectionKey);
+			
+			// If config has specific items selected, filter by them and preserve order
+			if (config && config.items && config.items.length > 0) {
+				const itemMap = new Map(allItems.map(i => [i.id, i]));
+				const result = [];
+				for (const id of config.items) {
+					const item = itemMap.get(id);
+					if (item) result.push(item);
+				}
+				return result;
+			}
+		}
+		return allItems;
+	}
+
 	function getSectionLayout(sectionKey: string): string {
-		return data.sectionLayouts?.[sectionKey] || 'default';
+		if (data.sectionLayouts?.[sectionKey]) return data.sectionLayouts[sectionKey];
+		
+		const sections = (data as any).homepageSections as HomepageSectionConfig[] | undefined;
+		if (!data.view && sections && Array.isArray(sections)) {
+			const config = sections.find(s => s.section === sectionKey);
+			return config?.layout || 'default';
+		}
+		return 'default';
 	}
 
 	type ContactLayoutType = 'vertical' | 'horizontal' | 'grid';
@@ -97,7 +127,14 @@
 	}
 
 	function getSectionWidth(sectionKey: string): string {
-		return data.sectionWidths?.[sectionKey] || 'full';
+		if (data.sectionWidths?.[sectionKey]) return data.sectionWidths[sectionKey];
+
+		const sections = (data as any).homepageSections as HomepageSectionConfig[] | undefined;
+		if (!data.view && sections && Array.isArray(sections)) {
+			const config = sections.find(s => s.section === sectionKey);
+			return config?.width || 'full';
+		}
+		return 'full';
 	}
 
 	function getWidthClass(width: string): string {
@@ -449,17 +486,17 @@
 		{:else}
 			{#each effectiveSectionOrder() as sectionKey (sectionKey)}
 				{#if sectionKey === 'experience' && isSectionEnabled('experience') && data.experience.length > 0}
-					<ExperienceSection items={data.experience} />
+					<ExperienceSection items={getSectionItems('experience', data.experience)} />
 				{:else if sectionKey === 'projects' && isSectionEnabled('projects') && data.projects.length > 0}
-					<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
+					<ProjectsSection items={getSectionItems('projects', data.projects)} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
 				{:else if sectionKey === 'education' && isSectionEnabled('education') && data.education.length > 0}
-					<EducationSection items={data.education} />
+					<EducationSection items={getSectionItems('education', data.education)} />
 				{:else if sectionKey === 'certifications' && isSectionEnabled('certifications') && data.certifications && data.certifications.length > 0}
-					<CertificationsSection items={data.certifications} />
+					<CertificationsSection items={getSectionItems('certifications', data.certifications)} />
 				{:else if sectionKey === 'awards' && isSectionEnabled('awards') && data.awards && data.awards.length > 0}
-					<AwardsSection items={data.awards} />
+					<AwardsSection items={getSectionItems('awards', data.awards)} />
 				{:else if sectionKey === 'skills' && isSectionEnabled('skills') && data.skills.length > 0}
-					<SkillsSection items={data.skills} />
+					<SkillsSection items={getSectionItems('skills', data.skills)} />
 				{:else if sectionKey === 'posts' && isSectionEnabled('posts') && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
 						<h2 class="section-title mb-0">Posts</h2>
@@ -473,13 +510,13 @@
 							</svg>
 						</a>
 					</div>
-					<PostsSection items={data.posts} viewSlug="" />
+					<PostsSection items={getSectionItems('posts', data.posts)} viewSlug="" />
 				{:else if sectionKey === 'talks' && isSectionEnabled('talks') && data.talks && data.talks.length > 0}
-					<TalksSection items={data.talks} viewSlug="" />
+					<TalksSection items={getSectionItems('talks', data.talks)} viewSlug="" />
 				{:else if sectionKey === 'testimonials' && isSectionEnabled('testimonials') && data.testimonials && data.testimonials.length > 0}
-					<TestimonialsSection items={data.testimonials} />
+					<TestimonialsSection items={getSectionItems('testimonials', data.testimonials)} />
 				{:else if sectionKey === 'contacts' && isSectionEnabled('contacts') && data.contacts && data.contacts.length > 0}
-					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
+					<ContactMethodsList contacts={getSectionItems('contacts', data.contacts)} layout={getContactLayout()} />
 				{:else if sectionKey.startsWith('custom:') && isSectionEnabled(sectionKey) && data.custom}
 					{@const customId = sectionKey.replace('custom:', '')}
 					{@const customItem = data.custom.find((c: { id: string }) => c.id === customId)}

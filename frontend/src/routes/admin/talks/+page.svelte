@@ -608,7 +608,7 @@ async function resolveMediaRefs(selected: string[]) {
 							fieldType="description"
 							content={description}
 							context={{ title, event, location }}
-							on:apply={(e) => (description = e.detail.content)}
+							onapply={(c) => (description = c)}
 						/>
 					</div>
 					<textarea

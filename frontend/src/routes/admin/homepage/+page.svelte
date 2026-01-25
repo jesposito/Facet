@@ -1,23 +1,38 @@
 <script lang="ts">
-	import { preventDefault } from 'svelte/legacy';
-
-	import { onMount, onDestroy } from 'svelte';
-	import { pb, type View } from '$lib/pocketbase';
+	import { preventDefault, run } from 'svelte/legacy';
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
+	import { pb, type View, type ViewSection, type SectionWidth, type ItemConfig, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
-	import { toasts, confirm } from '$lib/stores';
+	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import ViewSectionManager from '$components/admin/view-editor/ViewSectionManager.svelte';
+	import type { DndEvent } from 'svelte-dnd-action';
+
+	// Dnd
+	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+	let SHADOW_PLACEHOLDER_ITEM_ID = $state('');
+	
+	onMount(async () => {
+		if (browser) {
+			const dnd = await import('svelte-dnd-action');
+			dndzone = dnd.dndzone;
+			SHADOW_PLACEHOLDER_ITEM_ID = dnd.SHADOW_PLACEHOLDER_ITEM_ID;
+		}
+		await Promise.all([loadSettings(), loadProfile()]);
+	});
 
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
-	let settingsSaving = $state(false);
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
 
 	// Site navigation settings
 	interface NavItem {
+		id: string; // for dnd
 		view_id: string;
 		label: string;
 		visible: boolean;
@@ -32,44 +47,58 @@
 	let navItems = $state<NavItem[]>([]);
 	let publicViews = $state<PublicView[]>([]);
 
-	// Homepage sections settings
-	interface SectionConfig {
-		section: string;
-		enabled: boolean;
-		layout?: string;
-		width?: string;
-	}
-	const DEFAULT_SECTIONS = [
-		'experience', 'projects', 'education', 'certifications', 
-		'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'
-	];
-	const SECTION_LABELS: Record<string, string> = {
-		experience: 'Experience',
-		projects: 'Projects',
-		education: 'Education',
-		certifications: 'Certifications',
-		awards: 'Awards',
-		skills: 'Skills',
-		posts: 'Posts',
-		talks: 'Talks',
-		testimonials: 'Testimonials',
-		contacts: 'Contact Methods'
+	// Homepage Sections (ViewSectionManager state)
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'custom', 'contacts'];
+	
+	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
+		experience: { label: 'Experience', collection: 'experience' },
+		projects: { label: 'Projects', collection: 'projects' },
+		education: { label: 'Education', collection: 'education' },
+		certifications: { label: 'Certifications', collection: 'certifications' },
+		awards: { label: 'Awards', collection: 'awards' },
+		skills: { label: 'Skills', collection: 'skills' },
+		posts: { label: 'Posts', collection: 'posts' },
+		talks: { label: 'Talks', collection: 'talks' },
+		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
+		testimonials: { label: 'Testimonials', collection: 'testimonials' },
+		custom: { label: 'Custom Content', collection: 'custom' }
 	};
-	let homepageSections = $state<SectionConfig[]>([]);
+
+	let sections: Record<string, {
+		enabled: boolean;
+		items: string[];
+		expanded: boolean;
+		layout: string;
+		width: SectionWidth;
+		itemConfig: Record<string, ItemConfig>;
+		categoryOrder?: string[];
+	}> = $state({});
+
+	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
+
+	let sectionItems: Record<string, Array<{
+		id: string;
+		label: string;
+		visibility: string;
+		is_draft?: boolean;
+		data: Record<string, unknown>;
+		expand?: {
+			admin_tags?: Array<{ id: string; name: string; color: string }>;
+		};
+	}>> = $state({});
 
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
 	let profileLoading = $state(true);
-	let saving = $state(false);
+	let profileSaving = $state(false);
 
-	// Form fields
+	// Profile Form fields
 	let name = $state('');
 	let headline = $state('');
 	let location = $state('');
 	let summary = $state('');
 	let contactEmail = $state('');
 	let contactLinks: Array<{ type: string; url: string; label: string }> = $state([]);
-	let visibility = $state('public');
 	let ctaText = $state('');
 	let ctaUrl = $state('');
 	let ctaButtonText = $state('');
@@ -80,66 +109,50 @@
 	let avatarFile: File | null = null;
 	let heroImageFile: File | null = null;
 
-	// Views that override headline/summary
-	let viewsOverridingHeadline: View[] = $state([]);
-	let viewsOverridingSummary: View[] = $state([]);
-
-	onMount(async () => {
-		await Promise.all([loadSettings(), loadProfile()]);
-	});
-
-	function handleNavToggle(event: Event) {
-		const checked = (event.target as HTMLInputElement).checked;
-		navEnabled = checked;
-		console.log('[NAV] Toggle changed to:', checked);
-		if (checked && publicViews.length > 0 && navItems.length === 0) {
-			syncNavItemsWithViews();
-		}
-	}
-
 	async function loadSettings() {
 		try {
-			const [settingsResponse, viewsResponse] = await Promise.all([
-				fetch('/api/site-settings'),
-				pb.collection('views').getFullList({ filter: "visibility = 'public' && is_active = true", sort: 'name' })
-			]);
+			settingsLoading = true;
+			// Load views for navigation
+			const viewsResult = await collection('views').getList(1, 100, {
+				filter: 'visibility = "public" && is_active = true',
+				sort: 'sort_order,created'
+			});
+			publicViews = viewsResult.items.map(v => ({ id: v.id, name: v.name, slug: v.slug }));
 
-			if (settingsResponse.ok) {
-				const data = await settingsResponse.json();
-				console.log('[LOAD] Settings from server:', JSON.stringify(data, null, 2));
+			// Load settings
+			const settings = await pb.send('/api/site-settings', { method: 'GET' });
+			
+			// Homepage Visibility
+			homepageEnabled = settings.homepage_enabled !== false;
+			landingPageMessage = settings.landing_page_message || '';
+			hideLoginButton = settings.hide_login_button === true;
 
-				homepageEnabled = data.homepage_enabled !== false;
-				landingPageMessage = data.landing_page_message || '';
-				hideLoginButton = data.hide_login_button === true;
-
-				if (data.site_nav) {
-					console.log('[LOAD] site_nav.enabled from server:', data.site_nav.enabled, typeof data.site_nav.enabled);
-					navEnabled = data.site_nav.enabled === true;
-					navHomeLabel = data.site_nav.home_label || 'Home';
-					navItems = data.site_nav.items || [];
-					console.log('[LOAD] Parsed navEnabled:', navEnabled, 'navItems:', navItems.length);
-				} else {
-					console.log('[LOAD] No site_nav in response');
-				}
-
-				// Load homepage sections
-				if (data.homepage_sections && Array.isArray(data.homepage_sections)) {
-					homepageSections = data.homepage_sections;
-				}
-				syncHomepageSections();
+			// Site Nav
+			if (settings.site_nav) {
+				navEnabled = settings.site_nav.enabled === true;
+				navHomeLabel = settings.site_nav.home_label || 'Home';
+				
+				// Map backend items to frontend items
+				// We add 'id' for dnd using view_id
+				const savedItems = (settings.site_nav.items || []).map((item: any) => ({
+					...item,
+					id: item.view_id // Use view_id as unique key for dnd
+				}));
+				navItems = savedItems;
+				
+				// Sync with public views (add missing ones)
+				syncNavItemsWithViews();
+			} else {
+				syncNavItemsWithViews();
 			}
 
-			publicViews = viewsResponse.map((v) => ({
-				id: v.id,
-				name: v.name as string,
-				slug: v.slug as string
-			}));
-			console.log('[LOAD] Public views:', publicViews.length);
+			// Homepage Sections
+			initializeSections(settings.homepage_sections);
+			await loadSectionItems();
 
-			syncNavItemsWithViews();
-			console.log('[LOAD] After sync, navItems:', navItems.length);
 		} catch (err) {
 			console.error('Failed to load settings:', err);
+			toasts.add('error', 'Failed to load settings');
 		} finally {
 			settingsLoading = false;
 		}
@@ -148,137 +161,220 @@
 	function syncNavItemsWithViews() {
 		const existingIds = new Set(navItems.map(item => item.view_id));
 		const viewIds = new Set(publicViews.map(v => v.id));
-
+		
+		// Remove items for views that no longer exist or are not public
 		navItems = navItems.filter(item => viewIds.has(item.view_id));
-
+		
+		// Add new views
 		for (const view of publicViews) {
 			if (!existingIds.has(view.id)) {
-				navItems = [...navItems, { view_id: view.id, label: '', visible: true }];
+				navItems = [...navItems, { 
+					id: view.id,
+					view_id: view.id, 
+					label: '', 
+					visible: true 
+				}];
 			}
 		}
 	}
 
-	function syncHomepageSections() {
-		const existingSections = new Set(homepageSections.map(s => s.section));
-		
-		// Add missing sections with defaults
-		for (const section of DEFAULT_SECTIONS) {
-			if (!existingSections.has(section)) {
-				homepageSections = [...homepageSections, { section, enabled: true }];
-			}
-		}
-		
-		// Remove sections that are no longer valid
-		homepageSections = homepageSections.filter(s => DEFAULT_SECTIONS.includes(s.section));
+	function getViewName(id: string) {
+		return publicViews.find(v => v.id === id)?.name || 'Unknown View';
 	}
 
-	function moveSectionItem(index: number, direction: 'up' | 'down') {
-		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		if (newIndex < 0 || newIndex >= homepageSections.length) return;
+	// --- Homepage Sections Logic ---
 
-		const items = [...homepageSections];
-		[items[index], items[newIndex]] = [items[newIndex], items[index]];
-		homepageSections = items;
-	}
-
-	function getViewName(viewId: string): string {
-		const view = publicViews.find(v => v.id === viewId);
-		return view?.name || 'Unknown';
-	}
-
-	function moveNavItem(index: number, direction: 'up' | 'down') {
-		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		if (newIndex < 0 || newIndex >= navItems.length) return;
-
-		const items = [...navItems];
-		[items[index], items[newIndex]] = [items[newIndex], items[index]];
-		navItems = items;
-	}
-
-	async function saveSettings() {
-		settingsSaving = true;
-		try {
-			const payload = {
-				homepage_enabled: homepageEnabled,
-				landing_page_message: landingPageMessage,
-				hide_login_button: hideLoginButton,
-				site_nav: {
-					enabled: navEnabled,
-					home_label: navHomeLabel,
-					items: navItems
-				},
-				homepage_sections: homepageSections
+	function initializeSections(savedSections?: ViewSection[]) {
+		// Initialize all sections
+		for (const key of DEFAULT_SECTION_ORDER) {
+			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
+			sections[key] = { 
+				enabled: false, 
+				items: [], 
+				expanded: false, 
+				layout: defaultLayout, 
+				width: 'full', 
+				itemConfig: {} 
 			};
-			console.log('[SAVE] navEnabled before send:', navEnabled, typeof navEnabled);
-			console.log('[SAVE] Sending payload:', JSON.stringify(payload, null, 2));
+		}
 
-			const response = await fetch('/api/site-settings', {
+		if (savedSections && savedSections.length > 0) {
+			// Apply saved config
+			const savedOrder = savedSections.map(s => s.section);
+			const remaining = DEFAULT_SECTION_ORDER.filter(k => !savedOrder.includes(k));
+			const fullOrder = [...savedOrder, ...remaining];
+			
+			sectionOrder = fullOrder.map(key => ({ id: `section-${key}`, key }));
+
+			for (const s of savedSections) {
+				if (sections[s.section]) {
+					sections[s.section].enabled = s.enabled;
+					sections[s.section].items = s.items || [];
+					sections[s.section].layout = s.layout || VALID_LAYOUTS[s.section]?.default || 'default';
+					sections[s.section].width = s.width || 'full';
+					sections[s.section].itemConfig = s.itemConfig || {};
+					sections[s.section].categoryOrder = s.categoryOrder;
+				}
+			}
+		} else {
+			// Default order
+			sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
+		}
+	}
+
+	async function loadSectionItems() {
+		for (const key of DEFAULT_SECTION_ORDER) {
+			const def = SECTION_DEFS[key];
+			try {
+				const filter = key === 'testimonials' ? 'status = "approved"' : '';
+				const records = await collection(def.collection).getList(1, 100, {
+					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
+					filter,
+					expand: 'admin_tags'
+				});
+
+				sectionItems[key] = records.items.map((item) => ({
+					id: item.id,
+					label: getItemLabel(key, item),
+					visibility: (item as Record<string, unknown>).visibility as string || 'public',
+					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					data: item as Record<string, unknown>,
+					expand: (item as any).expand || {}
+				}));
+			} catch (err) {
+				console.error(`Failed to load ${key} items:`, err);
+				sectionItems[key] = [];
+			}
+		}
+		// Trigger reactivity
+		sectionItems = { ...sectionItems };
+	}
+
+	function getItemLabel(sectionKey: string, item: Record<string, unknown>): string {
+		switch (sectionKey) {
+			case 'experience': return `${item.title} at ${item.company}`;
+			case 'projects': return item.title as string;
+			case 'education': return `${item.degree || 'Degree'} - ${item.institution}`;
+			case 'certifications': return `${item.name} (${item.issuer || 'Unknown issuer'})`;
+			case 'awards': return `${item.title}${item.issuer ? ` (${item.issuer})` : ''}`;
+			case 'skills': return `${item.name}${item.category ? ` (${item.category})` : ''}`;
+			case 'posts': return item.title as string;
+			case 'talks': return `${item.title}${item.event ? ` @ ${item.event}` : ''}`;
+			case 'contacts': return `${item.label || item.type} - ${item.value}`;
+			case 'testimonials': return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
+			case 'custom': return item.title as string;
+			default: return item.title as string || item.name as string || item.id as string;
+		}
+	}
+
+	// --- Autosave Logic ---
+	let saveTimeout: ReturnType<typeof setTimeout>;
+	let isSaving = $state(false);
+
+	function triggerAutosave() {
+		if (settingsLoading) return;
+		clearTimeout(saveTimeout);
+		saveTimeout = setTimeout(saveSettingsToBackend, 1000);
+	}
+
+	async function saveSettingsToBackend() {
+		if (isSaving) return;
+		isSaving = true;
+
+		// Build sections data
+		const sectionsData: ViewSection[] = sectionOrder
+			.map(({ key }) => ({
+				section: key,
+				enabled: sections[key]?.enabled || false,
+				items: sections[key]?.items || [],
+				layout: sections[key]?.layout || 'default',
+				width: sections[key]?.width || 'full',
+				itemConfig: sections[key]?.itemConfig,
+				categoryOrder: sections[key]?.categoryOrder
+			}));
+
+		// Build nav data
+		const navData = {
+			enabled: navEnabled,
+			home_label: navHomeLabel,
+			items: navItems.map(item => ({
+				view_id: item.view_id,
+				label: item.label,
+				visible: item.visible
+			}))
+		};
+
+		const data = {
+			homepage_enabled: homepageEnabled,
+			landing_page_message: landingPageMessage,
+			hide_login_button: hideLoginButton,
+			homepage_sections: sectionsData,
+			site_nav: navData
+		};
+
+		try {
+			await pb.send('/api/site-settings', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify(payload)
+				body: data
 			});
-
-			const result = await response.json();
-			console.log('[SAVE] Response:', JSON.stringify(result, null, 2));
-
-			if (!response.ok) {
-				toasts.add('error', result.error || 'Failed to save settings');
-				return;
-			}
-
-			homepageEnabled = result.homepage_enabled !== false;
-			landingPageMessage = result.landing_page_message || '';
-			hideLoginButton = result.hide_login_button === true;
-			if (result.site_nav) {
-				console.log('[SAVE] Response site_nav.enabled:', result.site_nav.enabled, typeof result.site_nav.enabled);
-				navEnabled = result.site_nav.enabled === true;
-				navHomeLabel = result.site_nav.home_label || 'Home';
-				navItems = result.site_nav.items || [];
-				console.log('[SAVE] After update, navEnabled:', navEnabled);
-			}
-			if (result.homepage_sections && Array.isArray(result.homepage_sections)) {
-				homepageSections = result.homepage_sections;
-			}
-			toasts.add('success', 'Homepage settings saved');
+			// Success - quiet save
 		} catch (err) {
 			console.error('Failed to save settings:', err);
-			toasts.add('error', 'Failed to save homepage settings');
+			toasts.add('error', 'Failed to save settings');
 		} finally {
-			settingsSaving = false;
+			isSaving = false;
 		}
 	}
 
+	// Watchers for autosave
+	run(() => {
+		// Dependencies that trigger autosave
+		const _ = {
+			homepageEnabled,
+			landingPageMessage,
+			hideLoginButton,
+			navEnabled,
+			navHomeLabel,
+			navItems, 
+			sections, 
+			sectionOrder
+		};
+		// Trigger if loaded
+		if (!settingsLoading) {
+			triggerAutosave();
+		}
+	});
+
+	// --- Site Nav Dnd ---
+	function handleNavDndConsider(e: CustomEvent<DndEvent<NavItem>>) {
+		navItems = e.detail.items;
+	}
+	function handleNavDndFinalize(e: CustomEvent<DndEvent<NavItem>>) {
+		navItems = e.detail.items;
+		triggerAutosave();
+	}
+
+	// --- Profile Logic ---
 	async function loadProfile() {
 		try {
+			profileLoading = true;
 			const records = await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
-				profile = records.items[0];
-				name = (profile.name as string) || '';
-				headline = (profile.headline as string) || '';
-				location = (profile.location as string) || '';
-				summary = (profile.summary as string) || '';
-				contactEmail = (profile.contact_email as string) || '';
-				contactLinks = (profile.contact_links as typeof contactLinks) || [];
-				visibility = (profile.visibility as string) || 'public';
-				ctaText = (profile.cta_text as string) || '';
-				ctaUrl = (profile.cta_url as string) || '';
-				ctaButtonText = (profile.cta_button_text as string) || '';
-
-				if (profile.avatar) {
-					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
-				}
-				if (profile.hero_image) {
-					heroImageUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.hero_image}`;
-				}
+				const p = records.items[0];
+				profile = p;
+				name = p.name;
+				headline = p.headline;
+				location = p.location;
+				summary = p.summary;
+				contactEmail = p.contact_email;
+				contactLinks = p.contact_links || [];
+				ctaText = p.cta_text;
+				ctaUrl = p.cta_url;
+				ctaButtonText = p.cta_button_text;
+				
+				if (p.avatar) avatarUrl = pb.files.getUrl(p, p.avatar);
+				if (p.hero_image) heroImageUrl = pb.files.getUrl(p, p.hero_image);
 			}
-
-			// Check for views with overrides
-			const views = await collection('views').getList(1, 100);
-			viewsOverridingHeadline = (views.items as unknown as View[]).filter(v => v.hero_headline);
-			viewsOverridingSummary = (views.items as unknown as View[]).filter(v => v.hero_summary);
 		} catch (err) {
 			console.error('Failed to load profile:', err);
 		} finally {
@@ -286,131 +382,78 @@
 		}
 	}
 
-	async function handleSubmit() {
-		saving = true;
+	async function saveProfile() {
+		profileSaving = true;
 		try {
-			const formData = new FormData();
-			formData.append('name', name);
-			formData.append('headline', headline);
-			formData.append('location', location);
-			formData.append('summary', summary);
-			formData.append('contact_email', contactEmail);
-			formData.append('contact_links', JSON.stringify(contactLinks));
-			formData.append('visibility', visibility);
-			formData.append('cta_text', ctaText);
-			formData.append('cta_url', ctaUrl);
-			formData.append('cta_button_text', ctaButtonText);
+			const data = {
+				name, headline, location, summary,
+				contact_email: contactEmail,
+				contact_links: contactLinks,
+				cta_text: ctaText,
+				cta_url: ctaUrl,
+				cta_button_text: ctaButtonText
+			};
 
+			let record: any;
+			if (profile) {
+				record = await collection('profile').update(profile.id as string, data);
+			} else {
+				record = await collection('profile').create({ ...data, visibility: 'public' });
+			}
+			
+			// Handle images
 			if (avatarFile) {
+				const formData = new FormData();
 				formData.append('avatar', avatarFile);
+				record = await collection('profile').update(record.id, formData);
 			}
 			if (heroImageFile) {
+				const formData = new FormData();
 				formData.append('hero_image', heroImageFile);
+				record = await collection('profile').update(record.id, formData);
 			}
 
-			if (profile) {
-				await collection('profile').update(profile.id as string, formData);
-			} else {
-				await collection('profile').create(formData);
-			}
-
+			profile = record;
 			toasts.add('success', 'Profile saved successfully');
-
-			avatarFile = null;
-			heroImageFile = null;
-
-			const records = await collection('profile').getList(1, 1);
-			if (records.items.length > 0) {
-				profile = records.items[0];
-				if (profile.avatar) {
-					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}?${Date.now()}`;
-				}
-				if (profile.hero_image) {
-					heroImageUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.hero_image}?${Date.now()}`;
-				}
-			}
 		} catch (err) {
 			console.error('Failed to save profile:', err);
 			toasts.add('error', 'Failed to save profile');
 		} finally {
-			saving = false;
+			profileSaving = false;
 		}
 	}
 
-	function addContactLink() {
-		contactLinks = [...contactLinks, { type: 'website', url: '', label: '' }];
-	}
-
-	function removeContactLink(index: number) {
-		contactLinks = contactLinks.filter((_, i) => i !== index);
-	}
-
-	let avatarBlobUrl: string | null = null;
-	let heroBlobUrl: string | null = null;
-
-	function handleAvatarChange(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (input.files?.[0]) {
-			if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
+    // Image handlers
+	function handleAvatarChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files?.length) {
 			avatarFile = input.files[0];
-			avatarBlobUrl = URL.createObjectURL(avatarFile);
-			avatarUrl = avatarBlobUrl;
+			avatarUrl = URL.createObjectURL(avatarFile);
 		}
 	}
 
-	function handleHeroImageChange(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (input.files?.[0]) {
-			if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+	function removeAvatar() {
+		avatarFile = null;
+		avatarUrl = null;
+        if (profile?.avatar) {
+             collection('profile').update(profile.id as string, { avatar: null });
+        }
+	}
+
+	function handleHeroImageChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files?.length) {
 			heroImageFile = input.files[0];
-			heroBlobUrl = URL.createObjectURL(heroImageFile);
-			heroImageUrl = heroBlobUrl;
+			heroImageUrl = URL.createObjectURL(heroImageFile);
 		}
 	}
 
-	onDestroy(() => {
-		if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
-		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
-	});
-
-	async function removeAvatar() {
-		if (!profile) return;
-		const confirmed = await confirm({
-			title: 'Remove Avatar',
-			message: 'Are you sure you want to remove your avatar image?',
-			confirmText: 'Remove',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			await collection('profile').update(profile.id as string, { avatar: null });
-			avatarUrl = null;
-			avatarFile = null;
-			toasts.add('success', 'Avatar removed');
-		} catch (err) {
-			console.error('Failed to remove avatar:', err);
-			toasts.add('error', 'Failed to remove avatar');
-		}
-	}
-
-	async function removeHeroImage() {
-		if (!profile) return;
-		const confirmed = await confirm({
-			title: 'Remove Hero Image',
-			message: 'Are you sure you want to remove your hero image?',
-			confirmText: 'Remove',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			await collection('profile').update(profile.id as string, { hero_image: null });
-			heroImageUrl = null;
-			heroImageFile = null;
-			toasts.add('success', 'Hero image removed');
-		} catch (err) {
-			console.error('Failed to remove hero image:', err);
-			toasts.add('error', 'Failed to remove hero image');
-		}
+	function removeHeroImage() {
+		heroImageFile = null;
+		heroImageUrl = null;
+        if (profile?.hero_image) {
+             collection('profile').update(profile.id as string, { hero_image: null });
+        }
 	}
 </script>
 
@@ -418,22 +461,30 @@
 	<title>Homepage | Facet</title>
 </svelte:head>
 
-<div class="max-w-3xl mx-auto">
+<div class="max-w-4xl mx-auto pb-20">
 	<PageHelp pageKey="homepage">
 		<p><strong>Homepage</strong> controls what visitors see at your root URL.</p>
 		<p>Enable or disable public access, customize the landing page message for when your site is hidden, and edit your core profile information that appears across all facets.</p>
-		<p><strong>Site Navigation</strong> adds a navigation bar letting visitors browse between your homepage and public facets. Great when you have multiple facets for different audiences (e.g., "Portfolio", "Speaking", "Consulting").</p>
-		<p><strong>Tip:</strong> Hide your homepage while building your profile, then enable it when you're ready to go live.</p>
+		<p><strong>Site Navigation</strong> adds a navigation bar letting visitors browse between your homepage and public facets. Great when you have multiple facets for different audiences.</p>
 	</PageHelp>
 
-	<div class="mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Homepage</h1>
-		<p class="text-gray-600 dark:text-gray-400 mt-1">
-			Manage your public profile and control what visitors see at <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-sm">/</code>
-		</p>
+	<div class="mb-6 flex justify-between items-center">
+		<div>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Homepage</h1>
+			<p class="text-gray-600 dark:text-gray-400 mt-1">
+				Manage your public profile and control what visitors see at <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-sm">/</code>
+			</p>
+		</div>
+		<div class="text-sm text-gray-500">
+			{#if isSaving}
+				Saving...
+			{:else}
+				All changes autosaved
+			{/if}
+		</div>
 	</div>
 
-	<!-- Homepage Visibility Section -->
+	<!-- Homepage Visibility -->
 	<div class="card p-6 mb-6">
 		<div class="flex items-start justify-between gap-4 mb-4">
 			<div class="flex-1">
@@ -443,10 +494,8 @@
 				<p class="text-sm text-gray-600 dark:text-gray-400">
 					{#if homepageEnabled}
 						Your homepage is <span class="font-medium text-green-600 dark:text-green-400">visible</span>.
-						Visitors can see your public profile and content.
 					{:else}
 						Your homepage is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span>.
-						Visitors see a custom message instead.
 					{/if}
 				</p>
 			</div>
@@ -455,7 +504,7 @@
 					type="checkbox"
 					class="sr-only peer"
 					bind:checked={homepageEnabled}
-					disabled={settingsSaving || settingsLoading}
+					disabled={settingsLoading}
 				/>
 				<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 			</label>
@@ -469,76 +518,36 @@
 					class="input min-h-[80px] w-full"
 					bind:value={landingPageMessage}
 					placeholder="This profile is being set up."
-					disabled={settingsSaving}
 					maxlength="2000"
 				></textarea>
-				<p class="text-xs text-gray-500 mt-1">{landingPageMessage.length}/2000 characters</p>
 			</div>
 		{/if}
 
-		<!-- Hide Login Button Setting -->
 		<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-			<div class="flex items-start justify-between gap-4">
-				<div class="flex-1">
-					<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">
-						Hide Login Button
-					</h3>
-					<p class="text-sm text-gray-600 dark:text-gray-400">
-						{#if hideLoginButton}
-							The login button is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span> from public visitors.
-							You can still access <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">/admin/login</code> directly.
-						{:else}
-							The login button is <span class="font-medium text-green-600 dark:text-green-400">visible</span> on your homepage.
-						{/if}
-					</p>
-				</div>
-				<label class="relative inline-flex items-center cursor-pointer">
-					<input
-						type="checkbox"
-						class="sr-only peer"
-						bind:checked={hideLoginButton}
-						disabled={settingsSaving || settingsLoading}
-					/>
-					<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
-				</label>
-			</div>
-		</div>
-
-		<div class="flex justify-end mt-4">
-			<button
-				type="button"
-				class="btn btn-primary btn-sm"
-				onclick={saveSettings}
-				disabled={settingsSaving || settingsLoading}
-			>
-				{settingsSaving ? 'Saving...' : 'Save Settings'}
-			</button>
+			<label class="flex items-center gap-3 cursor-pointer">
+				<input type="checkbox" bind:checked={hideLoginButton} class="checkbox" />
+				<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Hide Login Button from public view</span>
+			</label>
 		</div>
 	</div>
 
+	<!-- Site Navigation -->
 	<div class="card p-6 mb-6">
 		<div class="flex items-start justify-between gap-4 mb-4">
 			<div class="flex-1">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-					Site Navigation
+					Navigation
 				</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
-					{#if navEnabled}
-						Navigation bar is <span class="font-medium text-green-600 dark:text-green-400">enabled</span>.
-						Visitors can navigate between your homepage and public facets.
-					{:else}
-						Navigation bar is <span class="font-medium text-gray-500">disabled</span>.
-						Enable it to let visitors navigate between your facets.
-					{/if}
+					Show a navigation bar to help visitors browse your public facets.
 				</p>
 			</div>
 			<label class="relative inline-flex items-center cursor-pointer">
 				<input
 					type="checkbox"
 					class="sr-only peer"
-					checked={navEnabled}
-					onchange={handleNavToggle}
-					disabled={settingsSaving || settingsLoading}
+					bind:checked={navEnabled}
+					disabled={settingsLoading}
 				/>
 				<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 			</label>
@@ -546,83 +555,86 @@
 
 		{#if navEnabled}
 			<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
-				<div>
-					<label for="nav-home-label" class="label">Home Button Label</label>
-					<input
-						type="text"
-						id="nav-home-label"
-						bind:value={navHomeLabel}
-						placeholder="Home"
-						class="input max-w-xs"
-						disabled={settingsSaving}
-						maxlength="50"
-					/>
-				</div>
-
-				{#if publicViews.length > 0}
-					<div>
-						<span class="label">Facets in Navigation</span>
-						<p class="text-xs text-gray-500 mb-2">Drag to reorder. Only public facets appear here.</p>
-						<div class="space-y-2">
-							{#each navItems as item, i (item.view_id)}
-								<div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-									<div class="flex flex-col gap-0.5">
-										<button
-											type="button"
-											class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
-											onclick={() => moveNavItem(i, 'up')}
-											disabled={i === 0 || settingsSaving}
-											title="Move up"
-										>
-											▲
-										</button>
-										<button
-											type="button"
-											class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
-											onclick={() => moveNavItem(i, 'down')}
-											disabled={i === navItems.length - 1 || settingsSaving}
-											title="Move down"
-										>
-											▼
-										</button>
-									</div>
-									<div class="flex-1 min-w-0">
-										<div class="text-sm font-medium text-gray-900 dark:text-white truncate">
-											{getViewName(item.view_id)}
-										</div>
-									</div>
-									<input
-										type="text"
-										bind:value={item.label}
-										placeholder={getViewName(item.view_id)}
-										class="input input-sm w-32"
-										disabled={settingsSaving}
-										maxlength="50"
-										title="Custom label (leave empty to use facet name)"
-									/>
-									<label class="relative inline-flex items-center cursor-pointer">
-										<input
-											type="checkbox"
-											class="sr-only peer"
-											bind:checked={item.visible}
-											disabled={settingsSaving}
-										/>
-										<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-									</label>
-								</div>
-							{/each}
+				
+				<!-- Help Panel -->
+				<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg p-4">
+					<h3 class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-2">How do you want to use Facet?</h3>
+					<div class="grid gap-4 md:grid-cols-3 text-sm">
+						<div>
+							<strong class="block text-blue-800 dark:text-blue-200 mb-1">🔗 Connected Site</strong>
+							<p class="text-blue-700 dark:text-blue-300">Turn navigation ON. Your homepage becomes a hub linking to your public facets.</p>
+						</div>
+						<div>
+							<strong class="block text-blue-800 dark:text-blue-200 mb-1">📄 Standalone Pages</strong>
+							<p class="text-blue-700 dark:text-blue-300">Turn navigation OFF. Share specific facets via links or tokens.</p>
+						</div>
+						<div>
+							<strong class="block text-blue-800 dark:text-blue-200 mb-1">🔀 Hybrid</strong>
+							<p class="text-blue-700 dark:text-blue-300">Enable nav for public facets, keep others private/unlisted.</p>
 						</div>
 					</div>
-				{:else}
-					<p class="text-sm text-gray-500 dark:text-gray-400 italic">
-						No public facets available. Create a public facet in the Views section to add it to navigation.
-					</p>
-				{/if}
+				</div>
+
+				<div class="grid gap-4">
+					<div>
+						<label for="nav-home-label" class="label">Home Button Label</label>
+						<input
+							type="text"
+							id="nav-home-label"
+							bind:value={navHomeLabel}
+							class="input max-w-xs"
+							maxlength="50"
+						/>
+					</div>
+
+					<div>
+						<div class="label mb-2">Navigation Items</div>
+						{#if navItems.length > 0}
+							<div 
+								use:dndzone={{items: navItems, flipDurationMs: 200, dropTargetStyle: {}}} 
+								onconsider={handleNavDndConsider} 
+								onfinalize={handleNavDndFinalize}
+								class="space-y-2"
+							>
+								{#each navItems as item (item.id)}
+									<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 group">
+										<div class="text-gray-400 cursor-move" aria-label="Drag to reorder">
+											<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+										</div>
+										<div class="flex-1 min-w-0">
+											<div class="text-sm font-medium text-gray-900 dark:text-white truncate">
+												{getViewName(item.view_id)}
+											</div>
+										</div>
+										<input
+											type="text"
+											bind:value={item.label}
+											placeholder={getViewName(item.view_id)}
+											class="input input-sm w-32"
+											maxlength="50"
+											title="Custom label"
+										/>
+										<label class="relative inline-flex items-center cursor-pointer">
+											<input
+												type="checkbox"
+												class="sr-only peer"
+												bind:checked={item.visible}
+											/>
+											<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+										</label>
+									</div>
+								{/each}
+							</div>
+						{:else}
+							<p class="text-sm text-gray-500 italic">No public facets available.</p>
+						{/if}
+					</div>
+				</div>
 			</div>
 		{/if}
 	</div>
 
-	<!-- Homepage Sections Editor -->
+	<!-- Homepage Sections -->
 	<div class="card p-6 mb-6">
 		<div class="mb-4">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -633,356 +645,119 @@
 			</p>
 		</div>
 
-		<div class="space-y-2">
-			{#each homepageSections as section, i (section.section)}
-				<div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-					<div class="flex flex-col gap-0.5">
-						<button
-							type="button"
-							class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
-							onclick={() => moveSectionItem(i, 'up')}
-							disabled={i === 0 || settingsSaving}
-							title="Move up"
-						>
-							▲
-						</button>
-						<button
-							type="button"
-							class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
-							onclick={() => moveSectionItem(i, 'down')}
-							disabled={i === homepageSections.length - 1 || settingsSaving}
-							title="Move down"
-						>
-							▼
-						</button>
-					</div>
-					<div class="flex-1 min-w-0">
-						<div class="text-sm font-medium text-gray-900 dark:text-white">
-							{SECTION_LABELS[section.section] || section.section}
-						</div>
-					</div>
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							class="sr-only peer"
-							bind:checked={section.enabled}
-							disabled={settingsSaving}
-						/>
-						<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-					</label>
-				</div>
-			{/each}
-		</div>
-
-		{#if homepageSections.length === 0}
-			<p class="text-sm text-gray-500 dark:text-gray-400 italic">
-				Loading sections...
-			</p>
-		{/if}
+		<ViewSectionManager
+			bind:sections
+			bind:sectionOrder
+			bind:sectionItems
+			viewId="homepage"
+			onOpenOverrideEditor={() => {}}
+		/>
 	</div>
 
-	<!-- Profile Section -->
-	{#if profileLoading}
-		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading profile...</div>
+	<!-- Profile Edit Section (Manual Save) -->
+	<div class="card p-6">
+		<div class="flex items-center justify-between mb-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Profile Information</h2>
+			<button 
+				type="button" 
+				class="btn btn-primary"
+				onclick={saveProfile}
+				disabled={profileSaving}
+			>
+				{profileSaving ? 'Saving...' : 'Save Profile'}
+			</button>
 		</div>
-	{:else}
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Images</h2>
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-					<div>
-						<span class="label">Avatar</span>
-						<div class="flex items-start gap-4">
-							<div class="relative">
-								{#if avatarUrl}
-									<img
-										src={avatarUrl}
-										alt="Avatar"
-										class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
-									/>
-								<button
-									type="button"
-									onclick={removeAvatar}
-									class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-									title="Remove avatar"
-								>
-									{@html icon('x')}
-								</button>
+		<div class="space-y-6">
+			<!-- Images -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+				<div>
+					<span class="label">Avatar</span>
+					<div class="flex items-start gap-4">
+						<div class="relative">
+							{#if avatarUrl}
+								<img src={avatarUrl} alt="Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700" />
+								<button type="button" onclick={removeAvatar} class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">{@html icon('x')}</button>
 							{:else}
-								<div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
-									{@html icon('image')}
-								</div>
-								{/if}
-							</div>
-							<div class="flex-1">
-								<input
-									type="file"
-									id="avatar"
-									accept="image/jpeg,image/png,image/webp,image/svg+xml"
-									onchange={handleAvatarChange}
-									class="hidden"
-								/>
-								<label for="avatar" class="btn btn-secondary btn-sm cursor-pointer">
-									{avatarUrl ? 'Change' : 'Upload'} Avatar
-								</label>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-									JPG, PNG, WebP or SVG. Max 5MB.
-								</p>
-							</div>
+								<div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">{@html icon('image')}</div>
+							{/if}
+						</div>
+						<div class="flex-1">
+							<input type="file" id="avatar" accept="image/*" onchange={handleAvatarChange} class="hidden" />
+							<label for="avatar" class="btn btn-secondary btn-sm cursor-pointer">{avatarUrl ? 'Change' : 'Upload'} Avatar</label>
 						</div>
 					</div>
-
-					<div>
-						<span class="label">Hero Image</span>
-						<div class="space-y-3">
-							{#if heroImageUrl}
-								<div class="relative">
-									<img
-										src={heroImageUrl}
-										alt="Hero"
-										class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-									/>
-								<button
-									type="button"
-									onclick={removeHeroImage}
-									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-									title="Remove hero image"
-								>
-									{@html icon('x')}
-								</button>
+				</div>
+				<div>
+					<span class="label">Hero Image</span>
+					<div class="space-y-3">
+						{#if heroImageUrl}
+							<div class="relative">
+								<img src={heroImageUrl} alt="Hero" class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+								<button type="button" onclick={removeHeroImage} class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600">{@html icon('x')}</button>
 							</div>
 						{:else}
-							<div class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
-								{@html icon('image')}
-							</div>
-							{/if}
-							<div>
-								<input
-									type="file"
-									id="hero_image"
-									accept="image/jpeg,image/png,image/webp,image/gif"
-									onchange={handleHeroImageChange}
-									class="hidden"
-								/>
-								<label for="hero_image" class="btn btn-secondary btn-sm cursor-pointer">
-									{heroImageUrl ? 'Change' : 'Upload'} Hero Image
-								</label>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-									JPG, PNG, WebP or GIF. Max 10MB.
-								</p>
-							</div>
+							<div class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">{@html icon('image')}</div>
+						{/if}
+						<div>
+							<input type="file" id="hero_image" accept="image/*" onchange={handleHeroImageChange} class="hidden" />
+							<label for="hero_image" class="btn btn-secondary btn-sm cursor-pointer">{heroImageUrl ? 'Change' : 'Upload'} Hero Image</label>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
-
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 				<div>
-					<label for="name" class="label">Name *</label>
-					<input type="text" id="name" bind:value={name} class="input" required />
+					<label class="label" for="name">Display Name</label>
+					<input id="name" type="text" class="input" bind:value={name} />
 				</div>
-
 				<div>
-					<div class="flex items-center justify-between mb-2">
-						<label for="headline" class="label mb-0">Headline</label>
-						<AIContentHelper
-							fieldType="headline"
-							content={headline}
-							context={{ name, location }}
-							on:apply={(e) => (headline = e.detail.content)}
-						/>
-					</div>
-					<input
-						type="text"
-						id="headline"
-						bind:value={headline}
-						class="input mt-1"
-						placeholder="e.g., Senior Software Engineer at Company"
-					/>
-					{#if viewsOverridingHeadline.length > 0}
-						<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
-							<p class="text-sm text-amber-800 dark:text-amber-200">
-								<strong>Note:</strong> {viewsOverridingHeadline.length === 1 ? 'This view has' : 'These views have'} a custom headline that overrides this value:
-								{#each viewsOverridingHeadline as view, i}
-									<a href="/admin/views/{view.id}" class="underline hover:no-underline">{view.name}</a>{i < viewsOverridingHeadline.length - 1 ? ', ' : ''}
-								{/each}
-							</p>
-						</div>
-					{/if}
-				</div>
-
-				<div>
-					<label for="location" class="label">Location</label>
-					<input
-						type="text"
-						id="location"
-						bind:value={location}
-						class="input"
-						placeholder="e.g., San Francisco, CA"
-					/>
-				</div>
-
-				<div>
-					<div class="flex items-center justify-between mb-2">
-						<label for="summary" class="label mb-0">Summary</label>
-						<AIContentHelper
-							fieldType="summary"
-							content={summary}
-							context={{ name, headline, location }}
-							on:apply={(e) => (summary = e.detail.content)}
-						/>
-					</div>
-					<textarea
-						id="summary"
-						bind:value={summary}
-						class="input min-h-[150px] mt-1"
-						placeholder="Tell your story... (Markdown supported)"
-					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
-					{#if viewsOverridingSummary.length > 0}
-						<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
-							<p class="text-sm text-amber-800 dark:text-amber-200">
-								<strong>Note:</strong> {viewsOverridingSummary.length === 1 ? 'This view has' : 'These views have'} a custom summary that overrides this value:
-								{#each viewsOverridingSummary as view, i}
-									<a href="/admin/views/{view.id}" class="underline hover:no-underline">{view.name}</a>{i < viewsOverridingSummary.length - 1 ? ', ' : ''}
-								{/each}
-							</p>
-						</div>
-					{/if}
+					<label class="label" for="location">Location</label>
+					<input id="location" type="text" class="input" bind:value={location} />
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Contact Information</h2>
-
-				<div>
-					<label for="email" class="label">Contact Email</label>
-					<input type="email" id="email" bind:value={contactEmail} class="input" />
-				</div>
-
-				<div>
-					<div class="flex items-center justify-between mb-2">
-						<span class="label mb-0">Contact Links</span>
-						<button type="button" class="btn btn-sm btn-secondary" onclick={addContactLink}>
-							+ Add Link
-						</button>
-					</div>
-
-					{#if contactLinks.length === 0}
-						<p class="text-gray-500 dark:text-gray-400 text-sm">Add links to help people reach you.</p>
-					{:else}
-						<div class="space-y-3">
-							{#each contactLinks as link, i}
-								<div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-2">
-									<select bind:value={link.type} class="input w-full sm:w-32">
-										<option value="github">GitHub</option>
-										<option value="linkedin">LinkedIn</option>
-										<option value="twitter">Twitter</option>
-										<option value="email">Email</option>
-										<option value="website">Website</option>
-										<option value="other">Other</option>
-									</select>
-									<input
-										type="url"
-										bind:value={link.url}
-										class="input w-full sm:flex-1"
-										placeholder="https://..."
-									/>
-									<div class="flex gap-2">
-										<input
-											type="text"
-											bind:value={link.label}
-											class="input flex-1 sm:w-32"
-											placeholder="Label"
-										/>
-										<button
-											type="button"
-											class="btn btn-ghost text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-											onclick={() => removeContactLink(i)}
-											title="Remove link"
-										>
-											{@html icon('x')}
-										</button>
-									</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-				</div>
+			<div>
+				<label class="label" for="headline">Headline</label>
+				<input id="headline" type="text" class="input" bind:value={headline} />
+				<AIContentHelper 
+					content={headline} 
+					onapply={(c) => headline = c}
+					fieldType="headline" 
+					context={{ name, location }} 
+				/>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
-				<p class="text-sm text-gray-500 dark:text-gray-400">Add a prominent banner to your homepage hero section.</p>
+			<div>
+				<label class="label" for="summary">Summary</label>
+				<textarea id="summary" class="input min-h-[100px]" bind:value={summary}></textarea>
+				<AIContentHelper 
+					content={summary} 
+					onapply={(c) => summary = c}
+					fieldType="summary" 
+					context={{ name, headline, location }} 
+				/>
+			</div>
 
-				<div>
-					<label for="cta_text" class="label">Description</label>
-					<input
-						type="text"
-						id="cta_text"
-						bind:value={ctaText}
-						placeholder="Ready to work together?"
-						class="input"
-					/>
-					<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
-				</div>
-
+			<!-- CTA Section -->
+			<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+				<h3 class="text-md font-medium text-gray-900 dark:text-white mb-4">Call to Action</h3>
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="cta_button_text" class="label">Button Label</label>
-						<input
-							type="text"
-							id="cta_button_text"
-							bind:value={ctaButtonText}
-							placeholder="Get in touch"
-							class="input"
-						/>
+						<label class="label" for="cta_button_text">Button Text</label>
+						<input id="cta_button_text" type="text" class="input" bind:value={ctaButtonText} placeholder="Contact Me" />
 					</div>
-
 					<div>
-						<label for="cta_url" class="label">Button URL</label>
-						<input
-							type="url"
-							id="cta_url"
-							bind:value={ctaUrl}
-							placeholder="https://calendly.com/..."
-							class="input"
-						/>
+						<label class="label" for="cta_url">Button URL</label>
+						<input id="cta_url" type="text" class="input" bind:value={ctaUrl} placeholder="mailto:..." />
+					</div>
+					<div class="md:col-span-2">
+						<label class="label" for="cta_text">Description Text (Hidden if Navigation Enabled)</label>
+						<input id="cta_text" type="text" class="input" bind:value={ctaText} placeholder="Hiring? Let's talk." />
 					</div>
 				</div>
 			</div>
-
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Profile Visibility</h2>
-
-				<div>
-					<label for="visibility" class="label">Who can see your profile</label>
-					<select id="visibility" bind:value={visibility} class="input">
-						<option value="public">Public - Anyone can view</option>
-						<option value="unlisted">Unlisted - Only accessible via direct link or views</option>
-						<option value="private">Private - Only you can view</option>
-					</select>
-				</div>
-			</div>
-
-			<div class="flex justify-end gap-3">
-				<a href="/" target="_blank" class="btn btn-secondary">
-					View Homepage
-				</a>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
-					{#if saving}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-					{/if}
-					Save Profile
-				</button>
-			</div>
-		</form>
-	{/if}
+		</div>
+	</div>
 </div>

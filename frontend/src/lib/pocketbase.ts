@@ -247,6 +247,7 @@ export interface Custom {
 	is_draft: boolean;
 	sort_order: number;
 	media?: string[];
+	media_urls?: string[];
 }
 
 export type ContactMethodType =
@@ -276,16 +277,6 @@ export interface ContactMethod {
 	view_visibility?: Record<string, boolean>;
 	is_primary: boolean;
 	sort_order: number;
-}
-
-export interface Custom {
-	id: string;
-	title: string;
-	content?: string;
-	visibility: 'public' | 'unlisted' | 'private';
-	sort_order: number;
-	media?: string[];
-	media_urls?: string[];
 }
 
 export interface View {
@@ -427,6 +418,13 @@ export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string;
 			wall: 'Masonry Wall',
 			carousel: 'Carousel',
 			featured: 'Featured Highlight'
+		}
+	},
+	custom: {
+		layouts: ['default'],
+		default: 'default',
+		labels: {
+			default: 'Default'
 		}
 	}
 };

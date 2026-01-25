@@ -556,7 +556,7 @@ function openEditForm(post: Post) {
 							fieldType="summary"
 							content={excerpt}
 							context={{ title, tags: tags.join(', ') }}
-							on:apply={(e) => (excerpt = e.detail.content)}
+							onapply={(c) => (excerpt = c)}
 						/>
 					</div>
 					<textarea
@@ -575,7 +575,7 @@ function openEditForm(post: Post) {
 							fieldType="content"
 							content={content}
 							context={{ title, excerpt, tags: tags.join(', ') }}
-							on:apply={(e) => (content = e.detail.content)}
+							onapply={(c) => (content = c)}
 							size="sm"
 						/>
 					</div>

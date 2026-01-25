@@ -85,7 +85,8 @@
 		posts: { label: 'Posts', collection: 'posts' },
 		talks: { label: 'Talks', collection: 'talks' },
 		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
-		testimonials: { label: 'Testimonials', collection: 'testimonials' }
+		testimonials: { label: 'Testimonials', collection: 'testimonials' },
+		custom: { label: 'Custom Content', collection: 'custom' }
 	};
 
 	const flipDurationMs = 200;

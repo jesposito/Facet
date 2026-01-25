@@ -442,7 +442,7 @@ afterNavigate(() => {
 							fieldType="description"
 							content={description}
 							context={{ degree, field, institution }}
-							on:apply={(e) => (description = e.detail.content)}
+							onapply={(c) => (description = c)}
 						/>
 					</div>
 					<textarea

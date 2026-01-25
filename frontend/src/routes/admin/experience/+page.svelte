@@ -599,7 +599,7 @@
 							fieldType="description"
 							content={description}
 							context={{ role: title, company, location }}
-							on:apply={(e) => (description = e.detail.content)}
+							onapply={(c) => (description = c)}
 						/>
 					</div>
 					<textarea
@@ -618,7 +618,7 @@
 							fieldType="bullets"
 							content={bulletsText}
 							context={{ role: title, company, description }}
-							on:apply={(e) => (bulletsText = e.detail.content)}
+							onapply={(c) => (bulletsText = c)}
 						/>
 					</div>
 					<textarea

@@ -31,11 +31,12 @@
 		posts: { label: 'Posts', collection: 'posts' },
 		talks: { label: 'Talks', collection: 'talks' },
 		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
-		testimonials: { label: 'Testimonials', collection: 'testimonials' }
+		testimonials: { label: 'Testimonials', collection: 'testimonials' },
+		custom: { label: 'Custom Content', collection: 'custom' }
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'custom', 'contacts'];
 
 	let loading = $state(true);
 	let saving = $state(false);
@@ -654,6 +655,8 @@
 				return `${item.label || item.type} - ${item.value}`;
 			case 'testimonials':
 				return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
+			case 'custom':
+				return item.title as string;
 			default:
 				return item.title as string || item.name as string || item.id as string;
 		}

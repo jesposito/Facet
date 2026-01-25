@@ -7,16 +7,52 @@ import (
 	"strings"
 
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 func parseSiteNav(record *core.Record) SiteNavConfig {
-	raw := record.GetString("site_nav")
-	if raw == "" {
+	if record == nil {
 		return DefaultSiteNavConfig()
 	}
-	var config SiteNavConfig
-	if err := json.Unmarshal([]byte(raw), &config); err != nil {
+
+	raw := record.Get("site_nav")
+	if raw == nil {
 		return DefaultSiteNavConfig()
+	}
+
+	var config SiteNavConfig
+	switch v := raw.(type) {
+	case map[string]any:
+		payload, err := json.Marshal(v)
+		if err != nil || len(payload) == 0 || string(payload) == "null" {
+			return DefaultSiteNavConfig()
+		}
+		if err := json.Unmarshal(payload, &config); err != nil {
+			return DefaultSiteNavConfig()
+		}
+	case types.JSONRaw:
+		if len(v) == 0 || string(v) == "null" {
+			return DefaultSiteNavConfig()
+		}
+		if err := json.Unmarshal(v, &config); err != nil {
+			return DefaultSiteNavConfig()
+		}
+	case string:
+		if v == "" || v == "null" {
+			return DefaultSiteNavConfig()
+		}
+		if err := json.Unmarshal([]byte(v), &config); err != nil {
+			return DefaultSiteNavConfig()
+		}
+	default:
+		return DefaultSiteNavConfig()
+	}
+
+	if config.HomeLabel == "" {
+		config.HomeLabel = "Home"
+	}
+	if config.Items == nil {
+		config.Items = []SiteNavItem{}
 	}
 	return config
 }
@@ -50,7 +86,7 @@ func sanitizeSiteNavConfig(input map[string]any) map[string]any {
 		result["home_label"] = "Home"
 	}
 
-	var sanitizedItems []map[string]any
+	sanitizedItems := []map[string]any{}
 	if items, ok := input["items"].([]any); ok {
 		seen := make(map[string]bool)
 		for i, raw := range items {
@@ -130,11 +166,13 @@ func DefaultSiteNavConfig() SiteNavConfig {
 
 // HomepageSectionConfig represents a single section in the homepage configuration.
 type HomepageSectionConfig struct {
-	Section string   `json:"section"`
-	Enabled bool     `json:"enabled"`
-	Items   []string `json:"items,omitempty"`
-	Layout  string   `json:"layout,omitempty"`
-	Width   string   `json:"width,omitempty"`
+	Section       string                            `json:"section"`
+	Enabled       bool                              `json:"enabled"`
+	Items         []string                          `json:"items,omitempty"`
+	Layout        string                            `json:"layout,omitempty"`
+	Width         string                            `json:"width,omitempty"`
+	ItemConfig    map[string]map[string]interface{} `json:"itemConfig,omitempty"`
+	CategoryOrder []string                          `json:"categoryOrder,omitempty"`
 }
 
 // SiteSettings holds public site configuration flags.
@@ -255,14 +293,9 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 					"items_count", len(sanitized["items"].([]map[string]any)),
 				)
 			}
-			navJSON, err := json.Marshal(sanitized)
-			if err == nil {
-				settings.Record.Set("site_nav", string(navJSON))
-				if logger != nil {
-					logger.Info("[SETTINGS] Set site_nav field", "json_length", len(navJSON))
-				}
-			} else if logger != nil {
-				logger.Warn("failed to marshal site_nav, skipping update", "error", err)
+			settings.Record.Set("site_nav", sanitized)
+			if logger != nil {
+				logger.Info("[SETTINGS] Set site_nav field", "items_count", len(sanitized["items"].([]map[string]any)))
 			}
 		} else {
 			if logger != nil {

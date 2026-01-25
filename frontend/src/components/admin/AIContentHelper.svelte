@@ -12,7 +12,6 @@
 	 * - Replace or preview results
 	 */
 
-	import { createEventDispatcher } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -23,6 +22,7 @@
 		context?: Record<string, string>;
 		disabled?: boolean;
 		size?: 'sm' | 'md';
+		onapply?: (content: string) => void;
 	}
 
 	let {
@@ -30,12 +30,9 @@
 		fieldType = 'description',
 		context = {},
 		disabled = false,
-		size = 'md'
+		size = 'md',
+		onapply
 	}: Props = $props();
-
-	const dispatch = createEventDispatcher<{
-		apply: { content: string };
-	}>();
 
 	type Mode = 'rewrite' | 'critique';
 	type Tone = 'executive' | 'professional' | 'technical' | 'conversational' | 'creative';
@@ -185,7 +182,7 @@
 	}
 
 	function applyPreview() {
-		dispatch('apply', { content: previewContent });
+		onapply?.(previewContent);
 		showPreview = false;
 		previewContent = '';
 		toasts.add('success', 'Changes applied');
