@@ -115,6 +115,18 @@
 		return 'full';
 	}
 
+	function getCategoryOrder(sectionKey: string): string[] | undefined {
+		// First check view category orders (default view), then homepage settings (legacy)
+		if (data.sectionCategoryOrders?.[sectionKey]) {
+			return data.sectionCategoryOrders[sectionKey];
+		}
+		// For skills, check the top-level skillsCategoryOrder (legacy homepage)
+		if (sectionKey === 'skills' && data.skillsCategoryOrder?.length) {
+			return data.skillsCategoryOrder;
+		}
+		return undefined;
+	}
+
 	function getWidthClass(width: string): string {
 		switch (width) {
 			case 'half': return 'section-half';
@@ -463,7 +475,7 @@
 				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
 					<AwardsSection items={data.awards} />
 				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} />
+					<SkillsSection items={data.skills} categoryOrder={getCategoryOrder('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
 						<h2 class="section-title mb-0">Posts</h2>

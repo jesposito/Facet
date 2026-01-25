@@ -545,6 +545,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// If no items selected (len(items) == 0), section remains empty - nothing shown
 			}
 
+			// Fallback to global category order from site settings if not set per-section
+			if _, hasSkillsOrder := sectionCategoryOrders["skills"]; !hasSkillsOrder {
+				if siteSettings, err := services.LoadSiteSettings(app); err == nil && siteSettings != nil {
+					if len(siteSettings.SkillsCategoryOrder) > 0 {
+						sectionCategoryOrders["skills"] = siteSettings.SkillsCategoryOrder
+					}
+				}
+			}
+
 			response["sections"] = sectionData
 			response["section_order"] = sectionOrder
 			response["section_layouts"] = sectionLayouts
@@ -1053,6 +1062,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["homepage_custom_content"] = settings.HomepageCustomContent
 				response["homepage_section_order"] = settings.HomepageSectionOrder
 				response["homepage_sections"] = settings.HomepageSections
+				response["skills_category_order"] = settings.SkillsCategoryOrder
 			}
 
 			return e.JSON(http.StatusOK, response)

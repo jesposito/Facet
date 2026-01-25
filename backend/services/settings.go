@@ -45,6 +45,7 @@ type SiteSettings struct {
 	HomepageSections      map[string]HomepageSectionConfig
 	SiteNavEnabled        bool
 	SiteNavItems          []SiteNavItem
+	SkillsCategoryOrder   []string
 	Record                *core.Record
 }
 
@@ -109,6 +110,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		_ = json.Unmarshal([]byte(rawJSON), &siteNavItems)
 	}
 
+	// Parse skills category order JSON
+	var skillsCategoryOrder []string
+	if rawJSON := record.GetString("skills_category_order"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &skillsCategoryOrder)
+	}
+
 	return &SiteSettings{
 		HomepageEnabled:       record.GetBool("homepage_enabled"),
 		LandingPageMessage:    record.GetString("landing_page_message"),
@@ -121,6 +128,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HomepageSections:      homepageSections,
 		SiteNavEnabled:        record.GetBool("site_nav_enabled"),
 		SiteNavItems:          siteNavItems,
+		SkillsCategoryOrder:   skillsCategoryOrder,
 		Record:                record,
 	}, nil
 }
@@ -203,6 +211,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("site_nav_items", navItems)
 		} else if logger != nil {
 			logger.Warn("site_nav_items field missing on site_settings, skipping update")
+		}
+	}
+	if skillsCatOrder, ok := updates["skills_category_order"]; ok {
+		if settings.Record.Collection().Fields.GetByName("skills_category_order") != nil {
+			settings.Record.Set("skills_category_order", skillsCatOrder)
+		} else if logger != nil {
+			logger.Warn("skills_category_order field missing on site_settings, skipping update")
 		}
 	}
 
