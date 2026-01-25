@@ -8,6 +8,7 @@
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
 
 	// Standard sections that can be ordered
 	const STANDARD_SECTIONS = [
@@ -30,19 +31,13 @@
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
 
-	// Section ordering
-	let sectionOrder: string[] = $state([]);
-	let sectionOrderSaving = $state(false);
+	// Section ordering - array of {id, key} objects for dnd compatibility
+	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
+	let enabledCustomContent: Set<string> = $state(new Set());
 
 	// Custom content for homepage
-	interface HomepageCustomContentItem {
-		id: string;
-		enabled: boolean;
-	}
 	let customContentItems: CustomContent[] = $state([]);
-	let homepageCustomContent: HomepageCustomContentItem[] = $state([]);
 	let customContentLoading = $state(true);
-	let customContentSaving = $state(false);
 
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
@@ -83,8 +78,21 @@
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
-				homepageCustomContent = data.homepage_custom_content || [];
-				sectionOrder = data.homepage_section_order || [];
+
+				// Parse section order into dnd format
+				const rawOrder: string[] = data.homepage_section_order || [];
+				if (rawOrder.length > 0) {
+					sectionOrder = rawOrder.map((key, i) => ({ id: `section-${i}`, key }));
+				} else {
+					// Default order: standard sections
+					sectionOrder = STANDARD_SECTIONS.map((s, i) => ({ id: `section-${i}`, key: s.key }));
+				}
+
+				// Parse enabled custom content
+				const customContentConfig: Array<{ id: string; enabled: boolean }> = data.homepage_custom_content || [];
+				enabledCustomContent = new Set(
+					customContentConfig.filter(c => c.enabled).map(c => c.id)
+				);
 			}
 		} catch (err) {
 			console.error('Failed to load settings:', err);
@@ -104,195 +112,6 @@
 			console.error('Failed to load custom content:', err);
 		} finally {
 			customContentLoading = false;
-		}
-	}
-
-	// Get ordered custom content items based on settings
-	let orderedCustomContent = $derived(() => {
-		// Start with items in settings order
-		const ordered: Array<CustomContent & { enabled: boolean }> = [];
-		const usedIds = new Set<string>();
-
-		for (const setting of homepageCustomContent) {
-			const item = customContentItems.find(c => c.id === setting.id);
-			if (item) {
-				ordered.push({ ...item, enabled: setting.enabled });
-				usedIds.add(setting.id);
-			}
-		}
-
-		// Add remaining items that aren't in settings (disabled by default)
-		for (const item of customContentItems) {
-			if (!usedIds.has(item.id)) {
-				ordered.push({ ...item, enabled: false });
-			}
-		}
-
-		return ordered;
-	});
-
-	// Build effective section order for display
-	// Combines standard sections with enabled custom content
-	let effectiveSectionOrder = $derived(() => {
-		// If we have a saved order, use it
-		if (sectionOrder.length > 0) {
-			// Start with saved order
-			const result: string[] = [...sectionOrder];
-
-			// Add any new standard sections not in order
-			for (const section of STANDARD_SECTIONS) {
-				if (!result.includes(section.key)) {
-					result.push(section.key);
-				}
-			}
-
-			// Add any new enabled custom content not in order
-			for (const item of orderedCustomContent()) {
-				if (item.enabled) {
-					const key = `custom:${item.id}`;
-					if (!result.includes(key)) {
-						result.push(key);
-					}
-				}
-			}
-
-			// Remove custom content that is no longer enabled
-			return result.filter(key => {
-				if (key.startsWith('custom:')) {
-					const id = key.replace('custom:', '');
-					const item = orderedCustomContent().find(c => c.id === id);
-					return item?.enabled;
-				}
-				return true;
-			});
-		}
-
-		// Default order: standard sections first, then enabled custom content
-		const result = STANDARD_SECTIONS.map(s => s.key);
-		for (const item of orderedCustomContent()) {
-			if (item.enabled) {
-				result.push(`custom:${item.id}`);
-			}
-		}
-		return result;
-	});
-
-	function getSectionLabel(key: string): string {
-		if (key.startsWith('custom:')) {
-			const id = key.replace('custom:', '');
-			const item = customContentItems.find(c => c.id === id);
-			return item?.title || 'Custom Content';
-		}
-		const section = STANDARD_SECTIONS.find(s => s.key === key);
-		return section?.label || key;
-	}
-
-	function isCustomSection(key: string): boolean {
-		return key.startsWith('custom:');
-	}
-
-	function moveSectionOrder(key: string, direction: 'up' | 'down') {
-		const order = effectiveSectionOrder();
-		const index = order.indexOf(key);
-		if (index < 0) return;
-
-		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		if (newIndex < 0 || newIndex >= order.length) return;
-
-		// Swap
-		const newOrder = [...order];
-		[newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
-		sectionOrder = newOrder;
-	}
-
-	async function saveSectionOrder() {
-		sectionOrderSaving = true;
-		try {
-			const response = await fetch('/api/site-settings', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify({
-					homepage_section_order: effectiveSectionOrder(),
-					homepage_custom_content: homepageCustomContent
-				})
-			});
-
-			if (!response.ok) {
-				const result = await response.json();
-				toasts.add('error', result.error || 'Failed to save section order');
-				return;
-			}
-
-			toasts.add('success', 'Section order saved');
-		} catch (err) {
-			console.error('Failed to save section order:', err);
-			toasts.add('error', 'Failed to save section order');
-		} finally {
-			sectionOrderSaving = false;
-		}
-	}
-
-	function toggleCustomContent(id: string) {
-		const existingIndex = homepageCustomContent.findIndex(c => c.id === id);
-		if (existingIndex >= 0) {
-			// Toggle existing
-			homepageCustomContent = homepageCustomContent.map((c, i) =>
-				i === existingIndex ? { ...c, enabled: !c.enabled } : c
-			);
-		} else {
-			// Add new (enabled)
-			homepageCustomContent = [...homepageCustomContent, { id, enabled: true }];
-		}
-	}
-
-	function moveCustomContent(id: string, direction: 'up' | 'down') {
-		// Ensure all current items are in the settings array
-		const allIds = orderedCustomContent().map(c => c.id);
-		let settings = allIds.map(itemId => {
-			const existing = homepageCustomContent.find(c => c.id === itemId);
-			return existing || { id: itemId, enabled: false };
-		});
-
-		const index = settings.findIndex(c => c.id === id);
-		if (index < 0) return;
-
-		const newIndex = direction === 'up' ? index - 1 : index + 1;
-		if (newIndex < 0 || newIndex >= settings.length) return;
-
-		// Swap
-		[settings[index], settings[newIndex]] = [settings[newIndex], settings[index]];
-		homepageCustomContent = settings;
-	}
-
-	async function saveCustomContentSettings() {
-		customContentSaving = true;
-		try {
-			const response = await fetch('/api/site-settings', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify({
-					homepage_custom_content: homepageCustomContent
-				})
-			});
-
-			if (!response.ok) {
-				const result = await response.json();
-				toasts.add('error', result.error || 'Failed to save custom content settings');
-				return;
-			}
-
-			toasts.add('success', 'Custom content settings saved');
-		} catch (err) {
-			console.error('Failed to save custom content settings:', err);
-			toasts.add('error', 'Failed to save custom content settings');
-		} finally {
-			customContentSaving = false;
 		}
 	}
 
@@ -368,6 +187,7 @@
 	async function handleSubmit() {
 		saving = true;
 		try {
+			// Save profile data
 			const formData = new FormData();
 			formData.append('name', name);
 			formData.append('headline', headline);
@@ -393,7 +213,26 @@
 				await collection('profile').create(formData);
 			}
 
-			toasts.add('success', 'Profile saved successfully');
+			// Save section order and custom content settings
+			const orderKeys = sectionOrder.map(s => s.key);
+			const customContentConfig = Array.from(enabledCustomContent).map(id => ({
+				id,
+				enabled: true
+			}));
+
+			await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					homepage_section_order: orderKeys,
+					homepage_custom_content: customContentConfig
+				})
+			});
+
+			toasts.add('success', 'Homepage saved successfully');
 
 			avatarFile = null;
 			heroImageFile = null;
@@ -409,8 +248,8 @@
 				}
 			}
 		} catch (err) {
-			console.error('Failed to save profile:', err);
-			toasts.add('error', 'Failed to save profile');
+			console.error('Failed to save homepage:', err);
+			toasts.add('error', 'Failed to save homepage');
 		} finally {
 			saving = false;
 		}
@@ -869,145 +708,36 @@
 				</div>
 			</div>
 
-			<div class="flex justify-end gap-3">
-				<a href="/" target="_blank" class="btn btn-secondary">
-					View Homepage
-				</a>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
-					{#if saving}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-					{/if}
-					Save Profile
-				</button>
-			</div>
 		</form>
 	{/if}
 
 	<!-- Section Order -->
 	<div class="card p-6 mt-6">
-		<div class="flex items-start justify-between gap-4 mb-4">
-			<div class="flex-1">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-					Section Order
-				</h2>
-				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Arrange how sections appear on your homepage. Enable custom content blocks to add them to the order.
-				</p>
-			</div>
-		</div>
-
 		{#if settingsLoading || customContentLoading}
 			<div class="animate-pulse text-center py-4">Loading sections...</div>
 		{:else}
-			<!-- Custom Content Toggle List -->
-			{#if customContentItems.length > 0}
-				<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-					<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
-						Custom Content Blocks
-					</h3>
-					<p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-						Toggle on to include in your homepage. Enabled items appear in the section order below.
-					</p>
-					<div class="space-y-2">
-						{#each orderedCustomContent() as item}
-							<div class="flex items-center gap-3">
-								<label class="relative inline-flex items-center cursor-pointer">
-									<input
-										type="checkbox"
-										class="sr-only peer"
-										checked={item.enabled}
-										onchange={() => toggleCustomContent(item.id)}
-									/>
-									<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-								</label>
-								<span class="text-sm text-gray-700 dark:text-gray-300 {item.enabled ? 'font-medium' : ''}">{item.title}</span>
-								<a
-									href="/admin/custom"
-									class="ml-auto text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-xs"
-								>
-									Edit
-								</a>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{:else}
-				<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-center">
-					<p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
-						No custom content blocks yet.
-					</p>
-					<a href="/admin/custom" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-						Create custom content →
-					</a>
-				</div>
-			{/if}
-
-			<!-- Section Order List -->
-			<div class="space-y-2">
-				{#each effectiveSectionOrder() as sectionKey, index}
-					<div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg {isCustomSection(sectionKey) ? 'border-primary-300 dark:border-primary-700' : ''}">
-						<!-- Reorder buttons -->
-						<div class="flex flex-col gap-0.5">
-							<button
-								type="button"
-								class="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
-								onclick={() => moveSectionOrder(sectionKey, 'up')}
-								disabled={index === 0}
-								title="Move up"
-							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-								</svg>
-							</button>
-							<button
-								type="button"
-								class="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
-								onclick={() => moveSectionOrder(sectionKey, 'down')}
-								disabled={index === effectiveSectionOrder().length - 1}
-								title="Move down"
-							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-								</svg>
-							</button>
-						</div>
-
-						<!-- Position number -->
-						<span class="w-6 h-6 flex items-center justify-center text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded">
-							{index + 1}
-						</span>
-
-						<!-- Section label -->
-						<div class="flex-1 min-w-0">
-							<span class="text-sm font-medium text-gray-900 dark:text-white">
-								{getSectionLabel(sectionKey)}
-							</span>
-							{#if isCustomSection(sectionKey)}
-								<span class="ml-2 text-xs text-primary-600 dark:text-primary-400">(custom)</span>
-							{/if}
-						</div>
-
-						<!-- Drag handle icon -->
-						<svg class="w-4 h-4 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-						</svg>
-					</div>
-				{/each}
-			</div>
-
-			<div class="flex justify-end mt-4">
-				<button
-					type="button"
-					class="btn btn-primary btn-sm"
-					onclick={saveSectionOrder}
-					disabled={sectionOrderSaving}
-				>
-					{sectionOrderSaving ? 'Saving...' : 'Save Section Order'}
-				</button>
-			</div>
+			<HomepageSectionManager
+				bind:sectionOrder={sectionOrder}
+				{customContentItems}
+				bind:enabledCustomContent={enabledCustomContent}
+				loading={settingsLoading || customContentLoading}
+			/>
 		{/if}
+	</div>
+
+	<!-- Single Save Button -->
+	<div class="flex justify-end gap-3 mt-6">
+		<a href="/" target="_blank" class="btn btn-secondary">
+			View Homepage
+		</a>
+		<button type="button" class="btn btn-primary" disabled={saving} onclick={handleSubmit}>
+			{#if saving}
+				<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			{/if}
+			Save Homepage
+		</button>
 	</div>
 </div>
