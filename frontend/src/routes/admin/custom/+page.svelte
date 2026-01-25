@@ -113,7 +113,8 @@
 		try {
 			const [records, membershipResp] = await Promise.all([
 				await collection('custom').getList(1, 100, {
-					sort: '-sort_order,-created'
+					sort: '-sort_order,-created',
+					requestKey: null
 				}),
 				fetch('/api/admin/view-memberships?collection=custom', {
 					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}

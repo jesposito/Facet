@@ -115,12 +115,13 @@
 			// Load views for navigation
 			const viewsResult = await collection('views').getList(1, 100, {
 				filter: 'visibility = "public" && is_active = true',
-				sort: 'sort_order,created'
+				sort: 'sort_order,created',
+				requestKey: null
 			});
 			publicViews = viewsResult.items.map(v => ({ id: v.id, name: v.name, slug: v.slug }));
 
 			// Load settings
-			const settings = await pb.send('/api/site-settings', { method: 'GET' });
+			const settings = await pb.send('/api/site-settings', { method: 'GET', requestKey: null });
 			
 			// Homepage Visibility
 			homepageEnabled = settings.homepage_enabled !== false;
@@ -230,7 +231,8 @@
 				const records = await collection(def.collection).getList(1, 100, {
 					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
 					filter,
-					expand: 'admin_tags'
+					expand: 'admin_tags',
+					requestKey: null
 				});
 
 				sectionItems[key] = records.items.map((item) => ({
@@ -358,7 +360,7 @@
 	async function loadProfile() {
 		try {
 			profileLoading = true;
-			const records = await collection('profile').getList(1, 1);
+			const records = await collection('profile').getList(1, 1, { requestKey: null });
 			if (records.items.length > 0) {
 				const p = records.items[0];
 				profile = p;
