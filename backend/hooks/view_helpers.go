@@ -368,3 +368,44 @@ func escapeICSText(value string) string {
 	)
 	return replacer.Replace(value)
 }
+
+// filterBySelectedItems filters serialized records based on selected item IDs.
+// If selectedItems is empty, returns all items (shows all public items).
+// If selectedItems has specific IDs, returns only those items in the specified order.
+func filterBySelectedItems(items []map[string]interface{}, selectedItems []string) []map[string]interface{} {
+	if len(selectedItems) == 0 {
+		return items
+	}
+
+	// Build a map for quick lookup
+	itemMap := make(map[string]map[string]interface{})
+	for _, item := range items {
+		if id, ok := item["id"].(string); ok {
+			itemMap[id] = item
+		}
+	}
+
+	// Return items in the order specified by selectedItems
+	var result []map[string]interface{}
+	for _, id := range selectedItems {
+		if item, exists := itemMap[id]; exists {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// getSectionConfig returns the configuration for a section from homepage_sections.
+// Returns enabled=true and empty items if section is not configured.
+func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabled bool, items []string) {
+	if settings == nil || settings.HomepageSections == nil {
+		return true, nil
+	}
+
+	config, exists := settings.HomepageSections[sectionKey]
+	if !exists {
+		return true, nil
+	}
+
+	return config.Enabled, config.Items
+}

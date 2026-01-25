@@ -10,19 +10,22 @@
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
 
-	// Standard sections that can be ordered
-	const STANDARD_SECTIONS = [
-		{ key: 'experience', label: 'Experience' },
-		{ key: 'projects', label: 'Projects' },
-		{ key: 'education', label: 'Education' },
-		{ key: 'certifications', label: 'Certifications' },
-		{ key: 'awards', label: 'Awards' },
-		{ key: 'skills', label: 'Skills' },
-		{ key: 'posts', label: 'Posts' },
-		{ key: 'talks', label: 'Talks' },
-		{ key: 'testimonials', label: 'Testimonials' },
-		{ key: 'contacts', label: 'Contacts' }
-	];
+	// Section definitions for loading items - same as ViewSectionManager
+	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
+		experience: { label: 'Experience', collection: 'experience' },
+		projects: { label: 'Projects', collection: 'projects' },
+		education: { label: 'Education', collection: 'education' },
+		certifications: { label: 'Certifications', collection: 'certifications' },
+		awards: { label: 'Awards', collection: 'awards' },
+		skills: { label: 'Skills', collection: 'skills' },
+		posts: { label: 'Posts', collection: 'posts' },
+		talks: { label: 'Talks', collection: 'talks' },
+		testimonials: { label: 'Testimonials', collection: 'testimonials' },
+		contacts: { label: 'Contact Methods', collection: 'contact_methods' }
+	};
+
+	// Default section order
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
@@ -33,7 +36,27 @@
 
 	// Section ordering - array of {id, key} objects for dnd compatibility
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
-	let enabledCustomContent: Set<string> = $state(new Set());
+
+	// Sections configuration - per-section settings
+	let sections: Record<string, {
+		enabled: boolean;
+		items: string[];
+		expanded: boolean;
+		layout: string;
+		width: string;
+	}> = $state({});
+
+	// Available items for each section
+	let sectionItems: Record<string, Array<{
+		id: string;
+		label: string;
+		visibility: string;
+		is_draft?: boolean;
+		data: Record<string, unknown>;
+		expand?: {
+			admin_tags?: Array<{ id: string; name: string; color: string }>;
+		};
+	}>> = $state({});
 
 	// Custom content for homepage
 	let customContentItems: CustomContent[] = $state([]);
@@ -67,7 +90,7 @@
 	let viewsOverridingSummary: View[] = $state([]);
 
 	onMount(async () => {
-		await Promise.all([loadSettings(), loadProfile(), loadCustomContent()]);
+		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems()]);
 	});
 
 	async function loadSettings() {
@@ -79,25 +102,70 @@
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
 
+				// Initialize sections from homepage_sections or default
+				const savedSections = data.homepage_sections || {};
+				initializeSections(savedSections);
+
 				// Parse section order into dnd format
 				const rawOrder: string[] = data.homepage_section_order || [];
 				if (rawOrder.length > 0) {
-					sectionOrder = rawOrder.map((key, i) => ({ id: `section-${i}`, key }));
+					// Use saved order but include any new sections that aren't in the order
+					const orderedKeys = new Set(rawOrder);
+					const allKeys = [...DEFAULT_SECTION_ORDER];
+
+					// Add custom content sections from saved config
+					for (const key of Object.keys(savedSections)) {
+						if (key.startsWith('custom:') && !allKeys.includes(key)) {
+							allKeys.push(key);
+						}
+					}
+
+					// Start with saved order
+					const finalOrder: string[] = [...rawOrder];
+
+					// Add any missing standard sections at the end
+					for (const key of allKeys) {
+						if (!orderedKeys.has(key)) {
+							finalOrder.push(key);
+						}
+					}
+
+					sectionOrder = finalOrder.map((key, i) => ({ id: `section-${i}`, key }));
 				} else {
 					// Default order: standard sections
-					sectionOrder = STANDARD_SECTIONS.map((s, i) => ({ id: `section-${i}`, key: s.key }));
+					sectionOrder = DEFAULT_SECTION_ORDER.map((key, i) => ({ id: `section-${i}`, key }));
 				}
-
-				// Parse enabled custom content
-				const customContentConfig: Array<{ id: string; enabled: boolean }> = data.homepage_custom_content || [];
-				enabledCustomContent = new Set(
-					customContentConfig.filter(c => c.enabled).map(c => c.id)
-				);
 			}
 		} catch (err) {
 			console.error('Failed to load settings:', err);
 		} finally {
 			settingsLoading = false;
+		}
+	}
+
+	function initializeSections(savedSections: Record<string, any>) {
+		// Start with all standard sections with default values
+		for (const key of DEFAULT_SECTION_ORDER) {
+			sections[key] = {
+				enabled: true, // Default enabled for homepage (shows all public items)
+				items: [],
+				expanded: false,
+				layout: 'default',
+				width: 'full'
+			};
+		}
+
+		// Apply saved configuration
+		for (const [key, config] of Object.entries(savedSections)) {
+			if (config && typeof config === 'object') {
+				sections[key] = {
+					enabled: (config as any).enabled !== false,
+					items: (config as any).items || [],
+					expanded: false,
+					layout: (config as any).layout || 'default',
+					width: (config as any).width || 'full'
+				};
+			}
 		}
 	}
 
@@ -108,10 +176,86 @@
 				filter: 'visibility = "public" && is_draft = false'
 			});
 			customContentItems = records.items as unknown as CustomContent[];
+
+			// Add custom content items to sectionOrder if they exist
+			const existingKeys = new Set(sectionOrder.map(s => s.key));
+			let nextId = sectionOrder.length;
+			for (const item of customContentItems) {
+				const key = `custom:${item.id}`;
+				if (!existingKeys.has(key)) {
+					sectionOrder = [...sectionOrder, { id: `section-${nextId++}`, key }];
+					// Initialize section config for new custom content
+					if (!sections[key]) {
+						sections[key] = {
+							enabled: true,
+							items: [],
+							expanded: false,
+							layout: 'default',
+							width: 'full'
+						};
+					}
+				}
+			}
 		} catch (err) {
 			console.error('Failed to load custom content:', err);
 		} finally {
 			customContentLoading = false;
+		}
+	}
+
+	async function loadSectionItems() {
+		for (const key of DEFAULT_SECTION_ORDER) {
+			const def = SECTION_DEFS[key];
+			try {
+				// Testimonials only show approved ones
+				const filter = key === 'testimonials' ? 'status = "approved"' : '';
+				const records = await collection(def.collection).getList(1, 500, {
+					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
+					filter,
+					expand: 'admin_tags'
+				});
+
+				sectionItems[key] = records.items.map((item) => ({
+					id: item.id,
+					label: getItemLabel(key, item as Record<string, unknown>),
+					visibility: (item as Record<string, unknown>).visibility as string || 'public',
+					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					data: item as Record<string, unknown>,
+					expand: (item as any).expand || {}
+				}));
+			} catch (err) {
+				console.error(`Failed to load ${key} items:`, err);
+				sectionItems[key] = [];
+			}
+		}
+		// Trigger reactivity
+		sectionItems = { ...sectionItems };
+	}
+
+	function getItemLabel(sectionKey: string, item: Record<string, unknown>): string {
+		switch (sectionKey) {
+			case 'experience':
+				return `${item.title} at ${item.company}`;
+			case 'projects':
+				return item.title as string;
+			case 'education':
+				return `${item.degree || 'Degree'} - ${item.institution}`;
+			case 'certifications':
+				return `${item.name} (${item.issuer || 'Unknown issuer'})`;
+			case 'awards':
+				return `${item.title}${item.issuer ? ` (${item.issuer})` : ''}`;
+			case 'skills':
+				return `${item.name}${item.category ? ` (${item.category})` : ''}`;
+			case 'posts':
+				return item.title as string;
+			case 'talks':
+				return `${item.title}${item.event ? ` @ ${item.event}` : ''}`;
+			case 'contacts':
+				return `${item.label || item.type} - ${item.value}`;
+			case 'testimonials':
+				return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
+			default:
+				return item.title as string || item.name as string || item.id as string;
 		}
 	}
 
@@ -213,12 +357,27 @@
 				await collection('profile').create(formData);
 			}
 
-			// Save section order and custom content settings
+			// Save section order and section configuration
 			const orderKeys = sectionOrder.map(s => s.key);
-			const customContentConfig = Array.from(enabledCustomContent).map(id => ({
-				id,
-				enabled: true
-			}));
+
+			// Build homepage_sections for API (without expanded state, only persistent config)
+			const homepageSections: Record<string, { enabled: boolean; items: string[]; layout: string; width: string }> = {};
+			for (const [key, config] of Object.entries(sections)) {
+				homepageSections[key] = {
+					enabled: config.enabled,
+					items: config.items,
+					layout: config.layout,
+					width: config.width
+				};
+			}
+
+			// Also build homepage_custom_content for backwards compatibility
+			const customContentConfig = customContentItems
+				.filter(item => {
+					const sectionKey = `custom:${item.id}`;
+					return sections[sectionKey]?.enabled !== false;
+				})
+				.map(item => ({ id: item.id, enabled: true }));
 
 			await fetch('/api/site-settings', {
 				method: 'PUT',
@@ -228,6 +387,7 @@
 				},
 				body: JSON.stringify({
 					homepage_section_order: orderKeys,
+					homepage_sections: homepageSections,
 					homepage_custom_content: customContentConfig
 				})
 			});
@@ -717,9 +877,10 @@
 			<div class="animate-pulse text-center py-4">Loading sections...</div>
 		{:else}
 			<HomepageSectionManager
+				bind:sections={sections}
 				bind:sectionOrder={sectionOrder}
+				bind:sectionItems={sectionItems}
 				{customContentItems}
-				bind:enabledCustomContent={enabledCustomContent}
 				loading={settingsLoading || customContentLoading}
 			/>
 		{/if}

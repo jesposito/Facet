@@ -1,8 +1,19 @@
 <script lang="ts">
+	/**
+	 * HomepageSectionManager - Identical to ViewSectionManager but for the homepage
+	 *
+	 * Allows:
+	 * - Drag-and-drop reordering of sections
+	 * - Expanding sections to see/select individual items
+	 * - Per-item selection (when none selected, shows all public items)
+	 * - Drag-and-drop reordering of items within sections
+	 */
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import type { CustomContent } from '$lib/pocketbase';
+	import { VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
+	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -10,7 +21,6 @@
 	let SHADOW_PLACEHOLDER_ITEM_ID: string = $state('');
 	let dndLoaded = $state(false);
 
-	// Load DnD functionality when in browser
 	onMount(async () => {
 		if (browser) {
 			const { dndzone: dnd, TRIGGERS: trig, SHADOW_PLACEHOLDER_ITEM_ID: shadow } = await import('svelte-dnd-action');
@@ -18,261 +28,410 @@
 			TRIGGERS = trig;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
 			dndLoaded = true;
+			applySavedItemOrder();
 		}
 	});
 
 	const flipDurationMs = 200;
 
-	// Standard sections that can be ordered
-	const SECTION_DEFS: Record<string, { label: string; description: string }> = {
-		experience: { label: 'Experience', description: 'Work history and professional experience' },
-		projects: { label: 'Projects', description: 'Portfolio projects and work samples' },
-		education: { label: 'Education', description: 'Academic background and degrees' },
-		certifications: { label: 'Certifications', description: 'Professional certifications and credentials' },
-		awards: { label: 'Awards', description: 'Honors and achievements' },
-		skills: { label: 'Skills', description: 'Technical and professional skills' },
-		posts: { label: 'Posts', description: 'Blog posts and articles' },
-		talks: { label: 'Talks', description: 'Presentations and speaking engagements' },
-		testimonials: { label: 'Testimonials', description: 'Recommendations and endorsements' },
-		contacts: { label: 'Contacts', description: 'Contact methods and social links' }
+	// Section definitions - same as ViewSectionManager
+	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
+		experience: { label: 'Experience', collection: 'experience' },
+		projects: { label: 'Projects', collection: 'projects' },
+		education: { label: 'Education', collection: 'education' },
+		certifications: { label: 'Certifications', collection: 'certifications' },
+		awards: { label: 'Awards', collection: 'awards' },
+		skills: { label: 'Skills', collection: 'skills' },
+		posts: { label: 'Posts', collection: 'posts' },
+		talks: { label: 'Talks', collection: 'talks' },
+		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
+		testimonials: { label: 'Testimonials', collection: 'testimonials' }
 	};
 
 	// Props
 	let {
+		sections = $bindable(),
 		sectionOrder = $bindable(),
+		sectionItems = $bindable(),
 		customContentItems = [],
-		enabledCustomContent = $bindable(),
 		loading = false
 	}: {
+		sections: Record<string, {
+			enabled: boolean;
+			items: string[];
+			expanded: boolean;
+			layout: string;
+			width: string;
+		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
+		sectionItems: Record<string, Array<{
+			id: string;
+			label: string;
+			visibility: string;
+			is_draft?: boolean;
+			data: Record<string, unknown>;
+			expand?: {
+				admin_tags?: Array<{ id: string; name: string; color: string }>;
+			};
+		}>>;
 		customContentItems: CustomContent[];
-		enabledCustomContent: Set<string>;
 		loading?: boolean;
 	} = $props();
 
-	// Track which sections are expanded
-	let expandedSections: Set<string> = $state(new Set());
+	// Build a map for quick custom content title lookup
+	$effect(() => {
+		customContentTitleMap = new Map(customContentItems.map(item => [item.id, item.title]));
+	});
+	let customContentTitleMap: Map<string, string> = $state(new Map());
 
-	// Helper to check if a section key is for custom content
+	// Apply saved item order after dndzone loads
+	function applySavedItemOrder() {
+		let didUpdate = false;
+		for (const key of Object.keys(sections)) {
+			const savedOrder = sections[key]?.items || [];
+			const allItems = sectionItems[key] || [];
+
+			if (savedOrder.length === 0 || allItems.length === 0) continue;
+
+			const itemMap = new Map(allItems.map(item => [item.id, item]));
+			const selectedItems: typeof allItems = [];
+			for (const id of savedOrder) {
+				const item = itemMap.get(id);
+				if (item) {
+					selectedItems.push(item);
+				}
+			}
+
+			const selectedSet = new Set(savedOrder);
+			const unselectedItems = allItems.filter(item => !selectedSet.has(item.id));
+
+			sectionItems[key] = [...selectedItems, ...unselectedItems];
+			didUpdate = true;
+		}
+		if (didUpdate) {
+			updateSectionItems();
+		}
+	}
+
+	function updateSections() {
+		sections = { ...sections };
+	}
+
+	function updateSectionItems() {
+		sectionItems = { ...sectionItems };
+	}
+
 	function isCustomSection(sectionKey: string): boolean {
 		return sectionKey.startsWith('custom:');
 	}
 
-	// Get custom content ID from section key
-	function getCustomContentId(sectionKey: string): string {
-		return sectionKey.replace('custom:', '');
-	}
-
-	// Get display label for a section
 	function getSectionLabel(sectionKey: string): string {
 		if (isCustomSection(sectionKey)) {
-			const customId = getCustomContentId(sectionKey);
-			const item = customContentItems.find(c => c.id === customId);
-			return item?.title || 'Custom Content';
+			const customId = sectionKey.replace('custom:', '');
+			const title = customContentTitleMap.get(customId);
+			return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
 		}
 		return SECTION_DEFS[sectionKey]?.label || sectionKey;
 	}
 
-	// Get description for a section
-	function getSectionDescription(sectionKey: string): string {
-		if (isCustomSection(sectionKey)) {
-			return 'Custom content block';
-		}
-		return SECTION_DEFS[sectionKey]?.description || '';
+	function toggleSection(key: string) {
+		sections[key].enabled = !sections[key].enabled;
+		updateSections();
 	}
 
-	// Toggle custom content enabled state
-	function toggleCustomContent(id: string) {
-		const newSet = new Set(enabledCustomContent);
-		if (newSet.has(id)) {
-			newSet.delete(id);
-			// Also remove from section order
-			sectionOrder = sectionOrder.filter(s => s.key !== `custom:${id}`);
-		} else {
-			newSet.add(id);
-			// Add to section order at end
-			sectionOrder = [...sectionOrder, { id: `custom-${id}`, key: `custom:${id}` }];
-		}
-		enabledCustomContent = newSet;
+	function toggleSectionExpand(key: string) {
+		sections[key].expanded = !sections[key].expanded;
+		updateSections();
 	}
 
-	// Toggle section expansion
-	function toggleExpand(sectionKey: string) {
-		const newSet = new Set(expandedSections);
-		if (newSet.has(sectionKey)) {
-			newSet.delete(sectionKey);
+	function toggleItem(sectionKey: string, itemId: string) {
+		const idx = sections[sectionKey].items.indexOf(itemId);
+		if (idx === -1) {
+			sections[sectionKey].items.push(itemId);
 		} else {
-			newSet.add(sectionKey);
+			sections[sectionKey].items.splice(idx, 1);
 		}
-		expandedSections = newSet;
+		updateSections();
+	}
+
+	function selectAllItems(sectionKey: string) {
+		sections[sectionKey].items = sectionItems[sectionKey]?.map((i) => i.id) || [];
+		updateSections();
+	}
+
+	function clearAllItems(sectionKey: string) {
+		sections[sectionKey].items = [];
+		updateSections();
+	}
+
+	function updateSectionWidth(sectionKey: string, width: string) {
+		sections[sectionKey].width = width;
+		updateSections();
+	}
+
+	function updateSectionLayout(sectionKey: string, layout: string) {
+		sections[sectionKey].layout = layout;
+		if (!isWidthValidForLayout(sectionKey, layout, sections[sectionKey].width as SectionWidth)) {
+			sections[sectionKey].width = 'full';
+		}
+		updateSections();
 	}
 
 	// Drag-drop handlers for section reordering
-	function handleDndConsider(e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>) {
+	function handleSectionDndConsider(e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>) {
 		sectionOrder = e.detail.items;
 	}
 
-	function handleDndFinalize(e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>) {
+	function handleSectionDndFinalize(e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>) {
 		sectionOrder = e.detail.items;
+	}
+
+	// Drag-drop handlers for item reordering within a section
+	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
+		sectionItems[sectionKey] = e.detail.items;
+		updateSectionItems();
+	}
+
+	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
+		const trigger = e.detail.info?.trigger;
+		const finalItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		sectionItems[sectionKey] = finalItems;
+		updateSectionItems();
+
+		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
+			updateItemsOrderFromDisplay(sectionKey);
+		}
+	}
+
+	function updateItemsOrderFromDisplay(sectionKey: string) {
+		const displayOrder = sectionItems[sectionKey]?.map(i => i.id) || [];
+		const selectedSet = new Set(sections[sectionKey].items);
+		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
+		updateSections();
 	}
 </script>
 
 <div class="space-y-4">
 	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Section Order</h2>
-			<p class="text-sm text-gray-500">Drag sections to reorder how they appear on your homepage.</p>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
+			<p class="text-sm text-gray-500">Choose which sections to show and drag to reorder. Expand to select specific items.</p>
 		</div>
 	</div>
 
-	<!-- Custom Content Toggle Panel -->
-	{#if customContentItems.length > 0}
-		<div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-			<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">
-				Custom Content Blocks
-			</h3>
-			<p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-				Toggle on to include in your homepage. Enabled blocks appear in the section list below.
-			</p>
-			<div class="space-y-2">
-				{#each customContentItems as item (item.id)}
-					{@const isEnabled = enabledCustomContent.has(item.id)}
-					<div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700/50">
-						<button
-							type="button"
-							class="w-10 h-6 rounded-full transition-colors relative shrink-0
-								{isEnabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-							onclick={() => toggleCustomContent(item.id)}
-							aria-label="Toggle {item.title}"
-						>
-							<span
-								class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
-									{isEnabled ? 'left-5' : 'left-1'}"
-							></span>
-						</button>
-						<span class="text-sm text-gray-700 dark:text-gray-300 {isEnabled ? 'font-medium' : ''}">
-							{item.title}
-						</span>
-						<a
-							href="/admin/custom"
-							class="ml-auto text-xs text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-						>
-							Edit
-						</a>
-					</div>
-				{/each}
-			</div>
-		</div>
+	{#if loading}
+		<div class="animate-pulse text-center py-8">Loading sections...</div>
 	{:else}
-		<div class="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-			<p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
-				No custom content blocks yet.
-			</p>
-			<a href="/admin/custom" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
-				Create custom content →
-			</a>
-		</div>
-	{/if}
+		{#key dndLoaded}
+		<div
+			class="space-y-3"
+			use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'homepage-sections' }}
+			onconsider={handleSectionDndConsider}
+			onfinalize={handleSectionDndFinalize}
+		>
+			{#each sectionOrder as sectionItem (sectionItem.id)}
+				{@const sectionKey = sectionItem.key}
+				{@const isCustom = isCustomSection(sectionKey)}
+				{@const sectionLabel = getSectionLabel(sectionKey)}
+				{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, layout: 'default', width: 'full' }}
+				{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
+				{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
+				{@const layoutKey = isCustom ? 'custom' : sectionKey}
 
-	<!-- Section Order List with Drag-and-Drop -->
-	{#key dndLoaded}
-	<div
-		class="space-y-2"
-		use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'homepage-sections' }}
-		onconsider={handleDndConsider}
-		onfinalize={handleDndFinalize}
-	>
-		{#each sectionOrder as sectionItem (sectionItem.id)}
-			{@const sectionKey = sectionItem.key}
-			{@const isCustom = isCustomSection(sectionKey)}
-			{@const sectionLabel = getSectionLabel(sectionKey)}
-			{@const sectionDesc = getSectionDescription(sectionKey)}
-			{@const isExpanded = expandedSections.has(sectionKey)}
-
-			<div
-				class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900
-					{isCustom ? 'border-primary-300 dark:border-primary-700' : ''}"
-				animate:flip={{ duration: flipDurationMs }}
-			>
-				<!-- Section Header -->
-				<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50">
-					<!-- Drag Handle -->
-					<div
-						class="cursor-grab active:cursor-grabbing p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-						title="Drag to reorder"
-					>
-						<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-						</svg>
-					</div>
-
-					<!-- Section Info -->
-					<div class="flex-1 min-w-0">
-						<div class="flex items-center gap-2">
+				<div
+					class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
+					animate:flip={{ duration: flipDurationMs }}
+				>
+					<!-- Section Header -->
+					<div class="flex flex-wrap items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
+						<div class="flex items-center gap-3">
+							<!-- Drag Handle -->
+							<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+								<svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+								</svg>
+							</div>
+							<button
+								type="button"
+								class="w-10 h-6 rounded-full transition-colors relative
+									{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+								onclick={() => toggleSection(sectionKey)}
+								aria-label="Toggle {sectionLabel} section"
+							>
+								<span
+									class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
+										{sectionConfig.enabled ? 'left-5' : 'left-1'}"
+								></span>
+							</button>
 							<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
-							{#if isCustom}
-								<span class="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded">
-									custom
+							{#if !isCustom}
+								<span class="text-xs text-gray-500">
+									{#if sectionConfig.items.length > 0}
+										{sectionConfig.items.length} selected
+									{:else if sectionConfig.enabled}
+										all items ({publicItems.length})
+									{:else}
+										{publicItems.length} available
+									{/if}
 								</span>
 							{/if}
 						</div>
-						{#if sectionDesc && !isExpanded}
-							<p class="text-xs text-gray-500 dark:text-gray-400 truncate">{sectionDesc}</p>
-						{/if}
+
+						<div class="flex items-center gap-2">
+							<!-- Layout/Width Selectors -->
+							<div class="hidden lg:flex items-center gap-2">
+								{#if sectionConfig.enabled}
+									{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
+									{#if validWidths.length > 1}
+										<div class="flex items-center gap-1" title="Section width">
+											<select
+												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+												value={sectionConfig.width}
+												onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+												onclick={(e) => e.stopPropagation()}
+											>
+												{#each validWidths as widthOption}
+													<option value={widthOption.value}>{widthOption.label}</option>
+												{/each}
+											</select>
+										</div>
+									{/if}
+								{/if}
+
+								{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
+									{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
+									<select
+										class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+										value={sectionConfig.layout}
+										onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+										onclick={(e) => e.stopPropagation()}
+										title="Section layout"
+									>
+										{#each layoutConfig.layouts as layoutOption}
+											<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
+										{/each}
+									</select>
+								{/if}
+							</div>
+
+							{#if sectionConfig.enabled && items.length > 0 && !isCustom}
+								<button
+									type="button"
+									class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
+									onclick={() => toggleSectionExpand(sectionKey)}
+									aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionLabel} section"
+								>
+									<svg
+										class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									</svg>
+								</button>
+							{/if}
+						</div>
 					</div>
 
-					<!-- Expand Button (for non-custom sections) -->
-					{#if !isCustom}
-						<button
-							type="button"
-							class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-							onclick={() => toggleExpand(sectionKey)}
-							aria-label="{isExpanded ? 'Collapse' : 'Expand'} {sectionLabel} section"
-						>
-							<svg
-								class="w-5 h-5 transition-transform {isExpanded ? 'rotate-180' : ''}"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
+					<!-- Section Items (expanded) -->
+					{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0 && !isCustom}
+						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
+							<div class="flex items-center justify-between mb-2">
+								<p class="text-xs text-gray-500">
+									{sectionConfig.items.length === 0
+										? 'All public items will be shown. Select items to customize.'
+										: `${sectionConfig.items.length} of ${publicItems.length} items selected. Drag to reorder.`}
+								</p>
+								<div class="flex gap-2">
+									<button
+										type="button"
+										class="text-xs text-primary-600 hover:underline"
+										onclick={() => selectAllItems(sectionKey)}
+									>
+										Select All
+									</button>
+									<button
+										type="button"
+										class="text-xs text-gray-500 hover:underline"
+										onclick={() => clearAllItems(sectionKey)}
+									>
+										Clear
+									</button>
+								</div>
+							</div>
+
+							<div
+								class="space-y-1 max-h-64 overflow-y-auto"
+								use:dndzone={{
+									items: sectionItems[sectionKey] || [],
+									flipDurationMs,
+									type: `items-${sectionKey}`,
+									dragDisabled: false,
+									dropFromOthersDisabled: true
+								}}
+								onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+								onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 							>
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-							</svg>
-						</button>
-					{:else}
-						<!-- Remove button for custom content -->
-						<button
-							type="button"
-							class="p-2 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-							onclick={() => toggleCustomContent(getCustomContentId(sectionKey))}
-							title="Remove from homepage"
-						>
-							<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-							</svg>
-						</button>
+								{#each items as item (item.id)}
+									{@const isSelected = sectionConfig.items.includes(item.id)}
+									<div
+										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+										animate:flip={{ duration: flipDurationMs }}
+									>
+										<div
+											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+											title="Drag to reorder"
+										>
+											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+											</svg>
+										</div>
+										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+										<label
+											class="flex items-center gap-2 flex-1 cursor-pointer"
+											onpointerdown={(e) => e.stopPropagation()}
+											onmousedown={(e) => e.stopPropagation()}
+											ontouchstart={(e) => e.stopPropagation()}
+										>
+											<input
+												type="checkbox"
+												checked={isSelected}
+												onchange={() => toggleItem(sectionKey, item.id)}
+												onclick={(e) => e.stopPropagation()}
+												class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											/>
+											<div class="flex-1 min-w-0">
+												<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
+													{item.label}
+												</span>
+												{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
+													<div class="flex gap-1 mt-1 flex-wrap">
+														{#each item.expand.admin_tags as tag (tag.id)}
+															<AdminTagBadge name={tag.name} color={tag.color} />
+														{/each}
+													</div>
+												{/if}
+											</div>
+										</label>
+										{#if item.visibility !== 'public'}
+											<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
+												{item.visibility}
+											</span>
+										{/if}
+										{#if item.is_draft}
+											<span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
+												draft
+											</span>
+										{/if}
+									</div>
+								{/each}
+							</div>
+						</div>
 					{/if}
 				</div>
-
-				<!-- Expanded Content (for standard sections) -->
-				{#if isExpanded && !isCustom}
-					<div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-						<p class="text-sm text-gray-600 dark:text-gray-400">
-							{sectionDesc}
-						</p>
-						<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-							All public items in this section will be displayed on your homepage.
-							To customize which items appear, use <a href="/admin/views" class="text-primary-600 hover:underline">Facets</a> to create targeted views.
-						</p>
-					</div>
-				{/if}
-			</div>
-		{/each}
-	</div>
-	{/key}
-
-	{#if sectionOrder.length === 0}
-		<div class="text-center py-8 text-gray-500 dark:text-gray-400">
-			<p>No sections configured. Standard sections will be displayed in default order.</p>
+			{/each}
 		</div>
+		{/key}
 	{/if}
 </div>

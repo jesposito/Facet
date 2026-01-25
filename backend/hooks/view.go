@@ -755,142 +755,171 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			// Fetch experience - only public items appear on homepage
-			experienceRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "experience"),
-				"visibility = 'public' && is_draft = false",
-				"-sort_order,-start_date",
-				100,
-				0,
-				nil,
-			)
-			if err == nil && len(experienceRecords) > 0 {
-				experience := serializeRecords(experienceRecords)
-				expCollectionID := experienceRecords[0].Collection().Id
-				for i, e := range experience {
-					if companyLogo, ok := e["company_logo"].(string); ok && companyLogo != "" {
-						if id, ok := e["id"].(string); ok {
-							experience[i]["company_logo_url"] = fileURL(expCollectionID, id, companyLogo, "")
-						}
-					}
-				}
-				response["experience"] = experience
-			}
-
-			// Fetch projects - only public items appear on homepage
-			projectRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "projects"),
-				"visibility = 'public' && is_draft = false",
-				"-is_featured,-sort_order",
-				100,
-				0,
-				nil,
-			)
-			if err == nil && len(projectRecords) > 0 {
-				projects := serializeRecords(projectRecords)
-				projectCollectionID := projectRecords[0].Collection().Id
-				// Add file URLs for cover images
-				for i, p := range projects {
-					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
-						if id, ok := p["id"].(string); ok {
-							projects[i]["cover_image_url"] = fileURL(projectCollectionID, id, coverImage, "")
-							projects[i]["cover_image_large_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=1600x0")
-							projects[i]["cover_image_thumb_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=480x0")
-						}
-					}
-				}
-				response["projects"] = projects
-			}
-
-			// Fetch education - only public items appear on homepage
-			educationRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "education"),
-				"visibility = 'public' && is_draft = false",
-				"-sort_order,-end_date",
-				100,
-				0,
-				nil,
-			)
-			if err == nil {
-				response["education"] = serializeRecords(educationRecords)
-			}
-
-			// Fetch skills - only public items appear on homepage
-			skillRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "skills"),
-				"visibility = 'public'",
-				"category,sort_order",
-				200,
-				0,
-				nil,
-			)
-			if err == nil {
-				response["skills"] = serializeRecords(skillRecords)
-			}
-
-			// Fetch posts - only public items appear on homepage
-			postRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "posts"),
-				"visibility = 'public' && is_draft = false",
-				"-published_at",
-				100,
-				0,
-				nil,
-			)
-			if err == nil {
-				if len(postRecords) > 0 {
-					posts := serializeRecords(postRecords)
-					postCollectionID := postRecords[0].Collection().Id
-					// Add file URLs for cover images
-					for i, p := range posts {
-						if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
-							if id, ok := p["id"].(string); ok {
-								posts[i]["cover_image_url"] = fileURL(postCollectionID, id, coverImage, "")
-								posts[i]["cover_image_large_url"] = fileURL(postCollectionID, id, coverImage, "thumb=1600x0")
-								posts[i]["cover_image_thumb_url"] = fileURL(postCollectionID, id, coverImage, "thumb=480x0")
+			expEnabled, expSelectedItems := getSectionConfig(settings, "experience")
+			if expEnabled {
+				experienceRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "experience"),
+					"visibility = 'public' && is_draft = false",
+					"-sort_order,-start_date",
+					100,
+					0,
+					nil,
+				)
+				if err == nil && len(experienceRecords) > 0 {
+					experience := serializeRecords(experienceRecords)
+					expCollectionID := experienceRecords[0].Collection().Id
+					for i, e := range experience {
+						if companyLogo, ok := e["company_logo"].(string); ok && companyLogo != "" {
+							if id, ok := e["id"].(string); ok {
+								experience[i]["company_logo_url"] = fileURL(expCollectionID, id, companyLogo, "")
 							}
 						}
 					}
-					response["posts"] = posts
+					response["experience"] = filterBySelectedItems(experience, expSelectedItems)
+				}
+			}
+
+			// Fetch projects - only public items appear on homepage
+			projEnabled, projSelectedItems := getSectionConfig(settings, "projects")
+			if projEnabled {
+				projectRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "projects"),
+					"visibility = 'public' && is_draft = false",
+					"-is_featured,-sort_order",
+					100,
+					0,
+					nil,
+				)
+				if err == nil && len(projectRecords) > 0 {
+					projects := serializeRecords(projectRecords)
+					projectCollectionID := projectRecords[0].Collection().Id
+					// Add file URLs for cover images
+					for i, p := range projects {
+						if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+							if id, ok := p["id"].(string); ok {
+								projects[i]["cover_image_url"] = fileURL(projectCollectionID, id, coverImage, "")
+								projects[i]["cover_image_large_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=1600x0")
+								projects[i]["cover_image_thumb_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=480x0")
+							}
+						}
+					}
+					response["projects"] = filterBySelectedItems(projects, projSelectedItems)
+				}
+			}
+
+			// Fetch education - only public items appear on homepage
+			eduEnabled, eduSelectedItems := getSectionConfig(settings, "education")
+			if eduEnabled {
+				educationRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "education"),
+					"visibility = 'public' && is_draft = false",
+					"-sort_order,-end_date",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					education := serializeRecords(educationRecords)
+					response["education"] = filterBySelectedItems(education, eduSelectedItems)
+				}
+			}
+
+			// Fetch skills - only public items appear on homepage
+			skillsEnabled, skillsSelectedItems := getSectionConfig(settings, "skills")
+			if skillsEnabled {
+				skillRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "skills"),
+					"visibility = 'public'",
+					"category,sort_order",
+					200,
+					0,
+					nil,
+				)
+				if err == nil {
+					skills := serializeRecords(skillRecords)
+					response["skills"] = filterBySelectedItems(skills, skillsSelectedItems)
+				}
+			}
+
+			// Fetch posts - only public items appear on homepage
+			postsEnabled, postsSelectedItems := getSectionConfig(settings, "posts")
+			if postsEnabled {
+				postRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "posts"),
+					"visibility = 'public' && is_draft = false",
+					"-published_at",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					if len(postRecords) > 0 {
+						posts := serializeRecords(postRecords)
+						postCollectionID := postRecords[0].Collection().Id
+						// Add file URLs for cover images
+						for i, p := range posts {
+							if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+								if id, ok := p["id"].(string); ok {
+									posts[i]["cover_image_url"] = fileURL(postCollectionID, id, coverImage, "")
+									posts[i]["cover_image_large_url"] = fileURL(postCollectionID, id, coverImage, "thumb=1600x0")
+									posts[i]["cover_image_thumb_url"] = fileURL(postCollectionID, id, coverImage, "thumb=480x0")
+								}
+							}
+						}
+						response["posts"] = filterBySelectedItems(posts, postsSelectedItems)
+					}
 				}
 			}
 
 			// Fetch talks - only public items appear on homepage
-			talkRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "talks"),
-				"visibility = 'public' && is_draft = false",
-				"-sort_order,-date",
-				100,
-				0,
-				nil,
-			)
-			if err == nil {
-				response["talks"] = serializeRecords(talkRecords)
+			talksEnabled, talksSelectedItems := getSectionConfig(settings, "talks")
+			if talksEnabled {
+				talkRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "talks"),
+					"visibility = 'public' && is_draft = false",
+					"-sort_order,-date",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					talks := serializeRecords(talkRecords)
+					response["talks"] = filterBySelectedItems(talks, talksSelectedItems)
+				}
 			}
 
 			// Fetch certifications - only public items appear on homepage
-			certRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "certifications"),
-				"visibility = 'public' && is_draft = false",
-				"issuer,sort_order,-issue_date",
-				100,
-				0,
-				nil,
-			)
-			if err == nil {
-				response["certifications"] = serializeRecords(certRecords)
+			certsEnabled, certsSelectedItems := getSectionConfig(settings, "certifications")
+			if certsEnabled {
+				certRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "certifications"),
+					"visibility = 'public' && is_draft = false",
+					"issuer,sort_order,-issue_date",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					certs := serializeRecords(certRecords)
+					response["certifications"] = filterBySelectedItems(certs, certsSelectedItems)
+				}
 			}
 
 			// Fetch awards - only public items appear on homepage
-			awardRecords, err := app.FindRecordsByFilter(
-				getTableName(app, "awards"),
-				"visibility = 'public' && is_draft = false",
-				"-sort_order,-awarded_at",
-				100,
-				0,
-				nil,
-			)
-			if err == nil {
-				response["awards"] = serializeRecords(awardRecords)
+			awardsEnabled, awardsSelectedItems := getSectionConfig(settings, "awards")
+			if awardsEnabled {
+				awardRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "awards"),
+					"visibility = 'public' && is_draft = false",
+					"-sort_order,-awarded_at",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					awards := serializeRecords(awardRecords)
+					response["awards"] = filterBySelectedItems(awards, awardsSelectedItems)
+				}
 			}
 
 			// Fetch custom content based on homepage settings
@@ -957,11 +986,46 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
+			// Fetch testimonials - only approved ones appear on homepage
+			testimonialsEnabled, testimonialsSelectedItems := getSectionConfig(settings, "testimonials")
+			if testimonialsEnabled {
+				testimonialRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "testimonials"),
+					"status = 'approved'",
+					"-featured,-sort_order",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					testimonials := serializeRecords(testimonialRecords)
+					response["testimonials"] = filterBySelectedItems(testimonials, testimonialsSelectedItems)
+				}
+			}
+
+			// Fetch contacts - only public ones appear on homepage
+			contactsEnabled, contactsSelectedItems := getSectionConfig(settings, "contacts")
+			if contactsEnabled {
+				contactRecords, err := app.FindRecordsByFilter(
+					getTableName(app, "contact_methods"),
+					"visibility = 'public'",
+					"-is_primary,-sort_order",
+					100,
+					0,
+					nil,
+				)
+				if err == nil {
+					contacts := serializeRecords(contactRecords)
+					response["contacts"] = filterBySelectedItems(contacts, contactsSelectedItems)
+				}
+			}
+
 			// Include site settings in response
 			if settings != nil {
 				response["hide_login_button"] = settings.HideLoginButton
 				response["homepage_custom_content"] = settings.HomepageCustomContent
 				response["homepage_section_order"] = settings.HomepageSectionOrder
+				response["homepage_sections"] = settings.HomepageSections
 			}
 
 			return e.JSON(http.StatusOK, response)

@@ -14,6 +14,17 @@ type HomepageCustomContentItem struct {
 	Enabled bool   `json:"enabled"`
 }
 
+// HomepageSectionConfig represents per-section settings for the homepage
+// Mirrors the structure used in views for consistency
+type HomepageSectionConfig struct {
+	Enabled       bool              `json:"enabled"`
+	Items         []string          `json:"items,omitempty"`          // Selected item IDs (empty = all)
+	Layout        string            `json:"layout,omitempty"`         // Section layout
+	Width         string            `json:"width,omitempty"`          // Section width
+	CategoryOrder []string          `json:"categoryOrder,omitempty"`  // For skills: custom category order
+	ItemConfig    map[string]any    `json:"itemConfig,omitempty"`     // Per-item overrides
+}
+
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
 	HomepageEnabled       bool
@@ -24,6 +35,7 @@ type SiteSettings struct {
 	HideDemoToggle        bool
 	HomepageCustomContent []HomepageCustomContentItem
 	HomepageSectionOrder  []string
+	HomepageSections      map[string]HomepageSectionConfig
 	Record                *core.Record
 }
 
@@ -76,6 +88,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		_ = json.Unmarshal([]byte(rawJSON), &homepageSectionOrder)
 	}
 
+	// Parse homepage sections JSON (per-section item selections)
+	var homepageSections map[string]HomepageSectionConfig
+	if rawJSON := record.GetString("homepage_sections"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &homepageSections)
+	}
+
 	return &SiteSettings{
 		HomepageEnabled:       record.GetBool("homepage_enabled"),
 		LandingPageMessage:    record.GetString("landing_page_message"),
@@ -85,6 +103,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HideDemoToggle:        record.GetBool("hide_demo_toggle"),
 		HomepageCustomContent: homepageCustomContent,
 		HomepageSectionOrder:  homepageSectionOrder,
+		HomepageSections:      homepageSections,
 		Record:                record,
 	}, nil
 }
@@ -146,6 +165,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("homepage_section_order", sectionOrder)
 		} else if logger != nil {
 			logger.Warn("homepage_section_order field missing on site_settings, skipping update")
+		}
+	}
+	if sections, ok := updates["homepage_sections"]; ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_sections") != nil {
+			settings.Record.Set("homepage_sections", sections)
+		} else if logger != nil {
+			logger.Warn("homepage_sections field missing on site_settings, skipping update")
 		}
 	}
 
