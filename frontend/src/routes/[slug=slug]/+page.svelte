@@ -199,6 +199,10 @@
 		return data.sectionWidths?.[sectionKey] || 'full';
 	}
 
+	function getCategoryOrder(sectionKey: string): string[] | undefined {
+		return data.sectionCategoryOrders?.[sectionKey];
+	}
+
 	// Get CSS class for section width (using 6-column grid)
 	function getWidthClass(width: string): string {
 		switch (width) {
@@ -230,7 +234,7 @@
 	<link rel="canonical" href="/{data.view?.slug}" />
 </svelte:head>
 
-<!-- Hidden form for setting password token cookie -->
+<!-- Hidden form for setting password token cookie (must be outside conditional for password flow) -->
 <form
 	bind:this={passwordForm}
 	method="POST"
@@ -239,7 +243,6 @@
 	use:enhance={() => {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-				// Reload page to fetch data with the new token
 				await invalidateAll();
 			}
 		};
@@ -409,7 +412,7 @@
 						</div>
 					{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
 						<div class={getWidthClass(getSectionWidth('skills'))}>
-							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} />
+							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} />
 						</div>
 					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('posts'))}>

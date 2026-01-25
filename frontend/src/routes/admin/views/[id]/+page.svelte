@@ -76,6 +76,7 @@
 		layout: string;
 		width: SectionWidth;
 		itemConfig: Record<string, ItemConfig>;
+		categoryOrder?: string[];
 	}> = $state({});
 
 	// Section order for drag-drop (array of section keys with unique ids for dndzone)
@@ -571,7 +572,7 @@
 		// Start with all sections disabled, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
+			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined };
 		}
 
 		// Apply saved section configuration and extract order
@@ -590,6 +591,7 @@
 					sections[vs.section].layout = vs.layout || VALID_LAYOUTS[vs.section]?.default || 'default';
 					sections[vs.section].width = vs.width || 'full';
 					sections[vs.section].itemConfig = vs.itemConfig || {};
+					sections[vs.section].categoryOrder = vs.categoryOrder;
 				}
 			}
 		} else {
@@ -741,6 +743,10 @@
 						if (Object.keys(filteredConfig).length > 0) {
 							sectionData.itemConfig = filteredConfig;
 						}
+					}
+					// Include categoryOrder for skills section if set
+					if (key === 'skills' && sectionConfig?.categoryOrder?.length) {
+						sectionData.categoryOrder = sectionConfig.categoryOrder;
 					}
 					return sectionData;
 				});

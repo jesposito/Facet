@@ -430,14 +430,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				json.Unmarshal([]byte(sectionsJSON), &sections)
 			}
 
-			// Fetch content for each enabled section
 			sectionData := make(map[string]interface{})
-			// Track section order for frontend rendering
 			var sectionOrder []string
-			// Track layouts for each section
 			sectionLayouts := make(map[string]string)
-			// Track widths for each section (Phase 6.3)
 			sectionWidths := make(map[string]string)
+			sectionCategoryOrders := make(map[string][]string)
 
 			for _, section := range sections {
 				sectionName, ok := section["section"].(string)
@@ -463,6 +460,18 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					sectionWidths[sectionName] = width
 				} else {
 					sectionWidths[sectionName] = "full"
+				}
+
+				if catOrder, ok := section["categoryOrder"].([]interface{}); ok && len(catOrder) > 0 {
+					var categories []string
+					for _, cat := range catOrder {
+						if catStr, ok := cat.(string); ok {
+							categories = append(categories, catStr)
+						}
+					}
+					if len(categories) > 0 {
+						sectionCategoryOrders[sectionName] = categories
+					}
 				}
 
 				items, ok := section["items"].([]interface{})
@@ -534,6 +543,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["section_order"] = sectionOrder
 			response["section_layouts"] = sectionLayouts
 			response["section_widths"] = sectionWidths
+			response["section_category_orders"] = sectionCategoryOrders
 
 			// Fetch profile data for the view
 			profileTableName := "profile"
