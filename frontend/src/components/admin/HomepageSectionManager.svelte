@@ -193,16 +193,18 @@
 	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
 		// Update sectionItems with the reordered public items
 		const publicItems = e.detail.items;
-		const privateItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'private' || i.is_draft);
-		sectionItems[sectionKey] = [...publicItems, ...privateItems];
+		// Non-public items = private, unlisted, or draft - keep them at the end (not shown in UI)
+		const nonPublicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility !== 'public' || i.is_draft);
+		sectionItems[sectionKey] = [...publicItems, ...nonPublicItems];
 		updateSectionItems();
 	}
 
 	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
 		const trigger = e.detail.info?.trigger;
 		const finalPublicItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
-		const privateItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'private' || i.is_draft);
-		sectionItems[sectionKey] = [...finalPublicItems, ...privateItems];
+		// Non-public items = private, unlisted, or draft - keep them at the end (not shown in UI)
+		const nonPublicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility !== 'public' || i.is_draft);
+		sectionItems[sectionKey] = [...finalPublicItems, ...nonPublicItems];
 		updateSectionItems();
 
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
@@ -244,7 +246,7 @@
 				{@const sectionLabel = getSectionLabel(sectionKey)}
 				{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, layout: 'default', width: 'full' }}
 				{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
-				{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
+				{@const publicItems = items.filter(i => i.visibility === 'public' && !i.is_draft)}
 				{@const layoutKey = isCustom ? 'custom' : sectionKey}
 
 				<div
