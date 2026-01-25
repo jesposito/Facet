@@ -30,7 +30,7 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let coverImageFile: FileList | null = $state(null);
-	let mediaFiles: FileList | null = $state(null);
+	let pendingMediaFiles: File[] = $state([]); // Accumulated new files to upload
 	let mediaToKeep: string[] = $state([]); // Track existing media filenames to keep
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
@@ -163,7 +163,7 @@
 		isDraft = false;
 		sortOrder = 0;
 		coverImageFile = null;
-		mediaFiles = null;
+		pendingMediaFiles = [];
 		mediaToKeep = [];
 		editingItem = null;
 		adminTagIds = [];
@@ -203,7 +203,7 @@
 		sortOrder = item.sort_order;
 		adminTagIds = item.admin_tags || [];
 		coverImageFile = null;
-		mediaFiles = null;
+		pendingMediaFiles = [];
 		mediaToKeep = item.media ? [...item.media] : []; // Keep all existing media by default
 		showForm = true;
 	}
@@ -246,11 +246,9 @@
 					formData.append('media', filename);
 				}
 			}
-			// Then add any new files
-			if (mediaFiles && mediaFiles.length > 0) {
-				for (let i = 0; i < mediaFiles.length; i++) {
-					formData.append('media', mediaFiles[i]);
-				}
+			// Then add any new pending files
+			for (const file of pendingMediaFiles) {
+				formData.append('media', file);
 			}
 
 			if (editingItem) {
@@ -406,6 +404,20 @@
 
 	function removeMediaFromKeep(filename: string) {
 		mediaToKeep = mediaToKeep.filter((f) => f !== filename);
+	}
+
+	function handleMediaFilesSelected(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (input.files && input.files.length > 0) {
+			// Accumulate new files instead of replacing
+			pendingMediaFiles = [...pendingMediaFiles, ...Array.from(input.files)];
+			// Clear the input so the same file can be selected again if needed
+			input.value = '';
+		}
+	}
+
+	function removePendingFile(index: number) {
+		pendingMediaFiles = pendingMediaFiles.filter((_, i) => i !== index);
 	}
 </script>
 
@@ -608,8 +620,11 @@
 
 				<div>
 					<label for="media" class="label">Media Gallery</label>
+
+					<!-- Existing media (when editing) -->
 					{#if editingItem && mediaToKeep.length > 0}
-						<div class="flex flex-wrap gap-2 mb-2">
+						<p class="text-xs text-gray-500 mb-1">Existing images:</p>
+						<div class="flex flex-wrap gap-2 mb-3">
 							{#each mediaToKeep as filename}
 								<div class="relative group">
 									<img
@@ -618,7 +633,7 @@
 											filename
 										)}
 										alt="Media"
-										class="w-16 h-16 object-cover rounded"
+										class="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-700"
 									/>
 									<button
 										type="button"
@@ -631,17 +646,41 @@
 								</div>
 							{/each}
 						</div>
-						<p class="text-xs text-gray-500 mb-2">Hover over images to remove them</p>
 					{/if}
+
+					<!-- Pending new uploads -->
+					{#if pendingMediaFiles.length > 0}
+						<p class="text-xs text-gray-500 mb-1">New images to upload:</p>
+						<div class="flex flex-wrap gap-2 mb-3">
+							{#each pendingMediaFiles as file, index}
+								<div class="relative group">
+									<img
+										src={URL.createObjectURL(file)}
+										alt={file.name}
+										class="w-16 h-16 object-cover rounded border-2 border-primary-300 dark:border-primary-600"
+									/>
+									<button
+										type="button"
+										class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+										onclick={() => removePendingFile(index)}
+										title="Remove"
+									>
+										×
+									</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
+
 					<input
 						type="file"
 						id="media"
 						accept="image/jpeg,image/png,image/webp,image/svg+xml"
 						multiple
-						bind:files={mediaFiles}
+						onchange={handleMediaFilesSelected}
 						class="input"
 					/>
-					<p class="text-xs text-gray-500 mt-1">Upload multiple images to add to the gallery</p>
+					<p class="text-xs text-gray-500 mt-1">Select images to add (you can select multiple times to build up your gallery)</p>
 				</div>
 
 				<div>
