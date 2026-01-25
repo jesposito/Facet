@@ -206,6 +206,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			skills: data.skills || [],
 			posts,
 			talks: data.talks || [],
+			customContent: data.custom_content || [],
+			homepageCustomContentConfig: data.homepage_custom_content || [],
 			view: null,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false

@@ -893,9 +893,74 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["awards"] = serializeRecords(awardRecords)
 			}
 
+			// Fetch custom content based on homepage settings
+			if settings != nil && len(settings.HomepageCustomContent) > 0 {
+				customContentCollection := getTableName(app, "custom_content")
+				var customContentItems []map[string]interface{}
+
+				for _, item := range settings.HomepageCustomContent {
+					if !item.Enabled {
+						continue
+					}
+
+					record, err := app.FindRecordById(customContentCollection, item.ID)
+					if err != nil {
+						continue
+					}
+
+					// Only include public, non-draft items
+					if record.GetString("visibility") != "public" || record.GetBool("is_draft") {
+						continue
+					}
+
+					contentItem := map[string]interface{}{
+						"id":         record.Id,
+						"title":      record.GetString("title"),
+						"content":    record.GetString("content"),
+						"sort_order": record.GetInt("sort_order"),
+						"visibility": record.GetString("visibility"),
+						"is_draft":   record.GetBool("is_draft"),
+					}
+
+					// Add cover image URL if present
+					if coverImage := record.GetString("cover_image"); coverImage != "" {
+						contentItem["cover_image_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "")
+					}
+
+					// Add media URLs if present
+					if mediaField := record.Get("media"); mediaField != nil {
+						var mediaFiles []string
+						switch v := mediaField.(type) {
+						case []string:
+							mediaFiles = v
+						case []interface{}:
+							for _, m := range v {
+								if str, ok := m.(string); ok {
+									mediaFiles = append(mediaFiles, str)
+								}
+							}
+						}
+						if len(mediaFiles) > 0 {
+							var mediaURLs []string
+							for _, file := range mediaFiles {
+								mediaURLs = append(mediaURLs, fileURL(record.Collection().Id, record.Id, file, ""))
+							}
+							contentItem["media_urls"] = mediaURLs
+						}
+					}
+
+					customContentItems = append(customContentItems, contentItem)
+				}
+
+				if len(customContentItems) > 0 {
+					response["custom_content"] = customContentItems
+				}
+			}
+
 			// Include site settings in response
 			if settings != nil {
 				response["hide_login_button"] = settings.HideLoginButton
+				response["homepage_custom_content"] = settings.HomepageCustomContent
 			}
 
 			return e.JSON(http.StatusOK, response)

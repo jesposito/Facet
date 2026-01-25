@@ -2,7 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount, onDestroy } from 'svelte';
-	import { pb, type View } from '$lib/pocketbase';
+	import { pb, type View, type CustomContent } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -15,6 +15,16 @@
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
+
+	// Custom content for homepage
+	interface HomepageCustomContentItem {
+		id: string;
+		enabled: boolean;
+	}
+	let customContentItems: CustomContent[] = $state([]);
+	let homepageCustomContent: HomepageCustomContentItem[] = $state([]);
+	let customContentLoading = $state(true);
+	let customContentSaving = $state(false);
 
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
@@ -44,7 +54,7 @@
 	let viewsOverridingSummary: View[] = $state([]);
 
 	onMount(async () => {
-		await Promise.all([loadSettings(), loadProfile()]);
+		await Promise.all([loadSettings(), loadProfile(), loadCustomContent()]);
 	});
 
 	async function loadSettings() {
@@ -55,11 +65,111 @@
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
+				homepageCustomContent = data.homepage_custom_content || [];
 			}
 		} catch (err) {
 			console.error('Failed to load settings:', err);
 		} finally {
 			settingsLoading = false;
+		}
+	}
+
+	async function loadCustomContent() {
+		try {
+			const records = await collection('custom_content').getList(1, 100, {
+				sort: 'sort_order',
+				filter: 'visibility = "public" && is_draft = false'
+			});
+			customContentItems = records.items as unknown as CustomContent[];
+		} catch (err) {
+			console.error('Failed to load custom content:', err);
+		} finally {
+			customContentLoading = false;
+		}
+	}
+
+	// Get ordered custom content items based on settings
+	let orderedCustomContent = $derived(() => {
+		// Start with items in settings order
+		const ordered: Array<CustomContent & { enabled: boolean }> = [];
+		const usedIds = new Set<string>();
+
+		for (const setting of homepageCustomContent) {
+			const item = customContentItems.find(c => c.id === setting.id);
+			if (item) {
+				ordered.push({ ...item, enabled: setting.enabled });
+				usedIds.add(setting.id);
+			}
+		}
+
+		// Add remaining items that aren't in settings (disabled by default)
+		for (const item of customContentItems) {
+			if (!usedIds.has(item.id)) {
+				ordered.push({ ...item, enabled: false });
+			}
+		}
+
+		return ordered;
+	});
+
+	function toggleCustomContent(id: string) {
+		const existingIndex = homepageCustomContent.findIndex(c => c.id === id);
+		if (existingIndex >= 0) {
+			// Toggle existing
+			homepageCustomContent = homepageCustomContent.map((c, i) =>
+				i === existingIndex ? { ...c, enabled: !c.enabled } : c
+			);
+		} else {
+			// Add new (enabled)
+			homepageCustomContent = [...homepageCustomContent, { id, enabled: true }];
+		}
+	}
+
+	function moveCustomContent(id: string, direction: 'up' | 'down') {
+		// Ensure all current items are in the settings array
+		const allIds = orderedCustomContent().map(c => c.id);
+		let settings = allIds.map(itemId => {
+			const existing = homepageCustomContent.find(c => c.id === itemId);
+			return existing || { id: itemId, enabled: false };
+		});
+
+		const index = settings.findIndex(c => c.id === id);
+		if (index < 0) return;
+
+		const newIndex = direction === 'up' ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= settings.length) return;
+
+		// Swap
+		[settings[index], settings[newIndex]] = [settings[newIndex], settings[index]];
+		homepageCustomContent = settings;
+	}
+
+	async function saveCustomContentSettings() {
+		customContentSaving = true;
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					homepage_custom_content: homepageCustomContent
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				toasts.add('error', result.error || 'Failed to save custom content settings');
+				return;
+			}
+
+			toasts.add('success', 'Custom content settings saved');
+		} catch (err) {
+			console.error('Failed to save custom content settings:', err);
+			toasts.add('error', 'Failed to save custom content settings');
+		} finally {
+			customContentSaving = false;
 		}
 	}
 
@@ -636,19 +746,6 @@
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Profile Visibility</h2>
-
-				<div>
-					<label for="visibility" class="label">Who can see your profile</label>
-					<select id="visibility" bind:value={visibility} class="input">
-						<option value="public">Public - Anyone can view</option>
-						<option value="unlisted">Unlisted - Only accessible via direct link or views</option>
-						<option value="private">Private - Only you can view</option>
-					</select>
-				</div>
-			</div>
-
 			<div class="flex justify-end gap-3">
 				<a href="/" target="_blank" class="btn btn-secondary">
 					View Homepage
@@ -665,4 +762,107 @@
 			</div>
 		</form>
 	{/if}
+
+	<!-- Custom Content Section -->
+	<div class="card p-6 mt-6">
+		<div class="flex items-start justify-between gap-4 mb-4">
+			<div class="flex-1">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+					Custom Content Blocks
+				</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					Select and arrange custom content blocks to display on your homepage.
+				</p>
+			</div>
+		</div>
+
+		{#if customContentLoading}
+			<div class="animate-pulse text-center py-4">Loading custom content...</div>
+		{:else if customContentItems.length === 0}
+			<div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 text-center">
+				<div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+					{@html icon('document')}
+				</div>
+				<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">No custom content yet</h3>
+				<p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+					Create custom content blocks to display on your homepage.
+				</p>
+				<a href="/admin/custom" class="btn btn-primary btn-sm">
+					Create Custom Content
+				</a>
+			</div>
+		{:else}
+			<div class="space-y-2">
+				{#each orderedCustomContent() as item, index}
+					<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg {item.enabled ? 'ring-2 ring-primary-500' : ''}">
+						<!-- Reorder buttons -->
+						<div class="flex flex-col gap-1">
+							<button
+								type="button"
+								class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+								onclick={() => moveCustomContent(item.id, 'up')}
+								disabled={index === 0}
+								title="Move up"
+							>
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+								</svg>
+							</button>
+							<button
+								type="button"
+								class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+								onclick={() => moveCustomContent(item.id, 'down')}
+								disabled={index === orderedCustomContent().length - 1}
+								title="Move down"
+							>
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+								</svg>
+							</button>
+						</div>
+
+						<!-- Toggle -->
+						<label class="relative inline-flex items-center cursor-pointer">
+							<input
+								type="checkbox"
+								class="sr-only peer"
+								checked={item.enabled}
+								onchange={() => toggleCustomContent(item.id)}
+							/>
+							<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+						</label>
+
+						<!-- Title -->
+						<div class="flex-1 min-w-0">
+							<h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">
+								{item.title}
+							</h4>
+						</div>
+
+						<!-- Edit link -->
+						<a
+							href="/admin/custom"
+							class="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+							title="Edit custom content"
+						>
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+							</svg>
+						</a>
+					</div>
+				{/each}
+			</div>
+
+			<div class="flex justify-end mt-4">
+				<button
+					type="button"
+					class="btn btn-primary btn-sm"
+					onclick={saveCustomContentSettings}
+					disabled={customContentSaving}
+				>
+					{customContentSaving ? 'Saving...' : 'Save Custom Content'}
+				</button>
+			</div>
+		{/if}
+	</div>
 </div>

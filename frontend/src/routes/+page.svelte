@@ -16,6 +16,7 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
+	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -456,6 +457,13 @@
 			{#if data.talks && data.talks.length > 0}
 				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
 				<TalksSection items={data.talks} viewSlug="" />
+			{/if}
+
+			<!-- Custom Content Sections -->
+			{#if data.customContent && data.customContent.length > 0}
+				{#each data.customContent as item}
+					<CustomContentSection {item} layout="default" />
+				{/each}
 			{/if}
 		{/if}
 	</main>

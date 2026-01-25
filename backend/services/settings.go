@@ -1,21 +1,29 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// HomepageCustomContentItem represents a custom content block on the homepage
+type HomepageCustomContentItem struct {
+	ID      string `json:"id"`
+	Enabled bool   `json:"enabled"`
+}
+
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
-	HomepageEnabled    bool
-	LandingPageMessage string
-	CustomCSS          string
-	GAMeasurementID    string
-	HideLoginButton    bool
-	HideDemoToggle     bool
-	Record             *core.Record
+	HomepageEnabled       bool
+	LandingPageMessage    string
+	CustomCSS             string
+	GAMeasurementID       string
+	HideLoginButton       bool
+	HideDemoToggle        bool
+	HomepageCustomContent []HomepageCustomContentItem
+	Record                *core.Record
 }
 
 // LoadSiteSettings returns the current site settings, ensuring a default record exists.
@@ -55,14 +63,21 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		}
 	}
 
+	// Parse homepage custom content JSON
+	var homepageCustomContent []HomepageCustomContentItem
+	if rawJSON := record.GetString("homepage_custom_content"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &homepageCustomContent)
+	}
+
 	return &SiteSettings{
-		HomepageEnabled:    record.GetBool("homepage_enabled"),
-		LandingPageMessage: record.GetString("landing_page_message"),
-		CustomCSS:          record.GetString("custom_css"),
-		GAMeasurementID:    record.GetString("ga_measurement_id"),
-		HideLoginButton:    record.GetBool("hide_login_button"),
-		HideDemoToggle:     record.GetBool("hide_demo_toggle"),
-		Record:             record,
+		HomepageEnabled:       record.GetBool("homepage_enabled"),
+		LandingPageMessage:    record.GetString("landing_page_message"),
+		CustomCSS:             record.GetString("custom_css"),
+		GAMeasurementID:       record.GetString("ga_measurement_id"),
+		HideLoginButton:       record.GetBool("hide_login_button"),
+		HideDemoToggle:        record.GetBool("hide_demo_toggle"),
+		HomepageCustomContent: homepageCustomContent,
+		Record:                record,
 	}, nil
 }
 
@@ -109,6 +124,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("hide_demo_toggle", hide)
 		} else if logger != nil {
 			logger.Warn("hide_demo_toggle field missing on site_settings, skipping update")
+		}
+	}
+	if customContent, ok := updates["homepage_custom_content"]; ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_custom_content") != nil {
+			settings.Record.Set("homepage_custom_content", customContent)
+		} else if logger != nil {
+			logger.Warn("homepage_custom_content field missing on site_settings, skipping update")
 		}
 	}
 
