@@ -9,12 +9,30 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 
+	// Standard sections that can be ordered
+	const STANDARD_SECTIONS = [
+		{ key: 'experience', label: 'Experience' },
+		{ key: 'projects', label: 'Projects' },
+		{ key: 'education', label: 'Education' },
+		{ key: 'certifications', label: 'Certifications' },
+		{ key: 'awards', label: 'Awards' },
+		{ key: 'skills', label: 'Skills' },
+		{ key: 'posts', label: 'Posts' },
+		{ key: 'talks', label: 'Talks' },
+		{ key: 'testimonials', label: 'Testimonials' },
+		{ key: 'contacts', label: 'Contacts' }
+	];
+
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
 	let settingsSaving = $state(false);
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
+
+	// Section ordering
+	let sectionOrder: string[] = $state([]);
+	let sectionOrderSaving = $state(false);
 
 	// Custom content for homepage
 	interface HomepageCustomContentItem {
@@ -66,6 +84,7 @@
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
 				homepageCustomContent = data.homepage_custom_content || [];
+				sectionOrder = data.homepage_section_order || [];
 			}
 		} catch (err) {
 			console.error('Failed to load settings:', err);
@@ -111,6 +130,110 @@
 
 		return ordered;
 	});
+
+	// Build effective section order for display
+	// Combines standard sections with enabled custom content
+	let effectiveSectionOrder = $derived(() => {
+		// If we have a saved order, use it
+		if (sectionOrder.length > 0) {
+			// Start with saved order
+			const result: string[] = [...sectionOrder];
+
+			// Add any new standard sections not in order
+			for (const section of STANDARD_SECTIONS) {
+				if (!result.includes(section.key)) {
+					result.push(section.key);
+				}
+			}
+
+			// Add any new enabled custom content not in order
+			for (const item of orderedCustomContent()) {
+				if (item.enabled) {
+					const key = `custom:${item.id}`;
+					if (!result.includes(key)) {
+						result.push(key);
+					}
+				}
+			}
+
+			// Remove custom content that is no longer enabled
+			return result.filter(key => {
+				if (key.startsWith('custom:')) {
+					const id = key.replace('custom:', '');
+					const item = orderedCustomContent().find(c => c.id === id);
+					return item?.enabled;
+				}
+				return true;
+			});
+		}
+
+		// Default order: standard sections first, then enabled custom content
+		const result = STANDARD_SECTIONS.map(s => s.key);
+		for (const item of orderedCustomContent()) {
+			if (item.enabled) {
+				result.push(`custom:${item.id}`);
+			}
+		}
+		return result;
+	});
+
+	function getSectionLabel(key: string): string {
+		if (key.startsWith('custom:')) {
+			const id = key.replace('custom:', '');
+			const item = customContentItems.find(c => c.id === id);
+			return item?.title || 'Custom Content';
+		}
+		const section = STANDARD_SECTIONS.find(s => s.key === key);
+		return section?.label || key;
+	}
+
+	function isCustomSection(key: string): boolean {
+		return key.startsWith('custom:');
+	}
+
+	function moveSectionOrder(key: string, direction: 'up' | 'down') {
+		const order = effectiveSectionOrder();
+		const index = order.indexOf(key);
+		if (index < 0) return;
+
+		const newIndex = direction === 'up' ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= order.length) return;
+
+		// Swap
+		const newOrder = [...order];
+		[newOrder[index], newOrder[newIndex]] = [newOrder[newIndex], newOrder[index]];
+		sectionOrder = newOrder;
+	}
+
+	async function saveSectionOrder() {
+		sectionOrderSaving = true;
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					homepage_section_order: effectiveSectionOrder(),
+					homepage_custom_content: homepageCustomContent
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				toasts.add('error', result.error || 'Failed to save section order');
+				return;
+			}
+
+			toasts.add('success', 'Section order saved');
+		} catch (err) {
+			console.error('Failed to save section order:', err);
+			toasts.add('error', 'Failed to save section order');
+		} finally {
+			sectionOrderSaving = false;
+		}
+	}
 
 	function toggleCustomContent(id: string) {
 		const existingIndex = homepageCustomContent.findIndex(c => c.id === id);
@@ -763,44 +886,75 @@
 		</form>
 	{/if}
 
-	<!-- Custom Content Section -->
+	<!-- Section Order -->
 	<div class="card p-6 mt-6">
 		<div class="flex items-start justify-between gap-4 mb-4">
 			<div class="flex-1">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-					Custom Content Blocks
+					Section Order
 				</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Select and arrange custom content blocks to display on your homepage.
+					Arrange how sections appear on your homepage. Enable custom content blocks to add them to the order.
 				</p>
 			</div>
 		</div>
 
-		{#if customContentLoading}
-			<div class="animate-pulse text-center py-4">Loading custom content...</div>
-		{:else if customContentItems.length === 0}
-			<div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-6 text-center">
-				<div class="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-					{@html icon('document')}
-				</div>
-				<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">No custom content yet</h3>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-					Create custom content blocks to display on your homepage.
-				</p>
-				<a href="/admin/custom" class="btn btn-primary btn-sm">
-					Create Custom Content
-				</a>
-			</div>
+		{#if settingsLoading || customContentLoading}
+			<div class="animate-pulse text-center py-4">Loading sections...</div>
 		{:else}
+			<!-- Custom Content Toggle List -->
+			{#if customContentItems.length > 0}
+				<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+					<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+						Custom Content Blocks
+					</h3>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+						Toggle on to include in your homepage. Enabled items appear in the section order below.
+					</p>
+					<div class="space-y-2">
+						{#each orderedCustomContent() as item}
+							<div class="flex items-center gap-3">
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input
+										type="checkbox"
+										class="sr-only peer"
+										checked={item.enabled}
+										onchange={() => toggleCustomContent(item.id)}
+									/>
+									<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+								</label>
+								<span class="text-sm text-gray-700 dark:text-gray-300 {item.enabled ? 'font-medium' : ''}">{item.title}</span>
+								<a
+									href="/admin/custom"
+									class="ml-auto text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 text-xs"
+								>
+									Edit
+								</a>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{:else}
+				<div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg text-center">
+					<p class="text-sm text-gray-500 dark:text-gray-400 mb-2">
+						No custom content blocks yet.
+					</p>
+					<a href="/admin/custom" class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">
+						Create custom content →
+					</a>
+				</div>
+			{/if}
+
+			<!-- Section Order List -->
 			<div class="space-y-2">
-				{#each orderedCustomContent() as item, index}
-					<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg {item.enabled ? 'ring-2 ring-primary-500' : ''}">
+				{#each effectiveSectionOrder() as sectionKey, index}
+					<div class="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg {isCustomSection(sectionKey) ? 'border-primary-300 dark:border-primary-700' : ''}">
 						<!-- Reorder buttons -->
-						<div class="flex flex-col gap-1">
+						<div class="flex flex-col gap-0.5">
 							<button
 								type="button"
-								class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
-								onclick={() => moveCustomContent(item.id, 'up')}
+								class="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+								onclick={() => moveSectionOrder(sectionKey, 'up')}
 								disabled={index === 0}
 								title="Move up"
 							>
@@ -810,9 +964,9 @@
 							</button>
 							<button
 								type="button"
-								class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
-								onclick={() => moveCustomContent(item.id, 'down')}
-								disabled={index === orderedCustomContent().length - 1}
+								class="p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+								onclick={() => moveSectionOrder(sectionKey, 'down')}
+								disabled={index === effectiveSectionOrder().length - 1}
 								title="Move down"
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -821,34 +975,25 @@
 							</button>
 						</div>
 
-						<!-- Toggle -->
-						<label class="relative inline-flex items-center cursor-pointer">
-							<input
-								type="checkbox"
-								class="sr-only peer"
-								checked={item.enabled}
-								onchange={() => toggleCustomContent(item.id)}
-							/>
-							<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-						</label>
+						<!-- Position number -->
+						<span class="w-6 h-6 flex items-center justify-center text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded">
+							{index + 1}
+						</span>
 
-						<!-- Title -->
+						<!-- Section label -->
 						<div class="flex-1 min-w-0">
-							<h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">
-								{item.title}
-							</h4>
+							<span class="text-sm font-medium text-gray-900 dark:text-white">
+								{getSectionLabel(sectionKey)}
+							</span>
+							{#if isCustomSection(sectionKey)}
+								<span class="ml-2 text-xs text-primary-600 dark:text-primary-400">(custom)</span>
+							{/if}
 						</div>
 
-						<!-- Edit link -->
-						<a
-							href="/admin/custom"
-							class="text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
-							title="Edit custom content"
-						>
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-							</svg>
-						</a>
+						<!-- Drag handle icon -->
+						<svg class="w-4 h-4 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+						</svg>
 					</div>
 				{/each}
 			</div>
@@ -857,10 +1002,10 @@
 				<button
 					type="button"
 					class="btn btn-primary btn-sm"
-					onclick={saveCustomContentSettings}
-					disabled={customContentSaving}
+					onclick={saveSectionOrder}
+					disabled={sectionOrderSaving}
 				>
-					{customContentSaving ? 'Saving...' : 'Save Custom Content'}
+					{sectionOrderSaving ? 'Saving...' : 'Save Section Order'}
 				</button>
 			</div>
 		{/if}

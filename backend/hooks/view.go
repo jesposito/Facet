@@ -961,6 +961,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if settings != nil {
 				response["hide_login_button"] = settings.HideLoginButton
 				response["homepage_custom_content"] = settings.HomepageCustomContent
+				response["homepage_section_order"] = settings.HomepageSectionOrder
 			}
 
 			return e.JSON(http.StatusOK, response)

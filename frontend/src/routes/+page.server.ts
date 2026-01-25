@@ -208,6 +208,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			talks: data.talks || [],
 			customContent: data.custom_content || [],
 			homepageCustomContentConfig: data.homepage_custom_content || [],
+			homepageSectionOrder: data.homepage_section_order || [],
 			view: null,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false

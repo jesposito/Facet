@@ -23,6 +23,7 @@ type SiteSettings struct {
 	HideLoginButton       bool
 	HideDemoToggle        bool
 	HomepageCustomContent []HomepageCustomContentItem
+	HomepageSectionOrder  []string
 	Record                *core.Record
 }
 
@@ -69,6 +70,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		_ = json.Unmarshal([]byte(rawJSON), &homepageCustomContent)
 	}
 
+	// Parse homepage section order JSON
+	var homepageSectionOrder []string
+	if rawJSON := record.GetString("homepage_section_order"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &homepageSectionOrder)
+	}
+
 	return &SiteSettings{
 		HomepageEnabled:       record.GetBool("homepage_enabled"),
 		LandingPageMessage:    record.GetString("landing_page_message"),
@@ -77,6 +84,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HideLoginButton:       record.GetBool("hide_login_button"),
 		HideDemoToggle:        record.GetBool("hide_demo_toggle"),
 		HomepageCustomContent: homepageCustomContent,
+		HomepageSectionOrder:  homepageSectionOrder,
 		Record:                record,
 	}, nil
 }
@@ -131,6 +139,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("homepage_custom_content", customContent)
 		} else if logger != nil {
 			logger.Warn("homepage_custom_content field missing on site_settings, skipping update")
+		}
+	}
+	if sectionOrder, ok := updates["homepage_section_order"]; ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_section_order") != nil {
+			settings.Record.Set("homepage_section_order", sectionOrder)
+		} else if logger != nil {
+			logger.Warn("homepage_section_order field missing on site_settings, skipping update")
 		}
 	}
 
