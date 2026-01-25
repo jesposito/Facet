@@ -73,7 +73,10 @@
 				.filter(s => s.enabled !== false)
 				.map(s => s.section);
 		}
-		return DEFAULT_SECTION_ORDER;
+		return [
+			...DEFAULT_SECTION_ORDER,
+			...(data.custom || []).map(c => `custom:${c.id}`)
+		];
 	});
 
 	function isSectionEnabled(sectionKey: string): boolean {
