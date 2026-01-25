@@ -370,13 +370,22 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.V
 			continue
 		}
 
+		// Skip custom content sections for resume generation
+		// Custom content is freeform and may not fit standard resume formats
+		// The AI Print feature generates professional resumes with standardized sections
+		if isCustomContentSection(sectionName) {
+			continue
+		}
+
 		viewData.SectionOrder = append(viewData.SectionOrder, sectionName)
+
 		collectionName := getCollectionName(sectionName)
 		if collectionName == "" {
 			continue
 		}
 
 		// Check if specific items are selected
+		// Only show items that are explicitly selected - if none selected, section is empty
 		items, hasItems := section["items"].([]interface{})
 		var records []*core.Record
 
@@ -390,26 +399,8 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.V
 					}
 				}
 			}
-		} else {
-			// Fetch all non-draft items, then filter by view visibility
-			allRecords, fetchErr := app.FindRecordsByFilter(
-				collectionName,
-				"is_draft = false",
-				"sort_order",
-				100,
-				0,
-				nil,
-			)
-			if fetchErr != nil {
-				continue
-			}
-			// Filter to only include items visible for this section/view
-			for _, record := range allRecords {
-				if isRecordVisibleForSection(record, sectionName, view.Id) {
-					records = append(records, record)
-				}
-			}
 		}
+		// If no items selected (len(items) == 0), section remains empty - nothing shown
 
 		// Extract item configs for overrides
 		itemConfig := make(map[string]map[string]interface{})

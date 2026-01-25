@@ -1,21 +1,42 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// HomepageCustomContentItem represents a custom content block on the homepage
+type HomepageCustomContentItem struct {
+	ID      string `json:"id"`
+	Enabled bool   `json:"enabled"`
+}
+
+// HomepageSectionConfig represents per-section settings for the homepage
+// Mirrors the structure used in views for consistency
+type HomepageSectionConfig struct {
+	Enabled       bool              `json:"enabled"`
+	Items         []string          `json:"items,omitempty"`          // Selected item IDs (empty = all)
+	Layout        string            `json:"layout,omitempty"`         // Section layout
+	Width         string            `json:"width,omitempty"`          // Section width
+	CategoryOrder []string          `json:"categoryOrder,omitempty"`  // For skills: custom category order
+	ItemConfig    map[string]any    `json:"itemConfig,omitempty"`     // Per-item overrides
+}
+
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
-	HomepageEnabled    bool
-	LandingPageMessage string
-	CustomCSS          string
-	GAMeasurementID    string
-	HideLoginButton    bool
-	HideDemoToggle     bool
-	Record             *core.Record
+	HomepageEnabled       bool
+	LandingPageMessage    string
+	CustomCSS             string
+	GAMeasurementID       string
+	HideLoginButton       bool
+	HideDemoToggle        bool
+	HomepageCustomContent []HomepageCustomContentItem
+	HomepageSectionOrder  []string
+	HomepageSections      map[string]HomepageSectionConfig
+	Record                *core.Record
 }
 
 // LoadSiteSettings returns the current site settings, ensuring a default record exists.
@@ -55,14 +76,35 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		}
 	}
 
+	// Parse homepage custom content JSON
+	var homepageCustomContent []HomepageCustomContentItem
+	if rawJSON := record.GetString("homepage_custom_content"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &homepageCustomContent)
+	}
+
+	// Parse homepage section order JSON
+	var homepageSectionOrder []string
+	if rawJSON := record.GetString("homepage_section_order"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &homepageSectionOrder)
+	}
+
+	// Parse homepage sections JSON (per-section item selections)
+	var homepageSections map[string]HomepageSectionConfig
+	if rawJSON := record.GetString("homepage_sections"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &homepageSections)
+	}
+
 	return &SiteSettings{
-		HomepageEnabled:    record.GetBool("homepage_enabled"),
-		LandingPageMessage: record.GetString("landing_page_message"),
-		CustomCSS:          record.GetString("custom_css"),
-		GAMeasurementID:    record.GetString("ga_measurement_id"),
-		HideLoginButton:    record.GetBool("hide_login_button"),
-		HideDemoToggle:     record.GetBool("hide_demo_toggle"),
-		Record:             record,
+		HomepageEnabled:       record.GetBool("homepage_enabled"),
+		LandingPageMessage:    record.GetString("landing_page_message"),
+		CustomCSS:             record.GetString("custom_css"),
+		GAMeasurementID:       record.GetString("ga_measurement_id"),
+		HideLoginButton:       record.GetBool("hide_login_button"),
+		HideDemoToggle:        record.GetBool("hide_demo_toggle"),
+		HomepageCustomContent: homepageCustomContent,
+		HomepageSectionOrder:  homepageSectionOrder,
+		HomepageSections:      homepageSections,
+		Record:                record,
 	}, nil
 }
 
@@ -109,6 +151,27 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("hide_demo_toggle", hide)
 		} else if logger != nil {
 			logger.Warn("hide_demo_toggle field missing on site_settings, skipping update")
+		}
+	}
+	if customContent, ok := updates["homepage_custom_content"]; ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_custom_content") != nil {
+			settings.Record.Set("homepage_custom_content", customContent)
+		} else if logger != nil {
+			logger.Warn("homepage_custom_content field missing on site_settings, skipping update")
+		}
+	}
+	if sectionOrder, ok := updates["homepage_section_order"]; ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_section_order") != nil {
+			settings.Record.Set("homepage_section_order", sectionOrder)
+		} else if logger != nil {
+			logger.Warn("homepage_section_order field missing on site_settings, skipping update")
+		}
+	}
+	if sections, ok := updates["homepage_sections"]; ok {
+		if settings.Record.Collection().Fields.GetByName("homepage_sections") != nil {
+			settings.Record.Set("homepage_sections", sections)
+		} else if logger != nil {
+			logger.Warn("homepage_sections field missing on site_settings, skipping update")
 		}
 	}
 

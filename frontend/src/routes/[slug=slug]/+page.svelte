@@ -18,6 +18,12 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
+	import CustomContentSection from '$components/public/CustomContentSection.svelte';
+
+	// Helper to check if a section key is for custom content
+	function isCustomSection(sectionKey: string): boolean {
+		return sectionKey.startsWith('custom:');
+	}
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import ShareButton from '$components/shared/ShareButton.svelte';
@@ -429,6 +435,10 @@
 					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('contacts'))}>
 							<ContactMethodsList contacts={data.sections.contacts} viewId={data.view?.id || ''} layout={getContactLayout()} />
+						</div>
+					{:else if isCustomSection(sectionKey) && data.sections?.[sectionKey]?.[0]}
+						<div class={getWidthClass(getSectionWidth(sectionKey))}>
+							<CustomContentSection item={data.sections[sectionKey][0]} layout={getSectionLayout(sectionKey)} />
 						</div>
 					{/if}
 				{/each}
