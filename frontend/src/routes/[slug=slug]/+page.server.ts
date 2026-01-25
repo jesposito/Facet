@@ -22,6 +22,21 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 
 	const shareToken = getShareToken(cookies);
 	const passwordToken = getPasswordToken(cookies);
+
+	let siteNav: { enabled: boolean; items: Array<{ slug: string; label: string; url: string; is_home: boolean }> } = {
+		enabled: false,
+		items: []
+	};
+
+	if (!shareToken) {
+		try {
+			const siteNavResponse = await fetch(`${pbUrl}/api/site-nav`);
+			if (siteNavResponse.ok) {
+				siteNav = await siteNavResponse.json();
+			}
+		} catch {
+		}
+	}
 	
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 
@@ -92,7 +107,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				},
 				profile: null,
 				sections: {},
-				requiresPassword: true
+				requiresPassword: true,
+				siteNav
 			};
 		}
 
@@ -127,7 +143,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 						},
 						profile: null,
 						sections: {},
-						requiresPassword: true
+						requiresPassword: true,
+						siteNav
 					};
 				}
 				// Invalid share token for unlisted = 404 (not discoverable)
@@ -166,7 +183,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionWidths: viewData.section_widths || {},
 			sectionCategoryOrders: viewData.section_category_orders || {},
 			requiresPassword: false,
-			shareToken: effectiveShareToken || null
+			shareToken: effectiveShareToken || null,
+			siteNav
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {

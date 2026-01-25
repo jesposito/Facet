@@ -6,6 +6,7 @@
 	import { browser } from '$app/environment';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
+	import SiteNav from '$components/public/SiteNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
@@ -366,7 +367,14 @@
 		}}
 	/>
 
-	{#if (data.profile?.cta_text && data.profile?.cta_url) || (data.view?.cta_text && data.view?.cta_url)}
+	{#if data.siteNav?.enabled && data.siteNav.items.length > 0}
+		{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url}
+		{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+		<SiteNav
+			items={data.siteNav.items}
+			ctaButton={ctaUrl ? { url: ctaUrl, label: ctaButtonText } : null}
+		/>
+	{:else if (data.profile?.cta_text && data.profile?.cta_url) || (data.view?.cta_text && data.view?.cta_url)}
 		{@const ctaText = data.profile?.cta_text || data.view?.cta_text}
 		{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url}
 		{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}

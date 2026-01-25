@@ -16,6 +16,19 @@ import { logger } from '$lib/logger';
 export const load: PageServerLoad = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
+	let siteNav: { enabled: boolean; items: Array<{ slug: string; label: string; url: string; is_home: boolean }> } = {
+		enabled: false,
+		items: []
+	};
+
+	try {
+		const siteNavResponse = await fetch(`${pbUrl}/api/site-nav`);
+		if (siteNavResponse.ok) {
+			siteNav = await siteNavResponse.json();
+		}
+	} catch {
+	}
+
 	try {
 		const defaultViewResponse = await fetch(`${pbUrl}/api/default-view`);
 
@@ -27,7 +40,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				return {
 					homepageDisabled: true,
 					landingPageMessage: defaultViewInfo.landing_page_message || '',
-					hideLoginButton: defaultViewInfo.hide_login_button || false
+					hideLoginButton: defaultViewInfo.hide_login_button || false,
+					siteNav
 				};
 			}
 
@@ -104,7 +118,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						isDefaultView: true,
 						homepageDisabled: false,
 						landingPageMessage: defaultViewInfo.landing_page_message || '',
-						hideLoginButton: defaultViewInfo.hide_login_button || false
+						hideLoginButton: defaultViewInfo.hide_login_button || false,
+						siteNav
 					};
 				}
 			}
@@ -136,7 +151,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				isDefaultView: false,
 				homepageDisabled: false,
 				landingPageMessage: '',
-				hideLoginButton: false
+				hideLoginButton: false,
+				siteNav
 			};
 		}
 
@@ -156,7 +172,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				posts: [],
 				talks: [],
 				view: null,
-				isDefaultView: false
+				isDefaultView: false,
+				siteNav
 			};
 		}
 
@@ -174,7 +191,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				view: null,
 				error: 'Profile is private',
 				isDefaultView: false,
-				hideLoginButton: data.hide_login_button || false
+				hideLoginButton: data.hide_login_button || false,
+				siteNav
 			};
 		}
 
@@ -208,7 +226,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			talks: data.talks || [],
 			view: null,
 			isDefaultView: false,
-			hideLoginButton: data.hide_login_button || false
+			hideLoginButton: data.hide_login_button || false,
+			siteNav
 		};
 	} catch (error) {
 		logger.error('[ROOT PAGE] Exception:', error);
@@ -225,7 +244,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			view: null,
 			error: 'Failed to load profile',
 			isDefaultView: false,
-			hideLoginButton: false
+			hideLoginButton: false,
+			siteNav
 		};
 	}
 };

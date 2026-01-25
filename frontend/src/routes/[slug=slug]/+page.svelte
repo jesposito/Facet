@@ -8,6 +8,7 @@
 	import { browser } from '$app/environment';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
+	import SiteNav from '$components/public/SiteNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
 	import EducationSection from '$components/public/EducationSection.svelte';
@@ -348,8 +349,14 @@
 			}}
 		/>
 
-		<!-- CTA banner if configured -->
-		{#if data.view?.cta_text && data.view?.cta_url}
+		{#if data.siteNav?.enabled && data.siteNav.items.length > 0}
+			{@const ctaUrl = data.view?.cta_url}
+			{@const ctaButtonText = data.view?.cta_button_text || 'Learn More'}
+			<SiteNav
+				items={data.siteNav.items}
+				ctaButton={ctaUrl ? { url: ctaUrl, label: ctaButtonText } : null}
+			/>
+		{:else if data.view?.cta_text && data.view?.cta_url}
 			<div class="bg-primary-600 text-white py-4">
 				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 					<span class="font-medium">{data.view.cta_text}</span>

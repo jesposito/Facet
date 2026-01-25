@@ -1,11 +1,107 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
+	"strings"
 
 	"github.com/pocketbase/pocketbase/core"
 )
+
+// parseSiteNav unmarshals the site_nav JSON field from a record.
+func parseSiteNav(record *core.Record) SiteNavConfig {
+	raw := record.GetString("site_nav")
+	if raw == "" {
+		return DefaultSiteNavConfig()
+	}
+	var config SiteNavConfig
+	if err := json.Unmarshal([]byte(raw), &config); err != nil {
+		return DefaultSiteNavConfig()
+	}
+	return config
+}
+
+const maxNavItems = 20
+const maxLabelLength = 50
+
+func sanitizeSiteNavConfig(input map[string]any) map[string]any {
+	result := make(map[string]any)
+
+	if enabled, ok := input["enabled"].(bool); ok {
+		result["enabled"] = enabled
+	} else {
+		result["enabled"] = false
+	}
+
+	if homeLabel, ok := input["home_label"].(string); ok {
+		if len(homeLabel) > maxLabelLength {
+			homeLabel = homeLabel[:maxLabelLength]
+		}
+		result["home_label"] = strings.TrimSpace(homeLabel)
+	} else {
+		result["home_label"] = "Home"
+	}
+
+	var sanitizedItems []map[string]any
+	if items, ok := input["items"].([]any); ok {
+		seen := make(map[string]bool)
+		for i, raw := range items {
+			if i >= maxNavItems {
+				break
+			}
+			item, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+
+			viewID, _ := item["view_id"].(string)
+			if viewID == "" || viewID == "home" || seen[viewID] {
+				continue
+			}
+			seen[viewID] = true
+
+			label, _ := item["label"].(string)
+			if len(label) > maxLabelLength {
+				label = label[:maxLabelLength]
+			}
+
+			visible, _ := item["visible"].(bool)
+
+			sanitizedItems = append(sanitizedItems, map[string]any{
+				"view_id": viewID,
+				"label":   strings.TrimSpace(label),
+				"visible": visible,
+			})
+		}
+	}
+	result["items"] = sanitizedItems
+
+	return result
+}
+
+// SiteNavItem represents a single item in the site navigation.
+type SiteNavItem struct {
+	ViewID  string `json:"view_id"` // "home" for homepage, or actual view ID
+	Label   string `json:"label"`   // Custom display label
+	Visible bool   `json:"visible"` // Show/hide toggle
+}
+
+// SiteNavConfig holds the site navigation configuration.
+type SiteNavConfig struct {
+	Enabled   bool          `json:"enabled"`    // Whether nav is displayed
+	HomeLabel string        `json:"home_label"` // Label for home link (default: "Home")
+	Items     []SiteNavItem `json:"items"`      // Ordered list of nav items
+}
+
+// DefaultSiteNavConfig returns sensible defaults for site navigation.
+func DefaultSiteNavConfig() SiteNavConfig {
+	return SiteNavConfig{
+		Enabled:   false,
+		HomeLabel: "Home",
+		Items:     []SiteNavItem{},
+	}
+}
 
 // SiteSettings holds public site configuration flags.
 type SiteSettings struct {
@@ -15,6 +111,7 @@ type SiteSettings struct {
 	GAMeasurementID    string
 	HideLoginButton    bool
 	HideDemoToggle     bool
+	SiteNav            SiteNavConfig
 	Record             *core.Record
 }
 
@@ -26,6 +123,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		return &SiteSettings{
 			HomepageEnabled:    true,
 			LandingPageMessage: "",
+			SiteNav:            DefaultSiteNavConfig(),
 			Record:             nil,
 		}, nil
 	}
@@ -62,6 +160,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		GAMeasurementID:    record.GetString("ga_measurement_id"),
 		HideLoginButton:    record.GetBool("hide_login_button"),
 		HideDemoToggle:     record.GetBool("hide_demo_toggle"),
+		SiteNav:            parseSiteNav(record),
 		Record:             record,
 	}, nil
 }
@@ -111,6 +210,19 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			logger.Warn("hide_demo_toggle field missing on site_settings, skipping update")
 		}
 	}
+	if nav, ok := updates["site_nav"].(map[string]any); ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav") != nil {
+			sanitized := sanitizeSiteNavConfig(nav)
+			navJSON, err := json.Marshal(sanitized)
+			if err == nil {
+				settings.Record.Set("site_nav", string(navJSON))
+			} else if logger != nil {
+				logger.Warn("failed to marshal site_nav, skipping update", "error", err)
+			}
+		} else if logger != nil {
+			logger.Warn("site_nav field missing on site_settings, skipping update")
+		}
+	}
 
 	if err := app.Save(settings.Record); err != nil {
 		return nil, err
@@ -118,4 +230,72 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 
 	// Reload to ensure stored values are returned
 	return LoadSiteSettings(app)
+}
+
+type BuiltNavItem struct {
+	Slug   string `json:"slug"`
+	Label  string `json:"label"`
+	URL    string `json:"url"`
+	IsHome bool   `json:"is_home"`
+}
+
+type ViewInfo struct {
+	ID   string
+	Name string
+	Slug string
+}
+
+func BuildNavItems(config SiteNavConfig, publicViews []ViewInfo) []BuiltNavItem {
+	result := []BuiltNavItem{}
+
+	if !config.Enabled {
+		return result
+	}
+
+	viewByID := make(map[string]ViewInfo)
+	for _, v := range publicViews {
+		viewByID[v.ID] = v
+	}
+
+	homeLabel := config.HomeLabel
+	if homeLabel == "" {
+		homeLabel = "Home"
+	}
+	result = append(result, BuiltNavItem{
+		Slug:   "",
+		Label:  homeLabel,
+		URL:    "/",
+		IsHome: true,
+	})
+
+	seen := make(map[string]bool)
+	for _, item := range config.Items {
+		if !item.Visible || item.ViewID == "home" || seen[item.ViewID] {
+			continue
+		}
+
+		view, exists := viewByID[item.ViewID]
+		if !exists {
+			continue
+		}
+
+		seen[item.ViewID] = true
+
+		label := item.Label
+		if label == "" {
+			label = view.Name
+		}
+		if len(label) > 50 {
+			label = label[:50]
+		}
+
+		result = append(result, BuiltNavItem{
+			Slug:   view.Slug,
+			Label:  label,
+			URL:    "/" + view.Slug,
+			IsHome: false,
+		})
+	}
+
+	return result
 }

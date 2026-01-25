@@ -16,6 +16,22 @@
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
 
+	// Site navigation settings
+	interface NavItem {
+		view_id: string;
+		label: string;
+		visible: boolean;
+	}
+	interface PublicView {
+		id: string;
+		name: string;
+		slug: string;
+	}
+	let navEnabled = $state(false);
+	let navHomeLabel = $state('Home');
+	let navItems = $state<NavItem[]>([]);
+	let publicViews = $state<PublicView[]>([]);
+
 	// Profile data
 	let profile: Record<string, unknown> | null = null;
 	let profileLoading = $state(true);
@@ -49,18 +65,63 @@
 
 	async function loadSettings() {
 		try {
-			const response = await fetch('/api/site-settings');
-			if (response.ok) {
-				const data = await response.json();
+			const [settingsResponse, viewsResponse] = await Promise.all([
+				fetch('/api/site-settings'),
+				pb.collection('views').getFullList({ filter: "visibility = 'public' && is_active = true", sort: 'name' })
+			]);
+
+			if (settingsResponse.ok) {
+				const data = await settingsResponse.json();
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
+
+				if (data.site_nav) {
+					navEnabled = data.site_nav.enabled || false;
+					navHomeLabel = data.site_nav.home_label || 'Home';
+					navItems = data.site_nav.items || [];
+				}
 			}
+
+			publicViews = viewsResponse.map((v) => ({
+				id: v.id,
+				name: v.name as string,
+				slug: v.slug as string
+			}));
+
+			syncNavItemsWithViews();
 		} catch (err) {
 			console.error('Failed to load settings:', err);
 		} finally {
 			settingsLoading = false;
 		}
+	}
+
+	function syncNavItemsWithViews() {
+		const existingIds = new Set(navItems.map(item => item.view_id));
+		const viewIds = new Set(publicViews.map(v => v.id));
+
+		navItems = navItems.filter(item => viewIds.has(item.view_id));
+
+		for (const view of publicViews) {
+			if (!existingIds.has(view.id)) {
+				navItems = [...navItems, { view_id: view.id, label: '', visible: true }];
+			}
+		}
+	}
+
+	function getViewName(viewId: string): string {
+		const view = publicViews.find(v => v.id === viewId);
+		return view?.name || 'Unknown';
+	}
+
+	function moveNavItem(index: number, direction: 'up' | 'down') {
+		const newIndex = direction === 'up' ? index - 1 : index + 1;
+		if (newIndex < 0 || newIndex >= navItems.length) return;
+
+		const items = [...navItems];
+		[items[index], items[newIndex]] = [items[newIndex], items[index]];
+		navItems = items;
 	}
 
 	async function saveSettings() {
@@ -75,7 +136,12 @@
 				body: JSON.stringify({
 					homepage_enabled: homepageEnabled,
 					landing_page_message: landingPageMessage,
-					hide_login_button: hideLoginButton
+					hide_login_button: hideLoginButton,
+					site_nav: {
+						enabled: navEnabled,
+						home_label: navHomeLabel,
+						items: navItems
+					}
 				})
 			});
 
@@ -88,6 +154,11 @@
 			homepageEnabled = result.homepage_enabled !== false;
 			landingPageMessage = result.landing_page_message || '';
 			hideLoginButton = result.hide_login_button === true;
+			if (result.site_nav) {
+				navEnabled = result.site_nav.enabled || false;
+				navHomeLabel = result.site_nav.home_label || 'Home';
+				navItems = result.site_nav.items || [];
+			}
 			toasts.add('success', 'Homepage settings saved');
 		} catch (err) {
 			console.error('Failed to save settings:', err);
@@ -356,9 +427,114 @@
 				onclick={saveSettings}
 				disabled={settingsSaving || settingsLoading}
 			>
-				{settingsSaving ? 'Saving...' : 'Save Visibility'}
+				{settingsSaving ? 'Saving...' : 'Save Settings'}
 			</button>
 		</div>
+	</div>
+
+	<div class="card p-6 mb-6">
+		<div class="flex items-start justify-between gap-4 mb-4">
+			<div class="flex-1">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+					Site Navigation
+				</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					{#if navEnabled}
+						Navigation bar is <span class="font-medium text-green-600 dark:text-green-400">enabled</span>.
+						Visitors can navigate between your homepage and public facets.
+					{:else}
+						Navigation bar is <span class="font-medium text-gray-500">disabled</span>.
+						Enable it to let visitors navigate between your facets.
+					{/if}
+				</p>
+			</div>
+			<label class="relative inline-flex items-center cursor-pointer">
+				<input
+					type="checkbox"
+					class="sr-only peer"
+					bind:checked={navEnabled}
+					disabled={settingsSaving || settingsLoading}
+				/>
+				<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+			</label>
+		</div>
+
+		{#if navEnabled}
+			<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+				<div>
+					<label for="nav-home-label" class="label">Home Button Label</label>
+					<input
+						type="text"
+						id="nav-home-label"
+						bind:value={navHomeLabel}
+						placeholder="Home"
+						class="input max-w-xs"
+						disabled={settingsSaving}
+						maxlength="50"
+					/>
+				</div>
+
+				{#if publicViews.length > 0}
+					<div>
+						<span class="label">Facets in Navigation</span>
+						<p class="text-xs text-gray-500 mb-2">Drag to reorder. Only public facets appear here.</p>
+						<div class="space-y-2">
+							{#each navItems as item, i (item.view_id)}
+								<div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+									<div class="flex flex-col gap-0.5">
+										<button
+											type="button"
+											class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
+											onclick={() => moveNavItem(i, 'up')}
+											disabled={i === 0 || settingsSaving}
+											title="Move up"
+										>
+											▲
+										</button>
+										<button
+											type="button"
+											class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs leading-none"
+											onclick={() => moveNavItem(i, 'down')}
+											disabled={i === navItems.length - 1 || settingsSaving}
+											title="Move down"
+										>
+											▼
+										</button>
+									</div>
+									<div class="flex-1 min-w-0">
+										<div class="text-sm font-medium text-gray-900 dark:text-white truncate">
+											{getViewName(item.view_id)}
+										</div>
+									</div>
+									<input
+										type="text"
+										bind:value={item.label}
+										placeholder={getViewName(item.view_id)}
+										class="input input-sm w-32"
+										disabled={settingsSaving}
+										maxlength="50"
+										title="Custom label (leave empty to use facet name)"
+									/>
+									<label class="relative inline-flex items-center cursor-pointer">
+										<input
+											type="checkbox"
+											class="sr-only peer"
+											bind:checked={item.visible}
+											disabled={settingsSaving}
+										/>
+										<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+									</label>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{:else}
+					<p class="text-sm text-gray-500 dark:text-gray-400 italic">
+						No public facets available. Create a public facet in the Views section to add it to navigation.
+					</p>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Profile Section -->

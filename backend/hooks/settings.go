@@ -29,6 +29,54 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"ga_measurement_id":    settings.GAMeasurementID,
 				"hide_login_button":    settings.HideLoginButton,
 				"hide_demo_toggle":     settings.HideDemoToggle,
+				"site_nav":             settings.SiteNav,
+			})
+		})
+
+		// Public: fetch built navigation items
+		se.Router.GET("/api/site-nav", func(e *core.RequestEvent) error {
+			e.Response.Header().Set("Cache-Control", "public, max-age=60")
+
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				app.Logger().Error("Failed to load site settings", "error", err)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load settings"})
+			}
+
+			if !settings.SiteNav.Enabled {
+				return e.JSON(http.StatusOK, map[string]any{
+					"enabled": false,
+					"items":   []any{},
+				})
+			}
+
+			viewRecords, err := app.FindRecordsByFilter(
+				"views",
+				"visibility = 'public' && is_active = true",
+				"",
+				100,
+				0,
+				nil,
+			)
+			if err != nil {
+				app.Logger().Error("Failed to load views", "error", err)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load views"})
+			}
+
+			var publicViews []services.ViewInfo
+			for _, v := range viewRecords {
+				publicViews = append(publicViews, services.ViewInfo{
+					ID:   v.Id,
+					Name: v.GetString("name"),
+					Slug: v.GetString("slug"),
+				})
+			}
+
+			items := services.BuildNavItems(settings.SiteNav, publicViews)
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"enabled": true,
+				"items":   items,
 			})
 		})
 
@@ -39,12 +87,13 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			var req struct {
-				HomepageEnabled    *bool  `json:"homepage_enabled"`
-				LandingPageMessage string `json:"landing_page_message"`
-				CustomCSS          string `json:"custom_css"`
-				GAMeasurementID    string `json:"ga_measurement_id"`
-				HideLoginButton    *bool  `json:"hide_login_button"`
-				HideDemoToggle     *bool  `json:"hide_demo_toggle"`
+				HomepageEnabled    *bool          `json:"homepage_enabled"`
+				LandingPageMessage string         `json:"landing_page_message"`
+				CustomCSS          string         `json:"custom_css"`
+				GAMeasurementID    string         `json:"ga_measurement_id"`
+				HideLoginButton    *bool          `json:"hide_login_button"`
+				HideDemoToggle     *bool          `json:"hide_demo_toggle"`
+				SiteNav            map[string]any `json:"site_nav"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -83,6 +132,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.HideDemoToggle != nil {
 				updates["hide_demo_toggle"] = *req.HideDemoToggle
 			}
+			if req.SiteNav != nil {
+				updates["site_nav"] = req.SiteNav
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -96,6 +148,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"ga_measurement_id":    settings.GAMeasurementID,
 				"hide_login_button":    settings.HideLoginButton,
 				"hide_demo_toggle":     settings.HideDemoToggle,
+				"site_nav":             settings.SiteNav,
 			})
 		})
 
