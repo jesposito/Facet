@@ -53,10 +53,37 @@
 		siteName: 'Facet'
 	}) : {});
 
-	// Section ordering - use view's custom order if available
-	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
-		? data.sectionOrder
-		: DEFAULT_SECTION_ORDER);
+	// Homepage sections config (from site settings)
+	interface HomepageSectionConfig {
+		section: string;
+		enabled: boolean;
+		layout?: string;
+		width?: string;
+	}
+	
+	// Section ordering - use view's custom order, then homepage sections, then default
+	let effectiveSectionOrder = $derived(() => {
+		if (data.sectionOrder && data.sectionOrder.length > 0) {
+			return data.sectionOrder;
+		}
+		if (data.homepageSections && Array.isArray(data.homepageSections) && data.homepageSections.length > 0) {
+			return (data.homepageSections as HomepageSectionConfig[])
+				.filter(s => s.enabled !== false)
+				.map(s => s.section);
+		}
+		return DEFAULT_SECTION_ORDER;
+	});
+
+	function isSectionEnabled(sectionKey: string): boolean {
+		if (data.sectionOrder && data.sectionOrder.length > 0) {
+			return data.sectionOrder.includes(sectionKey);
+		}
+		if (data.homepageSections && Array.isArray(data.homepageSections)) {
+			const config = (data.homepageSections as HomepageSectionConfig[]).find(s => s.section === sectionKey);
+			return config ? config.enabled !== false : true;
+		}
+		return true;
+	}
 
 	function getSectionLayout(sectionKey: string): string {
 		return data.sectionLayouts?.[sectionKey] || 'default';
@@ -414,58 +441,53 @@
 	<!-- Main content -->
 	<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 		{#if !data.profile?.name && data.experience.length === 0 && data.projects.length === 0}
-			<!-- Empty profile state -->
 			<div class="text-center py-16">
 				<p class="text-gray-500 dark:text-gray-400 text-lg">
 					This profile is being set up.
 				</p>
 			</div>
 		{:else}
-			{#if data.experience.length > 0}
-				<ExperienceSection items={data.experience} />
-			{/if}
-
-			{#if data.projects.length > 0}
-				<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
-			{/if}
-
-			{#if data.education.length > 0}
-				<EducationSection items={data.education} />
-			{/if}
-
-			{#if data.certifications && data.certifications.length > 0}
-				<CertificationsSection items={data.certifications} />
-			{/if}
-
-			{#if data.awards && data.awards.length > 0}
-				<AwardsSection items={data.awards} />
-			{/if}
-
-			{#if data.skills.length > 0}
-				<SkillsSection items={data.skills} />
-			{/if}
-
-			{#if data.posts && data.posts.length > 0}
-				<div class="flex items-center justify-between gap-3 mb-4">
-					<h2 class="section-title mb-0">Posts</h2>
-					<a
-						href="/posts"
-						class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-					>
-						Browse all
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-						</svg>
-					</a>
-				</div>
-				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-				<PostsSection items={data.posts} viewSlug="" />
-			{/if}
-
-			{#if data.talks && data.talks.length > 0}
-				<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-				<TalksSection items={data.talks} viewSlug="" />
-			{/if}
+			{#each effectiveSectionOrder() as sectionKey (sectionKey)}
+				{#if sectionKey === 'experience' && isSectionEnabled('experience') && data.experience.length > 0}
+					<ExperienceSection items={data.experience} />
+				{:else if sectionKey === 'projects' && isSectionEnabled('projects') && data.projects.length > 0}
+					<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
+				{:else if sectionKey === 'education' && isSectionEnabled('education') && data.education.length > 0}
+					<EducationSection items={data.education} />
+				{:else if sectionKey === 'certifications' && isSectionEnabled('certifications') && data.certifications && data.certifications.length > 0}
+					<CertificationsSection items={data.certifications} />
+				{:else if sectionKey === 'awards' && isSectionEnabled('awards') && data.awards && data.awards.length > 0}
+					<AwardsSection items={data.awards} />
+				{:else if sectionKey === 'skills' && isSectionEnabled('skills') && data.skills.length > 0}
+					<SkillsSection items={data.skills} />
+				{:else if sectionKey === 'posts' && isSectionEnabled('posts') && data.posts && data.posts.length > 0}
+					<div class="flex items-center justify-between gap-3 mb-4">
+						<h2 class="section-title mb-0">Posts</h2>
+						<a
+							href="/posts"
+							class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+						>
+							Browse all
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+							</svg>
+						</a>
+					</div>
+					<PostsSection items={data.posts} viewSlug="" />
+				{:else if sectionKey === 'talks' && isSectionEnabled('talks') && data.talks && data.talks.length > 0}
+					<TalksSection items={data.talks} viewSlug="" />
+				{:else if sectionKey === 'testimonials' && isSectionEnabled('testimonials') && data.testimonials && data.testimonials.length > 0}
+					<TestimonialsSection items={data.testimonials} />
+				{:else if sectionKey === 'contacts' && isSectionEnabled('contacts') && data.contacts && data.contacts.length > 0}
+					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
+				{:else if sectionKey.startsWith('custom:') && isSectionEnabled(sectionKey) && data.custom}
+					{@const customId = sectionKey.replace('custom:', '')}
+					{@const customItem = data.custom.find((c: { id: string }) => c.id === customId)}
+					{#if customItem}
+						<CustomSection item={customItem} />
+					{/if}
+				{/if}
+			{/each}
 		{/if}
 	</main>
 

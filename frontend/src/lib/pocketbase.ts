@@ -278,6 +278,16 @@ export interface ContactMethod {
 	sort_order: number;
 }
 
+export interface Custom {
+	id: string;
+	title: string;
+	content?: string;
+	visibility: 'public' | 'unlisted' | 'private';
+	sort_order: number;
+	media?: string[];
+	media_urls?: string[];
+}
+
 export interface View {
 	id: string;
 	name: string;

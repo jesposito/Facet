@@ -41,6 +41,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 					homepageDisabled: true,
 					landingPageMessage: defaultViewInfo.landing_page_message || '',
 					hideLoginButton: defaultViewInfo.hide_login_button || false,
+					homepageSections: null,
 					siteNav
 				};
 			}
@@ -119,6 +120,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						homepageDisabled: false,
 						landingPageMessage: defaultViewInfo.landing_page_message || '',
 						hideLoginButton: defaultViewInfo.hide_login_button || false,
+						homepageSections: null,
 						siteNav
 					};
 				}
@@ -152,6 +154,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				homepageDisabled: false,
 				landingPageMessage: '',
 				hideLoginButton: false,
+				homepageSections: null,
 				siteNav
 			};
 		}
@@ -173,6 +176,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				talks: [],
 				view: null,
 				isDefaultView: false,
+				homepageSections: null,
 				siteNav
 			};
 		}
@@ -192,6 +196,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				error: 'Profile is private',
 				isDefaultView: false,
 				hideLoginButton: data.hide_login_button || false,
+				homepageSections: null,
 				siteNav
 			};
 		}
@@ -224,9 +229,13 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			skills: data.skills || [],
 			posts,
 			talks: data.talks || [],
+			testimonials: data.testimonials || [],
+			contacts: data.contacts || [],
+			custom: data.custom || [],
 			view: null,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
+			homepageSections: data.homepage_sections || null,
 			siteNav
 		};
 	} catch (error) {
@@ -245,6 +254,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,
+			homepageSections: null,
 			siteNav
 		};
 	}

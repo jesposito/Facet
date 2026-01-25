@@ -120,7 +120,7 @@
 		{ value: 'website', label: 'Website', icon: '🌐', placeholder: 'https://yourwebsite.com' },
 		{ value: 'whatsapp', label: 'WhatsApp', icon: '💬', placeholder: '+1 (555) 123-4567' },
 		{ value: 'telegram', label: 'Telegram', icon: '✈️', placeholder: '@username' },
-		{ value: 'discord', label: 'Discord', icon: '🎮', placeholder: 'username#1234' },
+		{ value: 'discord', label: 'Discord', icon: '🎮', placeholder: 'username' },
 		{ value: 'slack', label: 'Slack', icon: '💼', placeholder: '@username' },
 		{ value: 'other', label: 'Other', icon: '🔗', placeholder: 'Contact information' }
 	];
