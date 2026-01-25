@@ -33,7 +33,6 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			})
 		})
 
-		// Public: fetch built navigation items
 		se.Router.GET("/api/site-nav", func(e *core.RequestEvent) error {
 			e.Response.Header().Set("Cache-Control", "public, max-age=60")
 
@@ -42,6 +41,11 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				app.Logger().Error("Failed to load site settings", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load settings"})
 			}
+
+			app.Logger().Info("[SITE-NAV] GET request",
+				"enabled", settings.SiteNav.Enabled,
+				"items_count", len(settings.SiteNav.Items),
+			)
 
 			if !settings.SiteNav.Enabled {
 				return e.JSON(http.StatusOK, map[string]any{

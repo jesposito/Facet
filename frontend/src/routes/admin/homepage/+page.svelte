@@ -63,6 +63,12 @@
 		await Promise.all([loadSettings(), loadProfile()]);
 	});
 
+	$effect(() => {
+		if (navEnabled && publicViews.length > 0 && navItems.length === 0) {
+			syncNavItemsWithViews();
+		}
+	});
+
 	async function loadSettings() {
 		try {
 			const [settingsResponse, viewsResponse] = await Promise.all([
@@ -351,6 +357,7 @@
 	<PageHelp pageKey="homepage">
 		<p><strong>Homepage</strong> controls what visitors see at your root URL.</p>
 		<p>Enable or disable public access, customize the landing page message for when your site is hidden, and edit your core profile information that appears across all facets.</p>
+		<p><strong>Site Navigation</strong> adds a navigation bar letting visitors browse between your homepage and public facets. Great when you have multiple facets for different audiences (e.g., "Portfolio", "Speaking", "Consulting").</p>
 		<p><strong>Tip:</strong> Hide your homepage while building your profile, then enable it when you're ready to go live.</p>
 	</PageHelp>
 
