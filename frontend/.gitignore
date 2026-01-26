@@ -1,1 +1,4 @@
 test-results/
+
+# Generated at build time by vite plugin
+static/CHANGELOG.md
