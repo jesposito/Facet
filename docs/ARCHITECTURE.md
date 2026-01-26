@@ -26,30 +26,26 @@
 │  │    SvelteKit        │    │         PocketBase (Go)              ││
 │  │    :3000            │    │         :8090                        ││
 │  │                     │    │                                      ││
-│  │  Public Pages:      │    │  Collections:                        ││
-│  │  ├── /              │◄───┤  ├── profile                         ││
-│  │  ├── /:slug         │    │  ├── experience                      ││
-│  │  ├── /s/:token      │    │  ├── projects                        ││
-│  │  ├── /projects/:slug│    │  ├── education                       ││
-│  │  └── /posts/:slug   │    │                                      ││
-│  │                     │    │  ├── certifications                  ││
-│  │  Admin Pages:       │    │  ├── skills                          ││
-│  │  ├── /admin         │───►│  ├── posts                           ││
-│  │  ├── /admin/views   │    │  ├── talks                           ││
-│  │  ├── /admin/import  │    │  ├── views                           ││
-│  │  └── /admin/review  │    │  ├── share_tokens                    ││
-│  │                     │    │  ├── sources                         ││
-│  └─────────────────────┘    │  ├── ai_providers                    ││
-│                             │  ├── import_proposals                ││
-│                             │  └── media                           ││
-│                             │                                      ││
-│                             │  Custom Go Hooks:                    ││
-│                             │  ├── /api/github/import              ││
-│                             │  ├── /api/github/refresh             ││
-│                             │  ├── /api/ai/enrich                  ││
-│                             │  ├── /api/ai/test                    ││
-│                             │  ├── /api/view/access                ││
-│                             │  └── /api/share/validate             ││
+│  │  Public Pages:      │    │  Collections (28 total):             ││
+│  │  ├── /              │◄───┤  ├── profile, experience, projects   ││
+│  │  ├── /:slug         │    │  ├── education, certifications       ││
+│  │  ├── /s/:token      │    │  ├── awards, skills, posts, talks    ││
+│  │  ├── /projects/:slug│    │  ├── custom_content                  ││
+│  │  ├── /posts/:slug   │    │  ├── contact_methods                 ││
+│  │  ├── /talks/:slug   │    │  ├── views, share_tokens             ││
+│  │  └── /testimonial/* │    │  ├── testimonials, testimonial_reqs  ││
+│  │                     │    │  ├── sources, ai_providers           ││
+│  │  Admin Pages:       │    │  ├── import_proposals, resume_imports││
+│  │  ├── /admin/*       │───►│  ├── media, external_media           ││
+│  │  └── 30+ routes     │    │  └── site_settings, admin_tags       ││
+│  │                     │    │                                      ││
+│  └─────────────────────┘    │  Custom Go Hooks:                    ││
+│                             │  ├── /api/github/* (import/refresh)  ││
+│                             │  ├── /api/ai/* (test/enrich/write)   ││
+│                             │  ├── /api/view/* (access/data/gen)   ││
+│                             │  ├── /api/testimonials/* (14 routes) ││
+│                             │  ├── /api/demo/* (enable/disable)    ││
+│                             │  └── /api/resume/parse               ││
 │                             │                                      ││
 │                             │  Auth: OAuth (Google, GitHub)        ││
 │                             └──────────────────────────────────────┘│
@@ -308,6 +304,147 @@ import_proposals {
   created            DATETIME
   updated            DATETIME
 }
+
+-- Awards (recognition and achievements)
+awards {
+  id                 TEXT PRIMARY KEY
+  title              TEXT NOT NULL
+  issuer             TEXT
+  date               DATE
+  description        TEXT
+  logo               FILE
+  visibility         TEXT         -- "public" | "unlisted" | "private"
+  is_draft           BOOLEAN
+  sort_order         INTEGER
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Contact Methods (protected contact information)
+contact_methods {
+  id                 TEXT PRIMARY KEY
+  type               TEXT NOT NULL  -- "email" | "phone" | "linkedin" | "github" | etc.
+  value              TEXT NOT NULL
+  label              TEXT           -- Display label
+  protection_level   TEXT           -- "none" | "obfuscated" | "click_reveal" | "captcha"
+  view_visibility    JSON           -- {view_id: boolean} for per-view visibility
+  visibility         TEXT
+  sort_order         INTEGER
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Custom Content (user-defined content sections)
+custom_content {
+  id                 TEXT PRIMARY KEY
+  title              TEXT NOT NULL
+  slug               TEXT UNIQUE
+  content            TEXT           -- Markdown
+  icon               TEXT           -- Icon identifier
+  visibility         TEXT
+  is_draft           BOOLEAN
+  sort_order         INTEGER
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Testimonials (social proof from third parties)
+testimonials {
+  id                 TEXT PRIMARY KEY
+  request_id         RELATION -> testimonial_requests
+  name               TEXT NOT NULL
+  title              TEXT
+  company            TEXT
+  relationship       TEXT           -- "client" | "colleague" | "manager" | etc.
+  content            TEXT NOT NULL
+  rating             INTEGER        -- Optional 1-5 rating
+  status             TEXT           -- "pending" | "approved" | "rejected"
+  featured           BOOLEAN
+  verified           BOOLEAN
+  verified_via       TEXT           -- "email" | "github" | "linkedin"
+  avatar_url         TEXT
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Testimonial Requests (shareable links to collect testimonials)
+testimonial_requests {
+  id                 TEXT PRIMARY KEY
+  token_hash         TEXT UNIQUE    -- HMAC-SHA256 hash (raw never stored)
+  token_prefix       TEXT           -- First 12 chars for lookup
+  name               TEXT           -- Admin label
+  custom_message     TEXT           -- Optional message to show submitters
+  expires_at         DATETIME
+  max_uses           INTEGER
+  use_count          INTEGER DEFAULT 0
+  is_active          BOOLEAN
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Email Verification Tokens (for testimonial verification)
+email_verification_tokens {
+  id                 TEXT PRIMARY KEY
+  testimonial_id     RELATION -> testimonials
+  token_hash         TEXT UNIQUE
+  email              TEXT
+  expires_at         DATETIME       -- 15-minute expiration
+  verified_at        DATETIME
+  created            DATETIME
+}
+
+-- Resume Imports (uploaded resume tracking)
+resume_imports {
+  id                 TEXT PRIMARY KEY
+  filename           TEXT
+  file_hash          TEXT           -- SHA256 for duplicate detection
+  file_size          INTEGER
+  mime_type          TEXT
+  parsed_data        JSON           -- Extracted structured data
+  status             TEXT           -- "pending" | "parsed" | "error"
+  error_message      TEXT
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Site Settings (global configuration singleton)
+site_settings {
+  id                 TEXT PRIMARY KEY
+  homepage_enabled   BOOLEAN
+  landing_page_message TEXT
+  custom_css         TEXT
+  ga_measurement_id  TEXT           -- Google Analytics
+  hide_login_button  BOOLEAN
+  hide_demo_toggle   BOOLEAN
+  site_nav_enabled   BOOLEAN
+  site_nav_items     JSON           -- Navigation buttons config
+  skills_category_order JSON        -- Custom ordering
+  homepage_sections  JSON           -- Per-section config
+  homepage_section_order JSON       -- Section display order
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- External Media (linked media from external sources)
+external_media {
+  id                 TEXT PRIMARY KEY
+  url                TEXT NOT NULL
+  title              TEXT
+  mime_type          TEXT
+  thumbnail_url      TEXT
+  provider           TEXT           -- "youtube" | "vimeo" | "image" | etc.
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Admin Tags (for organizing content)
+admin_tags {
+  id                 TEXT PRIMARY KEY
+  name               TEXT NOT NULL UNIQUE
+  color              TEXT
+  created            DATETIME
+  updated            DATETIME
+}
 ```
 
 ### Route Map
@@ -316,33 +453,55 @@ import_proposals {
 
 | Route | Description | Auth |
 |-------|-------------|------|
-| `GET /` | Default public view | Based on view.visibility |
+| `GET /` | Default public view (homepage) | Based on view.visibility |
 | `GET /:slug` | Named view (canonical) | Based on view.visibility |
 | `GET /v/:slug` | Legacy view route | 301 redirect to `/:slug` |
 | `GET /s/:token` | Share token access | Token validation, redirects to `/:slug` |
 | `GET /projects/:slug` | Project detail page | Based on project.visibility |
+| `GET /posts` | Blog post listing | Public |
 | `GET /posts/:slug` | Blog post page | Based on post.visibility |
+| `GET /talks` | Talks listing | Public |
+| `GET /talks/:slug` | Talk detail page | Based on talk.visibility |
+| `GET /testimonial/:token` | Submit testimonial form | Token validation |
+| `GET /testimonial/verify/:token` | Email verification | Token validation |
+| `GET /rss.xml` | RSS feed for posts | Public |
+| `GET /talks.ics` | iCal export for talks | Public |
+| `GET /sitemap.xml` | Dynamic sitemap | Public |
+| `GET /robots.txt` | Robots configuration | Public |
 
 #### Admin Routes (SvelteKit)
 
 | Route | Description | Auth |
 |-------|-------------|------|
 | `GET /admin` | Admin dashboard | OAuth required |
-| `GET /admin/profile` | Edit profile | OAuth required |
+| `GET /admin/homepage` | Homepage configuration | OAuth required |
+| `GET /admin/contacts` | Contact methods | OAuth required |
 | `GET /admin/experience` | Manage experience | OAuth required |
 | `GET /admin/projects` | Manage projects | OAuth required |
 | `GET /admin/education` | Manage education | OAuth required |
-| `GET /admin/certifications` | Manage certs | OAuth required |
+| `GET /admin/certifications` | Manage certifications | OAuth required |
+| `GET /admin/awards` | Manage awards | OAuth required |
 | `GET /admin/skills` | Manage skills | OAuth required |
+| `GET /admin/custom` | Custom content sections | OAuth required |
+| `GET /admin/import` | GitHub import & Resume AI | OAuth required |
 | `GET /admin/posts` | Manage posts | OAuth required |
 | `GET /admin/talks` | Manage talks | OAuth required |
-| `GET /admin/views` | Manage views | OAuth required |
+| `GET /admin/testimonials` | Manage testimonials | OAuth required |
+| `GET /admin/testimonials/requests` | Testimonial request links | OAuth required |
+| `GET /admin/views` | Manage views/facets | OAuth required |
 | `GET /admin/views/new` | Create new view | OAuth required |
 | `GET /admin/views/:id` | Edit specific view | OAuth required |
 | `GET /admin/tokens` | Manage share tokens | OAuth required |
-| `GET /admin/import` | GitHub import wizard | OAuth required |
+| `GET /admin/media` | Media library | OAuth required |
 | `GET /admin/review/:id` | Review import proposal | OAuth required |
-| `GET /admin/settings` | AI providers, app settings | OAuth required |
+| `GET /admin/settings` | Main settings | OAuth required |
+| `GET /admin/settings/account` | Account & security | OAuth required |
+| `GET /admin/settings/appearance` | Appearance settings | OAuth required |
+| `GET /admin/settings/general` | General settings | OAuth required |
+| `GET /admin/settings/analytics` | Analytics settings | OAuth required |
+| `GET /admin/settings/integrations` | AI providers & integrations | OAuth required |
+| `GET /admin/settings/tags` | Admin tags | OAuth required |
+| `GET /admin/settings/about` | About Facet | OAuth required |
 | `GET /admin/login` | Admin login | None |
 
 #### API Routes (PocketBase + Custom Hooks)
@@ -350,15 +509,61 @@ import_proposals {
 | Route | Method | Description | Auth |
 |-------|--------|-------------|------|
 | `/api/collections/*` | * | PocketBase CRUD | API rules |
+| `/api/health` | GET | Health check | None |
+| `/api/default-view` | GET | Get default view slug | None |
+| `/api/view/:slug/access` | GET | Check view access | Token/Password |
+| `/api/view/:slug/data` | GET | Get view content | Token/Password |
+| `/api/view/:slug/generate` | POST | Generate AI resume | OAuth |
+| `/api/homepage` | GET | Homepage data | None |
+| `/api/share/validate` | POST | Validate share token | None |
+| `/api/password/check` | POST | Validate view password | None |
+
+**GitHub Import:**
+
+| Route | Method | Description | Auth |
+|-------|--------|-------------|------|
 | `/api/github/repos` | GET | List user's GitHub repos | OAuth |
+| `/api/github/preview` | POST | Preview repo before import | OAuth |
 | `/api/github/import` | POST | Start import from GitHub | OAuth |
 | `/api/github/refresh/:id` | POST | Refresh source from GitHub | OAuth |
-| `/api/ai/enrich` | POST | Request AI enrichment | OAuth |
-| `/api/ai/test/:id` | POST | Test AI provider connection | OAuth |
 | `/api/proposals/:id/apply` | POST | Apply import proposal | OAuth |
 | `/api/proposals/:id/reject` | POST | Reject import proposal | OAuth |
-| `/api/share/validate` | POST | Validate share token | None |
-| `/api/view/:slug/access` | GET | Check view access | Token/Password |
+
+**AI Features:**
+
+| Route | Method | Description | Auth |
+|-------|--------|-------------|------|
+| `/api/ai/test/:id` | POST | Test AI provider connection | OAuth |
+| `/api/ai/enrich` | POST | AI content enrichment | OAuth |
+| `/api/ai/write` | POST | AI writing assistant | OAuth |
+| `/api/resume/parse` | POST | Parse uploaded resume | OAuth |
+
+**Testimonials:**
+
+| Route | Method | Description | Auth |
+|-------|--------|-------------|------|
+| `/api/testimonials` | GET | List testimonials | OAuth |
+| `/api/testimonials/requests` | GET | List request links | OAuth |
+| `/api/testimonials/requests` | POST | Create request link | OAuth |
+| `/api/testimonials/requests/:id` | DELETE | Delete request link | OAuth |
+| `/api/testimonials/request/:token` | GET | Validate request token | None |
+| `/api/testimonials/submit` | POST | Submit testimonial | None |
+| `/api/testimonials/:id/approve` | POST | Approve testimonial | OAuth |
+| `/api/testimonials/:id/reject` | POST | Reject testimonial | OAuth |
+| `/api/testimonials/:id` | PATCH | Update testimonial | OAuth |
+| `/api/testimonials/:id` | DELETE | Delete testimonial | OAuth |
+| `/api/testimonials/pending-count` | GET | Get pending count | OAuth |
+| `/api/public/testimonials` | GET | Public approved list | None |
+| `/api/testimonials/verify/email` | POST | Send verification email | None |
+| `/api/testimonials/verify/email/:token` | GET | Complete verification | None |
+
+**Demo Mode:**
+
+| Route | Method | Description | Auth |
+|-------|--------|-------------|------|
+| `/api/demo/enable` | POST | Enable demo mode | OAuth |
+| `/api/demo/disable` | POST | Disable demo mode | OAuth |
+| `/api/demo/status` | GET | Check demo status | OAuth |
 
 ### Security Model
 

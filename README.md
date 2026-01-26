@@ -229,6 +229,7 @@ Full dev setup: [docs/DEV.md](docs/DEV.md)
 | **Talks** | Speaking engagements with slides/video URLs | `/talks/{slug}` |
 | **Awards** | Recognition and achievements | Embedded in views |
 | **Contact Methods** | Email, phone, social links (with protection) | Embedded in views |
+| **Custom Content** | User-defined sections with Markdown | Embedded in views |
 | **Testimonials** | Social proof from clients, colleagues, collaborators | Embedded in views |
 
 Everything supports Markdown. Most things support media (images, videos, external embeds).
@@ -816,6 +817,9 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Security review and XSS/path traversal protection
 - ✅ Demo mode with comprehensive example content
 - ✅ Testimonials system with request links, approval workflow, email verification
+- ✅ Custom content sections for user-defined content
+- ✅ Version update notifications (checks GitHub for new releases)
+- ✅ Automated changelog generation from PR descriptions
 
 **Coming Soon:**
 - CAPTCHA contact protection (Cloudflare Turnstile integration)
