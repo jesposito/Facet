@@ -3,6 +3,25 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.19 - January 26, 2026
+
+**Bugs Fixed:**
+- Fix AI changelog generator creating duplicate/fabricated entries by filtering already-documented PRs
+
+**New Features:**
+- Add 'Update available' badge to admin sidebar and About page when a newer version is released
+- Check GitHub API for latest release on page load and cache for 24 hours
+- Show accent-colored badge in sidebar under version number
+- Show badge with new version number on About Facet page
+
+**Other Changes:**
+- Pass recent changelog context to AI to prevent semantic duplicates
+
+**Pull Requests:** [#303](https://github.com/jesposito/Facet/pull/303),
+
+---
+
+
 ## v2.8.18 - January 26, 2026
 
 **Bugs Fixed:**
