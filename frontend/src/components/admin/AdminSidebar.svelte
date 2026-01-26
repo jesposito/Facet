@@ -5,8 +5,77 @@
 	import { adminSidebarOpen, sidebarSectionStates, sidebarFacetsVersion } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
 	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
+	import { browser } from '$app/environment';
 
 	const appVersion = __APP_VERSION__;
+
+	// Version check state
+	let newVersionAvailable = $state(false);
+	let latestVersion = $state('');
+
+	// Check for new version (cached daily)
+	async function checkForNewVersion() {
+		if (!browser) return;
+
+		const CACHE_KEY = 'facet_version_check';
+		const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+		try {
+			// Check cache first
+			const cached = localStorage.getItem(CACHE_KEY);
+			if (cached) {
+				const { timestamp, latest, hasUpdate } = JSON.parse(cached);
+				if (Date.now() - timestamp < CACHE_DURATION) {
+					latestVersion = latest;
+					newVersionAvailable = hasUpdate;
+					return;
+				}
+			}
+
+			// Fetch latest release from GitHub
+			const response = await fetch('https://api.github.com/repos/jesposito/Facet/releases/latest', {
+				headers: { 'Accept': 'application/vnd.github.v3+json' }
+			});
+
+			if (!response.ok) return;
+
+			const data = await response.json();
+			const latest = data.tag_name || '';
+
+			// Compare versions (strip 'v' prefix for comparison)
+			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
+			const latestClean = latest.replace(/^v/, '');
+
+			const hasUpdate = latestClean && currentClean !== latestClean &&
+				compareVersions(latestClean, currentClean) > 0;
+
+			// Cache result
+			localStorage.setItem(CACHE_KEY, JSON.stringify({
+				timestamp: Date.now(),
+				latest,
+				hasUpdate
+			}));
+
+			latestVersion = latest;
+			newVersionAvailable = hasUpdate;
+		} catch {
+			// Silently fail - version check is non-critical
+		}
+	}
+
+	// Compare semver versions: returns 1 if a > b, -1 if a < b, 0 if equal
+	function compareVersions(a: string, b: string): number {
+		const partsA = a.split('.').map(Number);
+		const partsB = b.split('.').map(Number);
+
+		for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+			const numA = partsA[i] || 0;
+			const numB = partsB[i] || 0;
+			if (numA > numB) return 1;
+			if (numA < numB) return -1;
+		}
+		return 0;
+	}
 
 	interface Props {
 		isMobile?: boolean;
@@ -53,6 +122,7 @@
 		sidebarSectionStates.initialize(ALL_SECTION_IDS, SECTION_IDS.information);
 		scheduleFacetsLoad();
 		refreshTestimonialsPendingCount();
+		checkForNewVersion();
 	});
 
 	// Reload facets when sidebarFacetsVersion changes (e.g., after demo mode toggle)
@@ -589,6 +659,16 @@ let isActive = $derived((href: string): boolean => {
 			<div class="text-center text-xs text-gray-400 dark:text-gray-500">
 				{appVersion}
 			</div>
+			{#if newVersionAvailable}
+				<div class="mt-1 text-center">
+					<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">
+						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+						</svg>
+						Update available
+					</span>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </aside>
