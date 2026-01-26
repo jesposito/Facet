@@ -3,6 +3,24 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.13 - January 26, 2026
+
+**Bugs Fixed:**
+- Fix YAML syntax error by using printf for prompt construction
+- Fix changelog header from 'Unreleased' to 'v2.8.12'
+
+**Other Changes:**
+- Add git config commands at the start of 'Update CHANGELOG' step
+- Add git pull origin main before creating the tag to ensure it points to the changelog commit
+- Reorder steps in auto-tag workflow to commit changelog before creating the tag
+- Remove main branch from docker-publish triggers to build releases only on tags
+- Apply :latest tag to version tags instead of default branch
+
+**Pull Requests:** [#295](https://github.com/jesposito/Facet/pull/295),[#296](https://github.com/jesposito/Facet/pull/296),[#297](https://github.com/jesposito/Facet/pull/297),
+
+---
+
+
 ## v2.8.12 - January 26, 2026
 
 **Bugs Fixed:**
