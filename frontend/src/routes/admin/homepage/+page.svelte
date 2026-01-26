@@ -530,20 +530,28 @@
 	}
 
 	function toggleNavItem(viewId: string) {
-		const existing = siteNavItems.find(item => item.viewId === viewId);
-		if (existing) {
-			existing.enabled = !existing.enabled;
-			siteNavItems = [...siteNavItems];
+		const existingIndex = siteNavItems.findIndex(item => item.viewId === viewId);
+		if (existingIndex >= 0) {
+			// Create a new array with a new object for the toggled item to ensure reactivity
+			siteNavItems = siteNavItems.map((item, index) =>
+				index === existingIndex
+					? { ...item, enabled: !item.enabled }
+					: item
+			);
 		} else {
 			siteNavItems = [...siteNavItems, { viewId, enabled: true, label: '' }];
 		}
 	}
 
 	function updateNavItemLabel(viewId: string, label: string) {
-		const existing = siteNavItems.find(item => item.viewId === viewId);
-		if (existing) {
-			existing.label = label;
-			siteNavItems = [...siteNavItems];
+		const existingIndex = siteNavItems.findIndex(item => item.viewId === viewId);
+		if (existingIndex >= 0) {
+			// Create a new array with a new object to ensure reactivity
+			siteNavItems = siteNavItems.map((item, index) =>
+				index === existingIndex
+					? { ...item, label }
+					: item
+			);
 		} else {
 			siteNavItems = [...siteNavItems, { viewId, enabled: false, label }];
 		}
