@@ -354,3 +354,13 @@ jobs:
           echo "**New Tag:** \`$NEW_TAG\`" >> $GITHUB_STEP_SUMMARY
           echo "**Bump Type:** $BUMP_TYPE" >> $GITHUB_STEP_SUMMARY
           echo "**Previous Tag:** $PREV_TAG" >> $GITHUB_STEP_SUMMARY
+
+      # Tags pushed by GITHUB_TOKEN don't trigger workflows, so manually trigger Docker build
+      - name: Trigger Docker build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.new_version.outputs.new_tag }}
+        run: |
+          gh workflow run docker-publish.yml --ref "$NEW_TAG"
+          echo "## Docker Build Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "Triggered Docker build for tag $NEW_TAG" >> $GITHUB_STEP_SUMMARY
