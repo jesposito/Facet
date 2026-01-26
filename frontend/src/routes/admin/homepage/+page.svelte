@@ -101,15 +101,14 @@
 
 	async function loadPublicViews() {
 		try {
-			// Use pb.collection directly to bypass demo store wrapper
 			const records = await pb.collection('views').getList(1, 100, {
 				filter: 'is_active = true && visibility = "public"',
 				sort: 'name'
 			});
-			// Spread to ensure clean array assignment for Svelte reactivity
+			console.log('[SITE NAV] Loaded public views:', records.items.length, records.items.map(v => ({ id: v.id, name: v.name })));
 			publicViews = [...records.items] as unknown as View[];
 		} catch (err) {
-			console.error('Failed to load public views:', err);
+			console.error('[SITE NAV] Failed to load public views:', err);
 		} finally {
 			publicViewsLoading = false;
 		}
@@ -537,7 +536,37 @@
 		return navItemsByViewId.get(viewId)?.label || '';
 	}
 
-	function toggleNavItem(viewId: string) {
+	// Save site nav settings immediately to database
+	async function saveSiteNavSettings() {
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					site_nav_enabled: siteNavEnabled,
+					site_nav_items: siteNavItems
+				})
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				toasts.add('error', result.error || 'Failed to save site nav settings');
+			}
+		} catch (err) {
+			console.error('Failed to save site nav settings:', err);
+			toasts.add('error', 'Failed to save site nav settings');
+		}
+	}
+
+	async function toggleSiteNavEnabled() {
+		siteNavEnabled = !siteNavEnabled;
+		await saveSiteNavSettings();
+	}
+
+	async function toggleNavItem(viewId: string) {
 		const existing = siteNavItems.find(item => item.viewId === viewId);
 		if (existing) {
 			existing.enabled = !existing.enabled;
@@ -545,9 +574,10 @@
 		} else {
 			siteNavItems = [...siteNavItems, { viewId, enabled: true, label: '' }];
 		}
+		await saveSiteNavSettings();
 	}
 
-	function updateNavItemLabel(viewId: string, label: string) {
+	async function updateNavItemLabel(viewId: string, label: string) {
 		const existing = siteNavItems.find(item => item.viewId === viewId);
 		if (existing) {
 			existing.label = label;
@@ -555,6 +585,7 @@
 		} else {
 			siteNavItems = [...siteNavItems, { viewId, enabled: false, label }];
 		}
+		// Debounce label updates - don't save on every keystroke
 	}
 </script>
 
@@ -947,8 +978,9 @@
 						<input
 							type="checkbox"
 							class="sr-only peer"
-							bind:checked={siteNavEnabled}
-							disabled={settingsSaving || settingsLoading}
+							checked={siteNavEnabled}
+							onchange={toggleSiteNavEnabled}
+							disabled={settingsLoading}
 						/>
 						<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 					</label>
