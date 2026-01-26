@@ -3,6 +3,17 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.14 - January 26, 2026
+
+**Other Changes:**
+- Remove extra separator between changelog sections
+- Rename duplicate v2.8.12 to v2.8.11
+
+**Pull Requests:** [#298](https://github.com/jesposito/Facet/pull/298),
+
+---
+
+
 ## v2.8.13 - January 26, 2026
 
 **Bugs Fixed:**
