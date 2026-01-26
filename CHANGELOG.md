@@ -3,6 +3,29 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.18 - January 26, 2026
+
+**Bugs Fixed:**
+- Fix navigation toggle not persisting state
+- Fix mobile layout issues
+- Fix error when uploading large files
+- Fix broken links in the help section
+
+**New Features:**
+- Add usage badges to admin items
+- Introduce dark mode option for user profiles
+- Add ability to filter portfolio items by category
+
+**Other Changes:**
+- Update documentation for dark mode feature
+- Refactor file upload component for better performance
+- Improve CI/CD pipeline for faster deployments
+
+**Pull Requests:** [#123](),[#124](),[#125](),[#126](),[#127](),[#128](),[#129](),
+
+---
+
+
 ## v2.8.17 - January 26, 2026
 
 **New Features:**
