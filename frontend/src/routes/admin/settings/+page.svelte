@@ -57,8 +57,8 @@
 		is_default: false
 	});
 
-	// Model options per provider type
-	const modelOptions: Record<string, string[]> = {
+	// Fallback model options per provider type (used when API fetch fails or is unavailable)
+	const fallbackModelOptions: Record<string, string[]> = {
 		openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
 		anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
 		ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
@@ -72,13 +72,81 @@
 		custom: ''
 	};
 
-	// Reset model when provider type changes
+	// Dynamic model state
+	let fetchedModels = $state<string[]>([]);
+	let fetchingModels = $state(false);
+	let modelFetchError = $state('');
+
+	// Computed: use fetched models if available, otherwise fallback
+	let modelOptions = $derived.by(() => {
+		if (fetchedModels.length > 0) {
+			return fetchedModels;
+		}
+		return fallbackModelOptions[newProvider.type] || [];
+	});
+
+	// Fetch models when API key changes or provider type changes
+	async function fetchModels() {
+		// Don't fetch for custom without base_url, or if no API key for non-ollama
+		if (newProvider.type === 'custom' && !newProvider.base_url) {
+			fetchedModels = [];
+			return;
+		}
+		if (newProvider.type !== 'ollama' && !newProvider.api_key) {
+			fetchedModels = [];
+			return;
+		}
+
+		fetchingModels = true;
+		modelFetchError = '';
+
+		try {
+			const response = await fetch('/api/ai/models', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token
+				},
+				body: JSON.stringify({
+					type: newProvider.type,
+					api_key: newProvider.api_key,
+					base_url: newProvider.base_url || undefined
+				})
+			});
+
+			const data = await response.json();
+			if (data.error) {
+				modelFetchError = data.error;
+				fetchedModels = [];
+			} else if (data.models && data.models.length > 0) {
+				fetchedModels = data.models;
+				// If current model not in list, reset to first or default
+				if (!data.models.includes(newProvider.model)) {
+					newProvider.model = data.models.includes(defaultModels[newProvider.type])
+						? defaultModels[newProvider.type]
+						: data.models[0];
+				}
+			} else {
+				fetchedModels = [];
+			}
+		} catch (err) {
+			modelFetchError = 'Failed to fetch models';
+			fetchedModels = [];
+		} finally {
+			fetchingModels = false;
+		}
+	}
+
+	// Reset model and fetch when provider type changes
 	run(() => {
 		if (newProvider.type) {
-			const options = modelOptions[newProvider.type] || [];
+			const options = fallbackModelOptions[newProvider.type] || [];
 			if (!options.includes(newProvider.model)) {
 				newProvider.model = defaultModels[newProvider.type] || '';
 			}
+			// Reset fetched models when type changes
+			fetchedModels = [];
+			modelFetchError = '';
 		}
 	});
 
@@ -844,13 +912,41 @@ body { font-family: 'Inter', sans-serif; }
 				{/if}
 
 				<div>
-					<label for="model" class="label">Model</label>
-					{#if modelOptions[newProvider.type]?.length > 0}
+					<div class="flex items-center justify-between mb-1">
+						<label for="model" class="label mb-0">Model</label>
+						{#if newProvider.type !== 'custom' || newProvider.base_url}
+							<button
+								type="button"
+								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center gap-1"
+								onclick={fetchModels}
+								disabled={fetchingModels || (newProvider.type !== 'ollama' && !newProvider.api_key)}
+							>
+								{#if fetchingModels}
+									<svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									</svg>
+									Fetching...
+								{:else}
+									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+									</svg>
+									Fetch available models
+								{/if}
+							</button>
+						{/if}
+					</div>
+					{#if modelOptions.length > 0}
 						<select id="model" bind:value={newProvider.model} class="input">
-							{#each modelOptions[newProvider.type] as model}
+							{#each modelOptions as model}
 								<option value={model}>{model}</option>
 							{/each}
 						</select>
+						{#if fetchedModels.length > 0}
+							<p class="text-xs text-green-600 dark:text-green-400 mt-1">
+								{fetchedModels.length} models available from API
+							</p>
+						{/if}
 					{:else}
 						<input
 							type="text"
@@ -859,6 +955,11 @@ body { font-family: 'Inter', sans-serif; }
 							class="input"
 							placeholder="Enter model name"
 						/>
+					{/if}
+					{#if modelFetchError}
+						<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+							{modelFetchError} — using default list
+						</p>
 					{/if}
 				</div>
 
