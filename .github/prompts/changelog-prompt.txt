@@ -14,6 +14,9 @@ Rules:
 4. Remove prefixes like 'fix:', 'feat:', 'Claude/' from descriptions
 5. Start descriptions with a verb (Add, Fix, Improve, Update, etc.)
 6. Look at the PR title AND description to find all changes
+7. CRITICAL: Do NOT include changes already documented in the "Recent changelog" section below
+8. If a PR describes something already in the recent changelog, skip it entirely
+9. Only create entries for genuinely NEW changes not already documented
 
 Output format (JSON array - same PR number can appear multiple times):
 [
