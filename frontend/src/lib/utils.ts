@@ -264,6 +264,31 @@ export function isLinkableContactType(type: string): boolean {
 }
 
 /**
+ * Checks if a URL string has a hostname that matches or is a subdomain of the expected domain.
+ * This prevents attacks like "evil.github.com.attacker.com" passing a check for "github.com".
+ *
+ * @param value - The URL string to check (may or may not have protocol)
+ * @param expectedDomain - The domain to check for (e.g., "github.com")
+ * @returns true if the hostname matches or is a subdomain of the expected domain
+ */
+function isValidDomainUrl(value: string, expectedDomain: string): boolean {
+	try {
+		// Ensure value has a protocol for URL parsing
+		const urlString = value.startsWith('http://') || value.startsWith('https://')
+			? value
+			: `https://${value}`;
+		const url = new URL(urlString);
+		const hostname = url.hostname.toLowerCase();
+		const domain = expectedDomain.toLowerCase();
+
+		// Exact match or subdomain (e.g., "www.github.com" matches "github.com")
+		return hostname === domain || hostname.endsWith(`.${domain}`);
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Builds the appropriate href for a contact method based on its type.
  * Returns null for non-linkable types (Discord, Slack).
  *
@@ -295,7 +320,7 @@ export function buildContactHref(type: string, value: string): string | null {
 
 		case 'telegram':
 			// Support both @username and full URLs
-			if (value.includes('t.me/') || value.includes('telegram.me/')) {
+			if (isValidDomainUrl(value, 't.me') || isValidDomainUrl(value, 'telegram.me')) {
 				return normalizeExternalUrl(value);
 			}
 			const telegramUsername = value.replace(/^@/, '');
@@ -303,20 +328,20 @@ export function buildContactHref(type: string, value: string): string | null {
 
 		case 'github':
 			// Support both username and full URLs
-			if (value.includes('github.com')) {
+			if (isValidDomainUrl(value, 'github.com')) {
 				return normalizeExternalUrl(value);
 			}
 			return `https://github.com/${value.replace(/^@/, '')}`;
 
 		case 'twitter':
 			// Support both @username and full URLs
-			if (value.includes('twitter.com') || value.includes('x.com')) {
+			if (isValidDomainUrl(value, 'twitter.com') || isValidDomainUrl(value, 'x.com')) {
 				return normalizeExternalUrl(value);
 			}
 			return `https://twitter.com/${value.replace(/^@/, '')}`;
 
 		case 'instagram':
-			if (value.includes('instagram.com')) {
+			if (isValidDomainUrl(value, 'instagram.com')) {
 				return normalizeExternalUrl(value);
 			}
 			return `https://instagram.com/${value.replace(/^@/, '')}`;
