@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 
 	interface Testimonial {
 		id: string;
@@ -24,13 +25,60 @@
 	// Carousel state
 	let carouselContainer: HTMLDivElement | null = $state(null);
 	let currentIndex = $state(0);
+	let isScrolling = $state(false);
+	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	// Handle manual scroll to sync currentIndex with scroll position
+	function handleScroll() {
+		if (!carouselContainer || !browser || isScrolling) return;
+
+		// Debounce scroll handling
+		if (scrollTimeout) clearTimeout(scrollTimeout);
+		scrollTimeout = setTimeout(() => {
+			updateCurrentIndexFromScroll();
+		}, 50);
+	}
+
+	function updateCurrentIndexFromScroll() {
+		if (!carouselContainer) return;
+
+		const children = Array.from(carouselContainer.children) as HTMLElement[];
+		if (children.length === 0) return;
+
+		const containerRect = carouselContainer.getBoundingClientRect();
+		const containerCenter = containerRect.left + containerRect.width / 2;
+
+		// Find the child closest to the center of the container
+		let closestIndex = 0;
+		let closestDistance = Infinity;
+
+		children.forEach((child, index) => {
+			const childRect = child.getBoundingClientRect();
+			const childCenter = childRect.left + childRect.width / 2;
+			const distance = Math.abs(childCenter - containerCenter);
+
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestIndex = index;
+			}
+		});
+
+		if (currentIndex !== closestIndex) {
+			currentIndex = closestIndex;
+		}
+	}
 
 	function scrollToIndex(index: number) {
 		if (!carouselContainer || !browser) return;
 		const children = carouselContainer.children;
 		if (children[index]) {
-			children[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+			isScrolling = true;
+			children[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 			currentIndex = index;
+			// Reset scrolling flag after animation completes
+			setTimeout(() => {
+				isScrolling = false;
+			}, 500);
 		}
 	}
 
@@ -63,6 +111,17 @@
 		};
 		return labels[rel] || '';
 	}
+
+	// Generate alt text for author photos
+	function getAuthorPhotoAlt(name: string): string {
+		return `Photo of ${name}`;
+	}
+
+	onMount(() => {
+		return () => {
+			if (scrollTimeout) clearTimeout(scrollTimeout);
+		};
+	});
 </script>
 
 <section id="testimonials" class="mb-16">
@@ -79,7 +138,7 @@
 						{#if item.author_photo}
 							<img
 								src={item.author_photo}
-								alt=""
+								alt={getAuthorPhotoAlt(item.author_name)}
 								class="w-10 h-10 rounded-full object-cover"
 							/>
 						{:else}
@@ -139,7 +198,10 @@
 			<!-- Carousel container -->
 			<div
 				bind:this={carouselContainer}
+				onscroll={handleScroll}
 				class="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 px-8 scrollbar-hide"
+				role="region"
+				aria-label="Testimonials carousel"
 			>
 				{#each displayItems as item, i (item.id)}
 					<div class="snap-center shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] first:ml-0">
@@ -149,7 +211,7 @@
 							</blockquote>
 							<div class="flex items-center gap-3">
 								{#if item.author_photo}
-									<img src={item.author_photo} alt="" class="w-10 h-10 rounded-full object-cover" />
+									<img src={item.author_photo} alt={getAuthorPhotoAlt(item.author_name)} class="w-10 h-10 rounded-full object-cover" />
 								{:else}
 									<div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
 										<span class="text-sm font-medium text-primary-600 dark:text-primary-400">
@@ -196,7 +258,7 @@
 				</blockquote>
 				<div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
 					{#if featured.author_photo}
-						<img src={featured.author_photo} alt="" class="w-12 h-12 rounded-full object-cover" />
+						<img src={featured.author_photo} alt={getAuthorPhotoAlt(featured.author_name)} class="w-12 h-12 rounded-full object-cover" />
 					{:else}
 						<div class="w-12 h-12 rounded-full bg-primary-200 dark:bg-primary-900 flex items-center justify-center">
 							<span class="text-lg font-medium text-primary-700 dark:text-primary-300">
