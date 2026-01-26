@@ -203,7 +203,7 @@ Output only valid JSON, no markdown or explanation."
 
           # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
           echo "Trying GitHub Models (Copilot)..."
-          GH_MODELS_RESPONSE=$(curl -s "https://models.inference.ai.azure.com/chat/completions" \
+          GH_MODELS_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 "https://models.inference.ai.azure.com/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -d "$(jq -n --arg prompt "$PROMPT" '{
@@ -227,7 +227,7 @@ Output only valid JSON, no markdown or explanation."
           # Fallback to OpenAI if GitHub Models failed and API key is available
           if [ "$AI_SUCCESS" = false ] && [ -n "$OPENAI_API_KEY" ]; then
             echo "Trying OpenAI API..."
-            AI_RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+            AI_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 https://api.openai.com/v1/chat/completions \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -d "$(jq -n --arg prompt "$PROMPT" '{
