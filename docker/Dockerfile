@@ -35,6 +35,7 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
+COPY CHANGELOG.md ../CHANGELOG.md
 ENV NODE_ENV=production
 ENV FACET_VERSION=${FACET_VERSION}
 RUN npm run build
