@@ -5,16 +5,14 @@ All notable changes to Facet will be documented in this file.
 
 ## v2.8.20 - January 26, 2026
 
-**New Features:**
-- Introduce dark mode option for user profiles
-- Add ability to filter portfolio items by category
-
 **Other Changes:**
-- Update documentation for dark mode feature
-- Refactor file upload component for better performance
-- Improve CI/CD pipeline for faster deployments
+- Update ARCHITECTURE.md with 11 missing collections and 20+ missing admin routes
+- Update DESIGN.md with new content collections and expanded admin navigation
+- Update ROADMAP.md with version notifications, custom content, and automated changelog status
+- Update README.md with Custom Content and completed features
+- Update AI_FEATURES.md with AI Writing Assistant section
 
-**Pull Requests:** [#125](),[#126](),[#127](),[#128](),[#129](),
+**Pull Requests:** [#304](https://github.com/jesposito/Facet/pull/304)
 
 ---
 
