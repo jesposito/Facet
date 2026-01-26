@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.16 - January 26, 2026
+
+**Other Changes:**
+- Add actions:write permission to trigger Docker workflow
+
+**Pull Requests:** [#300](https://github.com/jesposito/Facet/pull/300),
+
+---
+
+
 ## v2.8.15 - January 26, 2026
 
 **Bugs Fixed:**
