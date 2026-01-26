@@ -1,8 +1,8 @@
 # Facet Design Document
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Active
-**Last Updated:** 2025-12-31
+**Last Updated:** 2026-01-26
 
 ---
 
@@ -98,9 +98,13 @@ Content is organized into typed collections:
 | **Projects** | Portfolio items | Title, summary, tech stack, links, cover image |
 | **Education** | Academic background | Institution, degree, field, dates |
 | **Certifications** | Professional certs | Name, issuer, dates, credential ID |
+| **Awards** | Recognition and achievements | Title, issuer, date, description |
 | **Skills** | Categorized skills | Name, category, proficiency level |
 | **Posts** | Blog/writing | Title, content (Markdown), published date |
 | **Talks** | Speaking engagements | Title, event, date, slides/video URLs |
+| **Custom Content** | User-defined sections | Title, content (Markdown), icon |
+| **Contact Methods** | Protected contact info | Type, value, protection level |
+| **Testimonials** | Social proof from others | Name, company, relationship, content |
 
 Each content item has:
 - `visibility`: public / unlisted / private
@@ -677,16 +681,44 @@ When content is missing, show helpful guidance:
 ### 8.3 Admin Navigation
 
 ```
-/admin                 Dashboard (overview)
-/admin/profile         Edit core profile
-/admin/experience      Manage work history
-/admin/projects        Manage portfolio
-/admin/education       Manage education
-/admin/skills          Manage skills
-/admin/views           Manage curated views
-/admin/import          GitHub import wizard
-/admin/review/[id]     Review import proposal
-/admin/settings        AI providers, GitHub token
+/admin                         Dashboard (overview)
+/admin/homepage                Homepage configuration
+
+-- Your Information --
+/admin/contacts                Contact methods (with protection levels)
+/admin/experience              Manage work history
+/admin/projects                Manage portfolio
+/admin/education               Manage education
+/admin/certifications          Manage certifications
+/admin/awards                  Manage awards
+/admin/skills                  Manage skills
+/admin/custom                  Custom content sections
+/admin/import                  GitHub import & Resume AI parsing
+
+-- Your Voice --
+/admin/posts                   Blog posts
+/admin/talks                   Speaking engagements
+
+-- Testimonials --
+/admin/testimonials            Manage testimonials
+/admin/testimonials/requests   Request links
+
+-- Views & Sharing --
+/admin/views                   Manage curated views/facets
+/admin/views/new               Create new view
+/admin/views/[id]              Edit specific view
+/admin/tokens                  Manage share tokens
+/admin/media                   Media library
+
+-- Settings --
+/admin/settings                Main settings
+/admin/settings/account        Account & security
+/admin/settings/appearance     Appearance settings
+/admin/settings/general        General settings
+/admin/settings/analytics      Analytics (Google Analytics)
+/admin/settings/integrations   AI providers & integrations
+/admin/settings/tags           Admin tags
+/admin/settings/about          About Facet (changelog, version)
 ```
 
 ### 8.4 Visual Design
@@ -867,23 +899,32 @@ Based on codebase analysis, these features are incomplete or missing:
 | ~~**Media library**~~ | ~~No implementation~~ | ✅ Complete: `/admin/media` with listing, filters, delete |
 | ~~**Share token management UI**~~ | ~~Listed in views page, no full UI~~ | ✅ Complete: `/admin/tokens` with full CRUD |
 | **Scheduled GitHub sync** | Not implemented | Manual refresh only |
-| ~~**Resume PDF export**~~ | ~~Not implemented~~ | ✅ Complete: Print stylesheet + print button |
-| **Theme customization** | Not implemented | Single theme only |
-| **Demo mode** | Not implemented | Needs production-safe showcase toggle/persona |
-| **Audit logging** | Minimal | Cannot review access history |
+| ~~**Resume PDF export**~~ | ~~Not implemented~~ | ✅ Complete: Print stylesheet + AI resume generation |
+| ~~**Theme customization**~~ | ~~Not implemented~~ | ✅ Partial: Accent colors, custom CSS, dark mode |
+| ~~**Demo mode**~~ | ~~Not implemented~~ | ✅ Complete: "The Doctor" profile with one-click toggle |
+| **Audit logging** | Minimal | Cannot review full access history |
+| ~~**Testimonials**~~ | ~~Not implemented~~ | ✅ Complete: Full system with request links, verification |
+| ~~**Custom content**~~ | ~~Not implemented~~ | ✅ Complete: User-defined content sections |
+| ~~**Contact protection**~~ | ~~Not implemented~~ | ✅ Complete: 4-tier protection, per-view visibility |
+| ~~**Version notifications**~~ | ~~Not implemented~~ | ✅ Complete: Check GitHub for updates |
 
 ### 13.2 Proposed Priority Order
 
 1. ~~**Core content pages**: Project details, posts, talks, certifications~~ ✅ Complete
 2. ~~**View editor core**: Section toggles, item selection, hero overrides~~ ✅ Complete
-3. **View editor improvements**: Drag-drop ordering, preview pane
+3. ~~**View editor improvements**: Drag-drop ordering, preview pane~~ ✅ Complete
 4. ~~**Share token management**: Full CRUD UI with usage stats~~ ✅ Complete
-5. ~~**Resume export**: Generate PDF from profile/view~~ ✅ Complete (print stylesheet + button)
-6. **Theme system**: Light/dark modes, color customization
+5. ~~**Resume export**: Generate PDF from profile/view~~ ✅ Complete (AI generation + print)
+6. ~~**Theme system**: Light/dark modes, color customization~~ ✅ Complete (accent colors, custom CSS)
 7. **Scheduled sync**: Cron-based GitHub refresh
-8. **Media library**: Image optimization (thumb/WebP/srcset), storage insights
-9. **Demo mode**: Production-safe showcase persona with multiple views
-10. **Audit log**: Access history for share tokens
+8. ~~**Media library**: Image optimization (thumb/WebP/srcset), storage insights~~ ✅ Complete
+9. ~~**Demo mode**: Production-safe showcase persona with multiple views~~ ✅ Complete
+10. **Audit log**: Access history for share tokens (minimal currently)
+11. ~~**Testimonials**: Social proof collection~~ ✅ Complete
+12. ~~**Contact protection**: Per-view contact visibility~~ ✅ Complete
+13. 🔜 **View Analytics Dashboard**: Surface existing usage data
+14. 🔜 **QR Codes**: Generate for views/share links
+15. 🔜 **Webhooks**: Notify external services on events
 
 ---
 
