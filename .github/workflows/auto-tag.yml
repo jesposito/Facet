@@ -159,15 +159,15 @@ jobs:
           PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
           echo "$PRS" > /tmp/pr_data.json
 
-          # Try AI-powered changelog generation if API key is available
+          # Try AI-powered changelog generation
+          # Priority: 1) GitHub Models (Copilot), 2) OpenAI API, 3) Keyword fallback
           AI_SUCCESS=false
-          if [ -n "$OPENAI_API_KEY" ]; then
-            echo "Using AI to generate changelog..."
+          AI_SOURCE=""
 
-            # Build prompt with PR data
-            PR_LIST=$(echo "$PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
+          # Build prompt with PR data
+          PR_LIST=$(echo "$PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
 
-            PROMPT="You are a changelog generator for a software project called Facet (a professional portfolio platform).
+          PROMPT="You are a changelog generator for a software project called Facet (a professional portfolio platform).
 
 Given these merged pull requests, categorize each into exactly one category and provide a clean, user-friendly one-line description.
 
@@ -190,7 +190,32 @@ $PR_LIST
 
 Output only valid JSON, no markdown or explanation."
 
-            # Call OpenAI API
+          # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
+          echo "Trying GitHub Models (Copilot)..."
+          GH_MODELS_RESPONSE=$(curl -s "https://models.inference.ai.azure.com/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -d "$(jq -n --arg prompt "$PROMPT" '{
+              "model": "gpt-4o-mini",
+              "messages": [{"role": "user", "content": $prompt}],
+              "temperature": 0.3,
+              "max_tokens": 2000
+            }')" 2>/dev/null)
+
+          GH_CONTENT=$(echo "$GH_MODELS_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+
+          if [ -n "$GH_CONTENT" ] && [ "$GH_CONTENT" != "null" ]; then
+            AI_JSON=$(echo "$GH_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
+            if [ -n "$AI_JSON" ]; then
+              echo "GitHub Models (Copilot) categorization successful"
+              AI_SUCCESS=true
+              AI_SOURCE="GitHub Copilot"
+            fi
+          fi
+
+          # Fallback to OpenAI if GitHub Models failed and API key is available
+          if [ "$AI_SUCCESS" = false ] && [ -n "$OPENAI_API_KEY" ]; then
+            echo "Trying OpenAI API..."
             AI_RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -201,37 +226,33 @@ Output only valid JSON, no markdown or explanation."
                 "max_tokens": 2000
               }')" 2>/dev/null)
 
-            # Extract the content from the response
             AI_CONTENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
 
             if [ -n "$AI_CONTENT" ]; then
-              # Try to parse as JSON (handle markdown code blocks)
               AI_JSON=$(echo "$AI_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
-
               if [ -n "$AI_JSON" ]; then
-                echo "AI categorization successful"
+                echo "OpenAI categorization successful"
                 AI_SUCCESS=true
-
-                # Process AI response
-                echo "$AI_JSON" | jq -c '.[]' | while read -r item; do
-                  NUMBER=$(echo "$item" | jq -r '.number')
-                  CATEGORY=$(echo "$item" | jq -r '.category')
-                  DESC=$(echo "$item" | jq -r '.description')
-                  URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
-
-                  case "$CATEGORY" in
-                    BUG) echo "$DESC" >> /tmp/bugs.txt ;;
-                    FEATURE) echo "$DESC" >> /tmp/features.txt ;;
-                    *) echo "$DESC" >> /tmp/other.txt ;;
-                  esac
-                  echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
-                done
-              else
-                echo "Failed to parse AI response as JSON"
+                AI_SOURCE="OpenAI"
               fi
-            else
-              echo "No AI response received"
             fi
+          fi
+
+          # Process AI response if successful
+          if [ "$AI_SUCCESS" = true ]; then
+            echo "$AI_JSON" | jq -c '.[]' | while read -r item; do
+              NUMBER=$(echo "$item" | jq -r '.number')
+              CATEGORY=$(echo "$item" | jq -r '.category')
+              DESC=$(echo "$item" | jq -r '.description')
+              URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
+
+              case "$CATEGORY" in
+                BUG) echo "$DESC" >> /tmp/bugs.txt ;;
+                FEATURE) echo "$DESC" >> /tmp/features.txt ;;
+                *) echo "$DESC" >> /tmp/other.txt ;;
+              esac
+              echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+            done
           fi
 
           # Fallback to keyword-based categorization if AI failed
