@@ -106,10 +106,19 @@
 		}
 	}
 
-	// For development: password login
+	// Password login
 	let email = $state('');
 	let password = $state('');
 	let showPasswordLogin = $state(false);
+	let passwordLoginInitialized = $state(false);
+
+	// Show password login by default if no OAuth providers are configured (#285)
+	$effect(() => {
+		if (authMethodsLoaded && !passwordLoginInitialized) {
+			showPasswordLogin = oauthProviders.length === 0;
+			passwordLoginInitialized = true;
+		}
+	});
 
 	async function loginWithPassword() {
 		if (!email || !password) {

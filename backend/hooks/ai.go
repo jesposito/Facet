@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -21,6 +22,40 @@ import (
 func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto *services.CryptoService) {
 	// Register API endpoints on serve
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		// List available models for a provider type
+		// This endpoint fetches models dynamically from the provider's API
+		se.Router.POST("/api/ai/models", func(e *core.RequestEvent) error {
+			if e.Auth == nil {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			}
+
+			var req struct {
+				Type    string `json:"type"`     // openai, anthropic, ollama, custom
+				APIKey  string `json:"api_key"`  // API key to use for the request
+				BaseURL string `json:"base_url"` // Optional base URL for ollama/custom
+			}
+
+			if err := e.BindBody(&req); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+			}
+
+			if req.Type == "" {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "type is required"})
+			}
+
+			models, err := fetchModelsForProvider(req.Type, req.APIKey, req.BaseURL)
+			if err != nil {
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"models": []string{},
+					"error":  err.Error(),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"models": models,
+			})
+		}).Bind(apis.RequireAuth())
+
 		// Check AI status endpoint - tells frontend if AI is available
 		// Also auto-configures from environment on first call if needed
 		se.Router.GET("/api/ai/status", func(e *core.RequestEvent) error {
@@ -675,6 +710,161 @@ DO NOT:
 	sb.WriteString("\n\nReturn the original text with inline [feedback in brackets].")
 
 	return sb.String()
+}
+
+// fetchModelsForProvider fetches available models from a provider's API
+func fetchModelsForProvider(providerType, apiKey, baseURL string) ([]string, error) {
+	client := &http.Client{Timeout: 15 * time.Second}
+
+	switch providerType {
+	case "openai", "custom":
+		return fetchOpenAIModels(client, apiKey, baseURL)
+	case "anthropic":
+		// Anthropic doesn't have a public model listing API
+		// Return curated list of available models
+		return []string{
+			"claude-sonnet-4-20250514",
+			"claude-opus-4-20250514",
+			"claude-3-5-sonnet-20241022",
+			"claude-3-5-haiku-20241022",
+			"claude-3-opus-20240229",
+			"claude-3-sonnet-20240229",
+			"claude-3-haiku-20240307",
+		}, nil
+	case "ollama":
+		return fetchOllamaModels(client, baseURL)
+	default:
+		return nil, fmt.Errorf("unsupported provider type: %s", providerType)
+	}
+}
+
+// fetchOpenAIModels fetches models from OpenAI or compatible API
+func fetchOpenAIModels(client *http.Client, apiKey, baseURL string) ([]string, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("API key is required")
+	}
+
+	url := "https://api.openai.com/v1/models"
+	if baseURL != "" {
+		url = strings.TrimSuffix(baseURL, "/") + "/models"
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid API key")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data []struct {
+			ID      string `json:"id"`
+			OwnedBy string `json:"owned_by"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Filter to chat/completion models and sort by relevance
+	var models []string
+	preferredPrefixes := []string{"gpt-4o", "gpt-4", "gpt-3.5", "o1", "o3"}
+	otherModels := []string{}
+
+	for _, m := range result.Data {
+		id := m.ID
+		// Skip embedding, whisper, tts, dall-e models
+		if strings.Contains(id, "embedding") ||
+			strings.Contains(id, "whisper") ||
+			strings.Contains(id, "tts") ||
+			strings.Contains(id, "dall-e") ||
+			strings.Contains(id, "davinci") ||
+			strings.Contains(id, "babbage") ||
+			strings.Contains(id, "curie") ||
+			strings.Contains(id, "ada") {
+			continue
+		}
+
+		// Check if it's a preferred model
+		isPreferred := false
+		for _, prefix := range preferredPrefixes {
+			if strings.HasPrefix(id, prefix) {
+				isPreferred = true
+				break
+			}
+		}
+
+		if isPreferred {
+			models = append(models, id)
+		} else if strings.Contains(id, "gpt") || strings.Contains(id, "chat") {
+			otherModels = append(otherModels, id)
+		}
+	}
+
+	// Sort preferred models, then append others
+	models = append(models, otherModels...)
+
+	// Dedupe and limit
+	seen := make(map[string]bool)
+	unique := []string{}
+	for _, m := range models {
+		if !seen[m] && len(unique) < 50 {
+			seen[m] = true
+			unique = append(unique, m)
+		}
+	}
+
+	return unique, nil
+}
+
+// fetchOllamaModels fetches locally available models from Ollama
+func fetchOllamaModels(client *http.Client, baseURL string) ([]string, error) {
+	url := "http://localhost:11434/api/tags"
+	if baseURL != "" {
+		url = strings.TrimSuffix(baseURL, "/") + "/api/tags"
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to Ollama: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Ollama API error: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	models := make([]string, len(result.Models))
+	for i, m := range result.Models {
+		models[i] = m.Name
+	}
+
+	return models, nil
 }
 
 // encryptProviderKeyFromRequest reads api_key from request body and encrypts it
