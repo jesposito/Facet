@@ -4,8 +4,8 @@
 # Uses native ARM runners for faster arm64 builds (no QEMU emulation).
 #
 # Triggers on:
-#   - Push to main branch (publishes as :latest and :main)
 #   - Version tags (v1.0.0 publishes as :1.0.0, :1.0, :1, :latest)
+#   - Feature branches (for testing)
 #   - Manual dispatch (workflow_dispatch)
 #
 # Images are published to: ghcr.io/jesposito/facet
@@ -15,7 +15,8 @@ name: Build and Publish Docker Image
 on:
   push:
     branches:
-      - main
+      # Note: 'main' removed - release builds happen on version tags only
+      # This ensures the changelog is included (generated before tag)
       - 'upgrade/*'
       - 'claude/*'
       - 'auto-claude/*'
@@ -171,11 +172,11 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Set latest tag for default branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # Set latest tag for version tags (releases)
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             # Dev tag for upgrade, claude, auto-claude, feature, dev, and fix branches
             type=raw,value=dev,enable=${{ startsWith(github.ref, 'refs/heads/upgrade/') || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/auto-claude/') || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/dev/') || startsWith(github.ref, 'refs/heads/fix/') }}
-            # Branch name (e.g., main)
+            # Branch name (e.g., feature/foo)
             type=ref,event=branch
             # Tag name (e.g., v1.0.0 -> 1.0.0)
             type=semver,pattern={{version}}
