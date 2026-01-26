@@ -346,8 +346,11 @@ jobs:
             } > CHANGELOG.md
           fi
 
-          # Commit and push changelog
-          git add CHANGELOG.md
+          # Update LATEST_VERSION file for version check
+          echo "$NEW_TAG" > LATEST_VERSION
+
+          # Commit and push changelog + version file
+          git add CHANGELOG.md LATEST_VERSION
           if git diff --staged --quiet; then
             echo "No changelog changes to commit"
           else

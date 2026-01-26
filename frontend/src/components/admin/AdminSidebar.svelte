@@ -32,15 +32,12 @@
 				}
 			}
 
-			// Fetch latest tag from GitHub (sorted by creation date, most recent first)
-			const response = await fetch('https://api.github.com/repos/jesposito/Facet/tags?per_page=1', {
-				headers: { 'Accept': 'application/vnd.github.v3+json' }
-			});
+			// Fetch latest version from static file (avoids API rate limits)
+			const response = await fetch('https://raw.githubusercontent.com/jesposito/Facet/main/LATEST_VERSION');
 
 			if (!response.ok) return;
 
-			const data = await response.json();
-			const latest = (data[0]?.name) || '';
+			const latest = (await response.text()).trim();
 
 			// Compare versions (strip 'v' prefix for comparison)
 			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
