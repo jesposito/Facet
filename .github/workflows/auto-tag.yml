@@ -167,7 +167,8 @@ jobs:
           # Build prompt with PR data
           PR_LIST=$(echo "$PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
 
-          PROMPT="You are a changelog generator for a software project called Facet (a professional portfolio platform).
+          PROMPT=$(cat <<'PROMPT_EOF'
+You are a changelog generator for a software project called Facet (a professional portfolio platform).
 
 Given these merged pull requests, extract ALL distinct changes and categorize each one. A single PR may contain multiple bug fixes, features, or other changes - create a separate entry for each.
 
@@ -186,19 +187,23 @@ Rules:
 
 Output format (JSON array - same PR number can appear multiple times):
 [
-  {\"number\": 123, \"category\": \"BUG\", \"description\": \"Fix navigation toggle not persisting state\"},
-  {\"number\": 123, \"category\": \"FEATURE\", \"description\": \"Add usage badges to admin items\"},
-  {\"number\": 124, \"category\": \"BUG\", \"description\": \"Fix mobile layout issues\"}
+  {"number": 123, "category": "BUG", "description": "Fix navigation toggle not persisting state"},
+  {"number": 123, "category": "FEATURE", "description": "Add usage badges to admin items"},
+  {"number": 124, "category": "BUG", "description": "Fix mobile layout issues"}
 ]
 
 Pull Requests:
+PROMPT_EOF
+)
+          # Append PR_LIST to the prompt
+          PROMPT="$PROMPT
 $PR_LIST
 
 Output only valid JSON, no markdown or explanation."
 
           # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
           echo "Trying GitHub Models (Copilot)..."
-          GH_MODELS_RESPONSE=$(curl -s "https://models.inference.ai.azure.com/chat/completions" \
+          GH_MODELS_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 "https://models.inference.ai.azure.com/chat/completions" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -d "$(jq -n --arg prompt "$PROMPT" '{
@@ -222,7 +227,7 @@ Output only valid JSON, no markdown or explanation."
           # Fallback to OpenAI if GitHub Models failed and API key is available
           if [ "$AI_SUCCESS" = false ] && [ -n "$OPENAI_API_KEY" ]; then
             echo "Trying OpenAI API..."
-            AI_RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+            AI_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 https://api.openai.com/v1/chat/completions \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -d "$(jq -n --arg prompt "$PROMPT" '{
