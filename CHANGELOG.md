@@ -50,9 +50,7 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
----
-
-## v2.8.12 - January 26, 2026
+## v2.8.11 - January 26, 2026
 
 **Bugs Fixed:**
 - Fix site nav toggle state not persisting to database
