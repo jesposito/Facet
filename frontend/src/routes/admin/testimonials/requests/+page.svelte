@@ -101,19 +101,19 @@
 			confirmText: 'Delete',
 			danger: true
 		});
-		
+
 		if (!confirmed) return;
-		
+
 		try {
 			const headers: Record<string, string> = pb.authStore.isValid
 				? { Authorization: `Bearer ${pb.authStore.token}` }
 				: {};
-			
+
 			const response = await fetch(`/api/testimonials/requests/${id}`, {
 				method: 'DELETE',
 				headers
 			});
-			
+
 			if (response.ok) {
 				toasts.success('Request link deleted');
 				await loadRequests();
@@ -122,6 +122,30 @@
 			}
 		} catch (err) {
 			toasts.error('Failed to delete');
+		}
+	}
+
+	async function regenerateLink(id: string) {
+		try {
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+			};
+
+			const response = await fetch(`/api/testimonials/requests/${id}/regenerate`, {
+				method: 'POST',
+				headers
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				newToken = data.token;
+				toasts.success('New link generated');
+			} else {
+				toasts.error('Failed to regenerate link');
+			}
+		} catch (err) {
+			toasts.error('Failed to regenerate link');
 		}
 	}
 
@@ -345,16 +369,28 @@
 								</p>
 							{/if}
 						</div>
-						<button
-							type="button"
-							onclick={() => deleteRequest(request.id)}
-							class="shrink-0 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg"
-							aria-label="Delete request"
-						>
-							<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-							</svg>
-						</button>
+						<div class="flex items-center gap-1 shrink-0">
+							<button
+								type="button"
+								onclick={() => regenerateLink(request.id)}
+								class="p-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-900/20 rounded-lg"
+								title="Get new link"
+							>
+								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+								</svg>
+							</button>
+							<button
+								type="button"
+								onclick={() => deleteRequest(request.id)}
+								class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg"
+								aria-label="Delete request"
+							>
+								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+								</svg>
+							</button>
+						</div>
 					</div>
 				</div>
 			{/each}

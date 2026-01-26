@@ -122,6 +122,38 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
+		// Regenerate token for an existing request (issue #284)
+		se.Router.POST("/api/testimonials/requests/{id}/regenerate", func(e *core.RequestEvent) error {
+			id := e.Request.PathValue("id")
+			record, err := app.FindRecordById("testimonial_requests", id)
+			if err != nil {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "request not found"})
+			}
+
+			// Generate new token
+			rawToken, err := testimonial.GenerateToken()
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
+			}
+
+			tokenHMAC := testimonial.HMACToken(rawToken)
+			tokenPrefix := testimonial.TokenPrefix(rawToken)
+
+			// Update the record with new token
+			record.Set("token_hash", tokenHMAC)
+			record.Set("token_prefix", tokenPrefix)
+
+			if err := app.Save(record); err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save request"})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"id":    record.Id,
+				"token": rawToken,
+				"label": record.GetString("label"),
+			})
+		}).Bind(apis.RequireAuth())
+
 		se.Router.GET("/api/testimonials/request/{token}", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			token := e.Request.PathValue("token")
 			invalidResponse := services.TestimonialRequestValidation{
