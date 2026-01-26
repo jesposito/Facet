@@ -108,6 +108,7 @@
 
 	onMount(loadItems);
 	onMount(loadAvailableTags);
+	onMount(loadMediaOptions);
 	onMount(async () => {
 		if (browser) {
 			const { dndzone: dnd } = await import('svelte-dnd-action');
