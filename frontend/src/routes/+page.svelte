@@ -456,7 +456,7 @@
 		hasTestimonials={data.testimonials && data.testimonials.length > 0}
 		hasContacts={data.contacts && data.contacts.length > 0}
 		viewSlug=""
-		sectionOrder={effectiveSectionOrder()}
+		sectionOrder={effectiveSectionOrder}
 	/>
 
 	<!-- Main content -->
