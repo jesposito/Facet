@@ -169,7 +169,7 @@ jobs:
 
           PROMPT="You are a changelog generator for a software project called Facet (a professional portfolio platform).
 
-Given these merged pull requests, categorize each into exactly one category and provide a clean, user-friendly one-line description.
+Given these merged pull requests, extract ALL distinct changes and categorize each one. A single PR may contain multiple bug fixes, features, or other changes - create a separate entry for each.
 
 Categories:
 - BUG: Bug fixes, error corrections, patches
@@ -177,13 +177,19 @@ Categories:
 - OTHER: Refactoring, documentation, maintenance, CI/CD
 
 Rules:
-1. Each PR gets ONE category and ONE description line
-2. Descriptions should be clear, concise, and user-facing (no technical jargon)
-3. Remove prefixes like 'fix:', 'feat:', 'Claude/' from descriptions
-4. Start descriptions with a verb (Add, Fix, Improve, Update, etc.)
+1. Extract EVERY distinct change from each PR (a PR can have multiple entries)
+2. Each change gets its own entry with the appropriate category
+3. Descriptions should be clear, concise, and user-facing (no technical jargon)
+4. Remove prefixes like 'fix:', 'feat:', 'Claude/' from descriptions
+5. Start descriptions with a verb (Add, Fix, Improve, Update, etc.)
+6. Look at the PR title AND description to find all changes
 
-Output format (JSON array):
-[{\"number\": 123, \"category\": \"BUG\", \"description\": \"Fix navigation toggle not persisting state\"}]
+Output format (JSON array - same PR number can appear multiple times):
+[
+  {\"number\": 123, \"category\": \"BUG\", \"description\": \"Fix navigation toggle not persisting state\"},
+  {\"number\": 123, \"category\": \"FEATURE\", \"description\": \"Add usage badges to admin items\"},
+  {\"number\": 124, \"category\": \"BUG\", \"description\": \"Fix mobile layout issues\"}
+]
 
 Pull Requests:
 $PR_LIST
@@ -240,17 +246,23 @@ Output only valid JSON, no markdown or explanation."
 
           # Process AI response if successful
           if [ "$AI_SUCCESS" = true ]; then
+            # Track seen PR numbers to avoid duplicate links
+            declare -A SEEN_PRS
             echo "$AI_JSON" | jq -c '.[]' | while read -r item; do
               NUMBER=$(echo "$item" | jq -r '.number')
               CATEGORY=$(echo "$item" | jq -r '.category')
               DESC=$(echo "$item" | jq -r '.description')
-              URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
 
               case "$CATEGORY" in
                 BUG) echo "$DESC" >> /tmp/bugs.txt ;;
                 FEATURE) echo "$DESC" >> /tmp/features.txt ;;
                 *) echo "$DESC" >> /tmp/other.txt ;;
               esac
+            done
+
+            # Add unique PR links (deduplicated)
+            echo "$AI_JSON" | jq -r '.[].number' | sort -u | while read -r NUMBER; do
+              URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
               echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
             done
           fi
