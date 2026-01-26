@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.21 - January 26, 2026
+
+**Bugs Fixed:**
+- Fix for AI hallucinations in changelog generation
+
+**Pull Requests:** [#305](https://github.com/jesposito/Facet/pull/305),
+
+---
+
+
 ## v2.8.20 - January 26, 2026
 
 **Other Changes:**
