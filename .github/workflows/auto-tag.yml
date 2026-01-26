@@ -166,15 +166,36 @@ jobs:
             TITLE=$(echo "$pr" | jq -r '.title')
             URL=$(echo "$pr" | jq -r '.url')
 
-            # Clean title - remove conventional commit prefix
-            CLEAN_TITLE=$(echo "$TITLE" | sed -E 's/^(feat|fix|docs|refactor|chore|style|test|perf|ci|build)(\([^)]*\))?[!]?:\s*//')
+            # Clean title - remove various prefixes for display
+            # Handles: fix:, Fix:, feat:, Claude/, etc.
+            CLEAN_TITLE=$(echo "$TITLE" | sed -E 's/^(feat|fix|docs|refactor|chore|style|test|perf|ci|build)(\([^)]*\))?[!]?:\s*//i')
+            CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/[^:]*:\s*//i')
+            CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/\s*//i')
 
-            # Categorize by prefix
-            if echo "$TITLE" | grep -qiE '^fix(\([^)]*\))?[!]?:'; then
+            # Convert to lowercase for matching
+            TITLE_LOWER=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]')
+
+            # Categorize by prefix or keywords
+            # 1. Explicit fix: prefix (case insensitive)
+            # 2. Contains "fix" or "bug" in title
+            # 3. Explicit feat: prefix (case insensitive)
+            # 4. Contains "add", "implement", "new feature" keywords
+            # 5. Everything else goes to "other"
+
+            if echo "$TITLE_LOWER" | grep -qE '^fix(\([^)]*\))?[!]?:'; then
+              # Conventional fix: prefix
               echo "$CLEAN_TITLE" >> /tmp/bugs.txt
-            elif echo "$TITLE" | grep -qiE '^feat(\([^)]*\))?[!]?:'; then
+            elif echo "$TITLE_LOWER" | grep -qE '^feat(ure)?(\([^)]*\))?[!]?:'; then
+              # Conventional feat: or feature: prefix
+              echo "$CLEAN_TITLE" >> /tmp/features.txt
+            elif echo "$TITLE_LOWER" | grep -qE '(fix|bug|resolve|patch|hotfix)'; then
+              # Contains bug-fix related keywords
+              echo "$CLEAN_TITLE" >> /tmp/bugs.txt
+            elif echo "$TITLE_LOWER" | grep -qE '(add|implement|new feature|introduce|create|enable)'; then
+              # Contains feature-related keywords
               echo "$CLEAN_TITLE" >> /tmp/features.txt
             else
+              # Everything else
               echo "$CLEAN_TITLE" >> /tmp/other.txt
             fi
 
