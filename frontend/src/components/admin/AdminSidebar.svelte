@@ -150,7 +150,8 @@ const navSections = [
 			{ href: '/admin/settings#ai-providers', label: 'Integrations', icon: 'sparkle' },
 			{ href: '/admin/settings/tags', label: 'Admin Tags', icon: 'chip' },
 			{ href: '/admin/media', label: 'Media Library', icon: 'image' },
-			{ href: '/admin/tokens', label: 'Share Tokens', icon: 'link' }
+			{ href: '/admin/tokens', label: 'Share Tokens', icon: 'link' },
+			{ href: '/admin/settings/about', label: 'About Facet', icon: 'sparkle' }
 		]
 	}
 ];
@@ -574,26 +575,12 @@ let isActive = $derived((href: string): boolean => {
 		{/each}
 	</nav>
 
-	<!-- Preview link and version -->
-	<div class="shrink-0 px-3 pb-4 space-y-2">
-		<a
-			href="/"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-			aria-label="View public profile (opens in new tab)"
-		>
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-			</svg>
-			{#if $adminSidebarOpen}
-				<span class="text-sm">View Public Profile</span>
-			{/if}
-		</a>
-		{#if $adminSidebarOpen}
+	<!-- Version -->
+	{#if $adminSidebarOpen}
+		<div class="shrink-0 px-3 pb-4">
 			<div class="text-center text-xs text-gray-400 dark:text-gray-500">
 				{appVersion}
 			</div>
-		{/if}
-	</div>
+		</div>
+	{/if}
 </aside>
