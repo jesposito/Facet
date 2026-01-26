@@ -210,11 +210,20 @@
 			navPinned = rect.bottom <= 0;
 		};
 
-		checkSentinel();
+		// Defer initial check to next frame to allow async content (SiteNav) to render
+		// SiteNav fetches data on mount, so we need to wait for it to potentially change layout
+		requestAnimationFrame(checkSentinel);
+
+		// Also check after a short delay in case SiteNav is still loading
+		const delayedCheck = setTimeout(checkSentinel, 300);
+
 		window.addEventListener('scroll', checkSentinel, { passive: true });
+		window.addEventListener('resize', checkSentinel, { passive: true });
 
 		return () => {
+			clearTimeout(delayedCheck);
 			window.removeEventListener('scroll', checkSentinel);
+			window.removeEventListener('resize', checkSentinel);
 		};
 	});
 
