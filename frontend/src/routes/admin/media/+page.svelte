@@ -407,7 +407,7 @@
 			<div class="flex items-center gap-2">
 				<input
 					class="input"
-					placeholder="Search filename..."
+					placeholder="Search by title or filename..."
 					bind:value={search}
 					onkeydown={(e) => e.key === 'Enter' && resetAndLoad()}
 				/>
@@ -569,20 +569,26 @@
 									<td class="px-4 py-3">
 										<div class="flex items-center gap-2">
 											{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}
-											<a
-												class="text-primary-600 dark:text-primary-300 hover:underline break-all"
-												href={item.url}
-											target="_blank"
-											rel="noopener noreferrer"
-										>
-											{item.filename}
-										</a>
+											<div class="min-w-0">
+												<a
+													class="text-primary-600 dark:text-primary-300 hover:underline break-all block truncate"
+													href={item.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													title={item.display_name || item.filename}
+												>
+													{item.display_name || item.filename}
+												</a>
+												{#if item.display_name && item.display_name !== item.filename}
+													<span class="text-xs text-gray-500 dark:text-gray-400 truncate block">{item.filename}</span>
+												{/if}
+											</div>
 											{#if item.orphan}
-												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0">
 													Orphan
 												</span>
 											{:else if item.external}
-												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0">
 													External
 												</span>
 											{/if}

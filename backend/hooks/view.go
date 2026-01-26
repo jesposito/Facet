@@ -1014,6 +1014,14 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						}
 					}
 
+					// Add media_refs from library if present
+					if mediaRefs, ok := record.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
+						contentItem["media_refs"] = mediaRefs
+						if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
+							contentItem["media_refs_expand"] = expanded
+						}
+					}
+
 					customContentItems = append(customContentItems, contentItem)
 				}
 

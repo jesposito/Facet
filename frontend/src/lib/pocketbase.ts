@@ -248,6 +248,8 @@ export interface CustomContent {
 	cover_image_thumb_url?: string;
 	media?: string[];
 	media_urls?: string[];
+	media_refs?: string[];
+	media_refs_expand?: Array<{ id: string; url: string; title?: string; mime?: string; thumbnail_url?: string }>;
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
