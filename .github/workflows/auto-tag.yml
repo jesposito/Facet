@@ -119,18 +119,142 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Create annotated tag with PR info
           if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG (manual trigger)"
           else
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "PR: #$PR_NUMBER" -m "Title: $PR_TITLE"
           fi
-          
+
           git push origin "$NEW_TAG"
-          
+
           echo "## Tag Created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**New Tag:** \`$NEW_TAG\`" >> $GITHUB_STEP_SUMMARY
           echo "**Bump Type:** $BUMP_TYPE" >> $GITHUB_STEP_SUMMARY
           echo "**Previous Tag:** $PREV_TAG" >> $GITHUB_STEP_SUMMARY
+
+      - name: Update CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.new_version.outputs.new_tag }}
+          PREV_TAG: ${{ steps.get_tag.outputs.latest }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Clean up any previous temp files
+          rm -f /tmp/bugs.txt /tmp/features.txt /tmp/other.txt /tmp/pr_links.txt
+
+          # Get the date of the previous tag (or initial commit if no tags)
+          if [ "$PREV_TAG" == "v0.0.0" ]; then
+            # No previous tag - use first commit date
+            SINCE_DATE=$(git log --reverse --format=%aI | head -1)
+          else
+            # Get date of previous tag
+            SINCE_DATE=$(git log -1 --format=%aI "$PREV_TAG" 2>/dev/null || git log --reverse --format=%aI | head -1)
+          fi
+
+          echo "Fetching PRs merged since: $SINCE_DATE"
+
+          # Fetch merged PRs since previous tag
+          PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url --limit 100)
+
+          # Process each PR using process substitution to avoid subshell
+          while IFS= read -r pr; do
+            [ -z "$pr" ] && continue
+            NUMBER=$(echo "$pr" | jq -r '.number')
+            TITLE=$(echo "$pr" | jq -r '.title')
+            URL=$(echo "$pr" | jq -r '.url')
+
+            # Clean title - remove conventional commit prefix
+            CLEAN_TITLE=$(echo "$TITLE" | sed -E 's/^(feat|fix|docs|refactor|chore|style|test|perf|ci|build)(\([^)]*\))?[!]?:\s*//')
+
+            # Categorize by prefix
+            if echo "$TITLE" | grep -qiE '^fix(\([^)]*\))?[!]?:'; then
+              echo "$CLEAN_TITLE" >> /tmp/bugs.txt
+            elif echo "$TITLE" | grep -qiE '^feat(\([^)]*\))?[!]?:'; then
+              echo "$CLEAN_TITLE" >> /tmp/features.txt
+            else
+              echo "$CLEAN_TITLE" >> /tmp/other.txt
+            fi
+
+            # Collect PR link
+            echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+          done < <(echo "$PRS" | jq -c '.[]')
+
+          # Format the date nicely
+          RELEASE_DATE=$(date '+%B %d, %Y')
+
+          # Build the changelog entry in a temp file
+          ENTRY_FILE=/tmp/changelog_entry.md
+          echo "## $NEW_TAG - $RELEASE_DATE" > "$ENTRY_FILE"
+          echo "" >> "$ENTRY_FILE"
+
+          # Add bugs section if any
+          if [ -f /tmp/bugs.txt ] && [ -s /tmp/bugs.txt ]; then
+            echo "**Bugs Fixed:**" >> "$ENTRY_FILE"
+            while IFS= read -r line; do
+              echo "- $line" >> "$ENTRY_FILE"
+            done < /tmp/bugs.txt
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          # Add features section if any
+          if [ -f /tmp/features.txt ] && [ -s /tmp/features.txt ]; then
+            echo "**New Features:**" >> "$ENTRY_FILE"
+            while IFS= read -r line; do
+              echo "- $line" >> "$ENTRY_FILE"
+            done < /tmp/features.txt
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          # Add other changes section if any
+          if [ -f /tmp/other.txt ] && [ -s /tmp/other.txt ]; then
+            echo "**Other Changes:**" >> "$ENTRY_FILE"
+            while IFS= read -r line; do
+              echo "- $line" >> "$ENTRY_FILE"
+            done < /tmp/other.txt
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          # Add PR links
+          if [ -f /tmp/pr_links.txt ] && [ -s /tmp/pr_links.txt ]; then
+            PR_LINK_LIST=$(cat /tmp/pr_links.txt | tr '\n' ', ' | sed 's/, $//')
+            echo "**Pull Requests:** $PR_LINK_LIST" >> "$ENTRY_FILE"
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          echo "---" >> "$ENTRY_FILE"
+          echo "" >> "$ENTRY_FILE"
+
+          # Create or update CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            # Prepend new entry after the header (first 4 lines: title, blank, description, blank)
+            {
+              head -n 4 CHANGELOG.md
+              echo ""
+              cat "$ENTRY_FILE"
+              tail -n +5 CHANGELOG.md
+            } > CHANGELOG.tmp
+            mv CHANGELOG.tmp CHANGELOG.md
+          else
+            # Create new changelog
+            {
+              echo "# Changelog"
+              echo ""
+              echo "All notable changes to Facet will be documented in this file."
+              echo ""
+              cat "$ENTRY_FILE"
+            } > CHANGELOG.md
+          fi
+
+          # Commit and push changelog
+          git add CHANGELOG.md
+          if git diff --staged --quiet; then
+            echo "No changelog changes to commit"
+          else
+            git commit -m "docs: update CHANGELOG for $NEW_TAG"
+            git push origin main
+            echo "## Changelog Updated" >> $GITHUB_STEP_SUMMARY
+            echo "CHANGELOG.md has been updated with release notes for $NEW_TAG" >> $GITHUB_STEP_SUMMARY
+          fi
