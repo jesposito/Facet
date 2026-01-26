@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
+	interface CustomContentItem {
+		id: string;
+		title: string;
+	}
+
 	interface Props {
 		hasExperience?: boolean;
 		hasProjects?: boolean;
@@ -14,6 +19,7 @@
 		hasContacts?: boolean;
 		viewSlug?: string;
 		sectionOrder?: string[];
+		customContent?: CustomContentItem[];
 	}
 
 	let {
@@ -28,7 +34,8 @@
 		hasTestimonials = false,
 		hasContacts = false,
 		viewSlug = '',
-		sectionOrder = []
+		sectionOrder = [],
+		customContent = []
 	}: Props = $props();
 
 	// Build URL with optional from parameter for back navigation
@@ -94,8 +101,19 @@
 		const items: NavItem[] = [];
 
 		for (const sectionId of order) {
-			// Skip custom sections (they start with "custom:")
-			if (sectionId.startsWith('custom:')) continue;
+			// Handle custom content sections
+			if (sectionId.startsWith('custom:')) {
+				const customId = sectionId.replace('custom:', '');
+				const customItem = customContent.find(c => c.id === customId);
+				if (customItem) {
+					items.push({
+						id: `custom-${customId}`,
+						label: customItem.title,
+						show: true
+					});
+				}
+				continue;
+			}
 
 			const config = sectionConfig[sectionId];
 			if (config && config.getShow()) {

@@ -457,6 +457,7 @@
 		hasContacts={data.contacts && data.contacts.length > 0}
 		viewSlug=""
 		sectionOrder={effectiveSectionOrder}
+		customContent={data.customContent || []}
 	/>
 
 	<!-- Main content -->
