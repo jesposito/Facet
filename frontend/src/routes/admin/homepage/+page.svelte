@@ -524,9 +524,17 @@
 		}
 	}
 
-	// Site navigation helpers
-	function getNavItemForView(viewId: string): { viewId: string; enabled: boolean; label: string } | undefined {
-		return siteNavItems.find(item => item.viewId === viewId);
+	// Site navigation helpers - use derived state for reactivity
+	let navItemsByViewId = $derived(
+		new Map(siteNavItems.map(item => [item.viewId, item]))
+	);
+
+	function isNavItemEnabled(viewId: string): boolean {
+		return navItemsByViewId.get(viewId)?.enabled ?? false;
+	}
+
+	function getNavItemLabel(viewId: string): string {
+		return navItemsByViewId.get(viewId)?.label || '';
 	}
 
 	function toggleNavItem(viewId: string) {
@@ -966,15 +974,13 @@
 							</p>
 							<div class="space-y-3">
 								{#each publicViews as view (view.id)}
-									{@const navItem = getNavItemForView(view.id)}
-									{@const isEnabled = navItem?.enabled ?? false}
 									<div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
 										<div class="flex items-center gap-3 flex-1 min-w-0">
 											<label class="relative inline-flex items-center cursor-pointer">
 												<input
 													type="checkbox"
 													class="sr-only peer"
-													checked={isEnabled}
+													checked={isNavItemEnabled(view.id)}
 													onchange={() => toggleNavItem(view.id)}
 												/>
 												<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
@@ -989,7 +995,7 @@
 												type="text"
 												class="input input-sm w-full"
 												placeholder={view.name}
-												value={navItem?.label || ''}
+												value={getNavItemLabel(view.id)}
 												oninput={(e) => updateNavItemLabel(view.id, e.currentTarget.value)}
 											/>
 										</div>
