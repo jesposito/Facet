@@ -545,6 +545,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// If no items selected (len(items) == 0), section remains empty - nothing shown
 			}
 
+			// Fallback to global category order from site settings if not set per-section
+			if _, hasSkillsOrder := sectionCategoryOrders["skills"]; !hasSkillsOrder {
+				if siteSettings, err := services.LoadSiteSettings(app); err == nil && siteSettings != nil {
+					if len(siteSettings.SkillsCategoryOrder) > 0 {
+						sectionCategoryOrders["skills"] = siteSettings.SkillsCategoryOrder
+					}
+				}
+			}
+
 			response["sections"] = sectionData
 			response["section_order"] = sectionOrder
 			response["section_layouts"] = sectionLayouts
@@ -653,6 +662,61 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"homepage_enabled":     true,
 				"landing_page_message": settings.LandingPageMessage,
 				"hide_login_button":    settings.HideLoginButton,
+			})
+		}))
+
+		// Get site navigation for public pages
+		// Returns enabled nav items with resolved view slugs (only public views)
+		// Rate limited: normal tier (60/min)
+		se.Router.GET("/api/site-nav", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil {
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"enabled": false,
+					"items":   []interface{}{},
+				})
+			}
+
+			if !settings.SiteNavEnabled || len(settings.SiteNavItems) == 0 {
+				return e.JSON(http.StatusOK, map[string]interface{}{
+					"enabled": false,
+					"items":   []interface{}{},
+				})
+			}
+
+			// Resolve nav items - only include enabled items with public views
+			var navItems []map[string]interface{}
+			for _, item := range settings.SiteNavItems {
+				if !item.Enabled {
+					continue
+				}
+
+				// Look up the view - must be active and PUBLIC
+				view, err := app.FindRecordById("views", item.ViewID)
+				if err != nil {
+					continue
+				}
+
+				if !view.GetBool("is_active") || view.GetString("visibility") != "public" {
+					continue
+				}
+
+				label := item.Label
+				if label == "" {
+					label = view.GetString("name")
+				}
+
+				navItems = append(navItems, map[string]interface{}{
+					"viewId": item.ViewID,
+					"slug":   view.GetString("slug"),
+					"label":  label,
+					"name":   view.GetString("name"),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"enabled": true,
+				"items":   navItems,
 			})
 		}))
 
@@ -998,6 +1062,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["homepage_custom_content"] = settings.HomepageCustomContent
 				response["homepage_section_order"] = settings.HomepageSectionOrder
 				response["homepage_sections"] = settings.HomepageSections
+				response["skills_category_order"] = settings.SkillsCategoryOrder
 			}
 
 			return e.JSON(http.StatusOK, response)
