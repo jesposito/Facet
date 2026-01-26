@@ -3,6 +3,22 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.20 - January 26, 2026
+
+**New Features:**
+- Introduce dark mode option for user profiles
+- Add ability to filter portfolio items by category
+
+**Other Changes:**
+- Update documentation for dark mode feature
+- Refactor file upload component for better performance
+- Improve CI/CD pipeline for faster deployments
+
+**Pull Requests:** [#125](),[#126](),[#127](),[#128](),[#129](),
+
+---
+
+
 ## v2.8.19 - January 26, 2026
 
 **Bugs Fixed:**
