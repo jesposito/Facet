@@ -141,77 +141,139 @@ jobs:
           NEW_TAG: ${{ steps.new_version.outputs.new_tag }}
           PREV_TAG: ${{ steps.get_tag.outputs.latest }}
           REPO: ${{ github.repository }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           # Clean up any previous temp files
-          rm -f /tmp/bugs.txt /tmp/features.txt /tmp/other.txt /tmp/pr_links.txt
+          rm -f /tmp/bugs.txt /tmp/features.txt /tmp/other.txt /tmp/pr_links.txt /tmp/pr_data.json
 
           # Get the date of the previous tag (or initial commit if no tags)
           if [ "$PREV_TAG" == "v0.0.0" ]; then
-            # No previous tag - use first commit date
             SINCE_DATE=$(git log --reverse --format=%aI | head -1)
           else
-            # Get date of previous tag
             SINCE_DATE=$(git log -1 --format=%aI "$PREV_TAG" 2>/dev/null || git log --reverse --format=%aI | head -1)
           fi
 
           echo "Fetching PRs merged since: $SINCE_DATE"
 
-          # Fetch merged PRs since previous tag
-          PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url --limit 100)
+          # Fetch merged PRs since previous tag (include body for AI context)
+          PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
+          echo "$PRS" > /tmp/pr_data.json
 
-          # Process each PR using process substitution to avoid subshell
-          while IFS= read -r pr; do
-            [ -z "$pr" ] && continue
-            NUMBER=$(echo "$pr" | jq -r '.number')
-            TITLE=$(echo "$pr" | jq -r '.title')
-            URL=$(echo "$pr" | jq -r '.url')
+          # Try AI-powered changelog generation if API key is available
+          AI_SUCCESS=false
+          if [ -n "$OPENAI_API_KEY" ]; then
+            echo "Using AI to generate changelog..."
 
-            # Clean title - remove various prefixes for display
-            # Handles: fix:, Fix:, feat:, Claude/, etc.
-            CLEAN_TITLE=$(echo "$TITLE" | sed -E 's/^(feat|fix|docs|refactor|chore|style|test|perf|ci|build)(\([^)]*\))?[!]?:\s*//i')
-            CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/[^:]*:\s*//i')
-            CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/\s*//i')
+            # Build prompt with PR data
+            PR_LIST=$(echo "$PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
 
-            # Convert to lowercase for matching
-            TITLE_LOWER=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]')
+            PROMPT="You are a changelog generator for a software project called Facet (a professional portfolio platform).
 
-            # Categorize by prefix or keywords
-            # 1. Explicit fix: prefix (case insensitive)
-            # 2. Contains "fix" or "bug" in title
-            # 3. Explicit feat: prefix (case insensitive)
-            # 4. Contains "add", "implement", "new feature" keywords
-            # 5. Everything else goes to "other"
+Given these merged pull requests, categorize each into exactly one category and provide a clean, user-friendly one-line description.
 
-            if echo "$TITLE_LOWER" | grep -qE '^fix(\([^)]*\))?[!]?:'; then
-              # Conventional fix: prefix
-              echo "$CLEAN_TITLE" >> /tmp/bugs.txt
-            elif echo "$TITLE_LOWER" | grep -qE '^feat(ure)?(\([^)]*\))?[!]?:'; then
-              # Conventional feat: or feature: prefix
-              echo "$CLEAN_TITLE" >> /tmp/features.txt
-            elif echo "$TITLE_LOWER" | grep -qE '(fix|bug|resolve|patch|hotfix)'; then
-              # Contains bug-fix related keywords
-              echo "$CLEAN_TITLE" >> /tmp/bugs.txt
-            elif echo "$TITLE_LOWER" | grep -qE '(add|implement|new feature|introduce|create|enable)'; then
-              # Contains feature-related keywords
-              echo "$CLEAN_TITLE" >> /tmp/features.txt
+Categories:
+- BUG: Bug fixes, error corrections, patches
+- FEATURE: New features, enhancements, additions
+- OTHER: Refactoring, documentation, maintenance, CI/CD
+
+Rules:
+1. Each PR gets ONE category and ONE description line
+2. Descriptions should be clear, concise, and user-facing (no technical jargon)
+3. Remove prefixes like 'fix:', 'feat:', 'Claude/' from descriptions
+4. Start descriptions with a verb (Add, Fix, Improve, Update, etc.)
+
+Output format (JSON array):
+[{\"number\": 123, \"category\": \"BUG\", \"description\": \"Fix navigation toggle not persisting state\"}]
+
+Pull Requests:
+$PR_LIST
+
+Output only valid JSON, no markdown or explanation."
+
+            # Call OpenAI API
+            AI_RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -d "$(jq -n --arg prompt "$PROMPT" '{
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": $prompt}],
+                "temperature": 0.3,
+                "max_tokens": 2000
+              }')" 2>/dev/null)
+
+            # Extract the content from the response
+            AI_CONTENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+
+            if [ -n "$AI_CONTENT" ]; then
+              # Try to parse as JSON (handle markdown code blocks)
+              AI_JSON=$(echo "$AI_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
+
+              if [ -n "$AI_JSON" ]; then
+                echo "AI categorization successful"
+                AI_SUCCESS=true
+
+                # Process AI response
+                echo "$AI_JSON" | jq -c '.[]' | while read -r item; do
+                  NUMBER=$(echo "$item" | jq -r '.number')
+                  CATEGORY=$(echo "$item" | jq -r '.category')
+                  DESC=$(echo "$item" | jq -r '.description')
+                  URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
+
+                  case "$CATEGORY" in
+                    BUG) echo "$DESC" >> /tmp/bugs.txt ;;
+                    FEATURE) echo "$DESC" >> /tmp/features.txt ;;
+                    *) echo "$DESC" >> /tmp/other.txt ;;
+                  esac
+                  echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+                done
+              else
+                echo "Failed to parse AI response as JSON"
+              fi
             else
-              # Everything else
-              echo "$CLEAN_TITLE" >> /tmp/other.txt
+              echo "No AI response received"
             fi
+          fi
 
-            # Collect PR link
-            echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
-          done < <(echo "$PRS" | jq -c '.[]')
+          # Fallback to keyword-based categorization if AI failed
+          if [ "$AI_SUCCESS" = false ]; then
+            echo "Using keyword-based categorization..."
+
+            echo "$PRS" | jq -c '.[]' | while read -r pr; do
+              [ -z "$pr" ] && continue
+              NUMBER=$(echo "$pr" | jq -r '.number')
+              TITLE=$(echo "$pr" | jq -r '.title')
+              URL=$(echo "$pr" | jq -r '.url')
+
+              # Clean title
+              CLEAN_TITLE=$(echo "$TITLE" | sed -E 's/^(feat|fix|docs|refactor|chore|style|test|perf|ci|build)(\([^)]*\))?[!]?:\s*//i')
+              CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/[^:]*:\s*//i')
+              CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/\s*//i')
+
+              TITLE_LOWER=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]')
+
+              if echo "$TITLE_LOWER" | grep -qE '^fix(\([^)]*\))?[!]?:'; then
+                echo "$CLEAN_TITLE" >> /tmp/bugs.txt
+              elif echo "$TITLE_LOWER" | grep -qE '^feat(ure)?(\([^)]*\))?[!]?:'; then
+                echo "$CLEAN_TITLE" >> /tmp/features.txt
+              elif echo "$TITLE_LOWER" | grep -qE '(fix|bug|resolve|patch|hotfix)'; then
+                echo "$CLEAN_TITLE" >> /tmp/bugs.txt
+              elif echo "$TITLE_LOWER" | grep -qE '(add|implement|new feature|introduce|create|enable)'; then
+                echo "$CLEAN_TITLE" >> /tmp/features.txt
+              else
+                echo "$CLEAN_TITLE" >> /tmp/other.txt
+              fi
+              echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+            done
+          fi
 
           # Format the date nicely
           RELEASE_DATE=$(date '+%B %d, %Y')
 
-          # Build the changelog entry in a temp file
+          # Build the changelog entry
           ENTRY_FILE=/tmp/changelog_entry.md
           echo "## $NEW_TAG - $RELEASE_DATE" > "$ENTRY_FILE"
           echo "" >> "$ENTRY_FILE"
 
-          # Add bugs section if any
           if [ -f /tmp/bugs.txt ] && [ -s /tmp/bugs.txt ]; then
             echo "**Bugs Fixed:**" >> "$ENTRY_FILE"
             while IFS= read -r line; do
@@ -220,7 +282,6 @@ jobs:
             echo "" >> "$ENTRY_FILE"
           fi
 
-          # Add features section if any
           if [ -f /tmp/features.txt ] && [ -s /tmp/features.txt ]; then
             echo "**New Features:**" >> "$ENTRY_FILE"
             while IFS= read -r line; do
@@ -229,7 +290,6 @@ jobs:
             echo "" >> "$ENTRY_FILE"
           fi
 
-          # Add other changes section if any
           if [ -f /tmp/other.txt ] && [ -s /tmp/other.txt ]; then
             echo "**Other Changes:**" >> "$ENTRY_FILE"
             while IFS= read -r line; do
@@ -238,7 +298,6 @@ jobs:
             echo "" >> "$ENTRY_FILE"
           fi
 
-          # Add PR links
           if [ -f /tmp/pr_links.txt ] && [ -s /tmp/pr_links.txt ]; then
             PR_LINK_LIST=$(cat /tmp/pr_links.txt | tr '\n' ', ' | sed 's/, $//')
             echo "**Pull Requests:** $PR_LINK_LIST" >> "$ENTRY_FILE"
@@ -250,7 +309,6 @@ jobs:
 
           # Create or update CHANGELOG.md
           if [ -f CHANGELOG.md ]; then
-            # Prepend new entry after the header (first 4 lines: title, blank, description, blank)
             {
               head -n 4 CHANGELOG.md
               echo ""
@@ -259,7 +317,6 @@ jobs:
             } > CHANGELOG.tmp
             mv CHANGELOG.tmp CHANGELOG.md
           else
-            # Create new changelog
             {
               echo "# Changelog"
               echo ""
@@ -277,5 +334,8 @@ jobs:
             git commit -m "docs: update CHANGELOG for $NEW_TAG"
             git push origin main
             echo "## Changelog Updated" >> $GITHUB_STEP_SUMMARY
+            if [ "$AI_SUCCESS" = true ]; then
+              echo "Generated with AI assistance" >> $GITHUB_STEP_SUMMARY
+            fi
             echo "CHANGELOG.md has been updated with release notes for $NEW_TAG" >> $GITHUB_STEP_SUMMARY
           fi
