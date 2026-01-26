@@ -387,7 +387,7 @@
 				ctaText={data.view?.cta_text || ''}
 				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 			/>
-		{:else if data.view?.cta_text && data.view?.cta_url && data.view?.cta_enabled !== false}
+		{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 			<!-- Fallback CTA for non-public views (no site nav) -->
 			<div class="bg-primary-600 text-white py-4">
 				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
