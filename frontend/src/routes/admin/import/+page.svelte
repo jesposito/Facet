@@ -661,7 +661,7 @@
 				<div class="pl-7 space-y-4">
 					{#if providers.length === 0}
 						<p class="text-gray-600 dark:text-gray-400 text-sm">
-							You can <a href="/admin/settings" class="text-primary-600 dark:text-primary-400 underline">configure an AI provider</a> to automatically generate descriptions.
+							You can <a href="/admin/settings#integrations" class="text-primary-600 dark:text-primary-400 underline">configure an AI provider</a> to automatically generate descriptions.
 						</p>
 					{:else}
 						<div>

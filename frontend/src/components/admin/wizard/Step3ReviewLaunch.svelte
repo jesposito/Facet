@@ -85,7 +85,7 @@
 					or a local <a href="https://ollama.com" target="_blank" rel="noopener noreferrer" class="underline hover:text-blue-900 dark:hover:text-blue-100">Ollama</a> instance.
 				</p>
 				<p class="text-blue-600 dark:text-blue-400">
-					Add your key in <strong>Settings</strong> when you're ready.
+					Add your key in <a href="/admin/settings#integrations" class="underline hover:text-blue-900 dark:hover:text-blue-100"><strong>Settings</strong></a> when you're ready.
 				</p>
 			</div>
 		</div>

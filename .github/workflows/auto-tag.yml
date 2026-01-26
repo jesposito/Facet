@@ -119,18 +119,256 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Create annotated tag with PR info
           if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG (manual trigger)"
           else
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "PR: #$PR_NUMBER" -m "Title: $PR_TITLE"
           fi
-          
+
           git push origin "$NEW_TAG"
-          
+
           echo "## Tag Created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**New Tag:** \`$NEW_TAG\`" >> $GITHUB_STEP_SUMMARY
           echo "**Bump Type:** $BUMP_TYPE" >> $GITHUB_STEP_SUMMARY
           echo "**Previous Tag:** $PREV_TAG" >> $GITHUB_STEP_SUMMARY
+
+      - name: Update CHANGELOG
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_TAG: ${{ steps.new_version.outputs.new_tag }}
+          PREV_TAG: ${{ steps.get_tag.outputs.latest }}
+          REPO: ${{ github.repository }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Clean up any previous temp files
+          rm -f /tmp/bugs.txt /tmp/features.txt /tmp/other.txt /tmp/pr_links.txt /tmp/pr_data.json
+
+          # Get the date of the previous tag (or initial commit if no tags)
+          if [ "$PREV_TAG" == "v0.0.0" ]; then
+            SINCE_DATE=$(git log --reverse --format=%aI | head -1)
+          else
+            SINCE_DATE=$(git log -1 --format=%aI "$PREV_TAG" 2>/dev/null || git log --reverse --format=%aI | head -1)
+          fi
+
+          echo "Fetching PRs merged since: $SINCE_DATE"
+
+          # Fetch merged PRs since previous tag (include body for AI context)
+          PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
+          echo "$PRS" > /tmp/pr_data.json
+
+          # Try AI-powered changelog generation
+          # Priority: 1) GitHub Models (Copilot), 2) OpenAI API, 3) Keyword fallback
+          AI_SUCCESS=false
+          AI_SOURCE=""
+
+          # Build prompt with PR data
+          PR_LIST=$(echo "$PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
+
+          PROMPT="You are a changelog generator for a software project called Facet (a professional portfolio platform).
+
+Given these merged pull requests, extract ALL distinct changes and categorize each one. A single PR may contain multiple bug fixes, features, or other changes - create a separate entry for each.
+
+Categories:
+- BUG: Bug fixes, error corrections, patches
+- FEATURE: New features, enhancements, additions
+- OTHER: Refactoring, documentation, maintenance, CI/CD
+
+Rules:
+1. Extract EVERY distinct change from each PR (a PR can have multiple entries)
+2. Each change gets its own entry with the appropriate category
+3. Descriptions should be clear, concise, and user-facing (no technical jargon)
+4. Remove prefixes like 'fix:', 'feat:', 'Claude/' from descriptions
+5. Start descriptions with a verb (Add, Fix, Improve, Update, etc.)
+6. Look at the PR title AND description to find all changes
+
+Output format (JSON array - same PR number can appear multiple times):
+[
+  {\"number\": 123, \"category\": \"BUG\", \"description\": \"Fix navigation toggle not persisting state\"},
+  {\"number\": 123, \"category\": \"FEATURE\", \"description\": \"Add usage badges to admin items\"},
+  {\"number\": 124, \"category\": \"BUG\", \"description\": \"Fix mobile layout issues\"}
+]
+
+Pull Requests:
+$PR_LIST
+
+Output only valid JSON, no markdown or explanation."
+
+          # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
+          echo "Trying GitHub Models (Copilot)..."
+          GH_MODELS_RESPONSE=$(curl -s "https://models.inference.ai.azure.com/chat/completions" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -d "$(jq -n --arg prompt "$PROMPT" '{
+              "model": "gpt-4o-mini",
+              "messages": [{"role": "user", "content": $prompt}],
+              "temperature": 0.3,
+              "max_tokens": 2000
+            }')" 2>/dev/null)
+
+          GH_CONTENT=$(echo "$GH_MODELS_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+
+          if [ -n "$GH_CONTENT" ] && [ "$GH_CONTENT" != "null" ]; then
+            AI_JSON=$(echo "$GH_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
+            if [ -n "$AI_JSON" ]; then
+              echo "GitHub Models (Copilot) categorization successful"
+              AI_SUCCESS=true
+              AI_SOURCE="GitHub Copilot"
+            fi
+          fi
+
+          # Fallback to OpenAI if GitHub Models failed and API key is available
+          if [ "$AI_SUCCESS" = false ] && [ -n "$OPENAI_API_KEY" ]; then
+            echo "Trying OpenAI API..."
+            AI_RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -d "$(jq -n --arg prompt "$PROMPT" '{
+                "model": "gpt-4o-mini",
+                "messages": [{"role": "user", "content": $prompt}],
+                "temperature": 0.3,
+                "max_tokens": 2000
+              }')" 2>/dev/null)
+
+            AI_CONTENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+
+            if [ -n "$AI_CONTENT" ]; then
+              AI_JSON=$(echo "$AI_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
+              if [ -n "$AI_JSON" ]; then
+                echo "OpenAI categorization successful"
+                AI_SUCCESS=true
+                AI_SOURCE="OpenAI"
+              fi
+            fi
+          fi
+
+          # Process AI response if successful
+          if [ "$AI_SUCCESS" = true ]; then
+            # Track seen PR numbers to avoid duplicate links
+            declare -A SEEN_PRS
+            echo "$AI_JSON" | jq -c '.[]' | while read -r item; do
+              NUMBER=$(echo "$item" | jq -r '.number')
+              CATEGORY=$(echo "$item" | jq -r '.category')
+              DESC=$(echo "$item" | jq -r '.description')
+
+              case "$CATEGORY" in
+                BUG) echo "$DESC" >> /tmp/bugs.txt ;;
+                FEATURE) echo "$DESC" >> /tmp/features.txt ;;
+                *) echo "$DESC" >> /tmp/other.txt ;;
+              esac
+            done
+
+            # Add unique PR links (deduplicated)
+            echo "$AI_JSON" | jq -r '.[].number' | sort -u | while read -r NUMBER; do
+              URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
+              echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+            done
+          fi
+
+          # Fallback to keyword-based categorization if AI failed
+          if [ "$AI_SUCCESS" = false ]; then
+            echo "Using keyword-based categorization..."
+
+            echo "$PRS" | jq -c '.[]' | while read -r pr; do
+              [ -z "$pr" ] && continue
+              NUMBER=$(echo "$pr" | jq -r '.number')
+              TITLE=$(echo "$pr" | jq -r '.title')
+              URL=$(echo "$pr" | jq -r '.url')
+
+              # Clean title
+              CLEAN_TITLE=$(echo "$TITLE" | sed -E 's/^(feat|fix|docs|refactor|chore|style|test|perf|ci|build)(\([^)]*\))?[!]?:\s*//i')
+              CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/[^:]*:\s*//i')
+              CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed -E 's/^Claude\/\s*//i')
+
+              TITLE_LOWER=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]')
+
+              if echo "$TITLE_LOWER" | grep -qE '^fix(\([^)]*\))?[!]?:'; then
+                echo "$CLEAN_TITLE" >> /tmp/bugs.txt
+              elif echo "$TITLE_LOWER" | grep -qE '^feat(ure)?(\([^)]*\))?[!]?:'; then
+                echo "$CLEAN_TITLE" >> /tmp/features.txt
+              elif echo "$TITLE_LOWER" | grep -qE '(fix|bug|resolve|patch|hotfix)'; then
+                echo "$CLEAN_TITLE" >> /tmp/bugs.txt
+              elif echo "$TITLE_LOWER" | grep -qE '(add|implement|new feature|introduce|create|enable)'; then
+                echo "$CLEAN_TITLE" >> /tmp/features.txt
+              else
+                echo "$CLEAN_TITLE" >> /tmp/other.txt
+              fi
+              echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+            done
+          fi
+
+          # Format the date nicely
+          RELEASE_DATE=$(date '+%B %d, %Y')
+
+          # Build the changelog entry
+          ENTRY_FILE=/tmp/changelog_entry.md
+          echo "## $NEW_TAG - $RELEASE_DATE" > "$ENTRY_FILE"
+          echo "" >> "$ENTRY_FILE"
+
+          if [ -f /tmp/bugs.txt ] && [ -s /tmp/bugs.txt ]; then
+            echo "**Bugs Fixed:**" >> "$ENTRY_FILE"
+            while IFS= read -r line; do
+              echo "- $line" >> "$ENTRY_FILE"
+            done < /tmp/bugs.txt
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          if [ -f /tmp/features.txt ] && [ -s /tmp/features.txt ]; then
+            echo "**New Features:**" >> "$ENTRY_FILE"
+            while IFS= read -r line; do
+              echo "- $line" >> "$ENTRY_FILE"
+            done < /tmp/features.txt
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          if [ -f /tmp/other.txt ] && [ -s /tmp/other.txt ]; then
+            echo "**Other Changes:**" >> "$ENTRY_FILE"
+            while IFS= read -r line; do
+              echo "- $line" >> "$ENTRY_FILE"
+            done < /tmp/other.txt
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          if [ -f /tmp/pr_links.txt ] && [ -s /tmp/pr_links.txt ]; then
+            PR_LINK_LIST=$(cat /tmp/pr_links.txt | tr '\n' ', ' | sed 's/, $//')
+            echo "**Pull Requests:** $PR_LINK_LIST" >> "$ENTRY_FILE"
+            echo "" >> "$ENTRY_FILE"
+          fi
+
+          echo "---" >> "$ENTRY_FILE"
+          echo "" >> "$ENTRY_FILE"
+
+          # Create or update CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            {
+              head -n 4 CHANGELOG.md
+              echo ""
+              cat "$ENTRY_FILE"
+              tail -n +5 CHANGELOG.md
+            } > CHANGELOG.tmp
+            mv CHANGELOG.tmp CHANGELOG.md
+          else
+            {
+              echo "# Changelog"
+              echo ""
+              echo "All notable changes to Facet will be documented in this file."
+              echo ""
+              cat "$ENTRY_FILE"
+            } > CHANGELOG.md
+          fi
+
+          # Commit and push changelog
+          git add CHANGELOG.md
+          if git diff --staged --quiet; then
+            echo "No changelog changes to commit"
+          else
+            git commit -m "docs: update CHANGELOG for $NEW_TAG"
+            git push origin main
+            echo "## Changelog Updated" >> $GITHUB_STEP_SUMMARY
+            if [ "$AI_SUCCESS" = true ]; then
+              echo "Generated with AI assistance" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "CHANGELOG.md has been updated with release notes for $NEW_TAG" >> $GITHUB_STEP_SUMMARY
+          fi

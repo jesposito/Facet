@@ -1,6 +1,8 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
+import { copyFileSync, existsSync, mkdirSync } from 'fs';
+import { resolve, dirname } from 'path';
 
 function getVersion(): string {
 	if (process.env.FACET_VERSION && process.env.FACET_VERSION !== 'dev') {
@@ -13,8 +15,28 @@ function getVersion(): string {
 	}
 }
 
+// Plugin to copy CHANGELOG.md to static folder for frontend access
+function copyChangelog() {
+	return {
+		name: 'copy-changelog',
+		buildStart() {
+			const src = resolve(__dirname, '../CHANGELOG.md');
+			const dest = resolve(__dirname, 'static/CHANGELOG.md');
+
+			if (existsSync(src)) {
+				const destDir = dirname(dest);
+				if (!existsSync(destDir)) {
+					mkdirSync(destDir, { recursive: true });
+				}
+				copyFileSync(src, dest);
+				console.log('[vite] Copied CHANGELOG.md to static folder');
+			}
+		}
+	};
+}
+
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [sveltekit(), copyChangelog()],
 	define: {
 		__APP_VERSION__: JSON.stringify(getVersion())
 	},
