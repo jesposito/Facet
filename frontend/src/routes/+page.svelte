@@ -462,20 +462,20 @@
 					{@const customItem = customContentMap.get(getCustomContentId(sectionKey))}
 					{#if customItem}
 						<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-						<CustomContentSection item={customItem as any} layout="default" />
+						<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
 					{/if}
 				{:else if sectionKey === 'experience' && data.experience.length > 0}
-					<ExperienceSection items={data.experience} />
+					<ExperienceSection items={data.experience} layout={getSectionLayout('experience')} />
 				{:else if sectionKey === 'projects' && data.projects.length > 0}
-					<ProjectsSection items={data.projects} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
+					<ProjectsSection items={data.projects} layout={getSectionLayout('projects')} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
 				{:else if sectionKey === 'education' && data.education.length > 0}
-					<EducationSection items={data.education} />
+					<EducationSection items={data.education} layout={getSectionLayout('education')} />
 				{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
-					<CertificationsSection items={data.certifications} />
+					<CertificationsSection items={data.certifications} layout={getSectionLayout('certifications')} />
 				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
-					<AwardsSection items={data.awards} />
+					<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
 				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} categoryOrder={getCategoryOrder('skills')} />
+					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
 						<h2 class="section-title mb-0">Posts</h2>
@@ -490,12 +490,12 @@
 						</a>
 					</div>
 					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-					<PostsSection items={data.posts} viewSlug="" />
+					<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
 				{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
 					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-					<TalksSection items={data.talks} viewSlug="" />
+					<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
 				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
-					<TestimonialsSection items={data.testimonials} />
+					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} />
 				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
 					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
 				{/if}
