@@ -218,9 +218,22 @@ jobs:
 
           # Process AI response if successful
           if [ "$AI_SUCCESS" = true ]; then
-            # Track seen PR numbers to avoid duplicate links
-            declare -A SEEN_PRS
-            echo "$AI_JSON" | jq -c '.[]' | while read -r item; do
+            # Get list of valid PR numbers from input data
+            VALID_PRS=$(echo "$FILTERED_PRS" | jq -r '.[].number' | sort -u | tr '\n' ' ')
+            echo "Valid PR numbers: $VALID_PRS"
+
+            # Filter AI response to only include valid PR numbers (reject hallucinated ones)
+            VALIDATED_JSON=$(echo "$AI_JSON" | jq --arg valid "$VALID_PRS" '
+              [.[] | select(.number as $n | ($valid | split(" ") | map(select(. != "")) | map(tonumber)) | index($n))]
+            ')
+            REJECTED_COUNT=$(echo "$AI_JSON" | jq --arg valid "$VALID_PRS" '
+              [.[] | select(.number as $n | ($valid | split(" ") | map(select(. != "")) | map(tonumber)) | index($n) | not)] | length
+            ')
+            if [ "$REJECTED_COUNT" -gt 0 ]; then
+              echo "WARNING: Rejected $REJECTED_COUNT entries with fabricated PR numbers"
+            fi
+
+            echo "$VALIDATED_JSON" | jq -c '.[]' | while read -r item; do
               NUMBER=$(echo "$item" | jq -r '.number')
               CATEGORY=$(echo "$item" | jq -r '.category')
               DESC=$(echo "$item" | jq -r '.description')
@@ -232,10 +245,12 @@ jobs:
               esac
             done
 
-            # Add unique PR links (deduplicated)
-            echo "$AI_JSON" | jq -r '.[].number' | sort -u | while read -r NUMBER; do
+            # Add unique PR links (deduplicated, only for validated entries)
+            echo "$VALIDATED_JSON" | jq -r '.[].number' | sort -u | while read -r NUMBER; do
               URL=$(echo "$PRS" | jq -r ".[] | select(.number == $NUMBER) | .url")
-              echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+              if [ -n "$URL" ] && [ "$URL" != "null" ]; then
+                echo "[#$NUMBER]($URL)" >> /tmp/pr_links.txt
+              fi
             done
           fi
 
