@@ -209,6 +209,127 @@ export function isValidUrl(url: string): boolean {
 	}
 }
 
+/**
+ * Normalizes a user-provided external URL by:
+ * 1. Returning null for empty/invalid values
+ * 2. Prepending https:// if no protocol is present
+ * 3. Returning the URL as-is if already valid
+ *
+ * Use this for user-provided URLs like award links, project links, etc.
+ * to prevent broken relative links (e.g., "github.com/user" -> "/current-page/github.com/user")
+ */
+export function normalizeExternalUrl(url: string | undefined | null): string | null {
+	if (!url || typeof url !== 'string') return null;
+
+	const trimmed = url.trim();
+	if (!trimmed) return null;
+
+	// Already has a valid protocol
+	if (/^(https?|mailto|tel|ftp):\/?\/?/i.test(trimmed)) {
+		try {
+			// Validate it's actually parseable
+			new URL(trimmed);
+			return trimmed;
+		} catch {
+			return null;
+		}
+	}
+
+	// Looks like a domain (contains a dot and no spaces)
+	if (trimmed.includes('.') && !trimmed.includes(' ')) {
+		const withProtocol = `https://${trimmed}`;
+		try {
+			new URL(withProtocol);
+			return withProtocol;
+		} catch {
+			return null;
+		}
+	}
+
+	// Doesn't look like a URL (e.g., plain username, random text)
+	return null;
+}
+
+/**
+ * Contact types that cannot be linked (copy-only)
+ * These platforms don't support direct profile links from usernames
+ */
+export const NON_LINKABLE_CONTACT_TYPES = ['discord', 'slack'] as const;
+
+/**
+ * Checks if a contact type should be rendered as a link or copy-only
+ */
+export function isLinkableContactType(type: string): boolean {
+	return !NON_LINKABLE_CONTACT_TYPES.includes(type.toLowerCase() as typeof NON_LINKABLE_CONTACT_TYPES[number]);
+}
+
+/**
+ * Builds the appropriate href for a contact method based on its type.
+ * Returns null for non-linkable types (Discord, Slack).
+ *
+ * @param type - Contact type (email, phone, github, discord, etc.)
+ * @param value - The contact value (email address, phone number, URL, username)
+ * @returns The href string or null if not linkable
+ */
+export function buildContactHref(type: string, value: string): string | null {
+	if (!value) return null;
+
+	const normalizedType = type.toLowerCase();
+
+	// Non-linkable types - return null (should render as copy-only)
+	if (!isLinkableContactType(normalizedType)) {
+		return null;
+	}
+
+	switch (normalizedType) {
+		case 'email':
+			return `mailto:${value}`;
+
+		case 'phone':
+			return `tel:${value.replace(/\s/g, '')}`;
+
+		case 'whatsapp':
+			// wa.me links work better than tel: for WhatsApp
+			const cleanNumber = value.replace(/\s/g, '').replace(/^\+/, '');
+			return `https://wa.me/${cleanNumber}`;
+
+		case 'telegram':
+			// Support both @username and full URLs
+			if (value.includes('t.me/') || value.includes('telegram.me/')) {
+				return normalizeExternalUrl(value);
+			}
+			const telegramUsername = value.replace(/^@/, '');
+			return `https://t.me/${telegramUsername}`;
+
+		case 'github':
+			// Support both username and full URLs
+			if (value.includes('github.com')) {
+				return normalizeExternalUrl(value);
+			}
+			return `https://github.com/${value.replace(/^@/, '')}`;
+
+		case 'twitter':
+			// Support both @username and full URLs
+			if (value.includes('twitter.com') || value.includes('x.com')) {
+				return normalizeExternalUrl(value);
+			}
+			return `https://twitter.com/${value.replace(/^@/, '')}`;
+
+		case 'instagram':
+			if (value.includes('instagram.com')) {
+				return normalizeExternalUrl(value);
+			}
+			return `https://instagram.com/${value.replace(/^@/, '')}`;
+
+		case 'linkedin':
+		case 'facebook':
+		case 'website':
+		default:
+			// For these, expect users to provide full URLs
+			return normalizeExternalUrl(value);
+	}
+}
+
 export function getLinkIcon(type: string): string {
 	const icons: Record<string, string> = {
 		github: '🔗',

@@ -6,10 +6,14 @@
 		hasProjects?: boolean;
 		hasEducation?: boolean;
 		hasCertifications?: boolean;
+		hasAwards?: boolean;
 		hasSkills?: boolean;
 		hasPosts?: boolean;
 		hasTalks?: boolean;
+		hasTestimonials?: boolean;
+		hasContacts?: boolean;
 		viewSlug?: string;
+		sectionOrder?: string[];
 	}
 
 	let {
@@ -17,10 +21,14 @@
 		hasProjects = false,
 		hasEducation = false,
 		hasCertifications = false,
+		hasAwards = false,
 		hasSkills = false,
 		hasPosts = false,
 		hasTalks = false,
-		viewSlug = ''
+		hasTestimonials = false,
+		hasContacts = false,
+		viewSlug = '',
+		sectionOrder = []
 	}: Props = $props();
 
 	// Build URL with optional from parameter for back navigation
@@ -63,15 +71,45 @@
 		show: boolean;
 	}
 
-	let navItems = $derived([
-		{ id: 'experience', label: 'Experience', show: hasExperience },
-		{ id: 'projects', label: 'Projects', show: hasProjects },
-		{ id: 'education', label: 'Education', show: hasEducation },
-		{ id: 'certifications', label: 'Certifications', show: hasCertifications },
-		{ id: 'skills', label: 'Skills', show: hasSkills },
-		{ id: 'posts', label: 'Posts', href: buildUrl('/posts'), show: hasPosts },
-		{ id: 'talks', label: 'Talks', href: buildUrl('/talks'), show: hasTalks }
-	].filter((item) => item.show) as NavItem[]);
+	// Map of section IDs to their display info
+	const sectionConfig: Record<string, { label: string; href?: string; getShow: () => boolean }> = {
+		experience: { label: 'Experience', getShow: () => hasExperience },
+		projects: { label: 'Projects', getShow: () => hasProjects },
+		education: { label: 'Education', getShow: () => hasEducation },
+		certifications: { label: 'Certifications', getShow: () => hasCertifications },
+		awards: { label: 'Awards', getShow: () => hasAwards },
+		skills: { label: 'Skills', getShow: () => hasSkills },
+		posts: { label: 'Posts', href: buildUrl('/posts'), getShow: () => hasPosts },
+		talks: { label: 'Talks', href: buildUrl('/talks'), getShow: () => hasTalks },
+		testimonials: { label: 'Testimonials', getShow: () => hasTestimonials },
+		contacts: { label: 'Contact', getShow: () => hasContacts }
+	};
+
+	// Default order (used when no sectionOrder provided)
+	const DEFAULT_NAV_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+
+	// Build nav items respecting the provided section order
+	let navItems = $derived.by(() => {
+		const order = sectionOrder.length > 0 ? sectionOrder : DEFAULT_NAV_ORDER;
+		const items: NavItem[] = [];
+
+		for (const sectionId of order) {
+			// Skip custom sections (they start with "custom:")
+			if (sectionId.startsWith('custom:')) continue;
+
+			const config = sectionConfig[sectionId];
+			if (config && config.getShow()) {
+				items.push({
+					id: sectionId,
+					label: config.label,
+					href: config.href,
+					show: true
+				});
+			}
+		}
+
+		return items;
+	});
 
 	function scrollToSection(id: string) {
 		const element = document.getElementById(id);

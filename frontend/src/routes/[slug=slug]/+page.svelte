@@ -400,10 +400,14 @@
 			hasProjects={data.sections?.projects?.length > 0}
 			hasEducation={data.sections?.education?.length > 0}
 			hasCertifications={data.sections?.certifications?.length > 0}
+			hasAwards={data.sections?.awards?.length > 0}
 			hasSkills={data.sections?.skills?.length > 0}
 			hasPosts={data.sections?.posts?.length > 0}
 			hasTalks={data.sections?.talks?.length > 0}
+			hasTestimonials={data.sections?.testimonials?.length > 0}
+			hasContacts={data.sections?.contacts?.length > 0}
 			viewSlug={data.view?.slug || ''}
+			sectionOrder={effectiveSectionOrder}
 		/>
 
 		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

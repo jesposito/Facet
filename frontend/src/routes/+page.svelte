@@ -449,10 +449,14 @@
 		hasProjects={data.projects.length > 0}
 		hasEducation={data.education.length > 0}
 		hasCertifications={data.certifications && data.certifications.length > 0}
+		hasAwards={data.awards && data.awards.length > 0}
 		hasSkills={data.skills.length > 0}
 		hasPosts={data.posts && data.posts.length > 0}
 		hasTalks={data.talks && data.talks.length > 0}
+		hasTestimonials={data.testimonials && data.testimonials.length > 0}
+		hasContacts={data.contacts && data.contacts.length > 0}
 		viewSlug=""
+		sectionOrder={effectiveSectionOrder()}
 	/>
 
 	<!-- Main content -->

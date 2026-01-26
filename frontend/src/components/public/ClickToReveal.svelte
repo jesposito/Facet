@@ -1,8 +1,5 @@
 <script lang="ts">
-	
-
-	interface Props {
-		/**
+	/**
 	 * ClickToReveal - Click-to-reveal contact component
 	 *
 	 * Hides contact information until user clicks to reveal it.
@@ -10,8 +7,11 @@
 	 *
 	 * Protection level: High (prevents automated scraping, requires user interaction)
 	 */
-		type?: 'email' | 'phone' | 'url';
+
+	interface Props {
+		type?: 'email' | 'phone' | 'url' | 'copy';
 		value: string; // The actual contact value
+		href?: string | null; // Pre-computed href (if provided, overrides type-based calculation)
 		label?: string; // Display text for the button
 		icon?: string; // Optional icon HTML
 		contactId?: string; // Optional: for tracking reveals via API
@@ -20,6 +20,7 @@
 	let {
 		type = 'email',
 		value,
+		href: providedHref = null,
 		label = '',
 		icon = '',
 		contactId = ''
@@ -28,14 +29,20 @@
 	let revealed = $state(false);
 	let copying = $state(false);
 
-	// Build the href based on type
-	let href = $derived(type === 'email'
-		? `mailto:${value}`
-		: type === 'phone'
-		? `tel:${value.replace(/\s/g, '')}`
-		: value);
+	// Use provided href or fall back to type-based calculation
+	let computedHref = $derived(
+		providedHref !== null
+			? providedHref
+			: type === 'email'
+				? `mailto:${value}`
+				: type === 'phone'
+					? `tel:${value.replace(/\s/g, '')}`
+					: type === 'copy'
+						? null
+						: value
+	);
 
-	let buttonLabel = $derived(label || `Show ${type}`);
+	let buttonLabel = $derived(label || `Show ${type === 'copy' ? 'contact' : type}`);
 
 	function reveal() {
 		revealed = true;
@@ -98,16 +105,28 @@
 	</button>
 {:else}
 	<div class="revealed-content">
-		<a
-			{href}
-			class="contact-link"
-			aria-label={`${type}: ${value}`}
-		>
-			{#if icon}
-				<span class="icon" aria-hidden="true">{@html icon}</span>
-			{/if}
-			<span class="value">{value}</span>
-		</a>
+		{#if computedHref}
+			<a
+				href={computedHref}
+				class="contact-link"
+				target={type === 'url' ? '_blank' : undefined}
+				rel={type === 'url' ? 'noopener noreferrer' : undefined}
+				aria-label={`${type}: ${value}`}
+			>
+				{#if icon}
+					<span class="icon" aria-hidden="true">{@html icon}</span>
+				{/if}
+				<span class="value">{value}</span>
+			</a>
+		{:else}
+			<!-- Non-linkable type (Discord, Slack) - display only -->
+			<span class="contact-display">
+				{#if icon}
+					<span class="icon" aria-hidden="true">{@html icon}</span>
+				{/if}
+				<span class="value">{value}</span>
+			</span>
+		{/if}
 
 		<button
 			type="button"
@@ -258,5 +277,51 @@
 		clip: rect(0, 0, 0, 0);
 		white-space: nowrap;
 		border-width: 0;
+	}
+
+	.contact-display {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--text-primary, #111827);
+	}
+
+	/* Dark mode styles */
+	:global(.dark) .reveal-button {
+		border-color: #374151;
+		background: #1f2937;
+		color: #f9fafb;
+	}
+
+	:global(.dark) .reveal-button:hover {
+		background: #111827;
+		border-color: #38bdf8;
+	}
+
+	:global(.dark) .reveal-button:focus-visible {
+		outline-color: #38bdf8;
+	}
+
+	:global(.dark) .contact-link {
+		color: #38bdf8;
+	}
+
+	:global(.dark) .contact-display {
+		color: #f9fafb;
+	}
+
+	:global(.dark) .copy-button {
+		border-color: #374151;
+		background: #1f2937;
+		color: #9ca3af;
+	}
+
+	:global(.dark) .copy-button:hover:not(:disabled) {
+		background: #111827;
+		color: #38bdf8;
+	}
+
+	:global(.dark) .copy-button:disabled {
+		color: #10b981;
 	}
 </style>
