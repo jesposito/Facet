@@ -82,13 +82,15 @@
 		}
 	}
 
-	function scrollPrev() {
-		const newIndex = Math.max(0, currentIndex - 1);
+	function scrollPrev(maxIndex: number) {
+		// Loop to end if at beginning
+		const newIndex = currentIndex === 0 ? maxIndex - 1 : currentIndex - 1;
 		scrollToIndex(newIndex);
 	}
 
 	function scrollNext(maxIndex: number) {
-		const newIndex = Math.min(maxIndex - 1, currentIndex + 1);
+		// Loop to beginning if at end
+		const newIndex = currentIndex === maxIndex - 1 ? 0 : currentIndex + 1;
 		scrollToIndex(newIndex);
 	}
 
@@ -171,12 +173,11 @@
 		{@const featuredItems = items.filter(t => t.featured)}
 		{@const displayItems = featuredItems.length > 0 ? featuredItems : items}
 		<div class="relative">
-			<!-- Navigation buttons -->
+			<!-- Navigation buttons (endless loop, no disabled state) -->
 			{#if displayItems.length > 1}
 				<button
-					onclick={scrollPrev}
-					class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					disabled={currentIndex === 0}
+					onclick={() => scrollPrev(displayItems.length)}
+					class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
 					aria-label="Previous testimonial"
 				>
 					<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -185,8 +186,7 @@
 				</button>
 				<button
 					onclick={() => scrollNext(displayItems.length)}
-					class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					disabled={currentIndex === displayItems.length - 1}
+					class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
 					aria-label="Next testimonial"
 				>
 					<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -233,18 +233,6 @@
 				{/each}
 			</div>
 
-			<!-- Dot indicators -->
-			{#if displayItems.length > 1}
-				<div class="flex justify-center gap-2 mt-2">
-					{#each displayItems as _, i}
-						<button
-							onclick={() => scrollToIndex(i)}
-							class="w-2 h-2 rounded-full transition-colors {i === currentIndex ? 'bg-primary-600 dark:bg-primary-400' : 'bg-gray-300 dark:bg-gray-600'}"
-							aria-label="Go to testimonial {i + 1}"
-						></button>
-					{/each}
-				</div>
-			{/if}
 		</div>
 	{:else if layout === 'featured'}
 		{@const featured = items.find(t => t.featured) || items[0]}
