@@ -145,3 +145,223 @@ All notable changes to Facet will be documented in this file.
 **Pull Requests:** [#291](https://github.com/jesposito/Facet/pull/291), [#290](https://github.com/jesposito/Facet/pull/290), [#288](https://github.com/jesposito/Facet/pull/288), [#282](https://github.com/jesposito/Facet/pull/282), [#279](https://github.com/jesposito/Facet/pull/279), [#278](https://github.com/jesposito/Facet/pull/278), [#275](https://github.com/jesposito/Facet/pull/275), [#272](https://github.com/jesposito/Facet/pull/272), [#269](https://github.com/jesposito/Facet/pull/269), [#260](https://github.com/jesposito/Facet/pull/260), [#252](https://github.com/jesposito/Facet/pull/252), [#250](https://github.com/jesposito/Facet/pull/250), [#248](https://github.com/jesposito/Facet/pull/248), [#247](https://github.com/jesposito/Facet/pull/247)
 
 ---
+
+## v2.7.6 - January 24, 2026
+
+**Bugs Fixed:**
+- Fix sticky navigation jumping on scroll
+- Fix various UI settings bugs
+
+**New Features:**
+- Complete UI settings implementation
+
+**Pull Requests:** [#248](https://github.com/jesposito/Facet/pull/248)
+
+---
+
+## v2.7.5 - January 24, 2026
+
+**Bugs Fixed:**
+- Fix sticky navigation behavior
+
+**New Features:**
+- Add UI setting to hide login button on public pages
+- Add demo mode toggle in settings
+
+**Pull Requests:** [#247](https://github.com/jesposito/Facet/pull/247)
+
+---
+
+## v2.7.4 - January 23, 2026
+
+**Bugs Fixed:**
+- Fix admin email display in startup logs
+- Fix Unraid template configuration
+
+**Other Changes:**
+- Remove Admin UI (Advanced) setting from Unraid template
+- Update Unraid template to match corrected version
+
+**Pull Requests:** [#240](https://github.com/jesposito/Facet/pull/240)
+
+---
+
+## v2.7.3 - January 21, 2026
+
+**Other Changes:**
+- Move Testimonials section below Your Information and Your Voice in sidebar
+
+**Pull Requests:** [#236](https://github.com/jesposito/Facet/pull/236)
+
+---
+
+## v2.7.2 - January 21, 2026
+
+**Other Changes:**
+- Clarify profile help text about public content visibility
+
+**Pull Requests:** [#235](https://github.com/jesposito/Facet/pull/235)
+
+---
+
+## v2.7.1 - January 21, 2026
+
+**Bugs Fixed:**
+- Fix SSR/proxy issues in view editor
+
+**Other Changes:**
+- Refactor view editor into smaller components for better maintainability
+
+**Pull Requests:** [#234](https://github.com/jesposito/Facet/pull/234)
+
+---
+
+## v2.7.0 - January 21, 2026
+
+**New Features:**
+- Add resume/CV import functionality for new users
+- Import LinkedIn, JSON Resume, and other formats
+
+**Pull Requests:** [#228](https://github.com/jesposito/Facet/pull/228)
+
+---
+
+## v2.6.1 - January 20, 2026
+
+**Bugs Fixed:**
+- Fix various view editor bugs
+
+**New Features:**
+- Add share token regeneration in view editor
+- Improve view editor delete functionality
+
+**Pull Requests:** [#224](https://github.com/jesposito/Facet/pull/224)
+
+---
+
+## v2.6.0 - January 20, 2026
+
+**New Features:**
+- Add delete functionality for views with Danger Zone confirmation
+- Add view deletion with proper cleanup
+
+**Pull Requests:** [#223](https://github.com/jesposito/Facet/pull/223)
+
+---
+
+## v2.5.2 - January 20, 2026
+
+**Bugs Fixed:**
+- Fix drag handle deselection in view editor
+- Fix item ordering bugs in view content
+
+**Pull Requests:** [#222](https://github.com/jesposito/Facet/pull/222)
+
+---
+
+## v2.5.1 - January 20, 2026
+
+**New Features:**
+- Add per-view location override for hero section
+- Add view content ordering/reordering
+
+**Other Changes:**
+- Remove obsolete planning documentation
+- Update documentation for Testimonials feature
+
+**Pull Requests:** [#220](https://github.com/jesposito/Facet/pull/220)
+
+---
+
+## v2.5.0 - January 17, 2026
+
+**New Features:**
+- Add Testimonials feature for social proof collection
+- Collect and display client/colleague testimonials
+- Testimonial approval workflow
+
+**Pull Requests:** [#217](https://github.com/jesposito/Facet/pull/217)
+
+---
+
+## v2.4.0 - January 17, 2026
+
+**New Features:**
+- Add Quick Share to Social feature
+- One-click sharing to LinkedIn, Twitter, and other platforms
+
+**Pull Requests:** [#215](https://github.com/jesposito/Facet/pull/215)
+
+---
+
+## v2.3.0 - January 17, 2026
+
+**New Features:**
+- Add Setup Wizard for new user onboarding
+- Guided walkthrough for initial profile setup
+
+**Pull Requests:** [#213](https://github.com/jesposito/Facet/pull/213)
+
+---
+
+## v2.2.0 - January 17, 2026
+
+**Bugs Fixed:**
+- Fix JWT tampering test reliability
+
+**New Features:**
+- Add Contextual Help for admin pages
+- Add Mobile UX overhaul for admin panel
+- Responsive admin interface improvements
+
+**Other Changes:**
+- Comprehensive roadmap update with new feature phases
+
+**Pull Requests:** [#212](https://github.com/jesposito/Facet/pull/212), [#211](https://github.com/jesposito/Facet/pull/211), [#210](https://github.com/jesposito/Facet/pull/210)
+
+---
+
+## v2.1.0 - January 16, 2026
+
+**Bugs Fixed:**
+- Fix menu display bug
+- Fix visibility access control issues
+- Fix Unraid template login credentials documentation
+
+**Other Changes:**
+- Remove DateInstalled tag for CA validation compliance
+- Add live demo link to documentation
+- Update framework versions in docs
+
+**Pull Requests:** [#209](https://github.com/jesposito/Facet/pull/209), [#208](https://github.com/jesposito/Facet/pull/208)
+
+---
+
+## v2.0.0 - January 10, 2026
+
+**Bugs Fixed:**
+- Fix UX dialog system issues
+- Fix cookie security vulnerability (CVE-2024-47764)
+- Fix admin projects image 404s in demo mode
+- Fix project 404 errors
+- Fix demo mode refresh behavior
+- Fix avatar loading issues
+- Fix view_visibility JSON parsing
+
+**New Features:**
+- Upgrade to Svelte 5 and Vite 7
+- Replace native confirm dialogs with accessible styled modals
+- Add per-view hero images
+- Add new app icon with faceted gem design
+- Add navigation links between admin and public views
+- Enhance welcome page
+- Add self-hosting guide
+
+**Other Changes:**
+- Fix esbuild security vulnerability via framework upgrade
+- Clean up Caddyfile configuration
+- Improve accessibility (a11y) throughout
+
+**Pull Requests:** [#207](https://github.com/jesposito/Facet/pull/207), [#204](https://github.com/jesposito/Facet/pull/204), [#203](https://github.com/jesposito/Facet/pull/203), [#202](https://github.com/jesposito/Facet/pull/202), [#201](https://github.com/jesposito/Facet/pull/201), [#200](https://github.com/jesposito/Facet/pull/200), [#199](https://github.com/jesposito/Facet/pull/199), [#198](https://github.com/jesposito/Facet/pull/198)
+
+---
