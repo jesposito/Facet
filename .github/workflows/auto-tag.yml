@@ -137,17 +137,36 @@ jobs:
           PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
           echo "$PRS" > /tmp/pr_data.json
 
+          # Extract PR numbers already documented in changelog to avoid duplicates
+          EXISTING_PRS=$(grep -oE '\[#[0-9]+\]' CHANGELOG.md | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')
+          echo "Already documented PRs: $EXISTING_PRS"
+
+          # Filter out already-documented PRs
+          if [ -n "$EXISTING_PRS" ]; then
+            FILTERED_PRS=$(echo "$PRS" | jq --arg existing "$EXISTING_PRS" '
+              [.[] | select(.number as $n | ($existing | split(" ") | map(select(. != "")) | map(tonumber)) | index($n) | not)]
+            ')
+          else
+            FILTERED_PRS="$PRS"
+          fi
+
+          PR_COUNT=$(echo "$FILTERED_PRS" | jq 'length')
+          echo "New PRs to document: $PR_COUNT"
+
           # Try AI-powered changelog generation
           # Priority: 1) GitHub Models (Copilot), 2) OpenAI API, 3) Keyword fallback
           AI_SUCCESS=false
           AI_SOURCE=""
 
-          # Build prompt with PR data
-          PR_LIST=$(echo "$PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
+          # Build prompt with PR data (using filtered list)
+          PR_LIST=$(echo "$FILTERED_PRS" | jq -r '.[] | "PR #\(.number): \(.title)\nDescription: \(.body // "No description")\n---"')
+
+          # Get recent changelog entries for AI context (helps avoid semantic duplicates)
+          RECENT_CHANGELOG=$(head -50 CHANGELOG.md | tail -45)
 
           # Read prompt template from file (avoids YAML parsing issues)
           PROMPT_TEMPLATE=$(cat .github/prompts/changelog-prompt.txt)
-          PROMPT=$(printf '%s\n%s\n\nOutput only valid JSON, no markdown or explanation.' "$PROMPT_TEMPLATE" "$PR_LIST")
+          PROMPT=$(printf '%s\n\nRecent changelog (DO NOT duplicate these entries):\n%s\n\nNew PRs to document:\n%s\n\nOutput only valid JSON, no markdown or explanation.' "$PROMPT_TEMPLATE" "$RECENT_CHANGELOG" "$PR_LIST")
 
           # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
           echo "Trying GitHub Models (Copilot)..."
@@ -224,7 +243,7 @@ jobs:
           if [ "$AI_SUCCESS" = false ]; then
             echo "Using keyword-based categorization..."
 
-            echo "$PRS" | jq -c '.[]' | while read -r pr; do
+            echo "$FILTERED_PRS" | jq -c '.[]' | while read -r pr; do
               [ -z "$pr" ] && continue
               NUMBER=$(echo "$pr" | jq -r '.number')
               TITLE=$(echo "$pr" | jq -r '.title')

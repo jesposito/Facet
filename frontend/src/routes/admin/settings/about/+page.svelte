@@ -1,8 +1,77 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 
 	// App version from Vite config
 	const appVersion = __APP_VERSION__;
+
+	// Version check state
+	let newVersionAvailable = $state(false);
+	let latestVersion = $state('');
+
+	// Check for new version (cached daily)
+	async function checkForNewVersion() {
+		if (!browser) return;
+
+		const CACHE_KEY = 'facet_version_check';
+		const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+		try {
+			// Check cache first
+			const cached = localStorage.getItem(CACHE_KEY);
+			if (cached) {
+				const { timestamp, latest, hasUpdate } = JSON.parse(cached);
+				if (Date.now() - timestamp < CACHE_DURATION) {
+					latestVersion = latest;
+					newVersionAvailable = hasUpdate;
+					return;
+				}
+			}
+
+			// Fetch latest release from GitHub
+			const response = await fetch('https://api.github.com/repos/jesposito/Facet/releases/latest', {
+				headers: { 'Accept': 'application/vnd.github.v3+json' }
+			});
+
+			if (!response.ok) return;
+
+			const data = await response.json();
+			const latest = data.tag_name || '';
+
+			// Compare versions (strip 'v' prefix for comparison)
+			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
+			const latestClean = latest.replace(/^v/, '');
+
+			const hasUpdate = latestClean && currentClean !== latestClean &&
+				compareVersions(latestClean, currentClean) > 0;
+
+			// Cache result
+			localStorage.setItem(CACHE_KEY, JSON.stringify({
+				timestamp: Date.now(),
+				latest,
+				hasUpdate
+			}));
+
+			latestVersion = latest;
+			newVersionAvailable = hasUpdate;
+		} catch {
+			// Silently fail - version check is non-critical
+		}
+	}
+
+	// Compare semver versions: returns 1 if a > b, -1 if a < b, 0 if equal
+	function compareVersions(a: string, b: string): number {
+		const partsA = a.split('.').map(Number);
+		const partsB = b.split('.').map(Number);
+
+		for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+			const numA = partsA[i] || 0;
+			const numB = partsB[i] || 0;
+			if (numA > numB) return 1;
+			if (numA < numB) return -1;
+		}
+		return 0;
+	}
 
 	// Changelog state
 	interface ChangelogEntry {
@@ -27,6 +96,7 @@
 
 	onMount(async () => {
 		await loadChangelog();
+		checkForNewVersion();
 	});
 
 	async function loadChangelog() {
@@ -108,9 +178,19 @@
 	<div class="card p-6">
 		<div class="flex items-center justify-between mb-4">
 			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">About Facet</h1>
-			<span class="px-3 py-1 text-sm font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">
-				{appVersion}
-			</span>
+			<div class="flex items-center gap-2">
+				<span class="px-3 py-1 text-sm font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">
+					{appVersion}
+				</span>
+				{#if newVersionAvailable}
+					<span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">
+						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+						</svg>
+						{latestVersion} available
+					</span>
+				{/if}
+			</div>
 		</div>
 
 		<p class="text-gray-600 dark:text-gray-400 mb-6">
