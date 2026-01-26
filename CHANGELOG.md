@@ -2,6 +2,36 @@
 
 All notable changes to Facet will be documented in this file.
 
+
+## v2.8.12 - January 26, 2026
+
+**Bugs Fixed:**
+- Fix YAML syntax error by using printf for prompt construction
+- Fix YAML syntax error in auto-tag workflow by moving AI prompt to a separate file
+- Fix YAML syntax error by converting AI prompt to heredoc syntax
+- Fix changelog not showing in Docker by copying CHANGELOG.md to build context
+- Fix site navigation toggle in admin panel not showing public facets
+- Fix visibility of floating buttons on public pages
+
+**New Features:**
+- Add AI prompt template for changelog generation
+- Add 60-second timeouts to AI API calls to prevent workflow hangs
+- Add automated changelog generation to the auto-tag workflow
+- Add in-app version display with full changelog
+- Reorganize Settings page for better user experience
+- Display recent changes with progressive loading and color-coded categories
+- Make site nav toggles save immediately to database
+
+**Other Changes:**
+- Fix changelog header from 'Unreleased' to 'v2.8.12'
+- Update auto-tag workflow to read prompt from file
+- Add gitignore entry to ignore generated static/CHANGELOG.md
+- Update sidebar navigation to match new section structure
+
+**Pull Requests:** [#291](https://github.com/jesposito/Facet/pull/291),[#292](https://github.com/jesposito/Facet/pull/292),[#293](https://github.com/jesposito/Facet/pull/293),[#294](https://github.com/jesposito/Facet/pull/294),[#295](https://github.com/jesposito/Facet/pull/295),
+
+---
+
 ---
 
 ## v2.8.12 - January 26, 2026
