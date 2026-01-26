@@ -169,10 +169,7 @@ jobs:
 
           # Read prompt template from file (avoids YAML parsing issues)
           PROMPT_TEMPLATE=$(cat .github/prompts/changelog-prompt.txt)
-          PROMPT="$PROMPT_TEMPLATE
-$PR_LIST
-
-Output only valid JSON, no markdown or explanation."
+          PROMPT=$(printf '%s\n%s\n\nOutput only valid JSON, no markdown or explanation.' "$PROMPT_TEMPLATE" "$PR_LIST")
 
           # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
           echo "Trying GitHub Models (Copilot)..."
