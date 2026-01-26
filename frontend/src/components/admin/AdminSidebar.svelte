@@ -143,15 +143,15 @@ const navSections = [
 		id: 'settings',
 		title: 'Settings',
 		items: [
-			{ href: '/admin/settings#security', label: 'Account & Security', icon: 'badge' },
-			{ href: '/admin/settings#admin-ui', label: 'Administration', icon: 'cog' },
-			{ href: '/admin/settings#analytics', label: 'Site & Content', icon: 'eye' },
+			{ href: '/admin/settings#account', label: 'Account & Security', icon: 'badge' },
 			{ href: '/admin/settings#appearance', label: 'Appearance', icon: 'star' },
-			{ href: '/admin/settings#ai-providers', label: 'Integrations', icon: 'sparkle' },
+			{ href: '/admin/settings#general', label: 'General', icon: 'cog' },
+			{ href: '/admin/settings#analytics', label: 'Analytics', icon: 'eye' },
+			{ href: '/admin/settings#integrations', label: 'Integrations', icon: 'sparkle' },
 			{ href: '/admin/settings/tags', label: 'Admin Tags', icon: 'chip' },
 			{ href: '/admin/media', label: 'Media Library', icon: 'image' },
 			{ href: '/admin/tokens', label: 'Share Tokens', icon: 'link' },
-			{ href: '/admin/settings/about', label: 'About Facet', icon: 'sparkle' }
+{ href: '/admin/settings/about', label: 'About Facet', icon: 'info' }
 		]
 	}
 ];

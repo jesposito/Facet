@@ -601,10 +601,10 @@
 		Control what visitors see on your public site, enable analytics, and manage advanced options.
 	</p>
 
-	<!-- Security section -->
-	<div id="security" class="space-y-4 mb-8">
+	<!-- Account & Security section -->
+	<div id="account" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Security</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Account & Security</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">Manage your account password.</p>
 		</div>
 
@@ -683,175 +683,19 @@
 		</div>
 	</div>
 
-	<!-- Admin UI controls -->
-	<div id="admin-ui" class="space-y-4 mb-6">
+	<!-- Appearance section -->
+	<div id="appearance" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Admin UI</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Customize the admin interface.</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Appearance</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Customize colors and styling for your profile.</p>
 		</div>
 
-		<!-- Demo Toggle -->
+		<!-- Accent Color -->
 		<div class="card p-6">
-			<div class="flex items-center justify-between gap-4">
-				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Demo Mode Toggle</h2>
-					<p class="text-gray-600 dark:text-gray-400 text-sm">
-						Show or hide the demo toggle in the admin header. Useful once you've set up your profile.
-					</p>
-				</div>
-				<button
-					onclick={toggleHideDemoToggle}
-					disabled={siteSettingsLoading || siteSettingsSaving}
-					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-						{hideDemoToggle ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-600'}"
-					role="switch"
-					aria-checked={!hideDemoToggle}
-					aria-label="Toggle demo mode visibility"
-				>
-					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-							{hideDemoToggle ? 'translate-x-1' : 'translate-x-6'}"
-					></span>
-				</button>
-			</div>
-			<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-				{hideDemoToggle ? 'Demo toggle is hidden' : 'Demo toggle is visible'}
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Accent Color</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				Choose an accent color for buttons, links, and highlights across your profile.
 			</p>
-		</div>
-	</div>
-
-	<!-- Public site controls -->
-	<div id="analytics" class="space-y-4 mb-6">
-		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Public site</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Analytics and custom styling for your live profile.</p>
-		</div>
-
-		<!-- Analytics -->
-		<div class="card p-6">
-			<div class="flex items-start justify-between gap-3">
-				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Analytics (optional)</h2>
-					<p class="text-gray-600 dark:text-gray-400 text-sm">
-						Google Analytics 4 measurement ID (public). Leave blank to disable tracking.
-					</p>
-				</div>
-			</div>
-
-			<div class="mt-4 space-y-3">
-				<label class="label" for="ga-id">GA4 Measurement ID</label>
-				<input
-					id="ga-id"
-					class="input"
-					placeholder="G-XXXXXXXXXX"
-					bind:value={gaMeasurementId}
-					disabled={siteSettingsLoading || siteSettingsSaving}
-					maxlength="100"
-				/>
-				<p class="text-xs text-gray-500 dark:text-gray-400">
-					We only load GA on public pages when this is set. Do not use sensitive values.
-				</p>
-				<div class="flex justify-end">
-					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-						{siteSettingsSaving ? 'Saving...' : 'Save'}
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Custom CSS -->
-	<div id="custom-css" class="card p-6 mb-6">
-		<div class="flex items-start justify-between gap-3">
-			<div>
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Custom CSS</h2>
-				<p class="text-gray-600 dark:text-gray-400 text-sm">
-					Optional styles applied to public pages. Keep it minimal; you own the result.
-				</p>
-			</div>
-			<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-				<span>{customCSS.length}/20000</span>
-				<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
-					{@html icon('info', 'w-4 h-4 mr-1')}
-					<span class="align-middle">Selectors</span>
-				</button>
-			</div>
-		</div>
-
-		<div class="mt-4 space-y-3">
-			<textarea
-				class="input font-mono text-sm h-48"
-				placeholder="/* Custom CSS (e.g., tweak fonts, spacing, colors) */"
-				bind:value={customCSS}
-				disabled={siteSettingsLoading || siteSettingsSaving}
-				maxlength="20000"
-			></textarea>
-			<div class="flex justify-end">
-				<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-					{siteSettingsSaving ? 'Saving...' : 'Save'}
-				</button>
-			</div>
-		</div>
-	</div>
-
-	{#if showCSSHelp}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-			<div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700">
-				<div class="flex items-start justify-between gap-3 mb-4">
-					<div>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Public CSS hooks</h3>
-						<p class="text-sm text-gray-600 dark:text-gray-400">
-							These selectors match the public site (not the admin UI). Start small and test on mobile.
-						</p>
-					</div>
-					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = false)}>
-						{@html icon('x', 'w-4 h-4')}
-					</button>
-				</div>
-
-				<div class="space-y-3 text-sm text-gray-800 dark:text-gray-200">
-					<div>
-						<p class="font-semibold text-gray-900 dark:text-white">Base</p>
-						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
-							<li><code>:root</code> — accent palette vars <code>--color-primary-50..950</code></li>
-							<li><code>body</code>, <code>main</code>, <code>header</code>, <code>footer</code></li>
-							<li><code>h1</code>–<code>h4</code>, <code>p</code>, <code>a</code>, <code>ul</code>/<code>ol</code>, <code>li</code></li>
-						</ul>
-					</div>
-
-					<div>
-						<p class="font-semibold text-gray-900 dark:text-white">Components</p>
-						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
-							<li><code>.card</code> — section cards</li>
-							<li><code>.section-title</code> — section headings</li>
-							<li><code>.prose-custom</code> — rich text blocks (posts/talks)</li>
-							<li><code>.btn</code>, <code>.btn-primary</code>, <code>.btn-secondary</code></li>
-							<li><code>.input</code>, <code>.label</code></li>
-						</ul>
-					</div>
-
-					<div class="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200">
-						<pre class="whitespace-pre-wrap">{`:root { --color-primary-500: #6366f1; } /* swap accent */
-body { font-family: 'Inter', sans-serif; }
-.card { border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-.section-title { letter-spacing: 0.01em; }
-.btn-primary { text-transform: uppercase; }`}</pre>
-					</div>
-
-					<p class="text-xs text-gray-500 dark:text-gray-400">
-						Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout.
-					</p>
-				</div>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Appearance Section -->
-	<div id="appearance" class="card p-6 mb-6">
-		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Appearance</h2>
-		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-			Choose an accent color for buttons, links, and highlights across your profile.
-		</p>
 
 		{#if profile}
 			<!-- Color Swatches -->
@@ -935,12 +779,221 @@ body { font-family: 'Inter', sans-serif; }
 				</a>
 			</div>
 		{/if}
+		</div>
+
+		<!-- Custom CSS -->
+		<div class="card p-6">
+			<div class="flex items-start justify-between gap-3">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Custom CSS</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm">
+						Optional styles applied to public pages. Keep it minimal; you own the result.
+					</p>
+				</div>
+				<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
+					<span>{customCSS.length}/20000</span>
+					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
+						{@html icon('info', 'w-4 h-4 mr-1')}
+						<span class="align-middle">Selectors</span>
+					</button>
+				</div>
+			</div>
+
+			<div class="mt-4 space-y-3">
+				<textarea
+					class="input font-mono text-sm h-48"
+					placeholder="/* Custom CSS (e.g., tweak fonts, spacing, colors) */"
+					bind:value={customCSS}
+					disabled={siteSettingsLoading || siteSettingsSaving}
+					maxlength="20000"
+				></textarea>
+				<div class="flex justify-end">
+					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+						{siteSettingsSaving ? 'Saving...' : 'Save'}
+					</button>
+				</div>
+			</div>
+		</div>
 	</div>
 
-	<!-- AI Providers -->
-	<div id="ai-providers" class="card p-6">
-		<div class="flex items-center justify-between mb-4">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Providers</h2>
+	{#if showCSSHelp}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+			<div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700">
+				<div class="flex items-start justify-between gap-3 mb-4">
+					<div>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Public CSS hooks</h3>
+						<p class="text-sm text-gray-600 dark:text-gray-400">
+							These selectors match the public site (not the admin UI). Start small and test on mobile.
+						</p>
+					</div>
+					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = false)}>
+						{@html icon('x', 'w-4 h-4')}
+					</button>
+				</div>
+
+				<div class="space-y-3 text-sm text-gray-800 dark:text-gray-200">
+					<div>
+						<p class="font-semibold text-gray-900 dark:text-white">Base</p>
+						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
+							<li><code>:root</code> — accent palette vars <code>--color-primary-50..950</code></li>
+							<li><code>body</code>, <code>main</code>, <code>header</code>, <code>footer</code></li>
+							<li><code>h1</code>–<code>h4</code>, <code>p</code>, <code>a</code>, <code>ul</code>/<code>ol</code>, <code>li</code></li>
+						</ul>
+					</div>
+
+					<div>
+						<p class="font-semibold text-gray-900 dark:text-white">Components</p>
+						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
+							<li><code>.card</code> — section cards</li>
+							<li><code>.section-title</code> — section headings</li>
+							<li><code>.prose-custom</code> — rich text blocks (posts/talks)</li>
+							<li><code>.btn</code>, <code>.btn-primary</code>, <code>.btn-secondary</code></li>
+							<li><code>.input</code>, <code>.label</code></li>
+						</ul>
+					</div>
+
+					<div class="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200">
+						<pre class="whitespace-pre-wrap">{`:root { --color-primary-500: #6366f1; } /* swap accent */
+body { font-family: 'Inter', sans-serif; }
+.card { border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+.section-title { letter-spacing: 0.01em; }
+.btn-primary { text-transform: uppercase; }`}</pre>
+					</div>
+
+					<p class="text-xs text-gray-500 dark:text-gray-400">
+						Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout.
+					</p>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- General section -->
+	<div id="general" class="space-y-4 mb-8">
+		<div>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">General</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Admin preferences and data management.</p>
+		</div>
+
+		<!-- Demo Toggle -->
+		<div class="card p-6">
+			<div class="flex items-center justify-between gap-4">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Demo Mode Toggle</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm">
+						Show or hide the demo toggle in the admin header. Useful once you've set up your profile.
+					</p>
+				</div>
+				<button
+					onclick={toggleHideDemoToggle}
+					disabled={siteSettingsLoading || siteSettingsSaving}
+					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
+						{hideDemoToggle ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-600'}"
+					role="switch"
+					aria-checked={!hideDemoToggle}
+					aria-label="Toggle demo mode visibility"
+				>
+					<span
+						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+							{hideDemoToggle ? 'translate-x-1' : 'translate-x-6'}"
+					></span>
+				</button>
+			</div>
+			<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+				{hideDemoToggle ? 'Demo toggle is hidden' : 'Demo toggle is visible'}
+			</p>
+		</div>
+
+		<!-- Data Export -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Export</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				Download your complete profile data for backup or migration. All your content (profile, experience,
+				projects, education, skills, posts, talks, and views) is included.
+			</p>
+			<div class="flex flex-wrap gap-3">
+				<button
+					class="btn btn-secondary inline-flex items-center gap-2"
+					onclick={() => handleExport('yaml')}
+					disabled={exporting !== null}
+				>
+					{#if exporting === 'yaml'}
+						<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+					{:else}
+						{@html icon('download')}
+					{/if}
+					Download YAML
+				</button>
+				<button
+					class="btn btn-secondary inline-flex items-center gap-2"
+					onclick={() => handleExport('json')}
+					disabled={exporting !== null}
+				>
+					{#if exporting === 'json'}
+						<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+					{:else}
+						{@html icon('download')}
+					{/if}
+					Download JSON
+				</button>
+			</div>
+			<p class="text-gray-500 dark:text-gray-500 text-xs mt-3">
+				YAML is human-readable and easy to edit. JSON is useful for programmatic access.
+			</p>
+		</div>
+	</div>
+
+	<!-- Analytics section -->
+	<div id="analytics" class="space-y-4 mb-8">
+		<div>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Analytics</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Track visitor activity on your public profile.</p>
+		</div>
+
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Google Analytics</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				GA4 measurement ID (public). Leave blank to disable tracking.
+			</p>
+
+			<div class="space-y-3">
+				<label class="label" for="ga-id">GA4 Measurement ID</label>
+				<input
+					id="ga-id"
+					class="input"
+					placeholder="G-XXXXXXXXXX"
+					bind:value={gaMeasurementId}
+					disabled={siteSettingsLoading || siteSettingsSaving}
+					maxlength="100"
+				/>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					We only load GA on public pages when this is set. Do not use sensitive values.
+				</p>
+				<div class="flex justify-end">
+					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
+						{siteSettingsSaving ? 'Saving...' : 'Save'}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Integrations section -->
+	<div id="integrations" class="space-y-4 mb-8">
+		<div>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Integrations</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">Connect external services to enhance your profile.</p>
+		</div>
+
+		<div class="card p-6">
+			<div class="flex items-center justify-between mb-4">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Providers</h2>
 			<button class="btn btn-primary btn-sm" onclick={() => (showAddForm = !showAddForm)}>
 				{showAddForm ? 'Cancel' : '+ Add Provider'}
 			</button>
@@ -1158,50 +1211,7 @@ body { font-family: 'Inter', sans-serif; }
 				{/each}
 			</div>
 		{/if}
-	</div>
-
-	<!-- Export Section -->
-	<div id="export" class="card p-6 mt-6">
-		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Export</h2>
-		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-			Download your complete profile data for backup or migration. All your content (profile, experience,
-			projects, education, skills, posts, talks, and views) is included.
-		</p>
-		<div class="flex flex-wrap gap-3">
-			<button
-				class="btn btn-secondary inline-flex items-center gap-2"
-				onclick={() => handleExport('yaml')}
-				disabled={exporting !== null}
-			>
-				{#if exporting === 'yaml'}
-					<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-					</svg>
-				{:else}
-					{@html icon('download')}
-				{/if}
-				Download YAML
-			</button>
-			<button
-				class="btn btn-secondary inline-flex items-center gap-2"
-				onclick={() => handleExport('json')}
-				disabled={exporting !== null}
-			>
-				{#if exporting === 'json'}
-					<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-					</svg>
-				{:else}
-					{@html icon('download')}
-				{/if}
-				Download JSON
-			</button>
 		</div>
-		<p class="text-gray-500 dark:text-gray-500 text-xs mt-3">
-			YAML is human-readable and easy to edit. JSON is useful for programmatic access.
-		</p>
 	</div>
 
 	<!-- About / Changelog Section -->
