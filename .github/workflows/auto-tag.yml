@@ -116,6 +116,10 @@ jobs:
           REPO: ${{ github.repository }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          # Configure git for commits
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
           # Clean up any previous temp files
           rm -f /tmp/bugs.txt /tmp/features.txt /tmp/other.txt /tmp/pr_links.txt /tmp/pr_data.json
 
@@ -333,7 +337,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Create annotated tag with PR info
+          # Pull latest main to include the changelog commit
+          git pull origin main
+
+          # Create annotated tag with PR info (on the changelog commit)
           if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG (manual trigger)"
           else
