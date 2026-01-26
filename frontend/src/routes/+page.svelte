@@ -436,6 +436,7 @@
 		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
 		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 	/>
 
 	<div

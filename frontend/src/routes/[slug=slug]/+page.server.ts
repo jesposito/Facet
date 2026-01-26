@@ -153,7 +153,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				cta_url: viewData.cta_url,
 				cta_button_text: viewData.cta_button_text,
 				accent_color: viewData.accent_color || null,
-				hero_image_url: viewData.hero_image_url || null
+				hero_image_url: viewData.hero_image_url || null,
+				cta_enabled: viewData.cta_enabled !== false
 			},
 			profile: profile ? {
 				...profile,
@@ -167,7 +168,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionCategoryOrders: viewData.section_category_orders || {},
 			requiresPassword: false,
 			shareToken: effectiveShareToken || null,
-			isPublicView: accessInfo.visibility === 'public'
+			isPublicView: accessInfo.visibility === 'public',
+			siteCtaEnabled: viewData.site_cta_enabled !== false
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {
