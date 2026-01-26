@@ -37,11 +37,15 @@ let selectedIds: Set<string> = $state(new Set());
 
 let reorderMode = $state(false);
 let reorderData: Map<string, Array<{ id: string; name: string }>> = $state(new Map());
+let categoryOrder: Array<{ id: string; name: string }> = $state([]);
 let savingOrder = $state(false);
 const flipDurationMs = 200;
 
 let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 let dndLoaded = $state(false);
+
+// Load saved category order from site settings
+let savedCategoryOrder: string[] = $state([]);
 
 	const autosave = createAutosave('admin-skills', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
@@ -118,6 +122,7 @@ afterNavigate(() => {
 });
 
 onMount(loadSkills);
+onMount(loadCategoryOrder);
 onMount(async () => {
 	if (browser) {
 		const { dndzone: dnd } = await import('svelte-dnd-action');
@@ -125,6 +130,18 @@ onMount(async () => {
 		dndLoaded = true;
 	}
 });
+
+async function loadCategoryOrder() {
+	try {
+		const response = await fetch('/api/site-settings');
+		if (response.ok) {
+			const data = await response.json();
+			savedCategoryOrder = data.skills_category_order || [];
+		}
+	} catch (err) {
+		console.error('Failed to load category order:', err);
+	}
+}
 
 	async function loadSkills() {
 		loading = true;
@@ -236,7 +253,7 @@ onMount(async () => {
 		}
 	}
 
-	// Group skills by category
+	// Group skills by category, respecting saved category order
 	function groupByCategory(skillList: Skill[]): Map<string, Skill[]> {
 		const groups = new Map<string, Skill[]>();
 		for (const skill of skillList) {
@@ -246,6 +263,25 @@ onMount(async () => {
 			}
 			groups.get(categoryKey)!.push(skill);
 		}
+
+		// If we have a saved category order, reorder the map
+		if (savedCategoryOrder.length > 0) {
+			const orderedGroups = new Map<string, Skill[]>();
+			// First add categories in saved order
+			for (const cat of savedCategoryOrder) {
+				if (groups.has(cat)) {
+					orderedGroups.set(cat, groups.get(cat)!);
+				}
+			}
+			// Then add any categories not in saved order
+			for (const [cat, skills] of groups) {
+				if (!orderedGroups.has(cat)) {
+					orderedGroups.set(cat, skills);
+				}
+			}
+			return orderedGroups;
+		}
+
 		return groups;
 	}
 
@@ -340,9 +376,13 @@ onMount(async () => {
 	function enterReorderMode() {
 		const grouped = groupByCategory(skills);
 		reorderData = new Map();
+		const catNames: string[] = [];
 		for (const [cat, catSkills] of grouped) {
 			reorderData.set(cat, catSkills.map(s => ({ id: s.id, name: s.name })));
+			catNames.push(cat);
 		}
+		// Set up category order for drag-drop
+		categoryOrder = catNames.map((name, i) => ({ id: `cat-${i}`, name }));
 		reorderMode = true;
 		selectMode = false;
 	}
@@ -350,21 +390,41 @@ onMount(async () => {
 	function cancelReorder() {
 		reorderMode = false;
 		reorderData = new Map();
+		categoryOrder = [];
 	}
 
-	function handleCategoryReorderConsider(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+	// Handlers for skill reordering within a category
+	function handleSkillReorderConsider(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
 		reorderData.set(cat, e.detail.items);
 		reorderData = new Map(reorderData);
 	}
 
-	function handleCategoryReorderFinalize(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+	function handleSkillReorderFinalize(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
 		reorderData.set(cat, e.detail.items);
 		reorderData = new Map(reorderData);
+	}
+
+	// Handlers for category reordering
+	function handleCategoryOrderConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		categoryOrder = e.detail.items;
+	}
+
+	function handleCategoryOrderFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		categoryOrder = e.detail.items;
+		// Rebuild reorderData in new category order
+		const oldData = new Map(reorderData);
+		reorderData = new Map();
+		for (const cat of categoryOrder) {
+			if (oldData.has(cat.name)) {
+				reorderData.set(cat.name, oldData.get(cat.name)!);
+			}
+		}
 	}
 
 	async function saveReorder() {
 		savingOrder = true;
 		try {
+			// Save skill sort orders within categories
 			const updates: Promise<any>[] = [];
 			for (const [_, catItems] of reorderData) {
 				catItems.forEach((item, index) => {
@@ -372,9 +432,25 @@ onMount(async () => {
 				});
 			}
 			await Promise.all(updates);
+
+			// Save category order to site settings
+			const newCategoryOrder = categoryOrder.map(c => c.name);
+			await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({
+					skills_category_order: newCategoryOrder
+				})
+			});
+			savedCategoryOrder = newCategoryOrder;
+
 			toasts.add('success', 'Order saved');
 			reorderMode = false;
 			reorderData = new Map();
+			categoryOrder = [];
 			await loadSkills();
 		} catch (err) {
 			console.error('Failed to save order:', err);
@@ -450,37 +526,72 @@ onMount(async () => {
 			<div class="animate-pulse">Loading skills...</div>
 		</div>
 	{:else if reorderMode}
-		<div class="card p-6">
-			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Drag to Reorder Skills</h2>
-				<div class="flex gap-2">
-					<button class="btn btn-ghost" onclick={cancelReorder} disabled={savingOrder}>
-						Cancel
-					</button>
-					<button class="btn btn-primary" onclick={saveReorder} disabled={savingOrder}>
-						{#if savingOrder}
-							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-						{/if}
-						Save Order
-					</button>
+		<div class="space-y-6">
+			<!-- Category Order -->
+			<div class="card p-6">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Category Order</h2>
+						<p class="text-sm text-gray-500">Drag categories to change their display order across the site.</p>
+					</div>
 				</div>
-			</div>
-			<p class="text-sm text-gray-500 mb-4">Reorder skills within each category. Category order is set separately.</p>
-			{#key dndLoaded}
-				<div class="space-y-6">
-					{#each [...reorderData] as [categoryName, categoryItems] (categoryName)}
-						<div>
-							<h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-								{categoryName}
-							</h3>
+				{#key dndLoaded}
+					<div
+						class="flex flex-wrap gap-2"
+						use:dndzone={{ items: categoryOrder, flipDurationMs, type: 'category-order' }}
+						onconsider={(e: any) => handleCategoryOrderConsider(e)}
+						onfinalize={(e: any) => handleCategoryOrderFinalize(e)}
+					>
+						{#each categoryOrder as cat (cat.id)}
 							<div
-								class="space-y-2"
-								use:dndzone={{ items: categoryItems, flipDurationMs, type: `skills-${categoryName}` }}
-								onconsider={(e: any) => handleCategoryReorderConsider(categoryName, e)}
-								onfinalize={(e: any) => handleCategoryReorderFinalize(categoryName, e)}
+								class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-grab active:cursor-grabbing"
+								animate:flip={{ duration: flipDurationMs }}
+							>
+								<svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+								</svg>
+								<span class="font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
+							</div>
+						{/each}
+					</div>
+				{/key}
+			</div>
+
+			<!-- Skills within Categories -->
+			<div class="card p-6">
+				<div class="flex items-center justify-between mb-4">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Skill Order</h2>
+						<p class="text-sm text-gray-500">Drag skills to reorder within each category.</p>
+					</div>
+					<div class="flex gap-2">
+						<button class="btn btn-ghost" onclick={cancelReorder} disabled={savingOrder}>
+							Cancel
+						</button>
+						<button class="btn btn-primary" onclick={saveReorder} disabled={savingOrder}>
+							{#if savingOrder}
+								<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+							{/if}
+							Save Order
+						</button>
+					</div>
+				</div>
+				{#key dndLoaded}
+					<div class="space-y-6">
+						{#each categoryOrder as cat (cat.id)}
+							{@const categoryItems = reorderData.get(cat.name) || []}
+							<div>
+								<h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+									{cat.name}
+								</h3>
+								<div
+									class="space-y-2"
+									use:dndzone={{ items: categoryItems, flipDurationMs, type: `skills-${cat.name}` }}
+									onconsider={(e: any) => handleSkillReorderConsider(cat.name, e)}
+									onfinalize={(e: any) => handleSkillReorderFinalize(cat.name, e)}
 							>
 								{#each categoryItems as item (item.id)}
 									<div
@@ -500,6 +611,7 @@ onMount(async () => {
 					{/each}
 				</div>
 			{/key}
+			</div>
 		</div>
 	{:else if showForm}
 		<!-- Skill Form -->

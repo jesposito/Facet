@@ -153,7 +153,8 @@
 				sectionItems[key] = records.items.map((item) => ({
 					id: item.id,
 					label: getItemLabel(key, item),
-					visibility: (item as Record<string, unknown>).visibility as string || 'public',
+					// Default to 'private' if visibility is not set - safer than assuming public
+					visibility: (item as Record<string, unknown>).visibility as string || 'private',
 					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
 					data: item as Record<string, unknown>
 				}));
@@ -855,6 +856,8 @@
 						{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false }}
 						{@const items = sectionItems[sectionKey] || []}
 						{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
+						{@const publicItemIds = new Set(publicItems.map(i => i.id))}
+						{@const selectedPublicCount = sectionConfig.items.filter(id => publicItemIds.has(id)).length}
 
 						<div
 							class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
@@ -883,8 +886,8 @@
 								</button>
 								<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
 									<span class="text-xs text-gray-500">
-										{#if sectionConfig.items.length > 0}
-											{sectionConfig.items.length} selected
+										{#if selectedPublicCount > 0}
+											{selectedPublicCount} selected
 										{:else if sectionConfig.enabled}
 											all items ({publicItems.length})
 										{:else}
@@ -968,9 +971,9 @@
 								<div class="p-3 border-t border-gray-200 dark:border-gray-700">
 									<div class="flex items-center justify-between mb-2">
 										<p class="text-xs text-gray-500">
-											{sectionConfig.items.length === 0
+											{selectedPublicCount === 0
 												? 'All public items will be shown. Select and drag items to customize order.'
-												: `${sectionConfig.items.length} of ${publicItems.length} items selected. Drag to reorder.`}
+												: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
 										</p>
 										<div class="flex gap-2">
 											<button

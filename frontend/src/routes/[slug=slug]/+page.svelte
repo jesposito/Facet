@@ -19,6 +19,7 @@
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
+	import SiteNav from '$components/public/SiteNav.svelte';
 
 	// Helper to check if a section key is for custom content
 	function isCustomSection(sectionKey: string): boolean {
@@ -354,8 +355,15 @@
 			}}
 		/>
 
-		<!-- CTA banner if configured -->
-		{#if data.view?.cta_text && data.view?.cta_url}
+		<!-- Site Navigation / CTA banner (only on public views) -->
+		{#if data.isPublicView}
+			<SiteNav
+				ctaUrl={data.view?.cta_url || ''}
+				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
+				ctaText={data.view?.cta_text || ''}
+			/>
+		{:else if data.view?.cta_text && data.view?.cta_url}
+			<!-- Fallback CTA for non-public views (no site nav) -->
 			<div class="bg-primary-600 text-white py-4">
 				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 					<span class="font-medium">{data.view.cta_text}</span>

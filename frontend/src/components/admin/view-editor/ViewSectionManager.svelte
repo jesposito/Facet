@@ -328,6 +328,8 @@
 			{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, itemConfig: {} }}
 			{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
 			{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
+			{@const publicItemIds = new Set(publicItems.map(i => i.id))}
+			{@const selectedPublicCount = sectionConfig.items.filter(id => publicItemIds.has(id)).length}
 			{@const layoutKey = isCustom ? 'custom' : sectionKey}
 
 			<div
@@ -358,8 +360,8 @@
 						<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
 						{#if !isCustom}
 							<span class="text-xs text-gray-500">
-								{#if sectionConfig.items.length > 0}
-									{sectionConfig.items.length} selected
+								{#if selectedPublicCount > 0}
+									{selectedPublicCount} selected
 								{:else if sectionConfig.enabled}
 									all items ({publicItems.length})
 								{:else}
@@ -500,9 +502,9 @@
 
 						<div class="flex items-center justify-between mb-2">
 							<p class="text-xs text-gray-500">
-								{sectionConfig.items.length === 0
+								{selectedPublicCount === 0
 									? 'All public items will be shown. Select and drag items to customize order.'
-									: `${sectionConfig.items.length} of ${publicItems.length} items selected. Drag to reorder.`}
+									: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
 							</p>
 							<div class="flex gap-2">
 								<button

@@ -32,6 +32,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"homepage_custom_content": settings.HomepageCustomContent,
 				"homepage_section_order":  settings.HomepageSectionOrder,
 				"homepage_sections":       settings.HomepageSections,
+				"site_nav_enabled":        settings.SiteNavEnabled,
+				"site_nav_items":          settings.SiteNavItems,
+				"skills_category_order":   settings.SkillsCategoryOrder,
 			})
 		})
 
@@ -51,6 +54,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				HomepageCustomContent []services.HomepageCustomContentItem          `json:"homepage_custom_content"`
 				HomepageSectionOrder  []string                                      `json:"homepage_section_order"`
 				HomepageSections      map[string]services.HomepageSectionConfig     `json:"homepage_sections"`
+				SiteNavEnabled        *bool                                         `json:"site_nav_enabled"`
+				SiteNavItems          []services.SiteNavItem                        `json:"site_nav_items"`
+				SkillsCategoryOrder   []string                                      `json:"skills_category_order"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -98,6 +104,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.HomepageSections != nil {
 				updates["homepage_sections"] = req.HomepageSections
 			}
+			if req.SiteNavEnabled != nil {
+				updates["site_nav_enabled"] = *req.SiteNavEnabled
+			}
+			if req.SiteNavItems != nil {
+				updates["site_nav_items"] = req.SiteNavItems
+			}
+			if req.SkillsCategoryOrder != nil {
+				updates["skills_category_order"] = req.SkillsCategoryOrder
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -114,6 +129,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"homepage_custom_content": settings.HomepageCustomContent,
 				"homepage_section_order":  settings.HomepageSectionOrder,
 				"homepage_sections":       settings.HomepageSections,
+				"site_nav_enabled":        settings.SiteNavEnabled,
+				"site_nav_items":          settings.SiteNavItems,
+				"skills_category_order":   settings.SkillsCategoryOrder,
 			})
 		})
 

@@ -505,10 +505,15 @@
 	</div>
 
 	<!-- GitHub Import Section -->
-	<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Import from GitHub</h2>
+	<div class="card p-6">
+		<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Import from GitHub</h2>
 
-	<!-- Progress steps -->
-	<div class="flex items-center mb-8">
+		<p class="text-gray-600 dark:text-gray-400 mb-6">
+			Import a GitHub repository as a project. Optionally use AI to generate a polished description.
+		</p>
+
+		<!-- Progress steps -->
+		<div class="flex items-center mb-6">
 		{#each ['Repository', 'Preview', 'Enrich', 'Review'] as label, i}
 			<div class="flex items-center">
 				<div
@@ -538,8 +543,8 @@
 
 	<!-- Step 1: Repository URL -->
 	{#if step === 1}
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Enter Repository</h2>
+		<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+			<h3 class="text-base font-medium text-gray-900 dark:text-white mb-4">Enter Repository</h3>
 
 			<div class="space-y-4">
 				<div>
@@ -587,8 +592,8 @@
 
 	<!-- Step 2: Preview -->
 	{#if step === 2 && preview}
-		<div class="card p-6 space-y-4">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Repository Preview</h2>
+		<div class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+			<h3 class="text-base font-medium text-gray-900 dark:text-white">Repository Preview</h3>
 
 			<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
 				<h3 class="font-medium text-gray-900 dark:text-white">{preview.name}</h3>
@@ -640,8 +645,8 @@
 
 	<!-- Step 3: AI Enrichment -->
 	{#if step === 3}
-		<div class="card p-6 space-y-4">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Enrichment</h2>
+		<div class="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+			<h3 class="text-base font-medium text-gray-900 dark:text-white">AI Enrichment</h3>
 
 			<p class="text-gray-600 dark:text-gray-400">
 				Optionally use AI to generate a polished summary and highlight key features.
@@ -703,4 +708,5 @@
 			</div>
 		</div>
 	{/if}
+	</div>
 </div>

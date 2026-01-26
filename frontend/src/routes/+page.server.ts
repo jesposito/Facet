@@ -91,6 +91,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						sectionOrder: viewData.section_order || [],
 						sectionLayouts: viewData.section_layouts || {},
 						sectionWidths: viewData.section_widths || {},
+						sectionCategoryOrders: viewData.section_category_orders || {},
 						experience: viewData.sections?.experience || [],
 						projects: viewData.sections?.projects || [],
 						education: viewData.sections?.education || [],
@@ -212,6 +213,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			homepageCustomContentConfig: data.homepage_custom_content || [],
 			homepageSectionOrder: data.homepage_section_order || [],
 			homepageSections: data.homepage_sections || {},
+			skillsCategoryOrder: data.skills_category_order || [],
 			view: null,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false

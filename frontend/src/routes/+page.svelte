@@ -17,6 +17,7 @@
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
+	import SiteNav from '$components/public/SiteNav.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -112,6 +113,18 @@
 			return data.homepageSections[sectionKey].width;
 		}
 		return 'full';
+	}
+
+	function getCategoryOrder(sectionKey: string): string[] | undefined {
+		// First check view category orders (default view), then homepage settings (legacy)
+		if (data.sectionCategoryOrders?.[sectionKey]) {
+			return data.sectionCategoryOrders[sectionKey];
+		}
+		// For skills, check the top-level skillsCategoryOrder (legacy homepage)
+		if (sectionKey === 'skills' && data.skillsCategoryOrder?.length) {
+			return data.skillsCategoryOrder;
+		}
+		return undefined;
 	}
 
 	function getWidthClass(width: string): string {
@@ -409,24 +422,12 @@
 		}}
 	/>
 
-	{#if (data.profile?.cta_text && data.profile?.cta_url) || (data.view?.cta_text && data.view?.cta_url)}
-		{@const ctaText = data.profile?.cta_text || data.view?.cta_text}
-		{@const ctaUrl = data.profile?.cta_url || data.view?.cta_url}
-		{@const ctaButtonText = data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
-		<div class="bg-primary-600 text-white py-4">
-			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-				<span class="font-medium">{ctaText}</span>
-				<a
-					href={ctaUrl}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="btn bg-white text-primary-600 hover:bg-gray-100"
-				>
-					{ctaButtonText}
-				</a>
-			</div>
-		</div>
-	{/if}
+	<!-- Site Navigation / CTA Banner -->
+	<SiteNav
+		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+	/>
 
 	<div
 		aria-hidden="true"
@@ -474,7 +475,7 @@
 				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
 					<AwardsSection items={data.awards} />
 				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} />
+					<SkillsSection items={data.skills} categoryOrder={getCategoryOrder('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
 						<h2 class="section-title mb-0">Posts</h2>

@@ -166,7 +166,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionWidths: viewData.section_widths || {},
 			sectionCategoryOrders: viewData.section_category_orders || {},
 			requiresPassword: false,
-			shareToken: effectiveShareToken || null
+			shareToken: effectiveShareToken || null,
+			isPublicView: accessInfo.visibility === 'public'
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {
