@@ -103,9 +103,9 @@
 		try {
 			const records = await pb.collection('views').getList(1, 100, {
 				filter: 'is_active = true && visibility = "public"',
-				sort: 'name'
+				sort: 'name',
+				$cancelKey: 'homepage-public-views'
 			});
-			console.log('[SITE NAV] Loaded public views:', records.items.length, records.items.map(v => ({ id: v.id, name: v.name })));
 			publicViews = [...records.items] as unknown as View[];
 		} catch (err) {
 			console.error('[SITE NAV] Failed to load public views:', err);
@@ -348,7 +348,9 @@
 			}
 
 			// Check for views with overrides
-			const views = await collection('views').getList(1, 100);
+			const views = await collection('views').getList(1, 100, {
+				$cancelKey: 'homepage-views-overrides'
+			});
 			viewsOverridingHeadline = (views.items as unknown as View[]).filter(v => v.hero_headline);
 			viewsOverridingSummary = (views.items as unknown as View[]).filter(v => v.hero_summary);
 		} catch (err) {
