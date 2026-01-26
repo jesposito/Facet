@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.17 - January 26, 2026
+
+**New Features:**
+- Add info icon for About Facet
+
+**Pull Requests:** [#301](https://github.com/jesposito/Facet/pull/301),
+
+---
+
+
 ## v2.8.16 - January 26, 2026
 
 **Other Changes:**
