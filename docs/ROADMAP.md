@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-01-17
+**Last Updated:** 2026-01-26
 
 This roadmap reflects current implementation status and planned work, ordered chronologically by phase. Completed items remain for context; upcoming items are listed under each phase.
 
@@ -32,6 +32,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **UX Improvements (Phase 17.1-17.2):** Setup Wizard for new users, Contextual Help on all admin pages.
 - ✅ **Quick Share to Social (Phase 18.1):** Native Web Share API with social platform fallbacks (LinkedIn, Twitter/X, Reddit, Email).
 - ✅ **Testimonials System (Phase 20.1):** Complete social proof collection with request links, approval workflow, email verification, and public display.
+- ✅ **Version Update Notifications:** Admin panel shows badge when newer version available (checks GitHub releases daily).
+- ✅ **Custom Content Sections:** User-defined content blocks with Markdown support.
+- ✅ **Automated Changelog Generation:** AI-powered changelog from PR descriptions on release.
 - 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, Phase 19 Developer Platform.
 
 ---
@@ -577,6 +580,14 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-01-26 (Documentation & Polish - v2.8.17+)
+- Added version update notifications in admin sidebar and About page
+- Checks GitHub API for new releases (cached daily, no user tracking)
+- Fixed AI changelog generator to filter already-documented PRs
+- Backfilled CHANGELOG.md with historical releases (v2.0.0 - v2.7.6)
+- Added info icon for About Facet menu item
+- Comprehensive documentation audit and updates
 
 ### 2026-01-17 (Testimonials System - v2.5.0)
 - Completed Phase 20.1: Testimonials System

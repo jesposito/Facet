@@ -1,6 +1,6 @@
 # AI Features Documentation
 
-**Last Updated:** 2026-01-01
+**Last Updated:** 2026-01-26
 
 This document provides comprehensive documentation for all AI-powered features in Facet. These features are optional and require configuration of at least one AI provider.
 
@@ -13,9 +13,13 @@ This document provides comprehensive documentation for all AI-powered features i
 3. [AI Print (Resume Generation)](#ai-print-resume-generation)
 4. [AI Project Enrichment](#ai-project-enrichment)
 5. [AI Content Improvement](#ai-content-improvement)
-6. [API Reference](#api-reference)
-7. [Environment Variables](#environment-variables)
-8. [Troubleshooting](#troubleshooting)
+6. [AI Writing Assistant](#ai-writing-assistant)
+7. [Resume Upload & AI Parsing](#resume-upload--ai-parsing)
+8. [API Reference](#api-reference)
+9. [Environment Variables](#environment-variables)
+10. [Troubleshooting](#troubleshooting)
+
+> **See Also:** [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md) for detailed documentation on the 5-tone AI Writing Assistant with critique mode.
 
 ---
 
@@ -238,6 +242,62 @@ Content-Type: application/json
   "action": "improve"
 }
 ```
+
+---
+
+## AI Writing Assistant
+
+The AI Writing Assistant provides intelligent content rewriting with 5 distinct tones and a critique mode. It's integrated across all content forms in the admin panel.
+
+**Tones Available:**
+- **Executive** - Direct, results-focused, suitable for senior leadership
+- **Professional** - Polished, business-appropriate, general professional contexts
+- **Technical** - Precise, detailed, suitable for technical audiences
+- **Conversational** - Friendly, approachable, personal connection
+- **Creative** - Engaging, memorable, marketing-oriented
+
+**Critique Mode:**
+Instead of rewriting, provides inline feedback with `[bracketed suggestions]` for improvement.
+
+**Where It's Available:**
+- Experience descriptions and bullets
+- Project summaries and descriptions
+- Profile headline and summary
+- Education descriptions
+- Post content
+- Talk descriptions
+
+For detailed documentation, see [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md).
+
+---
+
+## Resume Upload & AI Parsing
+
+Upload PDF or DOCX resume files and have AI automatically extract structured data to populate your Facet profile.
+
+**Supported Formats:**
+- PDF (text-based, not scanned images)
+- DOCX (Microsoft Word)
+
+**Extracted Data:**
+- Work experience (company, title, dates, description)
+- Education (institution, degree, field, dates)
+- Skills (with automatic categorization)
+- Certifications
+- Contact information
+
+**How It Works:**
+1. Navigate to **Admin > Import & AI**
+2. Upload resume file (PDF/DOCX, max 5MB)
+3. AI parses and extracts structured data
+4. Review extracted data in proposal view
+5. Accept, modify, or reject each extracted item
+6. Smart deduplication prevents duplicate entries
+
+**Security:**
+- Files stored with SHA256 hash for duplicate detection
+- Original files can be deleted after parsing
+- All parsing happens server-side, not sent to external services beyond AI provider
 
 ---
 
