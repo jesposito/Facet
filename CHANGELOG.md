@@ -3,6 +3,11 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.22 - January 26, 2026
+
+---
+
+
 ## v2.8.21 - January 26, 2026
 
 **Bugs Fixed:**
