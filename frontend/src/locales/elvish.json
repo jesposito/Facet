@@ -166,6 +166,9 @@
 				"recent_changes": "Recent Turnings",
 				"changelog_loading": "Loading the scrolls of change...",
 				"changelog_empty": "No scrolls of change yet written. Check {link} for tidings.",
+				"changelog_empty_before_link": "No scrolls of change yet written. Check",
+				"changelog_empty_link": "GitHub tidings",
+				"changelog_empty_after_link": "for tidings.",
 				"github_releases": "GitHub tidings",
 				"bug_fixes": "Troubles Mended",
 				"new_features": "New Enchantments",
@@ -1269,6 +1272,13 @@
 		},
 		"posts": {
 			"read_more": "Read further"
+		},
+		"testimonials": {
+			"photo_alt": "Portrait of {name}",
+			"at": "of",
+			"previous": "Previous testimony",
+			"next": "Next testimony",
+			"carousel_label": "Testimonies scroll"
 		},
 		"custom_content": {
 			"open_link": "Follow path"

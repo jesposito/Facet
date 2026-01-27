@@ -166,6 +166,9 @@
 				"recent_changes": "Recent Changes",
 				"changelog_loading": "Loading changelog...",
 				"changelog_empty": "No changelog available yet. Check {link} for updates.",
+				"changelog_empty_before_link": "No changelog available yet. Check",
+				"changelog_empty_link": "GitHub releases",
+				"changelog_empty_after_link": "for updates.",
 				"github_releases": "GitHub releases",
 				"bug_fixes": "Bug Fixes",
 				"new_features": "New Features",
@@ -1269,6 +1272,13 @@
 		},
 		"posts": {
 			"read_more": "Read more"
+		},
+		"testimonials": {
+			"photo_alt": "Photo of {name}",
+			"at": "at",
+			"previous": "Previous testimonial",
+			"next": "Next testimonial",
+			"carousel_label": "Testimonials carousel"
 		},
 		"custom_content": {
 			"open_link": "Open link"

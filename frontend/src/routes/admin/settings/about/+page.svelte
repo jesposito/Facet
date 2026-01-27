@@ -188,7 +188,7 @@
 						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
 						</svg>
-						{latestVersion} available
+						{$t('admin.about_page.new_version_available', { values: { version: latestVersion } })}
 					</span>
 				{/if}
 			</div>
@@ -268,7 +268,7 @@
 				<div class="animate-pulse text-sm text-gray-500 dark:text-gray-400">{$t('admin.about_page.changelog_loading')}</div>
 			{:else if changelogEntries.length === 0}
 				<p class="text-sm text-gray-500 dark:text-gray-400">
-					No changelog available yet. Check <a href="https://github.com/jesposito/Facet/releases" target="_blank" rel="noopener noreferrer" class="text-primary-600 dark:text-primary-400 hover:underline">GitHub releases</a> for updates.
+					{$t('admin.about_page.changelog_empty_before_link')} <a href="https://github.com/jesposito/Facet/releases" target="_blank" rel="noopener noreferrer" class="text-primary-600 dark:text-primary-400 hover:underline">{$t('admin.about_page.changelog_empty_link')}</a> {$t('admin.about_page.changelog_empty_after_link')}
 				</p>
 			{:else}
 				<div class="space-y-4">
