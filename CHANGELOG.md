@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.9.0 - January 27, 2026
+
+**New Features:**
+- Allow users to upload a custom favicon to replace the default Facet icon in browser tabs
+
+**Pull Requests:** [#319](https://github.com/jesposito/Facet/pull/319),
+
+---
+
+
 ## v2.8.23 - January 27, 2026
 
 **Bugs Fixed:**
