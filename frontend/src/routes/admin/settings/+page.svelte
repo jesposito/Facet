@@ -52,6 +52,13 @@
 	let hideDemoToggle = $state(false);
 	let showCSSHelp = $state(false);
 
+	// Favicon state
+	let faviconUrl: string | null = $state(null);
+	let faviconFile: File | null = null;
+	let faviconBlobUrl: string | null = null;
+	let siteSettingsRecordId: string | null = $state(null);
+	let faviconSaving = $state(false);
+
 	// Export state
 	let exporting: string | null = $state(null);
 
@@ -357,6 +364,13 @@
 				customCSS = data.custom_css || '';
 				gaMeasurementId = data.ga_measurement_id || '';
 				hideDemoToggle = data.hide_demo_toggle || false;
+				faviconUrl = data.favicon || null;
+			}
+
+			// Also load the site_settings record ID for direct file uploads
+			const records = await pb.collection('site_settings').getList(1, 1);
+			if (records.items.length > 0) {
+				siteSettingsRecordId = records.items[0].id;
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
@@ -394,6 +408,78 @@
 			toasts.add('error', 'Failed to save settings');
 		} finally {
 			siteSettingsSaving = false;
+		}
+	}
+
+	function handleFaviconSelect(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (!input.files?.length) return;
+
+		if (faviconBlobUrl) URL.revokeObjectURL(faviconBlobUrl);
+		faviconFile = input.files[0];
+		faviconBlobUrl = URL.createObjectURL(faviconFile);
+		faviconUrl = faviconBlobUrl;
+	}
+
+	async function saveFavicon() {
+		if (!faviconFile || !siteSettingsRecordId) return;
+
+		faviconSaving = true;
+		try {
+			const formData = new FormData();
+			formData.append('favicon', faviconFile);
+
+			const updated = await pb.collection('site_settings').update(siteSettingsRecordId, formData);
+
+			// Clean up blob URL
+			if (faviconBlobUrl) {
+				URL.revokeObjectURL(faviconBlobUrl);
+				faviconBlobUrl = null;
+			}
+			faviconFile = null;
+
+			// Update URL with cache buster
+			if (updated.favicon) {
+				faviconUrl = `/api/files/${updated.collectionId}/${updated.id}/${updated.favicon}?${Date.now()}`;
+			}
+
+			toasts.add('success', 'Favicon updated');
+		} catch (err) {
+			console.error('Failed to save favicon:', err);
+			toasts.add('error', 'Failed to save favicon');
+		} finally {
+			faviconSaving = false;
+		}
+	}
+
+	async function removeFavicon() {
+		if (!siteSettingsRecordId) return;
+
+		const confirmed = await confirm({
+			title: 'Remove Favicon',
+			message: 'Are you sure you want to remove your custom favicon? The default Facet favicon will be used.',
+			confirmText: 'Remove',
+			danger: true
+		});
+		if (!confirmed) return;
+
+		faviconSaving = true;
+		try {
+			await pb.collection('site_settings').update(siteSettingsRecordId, { favicon: null });
+
+			if (faviconBlobUrl) {
+				URL.revokeObjectURL(faviconBlobUrl);
+				faviconBlobUrl = null;
+			}
+			faviconFile = null;
+			faviconUrl = null;
+
+			toasts.add('success', 'Favicon removed');
+		} catch (err) {
+			console.error('Failed to remove favicon:', err);
+			toasts.add('error', 'Failed to remove favicon');
+		} finally {
+			faviconSaving = false;
 		}
 	}
 
@@ -779,6 +865,72 @@
 				</a>
 			</div>
 		{/if}
+		</div>
+
+		<!-- Favicon -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Favicon</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				Upload a custom favicon to replace the default Facet icon in browser tabs. Recommended: 32x32 or 64x64 pixels.
+			</p>
+
+			<div class="flex items-center gap-4">
+				{#if faviconUrl}
+					<div class="relative">
+						<img
+							src={faviconUrl}
+							alt="Current favicon"
+							class="w-16 h-16 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2"
+						/>
+						<button
+							type="button"
+							onclick={removeFavicon}
+							disabled={faviconSaving}
+							class="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full shadow"
+							title="Remove favicon"
+						>
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
+				{/if}
+
+				<div class="flex flex-col gap-2">
+					<input
+						type="file"
+						accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,image/gif"
+						id="favicon"
+						class="hidden"
+						onchange={handleFaviconSelect}
+					/>
+					<label for="favicon" class="btn btn-secondary btn-sm cursor-pointer">
+						{faviconUrl ? 'Change' : 'Upload'} Favicon
+					</label>
+					{#if faviconFile}
+						<button
+							type="button"
+							class="btn btn-primary btn-sm"
+							onclick={saveFavicon}
+							disabled={faviconSaving}
+						>
+							{#if faviconSaving}
+								<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								</svg>
+								Saving...
+							{:else}
+								Save Favicon
+							{/if}
+						</button>
+					{/if}
+				</div>
+			</div>
+
+			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+				Supported formats: PNG, ICO, SVG, GIF. Max size: 512KB.
+			</p>
 		</div>
 
 		<!-- Custom CSS -->

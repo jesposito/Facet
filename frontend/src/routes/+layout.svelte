@@ -41,6 +41,7 @@ let gaMeasurementId = $state('');
 let gaInitialized = $state(false);
 let accentStyleEl: HTMLStyleElement | null = $state(null);
 let customPaletteLocked = false;
+let faviconUrl = $state<string | null>(null);
 
 function applyPaletteFromCSS(css: string) {
 	if (!browser || !css) return;
@@ -171,6 +172,7 @@ async function loadSiteSettings() {
 			const data = await response.json();
 			customCSS = data.custom_css || '';
 			gaMeasurementId = data.ga_measurement_id || '';
+			faviconUrl = data.favicon || null;
 			applyPaletteFromCSS(customCSS);
 			applyCustomCSS(customCSS);
 		}
@@ -261,6 +263,11 @@ run(() => {
 
 <svelte:head>
 	<meta name="theme-color" content={themeColor} />
+	{#if faviconUrl}
+		<link rel="icon" href={faviconUrl} />
+	{:else}
+		<link rel="icon" href="/favicon.png" />
+	{/if}
 </svelte:head>
 
 <!-- Skip link for keyboard navigation -->
