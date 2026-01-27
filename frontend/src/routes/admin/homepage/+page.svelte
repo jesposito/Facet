@@ -938,11 +938,33 @@
 			</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
-				<p class="text-sm text-gray-500 dark:text-gray-400">Add a prominent banner to your homepage hero section.</p>
+				<div class="flex items-start justify-between gap-4">
+				<div class="flex-1">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Call to Action</h2>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						{#if siteCtaEnabled}
+							Add a prominent banner to your homepage and public facets.
+						{:else}
+							The call-to-action is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span> site-wide.
+						{/if}
+					</p>
+				</div>
+				<label class="relative inline-flex items-center cursor-pointer">
+					<input
+						type="checkbox"
+						class="sr-only peer"
+						checked={siteCtaEnabled}
+						onchange={toggleSiteCtaEnabled}
+						disabled={settingsLoading}
+					/>
+					<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+				</label>
+			</div>
 
-				<div>
-					<label for="cta_text" class="label">Description</label>
+			{#if siteCtaEnabled}
+				<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+					<div>
+						<label for="cta_text" class="label">Description</label>
 					<input
 						type="text"
 						id="cta_text"
@@ -977,8 +999,10 @@
 					</div>
 				</div>
 			</div>
+			{/if}
+		</div>
 
-			<!-- Site Navigation -->
+		<!-- Site Navigation -->
 			<div class="card p-6 space-y-4">
 				<div class="flex items-start justify-between gap-4">
 					<div class="flex-1">
@@ -997,34 +1021,6 @@
 						/>
 						<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 					</label>
-				</div>
-
-				<!-- Show CTA Button Toggle -->
-				<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-					<div class="flex items-start justify-between gap-4">
-						<div class="flex-1">
-							<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">
-								Show CTA Button
-							</h3>
-							<p class="text-sm text-gray-600 dark:text-gray-400">
-								{#if siteCtaEnabled}
-									The call-to-action button is <span class="font-medium text-green-600 dark:text-green-400">visible</span> on your homepage and public facets (when configured).
-								{:else}
-									The call-to-action button is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span> site-wide.
-								{/if}
-							</p>
-						</div>
-						<label class="relative inline-flex items-center cursor-pointer">
-							<input
-								type="checkbox"
-								class="sr-only peer"
-								checked={siteCtaEnabled}
-								onchange={toggleSiteCtaEnabled}
-								disabled={settingsLoading}
-							/>
-							<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-						</label>
-					</div>
 				</div>
 
 				{#if siteNavEnabled}
