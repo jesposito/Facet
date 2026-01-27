@@ -54,9 +54,8 @@
 
 	// Favicon state
 	let faviconUrl: string | null = $state(null);
-	let faviconFile: File | null = null;
-	let faviconBlobUrl: string | null = null;
-	let siteSettingsRecordId: string | null = $state(null);
+	let faviconFile: File | null = $state(null);
+	let faviconBlobUrl: string | null = $state(null);
 	let faviconSaving = $state(false);
 
 	// Export state
@@ -366,12 +365,6 @@
 				hideDemoToggle = data.hide_demo_toggle || false;
 				faviconUrl = data.favicon || null;
 			}
-
-			// Also load the site_settings record ID for direct file uploads
-			const records = await pb.collection('site_settings').getList(1, 1);
-			if (records.items.length > 0) {
-				siteSettingsRecordId = records.items[0].id;
-			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
 		} finally {
@@ -443,14 +436,26 @@
 	}
 
 	async function saveFavicon() {
-		if (!faviconFile || !siteSettingsRecordId) return;
+		if (!faviconFile) return;
 
 		faviconSaving = true;
 		try {
 			const formData = new FormData();
 			formData.append('favicon', faviconFile);
 
-			const updated = await pb.collection('site_settings').update(siteSettingsRecordId, formData);
+			const response = await fetch('/api/site-settings/favicon', {
+				method: 'POST',
+				headers: {
+					Authorization: pb.authStore.token || ''
+				},
+				body: formData
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				toasts.add('error', result.error || 'Failed to save favicon');
+				return;
+			}
 
 			// Clean up blob URL
 			if (faviconBlobUrl) {
@@ -460,8 +465,8 @@
 			faviconFile = null;
 
 			// Update URL with cache buster
-			if (updated.favicon) {
-				const newUrl = `/api/files/${updated.collectionId}/${updated.id}/${updated.favicon}?${Date.now()}`;
+			if (result.favicon) {
+				const newUrl = `${result.favicon}?${Date.now()}`;
 				faviconUrl = newUrl;
 				// Notify layout to update favicon in browser tab
 				window.dispatchEvent(new CustomEvent('favicon-changed', { detail: newUrl }));
@@ -477,8 +482,6 @@
 	}
 
 	async function removeFavicon() {
-		if (!siteSettingsRecordId) return;
-
 		const confirmed = await confirm({
 			title: 'Remove Favicon',
 			message: 'Are you sure you want to remove your custom favicon? The default Facet favicon will be used.',
@@ -489,7 +492,18 @@
 
 		faviconSaving = true;
 		try {
-			await pb.collection('site_settings').update(siteSettingsRecordId, { favicon: null });
+			const response = await fetch('/api/site-settings/favicon', {
+				method: 'DELETE',
+				headers: {
+					Authorization: pb.authStore.token || ''
+				}
+			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				toasts.add('error', result.error || 'Failed to remove favicon');
+				return;
+			}
 
 			if (faviconBlobUrl) {
 				URL.revokeObjectURL(faviconBlobUrl);
