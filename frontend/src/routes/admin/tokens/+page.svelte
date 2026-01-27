@@ -7,6 +7,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import { t } from 'svelte-i18n';
 
 	let loading = $state(true);
 	let tokens: ShareToken[] = $state([]);
@@ -38,7 +39,7 @@
 			tokens = result.items;
 		} catch (err) {
 			console.error('Failed to load tokens:', err);
-			toasts.add('error', 'Failed to load share tokens');
+			toasts.add('error', $t('admin.tokens.toast_load_failed'));
 		} finally {
 			loading = false;
 		}
@@ -58,7 +59,7 @@
 
 	async function createToken() {
 		if (!newToken.view_id) {
-			toasts.add('error', 'Please select a view');
+			toasts.add('error', $t('admin.tokens.toast_select_view'));
 			return;
 		}
 
@@ -91,11 +92,11 @@
 				url: `${window.location.origin}/s/${data.token}`
 			};
 
-			toasts.add('success', 'Token created successfully');
+			toasts.add('success', $t('admin.tokens.toast_created'));
 			await loadTokens();
 			resetForm();
 		} catch (err) {
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to create token');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.tokens.toast_create_failed'));
 		} finally {
 			creating = false;
 		}
@@ -103,9 +104,9 @@
 
 	async function revokeToken(tokenId: string) {
 		const confirmed = await confirm({
-			title: 'Revoke Token',
-			message: 'Are you sure you want to revoke this token? It will no longer be usable.',
-			confirmText: 'Revoke',
+			title: $t('admin.tokens.confirm_revoke_title'),
+			message: $t('admin.tokens.confirm_revoke_message'),
+			confirmText: $t('admin.tokens.confirm_revoke_button'),
 			danger: true
 		});
 		if (!confirmed) {
@@ -124,18 +125,18 @@
 				throw new Error('Failed to revoke token');
 			}
 
-			toasts.add('success', 'Token revoked');
+			toasts.add('success', $t('admin.tokens.toast_revoked'));
 			await loadTokens();
 		} catch (err) {
-			toasts.add('error', 'Failed to revoke token');
+			toasts.add('error', $t('admin.tokens.toast_revoke_failed'));
 		}
 	}
 
 	async function deleteToken(tokenId: string) {
 		const confirmed = await confirm({
-			title: 'Delete Token',
-			message: 'Are you sure you want to permanently delete this token? This action cannot be undone.',
-			confirmText: 'Delete',
+			title: $t('admin.tokens.confirm_delete_title'),
+			message: $t('admin.tokens.confirm_delete_message'),
+			confirmText: $t('admin.tokens.confirm_delete_button'),
 			danger: true
 		});
 		if (!confirmed) {
@@ -144,19 +145,19 @@
 
 		try {
 			await pb.collection('share_tokens').delete(tokenId);
-			toasts.add('success', 'Token deleted');
+			toasts.add('success', $t('admin.tokens.toast_deleted'));
 			await loadTokens();
 		} catch (err) {
-			toasts.add('error', 'Failed to delete token');
+			toasts.add('error', $t('admin.tokens.toast_delete_failed'));
 		}
 	}
 
 	async function regenerateToken(token: ShareToken) {
 		const viewName = getViewName(token);
 		const confirmed = await confirm({
-			title: 'Regenerate Token',
-			message: `This will revoke the existing token "${token.name || 'Unnamed'}" for "${viewName}" and create a new one. Anyone using the old link will no longer have access. Continue?`,
-			confirmText: 'Regenerate',
+			title: $t('admin.tokens.confirm_regenerate_title'),
+			message: $t('admin.tokens.confirm_regenerate_message', { values: { name: token.name || $t('admin.tokens.unnamed_token'), view: viewName } }),
+			confirmText: $t('admin.tokens.confirm_regenerate_button'),
 			danger: false
 		});
 		if (!confirmed) return;
@@ -200,16 +201,16 @@
 				url: `${window.location.origin}/s/${data.token}`
 			};
 
-			toasts.add('success', 'Token regenerated! Copy the new link now.');
+			toasts.add('success', $t('admin.tokens.toast_regenerated'));
 			await loadTokens();
 		} catch (err) {
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to regenerate token');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.tokens.toast_regenerate_failed'));
 		}
 	}
 
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text);
-		toasts.add('success', 'Copied to clipboard');
+		toasts.add('success', $t('admin.tokens.toast_copied'));
 	}
 
 	function resetForm() {
@@ -246,19 +247,19 @@
 
 	function getTokenStatus(token: ShareToken): { label: string; class: string } {
 		if (!token.is_active) {
-			return { label: 'Revoked', class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+			return { label: $t('admin.tokens.status_revoked'), class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
 		}
 		if (isExpired(token)) {
-			return { label: 'Expired', class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' };
+			return { label: $t('admin.tokens.status_expired'), class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' };
 		}
 		if (isMaxUsesReached(token)) {
-			return { label: 'Max Uses Reached', class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' };
+			return { label: $t('admin.tokens.status_max_uses'), class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' };
 		}
-		return { label: 'Active', class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+		return { label: $t('admin.tokens.status_active'), class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
 	}
 
 	function formatDate(dateStr: string | undefined): string {
-		if (!dateStr) return 'Never';
+		if (!dateStr) return $t('admin.tokens.never');
 		return new Date(dateStr).toLocaleDateString(undefined, {
 			year: 'numeric',
 			month: 'short',
@@ -274,10 +275,10 @@
 		const diffMs = now.getTime() - date.getTime();
 		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-		if (diffDays === 0) return 'Today';
-		if (diffDays === 1) return 'Yesterday';
-		if (diffDays < 7) return `${diffDays} days ago`;
-		if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+		if (diffDays === 0) return $t('admin.tokens.today');
+		if (diffDays === 1) return $t('admin.tokens.yesterday');
+		if (diffDays < 7) return $t('admin.tokens.days_ago', { values: { count: diffDays } });
+		if (diffDays < 30) return $t('admin.tokens.weeks_ago', { values: { count: Math.floor(diffDays / 7) } });
 		return formatDate(dateStr);
 	}
 
@@ -300,20 +301,20 @@
 </script>
 
 <svelte:head>
-	<title>Share Tokens | Facet</title>
+	<title>{$t('admin.tokens.page_title')}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
 	<PageHelp pageKey="tokens">
-		<p><strong>Share Tokens</strong> provide secure, time-limited access to your unlisted facets.</p>
-		<p>Perfect for job applications: generate a token that expires after 30 days, send it to recruiters, and revoke it anytime. The URL looks clean (like <code>/recruiter</code>) while the token handles access control.</p>
-		<p><strong>Tip:</strong> Set a max use count to limit how many times a link can be viewed, or leave it unlimited for ongoing access.</p>
+		<p>{@html $t('admin.tokens.help_intro')}</p>
+		<p>{@html $t('admin.tokens.help_description')}</p>
+		<p>{@html $t('admin.tokens.help_tip')}</p>
 	</PageHelp>
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Share Tokens</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.tokens.title')}</h1>
 		<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
-			{@html icon('plus')} Generate Token
+			{@html icon('plus')} {$t('admin.tokens.generate_button')}
 		</button>
 	</div>
 
@@ -323,10 +324,10 @@
 			<div class="flex items-start justify-between">
 				<div class="flex-1">
 					<h3 class="font-medium text-green-800 dark:text-green-200 mb-2">
-						{@html icon('check')} Token Created Successfully
+						{@html icon('check')} {$t('admin.tokens.token_created_title')}
 					</h3>
 					<p class="text-sm text-green-700 dark:text-green-300 mb-3">
-						Copy this token now. For security, it will not be shown again.
+						{$t('admin.tokens.token_created_message')}
 					</p>
 					<div class="flex flex-col gap-2">
 						<div class="flex items-center gap-2">
@@ -337,7 +338,7 @@
 								class="btn btn-secondary shrink-0"
 								onclick={() => copyToClipboard(createdToken?.url || '')}
 							>
-								{@html icon('copy')} Copy URL
+								{@html icon('copy')} {$t('admin.tokens.copy_url')}
 							</button>
 						</div>
 					</div>
@@ -354,21 +355,21 @@
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading tokens...</div>
+			<div class="animate-pulse">{$t('admin.tokens.loading_tokens')}</div>
 		</div>
 	{:else if tokens.length === 0}
 		<div class="card p-8 text-center">
-			<p class="text-gray-600 dark:text-gray-400 mb-2">No share tokens yet.</p>
+			<p class="text-gray-600 dark:text-gray-400 mb-2">{$t('admin.tokens.no_tokens')}</p>
 			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">
-				Generate a token to share an unlisted view with specific people.
+				{$t('admin.tokens.no_tokens_description')}
 			</p>
 			{#if views.length === 0}
 				<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">
-					First, <a href="/admin/views/new" class="text-primary-600 hover:underline">create an unlisted view</a> to generate tokens for.
+					{@html $t('admin.tokens.create_unlisted_first', { values: { link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.create_unlisted_link')}</a>` } })}
 				</p>
 			{:else}
 				<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
-					Generate Your First Token
+					{$t('admin.tokens.generate_first')}
 				</button>
 			{/if}
 		</div>
@@ -386,7 +387,7 @@
 								{/if}
 							</div>
 							<a href="/admin/views/{viewId}" class="btn btn-sm btn-ghost">
-								Edit View
+								{$t('admin.tokens.edit_view')}
 							</a>
 						</div>
 					</div>
@@ -399,7 +400,7 @@
 									<div class="flex-1 min-w-0">
 										<div class="flex items-center gap-2 flex-wrap mb-1">
 											<span class="font-medium text-gray-900 dark:text-white">
-												{token.name || 'Unnamed Token'}
+												{token.name || $t('admin.tokens.unnamed_token')}
 											</span>
 											<span class="px-2 py-0.5 text-xs rounded {status.class}">
 												{status.label}
@@ -410,31 +411,35 @@
 											<div class="flex items-center gap-4 flex-wrap">
 												<span>
 													{@html icon('clock')}
-													Created {formatRelativeDate(token.created)}
+													{$t('admin.tokens.created_relative', { values: { date: formatRelativeDate(token.created) } })}
 												</span>
 												{#if token.expires_at}
 													<span>
-														Expires: {formatDate(token.expires_at)}
+														{$t('admin.tokens.expires_label', { values: { date: formatDate(token.expires_at) } })}
 													</span>
 												{/if}
 											</div>
 
 											<div class="flex items-center gap-4 flex-wrap">
 												<span>
-													Uses: {token.use_count}{token.max_uses ? ` / ${token.max_uses}` : ' (unlimited)'}
+													{#if token.max_uses}
+														{$t('admin.tokens.uses_with_max', { values: { current: token.use_count, max: token.max_uses } })}
+													{:else}
+														{$t('admin.tokens.uses_unlimited', { values: { current: token.use_count } })}
+													{/if}
 												</span>
 												{#if token.last_used_at}
 													<span>
-														Last used: {formatDate(token.last_used_at)}
+														{$t('admin.tokens.last_used', { values: { date: formatDate(token.last_used_at) } })}
 													</span>
 												{:else}
-													<span>Never used</span>
+													<span>{$t('admin.tokens.never_used')}</span>
 												{/if}
 											</div>
 
 											{#if token.token_prefix}
 												<div>
-													<span class="text-gray-400">Prefix:</span>
+													<span class="text-gray-400">{$t('admin.tokens.prefix_label')}</span>
 													<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{token.token_prefix}...</code>
 												</div>
 											{/if}
@@ -446,14 +451,14 @@
 											<button
 												class="btn btn-sm btn-ghost text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
 												onclick={() => regenerateToken(token)}
-												title="Regenerate token (revokes old, creates new)"
+												title={$t('admin.tokens.regenerate_title')}
 											>
 												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
 											</button>
 											<button
 												class="btn btn-sm btn-ghost text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
 												onclick={() => revokeToken(token.id)}
-												title="Revoke token"
+												title={$t('admin.tokens.revoke_title')}
 											>
 												{@html icon('lock')}
 											</button>
@@ -461,7 +466,7 @@
 										<button
 											class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
 											onclick={() => deleteToken(token.id)}
-											title="Delete token"
+											title={$t('admin.tokens.delete_title')}
 										>
 											{@html icon('trash')}
 										</button>
@@ -481,17 +486,17 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
 		<div class="card w-full max-w-md">
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-lg font-bold text-gray-900 dark:text-white">Generate Share Token</h2>
+				<h2 class="text-lg font-bold text-gray-900 dark:text-white">{$t('admin.tokens.modal_title')}</h2>
 			</div>
 
 			<form onsubmit={preventDefault(createToken)} class="p-4 space-y-4">
 				<div>
 					<label for="view_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-						View <span class="text-red-500">*</span>
+						{$t('admin.tokens.view_required')}
 					</label>
 					{#if views.length === 0}
 						<p class="text-sm text-gray-500 dark:text-gray-400">
-							No unlisted views available. <a href="/admin/views/new" class="text-primary-600 hover:underline">Create one first</a>.
+							{@html $t('admin.tokens.no_unlisted_views', { values: { link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.no_unlisted_link')}</a>` } })}
 						</p>
 					{:else}
 						<select
@@ -500,7 +505,7 @@
 							class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"
 							required
 						>
-							<option value="">Select a view...</option>
+							<option value="">{$t('admin.tokens.select_view')}</option>
 							{#each views as view}
 								<option value={view.id}>{view.name} (/{view.slug})</option>
 							{/each}
@@ -510,21 +515,21 @@
 
 				<div>
 					<label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-						Name (optional)
+						{$t('admin.tokens.name_label')}
 					</label>
 					<input
 						type="text"
 						id="name"
 						bind:value={newToken.name}
-						placeholder="e.g., Sent to Company X"
+						placeholder={$t('admin.tokens.name_placeholder')}
 						class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"
 					/>
-					<p class="text-xs text-gray-500 mt-1">A label to help you remember who this token was shared with.</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.tokens.name_help')}</p>
 				</div>
 
 				<div>
 					<label for="expires_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-						Expiration (optional)
+						{$t('admin.tokens.expiration_label')}
 					</label>
 					<input
 						type="datetime-local"
@@ -532,12 +537,12 @@
 						bind:value={newToken.expires_at}
 						class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"
 					/>
-					<p class="text-xs text-gray-500 mt-1">Leave empty for no expiration.</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.tokens.expiration_help')}</p>
 				</div>
 
 				<div>
 					<label for="max_uses" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-						Max Uses (optional)
+						{$t('admin.tokens.max_uses_label')}
 					</label>
 					<input
 						type="number"
@@ -547,12 +552,12 @@
 						placeholder="0"
 						class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"
 					/>
-					<p class="text-xs text-gray-500 mt-1">0 = unlimited uses.</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.tokens.max_uses_help')}</p>
 				</div>
 
 				<div class="flex justify-end gap-2 pt-4">
 					<button type="button" class="btn btn-ghost" onclick={resetForm}>
-						Cancel
+						{$t('admin.tokens.cancel')}
 					</button>
 					<button
 						type="submit"
@@ -560,9 +565,9 @@
 						disabled={creating || views.length === 0}
 					>
 						{#if creating}
-							Generating...
+							{$t('admin.tokens.generating')}
 						{:else}
-							Generate Token
+							{$t('admin.tokens.generate')}
 						{/if}
 					</button>
 				</div>

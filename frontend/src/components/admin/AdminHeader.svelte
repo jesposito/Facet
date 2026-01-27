@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { t } from 'svelte-i18n';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen, confirm } from '$lib/stores';
 	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
@@ -130,7 +131,7 @@
 			<button
 				class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 				onclick={toggleSidebar}
-				aria-label={$adminSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+				aria-label={$adminSidebarOpen ? $t('admin.header.collapse_sidebar') : $t('admin.header.expand_sidebar')}
 				aria-expanded={$adminSidebarOpen}
 				aria-controls="admin-sidebar"
 			>
@@ -151,18 +152,18 @@
 				target="_blank"
 				rel="noopener"
 				class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-				title="View your public profile"
+				title={$t('admin.header.view_site_title')}
 			>
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 				</svg>
-				<span class="hidden sm:inline">View Site</span>
+				<span class="hidden sm:inline">{$t('admin.header.view_site')}</span>
 			</a>
 
 			{#if !hideDemoToggle}
 				<div class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 {showDemoAnimation ? 'ring-2 ring-primary-500 animate-pulse' : ''}">
 					<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-						Demo
+						{$t('admin.header.demo')}
 					</span>
 					<button
 						onclick={toggleDemoMode}
@@ -171,7 +172,7 @@
 							{demoMode ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
 						role="switch"
 						aria-checked={demoMode}
-						aria-label="Toggle demo mode"
+						aria-label={$t('admin.header.toggle_demo_mode')}
 					>
 						<span
 							class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
@@ -180,7 +181,7 @@
 					</button>
 					{#if demoMode}
 						<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
-							ON
+							{$t('admin.header.demo_on')}
 						</span>
 					{/if}
 					{#if showDemoAnimation}
@@ -202,12 +203,12 @@
 					<button
 						onclick={logout}
 						class="btn btn-ghost btn-sm"
-						aria-label="Sign out"
+						aria-label={$t('admin.header.sign_out')}
 					>
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
 						</svg>
-						<span class="hidden sm:inline ml-1">Logout</span>
+						<span class="hidden sm:inline ml-1">{$t('admin.header.logout')}</span>
 					</button>
 				</div>
 			{/if}

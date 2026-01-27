@@ -5,6 +5,7 @@
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
 	import { pb, type CustomContent, getFileUrl } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -540,20 +541,13 @@
 </script>
 
 <svelte:head>
-	<title>Custom Content | Facet Admin</title>
+	<title>{$t('admin.content.custom.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="custom-content">
-		<p><strong>Custom Content</strong> lets you add flexible sections to your facets.</p>
-		<p>
-			Create custom sections with your own headers and markdown content. Add them to any facet via
-			the View Editor.
-		</p>
-		<p>
-			<strong>Tip:</strong> Use custom content for things like "About Me" sections, project showcases,
-			or any content that doesn't fit the standard categories.
-		</p>
+		{@html $t('admin.content.custom.help_text')}
+		<p>{$t('admin.content.custom.help_tip_1')}</p>
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -579,7 +573,7 @@
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Custom Content</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.custom.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if items.length > 1 && !showForm}
 				<button
@@ -591,11 +585,11 @@
 			{/if}
 			{#if items.length > 0 && !reorderMode}
 				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			{#if !reorderMode}
-				<button class="btn btn-primary" onclick={openNewForm}> + New Content </button>
+				<button class="btn btn-primary" onclick={openNewForm}> {$t('admin.content.common.new_button', { values: { type: $t('admin.content.custom.title') } })} </button>
 			{/if}
 		</div>
 	</div>
@@ -606,7 +600,7 @@
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading custom content...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.custom.title').toLowerCase() } })}</div>
 		</div>
 	{:else if reorderMode}
 		<!-- Reorder Mode -->

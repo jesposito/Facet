@@ -1,13 +1,14 @@
 <script lang="ts">
 	/**
 	 * ViewOverrideEditor - Modal for customizing item field overrides per view
-	 * 
+	 *
 	 * Allows users to override specific fields (title, description, bullets, etc.)
 	 * for items within a particular view, without modifying the original data.
 	 */
 	import { OVERRIDABLE_FIELDS } from '$lib/pocketbase';
 	import { icon } from '$lib/icons';
 	import type { OverrideEditorState } from '$lib/view-editor/types';
+	import { t } from 'svelte-i18n';
 
 	// Props
 	let {
@@ -98,7 +99,7 @@
 		<!-- Header -->
 		<div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
 			<div>
-				<h2 class="text-lg font-bold text-gray-900 dark:text-white">Customize for this View</h2>
+				<h2 class="text-lg font-bold text-gray-900 dark:text-white">{$t('admin.view_editor.override_editor.title')}</h2>
 				<p class="text-sm text-gray-500">{editingOverride.itemLabel}</p>
 			</div>
 			<button type="button" class="btn btn-ghost" onclick={onClose}>
@@ -109,7 +110,7 @@
 		<!-- Content -->
 		<div class="p-4 space-y-6 overflow-y-auto flex-1">
 			<p class="text-sm text-gray-600 dark:text-gray-400">
-				Override fields below to customize how this item appears in this view. Leave fields empty to use the original value.
+				{$t('admin.view_editor.override_editor.description')}
 			</p>
 
 			{#each overridableFields as field}
@@ -126,7 +127,7 @@
 								class="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 								onclick={() => clearOverride(field)}
 							>
-								Reset to original
+								{$t('admin.view_editor.override_editor.reset_to_original')}
 							</button>
 						{/if}
 					</div>
@@ -134,10 +135,10 @@
 					<!-- Original value (collapsed) -->
 					<details class="text-sm">
 						<summary class="text-gray-500 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300">
-							View original value
+							{$t('admin.view_editor.override_editor.view_original')}
 						</summary>
 						<div class="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded text-gray-600 dark:text-gray-400 whitespace-pre-wrap text-xs">
-							{formatFieldValue(originalValue) || '(empty)'}
+							{formatFieldValue(originalValue) || $t('admin.view_editor.override_editor.empty')}
 						</div>
 					</details>
 
@@ -146,16 +147,16 @@
 						<textarea
 							id="override_{field}"
 							class="input min-h-[100px] font-mono text-sm"
-							placeholder="Enter one item per line..."
+							placeholder={$t('admin.view_editor.override_editor.array_placeholder')}
 							value={fieldHasOverride ? formatFieldValue(localOverrides[field]) : ''}
 							oninput={(e) => handleInput(field, e)}
 						></textarea>
-						<p class="text-xs text-gray-500">Enter one bullet point per line</p>
+						<p class="text-xs text-gray-500">{$t('admin.view_editor.override_editor.array_help')}</p>
 					{:else if field === 'description' || field === 'summary'}
 						<textarea
 							id="override_{field}"
 							class="input min-h-[100px]"
-							placeholder="Enter override value or leave empty for original..."
+							placeholder={$t('admin.view_editor.override_editor.text_placeholder')}
 							value={fieldHasOverride ? String(localOverrides[field]) : ''}
 							oninput={(e) => handleInput(field, e)}
 						></textarea>
@@ -164,7 +165,7 @@
 							type="text"
 							id="override_{field}"
 							class="input"
-							placeholder="Enter override value or leave empty for original..."
+							placeholder={$t('admin.view_editor.override_editor.text_placeholder')}
 							value={fieldHasOverride ? String(localOverrides[field]) : ''}
 							oninput={(e) => handleInput(field, e)}
 						/>
@@ -174,7 +175,7 @@
 
 			{#if overridableFields.length === 0}
 				<p class="text-gray-500 text-center py-8">
-					This section type does not support field overrides.
+					{$t('admin.view_editor.override_editor.no_overrides')}
 				</p>
 			{/if}
 		</div>
@@ -182,10 +183,10 @@
 		<!-- Footer -->
 		<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
 			<button type="button" class="btn btn-ghost" onclick={onClose}>
-				Cancel
+				{$t('admin.view_editor.override_editor.cancel')}
 			</button>
 			<button type="button" class="btn btn-primary" onclick={handleSave}>
-				Save Overrides
+				{$t('admin.view_editor.override_editor.save')}
 			</button>
 		</div>
 	</div>

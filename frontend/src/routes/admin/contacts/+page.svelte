@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -347,23 +348,23 @@
 </script>
 
 <svelte:head>
-	<title>Contact Methods | Facet Admin</title>
+	<title>{$t('admin.content.contacts.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="contacts">
-		<p><strong>Contact Methods</strong> let you share your email, phone, and social links with anti-scraping protection.</p>
-		<p>Each contact can appear on specific facets only - show your personal email to friends but your work email to recruiters. Choose protection levels to prevent bots from harvesting your info.</p>
-		<p><strong>Tip:</strong> Use "Click to Reveal" protection for sensitive contact info like phone numbers.</p>
+		{@html $t('admin.content.contacts.help_text')}
+		<p>{$t('admin.content.contacts.help_tip_1')}</p>
+		{@html $t('admin.content.contacts.help_tip_2')}
 	</PageHelp>
 
-	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Contact Methods</h1>
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('admin.content.contacts.title')}</h1>
 
 	<div class="flex items-center justify-between mb-6">
 		<p class="text-sm text-gray-600 dark:text-gray-400">
 			Add contact methods with per-view visibility and anti-scraping protection.
 		</p>
-		<button class="btn btn-primary" onclick={openNewForm}>+ New Contact Method</button>
+		<button class="btn btn-primary" onclick={openNewForm}>{$t('admin.content.common.new_button', { values: { type: 'Contact' } })}</button>
 	</div>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -381,7 +382,7 @@
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-			<p class="mt-4 text-gray-600 dark:text-gray-400">Loading contact methods...</p>
+			<p class="mt-4 text-gray-600 dark:text-gray-400">{$t('admin.content.common.loading', { values: { type: $t('admin.content.contacts.title').toLowerCase() } })}</p>
 		</div>
 	{:else if showForm}
 		<!-- Form View -->

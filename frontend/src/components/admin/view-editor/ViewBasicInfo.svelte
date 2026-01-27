@@ -1,9 +1,10 @@
 <script lang="ts">
 	/**
 	 * ViewBasicInfo - Basic information form section
-	 * 
+	 *
 	 * Handles name, slug, description, visibility, and password fields.
 	 */
+	import { t } from 'svelte-i18n';
 
 	// Props
 	let {
@@ -45,24 +46,24 @@
 	}
 </script>
 
-	<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
+	<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.basic_info.title')}</h2>
 
 	<div>
-		<label for="name" class="label">Name *</label>
+		<label for="name" class="label">{$t('admin.view_editor.basic_info.name_label')} *</label>
 		<input
 			type="text"
 			id="name"
 			bind:value={name}
 			oninput={handleNameChange}
 			class="input"
-			placeholder="Recruiter View"
+			placeholder={$t('admin.view_editor.basic_info.name_placeholder')}
 			required
 		/>
-		<p class="text-xs text-gray-500 mt-1">Internal name for this view</p>
+		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.name_help')}</p>
 	</div>
 
 	<div>
-		<label for="slug" class="label">URL Slug *</label>
+		<label for="slug" class="label">{$t('admin.view_editor.basic_info.slug_label')} *</label>
 		<div class="flex items-center gap-2">
 			<span class="text-gray-500 text-sm">/</span>
 			<input
@@ -70,50 +71,50 @@
 				id="slug"
 				bind:value={slug}
 				class="input flex-1"
-				placeholder="recruiter"
+				placeholder={$t('admin.view_editor.basic_info.slug_placeholder')}
 				required
 			/>
 		</div>
-		<p class="text-xs text-gray-500 mt-1">Public URL will be: /{slug}</p>
+		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.slug_help', { values: { slug } })}</p>
 	</div>
 
 	<div>
-		<label for="description" class="label">Description</label>
+		<label for="description" class="label">{$t('admin.view_editor.basic_info.description_label')}</label>
 		<textarea
 			id="description"
 			bind:value={description}
 			class="input min-h-[80px]"
-			placeholder="Internal notes about this view..."
+			placeholder={$t('admin.view_editor.basic_info.description_placeholder')}
 		></textarea>
-		<p class="text-xs text-gray-500 mt-1">Private notes (not shown publicly)</p>
+		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.description_help')}</p>
 	</div>
 
 	<div>
-		<label for="visibility" class="label">Visibility *</label>
+		<label for="visibility" class="label">{$t('admin.view_editor.basic_info.visibility_label')} *</label>
 		<select id="visibility" bind:value={visibility} class="input">
-			<option value="public">Public - Anyone can access</option>
-			<option value="unlisted">Unlisted - Only with share token</option>
-			<option value="password">Password - Requires password</option>
-			<option value="private">Private - Admin only</option>
+			<option value="public">{$t('admin.view_editor.basic_info.visibility_public')}</option>
+			<option value="unlisted">{$t('admin.view_editor.basic_info.visibility_unlisted')}</option>
+			<option value="password">{$t('admin.view_editor.basic_info.visibility_password')}</option>
+			<option value="private">{$t('admin.view_editor.basic_info.visibility_private')}</option>
 		</select>
-		<p class="text-xs text-gray-500 mt-1">Controls who can access this view</p>
+		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.visibility_help')}</p>
 	</div>
 
 	{#if visibility === 'password'}
 		<div>
 			<label for="password" class="label">
-				{password ? 'Change Password' : 'Set Password *'}
+				{password ? $t('admin.view_editor.basic_info.password_change') : $t('admin.view_editor.basic_info.password_set')} *
 			</label>
 			<input
 				type="password"
 				id="password"
 				bind:value={password}
 				class="input"
-				placeholder={password ? 'Enter new password to change' : 'Enter password for this view'}
+				placeholder={password ? $t('admin.view_editor.basic_info.password_placeholder_change') : $t('admin.view_editor.basic_info.password_placeholder_set')}
 				autocomplete="new-password"
 			/>
 			<p class="text-xs text-gray-500 mt-1">
-				{password ? 'Leave blank to keep current password' : 'Visitors will need this password to access this view'}
+				{password ? $t('admin.view_editor.basic_info.password_help_keep') : $t('admin.view_editor.basic_info.password_help_visitors')}
 			</p>
 		</div>
 	{/if}

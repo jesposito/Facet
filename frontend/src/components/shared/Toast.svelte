@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { t } from 'svelte-i18n';
 	import { icon } from '$lib/icons';
 	import type { Toast } from '$lib/stores';
 
@@ -39,7 +40,7 @@
 	<button
 		class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1"
 		onclick={() => dispatch('dismiss')}
-		aria-label="Dismiss"
+		aria-label={$t('shared.aria.dismiss')}
 	>
 		{@html icon('x')}
 	</button>

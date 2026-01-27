@@ -35,6 +35,7 @@
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import { t } from 'svelte-i18n';
 
 	// Helper to check if a section key is for custom content
 	function isCustomSection(sectionKey: string): boolean {
@@ -252,7 +253,7 @@
 				<svg class="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
 				</svg>
-				<span class="text-sm">No profile data</span>
+				<span class="text-sm">{$t('admin.view_editor.preview.no_profile')}</span>
 			</div>
 		</div>
 	{/if}
@@ -353,8 +354,8 @@
 				<svg class="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
 				</svg>
-				<span class="text-sm">No sections enabled</span>
-				<span class="text-xs mt-1">Enable sections in the editor</span>
+				<span class="text-sm">{$t('admin.view_editor.preview.no_sections')}</span>
+				<span class="text-xs mt-1">{$t('admin.view_editor.preview.enable_hint')}</span>
 			</div>
 		{/if}
 	</div>

@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { t } from 'svelte-i18n';
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import { demoMode, initDemoMode, collection } from '$lib/stores/demo';
@@ -228,7 +229,7 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" role="status" aria-label="Loading admin dashboard">
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" role="status" aria-label={$t('admin.layout.loading')}>
 		<div class="animate-pulse text-center">
 			<div class="w-12 h-12 mx-auto mb-4 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
 				<svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -236,7 +237,7 @@
 					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 				</svg>
 			</div>
-			<p class="text-gray-600 dark:text-gray-400">Loading admin...</p>
+			<p class="text-gray-600 dark:text-gray-400">{$t('admin.layout.loading')}</p>
 		</div>
 	</div>
 {:else if isLoginPage}
@@ -253,7 +254,7 @@
 					type="button"
 					class="fixed inset-0 bg-black/50 z-20 lg:hidden"
 					onclick={() => adminSidebarOpen.set(false)}
-					aria-label="Close navigation menu"
+					aria-label={$t('admin.layout.close_navigation')}
 				></button>
 			{/if}
 
@@ -290,10 +291,10 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 				</svg>
 			</div>
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Authentication Required</h2>
-			<p class="text-gray-600 dark:text-gray-400 mb-6">You must be logged in to access the admin panel.</p>
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{$t('errors.unauthorized')}</h2>
+			<p class="text-gray-600 dark:text-gray-400 mb-6">{$t('errors.unauthorized_message')}</p>
 			<a href="/admin/login" class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-				Go to Login
+				{$t('errors.go_to_login')}
 			</a>
 		</div>
 	</div>

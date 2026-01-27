@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { dev, browser } from '$app/environment';
+	import { t } from 'svelte-i18n';
 
 	onMount(() => {
 		console.error('[ERROR PAGE] Displayed error:', {
@@ -105,11 +106,10 @@
 			</div>
 
 			<h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-				404: I Didn't Build That Facet
+				{$t('errors.page.404_title')}
 			</h1>
 			<p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
-				Turns out I didn't cut this part of the diamond.<br/>
-				Maybe it's on the roadmap... maybe I forgot.
+				{@html $t('errors.page.404_message')}
 			</p>
 
 		{:else if is500}
@@ -161,11 +161,10 @@
 			</div>
 
 			<h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-				500: I Should Have Added More Tests
+				{$t('errors.page.500_title')}
 			</h1>
 			<p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
-				Something I wrote is broken. Shocking, I know.<br/>
-				Check back in 5 minutes after I frantically Google this.
+				{@html $t('errors.page.500_message')}
 			</p>
 
 		{:else}
@@ -174,21 +173,21 @@
 				<div class="text-6xl mb-4">💎</div>
 			</div>
 			<h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-				{$page.status}: Something's Off
+				{$t('errors.page.generic_title', { values: { status: $page.status } })}
 			</h1>
 			<p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
-				{$page.error?.message || "This facet isn't quite right."}
+				{$page.error?.message || $t('errors.page.generic_fallback')}
 			</p>
 		{/if}
 
 		<!-- Debug info for development only -->
 		{#if dev}
 			<div class="text-left text-sm bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-8 max-w-md mx-auto">
-				<p class="text-gray-500 dark:text-gray-400 mb-2 font-mono">Debug info:</p>
+				<p class="text-gray-500 dark:text-gray-400 mb-2 font-mono">{$t('errors.page.debug_title')}</p>
 				<ul class="text-gray-600 dark:text-gray-400 space-y-1 font-mono text-xs">
-					<li><strong>URL:</strong> {$page.url.pathname}</li>
-					<li><strong>Status:</strong> {$page.status}</li>
-					<li><strong>Error:</strong> {$page.error?.message || 'None'}</li>
+					<li><strong>{$t('errors.page.debug_url')}</strong> {$page.url.pathname}</li>
+					<li><strong>{$t('errors.page.debug_status')}</strong> {$page.status}</li>
+					<li><strong>{$t('errors.page.debug_error')}</strong> {$page.error?.message || $t('errors.page.debug_none')}</li>
 				</ul>
 			</div>
 		{/if}
@@ -204,7 +203,7 @@
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
 				</svg>
-				{is404 ? 'Back to What Actually Works' : 'Go Home'}
+				{is404 ? $t('errors.page.404_back_button') : $t('errors.page.go_home_button')}
 			</button>
 
 			{#if is404}
@@ -216,7 +215,7 @@
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 					</svg>
-					Go Back
+					{$t('errors.page.404_go_back')}
 				</button>
 			{:else}
 				<button
@@ -227,14 +226,14 @@
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 					</svg>
-					{is500 ? 'Refresh and Pray' : 'Try Again'}
+					{is500 ? $t('errors.page.500_refresh_button') : $t('errors.page.try_again_button')}
 				</button>
 			{/if}
 		</div>
 
 		<!-- Subtle signature -->
 		<p class="mt-12 text-sm text-gray-400 dark:text-gray-500 italic">
-			— Error pages crafted with self-awareness
+			{$t('errors.page.signature')}
 		</p>
 	</div>
 </div>

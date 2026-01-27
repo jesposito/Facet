@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Profile } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { parseMarkdown } from '$lib/utils';
 
 	interface Props {
@@ -30,11 +31,11 @@
 			{#if avatarUrl}
 				<img
 					src={avatarUrl}
-					alt={profile?.name ? `${profile.name}'s profile photo` : 'Profile photo'}
+					alt={profile?.name ? $t('public.hero.profile_photo_alt', { values: { name: profile.name } }) : $t('public.hero.profile_photo_generic')}
 					class="w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white/20 shadow-xl object-cover"
 				/>
 			{:else if profile?.name}
-				<div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-600 flex items-center justify-center text-4xl font-bold border-4 border-white/20" role="img" aria-label={`${profile.name}'s profile initial`}>
+				<div class="w-32 h-32 sm:w-40 sm:h-40 rounded-full bg-primary-600 flex items-center justify-center text-4xl font-bold border-4 border-white/20" role="img" aria-label={$t('public.hero.profile_initial_alt', { values: { name: profile.name } })}>
 					{profile.name.charAt(0)}
 				</div>
 			{/if}
@@ -58,20 +59,20 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 						</svg>
-						<span class="sr-only">Location:</span>
+						<span class="sr-only">{$t('public.hero.location_label')}</span>
 						{profile.location}
 					</p>
 				{/if}
 
 				{#if contactLinks.length > 0}
-					<nav class="flex flex-wrap items-center justify-center sm:justify-start gap-3" aria-label="Contact links">
+					<nav class="flex flex-wrap items-center justify-center sm:justify-start gap-3" aria-label={$t('public.hero.contact_links_label')}>
 						{#each contactLinks as link}
 							<a
 								href={link.url}
 								target="_blank"
 								rel="noopener noreferrer"
 								class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-								aria-label={`${link.label || link.type} (opens in new tab)`}
+								aria-label={$t('public.hero.opens_new_tab', { values: { label: link.label || link.type } })}
 							>
 								{#if link.type === 'github'}
 									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">

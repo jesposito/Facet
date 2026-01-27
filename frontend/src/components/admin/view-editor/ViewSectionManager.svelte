@@ -5,16 +5,17 @@
 	import { flip } from 'svelte/animate';
 	import { icon } from '$lib/icons';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
-	import { 
-		OVERRIDABLE_FIELDS, 
-		VALID_LAYOUTS, 
-		VALID_WIDTHS, 
-		getValidWidthsForLayout, 
+	import {
+		OVERRIDABLE_FIELDS,
+		VALID_LAYOUTS,
+		VALID_WIDTHS,
+		getValidWidthsForLayout,
 		isWidthValidForLayout,
 		type ViewSection,
 		type SectionWidth,
 		type ItemConfig
 	} from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -74,18 +75,18 @@
 
 	const bubble = createBubbler();
 
-	// Default section definitions - used to initialize and provide labels
-	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
-		experience: { label: 'Experience', collection: 'experience' },
-		projects: { label: 'Projects', collection: 'projects' },
-		education: { label: 'Education', collection: 'education' },
-		certifications: { label: 'Certifications', collection: 'certifications' },
-		awards: { label: 'Awards', collection: 'awards' },
-		skills: { label: 'Skills', collection: 'skills' },
-		posts: { label: 'Posts', collection: 'posts' },
-		talks: { label: 'Talks', collection: 'talks' },
-		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
-		testimonials: { label: 'Testimonials', collection: 'testimonials' }
+	// Default section definitions - used to initialize and provide label keys
+	const SECTION_DEFS: Record<string, { labelKey: string; collection: string }> = {
+		experience: { labelKey: 'admin.view_editor.sections.experience', collection: 'experience' },
+		projects: { labelKey: 'admin.view_editor.sections.projects', collection: 'projects' },
+		education: { labelKey: 'admin.view_editor.sections.education', collection: 'education' },
+		certifications: { labelKey: 'admin.view_editor.sections.certifications', collection: 'certifications' },
+		awards: { labelKey: 'admin.view_editor.sections.awards', collection: 'awards' },
+		skills: { labelKey: 'admin.view_editor.sections.skills', collection: 'skills' },
+		posts: { labelKey: 'admin.view_editor.sections.posts', collection: 'posts' },
+		talks: { labelKey: 'admin.view_editor.sections.talks', collection: 'talks' },
+		contacts: { labelKey: 'admin.view_editor.sections.contacts', collection: 'contact_methods' },
+		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' }
 	};
 
 	// Helper to check if a section key is for custom content
@@ -93,14 +94,19 @@
 		return sectionKey.startsWith('custom:');
 	}
 
-	// Get display label for a section (handles custom content)
-	function getSectionLabel(sectionKey: string): string {
+	// Get display label key for a section (handles custom content)
+	function getSectionLabelKey(sectionKey: string): string | null {
 		if (isCustomSection(sectionKey)) {
-			const customId = sectionKey.replace('custom:', '');
-			const title = customContentTitleMap.get(customId);
-			return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
+			return null; // Custom sections use title directly
 		}
-		return SECTION_DEFS[sectionKey]?.label || sectionKey;
+		return SECTION_DEFS[sectionKey]?.labelKey || null;
+	}
+
+	// Get custom section title
+	function getCustomSectionTitle(sectionKey: string): string {
+		const customId = sectionKey.replace('custom:', '');
+		const title = customContentTitleMap.get(customId);
+		return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
 	}
 
 	const flipDurationMs = 200;
@@ -308,8 +314,8 @@
 <div class="card p-4 sm:p-6 space-y-4">
 	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
-			<p class="text-sm text-gray-500">Choose which sections to show and drag to reorder.</p>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.sections.title')}</h2>
+			<p class="text-sm text-gray-500">{$t('admin.view_editor.sections.description')}</p>
 		</div>
 	</div>
 
@@ -324,7 +330,8 @@
 			{@const sectionKey = sectionItem.key}
 			{@const sectionDef = SECTION_DEFS[sectionKey]}
 			{@const isCustom = isCustomSection(sectionKey)}
-			{@const sectionLabel = getSectionLabel(sectionKey)}
+			{@const sectionLabelKey = getSectionLabelKey(sectionKey)}
+			{@const sectionLabel = sectionLabelKey ? $t(sectionLabelKey) : getCustomSectionTitle(sectionKey)}
 			{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, itemConfig: {} }}
 			{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
 			{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
@@ -340,7 +347,7 @@
 				<div class="flex flex-wrap items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
 					<div class="flex items-center gap-3">
 						<!-- Drag Handle -->
-						<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+						<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title={$t('admin.view_editor.sections.drag_to_reorder')}>
 							<svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 							</svg>
@@ -350,7 +357,7 @@
 							class="w-10 h-6 rounded-full transition-colors relative
 								{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
 							onclick={() => toggleSection(sectionKey)}
-							aria-label="Toggle {sectionLabel} section"
+							aria-label={$t('admin.view_editor.sections.toggle_section', { values: { section: sectionLabel } })}
 						>
 							<span
 								class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
@@ -361,11 +368,11 @@
 						{#if !isCustom}
 							<span class="text-xs text-gray-500">
 								{#if selectedPublicCount > 0}
-									{selectedPublicCount} selected
+									{selectedPublicCount} {$t('admin.view_editor.sections.selected')}
 								{:else if sectionConfig.enabled}
-									all items ({publicItems.length})
+									{$t('admin.view_editor.sections.all_items', { values: { count: publicItems.length } })}
 								{:else}
-									{publicItems.length} available
+									{publicItems.length} {$t('admin.view_editor.sections.available')}
 								{/if}
 							</span>
 						{/if}
@@ -428,7 +435,7 @@
 								type="button"
 								class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
 								onclick={() => toggleSectionExpand(sectionKey)}
-								aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionLabel} section"
+								aria-label={sectionConfig.expanded ? $t('admin.view_editor.sections.collapse_section', { values: { section: sectionLabel } }) : $t('admin.view_editor.sections.expand_section', { values: { section: sectionLabel } })}
 							>
 								<svg
 									class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
@@ -453,7 +460,7 @@
 								{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
 								{#if validWidths.length > 1}
 									<div>
-										<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Width</label>
+										<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">{$t('admin.view_editor.sections.width_label')}</label>
 										<div class="flex items-center gap-2">
 											<div class="flex gap-0.5">
 												{#if sectionConfig.width === 'half'}
@@ -484,7 +491,7 @@
 								{#if VALID_LAYOUTS[layoutKey]}
 									{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
 									<div>
-										<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Layout</label>
+										<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">{$t('admin.view_editor.sections.layout_label')}</label>
 										<select
 											id="layout-mobile-{sectionKey}"
 											class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
@@ -503,8 +510,8 @@
 						<div class="flex items-center justify-between mb-2">
 							<p class="text-xs text-gray-500">
 								{selectedPublicCount === 0
-									? 'All public items will be shown. Select and drag items to customize order.'
-									: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
+									? $t('admin.view_editor.sections.select_all_hint')
+									: $t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
 							</p>
 							<div class="flex gap-2">
 								<button
@@ -512,14 +519,14 @@
 									class="text-xs text-primary-600 hover:underline"
 									onclick={() => selectAllItems(sectionKey)}
 								>
-									Select All
+									{$t('admin.view_editor.sections.select_all')}
 								</button>
 								<button
 									type="button"
 									class="text-xs text-gray-500 hover:underline"
 									onclick={() => clearAllItems(sectionKey)}
 								>
-									Clear
+									{$t('admin.view_editor.sections.clear')}
 								</button>
 							</div>
 						</div>
@@ -545,9 +552,9 @@
 							class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
 							animate:flip={{ duration: flipDurationMs }}
 						>
-							<div 
-								class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" 
-								title="Drag to reorder"
+							<div
+								class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+								title={$t('admin.view_editor.sections.drag_to_reorder')}
 								role="presentation"
 							>
 								<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -584,13 +591,13 @@
 									{#if itemHasOverrides}
 										<span class="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded flex items-center gap-1">
 											{@html icon('zap')}
-											{overrideCount} override{overrideCount > 1 ? 's' : ''}
+											{overrideCount} {overrideCount > 1 ? $t('admin.view_editor.sections.overrides') : $t('admin.view_editor.sections.override')}
 										</span>
 									{/if}
 								{#if item.visibility === 'private'}
 									{@const enabledForThisView = isEnabledForView(item.data.view_visibility, viewId)}
-										<span class="px-1.5 py-0.5 text-xs rounded {enabledForThisView ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}" title={enabledForThisView ? 'Private globally, but visible in this view' : 'Private - will be auto-enabled when saved'}>
-											{enabledForThisView ? 'view-only' : 'private'}
+										<span class="px-1.5 py-0.5 text-xs rounded {enabledForThisView ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
+											{enabledForThisView ? $t('admin.view_editor.sections.view_only') : $t('admin.view_editor.sections.private')}
 										</span>
 									{:else if item.visibility !== 'public'}
 										<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
@@ -599,7 +606,7 @@
 									{/if}
 									{#if item.is_draft}
 										<span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
-											draft
+											{$t('admin.view_editor.sections.draft')}
 										</span>
 									{/if}
 									{#if isSelected && canOverride}
@@ -608,7 +615,7 @@
 											class="text-xs text-primary-600 hover:text-primary-700 hover:underline whitespace-nowrap"
 											onclick={stopPropagation(() => onOpenOverrideEditor(sectionKey, item.id))}
 										>
-											{itemHasOverrides ? 'Edit' : 'Customize'}
+											{itemHasOverrides ? $t('admin.view_editor.sections.edit') : $t('admin.view_editor.sections.customize')}
 										</button>
 									{/if}
 								</div>
@@ -619,16 +626,16 @@
 					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 						<div class="flex items-center justify-between mb-2">
 							<p class="text-xs text-gray-500">
-								{sectionConfig.categoryOrder?.length 
-									? `Custom category order (${sectionConfig.categoryOrder.length} categories)`
-									: 'Categories displayed in alphabetical order'}
+								{sectionConfig.categoryOrder?.length
+									? $t('admin.view_editor.sections.category_order_custom', { values: { count: sectionConfig.categoryOrder.length } })
+									: $t('admin.view_editor.sections.category_order_alphabetical')}
 							</p>
 							<button
 								type="button"
 								class="text-xs text-primary-600 hover:underline"
 								onclick={initCategoryOrder}
 							>
-								{sectionConfig.categoryOrder?.length ? 'Edit Order' : 'Customize Order'}
+								{sectionConfig.categoryOrder?.length ? $t('admin.view_editor.sections.edit_order') : $t('admin.view_editor.sections.customize_order')}
 							</button>
 						</div>
 					</div>
@@ -645,20 +652,20 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
 		<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 m-4">
 			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Reorder Skill Categories</h3>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.category_reorder.title')}</h3>
 				<button
 					type="button"
 					class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-1"
 					onclick={closeCategoryReorder}
-					aria-label="Close"
+					aria-label={$t('shared.actions.close')}
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</button>
 			</div>
-			<p class="text-sm text-gray-500 mb-4">Drag categories to set the display order on your public view.</p>
-			
+			<p class="text-sm text-gray-500 mb-4">{$t('admin.view_editor.category_reorder.description')}</p>
+
 			{#if dndLoaded && categoryItems.length > 0}
 				<div
 					class="space-y-2 max-h-64 overflow-y-auto"
@@ -681,7 +688,7 @@
 					{/each}
 				</div>
 			{:else}
-				<p class="text-sm text-gray-500">No categories found.</p>
+				<p class="text-sm text-gray-500">{$t('admin.view_editor.category_reorder.no_categories')}</p>
 			{/if}
 
 			<div class="flex justify-end gap-2 mt-4">
@@ -694,14 +701,14 @@
 						closeCategoryReorder();
 					}}
 				>
-					Reset to Default
+					{$t('admin.view_editor.category_reorder.reset_to_default')}
 				</button>
 				<button
 					type="button"
 					class="btn btn-primary"
 					onclick={closeCategoryReorder}
 				>
-					Done
+					{$t('admin.view_editor.category_reorder.done')}
 				</button>
 			</div>
 		</div>

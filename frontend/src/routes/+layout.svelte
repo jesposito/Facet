@@ -9,6 +9,8 @@
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
+	import { initI18n, waitLocale } from '$lib/i18n';
+	import { isLoading as i18nLoading } from 'svelte-i18n';
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
@@ -199,7 +201,9 @@ function applyCustomCSS(css: string) {
 onMount(() => {
 	mounted = true;
 	theme.initialize();
+	initI18n();
 	(async () => {
+		await waitLocale();
 		await loadSiteSettings();
 		await loadAccentColor();
 		if (lastCustomCSS) {

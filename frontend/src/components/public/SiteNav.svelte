@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { t } from 'svelte-i18n';
 
 	interface NavItem {
 		viewId: string;
@@ -72,7 +73,7 @@
 								? 'bg-primary-700 text-white'
 								: 'text-primary-100 hover:bg-primary-500 hover:text-white'}"
 					>
-						Home
+						{$t('public.nav.home')}
 					</a>
 
 					<!-- Nav items -->
@@ -112,7 +113,7 @@
 					aria-expanded={mobileMenuOpen}
 					aria-controls="mobile-menu"
 				>
-					<span class="sr-only">Open main menu</span>
+					<span class="sr-only">{$t('public.nav.open_main_menu')}</span>
 					{#if mobileMenuOpen}
 						<!-- Close icon -->
 						<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -153,7 +154,7 @@
 								? 'bg-primary-700 text-white'
 								: 'text-primary-100 hover:bg-primary-500 hover:text-white'}"
 					>
-						Home
+						{$t('public.nav.home')}
 					</a>
 
 					<!-- Nav items -->

@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Experience } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -434,14 +435,14 @@
 </script>
 
 <svelte:head>
-	<title>Experience | Facet Admin</title>
+	<title>{$t('admin.content.experience.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="experience">
-		<p><strong>Experience</strong> is your work history - jobs, roles, and achievements.</p>
-		<p>Use bullet points to highlight key accomplishments. The AI Assistant can help you rewrite achievements to be more impactful.</p>
-		<p><strong>Tip:</strong> Focus on outcomes and metrics. "Reduced build time by 40%" beats "worked on build system."</p>
+		<p>{@html $t('admin.content.experience.help_text')}</p>
+		<p>{$t('admin.content.experience.help_tip_1')}</p>
+		<p>{@html $t('admin.content.experience.help_tip_2')}</p>
 	</PageHelp>
 
 	{#if selectMode && selectedIds.size > 0}
@@ -457,18 +458,18 @@
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Experience</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.experience.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if experiences.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Experience
+				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.experience.title') } })}
 			</button>
 		</div>
 	</div>
@@ -487,7 +488,7 @@
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading experiences...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.experience.title').toLowerCase() } })}</div>
 		</div>
 	{:else if showForm}
 		<!-- Experience Form -->
@@ -495,9 +496,9 @@
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-						{editingExp ? 'Edit Experience' : 'New Experience'}
+						{editingExp ? $t('admin.content.common.form_title_edit', { values: { type: $t('admin.content.experience.title') } }) : $t('admin.content.common.form_title_new', { values: { type: $t('admin.content.experience.title') } })}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('admin.content.common.close_form')}>
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
@@ -506,43 +507,43 @@
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="company" class="label">Company *</label>
+						<label for="company" class="label">{$t('admin.content.experience.company_label')} {$t('admin.content.common.required_field')}</label>
 						<input
 							type="text"
 							id="company"
 							bind:value={company}
 							class="input"
-							placeholder="Acme Inc."
+							placeholder={$t('admin.content.experience.company_placeholder')}
 							required
 						/>
 					</div>
 
 					<div>
-						<label for="title" class="label">Job Title *</label>
+						<label for="title" class="label">{$t('admin.content.experience.job_title_label')} {$t('admin.content.common.required_field')}</label>
 						<input
 							type="text"
 							id="title"
 							bind:value={title}
 							class="input"
-							placeholder="Senior Software Engineer"
+							placeholder={$t('admin.content.experience.job_title_placeholder')}
 							required
 						/>
 					</div>
 				</div>
 
 				<div>
-					<label for="location" class="label">Location</label>
+					<label for="location" class="label">{$t('admin.content.experience.location_label')}</label>
 					<input
 						type="text"
 						id="location"
 						bind:value={location}
 						class="input"
-						placeholder="San Francisco, CA"
+						placeholder={$t('admin.content.experience.location_placeholder')}
 					/>
 				</div>
 
 				<div>
-					<label for="company_logo" class="label">Company Logo (optional)</label>
+					<label for="company_logo" class="label">{$t('admin.content.experience.company_logo_label')}</label>
 					<input
 						type="file"
 						id="company_logo"
@@ -550,51 +551,51 @@
 						bind:files={companyLogoFile}
 						class="input"
 					/>
-					<p class="text-xs text-gray-500 mt-1">Upload a company logo to display with this experience</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.company_logo_help')}</p>
 					{#if editingExp?.company_logo}
 						<div class="mt-2 flex items-center gap-2">
 							<img
 								src={pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' })}
-								alt="Current company logo"
+								alt={$t('admin.content.experience.company_logo_current')}
 								class="w-8 h-8 object-contain rounded border border-gray-200 dark:border-gray-600"
 							/>
-							<span class="text-sm text-gray-500">Current logo</span>
+							<span class="text-sm text-gray-500">{$t('admin.content.experience.company_logo_current')}</span>
 						</div>
 					{/if}
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="start_date" class="label">Start Date</label>
+						<label for="start_date" class="label">{$t('admin.content.experience.start_date_label')}</label>
 						<input
 							type="text"
 							id="start_date"
 							bind:value={startDate}
-							placeholder="2020 or 2020-03"
+							placeholder={$t('admin.content.experience.start_date_placeholder')}
 							class="input"
 						/>
 					</div>
 
 					<div>
-						<label for="end_date" class="label">End Date</label>
+						<label for="end_date" class="label">{$t('admin.content.experience.end_date_label')}</label>
 						<input
 							type="text"
 							id="end_date"
 							bind:value={endDate}
-							placeholder="2024 or 2024-06"
+							placeholder={$t('admin.content.experience.end_date_placeholder')}
 							class="input"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Leave blank for current position</p>
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.end_date_help')}</p>
 					</div>
 				</div>
 			</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Details</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.common.details_section')}</h2>
 
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label for="description" class="label mb-0">Description</label>
+						<label for="description" class="label mb-0">{$t('admin.content.common.description_label')}</label>
 						<AIContentHelper
 							fieldType="description"
 							content={description}
@@ -606,14 +607,14 @@
 						id="description"
 						bind:value={description}
 						class="input min-h-[100px]"
-						placeholder="Brief overview of your role and responsibilities..."
+						placeholder={$t('admin.content.experience.description_placeholder')}
 					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Markdown supported</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.markdown_supported')}</p>
 				</div>
 
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label for="bullets" class="label mb-0">Key Achievements</label>
+						<label for="bullets" class="label mb-0">{$t('admin.content.experience.key_achievements_label')}</label>
 						<AIContentHelper
 							fieldType="bullets"
 							content={bulletsText}
@@ -625,39 +626,39 @@
 						id="bullets"
 						bind:value={bulletsText}
 						class="input min-h-[120px]"
-						placeholder="Led migration to microservices architecture&#10;Reduced API response times by 40%&#10;Mentored junior developers"
+						placeholder={$t('admin.content.experience.key_achievements_placeholder')}
 					></textarea>
-					<p class="text-xs text-gray-500 mt-1">One achievement per line. Use AI Assistant for rewriting or feedback!</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.key_achievements_help')}</p>
 				</div>
 
 				<div>
-					<label for="skills" class="label">Technologies & Skills</label>
+					<label for="skills" class="label">{$t('admin.content.experience.skills_label')}</label>
 					<input
 						type="text"
 						id="skills"
 						bind:value={skillsText}
 						class="input"
-						placeholder="Go, Docker, Kubernetes, PostgreSQL"
+						placeholder={$t('admin.content.experience.skills_placeholder')}
 					/>
-					<p class="text-xs text-gray-500 mt-1">Comma-separated list</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.skills_help')}</p>
 				</div>
 			</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.common.settings_section')}</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="visibility" class="label">Visibility</label>
+						<label for="visibility" class="label">{$t('admin.content.common.visibility_label')}</label>
 						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">Public</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="private">Private</option>
+							<option value="public">{$t('admin.content.common.visibility_public')}</option>
+							<option value="unlisted">{$t('admin.content.common.visibility_unlisted')}</option>
+							<option value="private">{$t('admin.content.common.visibility_private')}</option>
 						</select>
 					</div>
 
 					<div>
-						<label for="sort_order" class="label">Sort Order</label>
+						<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
 						<input
 							type="number"
 							id="sort_order"
@@ -665,7 +666,7 @@
 							class="input"
 							min="0"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.sort_order_help')}</p>
 					</div>
 				</div>
 
@@ -677,30 +678,30 @@
 						class="w-4 h-4 text-primary-600 rounded border-gray-300"
 					/>
 					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
-						Save as draft (won't be visible publicly)
+						{$t('admin.content.common.is_draft_label')}
 					</label>
 				</div>
 
 				<div>
-					<label class="label">Admin Tags</label>
+					<label class="label">{$t('admin.content.common.admin_tags_label')}</label>
 					<AdminTagSelector bind:selectedIds={adminTagIds} />
-					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.admin_tags_help')}</p>
 				</div>
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>{$t('admin.content.common.cancel')}</button>
 				{#if editingExp}
-					<button 
-						type="button" 
-						class="btn btn-outline" 
+					<button
+						type="button"
+						class="btn btn-outline"
 						onclick={() => editingExp && duplicateExperience(editingExp)}
 						disabled={saving}
 					>
 						<svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
 						</svg>
-						Duplicate
+						{$t('admin.content.common.duplicate_button')}
 					</button>
 				{/if}
 				<button type="submit" class="btn btn-primary" disabled={saving}>
@@ -710,7 +711,7 @@
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
 					{/if}
-					{editingExp ? 'Update Experience' : 'Create Experience'}
+					{editingExp ? $t('admin.content.common.update_button', { values: { type: $t('admin.content.experience.title') } }) : $t('admin.content.common.create_button', { values: { type: $t('admin.content.experience.title') } })}
 				</button>
 			</div>
 		</form>
@@ -719,12 +720,12 @@
 			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No experience added yet</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">{$t('admin.content.common.empty_state_no_items', { values: { type: $t('admin.content.experience.title').toLowerCase() } })}</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
-				Add your work history, including positions, achievements, and skills used.
+				{$t('admin.content.experience.empty_state_message')}
 			</p>
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ Add Your First Experience
+				{$t('admin.content.common.add_first_button', { values: { type: $t('admin.content.experience.title') } })}
 			</button>
 		</div>
 	{:else}
@@ -733,17 +734,17 @@
 				<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 				</svg>
-				<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No matching experiences</h3>
+				<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">{$t('admin.content.common.empty_state_no_matches', { values: { type: $t('admin.content.experience.title').toLowerCase() } })}</h3>
 				<p class="text-gray-500 dark:text-gray-400 mb-4">
-					Try adjusting your filters or add new experience entries.
+					{$t('admin.content.common.empty_state_adjust_filters')}
 				</p>
 				{#if filterStore.hasActiveFilters()}
 					<button class="btn btn-secondary mr-2" onclick={() => filterStore.clearAllFilters()}>
-						Clear filters
+						{$t('admin.content.common.clear_filters')}
 					</button>
 				{/if}
 				<button class="btn btn-primary" onclick={openNewForm}>
-					+ Add Experience
+					{$t('admin.content.common.add_button', { values: { type: $t('admin.content.experience.title') } })}
 				</button>
 			</div>
 		{:else}
@@ -764,11 +765,11 @@
 								<h3 class="font-medium text-gray-900 dark:text-white">
 									{exp.title}
 								</h3>
-								<span class="text-gray-500 dark:text-gray-400">at</span>
+								<span class="text-gray-500 dark:text-gray-400">{$t('admin.content.experience.at')}</span>
 								<span class="font-medium text-gray-800 dark:text-gray-200">{exp.company}</span>
 								{#if exp.is_draft}
 									<span class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
-										Draft
+										{$t('admin.content.common.badge_draft')}
 									</span>
 								{/if}
 								{#if exp.visibility !== 'public'}
@@ -778,7 +779,7 @@
 								{/if}
 								{#if !exp.end_date}
 									<span class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
-										Current
+										{$t('admin.content.common.badge_current')}
 									</span>
 								{/if}
 								{#if (exp as any).expand?.admin_tags && (exp as any).expand.admin_tags.length > 0}
@@ -807,7 +808,7 @@
 									{/if}
 								</div>
 							{:else}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.content.common.not_in_view')}</p>
 							{/if}
 
 							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -839,7 +840,7 @@
 									{/each}
 									{#if exp.skills.length > 5}
 										<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-											+{exp.skills.length - 5} more
+											{$t('admin.content.common.more_items', { values: { count: exp.skills.length - 5 } })}
 										</span>
 									{/if}
 								</div>

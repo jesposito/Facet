@@ -6,6 +6,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { goto } from '$app/navigation';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import { t } from 'svelte-i18n';
 
 	type MediaItem = {
 		collection: string;
@@ -82,11 +83,11 @@
 	};
 
 	const mimeLabel = (mime: string) => {
-		if (!mime) return 'Link';
-		if (mime.startsWith('image/')) return 'Image';
-		if (mime.startsWith('video/')) return 'Video';
-		if (mime.startsWith('audio/')) return 'Audio';
-		return 'File';
+		if (!mime) return $t('admin.media.type_link');
+		if (mime.startsWith('image/')) return $t('admin.media.type_image');
+		if (mime.startsWith('video/')) return $t('admin.media.type_video');
+		if (mime.startsWith('audio/')) return $t('admin.media.type_audio');
+		return $t('admin.media.type_file');
 	};
 
 	async function loadMedia() {
@@ -110,7 +111,7 @@
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
-					toasts.add('error', 'Session expired. Please sign in again.');
+					toasts.add('error', $t('admin.media.toast_session_expired'));
 					goto('/admin/login');
 					return;
 				}
@@ -159,8 +160,8 @@
 			selectedOrphans = new Set();
 		} catch (err) {
 			console.error(err);
-			error = 'Failed to load media';
-			toasts.add('error', 'Failed to load media');
+			error = $t('admin.media.toast_load_failed');
+			toasts.add('error', $t('admin.media.toast_load_failed'));
 		} finally {
 			loading = false;
 		}
@@ -169,14 +170,14 @@
 	function copyUrl(url: string) {
 		const absolute = typeof window !== 'undefined' ? new URL(url, window.location.origin).toString() : url;
 		navigator.clipboard.writeText(absolute);
-		toasts.add('success', 'URL copied');
+		toasts.add('success', $t('admin.media.toast_url_copied'));
 	}
 
 	async function deleteFile(item: MediaItem) {
 		const confirmed = await confirm({
-			title: 'Delete Media',
-			message: `Delete "${item.filename}"? This cannot be undone.`,
-			confirmText: 'Delete',
+			title: $t('admin.media.confirm_delete_title'),
+			message: $t('admin.media.confirm_delete_message', { values: { filename: item.filename } }),
+			confirmText: $t('admin.media.confirm_delete_button'),
 			danger: true
 		});
 		if (!confirmed) return;
@@ -190,7 +191,7 @@
 					const body = await res.json().catch(() => ({}));
 					throw new Error(body.error || 'Failed to delete external media');
 				}
-				toasts.add('success', 'External media deleted');
+				toasts.add('success', $t('admin.media.toast_external_deleted'));
 				await loadMedia();
 				return;
 			}
@@ -213,18 +214,18 @@
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
-					toasts.add('error', 'Session expired. Please sign in again.');
+					toasts.add('error', $t('admin.media.toast_session_expired'));
 					goto('/admin/login');
 					return;
 				}
 				const body = await res.json().catch(() => ({}));
 				throw new Error(body.error || 'Failed to delete file');
 			}
-			toasts.add('success', 'File deleted');
+			toasts.add('success', $t('admin.media.toast_file_deleted'));
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to delete file');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_delete_failed'));
 		}
 	}
 
@@ -256,9 +257,9 @@
 	async function bulkDeleteSelected() {
 		if (selectedOrphans.size === 0) return;
 		const confirmed = await confirm({
-			title: 'Delete Orphan Files',
-			message: `Delete ${selectedOrphans.size} orphan file(s)? These files are not referenced anywhere and this action cannot be undone.`,
-			confirmText: 'Delete All',
+			title: $t('admin.media.confirm_bulk_title'),
+			message: $t('admin.media.confirm_bulk_message', { values: { count: selectedOrphans.size } }),
+			confirmText: $t('admin.media.confirm_bulk_button'),
 			danger: true
 		});
 		if (!confirmed) return;
@@ -274,7 +275,7 @@
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
-					toasts.add('error', 'Session expired. Please sign in again.');
+					toasts.add('error', $t('admin.media.toast_session_expired'));
 					goto('/admin/login');
 					return;
 				}
@@ -282,7 +283,7 @@
 				throw new Error(body.error || 'Failed to delete files');
 			}
 			const result = await res.json().catch(() => ({}));
-			toasts.add('success', `Deleted ${result.deleted ?? selectedOrphans.size} orphan file(s)`);
+			toasts.add('success', $t('admin.media.toast_bulk_deleted', { values: { count: result.deleted ?? selectedOrphans.size } }));
 			selectedOrphans = new Set();
 			await loadMedia();
 		} catch (err) {
@@ -293,7 +294,7 @@
 
 	async function createExternal() {
 		if (!newExternal.url.trim()) {
-			toasts.add('error', 'URL is required');
+			toasts.add('error', $t('admin.media.toast_url_required'));
 			return;
 		}
 		newExternal.saving = true;
@@ -315,12 +316,12 @@
 				const body = await res.json().catch(() => ({}));
 				throw new Error(body.error || 'Failed to add external media');
 			}
-			toasts.add('success', 'External media added');
+			toasts.add('success', $t('admin.media.toast_external_added'));
 			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false };
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to add external media');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_external_failed'));
 		} finally {
 			newExternal.saving = false;
 		}
@@ -328,7 +329,7 @@
 
 	async function uploadMedia() {
 		if (!uploadFile) {
-			toasts.add('error', 'Choose a file to upload');
+			toasts.add('error', $t('admin.media.toast_choose_file'));
 			return;
 		}
 		uploading = true;
@@ -352,14 +353,14 @@
 				const body = await res.json().catch(() => ({}));
 				throw new Error(body.message || 'Failed to upload file');
 			}
-			toasts.add('success', 'File uploaded');
+			toasts.add('success', $t('admin.media.toast_upload_success'));
 			uploadFile = null;
 			uploadTitle = '';
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : 'Upload failed');
-			error = 'Upload failed';
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_upload_failed'));
+			error = $t('admin.media.toast_upload_failed');
 		} finally {
 			uploading = false;
 		}
@@ -382,23 +383,23 @@
 </script>
 
 <svelte:head>
-	<title>Media Library | Facet Admin</title>
+	<title>{$t('admin.media.page_title')}</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
 	<PageHelp pageKey="media">
-		<p><strong>Media Library</strong> manages all your uploaded images, videos, and files.</p>
-		<p>Upload files here or attach them to projects, posts, and talks. Orphan detection finds files that aren't used anywhere so you can clean up storage.</p>
-		<p><strong>Tip:</strong> Add external media (YouTube, Vimeo) by URL - no need to download and re-upload.</p>
+		<p>{@html $t('admin.media.help_intro')}</p>
+		<p>{$t('admin.media.help_description')}</p>
+		<p>{@html $t('admin.media.help_tip')}</p>
 	</PageHelp>
 
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Media Library</h1>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Browse and manage uploaded files across your profile.</p>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.media.title')}</h1>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.media.subtitle')}</p>
 		</div>
 		<button class="btn btn-secondary" onclick={loadMedia} aria-busy={loading}>
-			{loading ? 'Loading...' : 'Refresh'}
+			{loading ? $t('admin.media.loading') : $t('admin.media.refresh')}
 		</button>
 	</div>
 
@@ -407,56 +408,56 @@
 			<div class="flex items-center gap-2">
 				<input
 					class="input"
-					placeholder="Search by title or filename..."
+					placeholder={$t('admin.media.search_placeholder')}
 					bind:value={search}
 					onkeydown={(e) => e.key === 'Enter' && resetAndLoad()}
 				/>
-				<button class="btn btn-primary" onclick={resetAndLoad}>Search</button>
+				<button class="btn btn-primary" onclick={resetAndLoad}>{$t('admin.media.search')}</button>
 			</div>
 			<div class="flex items-center gap-2">
-				<label class="label mb-0" for="type-filter">Type</label>
+				<label class="label mb-0" for="type-filter">{$t('admin.media.filter_type')}</label>
 				<select id="type-filter" class="input" bind:value={typeFilter} onchange={resetAndLoad}>
-					<option value="all">All</option>
-					<option value="image">Images</option>
+					<option value="all">{$t('admin.media.filter_type_all')}</option>
+					<option value="image">{$t('admin.media.filter_type_images')}</option>
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
-				<label class="label mb-0" for="status-filter">Scope</label>
+				<label class="label mb-0" for="status-filter">{$t('admin.media.filter_scope')}</label>
 				<select id="status-filter" class="input" bind:value={statusFilter} onchange={resetAndLoad}>
-					<option value="referenced">Referenced only</option>
-					<option value="all">Referenced + orphans</option>
-					<option value="orphans">Orphans only</option>
+					<option value="referenced">{$t('admin.media.filter_scope_referenced')}</option>
+					<option value="all">{$t('admin.media.filter_scope_all')}</option>
+					<option value="orphans">{$t('admin.media.filter_scope_orphans')}</option>
 				</select>
 			</div>
 			<div class="flex items-center justify-end gap-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
-				<span>{stats.totalFiles} files • {humanSize(stats.totalSize)}</span>
+				<span>{$t('admin.media.stats_files', { values: { count: stats.totalFiles } })} • {humanSize(stats.totalSize)}</span>
 				<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-					{stats.orphanFiles} orphan{stats.orphanFiles === 1 ? '' : 's'}
+					{stats.orphanFiles === 1 ? $t('admin.media.stats_orphan', { values: { count: stats.orphanFiles } }) : $t('admin.media.stats_orphans', { values: { count: stats.orphanFiles } })}
 				</span>
 				{#if totalPages > 1}
-					<span>Page {page} of {totalPages}</span>
+					<span>{$t('admin.media.stats_page', { values: { page, total: totalPages } })}</span>
 				{/if}
 			</div>
 		</div>
 		<div class="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
 			<div class="flex flex-wrap gap-3">
-				<span>Storage: {humanSize(stats.storageSize)} ({stats.storageFiles} files)</span>
-				<span>Referenced: {humanSize(stats.referencedSize)}</span>
-				<span>Orphans: {humanSize(stats.orphanSize)} ({stats.orphanFiles})</span>
+				<span>{$t('admin.media.stats_storage', { values: { size: humanSize(stats.storageSize), count: stats.storageFiles } })}</span>
+				<span>{$t('admin.media.stats_referenced', { values: { size: humanSize(stats.referencedSize) } })}</span>
+				<span>{$t('admin.media.stats_orphan_size', { values: { size: humanSize(stats.orphanSize), count: stats.orphanFiles } })}</span>
 			</div>
 			<div class="flex flex-wrap gap-2 items-center">
 				{#if selectedOrphans.size > 0}
-					<span class="text-gray-700 dark:text-gray-200">{selectedOrphans.size} orphan{selectedOrphans.size === 1 ? '' : 's'} selected</span>
+					<span class="text-gray-700 dark:text-gray-200">{$t('admin.media.selected_orphans', { values: { count: selectedOrphans.size } })}</span>
 					<button
 						class="btn btn-secondary text-red-600 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
 						onclick={bulkDeleteSelected}
 					>
-						Delete selected
+						{$t('admin.media.delete_selected')}
 					</button>
-					<button class="btn btn-ghost btn-sm" onclick={clearSelection}>Clear selection</button>
+					<button class="btn btn-ghost btn-sm" onclick={clearSelection}>{$t('admin.media.clear_selection')}</button>
 				{:else if statusFilter !== 'referenced'}
 					<button class="btn btn-secondary btn-sm" onclick={selectVisibleOrphans}>
-						Select all visible orphans
+						{$t('admin.media.select_visible_orphans')}
 					</button>
 				{/if}
 			</div>
@@ -472,18 +473,18 @@
 	<div class="card p-4 mb-4 space-y-3">
 		<div class="flex items-center justify-between">
 			<div>
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Upload media</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.media.upload_title')}</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Add files directly to the media library (images, docs, video up to 20MB).
+					{$t('admin.media.upload_description')}
 				</p>
 			</div>
 			<button class="btn btn-primary" onclick={uploadMedia} aria-busy={uploading}>
-				{uploading ? 'Uploading…' : 'Upload'}
+				{uploading ? $t('admin.media.uploading') : $t('admin.media.upload_button')}
 			</button>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
 			<div class="md:col-span-2">
-				<label class="label" for="upload-file">File *</label>
+				<label class="label" for="upload-file">{$t('admin.media.file_required')}</label>
 				<input
 					id="upload-file"
 					type="file"
@@ -492,11 +493,11 @@
 				/>
 			</div>
 			<div>
-				<label class="label" for="upload-title">Title (optional)</label>
+				<label class="label" for="upload-title">{$t('admin.media.title_label')}</label>
 				<input
 					id="upload-title"
 					class="input"
-					placeholder="Display name"
+					placeholder={$t('admin.media.title_placeholder')}
 					bind:value={uploadTitle}
 				/>
 			</div>
@@ -506,37 +507,37 @@
 	<div class="card p-4 mb-4 space-y-3">
 		<div class="flex items-center justify-between">
 			<div>
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Add external media</h2>
-				<p class="text-sm text-gray-600 dark:text-gray-400">Link to remote assets (YouTube, Vimeo, images, etc.).</p>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.media.external_title')}</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.media.external_description')}</p>
 			</div>
 			<button class="btn btn-primary" onclick={createExternal} aria-busy={newExternal.saving}>
-				{newExternal.saving ? 'Saving…' : 'Add'}
+				{newExternal.saving ? $t('admin.media.saving') : $t('admin.media.add_button')}
 			</button>
 		</div>
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 			<div class="md:col-span-2">
-				<label class="label" for="ext-url">URL *</label>
-				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder="https://…" />
+				<label class="label" for="ext-url">{$t('admin.media.url_required')}</label>
+				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} />
 			</div>
 			<div>
-				<label class="label" for="ext-title">Title</label>
-				<input id="ext-title" class="input" bind:value={newExternal.title} placeholder="Optional display name" />
+				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
+				<input id="ext-title" class="input" bind:value={newExternal.title} placeholder={$t('admin.media.external_title_placeholder')} />
 			</div>
 			<div>
-				<label class="label" for="ext-mime">MIME (optional)</label>
-				<input id="ext-mime" class="input" bind:value={newExternal.mime} placeholder="image/png, video/mp4…" />
+				<label class="label" for="ext-mime">{$t('admin.media.mime_label')}</label>
+				<input id="ext-mime" class="input" bind:value={newExternal.mime} placeholder={$t('admin.media.mime_placeholder')} />
 			</div>
 			<div class="md:col-span-2">
-				<label class="label" for="ext-thumb">Thumbnail URL (optional)</label>
-				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder="https://example.com/thumb.jpg" />
+				<label class="label" for="ext-thumb">{$t('admin.media.thumbnail_label')}</label>
+				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder={$t('admin.media.thumbnail_placeholder')} />
 			</div>
 		</div>
 	</div>
 
 	{#if loading}
-		<div class="card p-6 text-gray-500 dark:text-gray-400">Loading media...</div>
+		<div class="card p-6 text-gray-500 dark:text-gray-400">{$t('admin.media.loading_media')}</div>
 	{:else if items.length === 0}
-		<div class="card p-6 text-gray-500 dark:text-gray-400">No media found.</div>
+		<div class="card p-6 text-gray-500 dark:text-gray-400">{$t('admin.media.no_media')}</div>
 	{:else}
 		<div class="card overflow-hidden">
 			<div class="overflow-x-auto">
@@ -544,13 +545,13 @@
 						<thead class="bg-gray-50 dark:bg-gray-800">
 							<tr>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">File</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Type</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Size</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Collection</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Record</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Uploaded</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Actions</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_file')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_type')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_size')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_collection')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_record')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_uploaded')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_actions')}</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -585,11 +586,11 @@
 											</div>
 											{#if item.orphan}
 												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0">
-													Orphan
+													{$t('admin.media.badge_orphan')}
 												</span>
 											{:else if item.external}
 												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0">
-													External
+													{$t('admin.media.badge_external')}
 												</span>
 											{/if}
 										</div>
@@ -631,13 +632,13 @@
 			</div>
 			{#if totalPages > 1}
 				<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
-					<div>Page {page} of {totalPages}</div>
+					<div>{$t('admin.media.pagination_page', { values: { page, total: totalPages } })}</div>
 					<div class="flex items-center gap-2">
 						<button class="btn btn-ghost btn-sm" onclick={() => { page = Math.max(1, page - 1); loadMedia(); }} disabled={page === 1}>
-							Previous
+							{$t('admin.media.pagination_previous')}
 						</button>
 						<button class="btn btn-ghost btn-sm" onclick={() => { if (page < totalPages) { page += 1; loadMedia(); } }} disabled={page >= totalPages}>
-							Next
+							{$t('admin.media.pagination_next')}
 						</button>
 					</div>
 				</div>

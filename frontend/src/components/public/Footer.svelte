@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Profile } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		profile: Profile | null;
@@ -14,7 +15,7 @@
 	<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<div class="flex flex-col sm:flex-row items-center justify-between gap-4">
 			<p class="text-gray-600 dark:text-gray-400 text-sm">
-				© {year} {profile?.name || 'Facet'}. All rights reserved.
+				© {year} {profile?.name || 'Facet'}. {$t('public.footer.all_rights_reserved')}
 			</p>
 
 			<div class="flex items-center gap-4">
@@ -48,7 +49,7 @@
 
 		<div class="mt-4 text-center">
 			<p class="text-xs text-gray-500 dark:text-gray-500">
-				Powered by <a href="https://github.com/jesposito/Facet" class="hover:underline">Facet</a>
+				{@html $t('public.footer.powered_by', { values: { link: '<a href="https://github.com/jesposito/Facet" class="hover:underline">Facet</a>' } })}
 			</p>
 		</div>
 	</div>

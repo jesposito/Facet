@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { setupWizard, viewTemplates, generateSlug } from '$lib/stores/setupWizard';
+	import { t } from 'svelte-i18n';
 
 	function selectTemplate(templateId: string) {
 		const template = viewTemplates.find(t => t.id === templateId);
@@ -27,10 +28,10 @@
 <div class="space-y-6">
 	<div class="text-center">
 		<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-			Create your first Facet
+			{$t('admin.wizard.step2_title')}
 		</h2>
 		<p class="text-gray-600 dark:text-gray-400">
-			Different audiences see different sides of you
+			{$t('admin.wizard.step2_subtitle')}
 		</p>
 	</div>
 	
@@ -63,20 +64,20 @@
 	{#if $setupWizard.selectedTemplate}
 		<div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 			<div>
-				<label for="view-name" class="label">Facet Name</label>
-				<input 
+				<label for="view-name" class="label">{$t('admin.wizard.facet_name')}</label>
+				<input
 					type="text"
 					id="view-name"
 					class="input"
-					placeholder="My Facet"
+					placeholder={$t('admin.wizard.facet_name_placeholder')}
 					value={$setupWizard.newView.name}
 					oninput={handleNameChange}
 				/>
 				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-					URL: <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">/{$setupWizard.newView.slug || 'your-facet'}</code>
+					{$t('admin.wizard.url_label')} <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">/{$setupWizard.newView.slug || 'your-facet'}</code>
 				</p>
 			</div>
-			
+
 			<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
 				<div class="flex items-center gap-2 text-blue-800 dark:text-blue-200">
 					<svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,11 +85,11 @@
 					</svg>
 					<span class="text-sm font-medium">
 						{#if $setupWizard.newView.visibility === 'public'}
-							This facet will be public - anyone with the link can view it
+							{$t('admin.wizard.visibility_public')}
 						{:else if $setupWizard.newView.visibility === 'unlisted'}
-							This facet is unlisted - only people with the link can find it
+							{$t('admin.wizard.visibility_unlisted')}
 						{:else}
-							This facet is private - only you can see it
+							{$t('admin.wizard.visibility_private')}
 						{/if}
 					</span>
 				</div>

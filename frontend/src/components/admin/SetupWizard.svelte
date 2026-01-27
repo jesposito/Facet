@@ -2,9 +2,17 @@
 	import { setupWizard, canProceed, viewTemplates } from '$lib/stores/setupWizard';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, triggerSidebarFacetsReload } from '$lib/stores';
+	import { t } from 'svelte-i18n';
+	import { get } from 'svelte/store';
 	import Step1BasicProfile from './wizard/Step1BasicProfile.svelte';
 	import Step2CreateView from './wizard/Step2CreateView.svelte';
 	import Step3ReviewLaunch from './wizard/Step3ReviewLaunch.svelte';
+
+	// Helper to get translation in non-reactive contexts
+	function tr(key: string): string {
+		const translate = get(t);
+		return translate(key);
+	}
 
 	interface Props {
 		onComplete?: () => void;
@@ -14,9 +22,9 @@
 	let saving = $state(false);
 
 	const steps = [
-		{ num: 1, label: 'Profile' },
-		{ num: 2, label: 'First Facet' },
-		{ num: 3, label: 'Launch' }
+		{ num: 1, labelKey: 'admin.wizard.step_profile' },
+		{ num: 2, labelKey: 'admin.wizard.step_first_facet' },
+		{ num: 3, labelKey: 'admin.wizard.step_launch' }
 	];
 
 	function handleNext() {
@@ -78,13 +86,13 @@
 				});
 			}
 			
-			toasts.add('success', 'Your profile is ready!');
+			toasts.add('success', tr('admin.wizard.success_message'));
 			triggerSidebarFacetsReload();
 			setupWizard.complete();
 			onComplete?.();
 		} catch (err) {
 			console.error('Failed to save wizard data:', err);
-			toasts.add('error', 'Failed to save. Please try again.');
+			toasts.add('error', tr('admin.wizard.error_message'));
 		} finally {
 			saving = false;
 		}
@@ -117,21 +125,21 @@
 			<header class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
 				<div class="flex items-center justify-between mb-4">
 					<h1 id="wizard-title" class="text-lg font-semibold text-gray-900 dark:text-white">
-						Quick Setup
+						{$t('admin.wizard.title')}
 					</h1>
-					<button 
+					<button
 						type="button"
 						class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 						onclick={handleSkip}
 					>
-						Skip setup
+						{$t('admin.wizard.skip')}
 					</button>
 				</div>
-				
+
 				<div class="flex items-center gap-2">
 					{#each steps as step}
 						<div class="flex items-center gap-2 flex-1">
-							<div 
+							<div
 								class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors {
 									$setupWizard.currentStep === step.num
 										? 'bg-primary-600 text-white'
@@ -149,7 +157,7 @@
 								{/if}
 							</div>
 							<span class="text-sm text-gray-600 dark:text-gray-400 hidden sm:inline">
-								{step.label}
+								{$t(step.labelKey)}
 							</span>
 							{#if step.num < 3}
 								<div class="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 {
@@ -172,17 +180,17 @@
 			</main>
 			
 			<footer class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between">
-				<button 
+				<button
 					type="button"
 					class="btn btn-ghost"
 					disabled={$setupWizard.currentStep === 1 || saving}
 					onclick={handleBack}
 				>
-					Back
+					{$t('admin.wizard.back')}
 				</button>
-				
+
 				{#if $setupWizard.currentStep === 3}
-					<button 
+					<button
 						type="button"
 						class="btn btn-primary"
 						disabled={saving}
@@ -193,19 +201,19 @@
 								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 							</svg>
-							Saving...
+							{$t('admin.wizard.saving')}
 						{:else}
-							Launch Profile
+							{$t('admin.wizard.launch_profile')}
 						{/if}
 					</button>
 				{:else}
-					<button 
+					<button
 						type="button"
 						class="btn btn-primary"
 						disabled={!canGoNext()}
 						onclick={handleNext}
 					>
-						Continue
+						{$t('admin.wizard.continue')}
 					</button>
 				{/if}
 			</footer>

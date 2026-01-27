@@ -6,6 +6,7 @@
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
 	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -569,14 +570,14 @@ async function resolveMediaRefs(selected: string[]) {
 </script>
 
 <svelte:head>
-	<title>Projects | Facet Admin</title>
+	<title>{$t('admin.content.projects.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="projects">
-		<p><strong>Projects</strong> showcase your portfolio work and side projects.</p>
-		<p>Each project can appear on multiple views - show technical projects to recruiters, creative work to designers. That's what Facet is all about!</p>
-		<p><strong>Tip:</strong> Import projects directly from GitHub using the <a href="/admin/import" class="underline">Import page</a>.</p>
+		<p>{@html $t('admin.content.projects.help_text')}</p>
+		<p>{$t('admin.content.projects.help_tip_1')}</p>
+		<p>{@html $t('admin.content.projects.help_tip_2')}</p>
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -602,14 +603,14 @@ async function resolveMediaRefs(selected: string[]) {
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Projects</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.projects.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if projects.length > 0 && !reorderMode}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 				<button
 					class="btn btn-ghost"
@@ -623,7 +624,7 @@ async function resolveMediaRefs(selected: string[]) {
 					Import from GitHub
 				</a>
 				<button class="btn btn-primary" onclick={openNewForm}>
-					+ New Project
+					{$t('admin.content.common.new_button', { values: { type: $t('admin.content.projects.title').slice(0, -1) } })}
 				</button>
 			{/if}
 		</div>
@@ -633,7 +634,7 @@ async function resolveMediaRefs(selected: string[]) {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading projects...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.projects.title').toLowerCase() } })}</div>
 		</div>
 	{:else if reorderMode}
 		<div class="card p-6">

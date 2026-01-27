@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { pb, type Profile } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -14,6 +15,7 @@
 		type AccentColor
 	} from '$lib/colors';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 
 	// App version from Vite config
 	const appVersion = __APP_VERSION__;
@@ -276,13 +278,13 @@
 			});
 			selectedAccentColor = color;
 			profile.accent_color = color;
-			toasts.add('success', 'Accent color updated');
+			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
 
 			// Dispatch event to notify layout of color change
 			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: color }));
 		} catch (err) {
 			console.error('Failed to save accent color:', err);
-			toasts.add('error', 'Failed to update accent color');
+			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
 		} finally {
 			savingAppearance = false;
 		}
@@ -295,17 +297,17 @@
 
 		// Validate
 		if (passwordForm.newPassword.length < 8) {
-			passwordForm.error = 'New password must be at least 8 characters';
+			passwordForm.error = $t('admin.settings_page.account.error_min_length');
 			return;
 		}
 
 		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-			passwordForm.error = 'Passwords do not match';
+			passwordForm.error = $t('admin.settings_page.account.error_mismatch');
 			return;
 		}
 
 		if (passwordForm.newPassword === passwordForm.currentPassword) {
-			passwordForm.error = 'New password must be different from current password';
+			passwordForm.error = $t('admin.settings_page.account.error_same_password');
 			return;
 		}
 
@@ -327,7 +329,7 @@
 			const data = await response.json();
 
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to change password');
+				throw new Error(data.error || $t('admin.settings_page.account.change_password_button'));
 			}
 
 			// Success!
@@ -335,10 +337,10 @@
 			passwordForm.currentPassword = '';
 			passwordForm.newPassword = '';
 			passwordForm.confirmPassword = '';
-			toasts.add('success', 'Password changed successfully');
+			toasts.add('success', $t('admin.settings_page.account.password_changed'));
 		} catch (err: any) {
-			passwordForm.error = err.message || 'Failed to change password';
-			toasts.add('error', 'Failed to change password');
+			passwordForm.error = err.message || $t('admin.settings_page.account.change_password_button');
+			toasts.add('error', $t('admin.settings_page.account.change_password_button'));
 		} finally {
 			passwordForm.loading = false;
 		}
@@ -389,16 +391,16 @@
 
 			const result = await response.json();
 			if (!response.ok) {
-				toasts.add('error', result.error || 'Failed to save settings');
+				toasts.add('error', result.error || $t('admin.settings_page.settings_error'));
 				return;
 			}
 
 			customCSS = result.custom_css || '';
 			gaMeasurementId = result.ga_measurement_id || '';
-			toasts.add('success', 'Settings saved');
+			toasts.add('success', $t('admin.settings_page.settings_saved'));
 		} catch (err) {
 			console.error('Failed to save site settings:', err);
-			toasts.add('error', 'Failed to save settings');
+			toasts.add('error', $t('admin.settings_page.settings_error'));
 		} finally {
 			siteSettingsSaving = false;
 		}
@@ -414,7 +416,7 @@
 
 		// Validate file size
 		if (file.size > MAX_FAVICON_SIZE) {
-			toasts.add('error', `File too large. Maximum size is 512KB (selected: ${Math.round(file.size / 1024)}KB)`);
+			toasts.add('error', $t('admin.settings_page.appearance.favicon_size_error', { values: { size: Math.round(file.size / 1024) } }));
 			input.value = ''; // Reset input
 			return;
 		}
@@ -453,7 +455,7 @@
 
 			const result = await response.json();
 			if (!response.ok) {
-				toasts.add('error', result.error || 'Failed to save favicon');
+				toasts.add('error', result.error || $t('admin.settings_page.appearance.favicon_error'));
 				return;
 			}
 
@@ -472,10 +474,10 @@
 				window.dispatchEvent(new CustomEvent('favicon-changed', { detail: newUrl }));
 			}
 
-			toasts.add('success', 'Favicon updated');
+			toasts.add('success', $t('admin.settings_page.appearance.favicon_updated'));
 		} catch (err) {
 			console.error('Failed to save favicon:', err);
-			toasts.add('error', 'Failed to save favicon');
+			toasts.add('error', $t('admin.settings_page.appearance.favicon_error'));
 		} finally {
 			faviconSaving = false;
 		}
@@ -483,9 +485,9 @@
 
 	async function removeFavicon() {
 		const confirmed = await confirm({
-			title: 'Remove Favicon',
-			message: 'Are you sure you want to remove your custom favicon? The default Facet favicon will be used.',
-			confirmText: 'Remove',
+			title: $t('admin.settings_page.appearance.favicon_remove_title'),
+			message: $t('admin.settings_page.appearance.favicon_remove_message'),
+			confirmText: $t('admin.settings_page.appearance.favicon_remove_button'),
 			danger: true
 		});
 		if (!confirmed) return;
@@ -501,7 +503,7 @@
 
 			if (!response.ok) {
 				const result = await response.json();
-				toasts.add('error', result.error || 'Failed to remove favicon');
+				toasts.add('error', result.error || $t('admin.settings_page.appearance.favicon_remove_error'));
 				return;
 			}
 
@@ -515,10 +517,10 @@
 			// Notify layout to revert to default favicon
 			window.dispatchEvent(new CustomEvent('favicon-changed', { detail: null }));
 
-			toasts.add('success', 'Favicon removed');
+			toasts.add('success', $t('admin.settings_page.appearance.favicon_removed'));
 		} catch (err) {
 			console.error('Failed to remove favicon:', err);
-			toasts.add('error', 'Failed to remove favicon');
+			toasts.add('error', $t('admin.settings_page.appearance.favicon_remove_error'));
 		} finally {
 			faviconSaving = false;
 		}
@@ -540,18 +542,18 @@
 
 			const result = await response.json();
 			if (!response.ok) {
-				toasts.add('error', result.error || 'Failed to update setting');
+				toasts.add('error', result.error || $t('admin.settings_page.general.demo_toggle_error'));
 				return;
 			}
 
 			hideDemoToggle = result.hide_demo_toggle || false;
-			toasts.add('success', hideDemoToggle ? 'Demo toggle hidden' : 'Demo toggle visible');
-			
+			toasts.add('success', hideDemoToggle ? $t('admin.settings_page.general.demo_hidden_toast') : $t('admin.settings_page.general.demo_visible_toast'));
+
 			// Invalidate all data to trigger component updates (e.g., AdminHeader)
 			await invalidateAll();
 		} catch (err) {
 			console.error('Failed to toggle demo setting:', err);
-			toasts.add('error', 'Failed to update setting');
+			toasts.add('error', $t('admin.settings_page.general.demo_toggle_error'));
 		} finally {
 			siteSettingsSaving = false;
 		}
@@ -575,7 +577,7 @@
 			}
 			await pb.collection('ai_providers').create(payload);
 
-			toasts.add('success', 'AI provider added');
+			toasts.add('success', $t('admin.settings_page.integrations.ai_provider_added'));
 			showAddForm = false;
 			newProvider = {
 				name: '',
@@ -592,7 +594,7 @@
 			// Log full error for debugging
 			console.error('[AI-PROVIDER] Full error object:', JSON.stringify(err, null, 2));
 			// Extract detailed error from PocketBase ClientResponseError
-			let message = 'Failed to add provider';
+			let message = $t('admin.settings_page.integrations.ai_add_error');
 			if (err && typeof err === 'object' && 'data' in err) {
 				const pbErr = err as { data?: { data?: Record<string, { message: string }>, message?: string } };
 				console.error('[AI-PROVIDER] Error data:', pbErr.data);
@@ -624,13 +626,13 @@
 
 			const result = await response.json();
 			if (result.success) {
-				toasts.add('success', 'Connection successful!');
+				toasts.add('success', $t('admin.settings_page.integrations.ai_test_success'));
 			} else {
-				toasts.add('error', `Connection failed: ${result.error}`);
+				toasts.add('error', $t('admin.settings_page.integrations.ai_test_failed', { values: { error: result.error } }));
 			}
 			await loadProviders();
 		} catch (err) {
-			toasts.add('error', 'Connection test failed');
+			toasts.add('error', $t('admin.settings_page.integrations.ai_test_error'));
 		} finally {
 			testing = null;
 		}
@@ -638,19 +640,19 @@
 
 	async function deleteProvider(id: string) {
 		const confirmed = await confirm({
-			title: 'Delete AI Provider',
-			message: 'Are you sure you want to delete this AI provider? This action cannot be undone.',
-			confirmText: 'Delete',
+			title: $t('admin.settings_page.integrations.ai_delete_title'),
+			message: $t('admin.settings_page.integrations.ai_delete_message'),
+			confirmText: $t('admin.settings_page.integrations.ai_delete_confirm'),
 			danger: true
 		});
 		if (!confirmed) return;
 
 		try {
 			await pb.collection('ai_providers').delete(id);
-			toasts.add('success', 'Provider deleted');
+			toasts.add('success', $t('admin.settings_page.integrations.ai_provider_deleted'));
 			await loadProviders();
 		} catch (err) {
-			toasts.add('error', 'Failed to delete provider');
+			toasts.add('error', $t('admin.settings_page.integrations.ai_add_error'));
 		}
 	}
 
@@ -664,10 +666,10 @@
 			}
 			// Set new default
 			await pb.collection('ai_providers').update(id, { is_default: true });
-			toasts.add('success', 'Default provider updated');
+			toasts.add('success', $t('admin.settings_page.integrations.ai_default_updated'));
 			await loadProviders();
 		} catch (err) {
-			toasts.add('error', 'Failed to update default');
+			toasts.add('error', $t('admin.settings_page.integrations.ai_add_error'));
 		}
 	}
 
@@ -680,7 +682,7 @@
 
 			if (!response.ok) {
 				const error = await response.json();
-				throw new Error(error.error || 'Export failed');
+				throw new Error(error.error || $t('admin.settings_page.general.export_error'));
 			}
 
 			// Get filename from Content-Disposition header or use default
@@ -702,10 +704,10 @@
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
 
-			toasts.add('success', `Export downloaded: ${filename}`);
+			toasts.add('success', $t('admin.settings_page.general.export_downloaded', { values: { filename } }));
 		} catch (err) {
 			console.error('Export failed:', err);
-			toasts.add('error', err instanceof Error ? err.message : 'Export failed');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.settings_page.general.export_error'));
 		} finally {
 			exporting = null;
 		}
@@ -713,34 +715,34 @@
 </script>
 
 <svelte:head>
-	<title>Settings | Facet</title>
+	<title>{$t('admin.settings_page.title')} {$t('admin.settings_page.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
 	<PageHelp pageKey="settings">
-		<p><strong>Settings</strong> controls your site's appearance, AI providers, analytics, and data export.</p>
-		<p>Configure AI providers to enable smart features like resume parsing, content rewriting, and GitHub project summaries. Add custom CSS to style your public profile.</p>
-		<p><strong>Tip:</strong> Export your data regularly as JSON or YAML for backup. It includes everything.</p>
+		<p>{@html $t('admin.settings_page.help_text')}</p>
+		<p>{$t('admin.settings_page.help_tip_1')}</p>
+		<p>{@html $t('admin.settings_page.help_tip_2')}</p>
 	</PageHelp>
 
-	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Settings</h1>
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.title')}</h1>
 	<p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-		Control what visitors see on your public site, enable analytics, and manage advanced options.
+		{$t('admin.settings_page.subtitle')}
 	</p>
 
 	<!-- Account & Security section -->
 	<div id="account" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Account & Security</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Manage your account password.</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.account.section_title')}</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.account.section_description')}</p>
 		</div>
 
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Change Password</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.settings_page.account.change_password_title')}</h2>
 
 			<form onsubmit={preventDefault(changePassword)} class="space-y-4 max-w-md">
 				<div>
-					<label for="current-password-settings" class="label">Current Password</label>
+					<label for="current-password-settings" class="label">{$t('admin.settings_page.account.current_password_label')}</label>
 					<input
 						type="password"
 						id="current-password-settings"
@@ -752,7 +754,7 @@
 				</div>
 
 				<div>
-					<label for="new-password-settings" class="label">New Password</label>
+					<label for="new-password-settings" class="label">{$t('admin.settings_page.account.new_password_label')}</label>
 					<input
 						type="password"
 						id="new-password-settings"
@@ -763,12 +765,12 @@
 						required
 					/>
 					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-						Minimum 8 characters
+						{$t('admin.settings_page.account.new_password_help')}
 					</p>
 				</div>
 
 				<div>
-					<label for="confirm-password-settings" class="label">Confirm New Password</label>
+					<label for="confirm-password-settings" class="label">{$t('admin.settings_page.account.confirm_password_label')}</label>
 					<input
 						type="password"
 						id="confirm-password-settings"
@@ -787,7 +789,7 @@
 
 				{#if passwordForm.success}
 					<div class="p-3 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-sm">
-						Password changed successfully!
+						{$t('admin.settings_page.account.password_changed')}
 					</div>
 				{/if}
 
@@ -801,9 +803,9 @@
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
-						Changing Password...
+						{$t('admin.settings_page.account.changing_password')}
 					{:else}
-						Change Password
+						{$t('admin.settings_page.account.change_password_button')}
 					{/if}
 				</button>
 			</form>
@@ -813,21 +815,21 @@
 	<!-- Appearance section -->
 	<div id="appearance" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Appearance</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Customize colors and styling for your profile.</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.appearance.section_title')}</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.appearance.section_description')}</p>
 		</div>
 
 		<!-- Accent Color -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Accent Color</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.settings_page.appearance.accent_color_title')}</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				Choose an accent color for buttons, links, and highlights across your profile.
+				{$t('admin.settings_page.appearance.accent_color_description')}
 			</p>
 
 		{#if profile}
 			<!-- Color Swatches -->
 			<div class="mb-6">
-				<span class="label mb-3 block">Accent Color</span>
+				<span class="label mb-3 block">{$t('admin.settings_page.appearance.accent_color_label')}</span>
 				<div class="flex flex-wrap gap-3">
 					{#each ACCENT_COLOR_LIST as color}
 						{@const colorInfo = ACCENT_COLORS[color]}
@@ -864,7 +866,7 @@
 			<!-- Preview Section -->
 			<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
 				<span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium mb-3 block">
-					Preview
+					{$t('admin.settings_page.appearance.preview_label')}
 				</span>
 				<div class="flex flex-wrap items-center gap-4">
 					<button
@@ -872,26 +874,26 @@
 						class="px-4 py-2 rounded-lg font-medium text-white transition-colors"
 						style="background-color: {ACCENT_COLORS[selectedAccentColor].scale[600]}"
 					>
-						Primary Button
+						{$t('admin.settings_page.appearance.primary_button')}
 					</button>
 					<button
 						type="button"
 						class="px-4 py-2 rounded-lg font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
 					>
-						Secondary
+						{$t('admin.settings_page.appearance.secondary_button')}
 					</button>
 					<a
 						href="#appearance"
 						class="font-medium underline underline-offset-2"
 						style="color: {ACCENT_COLORS[selectedAccentColor].scale[600]}"
 					>
-						Link Example
+						{$t('admin.settings_page.appearance.link_example')}
 					</a>
 					<span
 						class="px-2 py-1 rounded text-sm font-medium"
 						style="background-color: {ACCENT_COLORS[selectedAccentColor].scale[100]}; color: {ACCENT_COLORS[selectedAccentColor].scale[700]}"
 					>
-						Badge
+						{$t('admin.settings_page.appearance.badge')}
 					</span>
 				</div>
 				<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
@@ -900,9 +902,9 @@
 			</div>
 		{:else}
 			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
-				<p>Create a profile first to customize appearance.</p>
+				<p>{$t('admin.settings_page.appearance.no_profile_message')}</p>
 				<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
-					Go to Homepage
+					{$t('admin.settings_page.appearance.go_to_homepage')}
 				</a>
 			</div>
 		{/if}
@@ -910,9 +912,9 @@
 
 		<!-- Favicon -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Favicon</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.appearance.favicon_title')}</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				Upload a custom favicon to replace the default Facet icon in browser tabs. Recommended: 32x32 or 64x64 pixels.
+				{$t('admin.settings_page.appearance.favicon_description')}
 			</p>
 
 			<div class="flex items-center gap-4">
@@ -920,7 +922,7 @@
 					<div class="relative">
 						<img
 							src={faviconUrl}
-							alt="Current favicon preview"
+							alt={$t('admin.settings_page.appearance.favicon_preview_alt')}
 							class="w-16 h-16 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2"
 						/>
 						{#if !faviconFile}
@@ -930,7 +932,7 @@
 								onclick={removeFavicon}
 								disabled={faviconSaving || siteSettingsLoading}
 								class="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full shadow"
-								aria-label="Remove custom favicon"
+								aria-label={$t('admin.settings_page.appearance.favicon_remove_label')}
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -953,7 +955,7 @@
 						for="favicon"
 						class="btn btn-secondary btn-sm cursor-pointer {siteSettingsLoading || faviconSaving ? 'opacity-50 pointer-events-none' : ''}"
 					>
-						{faviconUrl ? 'Change' : 'Upload'} Favicon
+						{faviconUrl ? $t('admin.settings_page.appearance.favicon_change_button') : $t('admin.settings_page.appearance.favicon_upload_button')}
 					</label>
 					{#if faviconFile}
 						<div class="flex gap-2">
@@ -968,9 +970,9 @@
 										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 									</svg>
-									Saving...
+									{$t('admin.settings_page.appearance.favicon_saving')}
 								{:else}
-									Save
+									{$t('admin.settings_page.appearance.favicon_save')}
 								{/if}
 							</button>
 							<button
@@ -979,7 +981,7 @@
 								onclick={cancelFaviconUpload}
 								disabled={faviconSaving}
 							>
-								Cancel
+								{$t('admin.settings_page.appearance.favicon_cancel')}
 							</button>
 						</div>
 					{/if}
@@ -987,7 +989,7 @@
 			</div>
 
 			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				Supported formats: PNG, ICO, SVG, GIF. Max size: 512KB.
+				{$t('admin.settings_page.appearance.favicon_supported_formats')}
 			</p>
 		</div>
 
@@ -995,16 +997,16 @@
 		<div class="card p-6">
 			<div class="flex items-start justify-between gap-3">
 				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Custom CSS</h2>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.appearance.custom_css_title')}</h2>
 					<p class="text-gray-600 dark:text-gray-400 text-sm">
-						Optional styles applied to public pages. Keep it minimal; you own the result.
+						{$t('admin.settings_page.appearance.custom_css_description')}
 					</p>
 				</div>
 				<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-					<span>{customCSS.length}/20000</span>
+					<span>{$t('admin.settings_page.appearance.custom_css_char_count', { values: { count: customCSS.length } })}</span>
 					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
 						{@html icon('info', 'w-4 h-4 mr-1')}
-						<span class="align-middle">Selectors</span>
+						<span class="align-middle">{$t('admin.settings_page.appearance.custom_css_selectors')}</span>
 					</button>
 				</div>
 			</div>
@@ -1012,14 +1014,14 @@
 			<div class="mt-4 space-y-3">
 				<textarea
 					class="input font-mono text-sm h-48"
-					placeholder="/* Custom CSS (e.g., tweak fonts, spacing, colors) */"
+					placeholder={$t('admin.settings_page.appearance.custom_css_placeholder')}
 					bind:value={customCSS}
 					disabled={siteSettingsLoading || siteSettingsSaving}
 					maxlength="20000"
 				></textarea>
 				<div class="flex justify-end">
 					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-						{siteSettingsSaving ? 'Saving...' : 'Save'}
+						{siteSettingsSaving ? $t('admin.settings_page.appearance.custom_css_saving') : $t('admin.settings_page.appearance.custom_css_save')}
 					</button>
 				</div>
 			</div>
@@ -1031,9 +1033,9 @@
 			<div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700">
 				<div class="flex items-start justify-between gap-3 mb-4">
 					<div>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Public CSS hooks</h3>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.appearance.css_help_title')}</h3>
 						<p class="text-sm text-gray-600 dark:text-gray-400">
-							These selectors match the public site (not the admin UI). Start small and test on mobile.
+							{$t('admin.settings_page.appearance.css_help_description')}
 						</p>
 					</div>
 					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = false)}>
@@ -1043,7 +1045,7 @@
 
 				<div class="space-y-3 text-sm text-gray-800 dark:text-gray-200">
 					<div>
-						<p class="font-semibold text-gray-900 dark:text-white">Base</p>
+						<p class="font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.appearance.css_help_base')}</p>
 						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
 							<li><code>:root</code> — accent palette vars <code>--color-primary-50..950</code></li>
 							<li><code>body</code>, <code>main</code>, <code>header</code>, <code>footer</code></li>
@@ -1052,7 +1054,7 @@
 					</div>
 
 					<div>
-						<p class="font-semibold text-gray-900 dark:text-white">Components</p>
+						<p class="font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.appearance.css_help_components')}</p>
 						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
 							<li><code>.card</code> — section cards</li>
 							<li><code>.section-title</code> — section headings</li>
@@ -1071,7 +1073,7 @@ body { font-family: 'Inter', sans-serif; }
 					</div>
 
 					<p class="text-xs text-gray-500 dark:text-gray-400">
-						Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout.
+						{$t('admin.settings_page.appearance.css_help_tip')}
 					</p>
 				</div>
 			</div>
@@ -1081,17 +1083,29 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- General section -->
 	<div id="general" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">General</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Admin preferences and data management.</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.general.section_title')}</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.general.section_description')}</p>
+		</div>
+
+		<!-- Language Switcher -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.language.section_title')}</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				{$t('admin.settings_page.language.section_description')}
+			</p>
+			<LanguageSwitcher />
+			<p class="text-xs text-gray-500 dark:text-gray-400 mt-4">
+				{$t('admin.settings_page.language.more_coming')}
+			</p>
 		</div>
 
 		<!-- Demo Toggle -->
 		<div class="card p-6">
 			<div class="flex items-center justify-between gap-4">
 				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Demo Mode Toggle</h2>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.settings_page.general.demo_toggle_title')}</h2>
 					<p class="text-gray-600 dark:text-gray-400 text-sm">
-						Show or hide the demo toggle in the admin header. Useful once you've set up your profile.
+						{$t('admin.settings_page.general.demo_toggle_description')}
 					</p>
 				</div>
 				<button
@@ -1110,16 +1124,15 @@ body { font-family: 'Inter', sans-serif; }
 				</button>
 			</div>
 			<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-				{hideDemoToggle ? 'Demo toggle is hidden' : 'Demo toggle is visible'}
+				{hideDemoToggle ? $t('admin.settings_page.general.demo_toggle_hidden') : $t('admin.settings_page.general.demo_toggle_visible')}
 			</p>
 		</div>
 
 		<!-- Data Export -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Data Export</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.settings_page.general.export_title')}</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				Download your complete profile data for backup or migration. All your content (profile, experience,
-				projects, education, skills, posts, talks, and views) is included.
+				{$t('admin.settings_page.general.export_description')}
 			</p>
 			<div class="flex flex-wrap gap-3">
 				<button
@@ -1135,7 +1148,7 @@ body { font-family: 'Inter', sans-serif; }
 					{:else}
 						{@html icon('download')}
 					{/if}
-					Download YAML
+					{$t('admin.settings_page.general.export_yaml')}
 				</button>
 				<button
 					class="btn btn-secondary inline-flex items-center gap-2"
@@ -1150,11 +1163,11 @@ body { font-family: 'Inter', sans-serif; }
 					{:else}
 						{@html icon('download')}
 					{/if}
-					Download JSON
+					{$t('admin.settings_page.general.export_json')}
 				</button>
 			</div>
 			<p class="text-gray-500 dark:text-gray-500 text-xs mt-3">
-				YAML is human-readable and easy to edit. JSON is useful for programmatic access.
+				{$t('admin.settings_page.general.export_yaml_help')}
 			</p>
 		</div>
 	</div>
@@ -1162,32 +1175,32 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- Analytics section -->
 	<div id="analytics" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Analytics</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Track visitor activity on your public profile.</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.analytics.section_title')}</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.analytics.section_description')}</p>
 		</div>
 
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Google Analytics</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.analytics.ga_title')}</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				GA4 measurement ID (public). Leave blank to disable tracking.
+				{$t('admin.settings_page.analytics.ga_description')}
 			</p>
 
 			<div class="space-y-3">
-				<label class="label" for="ga-id">GA4 Measurement ID</label>
+				<label class="label" for="ga-id">{$t('admin.settings_page.analytics.ga_label')}</label>
 				<input
 					id="ga-id"
 					class="input"
-					placeholder="G-XXXXXXXXXX"
+					placeholder={$t('admin.settings_page.analytics.ga_placeholder')}
 					bind:value={gaMeasurementId}
 					disabled={siteSettingsLoading || siteSettingsSaving}
 					maxlength="100"
 				/>
 				<p class="text-xs text-gray-500 dark:text-gray-400">
-					We only load GA on public pages when this is set. Do not use sensitive values.
+					{$t('admin.settings_page.analytics.ga_help')}
 				</p>
 				<div class="flex justify-end">
 					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-						{siteSettingsSaving ? 'Saving...' : 'Save'}
+						{siteSettingsSaving ? $t('admin.settings_page.analytics.ga_saving') : $t('admin.settings_page.analytics.ga_save')}
 					</button>
 				</div>
 			</div>
@@ -1197,52 +1210,52 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- Integrations section -->
 	<div id="integrations" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Integrations</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">Connect external services to enhance your profile.</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.integrations.section_title')}</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.integrations.section_description')}</p>
 		</div>
 
 		<div class="card p-6">
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">AI Providers</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.integrations.ai_providers_title')}</h2>
 			<button class="btn btn-primary btn-sm" onclick={() => (showAddForm = !showAddForm)}>
-				{showAddForm ? 'Cancel' : '+ Add Provider'}
+				{showAddForm ? $t('admin.settings_page.integrations.ai_cancel') : $t('admin.settings_page.integrations.ai_add_provider')}
 			</button>
 		</div>
 
 		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-			Configure AI providers for enriching imported projects. Your API keys are encrypted at rest.
+			{$t('admin.settings_page.integrations.ai_description')}
 		</p>
 
 		{#if showAddForm}
 			<form onsubmit={preventDefault(handleAddProvider)} class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4 space-y-4">
 				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 					<div>
-						<label for="name" class="label">Name</label>
+						<label for="name" class="label">{$t('admin.settings_page.integrations.ai_form_name_label')}</label>
 						<input
 							type="text"
 							id="name"
 							bind:value={newProvider.name}
 							class="input"
-							placeholder="My OpenAI"
+							placeholder={$t('admin.settings_page.integrations.ai_form_name_placeholder')}
 							required
 						/>
 					</div>
 					<div>
-						<label for="type" class="label">Provider Type</label>
+						<label for="type" class="label">{$t('admin.settings_page.integrations.ai_form_type_label')}</label>
 						<select id="type" bind:value={newProvider.type} class="input">
-							<option value="openai">OpenAI</option>
-							<option value="anthropic">Anthropic</option>
-							<option value="ollama">Ollama</option>
-							<option value="custom">Custom (OpenAI-compatible)</option>
+							<option value="openai">{$t('admin.settings_page.integrations.ai_form_type_openai')}</option>
+							<option value="anthropic">{$t('admin.settings_page.integrations.ai_form_type_anthropic')}</option>
+							<option value="ollama">{$t('admin.settings_page.integrations.ai_form_type_ollama')}</option>
+							<option value="custom">{$t('admin.settings_page.integrations.ai_form_type_custom')}</option>
 						</select>
 					</div>
 				</div>
 
 				<div>
 					<label for="api_key" class="label">
-						API Key
+						{$t('admin.settings_page.integrations.ai_form_api_key_label')}
 						{#if newProvider.type === 'ollama'}
-							<span class="text-gray-500 font-normal">(not required for Ollama)</span>
+							<span class="text-gray-500 font-normal">{$t('admin.settings_page.integrations.ai_form_api_key_not_required')}</span>
 						{/if}
 					</label>
 					<input
@@ -1250,14 +1263,14 @@ body { font-family: 'Inter', sans-serif; }
 						id="api_key"
 						bind:value={newProvider.api_key}
 						class="input"
-						placeholder={newProvider.type === 'ollama' ? 'Optional' : 'sk-...'}
+						placeholder={newProvider.type === 'ollama' ? $t('admin.settings_page.integrations.ai_form_api_key_placeholder_optional') : $t('admin.settings_page.integrations.ai_form_api_key_placeholder')}
 						required={newProvider.type !== 'ollama'}
 					/>
 				</div>
 
 				{#if newProvider.type === 'ollama' || newProvider.type === 'custom'}
 					<div>
-						<label for="base_url" class="label">Base URL</label>
+						<label for="base_url" class="label">{$t('admin.settings_page.integrations.ai_form_base_url_label')}</label>
 						<input
 							type="url"
 							id="base_url"
@@ -1270,7 +1283,7 @@ body { font-family: 'Inter', sans-serif; }
 
 				<div>
 					<div class="flex items-center justify-between mb-1">
-						<label for="model" class="label mb-0">Model</label>
+						<label for="model" class="label mb-0">{$t('admin.settings_page.integrations.ai_form_model_label')}</label>
 						{#if newProvider.type !== 'custom' || newProvider.base_url}
 							<button
 								type="button"
@@ -1283,12 +1296,12 @@ body { font-family: 'Inter', sans-serif; }
 										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 									</svg>
-									Fetching...
+									{$t('admin.settings_page.integrations.ai_form_fetching')}
 								{:else}
 									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 									</svg>
-									Fetch available models
+									{$t('admin.settings_page.integrations.ai_form_fetch_models')}
 								{/if}
 							</button>
 						{/if}
@@ -1301,7 +1314,7 @@ body { font-family: 'Inter', sans-serif; }
 						</select>
 						{#if fetchedModels.length > 0}
 							<p class="text-xs text-green-600 dark:text-green-400 mt-1">
-								{fetchedModels.length} models available from API
+								{$t('admin.settings_page.integrations.ai_form_models_available', { values: { count: fetchedModels.length } })}
 							</p>
 						{/if}
 					{:else}
@@ -1310,12 +1323,12 @@ body { font-family: 'Inter', sans-serif; }
 							id="model"
 							bind:value={newProvider.model}
 							class="input"
-							placeholder="Enter model name"
+							placeholder={$t('admin.settings_page.integrations.ai_form_model_placeholder')}
 						/>
 					{/if}
 					{#if modelFetchError}
 						<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-							{modelFetchError} — using default list
+							{$t('admin.settings_page.integrations.ai_form_model_fetch_error', { values: { error: modelFetchError } })}
 						</p>
 					{/if}
 				</div>
@@ -1323,23 +1336,23 @@ body { font-family: 'Inter', sans-serif; }
 				<div class="flex items-center gap-4">
 					<label class="flex items-center gap-2">
 						<input type="checkbox" bind:checked={newProvider.is_active} class="w-4 h-4" />
-						<span>Active</span>
+						<span>{$t('admin.settings_page.integrations.ai_form_active_label')}</span>
 					</label>
 					<label class="flex items-center gap-2">
 						<input type="checkbox" bind:checked={newProvider.is_default} class="w-4 h-4" />
-						<span>Set as default</span>
+						<span>{$t('admin.settings_page.integrations.ai_form_default_label')}</span>
 					</label>
 				</div>
 
-				<button type="submit" class="btn btn-primary">Add Provider</button>
+				<button type="submit" class="btn btn-primary">{$t('admin.settings_page.integrations.ai_form_submit')}</button>
 			</form>
 		{/if}
 
 		{#if loading}
-			<div class="animate-pulse text-center py-4">Loading providers...</div>
+			<div class="animate-pulse text-center py-4">{$t('admin.settings_page.integrations.ai_loading')}</div>
 		{:else if providers.length === 0}
 			<p class="text-gray-500 dark:text-gray-400 text-center py-8">
-				AI providers help generate project descriptions during import. Add one when you're ready.
+				{$t('admin.settings_page.integrations.ai_empty_message')}
 			</p>
 		{:else}
 			<div class="space-y-3">
@@ -1369,12 +1382,12 @@ body { font-family: 'Inter', sans-serif; }
 									<span class="font-medium text-gray-900 dark:text-white">{provider.name}</span>
 									{#if provider.is_default}
 										<span class="px-2 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded">
-											Default
+											{$t('admin.settings_page.integrations.ai_default_badge')}
 										</span>
 									{/if}
 									{#if !provider.is_active}
 										<span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
-											Inactive
+											{$t('admin.settings_page.integrations.ai_inactive_badge')}
 										</span>
 									{/if}
 								</div>
@@ -1399,7 +1412,7 @@ body { font-family: 'Inter', sans-serif; }
 										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 									</svg>
 								{:else}
-									Test
+									{$t('admin.settings_page.integrations.ai_test_button')}
 								{/if}
 							</button>
 							{#if !provider.is_default}
@@ -1407,14 +1420,14 @@ body { font-family: 'Inter', sans-serif; }
 									class="btn btn-sm btn-secondary"
 									onclick={() => setDefault(String(provider.id))}
 								>
-									Set Default
+									{$t('admin.settings_page.integrations.ai_set_default_button')}
 								</button>
 							{/if}
 							<button
 								class="btn btn-sm btn-ghost text-red-600"
 								onclick={() => deleteProvider(String(provider.id))}
 							>
-								Delete
+								{$t('admin.settings_page.integrations.ai_delete_button')}
 							</button>
 						</div>
 					</div>
@@ -1427,14 +1440,14 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- About / Changelog Section -->
 	<div id="about" class="card p-6 mt-6">
 		<div class="flex items-center justify-between mb-4">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">About Facet</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.about.section_title')}</h2>
 			<span class="px-3 py-1 text-sm font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">
 				{appVersion}
 			</span>
 		</div>
 
 		<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-			Facet is an open-source professional portfolio platform. Report bugs or request features on GitHub.
+			{$t('admin.settings_page.about.description')}
 		</p>
 
 		<div class="flex flex-wrap gap-3 mb-6">
@@ -1447,7 +1460,7 @@ body { font-family: 'Inter', sans-serif; }
 				<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
 					<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
 				</svg>
-				Report an Issue
+				{$t('admin.settings_page.about.report_issue')}
 			</a>
 			<a
 				href="https://github.com/jesposito/Facet"
@@ -1458,19 +1471,19 @@ body { font-family: 'Inter', sans-serif; }
 				<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
 					<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
 				</svg>
-				View on GitHub
+				{$t('admin.settings_page.about.view_github')}
 			</a>
 		</div>
 
 		<!-- Recent Changes -->
 		<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-			<h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent Changes</h3>
+			<h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">{$t('admin.settings_page.about.recent_changes')}</h3>
 
 			{#if changelogLoading}
-				<div class="animate-pulse text-sm text-gray-500 dark:text-gray-400">Loading changelog...</div>
+				<div class="animate-pulse text-sm text-gray-500 dark:text-gray-400">{$t('admin.settings_page.about.changelog_loading')}</div>
 			{:else if changelogEntries.length === 0}
 				<p class="text-sm text-gray-500 dark:text-gray-400">
-					No changelog available yet. Check <a href="https://github.com/jesposito/Facet/releases" target="_blank" rel="noopener noreferrer" class="text-primary-600 dark:text-primary-400 hover:underline">GitHub releases</a> for updates.
+					{$t('admin.settings_page.about.changelog_empty', { values: { link: '' } }).replace('{link}', '')}<a href="https://github.com/jesposito/Facet/releases" target="_blank" rel="noopener noreferrer" class="text-primary-600 dark:text-primary-400 hover:underline">{$t('admin.settings_page.about.github_releases')}</a>
 				</p>
 			{:else}
 				<div class="space-y-4">
@@ -1483,7 +1496,7 @@ body { font-family: 'Inter', sans-serif; }
 
 							{#if entry.bugs.length > 0}
 								<div class="mb-2">
-									<span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">Bug Fixes</span>
+									<span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase">{$t('admin.settings_page.about.bug_fixes')}</span>
 									<ul class="mt-1 text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
 										{#each entry.bugs.slice(0, 3) as bug}
 											<li class="flex items-start gap-2">
@@ -1492,7 +1505,7 @@ body { font-family: 'Inter', sans-serif; }
 											</li>
 										{/each}
 										{#if entry.bugs.length > 3}
-											<li class="text-gray-500 dark:text-gray-500 text-xs">+{entry.bugs.length - 3} more</li>
+											<li class="text-gray-500 dark:text-gray-500 text-xs">{$t('admin.settings_page.about.more_items', { values: { count: entry.bugs.length - 3 } })}</li>
 										{/if}
 									</ul>
 								</div>
@@ -1500,7 +1513,7 @@ body { font-family: 'Inter', sans-serif; }
 
 							{#if entry.features.length > 0}
 								<div class="mb-2">
-									<span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">New Features</span>
+									<span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase">{$t('admin.settings_page.about.new_features')}</span>
 									<ul class="mt-1 text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
 										{#each entry.features.slice(0, 3) as feature}
 											<li class="flex items-start gap-2">
@@ -1509,7 +1522,7 @@ body { font-family: 'Inter', sans-serif; }
 											</li>
 										{/each}
 										{#if entry.features.length > 3}
-											<li class="text-gray-500 dark:text-gray-500 text-xs">+{entry.features.length - 3} more</li>
+											<li class="text-gray-500 dark:text-gray-500 text-xs">{$t('admin.settings_page.about.more_items', { values: { count: entry.features.length - 3 } })}</li>
 										{/if}
 									</ul>
 								</div>
@@ -1517,7 +1530,7 @@ body { font-family: 'Inter', sans-serif; }
 
 							{#if entry.other.length > 0}
 								<div class="mb-2">
-									<span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">Other</span>
+									<span class="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase">{$t('admin.settings_page.about.other_changes')}</span>
 									<ul class="mt-1 text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
 										{#each entry.other.slice(0, 2) as item}
 											<li class="flex items-start gap-2">
@@ -1526,7 +1539,7 @@ body { font-family: 'Inter', sans-serif; }
 											</li>
 										{/each}
 										{#if entry.other.length > 2}
-											<li class="text-gray-500 dark:text-gray-500 text-xs">+{entry.other.length - 2} more</li>
+											<li class="text-gray-500 dark:text-gray-500 text-xs">{$t('admin.settings_page.about.more_items', { values: { count: entry.other.length - 2 } })}</li>
 										{/if}
 									</ul>
 								</div>
@@ -1541,7 +1554,7 @@ body { font-family: 'Inter', sans-serif; }
 							onclick={showMoreChangelog}
 							class="btn btn-ghost text-sm"
 						>
-							Show more ({allChangelogEntries.length - visibleChangelogCount} remaining)
+							{$t('admin.settings_page.about.show_more', { values: { count: allChangelogEntries.length - visibleChangelogCount } })}
 						</button>
 					{/if}
 					<a
@@ -1550,7 +1563,7 @@ body { font-family: 'Inter', sans-serif; }
 						rel="noopener noreferrer"
 						class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
 					>
-						View full changelog on GitHub →
+						{$t('admin.settings_page.about.view_full_changelog')}
 					</a>
 				</div>
 			{/if}

@@ -5,7 +5,15 @@
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { t } from 'svelte-i18n';
+	import { get } from 'svelte/store';
 	import type { PageData } from './$types';
+
+	// Helper to get translation in non-reactive contexts
+	function tr(key: string): string {
+		const translate = get(t);
+		return translate(key);
+	}
 
 	interface Props {
 		data: PageData;
@@ -84,7 +92,7 @@
 			});
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
-			error = 'Failed to login with Google';
+			error = tr('admin.login.error_google');
 			console.error(err);
 			loading = false;
 		}
@@ -100,7 +108,7 @@
 			});
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
-			error = 'Failed to login with GitHub';
+			error = tr('admin.login.error_github');
 			console.error(err);
 			loading = false;
 		}
@@ -122,7 +130,7 @@
 
 	async function loginWithPassword() {
 		if (!email || !password) {
-			error = 'Email and password are required';
+			error = tr('admin.login.error_email_required');
 			return;
 		}
 
@@ -132,7 +140,7 @@
 			await pb.collection('users').authWithPassword(email, password);
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
-			error = 'Invalid email or password';
+			error = tr('admin.login.error_invalid_credentials');
 			console.error(err);
 			loading = false;
 		}
@@ -140,14 +148,14 @@
 </script>
 
 <svelte:head>
-	<title>Sign In | Facet</title>
+	<title>{$t('admin.login.title')} | Facet</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
 	<div class="card p-8 max-w-md w-full">
 		<div class="text-center mb-8">
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sign in to Facet</h1>
-			<p class="text-gray-600 dark:text-gray-400 mt-2">A simple home for your story.</p>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.login.title')}</h1>
+			<p class="text-gray-600 dark:text-gray-400 mt-2">{$t('admin.login.tagline')}</p>
 		</div>
 
 		{#if error}
@@ -157,7 +165,7 @@
 		{/if}
 
 		{#if !authMethodsLoaded}
-			<div class="mb-4 text-sm text-gray-600 dark:text-gray-400">Loading available login methods…</div>
+			<div class="mb-4 text-sm text-gray-600 dark:text-gray-400">{$t('admin.login.loading_methods')}</div>
 		{/if}
 
 		{#if methodsError}
@@ -180,7 +188,7 @@
 							<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
 							<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
 						</svg>
-						Continue with Google
+						{$t('admin.login.continue_google')}
 					</button>
 				{/if}
 
@@ -193,13 +201,13 @@
 						<svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
 							<path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
 						</svg>
-						Continue with GitHub
+						{$t('admin.login.continue_github')}
 					</button>
 				{/if}
 			</div>
 		{:else}
 			<div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-				OAuth login isn’t configured. Set Google or GitHub credentials via environment variables or use password login.
+				{$t('admin.login.oauth_not_configured')}
 			</div>
 		{/if}
 
@@ -213,7 +221,7 @@
 						class="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
 						onclick={() => (showPasswordLogin = !showPasswordLogin)}
 					>
-						{showPasswordLogin ? 'Hide' : 'Or use'} password login
+						{showPasswordLogin ? $t('admin.login.hide_password_login') : $t('admin.login.show_password_login')}
 					</button>
 				</div>
 			{/if}
@@ -222,7 +230,7 @@
 		{#if showPasswordLogin && passwordAuthEnabled}
 			<form onsubmit={preventDefault(loginWithPassword)} class="space-y-4">
 				<div>
-					<label for="email" class="label">Email</label>
+					<label for="email" class="label">{$t('admin.login.email_label')}</label>
 					<input
 						type="email"
 						id="email"
@@ -234,7 +242,7 @@
 				</div>
 
 				<div>
-					<label for="password" class="label">Password</label>
+					<label for="password" class="label">{$t('admin.login.password_label')}</label>
 					<input
 						type="password"
 						id="password"
@@ -252,7 +260,7 @@
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
 					{/if}
-					Sign In
+					{$t('admin.login.sign_in')}
 				</button>
 			</form>
 		{/if}

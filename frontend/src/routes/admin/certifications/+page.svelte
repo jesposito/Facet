@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Certification } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -327,14 +328,13 @@ onMount(loadCertifications);
 </script>
 
 <svelte:head>
-	<title>Certifications | Facet Admin</title>
+	<title>{$t('admin.content.certifications.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="certifications">
-		<p><strong>Certifications</strong> track your professional credentials with expiry dates and verification links.</p>
-		<p>Expired certifications show a warning badge. Group by issuer (AWS, Google, Microsoft) for organized display.</p>
-		<p><strong>Tip:</strong> Add credential URLs so viewers can verify your certifications directly with the issuer.</p>
+		{@html $t('admin.content.certifications.help_text')}
+		<p><strong>{$t('admin.content.common.tip')}:</strong> {$t('admin.content.certifications.help_tip_1')}</p>
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -360,18 +360,18 @@ onMount(loadCertifications);
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Certifications</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.certifications.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if certifications.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Certification
+				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.certifications.singular') } })}
 			</button>
 		</div>
 	</div>
@@ -390,7 +390,7 @@ onMount(loadCertifications);
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading certifications...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.certifications.title').toLowerCase() } })}</div>
 		</div>
 	{:else if showForm}
 		<!-- Certification Form -->

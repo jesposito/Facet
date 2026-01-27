@@ -2,6 +2,7 @@
 	import { run } from 'svelte/legacy';
 
 	import { onMount, onDestroy } from 'svelte';
+	import { t } from 'svelte-i18n';
 	import { confirmDialog } from '$lib/stores';
 	import { icon } from '$lib/icons';
 
@@ -140,14 +141,14 @@
 					class="btn btn-secondary"
 					onclick={() => confirmDialog.respond(false)}
 				>
-					{options.cancelText || 'Cancel'}
+					{options.cancelText || $t('shared.actions.cancel')}
 				</button>
 				<button
 					type="button"
 					class="btn {options.danger ? 'btn-danger' : 'btn-primary'}"
 					onclick={() => confirmDialog.respond(true)}
 				>
-					{options.confirmText || 'Confirm'}
+					{options.confirmText || $t('shared.actions.confirm')}
 				</button>
 			</div>
 		</div>
