@@ -12,17 +12,19 @@ import { browser } from '$app/environment';
 
 // Register available locales - add new languages here
 register('en', () => import('../../locales/en.json'));
+register('lolcat', () => import('../../locales/lolcat.json'));
 // register('es', () => import('../../locales/es.json'));
 // register('fr', () => import('../../locales/fr.json'));
 // register('de', () => import('../../locales/de.json'));
 
 // Supported locales for validation and UI
-export const SUPPORTED_LOCALES = ['en'] as const;
+export const SUPPORTED_LOCALES = ['en', 'lolcat'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 // Human-readable locale names for language switcher
 export const LOCALE_NAMES: Record<string, string> = {
 	en: 'English',
+	lolcat: 'LOLcat',
 	es: 'Espanol',
 	fr: 'Francais',
 	de: 'Deutsch',
