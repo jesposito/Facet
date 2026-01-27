@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 
 	interface Testimonial {
 		id: string;
@@ -24,23 +25,72 @@
 	// Carousel state
 	let carouselContainer: HTMLDivElement | null = $state(null);
 	let currentIndex = $state(0);
+	let isScrolling = $state(false);
+	let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	// Handle manual scroll to sync currentIndex with scroll position
+	function handleScroll() {
+		if (!carouselContainer || !browser || isScrolling) return;
+
+		// Debounce scroll handling
+		if (scrollTimeout) clearTimeout(scrollTimeout);
+		scrollTimeout = setTimeout(() => {
+			updateCurrentIndexFromScroll();
+		}, 50);
+	}
+
+	function updateCurrentIndexFromScroll() {
+		if (!carouselContainer) return;
+
+		const children = Array.from(carouselContainer.children) as HTMLElement[];
+		if (children.length === 0) return;
+
+		const containerRect = carouselContainer.getBoundingClientRect();
+		const containerCenter = containerRect.left + containerRect.width / 2;
+
+		// Find the child closest to the center of the container
+		let closestIndex = 0;
+		let closestDistance = Infinity;
+
+		children.forEach((child, index) => {
+			const childRect = child.getBoundingClientRect();
+			const childCenter = childRect.left + childRect.width / 2;
+			const distance = Math.abs(childCenter - containerCenter);
+
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestIndex = index;
+			}
+		});
+
+		if (currentIndex !== closestIndex) {
+			currentIndex = closestIndex;
+		}
+	}
 
 	function scrollToIndex(index: number) {
 		if (!carouselContainer || !browser) return;
 		const children = carouselContainer.children;
 		if (children[index]) {
-			children[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+			isScrolling = true;
+			children[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 			currentIndex = index;
+			// Reset scrolling flag after animation completes
+			setTimeout(() => {
+				isScrolling = false;
+			}, 500);
 		}
 	}
 
-	function scrollPrev() {
-		const newIndex = Math.max(0, currentIndex - 1);
+	function scrollPrev(maxIndex: number) {
+		// Loop to end if at beginning
+		const newIndex = currentIndex === 0 ? maxIndex - 1 : currentIndex - 1;
 		scrollToIndex(newIndex);
 	}
 
 	function scrollNext(maxIndex: number) {
-		const newIndex = Math.min(maxIndex - 1, currentIndex + 1);
+		// Loop to beginning if at end
+		const newIndex = currentIndex === maxIndex - 1 ? 0 : currentIndex + 1;
 		scrollToIndex(newIndex);
 	}
 
@@ -63,6 +113,17 @@
 		};
 		return labels[rel] || '';
 	}
+
+	// Generate alt text for author photos
+	function getAuthorPhotoAlt(name: string): string {
+		return `Photo of ${name}`;
+	}
+
+	onMount(() => {
+		return () => {
+			if (scrollTimeout) clearTimeout(scrollTimeout);
+		};
+	});
 </script>
 
 <section id="testimonials" class="mb-16">
@@ -79,7 +140,7 @@
 						{#if item.author_photo}
 							<img
 								src={item.author_photo}
-								alt=""
+								alt={getAuthorPhotoAlt(item.author_name)}
 								class="w-10 h-10 rounded-full object-cover"
 							/>
 						{:else}
@@ -112,12 +173,11 @@
 		{@const featuredItems = items.filter(t => t.featured)}
 		{@const displayItems = featuredItems.length > 0 ? featuredItems : items}
 		<div class="relative">
-			<!-- Navigation buttons -->
+			<!-- Navigation buttons (endless loop, no disabled state) -->
 			{#if displayItems.length > 1}
 				<button
-					onclick={scrollPrev}
-					class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					disabled={currentIndex === 0}
+					onclick={() => scrollPrev(displayItems.length)}
+					class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
 					aria-label="Previous testimonial"
 				>
 					<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -126,8 +186,7 @@
 				</button>
 				<button
 					onclick={() => scrollNext(displayItems.length)}
-					class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-					disabled={currentIndex === displayItems.length - 1}
+					class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
 					aria-label="Next testimonial"
 				>
 					<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -139,7 +198,10 @@
 			<!-- Carousel container -->
 			<div
 				bind:this={carouselContainer}
+				onscroll={handleScroll}
 				class="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 px-8 scrollbar-hide"
+				role="region"
+				aria-label="Testimonials carousel"
 			>
 				{#each displayItems as item, i (item.id)}
 					<div class="snap-center shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] first:ml-0">
@@ -149,7 +211,7 @@
 							</blockquote>
 							<div class="flex items-center gap-3">
 								{#if item.author_photo}
-									<img src={item.author_photo} alt="" class="w-10 h-10 rounded-full object-cover" />
+									<img src={item.author_photo} alt={getAuthorPhotoAlt(item.author_name)} class="w-10 h-10 rounded-full object-cover" />
 								{:else}
 									<div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
 										<span class="text-sm font-medium text-primary-600 dark:text-primary-400">
@@ -171,18 +233,6 @@
 				{/each}
 			</div>
 
-			<!-- Dot indicators -->
-			{#if displayItems.length > 1}
-				<div class="flex justify-center gap-2 mt-2">
-					{#each displayItems as _, i}
-						<button
-							onclick={() => scrollToIndex(i)}
-							class="w-2 h-2 rounded-full transition-colors {i === currentIndex ? 'bg-primary-600 dark:bg-primary-400' : 'bg-gray-300 dark:bg-gray-600'}"
-							aria-label="Go to testimonial {i + 1}"
-						></button>
-					{/each}
-				</div>
-			{/if}
 		</div>
 	{:else if layout === 'featured'}
 		{@const featured = items.find(t => t.featured) || items[0]}
@@ -196,7 +246,7 @@
 				</blockquote>
 				<div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
 					{#if featured.author_photo}
-						<img src={featured.author_photo} alt="" class="w-12 h-12 rounded-full object-cover" />
+						<img src={featured.author_photo} alt={getAuthorPhotoAlt(featured.author_name)} class="w-12 h-12 rounded-full object-cover" />
 					{:else}
 						<div class="w-12 h-12 rounded-full bg-primary-200 dark:bg-primary-900 flex items-center justify-center">
 							<span class="text-lg font-medium text-primary-700 dark:text-primary-300">

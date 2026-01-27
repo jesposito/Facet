@@ -13,9 +13,10 @@
 		ctaUrl?: string;
 		ctaButtonText?: string;
 		ctaText?: string;
+		ctaEnabled?: boolean;
 	}
 
-	let { ctaUrl = '', ctaButtonText = 'Learn More', ctaText = '' }: Props = $props();
+	let { ctaUrl = '', ctaButtonText = 'Learn More', ctaText = '', ctaEnabled = true }: Props = $props();
 
 	let navEnabled = $state(false);
 	let navItems: NavItem[] = $state([]);
@@ -88,8 +89,8 @@
 					{/each}
 				</div>
 
-				<!-- CTA Button (if configured) -->
-				{#if ctaUrl}
+				<!-- CTA Button (if configured and enabled) -->
+				{#if ctaUrl && ctaEnabled}
 					<a
 						href={ctaUrl}
 						target="_blank"
@@ -125,8 +126,8 @@
 					{/if}
 				</button>
 
-				<!-- CTA Button on mobile (always visible) -->
-				{#if ctaUrl}
+				<!-- CTA Button on mobile (if configured and enabled) -->
+				{#if ctaUrl && ctaEnabled}
 					<a
 						href={ctaUrl}
 						target="_blank"
@@ -172,7 +173,7 @@
 			</div>
 		{/if}
 	</nav>
-{:else if !loading && ctaUrl && ctaText}
+{:else if !loading && ctaUrl && ctaText && ctaEnabled}
 	<!-- Fallback to traditional CTA banner when nav is disabled -->
 	<div class="bg-primary-600 text-white py-4">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">

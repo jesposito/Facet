@@ -431,6 +431,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["cta_button_text"] = ctaButtonText
 			}
 
+			// Include cta_enabled (defaults to true if not set, to preserve existing behavior)
+			ctaEnabled := true
+			if view.Collection().Fields.GetByName("cta_enabled") != nil {
+				if view.Get("cta_enabled") != nil {
+					ctaEnabled = view.GetBool("cta_enabled")
+				}
+			}
+			response["cta_enabled"] = ctaEnabled
+
 			// Include view-specific accent color (null/empty means inherit from profile)
 			if accentColor := view.GetString("accent_color"); accentColor != "" {
 				response["accent_color"] = accentColor
@@ -601,6 +610,14 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["profile"] = profileData
 			}
 
+			// Include global site CTA enabled setting
+			settings, settingsErr := services.LoadSiteSettings(app)
+			if settingsErr == nil && settings != nil {
+				response["site_cta_enabled"] = settings.SiteCtaEnabled
+			} else {
+				response["site_cta_enabled"] = true // Default to true
+			}
+
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -620,6 +637,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"homepage_enabled":     false,
 					"landing_page_message": settings.LandingPageMessage,
 					"hide_login_button":    settings.HideLoginButton,
+					"site_cta_enabled":     settings.SiteCtaEnabled,
 				})
 			}
 
@@ -662,6 +680,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"homepage_enabled":     true,
 				"landing_page_message": settings.LandingPageMessage,
 				"hide_login_button":    settings.HideLoginButton,
+				"site_cta_enabled":     settings.SiteCtaEnabled,
 			})
 		}))
 
@@ -748,6 +767,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["homepage_enabled"] = false
 				response["landing_page_message"] = settings.LandingPageMessage
 				response["hide_login_button"] = settings.HideLoginButton
+				response["site_cta_enabled"] = settings.SiteCtaEnabled
 				return e.JSON(http.StatusOK, response)
 			}
 
@@ -1067,6 +1087,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Include site settings in response
 			if settings != nil {
 				response["hide_login_button"] = settings.HideLoginButton
+				response["site_cta_enabled"] = settings.SiteCtaEnabled
 				response["homepage_custom_content"] = settings.HomepageCustomContent
 				response["homepage_section_order"] = settings.HomepageSectionOrder
 				response["homepage_sections"] = settings.HomepageSections

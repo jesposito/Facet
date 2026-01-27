@@ -3,7 +3,7 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-import { pb, type Post } from '$lib/pocketbase';
+import { pb, type Post, getFileUrl } from '$lib/pocketbase';
 import { collection } from '$lib/stores/demo';
 import { toasts, confirm } from '$lib/stores';
 import { createAutosave } from '$lib/stores/autosave';
@@ -101,6 +101,7 @@ afterNavigate(() => {
 	let isDraft = $state(true);
 	let publishedAt = $state('');
 	let saving = $state(false);
+	let coverImageFile: FileList | null = $state(null);
 
 	// Simple pattern - admin layout handles auth
 onMount(loadPosts);
@@ -237,6 +238,7 @@ function resetForm() {
 	visibility = 'public';
 	isDraft = true;
 	publishedAt = '';
+	coverImageFile = null;
 		editingPost = null;
 	}
 
@@ -276,6 +278,7 @@ function openEditForm(post: Post) {
 	visibility = post.visibility;
 	isDraft = post.is_draft;
 	publishedAt = toDateInputValue(post.published_at);
+	coverImageFile = null;
 	showForm = true;
 	}
 
@@ -315,6 +318,11 @@ function openEditForm(post: Post) {
 		}
 	}
 
+	function getCoverImageUrl(post: Post): string {
+		if (!(post as any).cover_image) return '';
+		return getFileUrl(post, (post as any).cover_image);
+	}
+
 	async function handleSubmit() {
 		if (!title.trim()) {
 			toasts.add('error', 'Title is required');
@@ -328,23 +336,30 @@ function openEditForm(post: Post) {
 		saving = true;
 		try {
 			const resolvedRefs = await resolveMediaRefs(mediaRefs);
-			const data = {
-				title: title.trim(),
-				slug: slug.trim(),
-				excerpt: excerpt.trim(),
-				content: content,
-				media_refs: resolvedRefs,
-				tags: tags,
-				visibility,
-				is_draft: isDraft,
-				published_at: publishedAt ? new Date(publishedAt).toISOString() : null
-			};
+
+			// Use FormData to support file uploads
+			const formData = new FormData();
+			formData.append('title', title.trim());
+			formData.append('slug', slug.trim());
+			formData.append('excerpt', excerpt.trim());
+			formData.append('content', content);
+			formData.append('media_refs', JSON.stringify(resolvedRefs));
+			formData.append('tags', JSON.stringify(tags));
+			formData.append('visibility', visibility);
+			formData.append('is_draft', String(isDraft));
+			if (publishedAt) {
+				formData.append('published_at', new Date(publishedAt).toISOString());
+			}
+
+			if (coverImageFile && coverImageFile.length > 0) {
+				formData.append('cover_image', coverImageFile[0]);
+			}
 
 			if (editingPost) {
-				await await collection('posts').update(editingPost.id, data);
+				await collection('posts').update(editingPost.id, formData);
 				toasts.add('success', 'Post updated successfully');
 			} else {
-				await await collection('posts').create(data);
+				await collection('posts').create(formData);
 				toasts.add('success', 'Post created successfully');
 			}
 
@@ -663,6 +678,28 @@ function openEditForm(post: Post) {
 						/>
 						<button type="button" class="btn btn-secondary" onclick={addTag}>Add</button>
 					</div>
+				</div>
+
+				<div>
+					<label for="cover_image" class="label">Cover Image</label>
+					<input
+						type="file"
+						id="cover_image"
+						accept="image/*"
+						bind:files={coverImageFile}
+						class="input"
+					/>
+					{#if editingPost && getCoverImageUrl(editingPost) && !coverImageFile}
+						<div class="mt-2 flex items-center gap-2">
+							<img
+								src={getCoverImageUrl(editingPost)}
+								alt="Current cover"
+								class="w-20 h-20 object-cover rounded"
+							/>
+							<span class="text-sm text-gray-500">Current image</span>
+						</div>
+					{/if}
+					<p class="text-xs text-gray-500 mt-1">Displayed in post grids and as the header image</p>
 				</div>
 			</div>
 

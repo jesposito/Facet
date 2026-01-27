@@ -24,7 +24,11 @@
 			// Check cache first
 			const cached = localStorage.getItem(CACHE_KEY);
 			if (cached) {
-				const { timestamp, latest, hasUpdate } = JSON.parse(cached);
+				const { timestamp, latest, hasUpdate } = JSON.parse(cached) as {
+					timestamp: number;
+					latest: string;
+					hasUpdate: boolean;
+				};
 				if (Date.now() - timestamp < CACHE_DURATION) {
 					latestVersion = latest;
 					newVersionAvailable = hasUpdate;
@@ -43,8 +47,8 @@
 			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
 			const latestClean = latest.replace(/^v/, '');
 
-			const hasUpdate = latestClean && currentClean !== latestClean &&
-				compareVersions(latestClean, currentClean) > 0;
+			const hasUpdate = Boolean(latestClean && currentClean !== latestClean &&
+				compareVersions(latestClean, currentClean) > 0);
 
 			// Cache result
 			localStorage.setItem(CACHE_KEY, JSON.stringify({

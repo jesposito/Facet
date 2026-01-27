@@ -191,12 +191,27 @@
 	}
 
 	// Default section order (fallback when no custom order is specified)
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	// Compute effective section order: use custom order if provided, otherwise use default
 	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
 		? data.sectionOrder
 		: DEFAULT_SECTION_ORDER);
+
+	// Extract custom content items from sections for ProfileNav
+	let customContentForNav = $derived.by(() => {
+		if (!data.sections) return [];
+		return Object.entries(data.sections)
+			.filter(([key]) => key.startsWith('custom:'))
+			.map(([key, items]) => {
+				const item = (items as Array<{ id: string; title: string }>)?.[0];
+				if (item) {
+					return { id: item.id, title: item.title };
+				}
+				return null;
+			})
+			.filter((item): item is { id: string; title: string } => item !== null);
+	});
 
 	// Get layout for a section (from API response or default)
 	function getSectionLayout(sectionKey: string): string {
@@ -370,8 +385,9 @@
 				ctaUrl={data.view?.cta_url || ''}
 				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
 				ctaText={data.view?.cta_text || ''}
+				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 			/>
-		{:else if data.view?.cta_text && data.view?.cta_url}
+		{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 			<!-- Fallback CTA for non-public views (no site nav) -->
 			<div class="bg-primary-600 text-white py-4">
 				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -400,10 +416,15 @@
 			hasProjects={data.sections?.projects?.length > 0}
 			hasEducation={data.sections?.education?.length > 0}
 			hasCertifications={data.sections?.certifications?.length > 0}
+			hasAwards={data.sections?.awards?.length > 0}
 			hasSkills={data.sections?.skills?.length > 0}
 			hasPosts={data.sections?.posts?.length > 0}
 			hasTalks={data.sections?.talks?.length > 0}
+			hasTestimonials={data.sections?.testimonials?.length > 0}
+			hasContacts={data.sections?.contacts?.length > 0}
 			viewSlug={data.view?.slug || ''}
+			sectionOrder={effectiveSectionOrder}
+			customContent={customContentForNav}
 		/>
 
 		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

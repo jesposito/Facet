@@ -46,6 +46,7 @@ type SiteSettings struct {
 	SiteNavEnabled        bool
 	SiteNavItems          []SiteNavItem
 	SkillsCategoryOrder   []string
+	SiteCtaEnabled        bool
 	Record                *core.Record
 }
 
@@ -116,6 +117,17 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		_ = json.Unmarshal([]byte(rawJSON), &skillsCategoryOrder)
 	}
 
+	// For site_cta_enabled, default to true if field doesn't exist or is not explicitly set
+	// This preserves existing behavior where CTA shows if URL is configured
+	siteCtaEnabled := true
+	if record.Collection().Fields.GetByName("site_cta_enabled") != nil {
+		// Field exists - use its value (but default to true if never set)
+		// GetBool returns false for unset fields, so we check if it was explicitly set to false
+		if record.Get("site_cta_enabled") != nil {
+			siteCtaEnabled = record.GetBool("site_cta_enabled")
+		}
+	}
+
 	return &SiteSettings{
 		HomepageEnabled:       record.GetBool("homepage_enabled"),
 		LandingPageMessage:    record.GetString("landing_page_message"),
@@ -129,6 +141,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		SiteNavEnabled:        record.GetBool("site_nav_enabled"),
 		SiteNavItems:          siteNavItems,
 		SkillsCategoryOrder:   skillsCategoryOrder,
+		SiteCtaEnabled:        siteCtaEnabled,
 		Record:                record,
 	}, nil
 }
@@ -218,6 +231,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("skills_category_order", skillsCatOrder)
 		} else if logger != nil {
 			logger.Warn("skills_category_order field missing on site_settings, skipping update")
+		}
+	}
+	if enabled, ok := updates["site_cta_enabled"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("site_cta_enabled") != nil {
+			settings.Record.Set("site_cta_enabled", enabled)
+		} else if logger != nil {
+			logger.Warn("site_cta_enabled field missing on site_settings, skipping update")
 		}
 	}
 

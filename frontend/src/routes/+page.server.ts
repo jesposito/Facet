@@ -78,7 +78,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 							cta_text: viewData.cta_text,
 							cta_url: viewData.cta_url,
 							cta_button_text: viewData.cta_button_text,
-							accent_color: viewData.accent_color || null
+							accent_color: viewData.accent_color || null,
+							cta_enabled: viewData.cta_enabled !== false
 						},
 						profile: profile
 							? {
@@ -105,7 +106,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						isDefaultView: true,
 						homepageDisabled: false,
 						landingPageMessage: defaultViewInfo.landing_page_message || '',
-						hideLoginButton: defaultViewInfo.hide_login_button || false
+						hideLoginButton: defaultViewInfo.hide_login_button || false,
+						siteCtaEnabled: defaultViewInfo.site_cta_enabled !== false
 					};
 				}
 			}
@@ -137,7 +139,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				isDefaultView: false,
 				homepageDisabled: false,
 				landingPageMessage: '',
-				hideLoginButton: false
+				hideLoginButton: false,
+				siteCtaEnabled: true
 			};
 		}
 
@@ -147,6 +150,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				homepageDisabled: true,
 				landingPageMessage: data.landing_page_message || '',
 				hideLoginButton: data.hide_login_button || false,
+				siteCtaEnabled: data.site_cta_enabled !== false,
 				profile: null,
 				experience: [],
 				projects: [],
@@ -175,7 +179,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				view: null,
 				error: 'Profile is private',
 				isDefaultView: false,
-				hideLoginButton: data.hide_login_button || false
+				hideLoginButton: data.hide_login_button || false,
+				siteCtaEnabled: data.site_cta_enabled !== false
 			};
 		}
 
@@ -216,7 +221,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			skillsCategoryOrder: data.skills_category_order || [],
 			view: null,
 			isDefaultView: false,
-			hideLoginButton: data.hide_login_button || false
+			hideLoginButton: data.hide_login_button || false,
+			siteCtaEnabled: data.site_cta_enabled !== false
 		};
 	} catch (error) {
 		logger.error('[ROOT PAGE] Exception:', error);
@@ -235,7 +241,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			view: null,
 			error: 'Failed to load profile',
 			isDefaultView: false,
-			hideLoginButton: false
+			hideLoginButton: false,
+			siteCtaEnabled: true
 		};
 	}
 };
