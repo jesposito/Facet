@@ -166,6 +166,9 @@
 				"recent_changes": "Recent Chayngez",
 				"changelog_loading": "Loadin changelog...",
 				"changelog_empty": "No changelog availabl yet. Check {link} 4 updaets.",
+				"changelog_empty_before_link": "No changelog availabl yet. Check",
+				"changelog_empty_link": "GitHub releesez",
+				"changelog_empty_after_link": "4 updaets.",
 				"github_releases": "GitHub releesez",
 				"bug_fixes": "Bug Fiksez",
 				"new_features": "New Featurez",
@@ -192,6 +195,10 @@
 			"changelog_title": "Changelog",
 			"changelog_loading": "Loadin changelog...",
 			"changelog_empty": "No changelog availabl yet. Check {link} 4 updaets.",
+			"changelog_empty_before_link": "No changelog availabl yet. Check",
+			"changelog_empty_link": "GitHub releesez",
+			"changelog_empty_after_link": "4 updaets.",
+			"new_version_available": "{version} availabl",
 			"github_releases": "GitHub releesez",
 			"bug_fixes": "Bug Fiksez",
 			"new_features": "New Featurez",
@@ -1269,6 +1276,13 @@
 		},
 		"posts": {
 			"read_more": "Moar plz"
+		},
+		"testimonials": {
+			"photo_alt": "Piktur of {name}",
+			"at": "at",
+			"previous": "Previus testimoni",
+			"next": "Nxt testimoni",
+			"carousel_label": "Testimoni spinny thingz"
 		},
 		"custom_content": {
 			"open_link": "Open link"
