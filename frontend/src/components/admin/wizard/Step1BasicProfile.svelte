@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { setupWizard } from '$lib/stores/setupWizard';
+	import { t } from 'svelte-i18n';
 
 	function handleNameChange(e: Event) {
 		const target = e.target as HTMLInputElement;
@@ -20,53 +21,53 @@
 <div class="space-y-6">
 	<div class="text-center">
 		<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-			Let's start with the basics
+			{$t('admin.wizard.step1_title')}
 		</h2>
 		<p class="text-gray-600 dark:text-gray-400">
-			This creates your foundation profile
+			{$t('admin.wizard.step1_subtitle')}
 		</p>
 	</div>
-	
+
 	<div class="space-y-4">
 		<div>
-			<label for="wizard-name" class="label">Full Name *</label>
+			<label for="wizard-name" class="label">{$t('admin.wizard.full_name')} {$t('admin.wizard.required_field')}</label>
 			<input
 				type="text"
 				id="wizard-name"
 				class="input"
-				placeholder="Jane Smith"
+				placeholder={$t('admin.wizard.full_name_placeholder')}
 				value={$setupWizard.profile.name || ''}
 				oninput={handleNameChange}
 			/>
 		</div>
-		
+
 		<div>
-			<label for="wizard-headline" class="label">Professional Title *</label>
+			<label for="wizard-headline" class="label">{$t('admin.wizard.professional_title')} {$t('admin.wizard.required_field')}</label>
 			<input
 				type="text"
 				id="wizard-headline"
 				class="input"
-				placeholder="Software Engineer"
+				placeholder={$t('admin.wizard.professional_title_placeholder')}
 				value={$setupWizard.profile.headline || ''}
 				oninput={handleHeadlineChange}
 			/>
 			<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-				What do you do? This appears below your name.
+				{$t('admin.wizard.professional_title_help')}
 			</p>
 		</div>
-		
+
 		<div>
-			<label for="wizard-summary" class="label">Brief Summary (optional)</label>
+			<label for="wizard-summary" class="label">{$t('admin.wizard.brief_summary')}</label>
 			<textarea
 				id="wizard-summary"
 				class="input min-h-[100px]"
-				placeholder="I'm a passionate developer who loves building user-friendly applications..."
+				placeholder={$t('admin.wizard.brief_summary_placeholder')}
 				value={$setupWizard.profile.summary || ''}
 				oninput={handleSummaryChange}
 				rows={3}
 			></textarea>
 			<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-				2-3 sentences about yourself. You can always edit this later.
+				{$t('admin.wizard.brief_summary_help')}
 			</p>
 		</div>
 	</div>
