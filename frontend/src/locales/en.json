@@ -995,6 +995,25 @@
 		"go_home": "Go Home",
 		"generic": "Something went wrong",
 		"network": "Network error. Please check your connection.",
-		"server": "Server error. Please try again later."
+		"server": "Server error. Please try again later.",
+		"page": {
+			"404_title": "404: I Didn't Build That Facet",
+			"404_message": "Turns out I didn't cut this part of the diamond.<br/>Maybe it's on the roadmap... maybe I forgot.",
+			"404_back_button": "Back to What Actually Works",
+			"404_go_back": "Go Back",
+			"500_title": "500: I Should Have Added More Tests",
+			"500_message": "Something I wrote is broken. Shocking, I know.<br/>Check back in 5 minutes after I frantically Google this.",
+			"500_refresh_button": "Refresh and Pray",
+			"generic_title": "{status}: Something's Off",
+			"generic_fallback": "This facet isn't quite right.",
+			"go_home_button": "Go Home",
+			"try_again_button": "Try Again",
+			"debug_title": "Debug info:",
+			"debug_url": "URL:",
+			"debug_status": "Status:",
+			"debug_error": "Error:",
+			"debug_none": "None",
+			"signature": "— Error pages crafted with self-awareness"
+		}
 	}
 }
