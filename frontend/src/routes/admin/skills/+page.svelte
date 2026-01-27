@@ -6,6 +6,7 @@
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
 	import { pb, type Skill } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -462,14 +463,14 @@ async function loadCategoryOrder() {
 </script>
 
 <svelte:head>
-	<title>Skills | Facet Admin</title>
+	<title>{$t('admin.content.skills.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="skills">
-		<p><strong>Skills</strong> showcase your technical and professional abilities, organized by category.</p>
-		<p>Use proficiency levels honestly - Expert means you can teach others, Proficient means strong working knowledge.</p>
-		<p><strong>Tip:</strong> Group related skills (Languages, Frameworks, DevOps) and show different skill sets to different audiences via Views.</p>
+		<p>{@html $t('admin.content.skills.help_text')}</p>
+		<p>{$t('admin.content.skills.help_tip_1')}</p>
+		<p>{@html $t('admin.content.skills.help_tip_2')}</p>
 	</PageHelp>
 
 	{#if selectMode && selectedIds.size > 0}
@@ -485,25 +486,25 @@ async function loadCategoryOrder() {
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Skills</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.skills.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if skills.length > 0 && !reorderMode}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 				<button
 					class="btn btn-ghost"
 					onclick={enterReorderMode}
 				>
-					Reorder
+					{$t('admin.content.skills.reorder_skills')}
 				</button>
 			{/if}
 			{#if !reorderMode}
 				<button class="btn btn-primary" onclick={openNewForm}>
-					+ New Skill
+					{$t('admin.content.common.new_button', { values: { type: $t('admin.content.skills.title').slice(0, -1) } })}
 				</button>
 			{/if}
 		</div>
@@ -523,7 +524,7 @@ async function loadCategoryOrder() {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading skills...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.skills.title').toLowerCase() } })}</div>
 		</div>
 	{:else if reorderMode}
 		<div class="space-y-6">
