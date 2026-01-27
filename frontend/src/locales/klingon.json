@@ -166,6 +166,9 @@
 				"recent_changes": "Recent Victories",
 				"changelog_loading": "Loading battle records...",
 				"changelog_empty": "No battle records yet. Check {link} for updates.",
+				"changelog_empty_before_link": "No battle records yet. Check",
+				"changelog_empty_link": "GitHub dispatches",
+				"changelog_empty_after_link": "for updates.",
 				"github_releases": "GitHub dispatches",
 				"bug_fixes": "Enemies Defeated",
 				"new_features": "New Weapons",
@@ -192,6 +195,10 @@
 			"changelog_title": "Battle Records",
 			"changelog_loading": "Loading battle records...",
 			"changelog_empty": "No battle records yet. Check {link} for updates.",
+			"changelog_empty_before_link": "No battle records yet. Check",
+			"changelog_empty_link": "GitHub dispatches",
+			"changelog_empty_after_link": "for updates.",
+			"new_version_available": "{version} ready for battle",
 			"github_releases": "GitHub dispatches",
 			"bug_fixes": "Enemies Defeated",
 			"new_features": "New Weapons",
@@ -1269,6 +1276,13 @@
 		},
 		"posts": {
 			"read_more": "Continue reading"
+		},
+		"testimonials": {
+			"photo_alt": "Image of {name}",
+			"at": "of",
+			"previous": "Previous honor statement",
+			"next": "Next honor statement",
+			"carousel_label": "Honor statements display"
 		},
 		"custom_content": {
 			"open_link": "Open channel"

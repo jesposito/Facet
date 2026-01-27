@@ -5,6 +5,17 @@ All notable changes to Facet will be documented in this file.
 
 ## v2.11.0 - January 27, 2026
 
+**New Features:**
+- Add hybrid skill category management with drag-to-reorder categories and per-skill selection
+- Complete internationalization for all public-facing pages and components
+- Add default locale setting to site settings for language persistence
+
+**Other Changes:**
+- Improve button styling consistency with borders on secondary and ghost buttons
+- Fix race condition in view editor for custom content loading
+
+**Pull Requests:** [#323](https://github.com/jesposito/Facet/pull/323)
+
 ---
 
 

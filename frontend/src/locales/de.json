@@ -166,6 +166,9 @@
 				"recent_changes": "Letzte Änderungen",
 				"changelog_loading": "Änderungsprotokoll wird geladen...",
 				"changelog_empty": "Noch kein Änderungsprotokoll verfügbar. Prüfen Sie {link} für Updates.",
+				"changelog_empty_before_link": "Noch kein Änderungsprotokoll verfügbar. Prüfen Sie",
+				"changelog_empty_link": "GitHub-Releases",
+				"changelog_empty_after_link": "für Updates.",
 				"github_releases": "GitHub-Releases",
 				"bug_fixes": "Fehlerbehebungen",
 				"new_features": "Neue Funktionen",
@@ -192,6 +195,10 @@
 			"changelog_title": "Änderungsprotokoll",
 			"changelog_loading": "Änderungsprotokoll wird geladen...",
 			"changelog_empty": "Noch kein Änderungsprotokoll verfügbar. Prüfen Sie {link} für Updates.",
+			"changelog_empty_before_link": "Noch kein Änderungsprotokoll verfügbar. Prüfen Sie",
+			"changelog_empty_link": "GitHub-Releases",
+			"changelog_empty_after_link": "für Updates.",
+			"new_version_available": "{version} verfügbar",
 			"github_releases": "GitHub-Releases",
 			"bug_fixes": "Fehlerbehebungen",
 			"new_features": "Neue Funktionen",
@@ -1269,6 +1276,13 @@
 		},
 		"posts": {
 			"read_more": "Weiterlesen"
+		},
+		"testimonials": {
+			"photo_alt": "Foto von {name}",
+			"at": "bei",
+			"previous": "Vorherige Referenz",
+			"next": "Nächste Referenz",
+			"carousel_label": "Referenzen-Karussell"
 		},
 		"custom_content": {
 			"open_link": "Link öffnen"

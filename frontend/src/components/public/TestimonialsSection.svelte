@@ -95,30 +95,6 @@
 		scrollToIndex(newIndex);
 	}
 
-	function getVerificationLabel(method: string, identifier: string): string | null {
-		if (method === 'email') return 'Verified';
-		if (method === 'github') return `@${identifier}`;
-		if (method === 'twitter') return `@${identifier}`;
-		if (method === 'linkedin') return 'LinkedIn';
-		return null;
-	}
-
-	function getRelationshipLabel(rel: string): string {
-		const labels: Record<string, string> = {
-			client: 'Client',
-			colleague: 'Colleague',
-			manager: 'Manager',
-			report: 'Direct Report',
-			mentor: 'Mentor',
-			other: ''
-		};
-		return labels[rel] || '';
-	}
-
-	// Generate alt text for author photos
-	function getAuthorPhotoAlt(name: string): string {
-		return `Photo of ${name}`;
-	}
 
 	onMount(() => {
 		return () => {
@@ -141,7 +117,7 @@
 						{#if item.author_photo}
 							<img
 								src={item.author_photo}
-								alt={getAuthorPhotoAlt(item.author_name)}
+								alt={$t('public.testimonials.photo_alt', { values: { name: item.author_name } })}
 								class="w-10 h-10 rounded-full object-cover"
 							/>
 						{:else}
@@ -162,7 +138,7 @@
 							</div>
 							{#if item.author_title || item.author_company}
 								<p class="text-sm text-gray-500 dark:text-gray-400 truncate">
-									{item.author_title}{item.author_title && item.author_company ? ' at ' : ''}{item.author_company}
+									{item.author_title}{item.author_title && item.author_company ? ` ${$t('public.testimonials.at')} ` : ''}{item.author_company}
 								</p>
 							{/if}
 						</div>
@@ -179,7 +155,7 @@
 				<button
 					onclick={() => scrollPrev(displayItems.length)}
 					class="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-					aria-label="Previous testimonial"
+					aria-label={$t('public.testimonials.previous')}
 				>
 					<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -188,7 +164,7 @@
 				<button
 					onclick={() => scrollNext(displayItems.length)}
 					class="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-					aria-label="Next testimonial"
+					aria-label={$t('public.testimonials.next')}
 				>
 					<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -202,7 +178,7 @@
 				onscroll={handleScroll}
 				class="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 px-8 scrollbar-hide"
 				role="region"
-				aria-label="Testimonials carousel"
+				aria-label={$t('public.testimonials.carousel_label')}
 			>
 				{#each displayItems as item, i (item.id)}
 					<div class="snap-center shrink-0 w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] first:ml-0">
@@ -212,7 +188,7 @@
 							</blockquote>
 							<div class="flex items-center gap-3">
 								{#if item.author_photo}
-									<img src={item.author_photo} alt={getAuthorPhotoAlt(item.author_name)} class="w-10 h-10 rounded-full object-cover" />
+									<img src={item.author_photo} alt={$t('public.testimonials.photo_alt', { values: { name: item.author_name } })} class="w-10 h-10 rounded-full object-cover" />
 								{:else}
 									<div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
 										<span class="text-sm font-medium text-primary-600 dark:text-primary-400">
@@ -247,7 +223,7 @@
 				</blockquote>
 				<div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
 					{#if featured.author_photo}
-						<img src={featured.author_photo} alt={getAuthorPhotoAlt(featured.author_name)} class="w-12 h-12 rounded-full object-cover" />
+						<img src={featured.author_photo} alt={$t('public.testimonials.photo_alt', { values: { name: featured.author_name } })} class="w-12 h-12 rounded-full object-cover" />
 					{:else}
 						<div class="w-12 h-12 rounded-full bg-primary-200 dark:bg-primary-900 flex items-center justify-center">
 							<span class="text-lg font-medium text-primary-700 dark:text-primary-300">
@@ -266,7 +242,7 @@
 						</div>
 						{#if featured.author_title || featured.author_company}
 							<p class="text-gray-600 dark:text-gray-300">
-								{featured.author_title}{featured.author_title && featured.author_company ? ' at ' : ''}{featured.author_company}
+								{featured.author_title}{featured.author_title && featured.author_company ? ` ${$t('public.testimonials.at')} ` : ''}{featured.author_company}
 							</p>
 						{/if}
 					</div>

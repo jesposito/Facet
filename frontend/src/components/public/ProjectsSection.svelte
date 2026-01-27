@@ -223,7 +223,7 @@ const projectHref = (project: Project) => {
 								</h3>
 								{#if project.is_featured}
 									<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
-										Featured
+										{$t('public.projects.featured')}
 									</span>
 								{/if}
 							</div>

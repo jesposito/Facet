@@ -133,6 +133,11 @@ jobs:
 
           echo "Fetching PRs merged since: $SINCE_DATE"
 
+          # Wait for GitHub's search index to update (eventual consistency)
+          # Without this delay, recently merged PRs may not appear in search results
+          echo "Waiting 30s for GitHub search index to update..."
+          sleep 30
+
           # Fetch merged PRs since previous tag (include body for AI context)
           PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
           echo "$PRS" > /tmp/pr_data.json
