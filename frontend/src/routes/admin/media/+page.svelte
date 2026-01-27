@@ -541,11 +541,11 @@
 	{:else}
 		<div class="card overflow-hidden">
 			<div class="overflow-x-auto">
-				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
 						<thead class="bg-gray-50 dark:bg-gray-800">
 							<tr>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_file')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-1/4">{$t('admin.media.table_file')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_type')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_size')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_collection')}</th>
@@ -567,12 +567,12 @@
 											/>
 										{/if}
 									</td>
-									<td class="px-4 py-3">
+									<td class="px-4 py-3 max-w-xs">
 										<div class="flex items-center gap-2">
-											{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}
-											<div class="min-w-0">
+											<span class="shrink-0">{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}</span>
+											<div class="min-w-0 flex-1 overflow-hidden">
 												<a
-													class="text-primary-600 dark:text-primary-300 hover:underline break-all block truncate"
+													class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2"
 													href={item.url}
 													target="_blank"
 													rel="noopener noreferrer"
@@ -581,7 +581,7 @@
 													{item.display_name || item.filename}
 												</a>
 												{#if item.display_name && item.display_name !== item.filename}
-													<span class="text-xs text-gray-500 dark:text-gray-400 truncate block">{item.filename}</span>
+													<span class="text-xs text-gray-500 dark:text-gray-400 break-words line-clamp-1">{item.filename}</span>
 												{/if}
 											</div>
 											{#if item.orphan}
