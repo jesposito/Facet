@@ -145,6 +145,23 @@
 		}
 	},
 	"shared": {
+		"share": {
+			"title": "Share",
+			"share_page": "Share this page",
+			"copy_link": "Copy Link",
+			"unlisted_warning": "This view is unlisted. Share links may expire.",
+			"email": "Email"
+		},
+		"visibility": {
+			"draft": "Draft",
+			"private": "Private",
+			"unlisted": "Unlisted",
+			"public": "Public"
+		},
+		"theme": {
+			"switch_to_light": "Switch to light theme",
+			"switch_to_dark": "Switch to dark theme"
+		},
 		"actions": {
 			"save": "Save",
 			"cancel": "Cancel",
@@ -199,7 +216,8 @@
 			"close_menu": "Close menu",
 			"open_menu": "Open menu",
 			"notifications": "Notifications",
-			"skip_to_content": "Skip to main content"
+			"skip_to_content": "Skip to main content",
+			"dismiss": "Dismiss"
 		},
 		"pagination": {
 			"previous": "Previous",
