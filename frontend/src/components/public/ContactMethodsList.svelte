@@ -260,6 +260,8 @@
 		text-decoration: none;
 		transition: all 0.2s;
 		width: 100%;
+		min-width: 0; /* Allow flexbox children to shrink */
+		overflow: hidden;
 	}
 
 	.contact-link:hover {
@@ -302,6 +304,11 @@
 	.value {
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 		color: var(--accent-color, #3b82f6);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		min-width: 0;
+		flex: 1;
 	}
 
 	.primary-badge {
