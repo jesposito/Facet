@@ -620,9 +620,9 @@ async function loadCategoryOrder() {
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-						{editingSkill ? 'Edit Skill' : 'New Skill'}
+						{editingSkill ? $t('admin.content.common.form_title_edit', { values: { type: $t('admin.content.skills.title').slice(0, -1) } }) : $t('admin.content.common.form_title_new', { values: { type: $t('admin.content.skills.title').slice(0, -1) } })}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('admin.content.common.close_form')}>
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
@@ -630,56 +630,56 @@ async function loadCategoryOrder() {
 				</div>
 
 				<div>
-					<label for="name" class="label">Skill Name *</label>
+					<label for="name" class="label">{$t('admin.content.skills.name_label')} {$t('admin.content.common.required_field')}</label>
 					<input
 						type="text"
 						id="name"
 						bind:value={name}
 						class="input"
-						placeholder="Python"
+						placeholder={$t('admin.content.skills.name_placeholder')}
 						required
 					/>
 				</div>
 
 				<div>
-					<label for="category" class="label">Category</label>
+					<label for="category" class="label">{$t('admin.content.skills.category_label')}</label>
 					<input
 						type="text"
 						id="category"
 						bind:value={category}
 						list="category-options"
 						class="input"
-						placeholder="Languages"
+						placeholder={$t('admin.content.skills.category_placeholder')}
 					/>
 					<datalist id="category-options">
 						{#each categoryOptions as cat}
 							<option value={cat}></option>
 						{/each}
 					</datalist>
-					<p class="text-xs text-gray-500 mt-1">Group related skills together</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.skills.category_help')}</p>
 				</div>
 
 				<div>
-					<label for="proficiency" class="label">Proficiency Level</label>
+					<label for="proficiency" class="label">{$t('admin.content.skills.proficiency_label')}</label>
 					<select id="proficiency" bind:value={proficiency} class="input">
-						<option value="expert">Expert - Deep expertise, can teach others</option>
-						<option value="proficient">Proficient - Strong working knowledge</option>
-						<option value="familiar">Familiar - Basic understanding</option>
+						<option value="expert">{$t('admin.content.skills.proficiency_expert')}</option>
+						<option value="proficient">{$t('admin.content.skills.proficiency_proficient')}</option>
+						<option value="familiar">{$t('admin.content.skills.proficiency_familiar')}</option>
 					</select>
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="visibility" class="label">Visibility</label>
+						<label for="visibility" class="label">{$t('admin.content.common.visibility_label')}</label>
 						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">Public</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="private">Private</option>
+							<option value="public">{$t('admin.content.common.visibility_public')}</option>
+							<option value="unlisted">{$t('admin.content.common.visibility_unlisted')}</option>
+							<option value="private">{$t('admin.content.common.visibility_private')}</option>
 						</select>
 					</div>
 
 					<div>
-						<label for="sort_order" class="label">Sort Order</label>
+						<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
 						<input
 							type="number"
 							id="sort_order"
@@ -687,13 +687,13 @@ async function loadCategoryOrder() {
 							class="input"
 							min="0"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first in category</p>
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.sort_order_help')}</p>
 					</div>
 				</div>
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>{$t('admin.content.common.cancel')}</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -701,7 +701,7 @@ async function loadCategoryOrder() {
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
 					{/if}
-					{editingSkill ? 'Update Skill' : 'Create Skill'}
+					{editingSkill ? $t('admin.content.common.update_button', { values: { type: $t('admin.content.skills.title').slice(0, -1) } }) : $t('admin.content.common.create_button', { values: { type: $t('admin.content.skills.title').slice(0, -1) } })}
 				</button>
 			</div>
 		</form>
@@ -710,12 +710,12 @@ async function loadCategoryOrder() {
 			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No skills added yet</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">{$t('admin.content.common.empty_state_no_items', { values: { type: $t('admin.content.skills.title').toLowerCase() } })}</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
-				Add your technical and professional skills, organized by category.
+				{$t('admin.content.skills.empty_state_message')}
 			</p>
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ Add Your First Skill
+				{$t('admin.content.common.add_first_button', { values: { type: $t('admin.content.skills.title').slice(0, -1) } })}
 			</button>
 		</div>
 	{:else if filteredSkills.length === 0}
@@ -723,12 +723,12 @@ async function loadCategoryOrder() {
 			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No skills match your filters</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">{$t('admin.content.common.empty_state_no_matches', { values: { type: $t('admin.content.skills.title').toLowerCase() } })}</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
-				Try adjusting your search or filter criteria.
+				{$t('admin.content.common.empty_state_adjust_filters')}
 			</p>
 			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
-				Clear All Filters
+				{$t('admin.content.common.clear_filters')}
 			</button>
 		</div>
 	{:else}

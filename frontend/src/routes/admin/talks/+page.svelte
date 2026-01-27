@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Talk } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -445,14 +446,14 @@ async function resolveMediaRefs(selected: string[]) {
 </script>
 
 <svelte:head>
-	<title>Talks | Facet Admin</title>
+	<title>{$t('admin.content.talks.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="talks">
-		<p><strong>Talks</strong> showcase your speaking engagements, presentations, and workshops.</p>
-		<p>Link to slides, videos, and event pages. Each talk gets a public URL at <code>/talks/your-slug</code>.</p>
-		<p><strong>Tip:</strong> Public talks appear in your iCal feed at <code>/talks.ics</code> - great for sharing your speaking schedule.</p>
+		<p>{@html $t('admin.content.talks.help_text')}</p>
+		<p>{$t('admin.content.talks.help_tip_1')}</p>
+		<p>{@html $t('admin.content.talks.help_tip_2')}</p>
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -478,18 +479,18 @@ async function resolveMediaRefs(selected: string[]) {
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Talks & Presentations</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.talks.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if talks.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Talk
+				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.talks.title').slice(0, -1) } })}
 			</button>
 		</div>
 	</div>
@@ -498,7 +499,7 @@ async function resolveMediaRefs(selected: string[]) {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading talks...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.talks.title').toLowerCase() } })}</div>
 		</div>
 	{:else if showForm}
 		<!-- Talk Form -->

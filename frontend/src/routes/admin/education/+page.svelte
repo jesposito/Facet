@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Education } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -307,14 +308,13 @@ afterNavigate(() => {
 </script>
 
 <svelte:head>
-	<title>Education | Facet Admin</title>
+	<title>{$t('admin.content.education.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="education">
-		<p><strong>Education</strong> covers your academic background - degrees, certifications, and courses.</p>
-		<p>Include relevant coursework, honors, or activities in the description field.</p>
-		<p><strong>Tip:</strong> Recent graduates should highlight education prominently. Experienced professionals can keep it brief.</p>
+		<p>{@html $t('admin.content.education.help_text')}</p>
+		<p>{$t('admin.content.education.help_tip_1')}</p>
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -340,15 +340,15 @@ afterNavigate(() => {
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Education</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.education.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if educations.length > 0}
 				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Education
+				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.education.title') } })}
 			</button>
 		</div>
 	</div>
@@ -357,7 +357,7 @@ afterNavigate(() => {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading education...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.education.title').toLowerCase() } })}</div>
 		</div>
 	{:else if showForm}
 		<!-- Education Form -->

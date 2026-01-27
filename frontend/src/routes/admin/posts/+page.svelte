@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 import { pb, type Post, getFileUrl } from '$lib/pocketbase';
+import { t } from 'svelte-i18n';
 import { collection } from '$lib/stores/demo';
 import { toasts, confirm } from '$lib/stores';
 import { createAutosave } from '$lib/stores/autosave';
@@ -463,14 +464,14 @@ function openEditForm(post: Post) {
 </script>
 
 <svelte:head>
-	<title>Posts | Facet Admin</title>
+	<title>{$t('admin.content.posts.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="posts">
-		<p><strong>Posts</strong> are your blog articles and written content.</p>
-		<p>Each post gets its own public URL at <code>/posts/your-slug</code>. Write in Markdown, add tags for organization, and include media embeds for rich content.</p>
-		<p><strong>Tip:</strong> Public posts appear in your RSS feed at <code>/rss.xml</code> - great for readers with feed readers.</p>
+		{@html $t('admin.content.posts.help_text')}
+		{$t('admin.content.posts.help_tip_1')}
+		{@html $t('admin.content.posts.help_tip_2')}
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -496,18 +497,18 @@ function openEditForm(post: Post) {
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Posts</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.posts.title')}</h1>
 		<div class="flex items-center gap-2">
 			{#if posts.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Post
+				+ {$t('admin.content.common.new_button', { values: { type: $t('admin.content.posts.title').slice(0, -1) } })}
 			</button>
 		</div>
 	</div>
@@ -516,7 +517,7 @@ function openEditForm(post: Post) {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading posts...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.posts.title').toLowerCase() } })}</div>
 		</div>
 	{:else if showForm}
 		<!-- Post Form -->

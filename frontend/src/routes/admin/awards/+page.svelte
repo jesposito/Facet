@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Award } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -287,14 +288,13 @@ onMount(loadAwards);
 </script>
 
 <svelte:head>
-	<title>Awards | Facet Admin</title>
+	<title>{$t('admin.content.awards.title')} {$t('admin.content.common.page_title_suffix')}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="awards">
-		<p><strong>Awards</strong> highlight your recognition, honors, and achievements.</p>
-		<p>Include the issuer, date, and a link to verification or announcement. Awards add credibility to your profile.</p>
-		<p><strong>Tip:</strong> Even small recognitions (employee of the month, hackathon wins) can be valuable - they show you stand out.</p>
+		{@html $t('admin.content.awards.help_text')}
+		<p><strong>Tip:</strong> {$t('admin.content.awards.help_tip_1')}</p>
 	</PageHelp>
 
 	{#if selectMode && selectedIds.size > 0}
@@ -311,7 +311,7 @@ onMount(loadAwards);
 
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Awards & Honors</h1>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.awards.title')}</h1>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
 				Showcase notable awards, honors, fellowships, and accolades.
 			</p>
@@ -322,11 +322,11 @@ onMount(loadAwards);
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
 					onclick={toggleSelectMode}
 				>
-					{selectMode ? 'Cancel' : 'Select'}
+					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ New Award
+				+ {$t('admin.content.common.new_button', { values: { type: $t('admin.content.awards.title').slice(0, -1) } })}
 			</button>
 		</div>
 	</div>
@@ -345,7 +345,7 @@ onMount(loadAwards);
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading awards...</div>
+			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.awards.title').toLowerCase() } })}</div>
 		</div>
 	{:else if showForm}
 		<!-- Award Form (Inline) -->
