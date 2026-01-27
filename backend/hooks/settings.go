@@ -9,6 +9,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
@@ -140,6 +141,72 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
+			})
+		})
+
+		// Authenticated: upload favicon
+		se.Router.POST("/api/site-settings/favicon", func(e *core.RequestEvent) error {
+			if e.Auth == nil {
+				return apis.NewUnauthorizedError("authentication required", nil)
+			}
+
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil || settings.Record == nil {
+				return apis.NewBadRequestError("failed to load site settings", err)
+			}
+
+			// Get uploaded file
+			file, fileHeader, err := e.Request.FormFile("favicon")
+			if err != nil {
+				return apis.NewBadRequestError("favicon file required", err)
+			}
+			defer file.Close()
+
+			// Create filesystem.File from multipart file
+			fsFile, err := filesystem.NewFileFromMultipart(fileHeader)
+			if err != nil {
+				return apis.NewBadRequestError("failed to process file", err)
+			}
+
+			// Set the file on the record
+			settings.Record.Set("favicon", fsFile)
+
+			if err := app.Save(settings.Record); err != nil {
+				return apis.NewBadRequestError("failed to save favicon", err)
+			}
+
+			// Build the new favicon URL
+			faviconFile := settings.Record.GetString("favicon")
+			var faviconURL string
+			if faviconFile != "" {
+				faviconURL = "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"favicon": faviconURL,
+			})
+		})
+
+		// Authenticated: remove favicon
+		se.Router.DELETE("/api/site-settings/favicon", func(e *core.RequestEvent) error {
+			if e.Auth == nil {
+				return apis.NewUnauthorizedError("authentication required", nil)
+			}
+
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil || settings.Record == nil {
+				return apis.NewBadRequestError("failed to load site settings", err)
+			}
+
+			// Clear the favicon field
+			settings.Record.Set("favicon", nil)
+
+			if err := app.Save(settings.Record); err != nil {
+				return apis.NewBadRequestError("failed to remove favicon", err)
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"favicon": nil,
 			})
 		})
 
