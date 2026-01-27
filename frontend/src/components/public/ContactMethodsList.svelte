@@ -12,6 +12,7 @@
 
 	import { type ContactMethod } from '$lib/pocketbase';
 	import { buildContactHref, isLinkableContactType } from '$lib/utils';
+	import { t } from 'svelte-i18n';
 	import ObfuscatedLink from './ObfuscatedLink.svelte';
 	import ClickToReveal from './ClickToReveal.svelte';
 
@@ -66,24 +67,7 @@
 	// Get label for contact
 	function getLabel(contact: ContactMethod): string {
 		if (contact.label) return contact.label;
-
-		const labels: Record<string, string> = {
-			email: 'Email',
-			phone: 'Phone',
-			linkedin: 'LinkedIn',
-			github: 'GitHub',
-			twitter: 'Twitter',
-			facebook: 'Facebook',
-			instagram: 'Instagram',
-			website: 'Website',
-			whatsapp: 'WhatsApp',
-			telegram: 'Telegram',
-			discord: 'Discord',
-			slack: 'Slack',
-			other: 'Contact'
-		};
-
-		return labels[contact.type] || 'Contact';
+		return $t(`public.contacts.types.${contact.type}`) || $t('public.contacts.types.other');
 	}
 
 	// Determine link type for child components (ObfuscatedLink, ClickToReveal)
@@ -116,7 +100,7 @@
 
 {#if sortedContacts.length > 0}
 	<section id="contacts" class="mb-16">
-		<h2 class="section-title">Contact</h2>
+		<h2 class="section-title">{$t('public.sections.contacts')}</h2>
 		<div class="contact-methods-list layout-{layout}" role="list">
 			{#each sortedContacts as contact}
 				{@const href = buildContactHref(contact.type, contact.value)}
@@ -138,7 +122,7 @@
 								<span class="label">{getLabel(contact)}</span>
 								<span class="value">{contact.value}</span>
 								{#if contact.is_primary}
-									<span class="primary-badge">Primary</span>
+									<span class="primary-badge">{$t('public.contacts.primary')}</span>
 								{/if}
 							</a>
 						{:else}
@@ -158,16 +142,16 @@
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 										</svg>
-										<span class="sr-only">Copied!</span>
+										<span class="sr-only">{$t('public.contacts.copied')}</span>
 									{:else}
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
 										</svg>
-										<span class="sr-only">Copy</span>
+										<span class="sr-only">{$t('public.contacts.copy')}</span>
 									{/if}
 								</button>
 								{#if contact.is_primary}
-									<span class="primary-badge">Primary</span>
+									<span class="primary-badge">{$t('public.contacts.primary')}</span>
 								{/if}
 							</div>
 						{/if}
@@ -183,7 +167,7 @@
 							icon={getIcon(contact)}
 						/>
 						{#if contact.is_primary}
-							<span class="primary-badge">Primary</span>
+							<span class="primary-badge">{$t('public.contacts.primary')}</span>
 						{/if}
 					</div>
 
@@ -199,7 +183,7 @@
 							contactId={contact.id}
 						/>
 						{#if contact.is_primary}
-							<span class="primary-badge">Primary</span>
+							<span class="primary-badge">{$t('public.contacts.primary')}</span>
 						{/if}
 					</div>
 
@@ -209,10 +193,10 @@
 						<button type="button" class="captcha-button" disabled>
 							<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
 							<span>{getLabel(contact)}</span>
-							<span class="badge">CAPTCHA Required</span>
+							<span class="badge">{$t('public.contacts.captcha_required')}</span>
 						</button>
 						{#if contact.is_primary}
-							<span class="primary-badge">Primary</span>
+							<span class="primary-badge">{$t('public.contacts.primary')}</span>
 						{/if}
 					</div>
 				{/if}

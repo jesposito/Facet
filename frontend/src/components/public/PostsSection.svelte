@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Post } from '$lib/pocketbase';
 	import { formatDate, truncate } from '$lib/utils';
 
@@ -32,7 +33,7 @@
 
 <section id="posts" class="mb-16">
 	{#if showHeader}
-		<h2 class="section-title">Posts</h2>
+		<h2 class="section-title">{$t('public.sections.posts')}</h2>
 	{/if}
 
 	<div class="grid grid-cols-1 {layout === 'grid-2' ? 'md:grid-cols-2' : layout === 'list' ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6">
@@ -102,7 +103,7 @@
 								href={getPostUrl(post.slug)}
 								class="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
 							>
-								Read more
+								{$t('public.posts.read_more')}
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
 								</svg>

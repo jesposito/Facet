@@ -1,15 +1,26 @@
 <script lang="ts">
 	import type { Skill } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		items: Skill[];
 		layout?: string;
 		categoryOrder?: string[];
+		disabledCategories?: string[];
 	}
 
-	let { items, layout = 'grouped', categoryOrder }: Props = $props();
+	let { items, layout = 'grouped', categoryOrder, disabledCategories }: Props = $props();
 
-	let groupedSkills = $derived(items.reduce((acc, skill) => {
+	// Filter out skills from disabled categories
+	let filteredItems = $derived.by(() => {
+		if (!disabledCategories?.length) return items;
+		return items.filter(skill => {
+			const category = skill.category || 'Other';
+			return !disabledCategories.includes(category);
+		});
+	});
+
+	let groupedSkills = $derived(filteredItems.reduce((acc, skill) => {
 		const category = skill.category || 'Other';
 		if (!acc[category]) {
 			acc[category] = [];
@@ -35,6 +46,16 @@
 			}
 		}
 		return ordered;
+	});
+
+	// Order items by category order for flat/cloud layouts
+	let orderedItems = $derived.by(() => {
+		const result: Skill[] = [];
+		for (const category of orderedCategories) {
+			const categorySkills = groupedSkills[category] || [];
+			result.push(...categorySkills);
+		}
+		return result;
 	});
 
 	const proficiencyColors = {
@@ -64,13 +85,13 @@
 </script>
 
 <section id="skills" class="mb-16">
-	<h2 class="section-title">Skills</h2>
+	<h2 class="section-title">{$t('public.sections.skills')}</h2>
 
 	{#if layout === 'cloud'}
 		<!-- Tag Cloud Layout -->
 		<div class="card p-8 animate-fade-in">
 			<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
-				{#each items as skill (skill.id)}
+				{#each orderedItems as skill (skill.id)}
 					<span
 						class="{cloudSizes[skill.proficiency || 'familiar']} text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default"
 						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
@@ -118,7 +139,7 @@
 		<!-- Flat List Layout -->
 		<div class="card p-6 animate-fade-in">
 			<div class="flex flex-wrap gap-2">
-				{#each items as skill (skill.id)}
+				{#each orderedItems as skill (skill.id)}
 					<span
 						class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
 						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}

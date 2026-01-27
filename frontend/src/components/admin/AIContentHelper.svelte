@@ -16,6 +16,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		content?: string;
@@ -48,39 +49,25 @@
 	let previewContent = $state('');
 	let showPreview = $state(false);
 
-	// Tone definitions
-	const tones: { value: Tone; label: string; description: string; icon: string }[] = [
-		{
-			value: 'executive',
-			label: 'Executive',
-			description: 'Formal, leadership-focused, C-suite appropriate',
-			icon: '👔'
-		},
-		{
-			value: 'professional',
-			label: 'Professional',
-			description: 'Standard resume tone, achievement-focused',
-			icon: '💼'
-		},
-		{
-			value: 'technical',
-			label: 'Technical',
-			description: 'Developer-focused, emphasizes tech and methodology',
-			icon: '⚙️'
-		},
-		{
-			value: 'conversational',
-			label: 'Conversational',
-			description: 'Approachable, human, first-person friendly',
-			icon: '💬'
-		},
-		{
-			value: 'creative',
-			label: 'Creative',
-			description: 'Portfolio style, storytelling, innovative',
-			icon: '🎨'
-		}
-	];
+	// Tone definitions with icons
+	const toneIcons: Record<Tone, string> = {
+		executive: '👔',
+		professional: '💼',
+		technical: '⚙️',
+		conversational: '💬',
+		creative: '🎨'
+	};
+	const toneValues: Tone[] = ['executive', 'professional', 'technical', 'conversational', 'creative'];
+
+	// Derive translated tones
+	let tones = $derived(
+		toneValues.map((value) => ({
+			value,
+			label: $t(`admin.ai_assistant.tone_${value}`),
+			description: $t(`admin.ai_assistant.tone_${value}_desc`),
+			icon: toneIcons[value]
+		}))
+	);
 
 	// Check AI availability
 	async function checkAIStatus() {
@@ -105,7 +92,7 @@
 
 	async function handleRewrite(tone: Tone) {
 		if (!content.trim()) {
-			toasts.add('error', 'Please enter some content first');
+			toasts.add('error', $t('admin.ai_assistant.enter_content_first'));
 			return;
 		}
 
@@ -135,10 +122,10 @@
 			const result = await response.json();
 			previewContent = result.content;
 			showPreview = true;
-			toasts.add('success', `Content rewritten in ${tone} tone`);
+			toasts.add('success', $t('admin.ai_assistant.rewrite_success', { values: { tone: $t(`admin.ai_assistant.tone_${tone}`) } }));
 		} catch (err) {
 			console.error('AI rewrite failed:', err);
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to rewrite content');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.ai_assistant.rewrite_failed'));
 		} finally {
 			loading = false;
 		}
@@ -146,7 +133,7 @@
 
 	async function handleCritique() {
 		if (!content.trim()) {
-			toasts.add('error', 'Please enter some content first');
+			toasts.add('error', $t('admin.ai_assistant.enter_content_first'));
 			return;
 		}
 
@@ -175,10 +162,10 @@
 			const result = await response.json();
 			previewContent = result.content;
 			showPreview = true;
-			toasts.add('success', 'AI feedback provided');
+			toasts.add('success', $t('admin.ai_assistant.feedback_provided'));
 		} catch (err) {
 			console.error('AI critique failed:', err);
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to get AI feedback');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.ai_assistant.feedback_failed'));
 		} finally {
 			loading = false;
 		}
@@ -188,7 +175,7 @@
 		dispatch('apply', { content: previewContent });
 		showPreview = false;
 		previewContent = '';
-		toasts.add('success', 'Changes applied');
+		toasts.add('success', $t('admin.ai_assistant.changes_applied'));
 	}
 
 	function cancelPreview() {
@@ -211,7 +198,7 @@
 				{disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer shadow-sm hover:shadow-md'}"
 			onclick={toggleMenu}
 			disabled={disabled || loading}
-			title="AI Writing Assistant"
+			title={$t('admin.ai_assistant.title')}
 		>
 			{#if loading}
 				<svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
@@ -226,8 +213,8 @@
 			{:else}
 				{@html icon('sparkles')}
 			{/if}
-			<span class="font-medium hidden sm:inline">AI Assistant</span>
-			<span class="font-medium sm:hidden">AI</span>
+			<span class="font-medium hidden sm:inline">{$t('admin.ai_assistant.button_label')}</span>
+			<span class="font-medium sm:hidden">{$t('admin.ai_assistant.button_label_short')}</span>
 			<svg
 				class="h-4 w-4 transition-transform {showMenu ? 'rotate-180' : ''}"
 				fill="none"
@@ -253,7 +240,7 @@
 								: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 							onclick={() => (mode = 'rewrite')}
 						>
-							✨ Rewrite
+							✨ {$t('admin.ai_assistant.mode_rewrite')}
 						</button>
 						<button
 							type="button"
@@ -262,14 +249,14 @@
 								: 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'}"
 							onclick={() => (mode = 'critique')}
 						>
-							💭 Get Feedback
+							💭 {$t('admin.ai_assistant.mode_feedback')}
 						</button>
 					</div>
 
 					{#if mode === 'rewrite'}
 						<!-- Tone Options -->
 						<div class="space-y-2">
-							<p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Choose a tone:</p>
+							<p class="text-xs text-gray-600 dark:text-gray-400 mb-2">{$t('admin.ai_assistant.choose_tone')}</p>
 							{#each tones as tone}
 								<button
 									type="button"
@@ -297,7 +284,7 @@
 						<!-- Critique Mode -->
 						<div class="space-y-3">
 							<p class="text-sm text-gray-700 dark:text-gray-300">
-								AI will review your content and provide inline feedback in brackets.
+								{$t('admin.ai_assistant.critique_description')}
 							</p>
 							<button
 								type="button"
@@ -305,7 +292,7 @@
 								onclick={handleCritique}
 								disabled={loading}
 							>
-								{loading ? 'Getting feedback...' : '💭 Get AI Feedback'}
+								{loading ? $t('admin.ai_assistant.getting_feedback') : `💭 ${$t('admin.ai_assistant.get_feedback_button')}`}
 							</button>
 						</div>
 					{/if}
@@ -314,7 +301,7 @@
 				<!-- Info Footer -->
 				<div class="px-3 py-2 bg-gray-50 dark:bg-gray-750 rounded-b-lg border-t border-gray-200 dark:border-gray-700">
 					<p class="text-xs text-gray-600 dark:text-gray-400">
-						<strong>Tip:</strong> All tones avoid AI-sounding words like "leverage", "delve", "robust"
+						<strong>{$t('admin.ai_assistant.tip_label')}</strong> {$t('admin.ai_assistant.tip')}
 					</p>
 				</div>
 			</div>
@@ -344,13 +331,13 @@
 						class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
 					>
 						<h3 id="ai-dialog-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-							{mode === 'critique' ? '💭 AI Feedback' : '✨ AI Rewrite Preview'}
+							{mode === 'critique' ? `💭 ${$t('admin.ai_assistant.preview_title_feedback')}` : `✨ ${$t('admin.ai_assistant.preview_title_rewrite')}`}
 						</h3>
 						<button
 							type="button"
 							class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
 							onclick={cancelPreview}
-							aria-label="Close"
+							aria-label={$t('admin.ai_assistant.close')}
 						>
 							<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 								<path
@@ -369,9 +356,8 @@
 							<div class="prose dark:prose-invert max-w-none">
 								<div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
 									<p class="text-sm text-yellow-800 dark:text-yellow-300 m-0">
-										<strong>Note:</strong> Feedback appears in
-										<span class="text-purple-600 dark:text-purple-400">[brackets]</span> within your
-										text.
+										<strong>{$t('admin.ai_assistant.note_label')}</strong>
+										{@html $t('admin.ai_assistant.feedback_note', { values: { brackets: '<span class="text-purple-600 dark:text-purple-400">[brackets]</span>' } })}
 									</p>
 								</div>
 								<div class="whitespace-pre-wrap font-mono text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700">
@@ -382,7 +368,7 @@
 							<div class="space-y-4">
 								<div>
 									<p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-										Original:
+										{$t('admin.ai_assistant.original_label')}
 									</p>
 									<div class="bg-gray-50 dark:bg-gray-900 p-4 rounded border border-gray-200 dark:border-gray-700 whitespace-pre-wrap">
 										{content}
@@ -391,7 +377,7 @@
 
 								<div>
 									<p class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-										AI Rewrite:
+										{$t('admin.ai_assistant.rewrite_label')}
 									</p>
 									<div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded border border-purple-200 dark:border-purple-700 whitespace-pre-wrap">
 										{previewContent}
@@ -409,7 +395,7 @@
 								class="flex-1 px-4 py-2 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
 								onclick={applyPreview}
 							>
-								✓ Apply Changes
+								✓ {$t('admin.ai_assistant.apply_changes')}
 							</button>
 						{/if}
 						<button
@@ -417,7 +403,7 @@
 							class="flex-1 px-4 py-2 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 font-medium transition-colors"
 							onclick={cancelPreview}
 						>
-							{mode === 'critique' ? 'Close' : 'Cancel'}
+							{mode === 'critique' ? $t('admin.ai_assistant.close') : $t('admin.ai_assistant.cancel')}
 						</button>
 					</div>
 				</div>

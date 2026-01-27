@@ -668,7 +668,7 @@
 							Edit
 						</button>
 						<button
-							class="btn btn-secondary text-sm text-red-600 hover:text-red-700"
+							class="btn btn-danger-ghost btn-sm"
 							onclick={() => deleteContact(contact)}
 						>
 							Delete

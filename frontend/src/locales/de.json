@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Sprache",
-				"section_description": "Wählen Sie Ihre bevorzugte Sprache für die Admin-Oberfläche.",
-				"label": "Anzeigesprache",
-				"help": "Änderungen werden sofort wirksam. Ihre Einstellung wird lokal gespeichert.",
+				"section_description": "Wählen Sie die Anzeigesprache für Ihre gesamte Website.",
+				"label": "Website-Sprache",
+				"help": "Diese Sprache gilt für alle Besucher Ihrer Website.",
 				"current": "Aktuelle Sprache",
-				"more_coming": "Weitere Sprachen folgen! Möchten Sie bei der Übersetzung helfen? Siehe unsere Mitwirkungsanleitung."
+				"more_coming": "Weitere Sprachen folgen! Möchten Sie bei der Übersetzung helfen? Siehe unsere Mitwirkungsanleitung.",
+				"saved": "Spracheinstellung gespeichert",
+				"saving": "Speichern...",
+				"save_error": "Spracheinstellung konnte nicht gespeichert werden"
 			},
 			"help_text": "<strong>Einstellungen</strong> steuert das Aussehen Ihrer Website, KI-Anbieter, Analysen und Datenexport.",
 			"help_tip_1": "Konfigurieren Sie KI-Anbieter, um intelligente Funktionen wie Lebenslauf-Parsing, Inhaltsumschreibung und GitHub-Projektzusammenfassungen zu aktivieren. Fügen Sie benutzerdefiniertes CSS hinzu, um Ihr öffentliches Profil zu gestalten.",
@@ -195,6 +198,51 @@
 			"other_changes": "Andere Änderungen",
 			"show_more": "Mehr anzeigen ({count} verbleibend)",
 			"view_full_changelog": "Vollständiges Änderungsprotokoll auf GitHub ansehen"
+		},
+		"ai_assistant": {
+			"title": "KI-Schreibassistent",
+			"button_label": "KI-Assistent",
+			"button_label_short": "KI",
+			"improve": "Verbessern",
+			"generate": "Generieren",
+			"expand": "Erweitern",
+			"shorten": "Kürzen",
+			"title_with_action": "{action} mit KI",
+			"content_improved": "Inhalt mit KI verbessert",
+			"improve_failed": "Inhalt konnte nicht verbessert werden",
+			"enter_content_first": "Bitte geben Sie zuerst Inhalt ein",
+			"rewrite_success": "Inhalt im {tone}-Stil umgeschrieben",
+			"rewrite_failed": "Inhalt konnte nicht umgeschrieben werden",
+			"feedback_provided": "KI-Feedback bereitgestellt",
+			"feedback_failed": "KI-Feedback konnte nicht abgerufen werden",
+			"changes_applied": "Änderungen angewendet",
+			"mode_rewrite": "Umschreiben",
+			"mode_feedback": "Feedback erhalten",
+			"choose_tone": "Wählen Sie einen Stil:",
+			"tone_executive": "Führungskraft",
+			"tone_executive_desc": "Formal, führungsorientiert, für die Chefetage geeignet",
+			"tone_professional": "Professionell",
+			"tone_professional_desc": "Standard-Lebenslauf-Stil, leistungsorientiert",
+			"tone_technical": "Technisch",
+			"tone_technical_desc": "Entwicklerorientiert, betont Technik und Methodik",
+			"tone_conversational": "Konversationell",
+			"tone_conversational_desc": "Nahbar, menschlich, freundliche Ich-Perspektive",
+			"tone_creative": "Kreativ",
+			"tone_creative_desc": "Portfolio-Stil, erzählerisch, innovativ",
+			"critique_description": "KI wird Ihren Inhalt überprüfen und Inline-Feedback in Klammern geben.",
+			"get_feedback_button": "KI-Feedback erhalten",
+			"getting_feedback": "Feedback wird abgerufen...",
+			"tip_label": "Tipp:",
+			"tip": "Alle Stile vermeiden KI-typische Wörter wie \"nutzen\", \"vertiefen\", \"robust\"",
+			"preview_title_feedback": "KI-Feedback",
+			"preview_title_rewrite": "KI-Umschreibungsvorschau",
+			"note_label": "Hinweis:",
+			"feedback_note": "Feedback erscheint in {brackets} in Ihrem Text.",
+			"original_label": "Original:",
+			"rewrite_label": "KI-Umschreibung:",
+			"apply_changes": "Änderungen anwenden",
+			"close": "Schließen",
+			"cancel": "Abbrechen"
 		},
 		"tags_page": {
 			"title": "Admin-Tags",
@@ -416,9 +464,16 @@
 				"new_button": "+ Neu {type}",
 				"add_first_button": "+ Erste {type} hinzufügen",
 				"add_button": "+ {type} hinzufügen",
+				"add_manually": "+ Manuell hinzufügen",
+				"import_from_github": "Von GitHub importieren",
 				"select": "Auswählen",
 				"cancel": "Abbrechen",
 				"loading": "{type} wird geladen...",
+				"search_placeholder": "{type} suchen...",
+				"filter_drafts": "Entwürfe",
+				"filter_published": "Veröffentlicht",
+				"filter_private": "Privat",
+				"filter_more": "Mehr Filter",
 				"saving": "Wird gespeichert...",
 				"form_title_new": "Neu {type}",
 				"form_title_edit": "{type} bearbeiten",
@@ -715,6 +770,65 @@
 			}
 		},
 		"view_editor": {
+			"page": {
+				"title_edit": "Facette bearbeiten",
+				"title_create": "Facette erstellen",
+				"loading": "Facette wird geladen...",
+				"back_to_facets": "Zurück zu Facetten",
+				"hide_preview": "Vorschau ausblenden",
+				"show_preview": "Vorschau anzeigen",
+				"open_in_tab": "In Tab öffnen",
+				"view": "Anzeigen",
+				"generate_resume": "Lebenslauf erstellen",
+				"generate_resume_title": "KI-gestützten Lebenslauf erstellen",
+				"generate_resume_no_pandoc": "Lebenslauf erstellen (Pandoc nicht installiert)",
+				"save": "Speichern",
+				"saving": "Wird gespeichert...",
+				"create": "Erstellen",
+				"creating": "Wird erstellt...",
+				"facet_updated": "Facette erfolgreich aktualisiert",
+				"facet_created": "Facette erfolgreich erstellt",
+				"save_failed": "Facette konnte nicht gespeichert werden",
+				"name_required": "Name ist erforderlich",
+				"slug_required": "URL-Slug ist erforderlich"
+			},
+			"share_link": {
+				"title": "Freigabelink erstellen",
+				"unlisted_description": "Diese Ansicht ist nicht gelistet — nur Personen mit einem Freigabelink können darauf zugreifen.",
+				"private_description": "Diese Ansicht ist privat — erstellen Sie einen Freigabelink für gezielten Zugriff.",
+				"created_title": "Freigabelink erstellt!",
+				"created_copy_warning": "Kopieren Sie diesen Link jetzt — aus Sicherheitsgründen wird das vollständige Token nicht erneut angezeigt.",
+				"copy": "Kopieren",
+				"name_label": "Name (optional)",
+				"name_placeholder": "z.B. An Firma X gesendet",
+				"name_help": "Eine Bezeichnung, um sich zu merken, mit wem Sie geteilt haben.",
+				"expiration_label": "Ablaufdatum",
+				"max_uses_label": "Maximale Nutzungen",
+				"max_uses_placeholder": "0 = unbegrenzt",
+				"cancel": "Abbrechen",
+				"generate": "Link erstellen",
+				"generating": "Wird erstellt...",
+				"existing_title": "Bestehende Freigabelinks ({count})",
+				"manage_all": "Alle verwalten →",
+				"unnamed": "Unbenannter Link",
+				"use": "Nutzung",
+				"uses": "Nutzungen",
+				"regenerate_title": "Link neu erstellen (widerruft alten, erstellt neuen)",
+				"revoke_title": "Link widerrufen",
+				"more_links": "+{count} weitere — alle anzeigen"
+			},
+			"danger_zone": {
+				"title": "Gefahrenzone",
+				"delete_title": "Diese Facette löschen",
+				"delete_description": "Diese Facette und alle zugehörigen Freigabe-Tokens und Exporte dauerhaft löschen.",
+				"delete_button": "Facette löschen",
+				"deleting": "Wird gelöscht..."
+			},
+			"live_preview": {
+				"title": "Live-Vorschau",
+				"desktop": "Desktop-Vorschau",
+				"mobile": "Mobil-Vorschau"
+			},
 			"basic_info": {
 				"title": "Grundlegende Informationen",
 				"name_label": "Name",
@@ -760,6 +874,11 @@
 			"cta": {
 				"title": "Handlungsaufforderung",
 				"description": "Fügen Sie dieser Ansicht eine prominente Schaltfläche hinzu",
+				"description_label": "Beschreibung",
+				"description_placeholder": "Bereit zur Zusammenarbeit?",
+				"description_help": "Text neben der Schaltfläche angezeigt",
+				"button_label": "Schaltflächenbeschriftung",
+				"button_label_placeholder": "Kontakt aufnehmen",
 				"button_text_label": "Schaltflächentext",
 				"button_text_placeholder": "Lebenslauf herunterladen",
 				"button_url_label": "Schaltflächen-URL",
@@ -819,6 +938,18 @@
 				"no_categories": "Keine Kategorien gefunden.",
 				"reset_to_default": "Auf Standard zurücksetzen",
 				"done": "Fertig"
+			},
+			"skills_categories": {
+				"description": "Ziehen Sie Kategorien zum Neuordnen. Erweitern Sie eine Kategorie, um einzelne Fähigkeiten auszuwählen.",
+				"toggle_category": "Kategorie {category} umschalten",
+				"expand": "{category} erweitern",
+				"collapse": "{category} einklappen",
+				"skills": "Fähigkeiten",
+				"selected": "ausgewählt",
+				"all_selected": "alle",
+				"none_selected_hint": "Alle Fähigkeiten werden angezeigt. Zum Anpassen auswählen.",
+				"drag_hint": "Ziehen zum Neuordnen der Fähigkeiten in dieser Kategorie.",
+				"no_skills": "Keine Fähigkeiten gefunden. Fügen Sie zuerst Fähigkeiten im Bereich Fähigkeiten hinzu."
 			},
 			"override_editor": {
 				"title": "Für diese Ansicht anpassen",
@@ -1068,7 +1199,100 @@
 			"awards": "Auszeichnungen",
 			"certifications": "Zertifizierungen",
 			"testimonials": "Referenzen",
-			"contact": "Kontakt"
+			"contacts": "Kontakt"
+		},
+		"contacts": {
+			"primary": "Primär",
+			"captcha_required": "CAPTCHA erforderlich",
+			"copy_to_clipboard": "In die Zwischenablage kopieren",
+			"copied": "Kopiert!",
+			"copy": "Kopieren",
+			"copy_label": "{contact} in die Zwischenablage kopieren",
+			"show_email": "E-Mail anzeigen",
+			"show_phone": "Telefon anzeigen",
+			"show_url": "URL anzeigen",
+			"show_contact": "Kontakt anzeigen",
+			"types": {
+				"email": "E-Mail",
+				"phone": "Telefon",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Webseite",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Kontakt"
+			}
+		},
+		"homepage": {
+			"profile_private": "Das Profil ist derzeit privat",
+			"views_accessible": "Sie können geteilte Ansichten weiterhin direkt über den Link aufrufen.",
+			"print_options": "Druckoptionen",
+			"simple_print": "Einfacher Druck",
+			"ai_resume": "KI-Lebenslauf",
+			"log_in": "Anmelden",
+			"log_in_account": "Bei Ihrem Konto anmelden",
+			"profile_setup": "Dieses Profil wird eingerichtet.",
+			"browse_all": "Alle durchsuchen"
+		},
+		"experience": {
+			"at": "bei"
+		},
+		"projects": {
+			"featured": "Empfohlen"
+		},
+		"certifications": {
+			"expired": "Abgelaufen",
+			"expiring_soon": "Läuft bald ab",
+			"expires": "Läuft ab",
+			"issued": "Ausgestellt",
+			"unknown_issuer": "Unbekannter Aussteller",
+			"unknown": "Unbekannt",
+			"verify": "Überprüfen",
+			"verify_credential": "Zertifikat überprüfen",
+			"no_expiration": "Kein Ablaufdatum",
+			"credential_id": "Zertifikat-ID"
+		},
+		"awards": {
+			"no_date": "Kein Datum angegeben",
+			"view_details": "Details anzeigen"
+		},
+		"talks": {
+			"video": "Video",
+			"slides": "Folien",
+			"watch_video": "Video ansehen",
+			"view_slides": "Folien ansehen"
+		},
+		"posts": {
+			"read_more": "Weiterlesen"
+		},
+		"custom_content": {
+			"open_link": "Link öffnen"
+		},
+		"ai_resume": {
+			"title": "KI-Lebenslauf erstellen",
+			"description": "Erstellen Sie einen professionell formatierten Lebenslauf aus dieser Ansicht.",
+			"success": "Lebenslauf erfolgreich erstellt!",
+			"download": "Lebenslauf herunterladen",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word-Dokument",
+			"style_label": "Stil",
+			"style_chronological": "Chronologisch",
+			"style_functional": "Funktional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Länge",
+			"length_one_page": "Eine Seite",
+			"length_two_pages": "Zwei Seiten",
+			"length_full": "Vollständig",
+			"close": "Schließen",
+			"cancel": "Abbrechen",
+			"generating": "Wird erstellt...",
+			"generate": "Erstellen"
 		}
 	},
 	"shared": {
@@ -1160,7 +1384,8 @@
 			"hours_ago": "vor {count} Stunde(n)",
 			"days_ago": "vor {count} Tag(en)",
 			"today": "Heute",
-			"yesterday": "Gestern"
+			"yesterday": "Gestern",
+			"present": "Heute"
 		}
 	},
 	"errors": {

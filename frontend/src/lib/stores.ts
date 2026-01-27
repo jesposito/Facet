@@ -320,6 +320,7 @@ export interface SiteSettings {
 	customCSS: string;
 	gaMeasurementId: string;
 	favicon?: string;
+	defaultLocale: string;
 }
 
 function createSiteSettingsStore() {
@@ -328,7 +329,8 @@ function createSiteSettingsStore() {
 		hideLoginButton: false,
 		customCSS: '',
 		gaMeasurementId: '',
-		favicon: undefined
+		favicon: undefined,
+		defaultLocale: 'en'
 	});
 
 	return {
@@ -344,7 +346,8 @@ function createSiteSettingsStore() {
 						hideLoginButton: data.hide_login_button || false,
 						customCSS: data.custom_css || '',
 						gaMeasurementId: data.ga_measurement_id || '',
-						favicon: data.favicon || undefined
+						favicon: data.favicon || undefined,
+						defaultLocale: data.default_locale || 'en'
 					});
 				}
 			} catch {

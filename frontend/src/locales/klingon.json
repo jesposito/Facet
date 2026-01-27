@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Language of the Empire",
-				"section_description": "Choose your preferred battle tongue for the command center.",
-				"label": "Display Language",
-				"help": "Changes take effect immediately, as swift as a bat'leth strike. Your preference is stored locally.",
+				"section_description": "Choose the battle tongue for your entire domain.",
+				"label": "Domain Language",
+				"help": "This tongue shall be spoken by all who enter your domain.",
 				"current": "Current tongue",
-				"more_coming": "More tongues shall be conquered! Will you aid in translation? Consult the warrior's guide."
+				"more_coming": "More tongues shall be conquered! Will you aid in translation? Consult the warrior's guide.",
+				"saved": "Language preference recorded. Qapla'!",
+				"saving": "Recording...",
+				"save_error": "Failed to record language preference. Dishonor!"
 			},
 			"help_text": "<strong>Battle Configurations</strong> commands your domain's appearance, AI warriors, intelligence gathering, and data extraction.",
 			"help_tip_1": "Configure AI warriors to enable tactical features such as resume parsing, content enhancement, and GitHub reconnaissance. Add custom battle dress to your public presence.",
@@ -195,6 +198,51 @@
 			"other_changes": "Other Victories",
 			"show_more": "Show more ({count} remaining)",
 			"view_full_changelog": "View full battle records on GitHub"
+		},
+		"ai_assistant": {
+			"title": "Tactical AI",
+			"button_label": "Tactical AI",
+			"button_label_short": "AI",
+			"improve": "Strengthen",
+			"generate": "Create",
+			"expand": "Expand",
+			"shorten": "Compress",
+			"title_with_action": "{action} with AI power",
+			"content_improved": "Content strengthened by AI",
+			"improve_failed": "Strengthening failed",
+			"enter_content_first": "Enter content first, warrior",
+			"rewrite_success": "Content rewritten in {tone} style",
+			"rewrite_failed": "Rewriting failed",
+			"feedback_provided": "Tactical feedback provided",
+			"feedback_failed": "Feedback retrieval failed",
+			"changes_applied": "Changes deployed",
+			"mode_rewrite": "Rewrite",
+			"mode_feedback": "Get Tactical Analysis",
+			"choose_tone": "Select combat style:",
+			"tone_executive": "Command",
+			"tone_executive_desc": "Formal, leadership-focused, for the High Council",
+			"tone_professional": "Warrior",
+			"tone_professional_desc": "Standard combat record, achievement-focused",
+			"tone_technical": "Engineer",
+			"tone_technical_desc": "Technically focused, emphasizes weapons and systems",
+			"tone_conversational": "Comrade",
+			"tone_conversational_desc": "Direct, honorable, warrior to warrior",
+			"tone_creative": "Bard",
+			"tone_creative_desc": "Epic tale style, glorious, inspiring",
+			"critique_description": "AI will analyze your content and provide tactical feedback in brackets.",
+			"get_feedback_button": "Get Tactical Feedback",
+			"getting_feedback": "Analyzing...",
+			"tip_label": "Warning:",
+			"tip": "All styles avoid weak words like \"leverage\", \"delve\", \"robust\"",
+			"preview_title_feedback": "Tactical Analysis",
+			"preview_title_rewrite": "AI Rewrite Preview",
+			"note_label": "Attention:",
+			"feedback_note": "Feedback appears in {brackets} within your text.",
+			"original_label": "Original:",
+			"rewrite_label": "AI Rewrite:",
+			"apply_changes": "Deploy Changes",
+			"close": "Dismiss",
+			"cancel": "Abort"
 		},
 		"tags_page": {
 			"title": "Battle Tags",
@@ -416,9 +464,16 @@
 				"new_button": "+ New {type}",
 				"add_first_button": "+ Add Your First {type}",
 				"add_button": "+ Add {type}",
+				"add_manually": "+ Add Manually",
+				"import_from_github": "Import from GitHub",
 				"select": "Select",
 				"cancel": "Retreat",
 				"loading": "Loading {type}...",
+				"search_placeholder": "Search {type}...",
+				"filter_drafts": "Drafts",
+				"filter_published": "Published",
+				"filter_private": "Classified",
+				"filter_more": "More filters",
 				"saving": "Securing...",
 				"form_title_new": "New {type}",
 				"form_title_edit": "Modify {type}",
@@ -715,6 +770,65 @@
 			}
 		},
 		"view_editor": {
+			"page": {
+				"title_edit": "Modify Facet",
+				"title_create": "Forge Facet",
+				"loading": "Loading facet...",
+				"back_to_facets": "Return to facets",
+				"hide_preview": "Cloak Preview",
+				"show_preview": "Decloak Preview",
+				"open_in_tab": "Open in Tab",
+				"view": "View",
+				"generate_resume": "Generate Resume",
+				"generate_resume_title": "Generate AI-powered resume",
+				"generate_resume_no_pandoc": "Generate Resume (Pandoc not installed)",
+				"save": "Commit",
+				"saving": "Committing...",
+				"create": "Forge",
+				"creating": "Forging...",
+				"facet_updated": "Facet modification complete",
+				"facet_created": "Facet forged successfully",
+				"save_failed": "Failed to commit facet",
+				"name_required": "Designation required",
+				"slug_required": "URL code required"
+			},
+			"share_link": {
+				"title": "Generate Access Code",
+				"unlisted_description": "This view is cloaked — only those with an access code may enter.",
+				"private_description": "This view is classified — generate an access code for specific operatives.",
+				"created_title": "Access code generated!",
+				"created_copy_warning": "Copy this code now — for security, the full code will not be displayed again.",
+				"copy": "Copy",
+				"name_label": "Designation (optional)",
+				"name_placeholder": "e.g., Sent to House X",
+				"name_help": "A label to track who received access.",
+				"expiration_label": "Expiration",
+				"max_uses_label": "Max Uses",
+				"max_uses_placeholder": "0 = unlimited",
+				"cancel": "Abort",
+				"generate": "Generate Code",
+				"generating": "Generating...",
+				"existing_title": "Active Access Codes ({count})",
+				"manage_all": "Manage all →",
+				"unnamed": "Unnamed code",
+				"use": "use",
+				"uses": "uses",
+				"regenerate_title": "Regenerate code (revokes old, creates new)",
+				"revoke_title": "Revoke code",
+				"more_links": "+{count} more — view all"
+			},
+			"danger_zone": {
+				"title": "Danger Zone",
+				"delete_title": "Destroy this facet",
+				"delete_description": "Permanently destroy this facet and all associated access codes and exports.",
+				"delete_button": "Destroy Facet",
+				"deleting": "Destroying..."
+			},
+			"live_preview": {
+				"title": "Live Preview",
+				"desktop": "Desktop preview",
+				"mobile": "Mobile preview"
+			},
 			"basic_info": {
 				"title": "Basic Intel",
 				"name_label": "Designation",
@@ -760,6 +874,11 @@
 			"cta": {
 				"title": "Call to Battle",
 				"description": "Add a prominent action button to this view",
+				"description_label": "Description",
+				"description_placeholder": "Ready for battle?",
+				"description_help": "Text shown beside the button",
+				"button_label": "Button Label",
+				"button_label_placeholder": "Engage",
 				"button_text_label": "Button Text",
 				"button_text_placeholder": "Download Service Record",
 				"button_url_label": "Button Coordinates",
@@ -819,6 +938,18 @@
 				"no_categories": "No categories found.",
 				"reset_to_default": "Reset to Default",
 				"done": "Complete"
+			},
+			"skills_categories": {
+				"description": "Drag categories to reorder. Expand a category to select individual skills.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Expand {category}",
+				"collapse": "Collapse {category}",
+				"skills": "skills",
+				"selected": "selected",
+				"all_selected": "all",
+				"none_selected_hint": "All skills shown. Select to customize.",
+				"drag_hint": "Drag to reorder skills within this category.",
+				"no_skills": "No skills found. Add skills in the Skills section first."
 			},
 			"override_editor": {
 				"title": "Customize for This View",
@@ -1068,7 +1199,100 @@
 			"awards": "Medals",
 			"certifications": "Commendations",
 			"testimonials": "Testimonials",
-			"contact": "Contact"
+			"contacts": "Contact"
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "Security Challenge Required",
+			"copy_to_clipboard": "Copy to data banks",
+			"copied": "Data stored!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} to data banks",
+			"show_email": "Reveal message",
+			"show_phone": "Reveal communicator",
+			"show_url": "Reveal coordinates",
+			"show_contact": "Reveal contact",
+			"types": {
+				"email": "Subspace Message",
+				"phone": "Communicator",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Starbase Portal",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
+		},
+		"homepage": {
+			"profile_private": "This record is classified",
+			"views_accessible": "Shared tactical views may still be accessed with proper authorization codes.",
+			"print_options": "Print options",
+			"simple_print": "Standard Print",
+			"ai_resume": "AI Battle Record",
+			"log_in": "Enter",
+			"log_in_account": "Access your command post",
+			"profile_setup": "This battle record is being prepared.",
+			"browse_all": "View all"
+		},
+		"experience": {
+			"at": "serving"
+		},
+		"projects": {
+			"featured": "Honored"
+		},
+		"certifications": {
+			"expired": "Expired",
+			"expiring_soon": "Expiring Soon",
+			"expires": "Expires",
+			"issued": "Issued",
+			"unknown_issuer": "Unknown Authority",
+			"unknown": "Unknown",
+			"verify": "Verify",
+			"verify_credential": "Verify Credential",
+			"no_expiration": "Perpetual",
+			"credential_id": "Credential Code"
+		},
+		"awards": {
+			"no_date": "Date not recorded",
+			"view_details": "View details"
+		},
+		"talks": {
+			"video": "Recording",
+			"slides": "Data Slides",
+			"watch_video": "View Recording",
+			"view_slides": "View Data Slides"
+		},
+		"posts": {
+			"read_more": "Continue reading"
+		},
+		"custom_content": {
+			"open_link": "Open channel"
+		},
+		"ai_resume": {
+			"title": "Generate AI Battle Record",
+			"description": "Create a professionally formatted battle record from this view.",
+			"success": "Battle record generated with honor!",
+			"download": "Download Battle Record",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Document",
+			"style_label": "Style",
+			"style_chronological": "Chronological",
+			"style_functional": "Functional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Length",
+			"length_one_page": "One Page",
+			"length_two_pages": "Two Pages",
+			"length_full": "Full",
+			"close": "Close",
+			"cancel": "Cancel",
+			"generating": "Processing...",
+			"generate": "Generate"
 		}
 	},
 	"shared": {
@@ -1160,7 +1384,8 @@
 			"hours_ago": "{count} hour(s) ago",
 			"days_ago": "{count} day(s) ago",
 			"today": "Today",
-			"yesterday": "Yesterday"
+			"yesterday": "Yesterday",
+			"present": "Active Duty"
 		}
 	},
 	"errors": {

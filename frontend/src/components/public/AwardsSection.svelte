@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Award } from '$lib/pocketbase';
 	import { formatDate, truncate } from '$lib/utils';
 
@@ -24,7 +25,7 @@
 </script>
 
 <section id="awards" class="mb-16" data-layout={layout}>
-	<h2 class="section-title">Awards & Honors</h2>
+	<h2 class="section-title">{$t('public.sections.awards')}</h2>
 
 	{#if layout === 'timeline'}
 		<div class="space-y-6">
@@ -35,7 +36,7 @@
 					</div>
 					<div class="flex-1 space-y-1">
 						<p class="text-sm text-gray-500 dark:text-gray-400">
-							{award.awarded_at ? formatDate(award.awarded_at, { month: 'short', year: 'numeric' }) : 'Date not provided'}
+							{award.awarded_at ? formatDate(award.awarded_at, { month: 'short', year: 'numeric' }) : $t('public.awards.no_date')}
 						</p>
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{award.title}</h3>
 						{#if award.issuer}
@@ -89,7 +90,7 @@
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
 							</svg>
-							View details
+							{$t('public.awards.view_details')}
 						</a>
 					{/if}
 				</article>

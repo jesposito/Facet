@@ -5,6 +5,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import { t } from 'svelte-i18n';
 
 	
 	interface Props {
@@ -83,17 +84,17 @@
 
 			const result = await response.json();
 			dispatch('result', { content: result.improved_content });
-			toasts.add('success', 'Content improved with AI');
+			toasts.add('success', $t('admin.ai_assistant.content_improved'));
 		} catch (err) {
 			console.error('AI improve failed:', err);
-			toasts.add('error', err instanceof Error ? err.message : 'Failed to improve content');
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.ai_assistant.improve_failed'));
 		} finally {
 			loading = false;
 		}
 	}
 
 	// Determine button label
-	let buttonLabel = $derived(label || (action === 'generate' ? 'Generate' : action === 'expand' ? 'Expand' : action === 'shorten' ? 'Shorten' : 'Improve'));
+	let buttonLabel = $derived(label || $t(`admin.ai_assistant.${action}`));
 </script>
 
 {#if aiAvailable}
@@ -104,7 +105,7 @@
 			{disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
 		onclick={handleImprove}
 		disabled={disabled || loading}
-		title="{buttonLabel} with AI"
+		title={$t('admin.ai_assistant.title_with_action', { values: { action: buttonLabel } })}
 	>
 		{#if loading}
 			<svg class="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">

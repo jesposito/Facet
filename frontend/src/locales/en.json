@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Language",
-				"section_description": "Choose your preferred language for the admin interface.",
-				"label": "Display Language",
-				"help": "Changes take effect immediately. Your preference is saved locally.",
+				"section_description": "Choose the display language for your entire site.",
+				"label": "Site Language",
+				"help": "This language applies to all visitors viewing your site.",
 				"current": "Current language",
-				"more_coming": "More languages coming soon! Want to help translate? See our contribution guide."
+				"more_coming": "More languages coming soon! Want to help translate? See our contribution guide.",
+				"saved": "Language preference saved",
+				"saving": "Saving...",
+				"save_error": "Failed to save language preference"
 			},
 			"help_text": "<strong>Settings</strong> controls your site's appearance, AI providers, analytics, and data export.",
 			"help_tip_1": "Configure AI providers to enable smart features like resume parsing, content rewriting, and GitHub project summaries. Add custom CSS to style your public profile.",
@@ -195,6 +198,51 @@
 			"other_changes": "Other Changes",
 			"show_more": "Show more ({count} remaining)",
 			"view_full_changelog": "View full changelog on GitHub"
+		},
+		"ai_assistant": {
+			"title": "AI Writing Assistant",
+			"button_label": "AI Assistant",
+			"button_label_short": "AI",
+			"improve": "Improve",
+			"generate": "Generate",
+			"expand": "Expand",
+			"shorten": "Shorten",
+			"title_with_action": "{action} with AI",
+			"content_improved": "Content improved with AI",
+			"improve_failed": "Failed to improve content",
+			"enter_content_first": "Please enter some content first",
+			"rewrite_success": "Content rewritten in {tone} tone",
+			"rewrite_failed": "Failed to rewrite content",
+			"feedback_provided": "AI feedback provided",
+			"feedback_failed": "Failed to get AI feedback",
+			"changes_applied": "Changes applied",
+			"mode_rewrite": "Rewrite",
+			"mode_feedback": "Get Feedback",
+			"choose_tone": "Choose a tone:",
+			"tone_executive": "Executive",
+			"tone_executive_desc": "Formal, leadership-focused, C-suite appropriate",
+			"tone_professional": "Professional",
+			"tone_professional_desc": "Standard resume tone, achievement-focused",
+			"tone_technical": "Technical",
+			"tone_technical_desc": "Developer-focused, emphasizes tech and methodology",
+			"tone_conversational": "Conversational",
+			"tone_conversational_desc": "Approachable, human, first-person friendly",
+			"tone_creative": "Creative",
+			"tone_creative_desc": "Portfolio style, storytelling, innovative",
+			"critique_description": "AI will review your content and provide inline feedback in brackets.",
+			"get_feedback_button": "Get AI Feedback",
+			"getting_feedback": "Getting feedback...",
+			"tip_label": "Tip:",
+			"tip": "All tones avoid AI-sounding words like \"leverage\", \"delve\", \"robust\"",
+			"preview_title_feedback": "AI Feedback",
+			"preview_title_rewrite": "AI Rewrite Preview",
+			"note_label": "Note:",
+			"feedback_note": "Feedback appears in {brackets} within your text.",
+			"original_label": "Original:",
+			"rewrite_label": "AI Rewrite:",
+			"apply_changes": "Apply Changes",
+			"close": "Close",
+			"cancel": "Cancel"
 		},
 		"tags_page": {
 			"title": "Admin Tags",
@@ -416,9 +464,16 @@
 				"new_button": "+ New {type}",
 				"add_first_button": "+ Add Your First {type}",
 				"add_button": "+ Add {type}",
+				"add_manually": "+ Add Manually",
+				"import_from_github": "Import from GitHub",
 				"select": "Select",
 				"cancel": "Cancel",
 				"loading": "Loading {type}...",
+				"search_placeholder": "Search {type}...",
+				"filter_drafts": "Drafts",
+				"filter_published": "Published",
+				"filter_private": "Private",
+				"filter_more": "More filters",
 				"saving": "Saving...",
 				"form_title_new": "New {type}",
 				"form_title_edit": "Edit {type}",
@@ -715,6 +770,65 @@
 			}
 		},
 		"view_editor": {
+			"page": {
+				"title_edit": "Edit Facet",
+				"title_create": "Create Facet",
+				"loading": "Loading facet...",
+				"back_to_facets": "Back to facets",
+				"hide_preview": "Hide Preview",
+				"show_preview": "Show Preview",
+				"open_in_tab": "Open in Tab",
+				"view": "View",
+				"generate_resume": "Generate Resume",
+				"generate_resume_title": "Generate AI-powered resume",
+				"generate_resume_no_pandoc": "Generate Resume (Pandoc not installed)",
+				"save": "Save",
+				"saving": "Saving...",
+				"create": "Create",
+				"creating": "Creating...",
+				"facet_updated": "Facet updated successfully",
+				"facet_created": "Facet created successfully",
+				"save_failed": "Failed to save facet",
+				"name_required": "Name is required",
+				"slug_required": "Slug is required"
+			},
+			"share_link": {
+				"title": "Generate Share Link",
+				"unlisted_description": "This view is unlisted — only people with a share link can access it.",
+				"private_description": "This view is private — generate a share link for specific access.",
+				"created_title": "Share link created!",
+				"created_copy_warning": "Copy this link now — for security, the full token won't be shown again.",
+				"copy": "Copy",
+				"name_label": "Name (optional)",
+				"name_placeholder": "e.g., Sent to Company X",
+				"name_help": "A label to help you remember who this link was shared with.",
+				"expiration_label": "Expiration",
+				"max_uses_label": "Max Uses",
+				"max_uses_placeholder": "0 = unlimited",
+				"cancel": "Cancel",
+				"generate": "Generate Link",
+				"generating": "Generating...",
+				"existing_title": "Existing Share Links ({count})",
+				"manage_all": "Manage all →",
+				"unnamed": "Unnamed link",
+				"use": "use",
+				"uses": "uses",
+				"regenerate_title": "Regenerate link (revokes old, creates new)",
+				"revoke_title": "Revoke link",
+				"more_links": "+{count} more — view all"
+			},
+			"danger_zone": {
+				"title": "Danger Zone",
+				"delete_title": "Delete this facet",
+				"delete_description": "Permanently delete this facet and all associated share tokens and exports.",
+				"delete_button": "Delete Facet",
+				"deleting": "Deleting..."
+			},
+			"live_preview": {
+				"title": "Live Preview",
+				"desktop": "Desktop preview",
+				"mobile": "Mobile preview"
+			},
 			"basic_info": {
 				"title": "Basic Information",
 				"name_label": "Name",
@@ -760,6 +874,11 @@
 			"cta": {
 				"title": "Call to Action",
 				"description": "Add a prominent button to this view",
+				"description_label": "Description",
+				"description_placeholder": "Ready to work together?",
+				"description_help": "Text shown next to the button",
+				"button_label": "Button Label",
+				"button_label_placeholder": "Get in touch",
 				"button_text_label": "Button Text",
 				"button_text_placeholder": "Download Resume",
 				"button_url_label": "Button URL",
@@ -819,6 +938,18 @@
 				"no_categories": "No categories found.",
 				"reset_to_default": "Reset to Default",
 				"done": "Done"
+			},
+			"skills_categories": {
+				"description": "Drag categories to reorder. Expand a category to select individual skills.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Expand {category}",
+				"collapse": "Collapse {category}",
+				"skills": "skills",
+				"selected": "selected",
+				"all_selected": "all",
+				"none_selected_hint": "All skills shown. Select to customize.",
+				"drag_hint": "Drag to reorder skills within this category.",
+				"no_skills": "No skills found. Add skills in the Skills section first."
 			},
 			"override_editor": {
 				"title": "Customize for this View",
@@ -1068,7 +1199,100 @@
 			"awards": "Awards",
 			"certifications": "Certifications",
 			"testimonials": "Testimonials",
-			"contact": "Contact"
+			"contacts": "Contact"
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "CAPTCHA Required",
+			"copy_to_clipboard": "Copy to clipboard",
+			"copied": "Copied!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} to clipboard",
+			"show_email": "Show email",
+			"show_phone": "Show phone",
+			"show_url": "Show URL",
+			"show_contact": "Show contact",
+			"types": {
+				"email": "Email",
+				"phone": "Phone",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Website",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
+		},
+		"homepage": {
+			"profile_private": "Profile is private right now",
+			"views_accessible": "You can still access shared views directly if you have the link.",
+			"print_options": "Print options",
+			"simple_print": "Simple Print",
+			"ai_resume": "AI Resume",
+			"log_in": "Log In",
+			"log_in_account": "Log in to your account",
+			"profile_setup": "This profile is being set up.",
+			"browse_all": "Browse all"
+		},
+		"experience": {
+			"at": "at"
+		},
+		"projects": {
+			"featured": "Featured"
+		},
+		"certifications": {
+			"expired": "Expired",
+			"expiring_soon": "Expiring Soon",
+			"expires": "Expires",
+			"issued": "Issued",
+			"unknown_issuer": "Unknown Issuer",
+			"unknown": "Unknown",
+			"verify": "Verify",
+			"verify_credential": "Verify Credential",
+			"no_expiration": "No expiration",
+			"credential_id": "Credential ID"
+		},
+		"awards": {
+			"no_date": "Date not provided",
+			"view_details": "View details"
+		},
+		"talks": {
+			"video": "Video",
+			"slides": "Slides",
+			"watch_video": "Watch Video",
+			"view_slides": "View Slides"
+		},
+		"posts": {
+			"read_more": "Read more"
+		},
+		"custom_content": {
+			"open_link": "Open link"
+		},
+		"ai_resume": {
+			"title": "Generate AI Resume",
+			"description": "Create a professionally formatted resume from this view.",
+			"success": "Resume generated successfully!",
+			"download": "Download Resume",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Document",
+			"style_label": "Style",
+			"style_chronological": "Chronological",
+			"style_functional": "Functional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Length",
+			"length_one_page": "One Page",
+			"length_two_pages": "Two Pages",
+			"length_full": "Full",
+			"close": "Close",
+			"cancel": "Cancel",
+			"generating": "Generating...",
+			"generate": "Generate"
 		}
 	},
 	"shared": {
@@ -1160,7 +1384,8 @@
 			"hours_ago": "{count} hour(s) ago",
 			"days_ago": "{count} day(s) ago",
 			"today": "Today",
-			"yesterday": "Yesterday"
+			"yesterday": "Yesterday",
+			"present": "Present"
 		}
 	},
 	"errors": {
