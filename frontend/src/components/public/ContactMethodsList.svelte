@@ -299,6 +299,8 @@
 	.label {
 		font-weight: 500;
 		color: var(--text-secondary, #6b7280);
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
 	.value {
