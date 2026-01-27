@@ -3,6 +3,28 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.8.23 - January 27, 2026
+
+**Bugs Fixed:**
+- Fix vertical alignment of contact method icons with protection level 'none'
+- Fix contact methods rendering in dark mode
+- Fix type errors in AdminSidebar version check
+- Use proper domain validation instead of substring checks
+- Fix section ordering to respect configured order and add missing 'awards' to DEFAULT_SECTION_ORDER
+
+**New Features:**
+- Add global CTA toggle in admin homepage settings and per-facet CTA toggle in facet editor
+- Add cover image upload field to posts admin page and display current cover image preview
+- Add proper URL validation for external links
+
+**Other Changes:**
+- Remove confusing dot indicators from testimonials carousel and add endless loop navigation
+
+**Pull Requests:** [#316](https://github.com/jesposito/Facet/pull/316),
+
+---
+
+
 ## v2.8.22 - January 26, 2026
 
 ---
