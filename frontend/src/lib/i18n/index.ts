@@ -43,8 +43,16 @@ function getStoredLocale(): string | null {
 	return localStorage.getItem(STORAGE_KEY);
 }
 
+// Initialize i18n immediately for SSR support
+// This ensures $t() works during server-side rendering
+init({
+	fallbackLocale: 'en',
+	initialLocale: 'en'
+});
+
 /**
- * Initialize i18n - call this in root layout onMount
+ * Initialize i18n with user preferences - call this in root layout onMount
+ * This re-initializes with stored/browser locale on the client
  */
 export function initI18n() {
 	const storedLocale = getStoredLocale();
@@ -64,10 +72,8 @@ export function initI18n() {
 		}
 	}
 
-	init({
-		fallbackLocale: 'en',
-		initialLocale
-	});
+	// Set the locale (init was already called at module load for SSR)
+	locale.set(initialLocale);
 }
 
 /**
