@@ -286,8 +286,12 @@
 
 	.icon {
 		display: inline-flex;
-		font-size: 1.5rem;
-		line-height: 1;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.25rem;
+		width: 1.5rem;
+		height: 1.5rem;
+		flex-shrink: 0;
 	}
 
 	.label {
