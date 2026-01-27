@@ -3,6 +3,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { onMount, onDestroy } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	let stats = $state({
 		projects: 0,
@@ -86,7 +87,7 @@
 </script>
 
 <svelte:head>
-	<title>Dashboard | Facet</title>
+	<title>{$t('admin.dashboard.title')} | Facet</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
@@ -99,24 +100,28 @@
 	{:else if isEmpty}
 		<!-- Welcome state for first-time users -->
 		<div class="card p-8 mb-8">
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">This is your space.</h1>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">{$t('admin.dashboard.welcome_title')}</h1>
 			<p class="text-gray-600 dark:text-gray-400">
-				You might start by <a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline">adding your profile</a>,
-				or <a href="/admin/import" class="text-primary-600 dark:text-primary-400 hover:underline">import a project from GitHub</a>.
+				{@html $t('admin.dashboard.welcome_description', {
+					values: {
+						profile_link: `<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline">${$t('admin.dashboard.adding_profile')}</a>`,
+						import_link: `<a href="/admin/import" class="text-primary-600 dark:text-primary-400 hover:underline">${$t('admin.dashboard.import_project')}</a>`
+					}
+				})}
 			</p>
 			<p class="text-gray-500 dark:text-gray-500 text-sm mt-2">
-				There's no rush — add things as you're ready.
+				{$t('admin.dashboard.no_rush')}
 			</p>
 		</div>
 	{:else}
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Dashboard</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">{$t('admin.dashboard.title')}</h1>
 
 		<!-- Stats grid -->
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
 			<div class="card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">Projects</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_projects')}</p>
 						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.projects}</p>
 					</div>
 					<div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
@@ -130,7 +135,7 @@
 			<div class="card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">Experience</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_experience')}</p>
 						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.experience}</p>
 					</div>
 					<div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
@@ -144,7 +149,7 @@
 			<div class="card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">Views</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_views')}</p>
 						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.views}</p>
 					</div>
 					<div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
@@ -159,7 +164,7 @@
 			<div class="card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">Pending Reviews</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.pending_reviews')}</p>
 						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.pendingProposals}</p>
 					</div>
 					<div class="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
@@ -175,51 +180,51 @@
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 		<!-- Quick actions -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.dashboard.quick_actions')}</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 				<a href="/admin/projects?new=true" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
-					Add Project
+					{$t('admin.dashboard.add_project')}
 				</a>
 				<a href="/admin/experience?new=true" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
-					Add Experience
+					{$t('admin.dashboard.add_experience')}
 				</a>
 				<a href="/admin/import" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
 					</svg>
-					Import from GitHub
+					{$t('admin.dashboard.import_github')}
 				</a>
 				<a href="/admin/views/new" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 					</svg>
-					Create View
+					{$t('admin.dashboard.create_view')}
 				</a>
 				<a href="/rss.xml" target="_blank" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 11-2 0 1 1 0 012 0z" />
 					</svg>
-					RSS Feed
+					{$t('admin.dashboard.rss_feed')}
 				</a>
 				<a href="/talks.ics" class="btn btn-secondary justify-start">
 					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 					</svg>
-					Talks Calendar
+					{$t('admin.dashboard.talks_calendar')}
 				</a>
 			</div>
 		</div>
 
 		<!-- Recent activity -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.dashboard.recent_activity')}</h2>
 			{#if loading}
 				<div class="space-y-3">
 					{#each Array(3) as _}
@@ -232,7 +237,7 @@
 					{/each}
 				</div>
 			{:else if recentActivity.length === 0}
-				<p class="text-gray-500 dark:text-gray-400 text-sm">Nothing here yet — and that's okay.</p>
+				<p class="text-gray-500 dark:text-gray-400 text-sm">{$t('admin.dashboard.nothing_yet')}</p>
 			{:else}
 				<div class="space-y-3">
 					{#each recentActivity as activity}
@@ -253,7 +258,7 @@
 									{activity.title}
 								</p>
 								<p class="text-xs text-gray-500 dark:text-gray-400">
-									{activity.type === 'project' ? 'Project' : 'Experience'}
+									{activity.type === 'project' ? $t('admin.dashboard.activity_project') : $t('admin.dashboard.activity_experience')}
 								</p>
 							</div>
 						</div>
@@ -272,11 +277,11 @@
 				</svg>
 				<div class="flex-1">
 					<p class="font-medium text-yellow-800 dark:text-yellow-200">
-						You have {stats.pendingProposals} pending import proposal{stats.pendingProposals > 1 ? 's' : ''} to review
+						{$t('admin.dashboard.pending_alert', { values: { count: stats.pendingProposals } })}
 					</p>
 				</div>
 				<a href="/admin/proposals" class="btn btn-sm bg-yellow-600 text-white hover:bg-yellow-700">
-					Review Now
+					{$t('admin.dashboard.review_now')}
 				</a>
 			</div>
 		</div>

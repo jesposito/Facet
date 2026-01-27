@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import { theme } from '$lib/stores';
 </script>
 
 <button
 	class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 	onclick={() => theme.toggle()}
-	aria-label={$theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+	aria-label={$theme === 'dark' ? $t('shared.theme.switch_to_light') : $t('shared.theme.switch_to_dark')}
 >
 	{#if $theme === 'dark'}
 		<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

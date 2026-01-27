@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
+	import { t } from 'svelte-i18n';
 
 	import { createEventDispatcher } from 'svelte';
 
@@ -19,7 +20,7 @@
 
 	async function handleSubmit() {
 		if (!password) {
-			error = 'Please enter a password';
+			error = $t('public.password.required_error');
 			return;
 		}
 
@@ -35,7 +36,7 @@
 
 			if (!response.ok) {
 				const data = await response.json();
-				error = data.error || 'Incorrect password';
+				error = data.error || $t('public.password.incorrect_error');
 				return;
 			}
 
@@ -47,7 +48,7 @@
 				expiresIn: data.expires_in
 			});
 		} catch (err) {
-			error = 'Failed to verify password';
+			error = $t('public.password.verify_error');
 		} finally {
 			loading = false;
 		}
@@ -63,22 +64,22 @@
 				</svg>
 			</div>
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-				Password Protected
+				{$t('public.password.title')}
 			</h1>
 			<p class="text-gray-600 dark:text-gray-400 mt-2">
-				This content requires a password to view.
+				{$t('public.password.description')}
 			</p>
 		</div>
 
 		<form onsubmit={preventDefault(handleSubmit)}>
 			<div class="mb-4">
-				<label for="password" class="label">Password</label>
+				<label for="password" class="label">{$t('public.password.label')}</label>
 				<input
 					type="password"
 					id="password"
 					bind:value={password}
 					class="input"
-					placeholder="Enter password"
+					placeholder={$t('public.password.placeholder')}
 					disabled={loading}
 				/>
 			</div>
@@ -97,16 +98,16 @@
 						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 					</svg>
-					Verifying...
+					{$t('public.password.verifying')}
 				{:else}
-					Continue
+					{$t('public.password.continue')}
 				{/if}
 			</button>
 		</form>
 
 		<div class="mt-6 text-center">
 			<a href="/" class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
-				Back to main profile
+				{$t('public.password.back_to_profile')}
 			</a>
 		</div>
 	</div>

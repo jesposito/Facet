@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from 'svelte-i18n';
 	import { canUseNativeShare, nativeShare, copyToClipboard, getShareUrls, type ShareData } from '$lib/share';
 
 	interface Props {
@@ -80,8 +81,8 @@
 		bind:this={buttonRef}
 		onclick={handleShare}
 		class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-		title="Share"
-		aria-label="Share this page"
+		title={$t('shared.share.title')}
+		aria-label={$t('shared.share.share_page')}
 		aria-haspopup={!useNative}
 		aria-expanded={isOpen}
 	>
@@ -103,7 +104,7 @@
 						<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 						</svg>
-						<span>This view is unlisted. Share links may expire.</span>
+						<span>{$t('shared.share.unlisted_warning')}</span>
 					</div>
 				</div>
 			{/if}
@@ -116,12 +117,12 @@
 					<svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 					</svg>
-					<span class="text-green-600 dark:text-green-400 font-medium">Copied!</span>
+					<span class="text-green-600 dark:text-green-400 font-medium">{$t('shared.actions.copied')}</span>
 				{:else}
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
 					</svg>
-					<span>Copy Link</span>
+					<span>{$t('shared.share.copy_link')}</span>
 				{/if}
 			</button>
 
@@ -174,7 +175,7 @@
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 				</svg>
-				<span>Email</span>
+				<span>{$t('shared.share.email')}</span>
 			</a>
 		</div>
 	{/if}
