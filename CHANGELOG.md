@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.10.1 - January 27, 2026
+
+**Other Changes:**
+- Add explicit permissions to workflow files to satisfy GitHub's code scanning security requirements
+
+**Pull Requests:** [#322](https://github.com/jesposito/Facet/pull/322),
+
+---
+
+
 ## v2.10.0 - January 27, 2026
 
 **New Features:**
