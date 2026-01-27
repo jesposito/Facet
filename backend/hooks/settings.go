@@ -36,6 +36,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_nav_items":          settings.SiteNavItems,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
+				"favicon":                 settings.Favicon,
 			})
 		})
 
@@ -138,6 +139,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_nav_items":          settings.SiteNavItems,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
+				"favicon":                 settings.Favicon,
 			})
 		})
 

@@ -47,6 +47,7 @@ type SiteSettings struct {
 	SiteNavItems          []SiteNavItem
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
+	Favicon               string
 	Record                *core.Record
 }
 
@@ -128,6 +129,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		}
 	}
 
+	// Build favicon URL if set
+	var faviconURL string
+	if faviconFile := record.GetString("favicon"); faviconFile != "" {
+		faviconURL = "/api/files/" + record.Collection().Id + "/" + record.Id + "/" + faviconFile
+	}
+
 	return &SiteSettings{
 		HomepageEnabled:       record.GetBool("homepage_enabled"),
 		LandingPageMessage:    record.GetString("landing_page_message"),
@@ -142,6 +149,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		SiteNavItems:          siteNavItems,
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
+		Favicon:               faviconURL,
 		Record:                record,
 	}, nil
 }
