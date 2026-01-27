@@ -165,8 +165,9 @@
 			goto('/admin/views');
 			return;
 		}
+		// Load custom content FIRST since initializeSections() needs it
+		await loadCustomContentItems();
 		await Promise.all([
-			loadCustomContentItems(),
 			loadView(),
 			loadSectionItems(),
 			loadProfile(),
@@ -189,12 +190,14 @@
 		// Only reload if navigating between different view IDs
 		if (fromId && toId && fromId !== toId) {
 			loading = true;
-			Promise.all([
-				loadCustomContentItems(),
-				loadView(),
-				loadSectionItems(),
-				loadViewTokens()
-			]).then(async () => {
+			// Load custom content FIRST since initializeSections() needs it
+			loadCustomContentItems().then(() => {
+				return Promise.all([
+					loadView(),
+					loadSectionItems(),
+					loadViewTokens()
+				]);
+			}).then(async () => {
 				// Wait for Svelte to process reactive updates before reordering
 				await tick();
 				applySavedItemOrder();

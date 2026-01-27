@@ -461,6 +461,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			sectionLayouts := make(map[string]string)
 			sectionWidths := make(map[string]string)
 			sectionCategoryOrders := make(map[string][]string)
+			sectionDisabledCategories := make(map[string][]string)
 
 			for _, section := range sections {
 				sectionName, ok := section["section"].(string)
@@ -497,6 +498,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 					if len(categories) > 0 {
 						sectionCategoryOrders[sectionName] = categories
+					}
+				}
+
+				// Extract disabledCategories (categories to hide entirely)
+				if disabled, ok := section["disabledCategories"].([]interface{}); ok && len(disabled) > 0 {
+					var disabledCats []string
+					for _, cat := range disabled {
+						if catStr, ok := cat.(string); ok {
+							disabledCats = append(disabledCats, catStr)
+						}
+					}
+					if len(disabledCats) > 0 {
+						sectionDisabledCategories[sectionName] = disabledCats
 					}
 				}
 
@@ -568,6 +582,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["section_layouts"] = sectionLayouts
 			response["section_widths"] = sectionWidths
 			response["section_category_orders"] = sectionCategoryOrders
+			response["section_disabled_categories"] = sectionDisabledCategories
 
 			// Fetch profile data for the view
 			profileTableName := "profile"

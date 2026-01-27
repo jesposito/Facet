@@ -716,7 +716,7 @@
 								alt="Current cover"
 								class="w-24 h-24 object-cover rounded"
 							/>
-							<button type="button" class="btn btn-ghost btn-sm text-red-600" onclick={removeCoverImage}>
+							<button type="button" class="btn btn-danger-ghost btn-sm" onclick={removeCoverImage}>
 								Remove
 							</button>
 						</div>
@@ -1092,7 +1092,7 @@
 								</svg>
 							</button>
 							<button
-								class="btn btn-ghost btn-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+								class="btn btn-danger-ghost btn-sm"
 								title="Delete"
 								onclick={() => deleteItem(item)}
 							>

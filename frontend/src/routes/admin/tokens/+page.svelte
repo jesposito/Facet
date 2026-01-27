@@ -464,7 +464,7 @@
 											</button>
 										{/if}
 										<button
-											class="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+											class="btn btn-danger-ghost btn-sm"
 											onclick={() => deleteToken(token.id)}
 											title={$t('admin.tokens.delete_title')}
 										>

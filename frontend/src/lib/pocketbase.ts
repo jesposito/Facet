@@ -174,6 +174,7 @@ export interface Post {
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
+	featured: boolean;
 	published_at?: string;
 	admin_tags?: string[];
 	expand?: {
@@ -333,6 +334,7 @@ export interface ViewSection {
 	width?: SectionWidth;
 	itemConfig?: Record<string, ItemConfig>;
 	categoryOrder?: string[]; // For skills section: custom order of categories
+	disabledCategories?: string[]; // For skills section: categories to hide entirely
 }
 
 // Valid width options with labels

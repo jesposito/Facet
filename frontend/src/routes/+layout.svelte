@@ -9,7 +9,7 @@
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
-	import { initI18n, waitLocale } from '$lib/i18n';
+	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading } from 'svelte-i18n';
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -167,7 +167,7 @@ function applyFlatAccent(color: string) {
 		}
 	}
 
-async function loadSiteSettings() {
+async function loadSiteSettings(): Promise<string | undefined> {
 	try {
 		const response = await fetch('/api/site-settings');
 		if (response.ok) {
@@ -177,10 +177,12 @@ async function loadSiteSettings() {
 			faviconUrl = data.favicon || null;
 			applyPaletteFromCSS(customCSS);
 			applyCustomCSS(customCSS);
+			return data.default_locale || undefined;
 		}
 	} catch (err) {
 		console.debug('No custom CSS loaded');
 	}
+	return undefined;
 }
 
 function applyCustomCSS(css: string) {
@@ -201,10 +203,11 @@ function applyCustomCSS(css: string) {
 onMount(() => {
 	mounted = true;
 	theme.initialize();
-	initI18n();
 	(async () => {
+		// Load site settings first to get server locale
+		const serverLocale = await loadSiteSettings();
+		initI18n(serverLocale);
 		await waitLocale();
-		await loadSiteSettings();
 		await loadAccentColor();
 		if (lastCustomCSS) {
 			applyCustomCSS(lastCustomCSS);

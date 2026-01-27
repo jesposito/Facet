@@ -177,7 +177,7 @@
 								{@html view.is_active ? icon('toggleOn') : icon('toggleOff')}
 							</button>
 							<button
-								class="btn btn-sm btn-ghost p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+								class="btn btn-danger-ghost btn-sm p-2"
 								onclick={() => deleteView(String(view.id))}
 								title="Delete"
 							>

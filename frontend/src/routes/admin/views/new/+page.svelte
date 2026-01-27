@@ -38,6 +38,26 @@
 		contacts: { label: 'Contact Methods', collection: 'contact_methods' }
 	};
 
+	// Custom content items (each becomes its own section)
+	let customContentItems: Array<{
+		id: string;
+		title: string;
+		is_draft: boolean;
+		visibility: 'public' | 'unlisted' | 'private';
+	}> = $state([]);
+
+	// Helper to check if a section key is for custom content
+	function isCustomSection(sectionKey: string): boolean {
+		return sectionKey.startsWith('custom:');
+	}
+
+	// Get custom section title
+	function getCustomSectionTitle(sectionKey: string): string {
+		const customId = sectionKey.replace('custom:', '');
+		const item = customContentItems.find(c => c.id === customId);
+		return item ? `Custom: ${item.title}` : `Custom: ${customId.slice(0, 8)}...`;
+	}
+
 	// Default section order
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
@@ -95,6 +115,8 @@
 
 	// Simple pattern - admin layout handles auth
 	onMount(async () => {
+		// Load custom content FIRST since initializeSections() needs it
+		await loadCustomContentItems();
 		initializeSections();
 		await Promise.all([
 			loadSectionItems(),
@@ -103,6 +125,27 @@
 		]);
 		loading = false;
 	});
+
+	// Load custom content items - each becomes its own section
+	async function loadCustomContentItems() {
+		try {
+			const records = await collection('custom_content').getList(1, 100, {
+				sort: 'sort_order'
+			});
+			customContentItems = records.items.map(item => {
+				const record = item as any;
+				return {
+					id: record.id,
+					title: record.title || 'Untitled',
+					is_draft: record.is_draft || false,
+					visibility: (record.visibility || 'private') as 'public' | 'unlisted' | 'private'
+				};
+			});
+		} catch (err) {
+			console.error('Failed to load custom content:', err);
+			customContentItems = [];
+		}
+	}
 
 	async function checkAiProviders() {
 		try {
@@ -139,8 +182,19 @@
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
 			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
 		}
-		// Initialize section order
-		sectionOrder = DEFAULT_SECTION_ORDER.map(key => ({ id: `section-${key}`, key }));
+
+		// Add custom content sections (each custom content item is its own section)
+		for (const item of customContentItems) {
+			const sectionKey = `custom:${item.id}`;
+			const defaultLayout = VALID_LAYOUTS['custom']?.default || 'default';
+			// Custom content sections start disabled by default for new views
+			sections[sectionKey] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
+		}
+
+		// Initialize section order (standard sections first, then custom content)
+		const customSectionKeys = customContentItems.map(item => `custom:${item.id}`);
+		const allSections = [...DEFAULT_SECTION_ORDER, ...customSectionKeys];
+		sectionOrder = allSections.map(key => ({ id: `section-${key}`, key }));
 	}
 
 	async function loadSectionItems() {
@@ -232,7 +286,8 @@
 	function updateSectionLayout(sectionKey: string, layout: string) {
 		sections[sectionKey].layout = layout;
 		// Auto-reset width to 'full' if current width is not valid for new layout
-		if (!isWidthValidForLayout(sectionKey, layout, sections[sectionKey].width)) {
+		const layoutKey = isCustomSection(sectionKey) ? 'custom' : sectionKey;
+		if (!isWidthValidForLayout(layoutKey, layout, sections[sectionKey].width)) {
 			sections[sectionKey].width = 'full';
 		}
 		updateSections();
@@ -872,7 +927,10 @@
 				>
 					{#each sectionOrder as sectionItem (sectionItem.id)}
 						{@const sectionKey = sectionItem.key}
+						{@const isCustom = isCustomSection(sectionKey)}
 						{@const sectionDef = SECTION_DEFS[sectionKey]}
+						{@const sectionLabel = isCustom ? getCustomSectionTitle(sectionKey) : (sectionDef?.label || sectionKey)}
+						{@const layoutKey = isCustom ? 'custom' : sectionKey}
 						{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false }}
 						{@const items = sectionItems[sectionKey] || []}
 						{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
@@ -897,14 +955,14 @@
 									class="w-10 h-6 rounded-full transition-colors relative
 										{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
 									onclick={() => toggleSection(sectionKey)}
-									aria-label="Toggle {sectionDef?.label || sectionKey} section"
+									aria-label="Toggle {sectionLabel} section"
 								>
 									<span
 										class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
 											{sectionConfig.enabled ? 'left-5' : 'left-1'}"
 									></span>
 								</button>
-								<span class="font-medium text-gray-900 dark:text-white">{sectionDef?.label || sectionKey}</span>
+								<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
 									<span class="text-xs text-gray-500">
 										{#if selectedPublicCount > 0}
 											{selectedPublicCount} selected
@@ -919,7 +977,7 @@
 								<div class="flex items-center gap-2">
 									<!-- Width Selector with visual indicator -->
 									{#if sectionConfig.enabled}
-										{@const validWidths = getValidWidthsForLayout(sectionKey, sectionConfig.layout)}
+										{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
 										{#if validWidths.length > 1}
 											<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
 												<!-- Width icon indicator -->
@@ -950,8 +1008,8 @@
 									{/if}
 
 									<!-- Layout Selector -->
-									{#if sectionConfig.enabled && VALID_LAYOUTS[sectionKey]}
-										{@const layoutConfig = VALID_LAYOUTS[sectionKey]}
+									{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
+										{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
 										<select
 											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 											value={sectionConfig.layout}
@@ -970,7 +1028,7 @@
 										type="button"
 										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 										onclick={() => toggleSectionExpand(sectionKey)}
-										aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionDef?.label || sectionKey} section"
+										aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionLabel} section"
 									>
 										<svg
 											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"

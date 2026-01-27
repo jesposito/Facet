@@ -294,7 +294,7 @@
 
 		<!-- Actions -->
 		<div class="flex justify-between mt-8">
-			<button class="btn btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onclick={handleReject}>
+			<button class="btn btn-danger-ghost" onclick={handleReject}>
 				Reject All
 			</button>
 			<div class="flex gap-3">

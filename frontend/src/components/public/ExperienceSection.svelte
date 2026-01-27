@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { formatDateRange, parseMarkdown } from '$lib/utils';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		items: Experience[];
@@ -9,13 +10,16 @@
 
 	let { items, layout = 'default' }: Props = $props();
 
+	// Get translated "Present" text for date ranges
+	let presentText = $derived($t('shared.time.present'));
+
 	function stripBulletPrefix(text: string): string {
 		return text.replace(/^\s*[•\-\*–—·●◦▪▸►]\s*/, '').replace(/^\s*\d+[.)]\s+/, '');
 	}
 </script>
 
 <section id="experience" class="mb-16">
-	<h2 class="section-title">Experience</h2>
+	<h2 class="section-title">{$t('public.sections.experience')}</h2>
 
 	{#if layout === 'timeline'}
 		<!-- Timeline Layout -->
@@ -50,7 +54,7 @@
 								</span>
 							</div>
 							<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-								<span class="font-medium">{formatDateRange(item.start_date, item.end_date)}</span>
+								<span class="font-medium">{formatDateRange(item.start_date, item.end_date, presentText)}</span>
 								{#if item.location}
 									<span>• {item.location}</span>
 								{/if}
@@ -107,13 +111,13 @@
 									{item.title}
 								</h3>
 							</div>
-							<span class="text-gray-500 dark:text-gray-400">at</span>
+							<span class="text-gray-500 dark:text-gray-400">{$t('public.experience.at')}</span>
 							<span class="text-primary-600 dark:text-primary-400 font-medium">
 								{item.company}
 							</span>
 						</div>
 						<span class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-							{formatDateRange(item.start_date, item.end_date)}
+							{formatDateRange(item.start_date, item.end_date, presentText)}
 						</span>
 					</div>
 
@@ -153,7 +157,7 @@
 								{item.company}
 							</p>
 							<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
-								<span>{formatDateRange(item.start_date, item.end_date)}</span>
+								<span>{formatDateRange(item.start_date, item.end_date, presentText)}</span>
 								{#if item.location}
 									<span class="flex items-center gap-1">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

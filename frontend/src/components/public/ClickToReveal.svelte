@@ -7,6 +7,7 @@
 	 *
 	 * Protection level: High (prevents automated scraping, requires user interaction)
 	 */
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		type?: 'email' | 'phone' | 'url' | 'copy';
@@ -42,7 +43,7 @@
 						: value
 	);
 
-	let buttonLabel = $derived(label || `Show ${type === 'copy' ? 'contact' : type}`);
+	let buttonLabel = $derived(label || $t(`public.contacts.show_${type === 'copy' ? 'contact' : type}`));
 
 	function reveal() {
 		revealed = true;
@@ -150,7 +151,7 @@
 				>
 					<polyline points="20 6 9 17 4 12"></polyline>
 				</svg>
-				<span class="sr-only">Copied!</span>
+				<span class="sr-only">{$t('public.contacts.copied')}</span>
 			{:else}
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -167,7 +168,7 @@
 					<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
 					<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
 				</svg>
-				<span class="sr-only">Copy</span>
+				<span class="sr-only">{$t('public.contacts.copy')}</span>
 			{/if}
 		</button>
 	</div>

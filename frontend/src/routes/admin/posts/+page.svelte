@@ -54,7 +54,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, excerpt, content, tags, visibility, isDraft, publishedAt, mediaRefs };
+	return { title, slug, excerpt, content, tags, visibility, isDraft, featured, publishedAt, mediaRefs };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -65,6 +65,7 @@ function restoreFromDraft(data: Record<string, any>) {
 	tags = data.tags || [];
 	visibility = data.visibility || 'public';
 	isDraft = data.isDraft !== false;
+	featured = data.featured === true;
 	publishedAt = data.publishedAt || '';
 	mediaRefs = data.mediaRefs || [];
 }
@@ -100,6 +101,7 @@ afterNavigate(() => {
 	let tagInput = $state('');
 	let visibility = $state('public');
 	let isDraft = $state(true);
+	let featured = $state(false);
 	let publishedAt = $state('');
 	let saving = $state(false);
 	let coverImageFile: FileList | null = $state(null);
@@ -238,6 +240,7 @@ function resetForm() {
 	tagInput = '';
 	visibility = 'public';
 	isDraft = true;
+	featured = false;
 	publishedAt = '';
 	coverImageFile = null;
 		editingPost = null;
@@ -278,6 +281,7 @@ function openEditForm(post: Post) {
 	tags = post.tags || [];
 	visibility = post.visibility;
 	isDraft = post.is_draft;
+	featured = post.featured || false;
 	publishedAt = toDateInputValue(post.published_at);
 	coverImageFile = null;
 	showForm = true;
@@ -348,6 +352,7 @@ function openEditForm(post: Post) {
 			formData.append('tags', JSON.stringify(tags));
 			formData.append('visibility', visibility);
 			formData.append('is_draft', String(isDraft));
+			formData.append('featured', String(featured));
 			if (publishedAt) {
 				formData.append('published_at', new Date(publishedAt).toISOString());
 			}
@@ -740,6 +745,18 @@ function openEditForm(post: Post) {
 						Save as draft (won't be visible publicly)
 					</label>
 				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						id="featured"
+						bind:checked={featured}
+						class="w-4 h-4 text-primary-600 rounded border-gray-300"
+					/>
+					<label for="featured" class="text-sm text-gray-700 dark:text-gray-300">
+						Featured post (highlight in featured layout)
+					</label>
+				</div>
 			</div>
 
 			<div class="flex justify-end gap-3">
@@ -861,6 +878,11 @@ function openEditForm(post: Post) {
 										Published
 									</span>
 								{/if}
+								{#if post.featured}
+									<span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded">
+										Featured
+									</span>
+								{/if}
 								<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize">
 									{post.visibility}
 								</span>
@@ -950,7 +972,7 @@ function openEditForm(post: Post) {
 								</svg>
 							</button>
 							<button
-								class="btn btn-ghost btn-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+								class="btn btn-danger-ghost btn-sm"
 								title="Delete"
 								onclick={() => deletePost(post)}
 							>

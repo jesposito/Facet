@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	interface CustomContentItem {
 		id: string;
@@ -78,18 +79,23 @@
 		show: boolean;
 	}
 
+	// Get translated label for section
+	function getSectionLabel(sectionId: string): string {
+		return $t(`public.sections.${sectionId}`) || sectionId;
+	}
+
 	// Map of section IDs to their display info
-	const sectionConfig: Record<string, { label: string; href?: string; getShow: () => boolean }> = {
-		experience: { label: 'Experience', getShow: () => hasExperience },
-		projects: { label: 'Projects', getShow: () => hasProjects },
-		education: { label: 'Education', getShow: () => hasEducation },
-		certifications: { label: 'Certifications', getShow: () => hasCertifications },
-		awards: { label: 'Awards', getShow: () => hasAwards },
-		skills: { label: 'Skills', getShow: () => hasSkills },
-		posts: { label: 'Posts', href: buildUrl('/posts'), getShow: () => hasPosts },
-		talks: { label: 'Talks', href: buildUrl('/talks'), getShow: () => hasTalks },
-		testimonials: { label: 'Testimonials', getShow: () => hasTestimonials },
-		contacts: { label: 'Contact', getShow: () => hasContacts }
+	const sectionConfig: Record<string, { href?: string; getShow: () => boolean }> = {
+		experience: { getShow: () => hasExperience },
+		projects: { getShow: () => hasProjects },
+		education: { getShow: () => hasEducation },
+		certifications: { getShow: () => hasCertifications },
+		awards: { getShow: () => hasAwards },
+		skills: { getShow: () => hasSkills },
+		posts: { href: buildUrl('/posts'), getShow: () => hasPosts },
+		talks: { href: buildUrl('/talks'), getShow: () => hasTalks },
+		testimonials: { getShow: () => hasTestimonials },
+		contacts: { getShow: () => hasContacts }
 	};
 
 	// Default order (used when no sectionOrder provided)
@@ -119,7 +125,7 @@
 			if (config && config.getShow()) {
 				items.push({
 					id: sectionId,
-					label: config.label,
+					label: getSectionLabel(sectionId),
 					href: config.href,
 					show: true
 				});

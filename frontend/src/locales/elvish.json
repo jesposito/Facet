@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Tongue of the Realm",
-				"section_description": "Choose thy preferred tongue for the halls of administration.",
-				"label": "Display Tongue",
-				"help": "Changes take hold as swift as starlight. Thy preference is preserved in the local realm.",
+				"section_description": "Choose the tongue of display for all who visit thy realm.",
+				"label": "Realm Tongue",
+				"help": "This tongue shall be spoken by all who journey to thy lands.",
 				"current": "Current tongue",
-				"more_coming": "More tongues shall come with the turning of ages! Wouldst thou aid in translation? See our guide for wandering scribes."
+				"more_coming": "More tongues shall come with the turning of ages! Wouldst thou aid in translation? See our guide for wandering scribes.",
+				"saved": "Tongue preference preserved",
+				"saving": "Inscribing...",
+				"save_error": "The tongue preference could not be preserved"
 			},
 			"help_text": "<strong>Inscriptions</strong> governs thy realm's appearance, artificers of thought, chronicles, and the preservation of knowledge.",
 			"help_tip_1": "Configure artificers of thought to enable wise features such as scroll parsing, content reweaving, and GitHub project illumination. Add custom styling to adorn thy public presence.",
@@ -195,6 +198,51 @@
 			"other_changes": "Other Turnings",
 			"show_more": "Reveal more ({count} remaining)",
 			"view_full_changelog": "Behold full scrolls of change on GitHub"
+		},
+		"ai_assistant": {
+			"title": "Wisdom Weaver",
+			"button_label": "Wisdom Weaver",
+			"button_label_short": "Weave",
+			"improve": "Refine",
+			"generate": "Conjure",
+			"expand": "Unfold",
+			"shorten": "Distill",
+			"title_with_action": "{action} with ancient wisdom",
+			"content_improved": "Words refined by elder wisdom",
+			"improve_failed": "The weaving faltered",
+			"enter_content_first": "Inscribe words first, then seek wisdom",
+			"rewrite_success": "Words rewoven in the {tone} manner",
+			"rewrite_failed": "The reweaving was hindered",
+			"feedback_provided": "Wisdom has been shared",
+			"feedback_failed": "Wisdom could not be summoned",
+			"changes_applied": "Changes woven into being",
+			"mode_rewrite": "Reweave",
+			"mode_feedback": "Seek Counsel",
+			"choose_tone": "Choose thy manner of speech:",
+			"tone_executive": "Lordly",
+			"tone_executive_desc": "Formal, befitting rulers and council halls",
+			"tone_professional": "Scholarly",
+			"tone_professional_desc": "Standard lore-keeper style, achievement-focused",
+			"tone_technical": "Craftsman",
+			"tone_technical_desc": "Smith-focused, emphasizes technique and method",
+			"tone_conversational": "Hearth-side",
+			"tone_conversational_desc": "Warm, welcoming, as among friends",
+			"tone_creative": "Bardic",
+			"tone_creative_desc": "Tale-weaving style, imaginative, inspiring",
+			"critique_description": "The Weaver shall review thy words and offer counsel within brackets.",
+			"get_feedback_button": "Receive Counsel",
+			"getting_feedback": "Consulting the elders...",
+			"tip_label": "Wisdom:",
+			"tip": "All manners avoid hollow words like \"leverage\", \"delve\", \"robust\"",
+			"preview_title_feedback": "Elder Counsel",
+			"preview_title_rewrite": "Rewoven Words Preview",
+			"note_label": "Mark well:",
+			"feedback_note": "Counsel appears in {brackets} within thy text.",
+			"original_label": "As written:",
+			"rewrite_label": "As rewoven:",
+			"apply_changes": "Accept Changes",
+			"close": "Close",
+			"cancel": "Turn Away"
 		},
 		"tags_page": {
 			"title": "Tokens of Administration",
@@ -416,9 +464,16 @@
 				"new_button": "+ New {type}",
 				"add_first_button": "+ Add Thy First {type}",
 				"add_button": "+ Add {type}",
+				"add_manually": "+ Add by Hand",
+				"import_from_github": "Import from GitHub",
 				"select": "Choose",
 				"cancel": "Withdraw",
 				"loading": "Summoning {type}...",
+				"search_placeholder": "Seek {type}...",
+				"filter_drafts": "Drafts",
+				"filter_published": "Published",
+				"filter_private": "Private",
+				"filter_more": "More filters",
 				"saving": "Preserving...",
 				"form_title_new": "New {type}",
 				"form_title_edit": "Shape {type}",
@@ -715,6 +770,65 @@
 			}
 		},
 		"view_editor": {
+			"page": {
+				"title_edit": "Shape Facet",
+				"title_create": "Forge Facet",
+				"loading": "Summoning facet...",
+				"back_to_facets": "Return to facets",
+				"hide_preview": "Veil Preview",
+				"show_preview": "Reveal Preview",
+				"open_in_tab": "Open in New Window",
+				"view": "Behold",
+				"generate_resume": "Craft Resume",
+				"generate_resume_title": "Craft AI-woven resume",
+				"generate_resume_no_pandoc": "Craft Resume (Pandoc not present)",
+				"save": "Preserve",
+				"saving": "Preserving...",
+				"create": "Forge",
+				"creating": "Forging...",
+				"facet_updated": "Facet reshaped successfully",
+				"facet_created": "Facet forged successfully",
+				"save_failed": "Failed to preserve facet",
+				"name_required": "Name is required",
+				"slug_required": "Path is required"
+			},
+			"share_link": {
+				"title": "Create Share Passage",
+				"unlisted_description": "This vision is hidden — only those with a passage may enter.",
+				"private_description": "This vision is sealed — create a passage for chosen ones.",
+				"created_title": "Passage created!",
+				"created_copy_warning": "Copy this passage now — for safety, the full rune shall not appear again.",
+				"copy": "Copy",
+				"name_label": "Name (optional)",
+				"name_placeholder": "e.g., Sent to House X",
+				"name_help": "A mark to remember with whom you shared.",
+				"expiration_label": "Expiration",
+				"max_uses_label": "Maximum Uses",
+				"max_uses_placeholder": "0 = unlimited",
+				"cancel": "Withdraw",
+				"generate": "Create Passage",
+				"generating": "Weaving...",
+				"existing_title": "Existing Passages ({count})",
+				"manage_all": "Manage all →",
+				"unnamed": "Unnamed passage",
+				"use": "use",
+				"uses": "uses",
+				"regenerate_title": "Reforge passage (revokes old, creates new)",
+				"revoke_title": "Revoke passage",
+				"more_links": "+{count} more — view all"
+			},
+			"danger_zone": {
+				"title": "Perilous Domain",
+				"delete_title": "Unmake this facet",
+				"delete_description": "Permanently unmake this facet and all bound passages and scrolls.",
+				"delete_button": "Unmake Facet",
+				"deleting": "Unmaking..."
+			},
+			"live_preview": {
+				"title": "Living Mirror",
+				"desktop": "Desktop vision",
+				"mobile": "Mobile vision"
+			},
 			"basic_info": {
 				"title": "Foundational Knowledge",
 				"name_label": "Name",
@@ -760,6 +874,11 @@
 			"cta": {
 				"title": "Call to Deed",
 				"description": "Add a prominent seal to this vision",
+				"description_label": "Description",
+				"description_placeholder": "Ready to join forces?",
+				"description_help": "Words shown beside the seal",
+				"button_label": "Seal Label",
+				"button_label_placeholder": "Send word",
 				"button_text_label": "Seal Text",
 				"button_text_placeholder": "Download Scroll of Deeds",
 				"button_url_label": "Seal Path",
@@ -819,6 +938,18 @@
 				"no_categories": "No categories found.",
 				"reset_to_default": "Return to Default",
 				"done": "Complete"
+			},
+			"skills_categories": {
+				"description": "Draw categories to reorder. Unfurl a category to select individual crafts.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Unfurl {category}",
+				"collapse": "Fold {category}",
+				"skills": "crafts",
+				"selected": "chosen",
+				"all_selected": "all",
+				"none_selected_hint": "All crafts shown. Select to tailor.",
+				"drag_hint": "Draw to reorder crafts within this category.",
+				"no_skills": "No crafts found. Add crafts in the Crafts section first."
 			},
 			"override_editor": {
 				"title": "Tailor for This Vision",
@@ -1068,7 +1199,100 @@
 			"awards": "Honors",
 			"certifications": "Accreditations",
 			"testimonials": "Testimonies",
-			"contact": "Contact"
+			"contacts": "Contact"
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "Verification Required",
+			"copy_to_clipboard": "Copy to memory",
+			"copied": "Remembered!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} to memory",
+			"show_email": "Reveal scroll",
+			"show_phone": "Reveal crystal",
+			"show_url": "Reveal path",
+			"show_contact": "Reveal contact",
+			"types": {
+				"email": "Message Scroll",
+				"phone": "Voice Crystal",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Portal",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
+		},
+		"homepage": {
+			"profile_private": "This chronicle is sealed at present",
+			"views_accessible": "Shared paths may still be traversed directly with the proper link.",
+			"print_options": "Scribe options",
+			"simple_print": "Simple Scribe",
+			"ai_resume": "AI Chronicle",
+			"log_in": "Enter",
+			"log_in_account": "Enter your sanctum",
+			"profile_setup": "This chronicle is being prepared.",
+			"browse_all": "View all"
+		},
+		"experience": {
+			"at": "with"
+		},
+		"projects": {
+			"featured": "Honored"
+		},
+		"certifications": {
+			"expired": "Expired",
+			"expiring_soon": "Fading Soon",
+			"expires": "Fades",
+			"issued": "Granted",
+			"unknown_issuer": "Unknown Grantor",
+			"unknown": "Unknown",
+			"verify": "Verify",
+			"verify_credential": "Verify Credential",
+			"no_expiration": "Eternal",
+			"credential_id": "Credential Mark"
+		},
+		"awards": {
+			"no_date": "Date unknown",
+			"view_details": "View details"
+		},
+		"talks": {
+			"video": "Vision",
+			"slides": "Scrolls",
+			"watch_video": "Behold Vision",
+			"view_slides": "View Scrolls"
+		},
+		"posts": {
+			"read_more": "Read further"
+		},
+		"custom_content": {
+			"open_link": "Follow path"
+		},
+		"ai_resume": {
+			"title": "Create AI Chronicle",
+			"description": "Craft a professionally formatted chronicle from this view.",
+			"success": "Chronicle crafted successfully!",
+			"download": "Download Chronicle",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Scroll",
+			"style_label": "Style",
+			"style_chronological": "Chronological",
+			"style_functional": "Functional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Length",
+			"length_one_page": "One Page",
+			"length_two_pages": "Two Pages",
+			"length_full": "Complete",
+			"close": "Close",
+			"cancel": "Cancel",
+			"generating": "Crafting...",
+			"generate": "Create"
 		}
 	},
 	"shared": {
@@ -1160,7 +1384,8 @@
 			"hours_ago": "{count} hour(s) ago",
 			"days_ago": "{count} day(s) ago",
 			"today": "This day",
-			"yesterday": "Yestereve"
+			"yesterday": "Yestereve",
+			"present": "Now"
 		}
 	},
 	"errors": {

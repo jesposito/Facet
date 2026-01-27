@@ -5,6 +5,7 @@
 	import { flip } from 'svelte/animate';
 	import { icon } from '$lib/icons';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
+	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
 	import {
 		OVERRIDABLE_FIELDS,
 		VALID_LAYOUTS,
@@ -128,6 +129,7 @@
 			width: SectionWidth;
 			itemConfig: Record<string, ItemConfig>;
 			categoryOrder?: string[];
+			disabledCategories?: string[];
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{
@@ -256,58 +258,6 @@
 		updateSections();
 	}
 
-	// Skills category ordering
-	let showCategoryReorder = $state(false);
-	let categoryItems: Array<{ id: string; name: string }> = $state([]);
-
-	function getUniqueCategories(): string[] {
-		const skills = sectionItems['skills'] || [];
-		const categories = new Set<string>();
-		for (const skill of skills) {
-			const cat = (skill.data.category as string) || 'Other';
-			categories.add(cat);
-		}
-		return Array.from(categories).sort();
-	}
-
-	function initCategoryOrder() {
-		const allCategories = getUniqueCategories();
-		const savedOrder = sections['skills']?.categoryOrder || [];
-		
-		const orderedCategories: string[] = [];
-		for (const cat of savedOrder) {
-			if (allCategories.includes(cat)) {
-				orderedCategories.push(cat);
-			}
-		}
-		for (const cat of allCategories) {
-			if (!orderedCategories.includes(cat)) {
-				orderedCategories.push(cat);
-			}
-		}
-		
-		categoryItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
-		showCategoryReorder = true;
-	}
-
-	function closeCategoryReorder() {
-		showCategoryReorder = false;
-		categoryItems = [];
-	}
-
-	function handleCategoryDndConsider(e: CustomEvent<{ items: typeof categoryItems }>) {
-		categoryItems = e.detail.items;
-	}
-
-	function handleCategoryDndFinalize(e: CustomEvent<{ items: typeof categoryItems }>) {
-		categoryItems = e.detail.items;
-		sections['skills'].categoryOrder = categoryItems.map(c => c.name);
-		updateSections();
-	}
-
-	function layoutUsesCategoryOrder(layout: string): boolean {
-		return layout === 'grouped' || layout === 'bars';
-	}
 </script>
 
 <!-- Sections -->
@@ -507,211 +457,137 @@
 							{/if}
 						</div>
 
-						<div class="flex items-center justify-between mb-2">
-							<p class="text-xs text-gray-500">
-								{selectedPublicCount === 0
-									? $t('admin.view_editor.sections.select_all_hint')
-									: $t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
-							</p>
-							<div class="flex gap-2">
-								<button
-									type="button"
-									class="text-xs text-primary-600 hover:underline"
-									onclick={() => selectAllItems(sectionKey)}
-								>
-									{$t('admin.view_editor.sections.select_all')}
-								</button>
-								<button
-									type="button"
-									class="text-xs text-gray-500 hover:underline"
-									onclick={() => clearAllItems(sectionKey)}
-								>
-									{$t('admin.view_editor.sections.clear')}
-								</button>
+						{#if sectionKey === 'skills'}
+							<!-- Skills use category-based management -->
+							<SkillsCategoryManager
+								items={sectionItems['skills'] || []}
+								bind:selectedItems={sections['skills'].items}
+								bind:categoryOrder={sections['skills'].categoryOrder}
+								bind:disabledCategories={sections['skills'].disabledCategories}
+								onUpdate={updateSections}
+							/>
+						{:else}
+							<!-- Standard items list for other sections -->
+							<div class="flex items-center justify-between mb-2">
+								<p class="text-xs text-gray-500">
+									{selectedPublicCount === 0
+										? $t('admin.view_editor.sections.select_all_hint')
+										: $t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
+								</p>
+								<div class="flex gap-2">
+									<button
+										type="button"
+										class="text-xs text-primary-600 hover:underline"
+										onclick={() => selectAllItems(sectionKey)}
+									>
+										{$t('admin.view_editor.sections.select_all')}
+									</button>
+									<button
+										type="button"
+										class="text-xs text-gray-500 hover:underline"
+										onclick={() => clearAllItems(sectionKey)}
+									>
+										{$t('admin.view_editor.sections.clear')}
+									</button>
+								</div>
 							</div>
-						</div>
 
-						<div
-							class="space-y-1 max-h-64 overflow-y-auto"
-							use:dndzone={{ 
-								items: sectionItems[sectionKey] || [], 
-								flipDurationMs, 
-								type: `items-${sectionKey}`,
-								dragDisabled: false,
-								dropFromOthersDisabled: true
-							}}
-							onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
-							onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
-						>
-							{#each items as item (item.id)}
-								{@const isSelected = sectionConfig.items.includes(item.id)}
-								{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
-								{@const overrideCount = getOverrideCount(sectionKey, item.id)}
-								{@const canOverride = OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
-						<div
-							class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
-							animate:flip={{ duration: flipDurationMs }}
-						>
 							<div
-								class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-								title={$t('admin.view_editor.sections.drag_to_reorder')}
-								role="presentation"
+								class="space-y-1 max-h-64 overflow-y-auto"
+								use:dndzone={{
+									items: sectionItems[sectionKey] || [],
+									flipDurationMs,
+									type: `items-${sectionKey}`,
+									dragDisabled: false,
+									dropFromOthersDisabled: true
+								}}
+								onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+								onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 							>
-								<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-								</svg>
-							</div>
-							<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-							<label
-								class="flex items-center gap-2 flex-1 cursor-pointer"
-								onpointerdown={(e) => e.stopPropagation()}
-								onmousedown={(e) => e.stopPropagation()}
-								ontouchstart={(e) => e.stopPropagation()}
-							>
-								<input
-									type="checkbox"
-									checked={isSelected}
-									onchange={() => toggleItem(sectionKey, item.id)}
-									onclick={(e) => e.stopPropagation()}
-									class="w-4 h-4 text-primary-600 rounded border-gray-300"
-								/>
-								<div class="flex-1 min-w-0">
-									<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
-										{item.label}
-									</span>
-									{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
-										<div class="flex gap-1 mt-1 flex-wrap">
-											{#each item.expand.admin_tags as tag (tag.id)}
-												<AdminTagBadge name={tag.name} color={tag.color} />
-											{/each}
-										</div>
-									{/if}
-								</div>
-							</label>
-									{#if itemHasOverrides}
-										<span class="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded flex items-center gap-1">
-											{@html icon('zap')}
-											{overrideCount} {overrideCount > 1 ? $t('admin.view_editor.sections.overrides') : $t('admin.view_editor.sections.override')}
-										</span>
-									{/if}
-								{#if item.visibility === 'private'}
-									{@const enabledForThisView = isEnabledForView(item.data.view_visibility, viewId)}
-										<span class="px-1.5 py-0.5 text-xs rounded {enabledForThisView ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
-											{enabledForThisView ? $t('admin.view_editor.sections.view_only') : $t('admin.view_editor.sections.private')}
-										</span>
-									{:else if item.visibility !== 'public'}
-										<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
-											{item.visibility}
-										</span>
-									{/if}
-									{#if item.is_draft}
-										<span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
-											{$t('admin.view_editor.sections.draft')}
-										</span>
-									{/if}
-									{#if isSelected && canOverride}
-										<button
-											type="button"
-											class="text-xs text-primary-600 hover:text-primary-700 hover:underline whitespace-nowrap"
-											onclick={stopPropagation(() => onOpenOverrideEditor(sectionKey, item.id))}
+								{#each items as item (item.id)}
+									{@const isSelected = sectionConfig.items.includes(item.id)}
+									{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
+									{@const overrideCount = getOverrideCount(sectionKey, item.id)}
+									{@const canOverride = OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
+									<div
+										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+										animate:flip={{ duration: flipDurationMs }}
+									>
+										<div
+											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+											title={$t('admin.view_editor.sections.drag_to_reorder')}
+											role="presentation"
 										>
-											{itemHasOverrides ? $t('admin.view_editor.sections.edit') : $t('admin.view_editor.sections.customize')}
-										</button>
-									{/if}
-								</div>
-					{/each}
-				</div>
-
-				{#if sectionKey === 'skills' && layoutUsesCategoryOrder(sectionConfig.layout)}
-					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-						<div class="flex items-center justify-between mb-2">
-							<p class="text-xs text-gray-500">
-								{sectionConfig.categoryOrder?.length
-									? $t('admin.view_editor.sections.category_order_custom', { values: { count: sectionConfig.categoryOrder.length } })
-									: $t('admin.view_editor.sections.category_order_alphabetical')}
-							</p>
-							<button
-								type="button"
-								class="text-xs text-primary-600 hover:underline"
-								onclick={initCategoryOrder}
-							>
-								{sectionConfig.categoryOrder?.length ? $t('admin.view_editor.sections.edit_order') : $t('admin.view_editor.sections.customize_order')}
-							</button>
-						</div>
+											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+											</svg>
+										</div>
+										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+										<label
+											class="flex items-center gap-2 flex-1 cursor-pointer"
+											onpointerdown={(e) => e.stopPropagation()}
+											onmousedown={(e) => e.stopPropagation()}
+											ontouchstart={(e) => e.stopPropagation()}
+										>
+											<input
+												type="checkbox"
+												checked={isSelected}
+												onchange={() => toggleItem(sectionKey, item.id)}
+												onclick={(e) => e.stopPropagation()}
+												class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											/>
+											<div class="flex-1 min-w-0">
+												<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
+													{item.label}
+												</span>
+												{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
+													<div class="flex gap-1 mt-1 flex-wrap">
+														{#each item.expand.admin_tags as tag (tag.id)}
+															<AdminTagBadge name={tag.name} color={tag.color} />
+														{/each}
+													</div>
+												{/if}
+											</div>
+										</label>
+										{#if itemHasOverrides}
+											<span class="px-1.5 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded flex items-center gap-1">
+												{@html icon('zap')}
+												{overrideCount} {overrideCount > 1 ? $t('admin.view_editor.sections.overrides') : $t('admin.view_editor.sections.override')}
+											</span>
+										{/if}
+										{#if item.visibility === 'private'}
+											{@const enabledForThisView = isEnabledForView(item.data.view_visibility, viewId)}
+											<span class="px-1.5 py-0.5 text-xs rounded {enabledForThisView ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'}">
+												{enabledForThisView ? $t('admin.view_editor.sections.view_only') : $t('admin.view_editor.sections.private')}
+											</span>
+										{:else if item.visibility !== 'public'}
+											<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
+												{item.visibility}
+											</span>
+										{/if}
+										{#if item.is_draft}
+											<span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
+												{$t('admin.view_editor.sections.draft')}
+											</span>
+										{/if}
+										{#if isSelected && canOverride}
+											<button
+												type="button"
+												class="text-xs text-primary-600 hover:text-primary-700 hover:underline whitespace-nowrap"
+												onclick={stopPropagation(() => onOpenOverrideEditor(sectionKey, item.id))}
+											>
+												{itemHasOverrides ? $t('admin.view_editor.sections.edit') : $t('admin.view_editor.sections.customize')}
+											</button>
+										{/if}
+									</div>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/if}
-			</div>
-		{/if}
 	</div>
 {/each}
 </div>
 {/key}
 
-<!-- Category Reorder Modal -->
-{#if showCategoryReorder}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-		<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 m-4">
-			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.category_reorder.title')}</h3>
-				<button
-					type="button"
-					class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-1"
-					onclick={closeCategoryReorder}
-					aria-label={$t('shared.actions.close')}
-				>
-					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-					</svg>
-				</button>
-			</div>
-			<p class="text-sm text-gray-500 mb-4">{$t('admin.view_editor.category_reorder.description')}</p>
-
-			{#if dndLoaded && categoryItems.length > 0}
-				<div
-					class="space-y-2 max-h-64 overflow-y-auto"
-					use:dndzone={{ items: categoryItems, flipDurationMs, type: 'categories' }}
-					onconsider={handleCategoryDndConsider}
-					onfinalize={handleCategoryDndFinalize}
-				>
-					{#each categoryItems as cat (cat.id)}
-						<div
-							class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-							animate:flip={{ duration: flipDurationMs }}
-						>
-							<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700">
-								<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-								</svg>
-							</div>
-							<span class="flex-1 text-sm font-medium text-gray-900 dark:text-white">{cat.name}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-gray-500">{$t('admin.view_editor.category_reorder.no_categories')}</p>
-			{/if}
-
-			<div class="flex justify-end gap-2 mt-4">
-				<button
-					type="button"
-					class="btn btn-ghost"
-					onclick={() => {
-						sections['skills'].categoryOrder = undefined;
-						updateSections();
-						closeCategoryReorder();
-					}}
-				>
-					{$t('admin.view_editor.category_reorder.reset_to_default')}
-				</button>
-				<button
-					type="button"
-					class="btn btn-primary"
-					onclick={closeCategoryReorder}
-				>
-					{$t('admin.view_editor.category_reorder.done')}
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
 </div>

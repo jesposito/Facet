@@ -48,6 +48,7 @@ type SiteSettings struct {
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
 	Favicon               string
+	DefaultLocale         string
 	Record                *core.Record
 }
 
@@ -150,6 +151,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
 		Favicon:               faviconURL,
+		DefaultLocale:         record.GetString("default_locale"),
 		Record:                record,
 	}, nil
 }
@@ -246,6 +248,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("site_cta_enabled", enabled)
 		} else if logger != nil {
 			logger.Warn("site_cta_enabled field missing on site_settings, skipping update")
+		}
+	}
+	if locale, ok := updates["default_locale"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("default_locale") != nil {
+			settings.Record.Set("default_locale", locale)
+		} else if logger != nil {
+			logger.Warn("default_locale field missing on site_settings, skipping update")
 		}
 	}
 

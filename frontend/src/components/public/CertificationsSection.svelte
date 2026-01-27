@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Certification } from '$lib/pocketbase';
 	import { formatDate } from '$lib/utils';
 
@@ -43,7 +44,7 @@
 </script>
 
 <section id="certifications" class="mb-16">
-	<h2 class="section-title">Certifications & Credentials</h2>
+	<h2 class="section-title">{$t('public.sections.certifications')}</h2>
 
 	{#if layout === 'timeline'}
 		<div class="relative">
@@ -62,20 +63,20 @@
 							<div class="flex items-start justify-between gap-2">
 								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{cert.name}</h3>
 								{#if isExpired(cert)}
-									<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded flex-shrink-0">Expired</span>
+									<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded flex-shrink-0">{$t('public.certifications.expired')}</span>
 								{:else if expiresSoon(cert)}
-									<span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded flex-shrink-0">Expiring Soon</span>
+									<span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded flex-shrink-0">{$t('public.certifications.expiring_soon')}</span>
 								{/if}
 							</div>
-							<p class="text-primary-600 dark:text-primary-400">{cert.issuer || 'Unknown Issuer'}</p>
+							<p class="text-primary-600 dark:text-primary-400">{cert.issuer || $t('public.certifications.unknown_issuer')}</p>
 							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 								{#if cert.issue_date}
-									Issued {formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
+									{$t('public.certifications.issued')} {formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
 								{/if}
 								{#if cert.expiry_date}
 									<span class="text-gray-400 dark:text-gray-500"> · </span>
 									<span class:text-red-600={isExpired(cert)} class:dark:text-red-400={isExpired(cert)}>
-										{isExpired(cert) ? 'Expired' : 'Expires'} {formatDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
+										{isExpired(cert) ? $t('public.certifications.expired') : $t('public.certifications.expires')} {formatDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
 									</span>
 								{/if}
 							</p>
@@ -84,7 +85,7 @@
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
-									Verify
+									{$t('public.certifications.verify')}
 								</a>
 							{/if}
 						</div>
@@ -109,10 +110,10 @@
 							<div class="flex items-start justify-between gap-2">
 								<h3 class="font-semibold text-gray-900 dark:text-white truncate">{cert.name}</h3>
 								{#if isExpired(cert)}
-									<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded flex-shrink-0">Expired</span>
+									<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded flex-shrink-0">{$t('public.certifications.expired')}</span>
 								{/if}
 							</div>
-							<p class="text-sm text-gray-600 dark:text-gray-400">{cert.issuer || 'Unknown'}</p>
+							<p class="text-sm text-gray-600 dark:text-gray-400">{cert.issuer || $t('public.certifications.unknown')}</p>
 							{#if cert.issue_date}
 								<p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
 									{formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
@@ -143,28 +144,28 @@
 									<div class="flex items-start justify-between gap-2">
 										<h4 class="font-semibold text-gray-900 dark:text-white">{cert.name}</h4>
 										{#if isExpired(cert)}
-											<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded flex-shrink-0">Expired</span>
+											<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 rounded flex-shrink-0">{$t('public.certifications.expired')}</span>
 										{:else if expiresSoon(cert)}
-											<span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded flex-shrink-0">Expiring Soon</span>
+											<span class="px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded flex-shrink-0">{$t('public.certifications.expiring_soon')}</span>
 										{/if}
 									</div>
 									<div class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 										{#if cert.issue_date}
-											<span>Issued {formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}</span>
+											<span>{$t('public.certifications.issued')} {formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}</span>
 										{/if}
 										{#if cert.expiry_date}
 											<span class="text-gray-400 dark:text-gray-500"> - </span>
 											<span class:text-red-600={isExpired(cert)} class:dark:text-red-400={isExpired(cert)}>
-												{isExpired(cert) ? 'Expired' : 'Expires'} {formatDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
+												{isExpired(cert) ? $t('public.certifications.expired') : $t('public.certifications.expires')} {formatDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
 											</span>
 										{:else if cert.issue_date}
 											<span class="text-gray-400 dark:text-gray-500"> - </span>
-											<span class="text-green-600 dark:text-green-400">No expiration</span>
+											<span class="text-green-600 dark:text-green-400">{$t('public.certifications.no_expiration')}</span>
 										{/if}
 									</div>
 									{#if cert.credential_id}
 										<div class="mt-1 text-xs text-gray-500 dark:text-gray-500">
-											Credential ID: {cert.credential_id}
+											{$t('public.certifications.credential_id')}: {cert.credential_id}
 										</div>
 									{/if}
 									{#if cert.credential_url}
@@ -172,7 +173,7 @@
 											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 											</svg>
-											Verify Credential
+											{$t('public.certifications.verify_credential')}
 										</a>
 									{/if}
 								</div>

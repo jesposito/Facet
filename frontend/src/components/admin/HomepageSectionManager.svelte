@@ -14,6 +14,7 @@
 	import type { CustomContent } from '$lib/pocketbase';
 	import { VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
+	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -62,6 +63,8 @@
 			expanded: boolean;
 			layout: string;
 			width: string;
+			categoryOrder?: string[];
+			disabledCategories?: string[];
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{
@@ -350,86 +353,98 @@
 					<!-- Section Items (expanded) -->
 					{#if sectionConfig.enabled && sectionConfig.expanded && publicItems.length > 0 && !isCustom}
 						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
-							<div class="flex items-center justify-between mb-2">
-								<p class="text-xs text-gray-500">
-									{selectedPublicCount === 0
-										? 'All public items will be shown. Select items to customize.'
-										: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
-								</p>
-								<div class="flex gap-2">
-									<button
-										type="button"
-										class="text-xs text-primary-600 hover:underline"
-										onclick={() => selectAllItems(sectionKey)}
-									>
-										Select All
-									</button>
-									<button
-										type="button"
-										class="text-xs text-gray-500 hover:underline"
-										onclick={() => clearAllItems(sectionKey)}
-									>
-										Clear
-									</button>
-								</div>
-							</div>
-
-							<div
-								class="space-y-1 max-h-64 overflow-y-auto"
-								use:dndzone={{
-									items: publicItems,
-									flipDurationMs,
-									type: `items-${sectionKey}`,
-									dragDisabled: false,
-									dropFromOthersDisabled: true
-								}}
-								onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
-								onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
-							>
-								{#each publicItems as item (item.id)}
-									{@const isSelected = sectionConfig.items.includes(item.id)}
-									<div
-										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
-										animate:flip={{ duration: flipDurationMs }}
-									>
-										<div
-											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-											title="Drag to reorder"
+							{#if sectionKey === 'skills'}
+								<!-- Skills use category-based management -->
+								<SkillsCategoryManager
+									items={sectionItems['skills'] || []}
+									bind:selectedItems={sections['skills'].items}
+									bind:categoryOrder={sections['skills'].categoryOrder}
+									bind:disabledCategories={sections['skills'].disabledCategories}
+									onUpdate={updateSections}
+								/>
+							{:else}
+								<!-- Standard items list for other sections -->
+								<div class="flex items-center justify-between mb-2">
+									<p class="text-xs text-gray-500">
+										{selectedPublicCount === 0
+											? 'All public items will be shown. Select items to customize.'
+											: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
+									</p>
+									<div class="flex gap-2">
+										<button
+											type="button"
+											class="text-xs text-primary-600 hover:underline"
+											onclick={() => selectAllItems(sectionKey)}
 										>
-											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-											</svg>
-										</div>
-										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-										<label
-											class="flex items-center gap-2 flex-1 cursor-pointer"
-											onpointerdown={(e) => e.stopPropagation()}
-											onmousedown={(e) => e.stopPropagation()}
-											ontouchstart={(e) => e.stopPropagation()}
+											Select All
+										</button>
+										<button
+											type="button"
+											class="text-xs text-gray-500 hover:underline"
+											onclick={() => clearAllItems(sectionKey)}
 										>
-											<input
-												type="checkbox"
-												checked={isSelected}
-												onchange={() => toggleItem(sectionKey, item.id)}
-												onclick={(e) => e.stopPropagation()}
-												class="w-4 h-4 text-primary-600 rounded border-gray-300"
-											/>
-											<div class="flex-1 min-w-0">
-												<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
-													{item.label}
-												</span>
-												{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
-													<div class="flex gap-1 mt-1 flex-wrap">
-														{#each item.expand.admin_tags as tag (tag.id)}
-															<AdminTagBadge name={tag.name} color={tag.color} />
-														{/each}
-													</div>
-												{/if}
-											</div>
-										</label>
+											Clear
+										</button>
 									</div>
-								{/each}
-							</div>
+								</div>
+
+								<div
+									class="space-y-1 max-h-64 overflow-y-auto"
+									use:dndzone={{
+										items: publicItems,
+										flipDurationMs,
+										type: `items-${sectionKey}`,
+										dragDisabled: false,
+										dropFromOthersDisabled: true
+									}}
+									onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+									onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
+								>
+									{#each publicItems as item (item.id)}
+										{@const isSelected = sectionConfig.items.includes(item.id)}
+										<div
+											class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+											animate:flip={{ duration: flipDurationMs }}
+										>
+											<div
+												class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+												title="Drag to reorder"
+											>
+												<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+												</svg>
+											</div>
+											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+											<label
+												class="flex items-center gap-2 flex-1 cursor-pointer"
+												onpointerdown={(e) => e.stopPropagation()}
+												onmousedown={(e) => e.stopPropagation()}
+												ontouchstart={(e) => e.stopPropagation()}
+											>
+												<input
+													type="checkbox"
+													checked={isSelected}
+													onchange={() => toggleItem(sectionKey, item.id)}
+													onclick={(e) => e.stopPropagation()}
+													class="w-4 h-4 text-primary-600 rounded border-gray-300"
+												/>
+												<div class="flex-1 min-w-0">
+													<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
+														{item.label}
+													</span>
+													{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
+														<div class="flex gap-1 mt-1 flex-wrap">
+															{#each item.expand.admin_tags as tag (tag.id)}
+																<AdminTagBadge name={tag.name} color={tag.color} />
+															{/each}
+														</div>
+													{/if}
+												</div>
+											</label>
+										</div>
+									{/each}
+								</div>
+							{/if}
 						</div>
 					{/if}
 				</div>
