@@ -216,8 +216,15 @@ onMount(() => {
 	};
 	window.addEventListener('accent-color-changed', handleColorChange as EventListener);
 
+	// Listen for favicon changes from settings page
+	const handleFaviconChange = (event: CustomEvent<string | null>) => {
+		faviconUrl = event.detail;
+	};
+	window.addEventListener('favicon-changed', handleFaviconChange as EventListener);
+
 	return () => {
 		window.removeEventListener('accent-color-changed', handleColorChange as EventListener);
+		window.removeEventListener('favicon-changed', handleFaviconChange as EventListener);
 	};
 });
 
