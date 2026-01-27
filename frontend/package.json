@@ -16,7 +16,8 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:public": "playwright test tests/public-api.spec.ts tests/seo-and-errors.spec.ts",
-    "test:admin": "playwright test tests/admin-flows.spec.ts tests/media-management.spec.ts"
+    "test:admin": "playwright test tests/admin-flows.spec.ts tests/media-management.spec.ts",
+    "i18n:validate": "node ../scripts/validate-translations.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
@@ -41,7 +42,8 @@
     "isomorphic-dompurify": "^2.35.0",
     "marked": "^11.0.0",
     "pocketbase": "^0.21.0",
-    "svelte-dnd-action": "^0.9.69"
+    "svelte-dnd-action": "^0.9.69",
+    "svelte-i18n": "^4.0.1"
   },
   "overrides": {
     "cookie": "^0.7.0"

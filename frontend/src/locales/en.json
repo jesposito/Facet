@@ -1,0 +1,195 @@
+{
+	"admin": {
+		"sidebar": {
+			"dashboard": "Dashboard",
+			"homepage": "Homepage",
+			"facets": "Facets",
+			"new_facet": "New Facet",
+			"view_more": "View more...",
+			"loading": "Loading...",
+			"retry": "Retry",
+			"unable_to_load_facets": "Unable to load facets.",
+			"your_information": "Your Information",
+			"your_voice": "Your Voice",
+			"testimonials": "Testimonials",
+			"settings": "Settings",
+			"contact_methods": "Contact Methods",
+			"experience": "Experience",
+			"projects": "Projects",
+			"education": "Education",
+			"certifications": "Certifications",
+			"awards": "Awards",
+			"skills": "Skills",
+			"custom_content": "Custom Content",
+			"import_ai": "Import & AI",
+			"posts": "Posts",
+			"talks": "Talks",
+			"testimonial_requests": "Requests",
+			"account_security": "Account & Security",
+			"appearance": "Appearance",
+			"general": "General",
+			"analytics": "Analytics",
+			"integrations": "Integrations",
+			"admin_tags": "Admin Tags",
+			"media_library": "Media Library",
+			"share_tokens": "Share Tokens",
+			"about_facet": "About Facet",
+			"public": "Public",
+			"unlisted": "Unlisted",
+			"private": "Private",
+			"new_version_available": "New version available",
+			"update_now": "Update now"
+		},
+		"dashboard": {
+			"title": "Dashboard",
+			"welcome_title": "This is your space.",
+			"welcome_description": "You might start by {profile_link}, or {import_link}.",
+			"adding_profile": "adding your profile",
+			"import_project": "import a project from GitHub",
+			"no_rush": "There's no rush - add things as you're ready.",
+			"quick_actions": "Quick Actions",
+			"recent_activity": "Recent Activity",
+			"nothing_yet": "Nothing here yet - and that's okay.",
+			"add_project": "Add Project",
+			"add_experience": "Add Experience",
+			"import_github": "Import from GitHub",
+			"create_view": "Create View",
+			"pending_reviews": "Pending Reviews",
+			"pending_alert": "You have {count} pending import proposal(s) to review",
+			"review_now": "Review Now"
+		},
+		"login": {
+			"title": "Sign in to Facet",
+			"tagline": "A simple home for your story.",
+			"continue_google": "Continue with Google",
+			"continue_github": "Continue with GitHub",
+			"email_label": "Email",
+			"password_label": "Password",
+			"sign_in": "Sign In",
+			"show_password_login": "Or use password login",
+			"hide_password_login": "Hide password login",
+			"oauth_not_configured": "OAuth login isn't configured. Set Google or GitHub credentials via environment variables or use password login.",
+			"loading_methods": "Loading available login methods...",
+			"error_google": "Failed to login with Google",
+			"error_github": "Failed to login with GitHub",
+			"error_invalid_credentials": "Invalid email or password",
+			"error_email_required": "Email and password are required"
+		},
+		"header": {
+			"toggle_sidebar": "Toggle sidebar",
+			"view_site": "View Site",
+			"logout": "Logout",
+			"theme_light": "Light mode",
+			"theme_dark": "Dark mode",
+			"toggle_theme": "Toggle theme"
+		}
+	},
+	"public": {
+		"footer": {
+			"all_rights_reserved": "All rights reserved.",
+			"powered_by": "Powered by {link}"
+		},
+		"hero": {
+			"location_label": "Location:"
+		},
+		"sections": {
+			"experience": "Experience",
+			"projects": "Projects",
+			"education": "Education",
+			"skills": "Skills",
+			"talks": "Talks",
+			"posts": "Posts",
+			"awards": "Awards",
+			"certifications": "Certifications",
+			"testimonials": "Testimonials",
+			"contact": "Contact"
+		},
+		"nav": {
+			"home": "Home",
+			"back_to": "Back to {page}"
+		}
+	},
+	"shared": {
+		"actions": {
+			"save": "Save",
+			"cancel": "Cancel",
+			"delete": "Delete",
+			"edit": "Edit",
+			"create": "Create",
+			"confirm": "Confirm",
+			"close": "Close",
+			"submit": "Submit",
+			"reset": "Reset",
+			"copy": "Copy",
+			"copied": "Copied!",
+			"view": "View",
+			"preview": "Preview",
+			"publish": "Publish",
+			"unpublish": "Unpublish",
+			"upload": "Upload",
+			"download": "Download",
+			"remove": "Remove",
+			"add": "Add",
+			"search": "Search",
+			"filter": "Filter",
+			"sort": "Sort",
+			"select_all": "Select all",
+			"deselect_all": "Deselect all"
+		},
+		"status": {
+			"loading": "Loading...",
+			"saving": "Saving...",
+			"saved": "Saved",
+			"error": "An error occurred",
+			"success": "Success",
+			"pending": "Pending",
+			"active": "Active",
+			"inactive": "Inactive",
+			"draft": "Draft",
+			"published": "Published"
+		},
+		"validation": {
+			"required": "This field is required",
+			"invalid_email": "Please enter a valid email address",
+			"invalid_url": "Please enter a valid URL",
+			"too_short": "Must be at least {min} characters",
+			"too_long": "Must be at most {max} characters"
+		},
+		"confirm": {
+			"delete_title": "Confirm Delete",
+			"delete_message": "Are you sure you want to delete this? This action cannot be undone.",
+			"unsaved_changes": "You have unsaved changes. Are you sure you want to leave?"
+		},
+		"aria": {
+			"close_menu": "Close menu",
+			"open_menu": "Open menu",
+			"notifications": "Notifications",
+			"skip_to_content": "Skip to main content"
+		},
+		"pagination": {
+			"previous": "Previous",
+			"next": "Next",
+			"page": "Page {current} of {total}",
+			"showing": "Showing {start} to {end} of {total}"
+		},
+		"time": {
+			"just_now": "Just now",
+			"minutes_ago": "{count} minute(s) ago",
+			"hours_ago": "{count} hour(s) ago",
+			"days_ago": "{count} day(s) ago",
+			"today": "Today",
+			"yesterday": "Yesterday"
+		}
+	},
+	"errors": {
+		"not_found": "Page not found",
+		"not_found_message": "The page you're looking for doesn't exist or has been moved.",
+		"unauthorized": "Authentication Required",
+		"unauthorized_message": "You must be logged in to access the admin panel.",
+		"go_to_login": "Go to Login",
+		"go_home": "Go Home",
+		"generic": "Something went wrong",
+		"network": "Network error. Please check your connection.",
+		"server": "Server error. Please try again later."
+	}
+}
