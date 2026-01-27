@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [closed]
 
+permissions:
+  contents: read
+
 jobs:
   celebrate:
     if: github.event.pull_request.merged == true && github.event.pull_request.user.login != 'jesposito'
