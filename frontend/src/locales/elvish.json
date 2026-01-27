@@ -1128,13 +1128,19 @@
 			"awards": "Honors",
 			"certifications": "Accreditations",
 			"testimonials": "Testimonies",
-			"contact": "Contact"
+			"contacts": "Contact"
 		},
 		"contacts": {
 			"primary": "Primary",
 			"captcha_required": "Verification Required",
 			"copy_to_clipboard": "Copy to memory",
 			"copied": "Remembered!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} to memory",
+			"show_email": "Reveal scroll",
+			"show_phone": "Reveal crystal",
+			"show_url": "Reveal path",
+			"show_contact": "Reveal contact",
 			"types": {
 				"email": "Message Scroll",
 				"phone": "Voice Crystal",
@@ -1150,6 +1156,72 @@
 				"slack": "Slack",
 				"other": "Contact"
 			}
+		},
+		"homepage": {
+			"profile_private": "This chronicle is sealed at present",
+			"views_accessible": "Shared paths may still be traversed directly with the proper link.",
+			"print_options": "Scribe options",
+			"simple_print": "Simple Scribe",
+			"ai_resume": "AI Chronicle",
+			"log_in": "Enter",
+			"log_in_account": "Enter your sanctum",
+			"profile_setup": "This chronicle is being prepared.",
+			"browse_all": "View all"
+		},
+		"experience": {
+			"at": "with"
+		},
+		"projects": {
+			"featured": "Honored"
+		},
+		"certifications": {
+			"expired": "Expired",
+			"expiring_soon": "Fading Soon",
+			"expires": "Fades",
+			"issued": "Granted",
+			"unknown_issuer": "Unknown Grantor",
+			"unknown": "Unknown",
+			"verify": "Verify",
+			"verify_credential": "Verify Credential",
+			"no_expiration": "Eternal",
+			"credential_id": "Credential Mark"
+		},
+		"awards": {
+			"no_date": "Date unknown",
+			"view_details": "View details"
+		},
+		"talks": {
+			"video": "Vision",
+			"slides": "Scrolls",
+			"watch_video": "Behold Vision",
+			"view_slides": "View Scrolls"
+		},
+		"posts": {
+			"read_more": "Read further"
+		},
+		"custom_content": {
+			"open_link": "Follow path"
+		},
+		"ai_resume": {
+			"title": "Create AI Chronicle",
+			"description": "Craft a professionally formatted chronicle from this view.",
+			"success": "Chronicle crafted successfully!",
+			"download": "Download Chronicle",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Scroll",
+			"style_label": "Style",
+			"style_chronological": "Chronological",
+			"style_functional": "Functional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Length",
+			"length_one_page": "One Page",
+			"length_two_pages": "Two Pages",
+			"length_full": "Complete",
+			"close": "Close",
+			"cancel": "Cancel",
+			"generating": "Crafting...",
+			"generate": "Create"
 		}
 	},
 	"shared": {

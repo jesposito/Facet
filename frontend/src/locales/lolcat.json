@@ -1128,13 +1128,19 @@
 			"awards": "Awardz",
 			"certifications": "Sertificashunz",
 			"testimonials": "Testimonialz",
-			"contact": "Contact"
+			"contacts": "Kontakt"
 		},
 		"contacts": {
 			"primary": "Praimary",
 			"captcha_required": "CAPTCHA Reqwired",
 			"copy_to_clipboard": "Copy 2 clipbord",
 			"copied": "Copid!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} 2 clipbord",
+			"show_email": "Show email",
+			"show_phone": "Show fone",
+			"show_url": "Show URL",
+			"show_contact": "Show kontakt",
 			"types": {
 				"email": "Email",
 				"phone": "Fone",
@@ -1150,6 +1156,72 @@
 				"slack": "Slack",
 				"other": "Contact"
 			}
+		},
+		"homepage": {
+			"profile_private": "Profil iz private rait nao",
+			"views_accessible": "U can still see sherd viewz if u haz teh link.",
+			"print_options": "Print opshunz",
+			"simple_print": "Simpel Print",
+			"ai_resume": "AI Rezume",
+			"log_in": "Log In",
+			"log_in_account": "Log in 2 ur akount",
+			"profile_setup": "Dis profil iz bein set up.",
+			"browse_all": "C all"
+		},
+		"experience": {
+			"at": "at"
+		},
+		"projects": {
+			"featured": "Feechurd"
+		},
+		"certifications": {
+			"expired": "Expird",
+			"expiring_soon": "Expirin Soon",
+			"expires": "Expirz",
+			"issued": "Isshued",
+			"unknown_issuer": "Unknown Issuer",
+			"unknown": "Dunno",
+			"verify": "Verify",
+			"verify_credential": "Verify Credenshul",
+			"no_expiration": "No expirashun",
+			"credential_id": "Credenshul ID"
+		},
+		"awards": {
+			"no_date": "Date not provyded",
+			"view_details": "C detailz"
+		},
+		"talks": {
+			"video": "Vidyo",
+			"slides": "Slidez",
+			"watch_video": "Watch Vidyo",
+			"view_slides": "C Slidez"
+		},
+		"posts": {
+			"read_more": "Moar plz"
+		},
+		"custom_content": {
+			"open_link": "Open link"
+		},
+		"ai_resume": {
+			"title": "Maek AI Rezume",
+			"description": "Maek a profeshunally formatd rezume frum dis vyu.",
+			"success": "Rezume maed succesfully!",
+			"download": "Downlod Rezume",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Dokument",
+			"style_label": "Styl",
+			"style_chronological": "Chronolojikul",
+			"style_functional": "Funkshunul",
+			"style_hybrid": "Hybrid",
+			"length_label": "Lengf",
+			"length_one_page": "Wun Paej",
+			"length_two_pages": "Too Paejz",
+			"length_full": "Full",
+			"close": "Cloez",
+			"cancel": "Cansel",
+			"generating": "Makin...",
+			"generate": "Maek"
 		}
 	},
 	"shared": {

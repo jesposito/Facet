@@ -74,13 +74,13 @@
 								{#if talk.video_url}
 									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
-										Video
+										{$t('public.talks.video')}
 									</a>
 								{/if}
 								{#if talk.slides_url}
 									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-										Slides
+										{$t('public.talks.slides')}
 									</a>
 								{/if}
 							</div>
@@ -108,7 +108,7 @@
 							<div class="aspect-video bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center">
 								<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-2 text-white hover:opacity-80">
 									<svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-									<span class="text-sm font-medium">Watch Video</span>
+									<span class="text-sm font-medium">{$t('public.talks.watch_video')}</span>
 								</a>
 							</div>
 						{/if}
@@ -125,10 +125,10 @@
 						</div>
 						<div class="mt-3 flex gap-3">
 							{#if talk.video_url}
-								<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">Video</a>
+								<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{$t('public.talks.video')}</a>
 							{/if}
 							{#if talk.slides_url}
-								<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">Slides</a>
+								<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{$t('public.talks.slides')}</a>
 							{/if}
 						</div>
 					</div>
@@ -155,7 +155,7 @@
 								<div class="lg:w-2/5 aspect-video bg-gradient-to-br from-purple-600 to-indigo-800 flex-shrink-0 flex items-center justify-center">
 									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-3 text-white hover:opacity-80 transition-opacity">
 										<svg class="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-										<span class="text-sm font-medium">Watch Video</span>
+										<span class="text-sm font-medium">{$t('public.talks.watch_video')}</span>
 									</a>
 								</div>
 							{/if}
@@ -200,13 +200,13 @@
 								{#if talk.video_url}
 									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-										Watch Video
+										{$t('public.talks.watch_video')}
 									</a>
 								{/if}
 								{#if talk.slides_url}
 									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-										View Slides
+										{$t('public.talks.view_slides')}
 									</a>
 								{/if}
 							</div>

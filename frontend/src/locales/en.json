@@ -1128,13 +1128,19 @@
 			"awards": "Awards",
 			"certifications": "Certifications",
 			"testimonials": "Testimonials",
-			"contact": "Contact"
+			"contacts": "Contact"
 		},
 		"contacts": {
 			"primary": "Primary",
 			"captcha_required": "CAPTCHA Required",
 			"copy_to_clipboard": "Copy to clipboard",
 			"copied": "Copied!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} to clipboard",
+			"show_email": "Show email",
+			"show_phone": "Show phone",
+			"show_url": "Show URL",
+			"show_contact": "Show contact",
 			"types": {
 				"email": "Email",
 				"phone": "Phone",
@@ -1150,6 +1156,72 @@
 				"slack": "Slack",
 				"other": "Contact"
 			}
+		},
+		"homepage": {
+			"profile_private": "Profile is private right now",
+			"views_accessible": "You can still access shared views directly if you have the link.",
+			"print_options": "Print options",
+			"simple_print": "Simple Print",
+			"ai_resume": "AI Resume",
+			"log_in": "Log In",
+			"log_in_account": "Log in to your account",
+			"profile_setup": "This profile is being set up.",
+			"browse_all": "Browse all"
+		},
+		"experience": {
+			"at": "at"
+		},
+		"projects": {
+			"featured": "Featured"
+		},
+		"certifications": {
+			"expired": "Expired",
+			"expiring_soon": "Expiring Soon",
+			"expires": "Expires",
+			"issued": "Issued",
+			"unknown_issuer": "Unknown Issuer",
+			"unknown": "Unknown",
+			"verify": "Verify",
+			"verify_credential": "Verify Credential",
+			"no_expiration": "No expiration",
+			"credential_id": "Credential ID"
+		},
+		"awards": {
+			"no_date": "Date not provided",
+			"view_details": "View details"
+		},
+		"talks": {
+			"video": "Video",
+			"slides": "Slides",
+			"watch_video": "Watch Video",
+			"view_slides": "View Slides"
+		},
+		"posts": {
+			"read_more": "Read more"
+		},
+		"custom_content": {
+			"open_link": "Open link"
+		},
+		"ai_resume": {
+			"title": "Generate AI Resume",
+			"description": "Create a professionally formatted resume from this view.",
+			"success": "Resume generated successfully!",
+			"download": "Download Resume",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Document",
+			"style_label": "Style",
+			"style_chronological": "Chronological",
+			"style_functional": "Functional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Length",
+			"length_one_page": "One Page",
+			"length_two_pages": "Two Pages",
+			"length_full": "Full",
+			"close": "Close",
+			"cancel": "Cancel",
+			"generating": "Generating...",
+			"generate": "Generate"
 		}
 	},
 	"shared": {

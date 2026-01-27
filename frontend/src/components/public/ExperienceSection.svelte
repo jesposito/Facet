@@ -111,7 +111,7 @@
 									{item.title}
 								</h3>
 							</div>
-							<span class="text-gray-500 dark:text-gray-400">at</span>
+							<span class="text-gray-500 dark:text-gray-400">{$t('public.experience.at')}</span>
 							<span class="text-primary-600 dark:text-primary-400 font-medium">
 								{item.company}
 							</span>

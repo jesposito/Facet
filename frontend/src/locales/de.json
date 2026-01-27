@@ -1128,13 +1128,19 @@
 			"awards": "Auszeichnungen",
 			"certifications": "Zertifizierungen",
 			"testimonials": "Referenzen",
-			"contact": "Kontakt"
+			"contacts": "Kontakt"
 		},
 		"contacts": {
 			"primary": "Primär",
 			"captcha_required": "CAPTCHA erforderlich",
 			"copy_to_clipboard": "In die Zwischenablage kopieren",
 			"copied": "Kopiert!",
+			"copy": "Kopieren",
+			"copy_label": "{contact} in die Zwischenablage kopieren",
+			"show_email": "E-Mail anzeigen",
+			"show_phone": "Telefon anzeigen",
+			"show_url": "URL anzeigen",
+			"show_contact": "Kontakt anzeigen",
 			"types": {
 				"email": "E-Mail",
 				"phone": "Telefon",
@@ -1150,6 +1156,72 @@
 				"slack": "Slack",
 				"other": "Kontakt"
 			}
+		},
+		"homepage": {
+			"profile_private": "Das Profil ist derzeit privat",
+			"views_accessible": "Sie können geteilte Ansichten weiterhin direkt über den Link aufrufen.",
+			"print_options": "Druckoptionen",
+			"simple_print": "Einfacher Druck",
+			"ai_resume": "KI-Lebenslauf",
+			"log_in": "Anmelden",
+			"log_in_account": "Bei Ihrem Konto anmelden",
+			"profile_setup": "Dieses Profil wird eingerichtet.",
+			"browse_all": "Alle durchsuchen"
+		},
+		"experience": {
+			"at": "bei"
+		},
+		"projects": {
+			"featured": "Empfohlen"
+		},
+		"certifications": {
+			"expired": "Abgelaufen",
+			"expiring_soon": "Läuft bald ab",
+			"expires": "Läuft ab",
+			"issued": "Ausgestellt",
+			"unknown_issuer": "Unbekannter Aussteller",
+			"unknown": "Unbekannt",
+			"verify": "Überprüfen",
+			"verify_credential": "Zertifikat überprüfen",
+			"no_expiration": "Kein Ablaufdatum",
+			"credential_id": "Zertifikat-ID"
+		},
+		"awards": {
+			"no_date": "Kein Datum angegeben",
+			"view_details": "Details anzeigen"
+		},
+		"talks": {
+			"video": "Video",
+			"slides": "Folien",
+			"watch_video": "Video ansehen",
+			"view_slides": "Folien ansehen"
+		},
+		"posts": {
+			"read_more": "Weiterlesen"
+		},
+		"custom_content": {
+			"open_link": "Link öffnen"
+		},
+		"ai_resume": {
+			"title": "KI-Lebenslauf erstellen",
+			"description": "Erstellen Sie einen professionell formatierten Lebenslauf aus dieser Ansicht.",
+			"success": "Lebenslauf erfolgreich erstellt!",
+			"download": "Lebenslauf herunterladen",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word-Dokument",
+			"style_label": "Stil",
+			"style_chronological": "Chronologisch",
+			"style_functional": "Funktional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Länge",
+			"length_one_page": "Eine Seite",
+			"length_two_pages": "Zwei Seiten",
+			"length_full": "Vollständig",
+			"close": "Schließen",
+			"cancel": "Abbrechen",
+			"generating": "Wird erstellt...",
+			"generate": "Erstellen"
 		}
 	},
 	"shared": {

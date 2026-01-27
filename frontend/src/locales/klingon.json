@@ -1128,13 +1128,19 @@
 			"awards": "Medals",
 			"certifications": "Commendations",
 			"testimonials": "Testimonials",
-			"contact": "Contact"
+			"contacts": "Contact"
 		},
 		"contacts": {
 			"primary": "Primary",
 			"captcha_required": "Security Challenge Required",
 			"copy_to_clipboard": "Copy to data banks",
 			"copied": "Data stored!",
+			"copy": "Copy",
+			"copy_label": "Copy {contact} to data banks",
+			"show_email": "Reveal message",
+			"show_phone": "Reveal communicator",
+			"show_url": "Reveal coordinates",
+			"show_contact": "Reveal contact",
 			"types": {
 				"email": "Subspace Message",
 				"phone": "Communicator",
@@ -1150,6 +1156,72 @@
 				"slack": "Slack",
 				"other": "Contact"
 			}
+		},
+		"homepage": {
+			"profile_private": "This record is classified",
+			"views_accessible": "Shared tactical views may still be accessed with proper authorization codes.",
+			"print_options": "Print options",
+			"simple_print": "Standard Print",
+			"ai_resume": "AI Battle Record",
+			"log_in": "Enter",
+			"log_in_account": "Access your command post",
+			"profile_setup": "This battle record is being prepared.",
+			"browse_all": "View all"
+		},
+		"experience": {
+			"at": "serving"
+		},
+		"projects": {
+			"featured": "Honored"
+		},
+		"certifications": {
+			"expired": "Expired",
+			"expiring_soon": "Expiring Soon",
+			"expires": "Expires",
+			"issued": "Issued",
+			"unknown_issuer": "Unknown Authority",
+			"unknown": "Unknown",
+			"verify": "Verify",
+			"verify_credential": "Verify Credential",
+			"no_expiration": "Perpetual",
+			"credential_id": "Credential Code"
+		},
+		"awards": {
+			"no_date": "Date not recorded",
+			"view_details": "View details"
+		},
+		"talks": {
+			"video": "Recording",
+			"slides": "Data Slides",
+			"watch_video": "View Recording",
+			"view_slides": "View Data Slides"
+		},
+		"posts": {
+			"read_more": "Continue reading"
+		},
+		"custom_content": {
+			"open_link": "Open channel"
+		},
+		"ai_resume": {
+			"title": "Generate AI Battle Record",
+			"description": "Create a professionally formatted battle record from this view.",
+			"success": "Battle record generated with honor!",
+			"download": "Download Battle Record",
+			"format_label": "Format",
+			"format_pdf": "PDF",
+			"format_docx": "Word Document",
+			"style_label": "Style",
+			"style_chronological": "Chronological",
+			"style_functional": "Functional",
+			"style_hybrid": "Hybrid",
+			"length_label": "Length",
+			"length_one_page": "One Page",
+			"length_two_pages": "Two Pages",
+			"length_full": "Full",
+			"close": "Close",
+			"cancel": "Cancel",
+			"generating": "Processing...",
+			"generate": "Generate"
 		}
 	},
 	"shared": {

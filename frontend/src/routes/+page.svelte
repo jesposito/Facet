@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { t } from 'svelte-i18n';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
@@ -375,10 +376,10 @@
 			<ThemeToggle />
 		</div>
 		<div class="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center space-y-4">
-			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Profile is private right now</h1>
+			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{$t('public.homepage.profile_private')}</h1>
 			<p class="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
 			<p class="text-sm text-gray-500 dark:text-gray-400">
-				You can still access shared views directly if you have the link.
+				{$t('public.homepage.views_accessible')}
 			</p>
 		</div>
 	</div>
@@ -397,8 +398,8 @@
 			<button
 				onclick={() => showPrintMenu = !showPrintMenu}
 				class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-				title="Print options"
-				aria-label="Print options"
+				title={$t('public.homepage.print_options')}
+				aria-label={$t('public.homepage.print_options')}
 				aria-expanded={showPrintMenu}
 			>
 				<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -417,7 +418,7 @@
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 						</svg>
-						Simple Print
+						{$t('public.homepage.simple_print')}
 					</button>
 					{#if aiPrintStatus.ai_configured && data.view?.slug}
 						<button
@@ -427,7 +428,7 @@
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 							</svg>
-							AI Resume
+							{$t('public.homepage.ai_resume')}
 						</button>
 					{/if}
 				</div>
@@ -441,19 +442,19 @@
 				<button
 					onclick={handleLogout}
 					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
-					title="Log in to your account"
-					aria-label="Log in to your account"
+					title={$t('public.homepage.log_in_account')}
+					aria-label={$t('public.homepage.log_in_account')}
 				>
-					Log In
+					{$t('public.homepage.log_in')}
 				</button>
 			{:else}
 				<a
 					href="/admin/login"
 					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
-					title="Log in"
-					aria-label="Log in"
+					title={$t('public.homepage.log_in')}
+					aria-label={$t('public.homepage.log_in')}
 				>
-					Log In
+					{$t('public.homepage.log_in')}
 				</a>
 			{/if}
 		{/if}
@@ -507,7 +508,7 @@
 			<!-- Empty profile state -->
 			<div class="text-center py-16">
 				<p class="text-gray-500 dark:text-gray-400 text-lg">
-					This profile is being set up.
+					{$t('public.homepage.profile_setup')}
 				</p>
 			</div>
 		{:else}
@@ -533,12 +534,12 @@
 					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
-						<h2 class="section-title mb-0">Posts</h2>
+						<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
 						<a
 							href="/posts"
 							class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
 						>
-							Browse all
+							{$t('public.homepage.browse_all')}
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 							</svg>
@@ -574,48 +575,48 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" onclick={self(() => showGenerateModal = false)}>
 		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Generate AI Resume</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('public.ai_resume.title')}</h2>
 				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-					Create a professionally formatted resume from this view.
+					{$t('public.ai_resume.description')}
 				</p>
 			</div>
 
 			<div class="p-4 space-y-4">
 				{#if generatedUrl}
 					<div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-						<p class="text-green-700 dark:text-green-300 mb-3">Resume generated successfully!</p>
+						<p class="text-green-700 dark:text-green-300 mb-3">{$t('public.ai_resume.success')}</p>
 						<a
 							href={generatedUrl}
 							download
 							class="btn btn-primary"
 						>
-							Download Resume
+							{$t('public.ai_resume.download')}
 						</a>
 					</div>
 				{:else}
 					<div>
-						<label for="format" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Format</label>
+						<label for="format" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('public.ai_resume.format')}</label>
 						<select id="format" bind:value={generationConfig.format} class="input">
-							<option value="pdf">PDF</option>
-							<option value="docx">Word Document</option>
+							<option value="pdf">{$t('public.ai_resume.format_pdf')}</option>
+							<option value="docx">{$t('public.ai_resume.format_word')}</option>
 						</select>
 					</div>
 
 					<div>
-						<label for="style" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Style</label>
+						<label for="style" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('public.ai_resume.style')}</label>
 						<select id="style" bind:value={generationConfig.style} class="input">
-							<option value="chronological">Chronological</option>
-							<option value="functional">Functional</option>
-							<option value="hybrid">Hybrid</option>
+							<option value="chronological">{$t('public.ai_resume.style_chronological')}</option>
+							<option value="functional">{$t('public.ai_resume.style_functional')}</option>
+							<option value="hybrid">{$t('public.ai_resume.style_hybrid')}</option>
 						</select>
 					</div>
 
 					<div>
-						<label for="length" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Length</label>
+						<label for="length" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('public.ai_resume.length')}</label>
 						<select id="length" bind:value={generationConfig.length} class="input">
-							<option value="one-page">One Page</option>
-							<option value="two-page">Two Pages</option>
-							<option value="full">Full</option>
+							<option value="one-page">{$t('public.ai_resume.length_one')}</option>
+							<option value="two-page">{$t('public.ai_resume.length_two')}</option>
+							<option value="full">{$t('public.ai_resume.length_full')}</option>
 						</select>
 					</div>
 				{/if}
@@ -627,7 +628,7 @@
 					class="btn btn-ghost"
 					onclick={() => { showGenerateModal = false; generatedUrl = null; }}
 				>
-					{generatedUrl ? 'Close' : 'Cancel'}
+					{generatedUrl ? $t('shared.close') : $t('shared.cancel')}
 				</button>
 				{#if !generatedUrl}
 					<button
@@ -641,9 +642,9 @@
 								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 							</svg>
-							Generating...
+							{$t('public.ai_resume.generating')}
 						{:else}
-							Generate
+							{$t('public.ai_resume.generate')}
 						{/if}
 					</button>
 				{/if}

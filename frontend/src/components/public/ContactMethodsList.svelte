@@ -100,7 +100,7 @@
 
 {#if sortedContacts.length > 0}
 	<section id="contacts" class="mb-16">
-		<h2 class="section-title">{$t('public.sections.contact')}</h2>
+		<h2 class="section-title">{$t('public.sections.contacts')}</h2>
 		<div class="contact-methods-list layout-{layout}" role="list">
 			{#each sortedContacts as contact}
 				{@const href = buildContactHref(contact.type, contact.value)}
@@ -142,12 +142,12 @@
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 										</svg>
-										<span class="sr-only">Copied!</span>
+										<span class="sr-only">{$t('public.contacts.copied')}</span>
 									{:else}
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
 										</svg>
-										<span class="sr-only">Copy</span>
+										<span class="sr-only">{$t('public.contacts.copy')}</span>
 									{/if}
 								</button>
 								{#if contact.is_primary}
