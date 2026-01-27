@@ -857,7 +857,29 @@
 			"powered_by": "Powered by {link}"
 		},
 		"hero": {
-			"location_label": "Location:"
+			"location_label": "Location:",
+			"profile_photo_alt": "{name}'s profile photo",
+			"profile_photo_generic": "Profile photo",
+			"profile_initial_alt": "{name}'s profile initial",
+			"contact_links_label": "Contact links",
+			"opens_new_tab": "{label} (opens in new tab)"
+		},
+		"nav": {
+			"home": "Home",
+			"back_to": "Back to {page}",
+			"open_main_menu": "Open main menu"
+		},
+		"password": {
+			"title": "Password Protected",
+			"description": "This content requires a password to view.",
+			"label": "Password",
+			"placeholder": "Enter password",
+			"required_error": "Please enter a password",
+			"incorrect_error": "Incorrect password",
+			"verify_error": "Failed to verify password",
+			"verifying": "Verifying...",
+			"continue": "Continue",
+			"back_to_profile": "Back to main profile"
 		},
 		"sections": {
 			"experience": "Experience",
@@ -870,10 +892,6 @@
 			"certifications": "Certifications",
 			"testimonials": "Testimonials",
 			"contact": "Contact"
-		},
-		"nav": {
-			"home": "Home",
-			"back_to": "Back to {page}"
 		}
 	},
 	"shared": {
