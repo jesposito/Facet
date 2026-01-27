@@ -13,21 +13,25 @@ import { browser } from '$app/environment';
 // Register available locales - add new languages here
 register('en', () => import('../../locales/en.json'));
 register('de', () => import('../../locales/de.json'));
+register('elvish', () => import('../../locales/elvish.json'));
+register('klingon', () => import('../../locales/klingon.json'));
 register('lolcat', () => import('../../locales/lolcat.json'));
 // register('es', () => import('../../locales/es.json'));
 // register('fr', () => import('../../locales/fr.json'));
 
 // Supported locales for validation and UI
-export const SUPPORTED_LOCALES = ['en', 'de', 'lolcat'] as const;
+export const SUPPORTED_LOCALES = ['en', 'de', 'elvish', 'klingon', 'lolcat'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 // Human-readable locale names for language switcher
 export const LOCALE_NAMES: Record<string, string> = {
 	en: 'English',
+	de: 'Deutsch',
+	elvish: 'Sindarin (Elvish)',
+	klingon: 'tlhIngan Hol (Klingon)',
 	lolcat: 'LOLcat',
 	es: 'Espanol',
 	fr: 'Francais',
-	de: 'Deutsch',
 	ja: 'Japanese',
 	'pt-BR': 'Portugues (Brasil)',
 	'zh-CN': 'Chinese (Simplified)'
