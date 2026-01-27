@@ -6,9 +6,10 @@
 		items: Post[];
 		layout?: string;
 		viewSlug?: string;
+		showHeader?: boolean;
 	}
 
-	let { items, layout = 'grid-3', viewSlug = '' }: Props = $props();
+	let { items, layout = 'grid-3', viewSlug = '', showHeader = true }: Props = $props();
 
 	// Build the post URL with optional from parameter for back navigation
 	function getPostUrl(slug: string): string {
@@ -30,7 +31,9 @@
 </script>
 
 <section id="posts" class="mb-16">
-	<h2 class="section-title">Posts</h2>
+	{#if showHeader}
+		<h2 class="section-title">Posts</h2>
+	{/if}
 
 	<div class="grid grid-cols-1 {layout === 'grid-2' ? 'md:grid-cols-2' : layout === 'list' ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6">
 		{#each items as post (post.id)}

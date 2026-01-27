@@ -7,9 +7,11 @@
 	 * - Filters by view visibility
 	 * - Highlights primary contacts
 	 * - Supports all protection levels: none, obfuscation, click_to_reveal, captcha
+	 * - Non-linkable types (Discord, Slack) render as copy-only
 	 */
 
 	import { type ContactMethod } from '$lib/pocketbase';
+	import { buildContactHref, isLinkableContactType } from '$lib/utils';
 	import ObfuscatedLink from './ObfuscatedLink.svelte';
 	import ClickToReveal from './ClickToReveal.svelte';
 
@@ -84,47 +86,99 @@
 		return labels[contact.type] || 'Contact';
 	}
 
-	// Determine if contact type should be a URL link
-	function getLinkType(type: string): 'email' | 'phone' | 'url' {
+	// Determine link type for child components (ObfuscatedLink, ClickToReveal)
+	function getLinkType(type: string): 'email' | 'phone' | 'url' | 'copy' {
+		if (!isLinkableContactType(type)) return 'copy';
 		if (type === 'email') return 'email';
-		if (type === 'phone' || type === 'whatsapp') return 'phone';
+		if (type === 'phone') return 'phone';
+		// WhatsApp now uses wa.me links (url type), not tel:
 		return 'url';
+	}
+
+	// Copy to clipboard functionality for non-linkable contacts
+	let copyingId: string | null = $state(null);
+
+	async function copyToClipboard(value: string, contactId: string) {
+		if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+
+		copyingId = contactId;
+		try {
+			await navigator.clipboard.writeText(value);
+			setTimeout(() => {
+				copyingId = null;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy:', err);
+			copyingId = null;
+		}
 	}
 </script>
 
 {#if sortedContacts.length > 0}
-	<div class="contact-methods-list layout-{layout}" role="list">
-		{#each sortedContacts as contact}
-			<div
-				class="contact-method {contact.is_primary ? 'primary' : ''}"
-				role="listitem"
-			>
-				{#if contact.protection_level === 'none'}
-					<!-- No protection - direct link -->
-					<a
-						href={getLinkType(contact.type) === 'email'
-							? `mailto:${contact.value}`
-							: getLinkType(contact.type) === 'phone'
-							? `tel:${contact.value.replace(/\s/g, '')}`
-							: contact.value}
-						class="contact-link"
-						target={getLinkType(contact.type) === 'url' ? '_blank' : undefined}
-						rel={getLinkType(contact.type) === 'url' ? 'noopener noreferrer' : undefined}
-					>
-						<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
-						<span class="label">{getLabel(contact)}</span>
-						<span class="value">{contact.value}</span>
-						{#if contact.is_primary}
-							<span class="primary-badge">Primary</span>
+	<section id="contacts" class="mb-16">
+		<h2 class="section-title">Contact</h2>
+		<div class="contact-methods-list layout-{layout}" role="list">
+			{#each sortedContacts as contact}
+				{@const href = buildContactHref(contact.type, contact.value)}
+				{@const linkType = getLinkType(contact.type)}
+				<div
+					class="contact-method {contact.is_primary ? 'primary' : ''}"
+					role="listitem"
+				>
+					{#if contact.protection_level === 'none'}
+						<!-- No protection - direct link or copy-only for non-linkable types -->
+						{#if href}
+							<a
+								{href}
+								class="contact-link"
+								target={linkType === 'url' ? '_blank' : undefined}
+								rel={linkType === 'url' ? 'noopener noreferrer' : undefined}
+							>
+								<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
+								<span class="label">{getLabel(contact)}</span>
+								<span class="value">{contact.value}</span>
+								{#if contact.is_primary}
+									<span class="primary-badge">Primary</span>
+								{/if}
+							</a>
+						{:else}
+							<!-- Non-linkable type (Discord, Slack) - copy only -->
+							<div class="contact-link copy-only">
+								<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
+								<span class="label">{getLabel(contact)}</span>
+								<span class="value">{contact.value}</span>
+								<button
+									type="button"
+									class="copy-button"
+									onclick={() => copyToClipboard(contact.value, contact.id)}
+									aria-label="Copy {getLabel(contact)} to clipboard"
+									disabled={copyingId === contact.id}
+								>
+									{#if copyingId === contact.id}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										</svg>
+										<span class="sr-only">Copied!</span>
+									{:else}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+										</svg>
+										<span class="sr-only">Copy</span>
+									{/if}
+								</button>
+								{#if contact.is_primary}
+									<span class="primary-badge">Primary</span>
+								{/if}
+							</div>
 						{/if}
-					</a>
 
 				{:else if contact.protection_level === 'obfuscation'}
 					<!-- CSS Obfuscation -->
 					<div class="contact-wrapper">
 						<ObfuscatedLink
-							type={getLinkType(contact.type)}
+							type={linkType}
 							value={contact.value}
+							href={href}
 							label={getLabel(contact)}
 							icon={getIcon(contact)}
 						/>
@@ -137,8 +191,9 @@
 					<!-- Click to Reveal -->
 					<div class="contact-wrapper">
 						<ClickToReveal
-							type={getLinkType(contact.type)}
+							type={linkType}
 							value={contact.value}
+							href={href}
 							label={getLabel(contact)}
 							icon={getIcon(contact)}
 							contactId={contact.id}
@@ -149,12 +204,12 @@
 					</div>
 
 				{:else if contact.protection_level === 'captcha'}
-					<!-- CAPTCHA Protection (coming soon) -->
+					<!-- CAPTCHA Protection -->
 					<div class="contact-wrapper">
 						<button type="button" class="captcha-button" disabled>
 							<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
 							<span>{getLabel(contact)}</span>
-							<span class="badge">CAPTCHA Required (Coming Soon)</span>
+							<span class="badge">CAPTCHA Required</span>
 						</button>
 						{#if contact.is_primary}
 							<span class="primary-badge">Primary</span>
@@ -163,7 +218,8 @@
 				{/if}
 			</div>
 		{/each}
-	</div>
+		</div>
+	</section>
 {/if}
 
 <style>
@@ -204,6 +260,8 @@
 		text-decoration: none;
 		transition: all 0.2s;
 		width: 100%;
+		min-width: 0; /* Allow flexbox children to shrink */
+		overflow: hidden;
 	}
 
 	.contact-link:hover {
@@ -230,18 +288,29 @@
 
 	.icon {
 		display: inline-flex;
-		font-size: 1.5rem;
-		line-height: 1;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.25rem;
+		width: 1.5rem;
+		height: 1.5rem;
+		flex-shrink: 0;
 	}
 
 	.label {
 		font-weight: 500;
 		color: var(--text-secondary, #6b7280);
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
 	.value {
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 		color: var(--accent-color, #3b82f6);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		min-width: 0;
+		flex: 1;
 	}
 
 	.primary-badge {
@@ -326,5 +395,69 @@
 
 	:global(.dark) .badge {
 		background: #374151;
+	}
+
+	/* Copy-only styles for non-linkable contact types */
+	.copy-only {
+		cursor: default;
+	}
+
+	.copy-only:hover {
+		transform: none;
+		box-shadow: none;
+	}
+
+	.copy-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2rem;
+		height: 2rem;
+		padding: 0.25rem;
+		margin-left: auto;
+		border: 1px solid var(--border-color, #e5e7eb);
+		border-radius: 0.375rem;
+		background: var(--bg-secondary, #f9fafb);
+		color: var(--text-secondary, #6b7280);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+
+	.copy-button:hover:not(:disabled) {
+		background: var(--bg-hover, #f3f4f6);
+		color: var(--accent-color, #3b82f6);
+	}
+
+	.copy-button:disabled {
+		color: var(--success-color, #10b981);
+		cursor: default;
+	}
+
+	:global(.dark) .copy-button {
+		border-color: #374151;
+		background: #1f2937;
+		color: #9ca3af;
+	}
+
+	:global(.dark) .copy-button:hover:not(:disabled) {
+		background: #111827;
+		color: #38bdf8;
+	}
+
+	:global(.dark) .copy-button:disabled {
+		color: #10b981;
+	}
+
+	/* Screen reader only text */
+	.sr-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
 	}
 </style>

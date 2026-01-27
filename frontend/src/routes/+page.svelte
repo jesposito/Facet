@@ -54,11 +54,39 @@
 	}) : {});
 
 	// Section ordering - use view's custom order if available, then homepage order
-	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
-		? data.sectionOrder
-		: (data.homepageSectionOrder && data.homepageSectionOrder.length > 0)
-			? data.homepageSectionOrder
-			: DEFAULT_SECTION_ORDER);
+	// Ensure any sections with data that aren't in the saved order get appended
+	let effectiveSectionOrder = $derived.by(() => {
+		const baseOrder = (data.sectionOrder && data.sectionOrder.length > 0)
+			? data.sectionOrder
+			: (data.homepageSectionOrder && data.homepageSectionOrder.length > 0)
+				? data.homepageSectionOrder
+				: DEFAULT_SECTION_ORDER;
+
+		// If using a saved order, append any default sections with data that are missing
+		if (baseOrder !== DEFAULT_SECTION_ORDER) {
+			const missingWithData = DEFAULT_SECTION_ORDER.filter(section => {
+				if (baseOrder.includes(section)) return false;
+				// Check if this section has data
+				switch (section) {
+					case 'experience': return data.experience?.length > 0;
+					case 'projects': return data.projects?.length > 0;
+					case 'education': return data.education?.length > 0;
+					case 'certifications': return data.certifications?.length > 0;
+					case 'awards': return data.awards?.length > 0;
+					case 'skills': return data.skills?.length > 0;
+					case 'posts': return data.posts?.length > 0;
+					case 'talks': return data.talks?.length > 0;
+					case 'testimonials': return data.testimonials?.length > 0;
+					case 'contacts': return data.contacts?.length > 0;
+					default: return false;
+				}
+			});
+			if (missingWithData.length > 0) {
+				return [...baseOrder, ...missingWithData];
+			}
+		}
+		return baseOrder;
+	});
 
 	// Helper to check if section key is a custom content section
 	function isCustomSection(key: string): boolean {
@@ -436,6 +464,7 @@
 		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
 		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 	/>
 
 	<div
@@ -449,10 +478,15 @@
 		hasProjects={data.projects.length > 0}
 		hasEducation={data.education.length > 0}
 		hasCertifications={data.certifications && data.certifications.length > 0}
+		hasAwards={data.awards && data.awards.length > 0}
 		hasSkills={data.skills.length > 0}
 		hasPosts={data.posts && data.posts.length > 0}
 		hasTalks={data.talks && data.talks.length > 0}
+		hasTestimonials={data.testimonials && data.testimonials.length > 0}
+		hasContacts={data.contacts && data.contacts.length > 0}
 		viewSlug=""
+		sectionOrder={effectiveSectionOrder}
+		customContent={data.customContent || []}
 	/>
 
 	<!-- Main content -->
@@ -499,7 +533,7 @@
 						</a>
 					</div>
 					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-					<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
+					<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
 				{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
 					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
 					<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />

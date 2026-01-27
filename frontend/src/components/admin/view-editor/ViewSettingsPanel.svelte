@@ -28,7 +28,8 @@
 		// Call to Action
 		ctaText = $bindable(),
 		ctaUrl = $bindable(),
-		
+		ctaEnabled = $bindable(),
+
 		// Settings
 		accentColor = $bindable(),
 		isActive = $bindable(),
@@ -54,7 +55,8 @@
 		// Call to Action
 		ctaText: string;
 		ctaUrl: string;
-		
+		ctaEnabled: boolean;
+
 		// Settings
 		accentColor: AccentColor | null;
 		isActive: boolean;
@@ -292,31 +294,49 @@
 
 <!-- Call to Action -->
 <div class="card p-4 sm:p-6 space-y-4">
-	<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
-	<p class="text-sm text-gray-500 -mt-2">Add a prominent button to this view</p>
-
-	<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+	<div class="flex items-start justify-between gap-4">
 		<div>
-			<label for="cta_text" class="label">Button Text</label>
-			<input
-				type="text"
-				id="cta_text"
-				bind:value={ctaText}
-				class="input"
-				placeholder="Download Resume"
-			/>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
+			<p class="text-sm text-gray-500">Add a prominent button to this view</p>
 		</div>
-		<div>
-			<label for="cta_url" class="label">Button URL</label>
+		<label class="relative inline-flex items-center cursor-pointer">
 			<input
-				type="url"
-				id="cta_url"
-				bind:value={ctaUrl}
-				class="input"
-				placeholder="https://..."
+				type="checkbox"
+				class="sr-only peer"
+				bind:checked={ctaEnabled}
 			/>
-		</div>
+			<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+		</label>
 	</div>
+
+	{#if ctaEnabled}
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+			<div>
+				<label for="cta_text" class="label">Button Text</label>
+				<input
+					type="text"
+					id="cta_text"
+					bind:value={ctaText}
+					class="input"
+					placeholder="Download Resume"
+				/>
+			</div>
+			<div>
+				<label for="cta_url" class="label">Button URL</label>
+				<input
+					type="url"
+					id="cta_url"
+					bind:value={ctaUrl}
+					class="input"
+					placeholder="https://..."
+				/>
+			</div>
+		</div>
+	{:else}
+		<p class="text-sm text-gray-500 dark:text-gray-400 italic">
+			CTA button is disabled for this view. Enable the toggle above to configure it.
+		</p>
+	{/if}
 </div>
 
 <!-- Settings -->

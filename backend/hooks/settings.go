@@ -35,6 +35,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_nav_enabled":        settings.SiteNavEnabled,
 				"site_nav_items":          settings.SiteNavItems,
 				"skills_category_order":   settings.SkillsCategoryOrder,
+				"site_cta_enabled":        settings.SiteCtaEnabled,
 			})
 		})
 
@@ -57,6 +58,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				SiteNavEnabled        *bool                                         `json:"site_nav_enabled"`
 				SiteNavItems          []services.SiteNavItem                        `json:"site_nav_items"`
 				SkillsCategoryOrder   []string                                      `json:"skills_category_order"`
+				SiteCtaEnabled        *bool                                         `json:"site_cta_enabled"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -113,6 +115,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.SkillsCategoryOrder != nil {
 				updates["skills_category_order"] = req.SkillsCategoryOrder
 			}
+			if req.SiteCtaEnabled != nil {
+				updates["site_cta_enabled"] = *req.SiteCtaEnabled
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -132,6 +137,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_nav_enabled":        settings.SiteNavEnabled,
 				"site_nav_items":          settings.SiteNavItems,
 				"skills_category_order":   settings.SkillsCategoryOrder,
+				"site_cta_enabled":        settings.SiteCtaEnabled,
 			})
 		})
 
