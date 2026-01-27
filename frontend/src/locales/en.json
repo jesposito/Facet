@@ -1,5 +1,9 @@
 {
 	"admin": {
+		"layout": {
+			"loading": "Loading admin...",
+			"close_navigation": "Close navigation menu"
+		},
 		"sidebar": {
 			"dashboard": "Dashboard",
 			"homepage": "Homepage",
@@ -38,7 +42,10 @@
 			"unlisted": "Unlisted",
 			"private": "Private",
 			"new_version_available": "New version available",
-			"update_now": "Update now"
+			"update_now": "Update now",
+			"manage": "Manage",
+			"request_links": "Request Links",
+			"update_available": "Update available"
 		},
 		"dashboard": {
 			"title": "Dashboard",
@@ -77,11 +84,18 @@
 		},
 		"header": {
 			"toggle_sidebar": "Toggle sidebar",
+			"expand_sidebar": "Expand sidebar",
+			"collapse_sidebar": "Collapse sidebar",
 			"view_site": "View Site",
+			"view_site_title": "View your public profile",
 			"logout": "Logout",
+			"sign_out": "Sign out",
 			"theme_light": "Light mode",
 			"theme_dark": "Dark mode",
-			"toggle_theme": "Toggle theme"
+			"toggle_theme": "Toggle theme",
+			"demo": "Demo",
+			"demo_on": "ON",
+			"toggle_demo_mode": "Toggle demo mode"
 		},
 		"settings": {
 			"favicon": {
@@ -217,7 +231,9 @@
 			"open_menu": "Open menu",
 			"notifications": "Notifications",
 			"skip_to_content": "Skip to main content",
-			"dismiss": "Dismiss"
+			"dismiss": "Dismiss",
+			"admin_navigation": "Admin navigation",
+			"main_menu": "Main menu"
 		},
 		"pagination": {
 			"previous": "Previous",

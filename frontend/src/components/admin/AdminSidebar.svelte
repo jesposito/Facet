@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
+	import { t } from 'svelte-i18n';
 	import { adminSidebarOpen, sidebarSectionStates, sidebarFacetsVersion } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
 	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
@@ -106,14 +107,6 @@
 	// All section IDs as array for accordion behavior
 	const ALL_SECTION_IDS = Object.values(SECTION_IDS);
 
-	// Map section titles to section IDs (for collapsible sections)
-	const sectionTitleToId: Record<string, string> = {
-		'Your Information': SECTION_IDS.information,
-		'Your Voice': SECTION_IDS.voice,
-		'Testimonials': SECTION_IDS.testimonials,
-		'Settings': SECTION_IDS.settings
-	};
-
 	// Helper to check if a section is expanded
 	function isSectionExpanded(sectionId: string): boolean {
 		return sidebarSectionStates.isExpanded($sidebarSectionStates, sectionId, false);
@@ -184,45 +177,45 @@
 const navSections = [
 	{
 		id: 'dashboard',
-		title: 'Dashboard',
-		items: [{ href: '/admin', label: 'Dashboard', icon: 'home' }]
+		titleKey: 'admin.sidebar.dashboard',
+		items: [{ href: '/admin', labelKey: 'admin.sidebar.dashboard', icon: 'home' }]
 	},
 	{
 		id: 'information',
-		title: 'Your Information',
+		titleKey: 'admin.sidebar.your_information',
 		items: [
-			{ href: '/admin/contacts', label: 'Contact Methods', icon: 'mail' },
-			{ href: '/admin/experience', label: 'Experience', icon: 'briefcase' },
-			{ href: '/admin/projects', label: 'Projects', icon: 'folder' },
-			{ href: '/admin/education', label: 'Education', icon: 'academic' },
-			{ href: '/admin/certifications', label: 'Certifications', icon: 'badge' },
-			{ href: '/admin/awards', label: 'Awards', icon: 'star' },
-			{ href: '/admin/skills', label: 'Skills', icon: 'chip' },
-			{ href: '/admin/custom', label: 'Custom Content', icon: 'puzzle' },
-			{ href: '/admin/import', label: 'Import & AI', icon: 'sparkle' }
+			{ href: '/admin/contacts', labelKey: 'admin.sidebar.contact_methods', icon: 'mail' },
+			{ href: '/admin/experience', labelKey: 'admin.sidebar.experience', icon: 'briefcase' },
+			{ href: '/admin/projects', labelKey: 'admin.sidebar.projects', icon: 'folder' },
+			{ href: '/admin/education', labelKey: 'admin.sidebar.education', icon: 'academic' },
+			{ href: '/admin/certifications', labelKey: 'admin.sidebar.certifications', icon: 'badge' },
+			{ href: '/admin/awards', labelKey: 'admin.sidebar.awards', icon: 'star' },
+			{ href: '/admin/skills', labelKey: 'admin.sidebar.skills', icon: 'chip' },
+			{ href: '/admin/custom', labelKey: 'admin.sidebar.custom_content', icon: 'puzzle' },
+			{ href: '/admin/import', labelKey: 'admin.sidebar.import_ai', icon: 'sparkle' }
 		]
 	},
 	{
 		id: 'voice',
-		title: 'Your Voice',
+		titleKey: 'admin.sidebar.your_voice',
 		items: [
-			{ href: '/admin/posts', label: 'Posts', icon: 'document' },
-			{ href: '/admin/talks', label: 'Talks', icon: 'presentation' }
+			{ href: '/admin/posts', labelKey: 'admin.sidebar.posts', icon: 'document' },
+			{ href: '/admin/talks', labelKey: 'admin.sidebar.talks', icon: 'presentation' }
 		]
 	},
 	{
 		id: 'settings',
-		title: 'Settings',
+		titleKey: 'admin.sidebar.settings',
 		items: [
-			{ href: '/admin/settings#account', label: 'Account & Security', icon: 'badge' },
-			{ href: '/admin/settings#appearance', label: 'Appearance', icon: 'star' },
-			{ href: '/admin/settings#general', label: 'General', icon: 'cog' },
-			{ href: '/admin/settings#analytics', label: 'Analytics', icon: 'eye' },
-			{ href: '/admin/settings#integrations', label: 'Integrations', icon: 'sparkle' },
-			{ href: '/admin/settings/tags', label: 'Admin Tags', icon: 'chip' },
-			{ href: '/admin/media', label: 'Media Library', icon: 'image' },
-			{ href: '/admin/tokens', label: 'Share Tokens', icon: 'link' },
-{ href: '/admin/settings/about', label: 'About Facet', icon: 'info' }
+			{ href: '/admin/settings#account', labelKey: 'admin.sidebar.account_security', icon: 'badge' },
+			{ href: '/admin/settings#appearance', labelKey: 'admin.sidebar.appearance', icon: 'star' },
+			{ href: '/admin/settings#general', labelKey: 'admin.sidebar.general', icon: 'cog' },
+			{ href: '/admin/settings#analytics', labelKey: 'admin.sidebar.analytics', icon: 'eye' },
+			{ href: '/admin/settings#integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
+			{ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' },
+			{ href: '/admin/media', labelKey: 'admin.sidebar.media_library', icon: 'image' },
+			{ href: '/admin/tokens', labelKey: 'admin.sidebar.share_tokens', icon: 'link' },
+			{ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' }
 		]
 	}
 ];
@@ -267,13 +260,13 @@ let isActive = $derived((href: string): boolean => {
 <aside
 	id="admin-sidebar"
 	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
-		{isMobile 
+		{isMobile
 			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
 			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')
 		}"
-	aria-label="Admin navigation"
+	aria-label={$t('shared.aria.admin_navigation')}
 >
-	<nav class="p-3 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label="Main menu">
+	<nav class="p-3 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label={$t('shared.aria.main_menu')}>
 		<!-- Dashboard and Profile - always visible -->
 		<div class="space-y-1">
 			<a
@@ -281,41 +274,41 @@ let isActive = $derived((href: string): boolean => {
 				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin')
 					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-				title={!$adminSidebarOpen ? 'Dashboard' : undefined}
+				title={!$adminSidebarOpen ? $t('admin.sidebar.dashboard') : undefined}
 				aria-current={isActive('/admin') ? 'page' : undefined}
 			>
 				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
 				</svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>Dashboard</span>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.dashboard')}</span>
 			</a>
 			<a
 				href="/admin/homepage"
 				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/homepage')
 					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-				title={!$adminSidebarOpen ? 'Homepage' : undefined}
+				title={!$adminSidebarOpen ? $t('admin.sidebar.homepage') : undefined}
 				aria-current={isActive('/admin/homepage') ? 'page' : undefined}
 			>
 				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
 				</svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>Homepage</span>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.homepage')}</span>
 			</a>
 		</div>
 
 		<!-- Facets Section - always visible -->
 		<div class="space-y-2">
-			<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 {$adminSidebarOpen ? '' : 'sr-only'}">Facets</span>
+			<span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 {$adminSidebarOpen ? '' : 'sr-only'}">{$t('admin.sidebar.facets')}</span>
 			<div class="space-y-1">
 					{#if facetsLoading}
 						<div class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 {$adminSidebarOpen ? '' : 'sr-only'}">
-							Loading...
+							{$t('admin.sidebar.loading')}
 						</div>
 					{:else if facetsError}
 						<!-- Error state with retry -->
 						<div class="px-3 py-2 {$adminSidebarOpen ? '' : 'sr-only'}">
-							<p class="text-sm text-red-500 dark:text-red-400 mb-2">Unable to load facets.</p>
+							<p class="text-sm text-red-500 dark:text-red-400 mb-2">{$t('admin.sidebar.unable_to_load_facets')}</p>
 							<button
 								type="button"
 								onclick={() => loadFacets()}
@@ -324,7 +317,7 @@ let isActive = $derived((href: string): boolean => {
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 								</svg>
-								Retry
+								{$t('admin.sidebar.retry')}
 							</button>
 						</div>
 					{:else}
@@ -334,7 +327,7 @@ let isActive = $derived((href: string): boolean => {
 								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(`/admin/views/${facet.id}`)
 									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? `Facets: ${facet.name}` : undefined}
+								title={!$adminSidebarOpen ? `${$t('admin.sidebar.facets')}: ${facet.name}` : undefined}
 								aria-current={isActive(`/admin/views/${facet.id}`) ? 'page' : undefined}
 							>
 								<!-- Diamond icon -->
@@ -345,11 +338,11 @@ let isActive = $derived((href: string): boolean => {
 									<span class="truncate" title={facet.name as string}>{facet.name}</span>
 									<!-- Visibility indicator -->
 									{#if facet.visibility === 'public'}
-										<span class="w-2 h-2 rounded-full bg-green-500 shrink-0" title="Public"></span>
+										<span class="w-2 h-2 rounded-full bg-green-500 shrink-0" title={$t('admin.sidebar.public')}></span>
 									{:else if facet.visibility === 'unlisted'}
-										<span class="w-2 h-2 rounded-full bg-yellow-500 shrink-0" title="Unlisted"></span>
+										<span class="w-2 h-2 rounded-full bg-yellow-500 shrink-0" title={$t('admin.sidebar.unlisted')}></span>
 									{:else if facet.visibility === 'private' || facet.visibility === 'password'}
-										<span class="w-2 h-2 rounded-full bg-gray-400 shrink-0" title="Private"></span>
+										<span class="w-2 h-2 rounded-full bg-gray-400 shrink-0" title={$t('admin.sidebar.private')}></span>
 									{/if}
 								</span>
 							</a>
@@ -360,12 +353,12 @@ let isActive = $derived((href: string): boolean => {
 						<a
 							href="/admin/views"
 							class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-							title={!$adminSidebarOpen ? 'View more facets' : undefined}
+							title={!$adminSidebarOpen ? $t('admin.sidebar.view_more') : undefined}
 						>
 							<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
 							</svg>
-							<span class={$adminSidebarOpen ? '' : 'sr-only'}>View more...</span>
+							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.view_more')}</span>
 						</a>
 					{/if}
 					<!-- New Facet button - always visible -->
@@ -374,20 +367,20 @@ let isActive = $derived((href: string): boolean => {
 						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views/new')
 							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 							: 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'}"
-						title={!$adminSidebarOpen ? 'Create new facet' : undefined}
+						title={!$adminSidebarOpen ? $t('admin.sidebar.new_facet') : undefined}
 						aria-current={isActive('/admin/views/new') ? 'page' : undefined}
 					>
 						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 						</svg>
-						<span class={$adminSidebarOpen ? '' : 'sr-only'}>New Facet</span>
+						<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.new_facet')}</span>
 					</a>
 			</div>
 		</div>
 
 		<!-- Your Information and Your Voice Sections -->
 		{#each primarySections as section (section.id)}
-			{@const sectionId = sectionTitleToId[section.title] || `sidebar-${section.title.toLowerCase().replace(/\s+/g, '-')}`}
+			{@const sectionId = SECTION_IDS[section.id as keyof typeof SECTION_IDS] || `sidebar-${section.id}`}
 			<div class="space-y-2">
 				<button
 					type="button"
@@ -396,7 +389,7 @@ let isActive = $derived((href: string): boolean => {
 					aria-expanded={isSectionExpanded(sectionId)}
 					aria-controls="{sectionId}-items"
 				>
-					<span>{section.title}</span>
+					<span>{$t(section.titleKey)}</span>
 					<svg
 						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(sectionId) ? 'rotate-0' : '-rotate-90'}"
 						fill="none"
@@ -415,7 +408,7 @@ let isActive = $derived((href: string): boolean => {
 								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(item.href)
 									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? `${section.title}: ${item.label}` : undefined}
+								title={!$adminSidebarOpen ? `${$t(section.titleKey)}: ${$t(item.labelKey)}` : undefined}
 								aria-current={isActive(item.href) ? 'page' : undefined}
 							>
 							{#if item.icon === 'home'}
@@ -503,7 +496,7 @@ let isActive = $derived((href: string): boolean => {
 							{/if}
 
 							<!-- Always render label for screen readers, visually hide when sidebar collapsed -->
-							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{item.label}</span>
+							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t(item.labelKey)}</span>
 						</a>
 						{/each}
 					</div>
@@ -521,7 +514,7 @@ let isActive = $derived((href: string): boolean => {
 				aria-controls="sidebar-testimonials-items"
 			>
 				<span class="flex items-center gap-2">
-					Testimonials
+					{$t('admin.sidebar.testimonials')}
 					{#if $testimonialsStore.pendingCount > 0}
 						<span class="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
 							{$testimonialsStore.pendingCount}
@@ -545,26 +538,26 @@ let isActive = $derived((href: string): boolean => {
 						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials')
 							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 							: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-						title={!$adminSidebarOpen ? 'Testimonials' : undefined}
+						title={!$adminSidebarOpen ? $t('admin.sidebar.testimonials') : undefined}
 						aria-current={isActive('/admin/testimonials') ? 'page' : undefined}
 					>
 						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
 						</svg>
-						<span class={$adminSidebarOpen ? '' : 'sr-only'}>Manage</span>
+						<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.manage')}</span>
 					</a>
 					<a
 						href="/admin/testimonials/requests"
 						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials/requests')
 							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 							: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-						title={!$adminSidebarOpen ? 'Request Links' : undefined}
+						title={!$adminSidebarOpen ? $t('admin.sidebar.request_links') : undefined}
 						aria-current={isActive('/admin/testimonials/requests') ? 'page' : undefined}
 					>
 						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
 						</svg>
-						<span class={$adminSidebarOpen ? '' : 'sr-only'}>Request Links</span>
+						<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.request_links')}</span>
 					</a>
 				</div>
 			{/if}
@@ -572,7 +565,7 @@ let isActive = $derived((href: string): boolean => {
 
 		<!-- Settings Section -->
 		{#each settingsSections as section (section.id)}
-			{@const sectionId = sectionTitleToId[section.title] || `sidebar-${section.title.toLowerCase().replace(/\s+/g, '-')}`}
+			{@const sectionId = SECTION_IDS[section.id as keyof typeof SECTION_IDS] || `sidebar-${section.id}`}
 			<div class="space-y-2">
 				<button
 					type="button"
@@ -581,7 +574,7 @@ let isActive = $derived((href: string): boolean => {
 					aria-expanded={isSectionExpanded(sectionId)}
 					aria-controls="{sectionId}-items"
 				>
-					<span>{section.title}</span>
+					<span>{$t(section.titleKey)}</span>
 					<svg
 						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(sectionId) ? 'rotate-0' : '-rotate-90'}"
 						fill="none"
@@ -600,7 +593,7 @@ let isActive = $derived((href: string): boolean => {
 								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(item.href)
 									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
 									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? `${section.title}: ${item.label}` : undefined}
+								title={!$adminSidebarOpen ? `${$t(section.titleKey)}: ${$t(item.labelKey)}` : undefined}
 								aria-current={isActive(item.href) ? 'page' : undefined}
 							>
 							{#if item.icon === 'cog'}
@@ -645,7 +638,7 @@ let isActive = $derived((href: string): boolean => {
 								</svg>
 							{/if}
 
-							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{item.label}</span>
+							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t(item.labelKey)}</span>
 						</a>
 						{/each}
 					</div>
@@ -666,7 +659,7 @@ let isActive = $derived((href: string): boolean => {
 						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
 						</svg>
-						Update available
+						{$t('admin.sidebar.update_available')}
 					</span>
 				</div>
 			{/if}
