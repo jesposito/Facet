@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.10.0 - January 27, 2026
+
+**New Features:**
+- Implement complete i18n support for Facet, enabling multi-language support with 5 complete translations including English, German, and three fantasy languages.
+
+**Pull Requests:** [#320](https://github.com/jesposito/Facet/pull/320),
+
+---
+
+
 ## v2.9.1 - January 27, 2026
 
 ---
