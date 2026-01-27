@@ -7,6 +7,14 @@
 		"settings_page": {
 			"title": "Settings",
 			"page_title_suffix": "| Facet",
+			"language": {
+				"section_title": "Language",
+				"section_description": "Choose your preferred language for the admin interface.",
+				"label": "Display Language",
+				"help": "Changes take effect immediately. Your preference is saved locally.",
+				"current": "Current language",
+				"more_coming": "More languages coming soon! Want to help translate? See our contribution guide."
+			},
 			"help_text": "<strong>Settings</strong> controls your site's appearance, AI providers, analytics, and data export.",
 			"help_tip_1": "Configure AI providers to enable smart features like resume parsing, content rewriting, and GitHub project summaries. Add custom CSS to style your public profile.",
 			"help_tip_2": "<strong>Tip:</strong> Export your data regularly as JSON or YAML for backup. It includes everything.",

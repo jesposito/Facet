@@ -15,6 +15,7 @@
 		type AccentColor
 	} from '$lib/colors';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 
 	// App version from Vite config
 	const appVersion = __APP_VERSION__;
@@ -1084,6 +1085,18 @@ body { font-family: 'Inter', sans-serif; }
 		<div>
 			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.general.section_title')}</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.general.section_description')}</p>
+		</div>
+
+		<!-- Language Switcher -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.language.section_title')}</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				{$t('admin.settings_page.language.section_description')}
+			</p>
+			<LanguageSwitcher />
+			<p class="text-xs text-gray-500 dark:text-gray-400 mt-4">
+				{$t('admin.settings_page.language.more_coming')}
+			</p>
 		</div>
 
 		<!-- Demo Toggle -->
