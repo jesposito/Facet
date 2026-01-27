@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Certification } from '$lib/pocketbase';
 	import { formatDate } from '$lib/utils';
 
@@ -43,7 +44,7 @@
 </script>
 
 <section id="certifications" class="mb-16">
-	<h2 class="section-title">Certifications & Credentials</h2>
+	<h2 class="section-title">{$t('public.sections.certifications')}</h2>
 
 	{#if layout === 'timeline'}
 		<div class="relative">

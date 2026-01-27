@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Language of the Empire",
-				"section_description": "Choose your preferred battle tongue for the command center.",
-				"label": "Display Language",
-				"help": "Changes take effect immediately, as swift as a bat'leth strike. Your preference is stored locally.",
+				"section_description": "Choose the battle tongue for your entire domain.",
+				"label": "Domain Language",
+				"help": "This tongue shall be spoken by all who enter your domain.",
 				"current": "Current tongue",
-				"more_coming": "More tongues shall be conquered! Will you aid in translation? Consult the warrior's guide."
+				"more_coming": "More tongues shall be conquered! Will you aid in translation? Consult the warrior's guide.",
+				"saved": "Language preference recorded. Qapla'!",
+				"saving": "Recording...",
+				"save_error": "Failed to record language preference. Dishonor!"
 			},
 			"help_text": "<strong>Battle Configurations</strong> commands your domain's appearance, AI warriors, intelligence gathering, and data extraction.",
 			"help_tip_1": "Configure AI warriors to enable tactical features such as resume parsing, content enhancement, and GitHub reconnaissance. Add custom battle dress to your public presence.",
@@ -820,6 +823,18 @@
 				"reset_to_default": "Reset to Default",
 				"done": "Complete"
 			},
+			"skills_categories": {
+				"description": "Drag categories to reorder. Expand a category to select individual skills.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Expand {category}",
+				"collapse": "Collapse {category}",
+				"skills": "skills",
+				"selected": "selected",
+				"all_selected": "all",
+				"none_selected_hint": "All skills shown. Select to customize.",
+				"drag_hint": "Drag to reorder skills within this category.",
+				"no_skills": "No skills found. Add skills in the Skills section first."
+			},
 			"override_editor": {
 				"title": "Customize for This View",
 				"description": "Override fields below to customize how this item appears in this view. Leave fields empty to use the original value.",
@@ -1069,6 +1084,27 @@
 			"certifications": "Commendations",
 			"testimonials": "Testimonials",
 			"contact": "Contact"
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "Security Challenge Required",
+			"copy_to_clipboard": "Copy to data banks",
+			"copied": "Data stored!",
+			"types": {
+				"email": "Subspace Message",
+				"phone": "Communicator",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Starbase Portal",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
 		}
 	},
 	"shared": {
@@ -1160,7 +1196,8 @@
 			"hours_ago": "{count} hour(s) ago",
 			"days_ago": "{count} day(s) ago",
 			"today": "Today",
-			"yesterday": "Yesterday"
+			"yesterday": "Yesterday",
+			"present": "Active Duty"
 		}
 	},
 	"errors": {

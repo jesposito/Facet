@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Language",
-				"section_description": "Choose your preferred language for the admin interface.",
-				"label": "Display Language",
-				"help": "Changes take effect immediately. Your preference is saved locally.",
+				"section_description": "Choose the display language for your entire site.",
+				"label": "Site Language",
+				"help": "This language applies to all visitors viewing your site.",
 				"current": "Current language",
-				"more_coming": "More languages coming soon! Want to help translate? See our contribution guide."
+				"more_coming": "More languages coming soon! Want to help translate? See our contribution guide.",
+				"saved": "Language preference saved",
+				"saving": "Saving...",
+				"save_error": "Failed to save language preference"
 			},
 			"help_text": "<strong>Settings</strong> controls your site's appearance, AI providers, analytics, and data export.",
 			"help_tip_1": "Configure AI providers to enable smart features like resume parsing, content rewriting, and GitHub project summaries. Add custom CSS to style your public profile.",
@@ -820,6 +823,18 @@
 				"reset_to_default": "Reset to Default",
 				"done": "Done"
 			},
+			"skills_categories": {
+				"description": "Drag categories to reorder. Expand a category to select individual skills.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Expand {category}",
+				"collapse": "Collapse {category}",
+				"skills": "skills",
+				"selected": "selected",
+				"all_selected": "all",
+				"none_selected_hint": "All skills shown. Select to customize.",
+				"drag_hint": "Drag to reorder skills within this category.",
+				"no_skills": "No skills found. Add skills in the Skills section first."
+			},
 			"override_editor": {
 				"title": "Customize for this View",
 				"description": "Override fields below to customize how this item appears in this view. Leave fields empty to use the original value.",
@@ -1069,6 +1084,27 @@
 			"certifications": "Certifications",
 			"testimonials": "Testimonials",
 			"contact": "Contact"
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "CAPTCHA Required",
+			"copy_to_clipboard": "Copy to clipboard",
+			"copied": "Copied!",
+			"types": {
+				"email": "Email",
+				"phone": "Phone",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Website",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
 		}
 	},
 	"shared": {
@@ -1160,7 +1196,8 @@
 			"hours_ago": "{count} hour(s) ago",
 			"days_ago": "{count} day(s) ago",
 			"today": "Today",
-			"yesterday": "Yesterday"
+			"yesterday": "Yesterday",
+			"present": "Present"
 		}
 	},
 	"errors": {

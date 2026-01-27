@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Sprache",
-				"section_description": "Wählen Sie Ihre bevorzugte Sprache für die Admin-Oberfläche.",
-				"label": "Anzeigesprache",
-				"help": "Änderungen werden sofort wirksam. Ihre Einstellung wird lokal gespeichert.",
+				"section_description": "Wählen Sie die Anzeigesprache für Ihre gesamte Website.",
+				"label": "Website-Sprache",
+				"help": "Diese Sprache gilt für alle Besucher Ihrer Website.",
 				"current": "Aktuelle Sprache",
-				"more_coming": "Weitere Sprachen folgen! Möchten Sie bei der Übersetzung helfen? Siehe unsere Mitwirkungsanleitung."
+				"more_coming": "Weitere Sprachen folgen! Möchten Sie bei der Übersetzung helfen? Siehe unsere Mitwirkungsanleitung.",
+				"saved": "Spracheinstellung gespeichert",
+				"saving": "Speichern...",
+				"save_error": "Spracheinstellung konnte nicht gespeichert werden"
 			},
 			"help_text": "<strong>Einstellungen</strong> steuert das Aussehen Ihrer Website, KI-Anbieter, Analysen und Datenexport.",
 			"help_tip_1": "Konfigurieren Sie KI-Anbieter, um intelligente Funktionen wie Lebenslauf-Parsing, Inhaltsumschreibung und GitHub-Projektzusammenfassungen zu aktivieren. Fügen Sie benutzerdefiniertes CSS hinzu, um Ihr öffentliches Profil zu gestalten.",
@@ -820,6 +823,18 @@
 				"reset_to_default": "Auf Standard zurücksetzen",
 				"done": "Fertig"
 			},
+			"skills_categories": {
+				"description": "Ziehen Sie Kategorien zum Neuordnen. Erweitern Sie eine Kategorie, um einzelne Fähigkeiten auszuwählen.",
+				"toggle_category": "Kategorie {category} umschalten",
+				"expand": "{category} erweitern",
+				"collapse": "{category} einklappen",
+				"skills": "Fähigkeiten",
+				"selected": "ausgewählt",
+				"all_selected": "alle",
+				"none_selected_hint": "Alle Fähigkeiten werden angezeigt. Zum Anpassen auswählen.",
+				"drag_hint": "Ziehen zum Neuordnen der Fähigkeiten in dieser Kategorie.",
+				"no_skills": "Keine Fähigkeiten gefunden. Fügen Sie zuerst Fähigkeiten im Bereich Fähigkeiten hinzu."
+			},
 			"override_editor": {
 				"title": "Für diese Ansicht anpassen",
 				"description": "Überschreiben Sie Felder unten, um anzupassen, wie dieses Element in dieser Ansicht erscheint. Lassen Sie Felder leer, um den Originalwert zu verwenden.",
@@ -1069,6 +1084,27 @@
 			"certifications": "Zertifizierungen",
 			"testimonials": "Referenzen",
 			"contact": "Kontakt"
+		},
+		"contacts": {
+			"primary": "Primär",
+			"captcha_required": "CAPTCHA erforderlich",
+			"copy_to_clipboard": "In die Zwischenablage kopieren",
+			"copied": "Kopiert!",
+			"types": {
+				"email": "E-Mail",
+				"phone": "Telefon",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Webseite",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Kontakt"
+			}
 		}
 	},
 	"shared": {
@@ -1160,7 +1196,8 @@
 			"hours_ago": "vor {count} Stunde(n)",
 			"days_ago": "vor {count} Tag(en)",
 			"today": "Heute",
-			"yesterday": "Gestern"
+			"yesterday": "Gestern",
+			"present": "Heute"
 		}
 	},
 	"errors": {

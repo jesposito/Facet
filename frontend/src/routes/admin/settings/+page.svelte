@@ -1424,7 +1424,7 @@ body { font-family: 'Inter', sans-serif; }
 								</button>
 							{/if}
 							<button
-								class="btn btn-sm btn-ghost text-red-600"
+								class="btn btn-danger-ghost btn-sm"
 								onclick={() => deleteProvider(String(provider.id))}
 							>
 								{$t('admin.settings_page.integrations.ai_delete_button')}

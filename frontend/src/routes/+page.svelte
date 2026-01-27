@@ -155,6 +155,18 @@
 		return undefined;
 	}
 
+	function getDisabledCategories(sectionKey: string): string[] | undefined {
+		// First check view disabled categories (default view), then homepage settings (legacy)
+		if (data.sectionDisabledCategories?.[sectionKey]) {
+			return data.sectionDisabledCategories[sectionKey];
+		}
+		// For legacy homepage, check the section config
+		if (data.homepageSections?.[sectionKey]?.disabledCategories) {
+			return data.homepageSections[sectionKey].disabledCategories;
+		}
+		return undefined;
+	}
+
 	function getWidthClass(width: string): string {
 		switch (width) {
 			case 'half': return 'section-half';
@@ -518,7 +530,7 @@
 				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
 					<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
 				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} />
+					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
 						<h2 class="section-title mb-0">Posts</h2>

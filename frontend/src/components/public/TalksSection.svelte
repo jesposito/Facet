@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Talk } from '$lib/pocketbase';
 	import { formatDate, parseMarkdown } from '$lib/utils';
 
@@ -44,7 +45,7 @@
 </script>
 
 <section id="talks" class="mb-16">
-	<h2 class="section-title">Talks & Presentations</h2>
+	<h2 class="section-title">{$t('public.sections.talks')}</h2>
 
 	{#if layout === 'list'}
 		<div class="space-y-4">

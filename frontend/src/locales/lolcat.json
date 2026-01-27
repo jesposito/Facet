@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Languaj",
-				"section_description": "Chooze ur favrit languaj 4 teh admin stuffz.",
-				"label": "Displai Languaj",
-				"help": "Changez happenz rite nao! Ur preferens iz savd locally.",
+				"section_description": "Chooze teh languaj 4 ur hole site.",
+				"label": "Site Languaj",
+				"help": "Dis languaj iz 4 all teh vizitorz on ur site.",
 				"current": "Current languaj",
-				"more_coming": "Moar languajez comin soon! Wanna halp translait? Check owt our contribushun guide."
+				"more_coming": "Moar languajez comin soon! Wanna halp translait? Check owt our contribushun guide.",
+				"saved": "Languaj preferens savd!",
+				"saving": "Savin...",
+				"save_error": "Couldnt sav languaj preferens :("
 			},
 			"help_text": "<strong>Settingz</strong> controlz ur site'z looks, AI providerz, analyticz, n data eksport.",
 			"help_tip_1": "Configur AI providerz 2 enabl smart featurez liek rezume parsin, content rewritin, n GitHub projekt summariez. Add custom CSS 2 styl ur public profile.",
@@ -820,6 +823,18 @@
 				"reset_to_default": "Reset 2 Default",
 				"done": "Dun"
 			},
+			"skills_categories": {
+				"description": "Drag categoriez 2 reordr. Expand a category 2 select individual skillz.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Expand {category}",
+				"collapse": "Collaps {category}",
+				"skills": "skillz",
+				"selected": "selectd",
+				"all_selected": "all",
+				"none_selected_hint": "All skillz shown. Select 2 customiz.",
+				"drag_hint": "Drag 2 reordr skillz within dis category.",
+				"no_skills": "No skillz fownd. Add skillz in teh Skillz secshun first."
+			},
 			"override_editor": {
 				"title": "Customiz 4 dis View",
 				"description": "Overried fieldz below 2 customiz how dis item appearz in dis view. Leev fieldz empty 2 use teh orijinl valu.",
@@ -1069,6 +1084,27 @@
 			"certifications": "Sertificashunz",
 			"testimonials": "Testimonialz",
 			"contact": "Contact"
+		},
+		"contacts": {
+			"primary": "Praimary",
+			"captcha_required": "CAPTCHA Reqwired",
+			"copy_to_clipboard": "Copy 2 clipbord",
+			"copied": "Copid!",
+			"types": {
+				"email": "Email",
+				"phone": "Fone",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twittah",
+				"facebook": "Faecbook",
+				"instagram": "Instagrem",
+				"website": "Websiet",
+				"whatsapp": "WhatzApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
 		}
 	},
 	"shared": {
@@ -1160,7 +1196,8 @@
 			"hours_ago": "{count} howr(z) ago",
 			"days_ago": "{count} dai(z) ago",
 			"today": "Todai",
-			"yesterday": "Yestrdai"
+			"yesterday": "Yestrdai",
+			"present": "Nao"
 		}
 	},
 	"errors": {

@@ -449,7 +449,7 @@
 				{#if selectedOrphans.size > 0}
 					<span class="text-gray-700 dark:text-gray-200">{$t('admin.media.selected_orphans', { values: { count: selectedOrphans.size } })}</span>
 					<button
-						class="btn btn-secondary text-red-600 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30"
+						class="btn btn-danger"
 						onclick={bulkDeleteSelected}
 					>
 						{$t('admin.media.delete_selected')}
@@ -620,7 +620,7 @@
 										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)}>
 											{@html icon('copy')}
 										</button>
-										<button class="btn btn-ghost btn-sm text-red-600" onclick={() => deleteFile(item)}>
+										<button class="btn btn-danger-ghost btn-sm" onclick={() => deleteFile(item)}>
 											{@html icon('trash')}
 										</button>
 									</div>

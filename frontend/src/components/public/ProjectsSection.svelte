@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Project } from '$lib/pocketbase';
 	import { truncate, parseMarkdown } from '$lib/utils';
 
@@ -53,7 +54,7 @@ const projectHref = (project: Project) => {
 </script>
 
 <section id="projects" class="mb-16">
-	<h2 class="section-title">Projects</h2>
+	<h2 class="section-title">{$t('public.sections.projects')}</h2>
 
 	{#if layout === 'featured' && items.length > 0}
 		<!-- Featured Layout: First item large, rest in grid -->

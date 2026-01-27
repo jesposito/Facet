@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Education } from '$lib/pocketbase';
 	import { formatDateRange, parseMarkdown } from '$lib/utils';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		items: Education[];
@@ -8,10 +9,13 @@
 	}
 
 	let { items, layout = 'default' }: Props = $props();
+
+	// Get translated "Present" text for date ranges
+	let presentText = $derived($t('shared.time.present'));
 </script>
 
 <section id="education" class="mb-16">
-	<h2 class="section-title">Education</h2>
+	<h2 class="section-title">{$t('public.sections.education')}</h2>
 
 	{#if layout === 'timeline'}
 		<!-- Timeline Layout -->
@@ -37,7 +41,7 @@
 								</p>
 							{/if}
 							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-								{formatDateRange(item.start_date, item.end_date)}
+								{formatDateRange(item.start_date, item.end_date, presentText)}
 							</p>
 
 							{#if item.description}
@@ -75,7 +79,7 @@
 								</p>
 							{/if}
 							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-								{formatDateRange(item.start_date, item.end_date)}
+								{formatDateRange(item.start_date, item.end_date, presentText)}
 							</p>
 
 							{#if item.description}

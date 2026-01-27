@@ -234,6 +234,10 @@
 		return data.sectionCategoryOrders?.[sectionKey];
 	}
 
+	function getDisabledCategories(sectionKey: string): string[] | undefined {
+		return data.sectionDisabledCategories?.[sectionKey];
+	}
+
 	// Get CSS class for section width (using 6-column grid)
 	function getWidthClass(width: string): string {
 		switch (width) {
@@ -456,7 +460,7 @@
 						</div>
 					{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
 						<div class={getWidthClass(getSectionWidth('skills'))}>
-							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} />
+							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} />
 						</div>
 					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('posts'))}>

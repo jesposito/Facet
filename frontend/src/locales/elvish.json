@@ -9,11 +9,14 @@
 			"page_title_suffix": "| Facet",
 			"language": {
 				"section_title": "Tongue of the Realm",
-				"section_description": "Choose thy preferred tongue for the halls of administration.",
-				"label": "Display Tongue",
-				"help": "Changes take hold as swift as starlight. Thy preference is preserved in the local realm.",
+				"section_description": "Choose the tongue of display for all who visit thy realm.",
+				"label": "Realm Tongue",
+				"help": "This tongue shall be spoken by all who journey to thy lands.",
 				"current": "Current tongue",
-				"more_coming": "More tongues shall come with the turning of ages! Wouldst thou aid in translation? See our guide for wandering scribes."
+				"more_coming": "More tongues shall come with the turning of ages! Wouldst thou aid in translation? See our guide for wandering scribes.",
+				"saved": "Tongue preference preserved",
+				"saving": "Inscribing...",
+				"save_error": "The tongue preference could not be preserved"
 			},
 			"help_text": "<strong>Inscriptions</strong> governs thy realm's appearance, artificers of thought, chronicles, and the preservation of knowledge.",
 			"help_tip_1": "Configure artificers of thought to enable wise features such as scroll parsing, content reweaving, and GitHub project illumination. Add custom styling to adorn thy public presence.",
@@ -820,6 +823,18 @@
 				"reset_to_default": "Return to Default",
 				"done": "Complete"
 			},
+			"skills_categories": {
+				"description": "Draw categories to reorder. Unfurl a category to select individual crafts.",
+				"toggle_category": "Toggle {category} category",
+				"expand": "Unfurl {category}",
+				"collapse": "Fold {category}",
+				"skills": "crafts",
+				"selected": "chosen",
+				"all_selected": "all",
+				"none_selected_hint": "All crafts shown. Select to tailor.",
+				"drag_hint": "Draw to reorder crafts within this category.",
+				"no_skills": "No crafts found. Add crafts in the Crafts section first."
+			},
 			"override_editor": {
 				"title": "Tailor for This Vision",
 				"description": "Override fields below to tailor how this item appears in this vision. Leave fields empty to use the original.",
@@ -1069,6 +1084,27 @@
 			"certifications": "Accreditations",
 			"testimonials": "Testimonies",
 			"contact": "Contact"
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "Verification Required",
+			"copy_to_clipboard": "Copy to memory",
+			"copied": "Remembered!",
+			"types": {
+				"email": "Message Scroll",
+				"phone": "Voice Crystal",
+				"linkedin": "LinkedIn",
+				"github": "GitHub",
+				"twitter": "Twitter",
+				"facebook": "Facebook",
+				"instagram": "Instagram",
+				"website": "Portal",
+				"whatsapp": "WhatsApp",
+				"telegram": "Telegram",
+				"discord": "Discord",
+				"slack": "Slack",
+				"other": "Contact"
+			}
 		}
 	},
 	"shared": {
@@ -1160,7 +1196,8 @@
 			"hours_ago": "{count} hour(s) ago",
 			"days_ago": "{count} day(s) ago",
 			"today": "This day",
-			"yesterday": "Yestereve"
+			"yesterday": "Yestereve",
+			"present": "Now"
 		}
 	},
 	"errors": {

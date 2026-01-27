@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { Award } from '$lib/pocketbase';
 	import { formatDate, truncate } from '$lib/utils';
 
@@ -24,7 +25,7 @@
 </script>
 
 <section id="awards" class="mb-16" data-layout={layout}>
-	<h2 class="section-title">Awards & Honors</h2>
+	<h2 class="section-title">{$t('public.sections.awards')}</h2>
 
 	{#if layout === 'timeline'}
 		<div class="space-y-6">

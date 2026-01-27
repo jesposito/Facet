@@ -45,9 +45,9 @@ export function formatDate(dateString: string | undefined, options?: Intl.DateTi
 	return date.toLocaleDateString('en-US', options || { month: 'short', year: 'numeric' });
 }
 
-export function formatDateRange(startDate?: string, endDate?: string): string {
+export function formatDateRange(startDate?: string, endDate?: string, presentText: string = 'Present'): string {
 	const start = formatDate(startDate);
-	const end = endDate ? formatDate(endDate) : 'Present';
+	const end = endDate ? formatDate(endDate) : presentText;
 	return `${start} - ${end}`;
 }
 

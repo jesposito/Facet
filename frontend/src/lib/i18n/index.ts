@@ -7,8 +7,7 @@
  * @see CONTRIBUTING_TRANSLATIONS.md for contribution guidelines
  */
 
-import { register, init, getLocaleFromNavigator, locale, waitLocale } from 'svelte-i18n';
-import { browser } from '$app/environment';
+import { register, init, locale, waitLocale } from 'svelte-i18n';
 
 // Register available locales - add new languages here
 register('en', () => import('../../locales/en.json'));
@@ -37,16 +36,6 @@ export const LOCALE_NAMES: Record<string, string> = {
 	'zh-CN': 'Chinese (Simplified)'
 };
 
-const STORAGE_KEY = 'facet-locale';
-
-/**
- * Get stored locale from localStorage
- */
-function getStoredLocale(): string | null {
-	if (!browser) return null;
-	return localStorage.getItem(STORAGE_KEY);
-}
-
 // Initialize i18n immediately for SSR support
 // This ensures $t() works during server-side rendering
 init({
@@ -57,23 +46,13 @@ init({
 /**
  * Initialize i18n with user preferences - call this in root layout onMount
  * This re-initializes with stored/browser locale on the client
+ * @param serverDefaultLocale - Optional default locale from server settings
  */
-export function initI18n() {
-	const storedLocale = getStoredLocale();
-	const browserLocale = browser ? getLocaleFromNavigator() : null;
-
-	// Determine initial locale: stored > browser > default
+export function initI18n(serverDefaultLocale?: string) {
+	// Determine initial locale: server setting > default
 	let initialLocale = 'en';
-	if (storedLocale && isSupported(storedLocale)) {
-		initialLocale = storedLocale;
-	} else if (browserLocale) {
-		// Try exact match first, then language code only
-		const langCode = browserLocale.split('-')[0];
-		if (isSupported(browserLocale)) {
-			initialLocale = browserLocale;
-		} else if (isSupported(langCode)) {
-			initialLocale = langCode;
-		}
+	if (serverDefaultLocale && isSupported(serverDefaultLocale)) {
+		initialLocale = serverDefaultLocale;
 	}
 
 	// Set the locale (init was already called at module load for SSR)
@@ -81,15 +60,13 @@ export function initI18n() {
 }
 
 /**
- * Set and persist locale preference
+ * Set the current locale (does not persist - use server settings for persistence)
  */
 export function setLocale(newLocale: string) {
-	if (!browser) return;
 	if (!isSupported(newLocale)) {
 		console.warn(`Locale "${newLocale}" is not supported, falling back to "en"`);
 		newLocale = 'en';
 	}
-	localStorage.setItem(STORAGE_KEY, newLocale);
 	locale.set(newLocale);
 }
 
