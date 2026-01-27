@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.11.1 - January 27, 2026
+
+**Bugs Fixed:**
+- Fix missing i18n keys for About page and GitHub Action race condition causing empty changelog entries
+
+**Pull Requests:** [#326](https://github.com/jesposito/Facet/pull/326),
+
+---
+
+
 ## v2.11.0 - January 27, 2026
 
 **New Features:**
