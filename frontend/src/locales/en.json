@@ -82,6 +82,41 @@
 			"theme_light": "Light mode",
 			"theme_dark": "Dark mode",
 			"toggle_theme": "Toggle theme"
+		},
+		"settings": {
+			"favicon": {
+				"title": "Favicon",
+				"description": "Upload a favicon to replace the default Facet icon in browser tabs. Recommended: 32x32 or 64x64 pixels.",
+				"upload": "Upload Favicon",
+				"change": "Change Favicon",
+				"remove_title": "Remove Favicon",
+				"remove_message": "Are you sure you want to remove your custom favicon? The default Facet favicon will be used.",
+				"updated": "Favicon updated",
+				"removed": "Favicon removed",
+				"error_save": "Failed to save favicon"
+			},
+			"cta": {
+				"title": "Call to Action",
+				"description": "Add a prominent button to this view",
+				"button_text": "Button Text",
+				"button_label": "Button Label",
+				"button_url": "Button URL",
+				"cta_description": "Description",
+				"description_help": "Text shown next to the button",
+				"placeholder_text": "Ready to work together?",
+				"placeholder_button": "Get in touch"
+			},
+			"cover_image": {
+				"label": "Cover Image",
+				"current": "Current image",
+				"help": "Displayed in post grids and as the header image"
+			}
+		},
+		"contacts": {
+			"primary": "Primary",
+			"captcha_required": "CAPTCHA Required",
+			"copy_to_clipboard": "Copy to clipboard",
+			"copy_label": "Copy {label} to clipboard"
 		}
 	},
 	"public": {
