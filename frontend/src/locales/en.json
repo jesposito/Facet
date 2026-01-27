@@ -63,7 +63,14 @@
 			"create_view": "Create View",
 			"pending_reviews": "Pending Reviews",
 			"pending_alert": "You have {count} pending import proposal(s) to review",
-			"review_now": "Review Now"
+			"review_now": "Review Now",
+			"stats_projects": "Projects",
+			"stats_experience": "Experience",
+			"stats_views": "Views",
+			"activity_project": "Project",
+			"activity_experience": "Experience",
+			"rss_feed": "RSS Feed",
+			"talks_calendar": "Talks Calendar"
 		},
 		"login": {
 			"title": "Sign in to Facet",
