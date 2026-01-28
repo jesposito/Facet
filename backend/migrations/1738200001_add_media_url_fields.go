@@ -57,7 +57,8 @@ func addURLField(app core.App, collectionName, fieldName string) error {
 		return nil // Field already exists
 	}
 
-	collection.Fields.Add(&core.URLField{
+	// Use TextField instead of URLField because we store relative paths like /api/files/...
+	collection.Fields.Add(&core.TextField{
 		Name: fieldName,
 	})
 

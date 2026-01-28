@@ -2,7 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { onMount, onDestroy } from 'svelte';
-	import { pb, type View, type CustomContent } from '$lib/pocketbase';
+	import { pb, type View, type CustomContent, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -177,11 +177,12 @@
 	function initializeSections(savedSections: Record<string, any>) {
 		// Start with all standard sections with default values
 		for (const key of DEFAULT_SECTION_ORDER) {
+			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
 			sections[key] = {
 				enabled: true, // Default enabled for homepage (shows all public items)
 				items: [],
 				expanded: false,
-				layout: 'default',
+				layout: defaultLayout,
 				width: 'full'
 			};
 		}
@@ -189,11 +190,12 @@
 		// Apply saved configuration
 		for (const [key, config] of Object.entries(savedSections)) {
 			if (config && typeof config === 'object') {
+				const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
 				sections[key] = {
 					enabled: (config as any).enabled !== false,
 					items: (config as any).items || [],
 					expanded: false,
-					layout: (config as any).layout || 'default',
+					layout: (config as any).layout || defaultLayout,
 					width: (config as any).width || 'full',
 					// Skills-specific settings
 					categoryOrder: (config as any).categoryOrder || undefined,
