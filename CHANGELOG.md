@@ -3,6 +3,22 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.12.0 - January 28, 2026
+
+**Bugs Fixed:**
+- Fix skills category drag-and-drop not reordering properly.
+- Add missing dropdown in homepage content sections editor.
+- Fix skills visibility filter to show only public skills in category manager.
+- Fix stale 'update available' notifications after upgrading.
+
+**New Features:**
+- Add micro-interactions, improved loading states, and visual refinements across the admin interface.
+
+**Pull Requests:** [#330](https://github.com/jesposito/Facet/pull/330),
+
+---
+
+
 ## v2.11.2 - January 28, 2026
 
 **Bugs Fixed:**
