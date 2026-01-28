@@ -851,11 +851,9 @@
 										<button class="btn btn-ghost btn-sm" onclick={() => openPreview(item)} title={$t('admin.media.preview_button')}>
 											{@html icon('eye')}
 										</button>
-										{#if item.external || item.collection === 'external_media' || item.collection === 'uploads'}
-											<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
-												{@html icon('edit')}
-											</button>
-										{/if}
+										<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
+											{@html icon('edit')}
+										</button>
 										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)} title={$t('admin.media.copy_url_button')}>
 											{@html icon('copy')}
 										</button>
