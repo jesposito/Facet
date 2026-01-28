@@ -3,6 +3,23 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.11.2 - January 28, 2026
+
+**Bugs Fixed:**
+- Fix skill categories disappearing after drag & drop reordering
+- Fix testimonial 'Featured Highlight' layout in dark mode
+
+**New Features:**
+- Add per-category display mode for skills
+
+**Other Changes:**
+- Update button styling on About page to ensure consistency
+
+**Pull Requests:** [#329](https://github.com/jesposito/Facet/pull/329),
+
+---
+
+
 ## v2.11.1 - January 27, 2026
 
 **Bugs Fixed:**
