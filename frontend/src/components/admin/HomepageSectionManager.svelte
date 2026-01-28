@@ -65,6 +65,7 @@
 			width: string;
 			categoryOrder?: string[];
 			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{
@@ -360,6 +361,8 @@
 									bind:selectedItems={sections['skills'].items}
 									bind:categoryOrder={sections['skills'].categoryOrder}
 									bind:disabledCategories={sections['skills'].disabledCategories}
+									bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
+									sectionLayout={sections['skills'].layout || 'grouped'}
 									onUpdate={updateSections}
 								/>
 							{:else}

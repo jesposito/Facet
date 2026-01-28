@@ -72,6 +72,8 @@
 			width?: 'full' | 'half' | 'third';
 			itemConfig: Record<string, ItemConfig>;
 			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
 		}
 	>;
 		// Section order from drag-drop
@@ -127,6 +129,8 @@
 		widthClass: string;
 		visible: boolean;
 		categoryOrder?: string[];
+		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
 	}> {
 		const result: Record<string, {
 			data: any[];
@@ -135,6 +139,8 @@
 			widthClass: string;
 			visible: boolean;
 			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
 		}> = {};
 
 		for (const key of Object.keys(sectionsConfig)) {

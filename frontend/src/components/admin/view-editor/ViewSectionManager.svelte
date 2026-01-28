@@ -130,6 +130,7 @@
 			itemConfig: Record<string, ItemConfig>;
 			categoryOrder?: string[];
 			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{

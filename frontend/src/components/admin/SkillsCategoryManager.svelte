@@ -48,13 +48,19 @@
 		onUpdate
 	}: {
 		items: SkillItem[];
-		selectedItems: string[];
-		categoryOrder: string[];
-		disabledCategories: string[];
-		categoryDisplayModes: Record<string, string>;
-		sectionLayout: string;
+		selectedItems?: string[];
+		categoryOrder?: string[];
+		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
+		sectionLayout?: string;
 		onUpdate: () => void;
 	} = $props();
+
+	// Ensure we have non-undefined values for internal use
+	let _selectedItems = $derived(selectedItems ?? []);
+	let _categoryOrder = $derived(categoryOrder ?? []);
+	let _disabledCategories = $derived(disabledCategories ?? []);
+	let _categoryDisplayModes = $derived(categoryDisplayModes ?? {});
 
 	// Track which categories are expanded
 	let expandedCategories: Set<string> = $state(new Set());
@@ -75,12 +81,12 @@
 	// Get all categories in proper order
 	let orderedCategories = $derived.by(() => {
 		const allCategories = Object.keys(groupedSkills);
-		if (!categoryOrder?.length) {
+		if (!_categoryOrder.length) {
 			return allCategories.sort();
 		}
 		const ordered: string[] = [];
 		// First add categories in saved order
-		for (const cat of categoryOrder) {
+		for (const cat of _categoryOrder) {
 			if (allCategories.includes(cat)) {
 				ordered.push(cat);
 			}
@@ -99,7 +105,7 @@
 
 	// Check if a category is disabled
 	function isCategoryDisabled(category: string): boolean {
-		return disabledCategories?.includes(category) ?? false;
+		return _disabledCategories.includes(category);
 	}
 
 	// Check if a category is expanded
@@ -110,7 +116,7 @@
 	// Get count of selected skills in a category
 	function getSelectedCount(category: string): number {
 		const skills = groupedSkills[category] || [];
-		const selectedSet = new Set(selectedItems);
+		const selectedSet = new Set(_selectedItems);
 		return skills.filter(s => selectedSet.has(s.id)).length;
 	}
 
@@ -134,38 +140,38 @@
 	function toggleCategoryEnabled(category: string) {
 		if (isCategoryDisabled(category)) {
 			// Enable: remove from disabled list
-			disabledCategories = disabledCategories.filter(c => c !== category);
+			disabledCategories = _disabledCategories.filter(c => c !== category);
 		} else {
 			// Disable: add to disabled list
-			disabledCategories = [...(disabledCategories || []), category];
+			disabledCategories = [..._disabledCategories, category];
 		}
 		onUpdate();
 	}
 
 	// Get the display mode for a category (empty string means use section default)
 	function getCategoryDisplayMode(category: string): string {
-		return categoryDisplayModes?.[category] || '';
+		return _categoryDisplayModes[category] || '';
 	}
 
 	// Update display mode for a category
 	function updateCategoryDisplayMode(category: string, mode: string) {
 		if (mode === '') {
 			// Remove custom mode, use section default
-			const { [category]: _, ...rest } = categoryDisplayModes || {};
+			const { [category]: _, ...rest } = _categoryDisplayModes;
 			categoryDisplayModes = rest;
 		} else {
-			categoryDisplayModes = { ...(categoryDisplayModes || {}), [category]: mode };
+			categoryDisplayModes = { ..._categoryDisplayModes, [category]: mode };
 		}
 		onUpdate();
 	}
 
 	// Toggle individual skill selection
 	function toggleSkill(skillId: string) {
-		const idx = selectedItems.indexOf(skillId);
+		const idx = _selectedItems.indexOf(skillId);
 		if (idx === -1) {
-			selectedItems = [...selectedItems, skillId];
+			selectedItems = [..._selectedItems, skillId];
 		} else {
-			selectedItems = selectedItems.filter(id => id !== skillId);
+			selectedItems = _selectedItems.filter(id => id !== skillId);
 		}
 		onUpdate();
 	}
@@ -176,7 +182,7 @@
 		const publicSkillIds = skills
 			.filter(s => s.visibility !== 'private' && !s.is_draft)
 			.map(s => s.id);
-		const currentSet = new Set(selectedItems);
+		const currentSet = new Set(_selectedItems);
 		for (const id of publicSkillIds) {
 			currentSet.add(id);
 		}
@@ -188,7 +194,7 @@
 	function clearAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
 		const skillIds = new Set(skills.map(s => s.id));
-		selectedItems = selectedItems.filter(id => !skillIds.has(id));
+		selectedItems = _selectedItems.filter(id => !skillIds.has(id));
 		onUpdate();
 	}
 
@@ -224,9 +230,9 @@
 		// Update selected items order to match display order
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
 			const displayOrder = finalSkills.map(s => s.id);
-			const selectedSet = new Set(selectedItems);
+			const selectedSet = new Set(_selectedItems);
 			const categorySelectedInOrder = displayOrder.filter(id => selectedSet.has(id));
-			const otherSelected = selectedItems.filter(id => !displayOrder.includes(id));
+			const otherSelected = _selectedItems.filter(id => !displayOrder.includes(id));
 			selectedItems = [...otherSelected, ...categorySelectedInOrder];
 			onUpdate();
 		}
@@ -388,7 +394,7 @@
 								onfinalize={(e: any) => handleSkillDndFinalize(category, e)}
 							>
 								{#each categorySkills as skill (skill.id)}
-									{@const isSelected = selectedItems.includes(skill.id)}
+									{@const isSelected = _selectedItems.includes(skill.id)}
 									<div
 										class="flex items-center gap-2 p-2 rounded bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
 										animate:flip={{ duration: flipDurationMs }}
