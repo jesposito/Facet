@@ -65,6 +65,9 @@
 	// Track which categories are expanded
 	let expandedCategories: Set<string> = $state(new Set());
 
+	// Track drag state to prevent effect from resetting items during drag
+	let isCategoryDragging = $state(false);
+
 	// Group skills by category
 	let groupedSkills = $derived.by(() => {
 		const groups: Record<string, SkillItem[]> = {};
@@ -105,6 +108,9 @@
 
 	// Sync categoryItems from orderedCategories when source data changes
 	$effect(() => {
+		// Don't sync during drag - let the drag operation control the items
+		if (isCategoryDragging) return;
+
 		const newItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
 		// Only update if the underlying categories changed (not during DnD)
 		const currentNames = categoryItems.map(c => c.name).join(',');
@@ -211,6 +217,8 @@
 
 	// Handle category drag-and-drop
 	function handleCategoryDndConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		// Mark as dragging to prevent effect from resetting items
+		isCategoryDragging = true;
 		// Update categoryItems during drag for visual feedback
 		categoryItems = e.detail.items;
 	}
@@ -220,6 +228,8 @@
 		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		categoryItems = filteredItems;
 		categoryOrder = filteredItems.map(c => c.name);
+		// Clear dragging state after updating order
+		isCategoryDragging = false;
 		onUpdate();
 	}
 
