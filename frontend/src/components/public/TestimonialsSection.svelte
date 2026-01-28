@@ -214,8 +214,8 @@
 	{:else if layout === 'featured'}
 		{@const featured = items.find(t => t.featured) || items[0]}
 		{#if featured}
-			<div class="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-primary-900/50 dark:border dark:border-primary-800 rounded-2xl p-6 sm:p-8 md:p-12 text-center">
-				<svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-primary-300 dark:text-primary-500 mb-4 sm:mb-6" fill="currentColor" viewBox="0 0 24 24">
+			<div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8 md:p-12 text-center shadow-lg">
+				<svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-primary-400 dark:text-primary-500 mb-4 sm:mb-6" fill="currentColor" viewBox="0 0 24 24">
 					<path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
 				</svg>
 				<blockquote class="text-lg sm:text-xl md:text-2xl text-gray-800 dark:text-gray-100 font-medium mb-6 sm:mb-8 max-w-3xl mx-auto">
@@ -225,8 +225,8 @@
 					{#if featured.author_photo}
 						<img src={featured.author_photo} alt={$t('public.testimonials.photo_alt', { values: { name: featured.author_name } })} class="w-12 h-12 rounded-full object-cover" />
 					{:else}
-						<div class="w-12 h-12 rounded-full bg-primary-200 dark:bg-primary-900 flex items-center justify-center">
-							<span class="text-lg font-medium text-primary-700 dark:text-primary-300">
+						<div class="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+							<span class="text-lg font-medium text-primary-600 dark:text-primary-400">
 								{featured.author_name.charAt(0).toUpperCase()}
 							</span>
 						</div>
