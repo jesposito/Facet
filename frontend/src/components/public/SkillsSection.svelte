@@ -7,9 +7,15 @@
 		layout?: string;
 		categoryOrder?: string[];
 		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
 	}
 
-	let { items, layout = 'grouped', categoryOrder, disabledCategories }: Props = $props();
+	let { items, layout = 'grouped', categoryOrder, disabledCategories, categoryDisplayModes }: Props = $props();
+
+	// Get the effective layout for a category (per-category override or section default)
+	function getCategoryLayout(category: string): string {
+		return categoryDisplayModes?.[category] || layout || 'grouped';
+	}
 
 	// Filter out skills from disabled categories
 	let filteredItems = $derived.by(() => {
@@ -102,39 +108,6 @@
 			</div>
 		</div>
 
-	{:else if layout === 'bars'}
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-			{#each orderedCategories as category (category)}
-				{@const skills = groupedSkills[category]}
-				<div class="card p-6 animate-fade-in">
-					<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-						{category}
-					</h3>
-					<div class="space-y-4">
-						{#each skills as skill (skill.id)}
-							<div>
-								<div class="flex items-center justify-between mb-1">
-									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-										{skill.name}
-									</span>
-									{#if skill.proficiency}
-										<span class="text-xs text-gray-500 dark:text-gray-400 capitalize">
-											{skill.proficiency}
-										</span>
-									{/if}
-								</div>
-								<div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-									<div
-										class="h-full rounded-full transition-all duration-500 {proficiencyBarColors[skill.proficiency || 'familiar']} {proficiencyWidth[skill.proficiency || 'familiar']}"
-									></div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/each}
-		</div>
-
 	{:else if layout === 'flat'}
 		<!-- Flat List Layout -->
 		<div class="card p-6 animate-fade-in">
@@ -151,24 +124,58 @@
 		</div>
 
 	{:else}
+		<!-- Per-category rendering with support for mixed layouts (grouped/bars) -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			{#each orderedCategories as category (category)}
 				{@const skills = groupedSkills[category]}
-				<div class="card p-6 animate-fade-in">
-					<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-						{category}
-					</h3>
-					<div class="flex flex-wrap gap-2">
-						{#each skills as skill (skill.id)}
-							<span
-								class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
-								title={skill.proficiency ? `Proficiency: ${skill.proficiency}` : undefined}
-							>
-								{skill.name}
-							</span>
-						{/each}
+				{@const categoryLayout = getCategoryLayout(category)}
+
+				{#if categoryLayout === 'bars'}
+					<!-- Bars layout for this category -->
+					<div class="card p-6 animate-fade-in">
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+							{category}
+						</h3>
+						<div class="space-y-4">
+							{#each skills as skill (skill.id)}
+								<div>
+									<div class="flex items-center justify-between mb-1">
+										<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+											{skill.name}
+										</span>
+										{#if skill.proficiency}
+											<span class="text-xs text-gray-500 dark:text-gray-400 capitalize">
+												{skill.proficiency}
+											</span>
+										{/if}
+									</div>
+									<div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+										<div
+											class="h-full rounded-full transition-all duration-500 {proficiencyBarColors[skill.proficiency || 'familiar']} {proficiencyWidth[skill.proficiency || 'familiar']}"
+										></div>
+									</div>
+								</div>
+							{/each}
+						</div>
 					</div>
-				</div>
+				{:else}
+					<!-- Grouped (badges) layout for this category (default) -->
+					<div class="card p-6 animate-fade-in">
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+							{category}
+						</h3>
+						<div class="flex flex-wrap gap-2">
+							{#each skills as skill (skill.id)}
+								<span
+									class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
+									title={skill.proficiency ? `Proficiency: ${skill.proficiency}` : undefined}
+								>
+									{skill.name}
+								</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
 			{/each}
 		</div>
 	{/if}

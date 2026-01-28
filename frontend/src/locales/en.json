@@ -956,7 +956,11 @@
 				"all_selected": "all",
 				"none_selected_hint": "All skills shown. Select to customize.",
 				"drag_hint": "Drag to reorder skills within this category.",
-				"no_skills": "No skills found. Add skills in the Skills section first."
+				"no_skills": "No skills found. Add skills in the Skills section first.",
+				"display_mode_label": "Display mode for {category}",
+				"use_section_default": "Default",
+				"layout_grouped": "Badges",
+				"layout_bars": "Bars"
 			},
 			"override_editor": {
 				"title": "Customize for this View",

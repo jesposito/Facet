@@ -238,6 +238,14 @@
 		return data.sectionDisabledCategories?.[sectionKey];
 	}
 
+	function getCategoryDisplayModes(sectionKey: string): Record<string, string> | undefined {
+		return data.sectionCategoryDisplayModes?.[sectionKey];
+	}
+
+	function getFeaturedId(sectionKey: string): string | undefined {
+		return data.sectionFeaturedIds?.[sectionKey];
+	}
+
 	// Get CSS class for section width (using 6-column grid)
 	function getWidthClass(width: string): string {
 		switch (width) {
@@ -460,7 +468,7 @@
 						</div>
 					{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
 						<div class={getWidthClass(getSectionWidth('skills'))}>
-							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} />
+							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
 						</div>
 					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('posts'))}>
@@ -472,7 +480,7 @@
 						</div>
 					{:else if sectionKey === 'testimonials' && data.sections?.testimonials?.length > 0}
 						<div class={getWidthClass(getSectionWidth('testimonials'))}>
-							<TestimonialsSection items={data.sections.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} />
+							<TestimonialsSection items={data.sections.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
 						</div>
 					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('contacts'))}>

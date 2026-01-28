@@ -956,7 +956,11 @@
 				"all_selected": "all",
 				"none_selected_hint": "All skillz shown. Select 2 customiz.",
 				"drag_hint": "Drag 2 reordr skillz within dis category.",
-				"no_skills": "No skillz fownd. Add skillz in teh Skillz secshun first."
+				"no_skills": "No skillz fownd. Add skillz in teh Skillz secshun first.",
+				"display_mode_label": "Display moad 4 {category}",
+				"use_section_default": "Default",
+				"layout_grouped": "Badgez",
+				"layout_bars": "Barz"
 			},
 			"override_editor": {
 				"title": "Customiz 4 dis View",

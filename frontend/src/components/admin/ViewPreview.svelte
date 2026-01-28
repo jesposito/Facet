@@ -72,6 +72,8 @@
 			width?: 'full' | 'half' | 'third';
 			itemConfig: Record<string, ItemConfig>;
 			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
 		}
 	>;
 		// Section order from drag-drop
@@ -127,6 +129,8 @@
 		widthClass: string;
 		visible: boolean;
 		categoryOrder?: string[];
+		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
 	}> {
 		const result: Record<string, {
 			data: any[];
@@ -135,6 +139,8 @@
 			widthClass: string;
 			visible: boolean;
 			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
 		}> = {};
 
 		for (const key of Object.keys(sectionsConfig)) {
@@ -186,7 +192,9 @@
 				width,
 				widthClass,
 				visible: config?.enabled && data.length > 0,
-				categoryOrder: config?.categoryOrder
+				categoryOrder: config?.categoryOrder,
+				disabledCategories: config?.disabledCategories,
+				categoryDisplayModes: config?.categoryDisplayModes
 			};
 		}
 
@@ -314,6 +322,8 @@
 							items={computed.data}
 							layout={computed.layout}
 							categoryOrder={computed.categoryOrder}
+							disabledCategories={computed.disabledCategories}
+							categoryDisplayModes={computed.categoryDisplayModes}
 						/>
 					</div>
 				{:else if sectionKey === 'posts' && computed?.visible}
