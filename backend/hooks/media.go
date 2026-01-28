@@ -452,6 +452,71 @@ func parseIntDefault(raw string, def int) int {
 	return v
 }
 
+// findLibraryURLUsage checks all *_library_url fields across collections to find
+// content that references the given URL (for uploads collection files).
+func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.MediaUsage {
+	usage := services.MediaUsage{
+		UsageCount: 0,
+		UsedBy:     []services.MediaUsageItem{},
+	}
+
+	// Collections and their library URL fields
+	libraryURLFields := map[string][]string{
+		"experience": {"company_logo_library_url"},
+		"education":  {"institution_logo_library_url"},
+		"projects":   {"cover_image_library_url"},
+		"posts":      {"cover_image_library_url"},
+		"talks":      {"cover_image_library_url"},
+	}
+
+	for collName, fields := range libraryURLFields {
+		collection, err := app.FindCollectionByNameOrId(collName)
+		if err != nil {
+			continue
+		}
+
+		for _, fieldName := range fields {
+			// Check if field exists
+			if collection.Fields.GetByName(fieldName) == nil {
+				continue
+			}
+
+			// Find records where this field matches our URL
+			filter := fmt.Sprintf("%s = '%s'", fieldName, fileURL)
+			records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+			if err != nil {
+				continue
+			}
+
+			for _, record := range records {
+				title := record.GetString("title")
+				if title == "" {
+					title = record.GetString("name")
+				}
+				if title == "" {
+					title = record.GetString("company")
+				}
+				if title == "" {
+					title = record.GetString("institution")
+				}
+				if title == "" {
+					title = record.Id
+				}
+
+				usage.UsedBy = append(usage.UsedBy, services.MediaUsageItem{
+					Collection: collName,
+					RecordID:   record.Id,
+					Title:      title,
+					Slug:       record.GetString("slug"),
+				})
+				usage.UsageCount++
+			}
+		}
+	}
+
+	return usage
+}
+
 func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[string]struct{}, int64, error) {
 	dataDir := app.DataDir()
 
@@ -526,14 +591,22 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 						recordLabel = record.Id
 					}
 					item.RecordLabel = recordLabel
-					// For internal media, set usage to the owning record
-					item.UsageCount = 1
-					item.UsedBy = []services.MediaUsageItem{{
-						Collection: collection.Name,
-						RecordID:   record.Id,
-						Title:      recordLabel,
-						Slug:       record.GetString("slug"),
-					}}
+
+					// For uploads collection, check actual usage via library URL fields
+					// For other collections, the file is inherently "used" by its owning record
+					if collection.Name == "uploads" {
+						usage := findLibraryURLUsage(app, item.URL)
+						item.UsageCount = usage.UsageCount
+						item.UsedBy = usage.UsedBy
+					} else {
+						item.UsageCount = 1
+						item.UsedBy = []services.MediaUsageItem{{
+							Collection: collection.Name,
+							RecordID:   record.Id,
+							Title:      recordLabel,
+							Slug:       record.GetString("slug"),
+						}}
+					}
 					all = append(all, item)
 					key := filepath.ToSlash(filepath.Join(collection.Id, record.Id, filename))
 					referenced[key] = struct{}{}
