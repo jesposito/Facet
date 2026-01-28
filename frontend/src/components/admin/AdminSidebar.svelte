@@ -401,7 +401,7 @@ let isActive = $derived((href: string): boolean => {
 					</svg>
 				</button>
 				{#if isSectionExpanded(sectionId)}
-					<div id="{sectionId}-items" class="space-y-1">
+					<div id="{sectionId}-items" class="space-y-1 animate-slide-in-down">
 						{#each section.items as item (item.href)}
 							<a
 								href={item.href}
@@ -532,7 +532,7 @@ let isActive = $derived((href: string): boolean => {
 				</svg>
 			</button>
 			{#if isSectionExpanded(SECTION_IDS.testimonials)}
-				<div id="sidebar-testimonials-items" class="space-y-1">
+				<div id="sidebar-testimonials-items" class="space-y-1 animate-slide-in-down">
 					<a
 						href="/admin/testimonials"
 						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials')
@@ -586,7 +586,7 @@ let isActive = $derived((href: string): boolean => {
 					</svg>
 				</button>
 				{#if isSectionExpanded(sectionId)}
-					<div id="{sectionId}-items" class="space-y-1">
+					<div id="{sectionId}-items" class="space-y-1 animate-slide-in-down">
 						{#each section.items as item (item.href)}
 							<a
 								href={item.href}
