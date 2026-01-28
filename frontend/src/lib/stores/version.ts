@@ -39,7 +39,19 @@ function cleanVersion(version: string): string {
 function calculateHasUpdate(latest: string, current: string): boolean {
 	const latestClean = cleanVersion(latest);
 	const currentClean = cleanVersion(current);
-	return Boolean(latestClean && currentClean !== latestClean && compareVersions(latestClean, currentClean) > 0);
+	const comparison = compareVersions(latestClean, currentClean);
+	const hasUpdate = Boolean(latestClean && currentClean !== latestClean && comparison > 0);
+
+	console.log('[Version Check]', {
+		latest,
+		current,
+		latestClean,
+		currentClean,
+		comparison,
+		hasUpdate
+	});
+
+	return hasUpdate;
 }
 
 /**
