@@ -65,6 +65,8 @@
 			width: string;
 			categoryOrder?: string[];
 			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
+			featuredId?: string;
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{
@@ -360,6 +362,8 @@
 									bind:selectedItems={sections['skills'].items}
 									bind:categoryOrder={sections['skills'].categoryOrder}
 									bind:disabledCategories={sections['skills'].disabledCategories}
+									bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
+									sectionLayout={sections['skills'].layout || 'grouped'}
 									onUpdate={updateSections}
 								/>
 							{:else}
@@ -444,6 +448,31 @@
 										</div>
 									{/each}
 								</div>
+
+								{#if sectionKey === 'testimonials' && (sectionConfig.layout === 'featured' || sectionConfig.layout === 'carousel')}
+									{@const selectedTestimonials = (sectionItems['testimonials'] || []).filter(t => sectionConfig.items.includes(t.id))}
+									{#if selectedTestimonials.length > 0}
+										<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+											<label for="homepage-featured-testimonial" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+												{sectionConfig.layout === 'featured' ? 'Featured Testimonial' : 'Primary Testimonial (shown first in carousel)'}
+											</label>
+											<select
+												id="homepage-featured-testimonial"
+												class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+												value={sectionConfig.featuredId || ''}
+												onchange={(e) => {
+													sections['testimonials'].featuredId = e.currentTarget.value || undefined;
+													updateSections();
+												}}
+											>
+												<option value="">Use global featured (or first)</option>
+												{#each selectedTestimonials as testimonial}
+													<option value={testimonial.id}>{testimonial.label}</option>
+												{/each}
+											</select>
+										</div>
+									{/if}
+								{/if}
 							{/if}
 						</div>
 					{/if}

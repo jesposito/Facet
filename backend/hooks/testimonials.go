@@ -319,6 +319,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 					"verification_identifier": r.GetString("verification_identifier"),
 					"verified_at":             r.GetDateTime("verified_at"),
 					"status":                  r.GetString("status"),
+					"visibility":              r.GetString("visibility"),
 					"submitted_at":            r.GetDateTime("submitted_at"),
 					"approved_at":             r.GetDateTime("approved_at"),
 					"featured":                r.GetBool("featured"),
@@ -378,10 +379,11 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			var req struct {
-				Content   *string `json:"content"`
-				Featured  *bool   `json:"featured"`
-				SortOrder *int    `json:"sort_order"`
-				Status    *string `json:"status"`
+				Content    *string `json:"content"`
+				Featured   *bool   `json:"featured"`
+				SortOrder  *int    `json:"sort_order"`
+				Status     *string `json:"status"`
+				Visibility *string `json:"visibility"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -402,6 +404,9 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				if *req.Status == "approved" {
 					record.Set("approved_at", time.Now())
 				}
+			}
+			if req.Visibility != nil {
+				record.Set("visibility", *req.Visibility)
 			}
 
 			if err := app.Save(record); err != nil {
@@ -443,7 +448,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 		se.Router.GET("/api/public/testimonials", func(e *core.RequestEvent) error {
 			records, err := app.FindRecordsByFilter(
 				"testimonials",
-				"status = 'approved'",
+				"status = 'approved' && visibility = 'public'",
 				"sort_order, -created",
 				50,
 				0,

@@ -21,6 +21,7 @@
 		submitted_at: string;
 		approved_at: string;
 		featured: boolean;
+		visibility: string;
 		sort_order: number;
 		created: string;
 	}
@@ -166,7 +167,7 @@
 		}
 	}
 
-	async function toggleFeatured(testimonial: Testimonial) {
+	async function updateVisibility(testimonial: Testimonial, visibility: string) {
 		try {
 			const headers: Record<string, string> = {
 				'Content-Type': 'application/json',
@@ -176,16 +177,22 @@
 			const response = await fetch(`/api/testimonials/${testimonial.id}`, {
 				method: 'PATCH',
 				headers,
-				body: JSON.stringify({ featured: !testimonial.featured })
+				body: JSON.stringify({ visibility })
 			});
 			
 			if (response.ok) {
-				toasts.success(testimonial.featured ? 'Removed from featured' : 'Added to featured');
+				toasts.success(`Visibility updated to ${visibility}`);
 				await loadTestimonials();
 			}
 		} catch (err) {
-			toasts.error('Failed to update');
+			toasts.error('Failed to update visibility');
 		}
+	}
+
+	function getVisibilityBadgeClass(visibility: string) {
+		if (visibility === 'public') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+		if (visibility === 'unlisted') return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+		return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 	}
 
 	function getVerificationBadge(method: string, identifier: string) {
@@ -299,20 +306,17 @@
 								<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full {getStatusBadgeClass(testimonial.status)}">
 									{testimonial.status}
 								</span>
+								{#if testimonial.visibility}
+									<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full {getVisibilityBadgeClass(testimonial.visibility)}">
+										{testimonial.visibility}
+									</span>
+								{/if}
 								{#if testimonial.verification_method && testimonial.verification_method !== 'none'}
 									<span class="inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
 										<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
 											<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
 										</svg>
 										{getVerificationBadge(testimonial.verification_method, testimonial.verification_identifier)}
-									</span>
-								{/if}
-								{#if testimonial.featured}
-									<span class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
-										<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-											<path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-										</svg>
-										Featured
 									</span>
 								{/if}
 							</div>
@@ -369,13 +373,15 @@
 								Reject
 							</button>
 						{:else}
-							<button
-								type="button"
-								onclick={() => toggleFeatured(testimonial)}
-								class="flex-1 sm:flex-none px-3 py-1.5 text-sm font-medium rounded-lg {testimonial.featured ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'} hover:opacity-80"
+							<select
+								class="flex-1 sm:flex-none px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+								value={testimonial.visibility || 'private'}
+								onchange={(e) => updateVisibility(testimonial, e.currentTarget.value)}
 							>
-								{testimonial.featured ? 'Unfeature' : 'Feature'}
-							</button>
+								<option value="public">Public</option>
+								<option value="unlisted">Unlisted</option>
+								<option value="private">Private</option>
+							</select>
 						{/if}
 						<button
 							type="button"

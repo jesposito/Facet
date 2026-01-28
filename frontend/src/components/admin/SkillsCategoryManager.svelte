@@ -43,17 +43,30 @@
 		selectedItems = $bindable(),
 		categoryOrder = $bindable(),
 		disabledCategories = $bindable(),
+		categoryDisplayModes = $bindable(),
+		sectionLayout = 'grouped',
 		onUpdate
 	}: {
 		items: SkillItem[];
-		selectedItems: string[];
-		categoryOrder: string[];
-		disabledCategories: string[];
+		selectedItems?: string[];
+		categoryOrder?: string[];
+		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
+		sectionLayout?: string;
 		onUpdate: () => void;
 	} = $props();
 
+	// Ensure we have non-undefined values for internal use
+	let _selectedItems = $derived(selectedItems ?? []);
+	let _categoryOrder = $derived(categoryOrder ?? []);
+	let _disabledCategories = $derived(disabledCategories ?? []);
+	let _categoryDisplayModes = $derived(categoryDisplayModes ?? {});
+
 	// Track which categories are expanded
 	let expandedCategories: Set<string> = $state(new Set());
+
+	// Track drag state to prevent effect from resetting items during drag
+	let isCategoryDragging = $state(false);
 
 	// Group skills by category
 	let groupedSkills = $derived.by(() => {
@@ -71,12 +84,12 @@
 	// Get all categories in proper order
 	let orderedCategories = $derived.by(() => {
 		const allCategories = Object.keys(groupedSkills);
-		if (!categoryOrder?.length) {
+		if (!_categoryOrder.length) {
 			return allCategories.sort();
 		}
 		const ordered: string[] = [];
 		// First add categories in saved order
-		for (const cat of categoryOrder) {
+		for (const cat of _categoryOrder) {
 			if (allCategories.includes(cat)) {
 				ordered.push(cat);
 			}
@@ -90,12 +103,26 @@
 		return ordered;
 	});
 
-	// Category items for drag-and-drop
-	let categoryItems = $derived(orderedCategories.map(name => ({ id: `cat-${name}`, name })));
+	// Category items for drag-and-drop - must be $state for svelte-dnd-action to work
+	let categoryItems: Array<{ id: string; name: string }> = $state([]);
+
+	// Sync categoryItems from orderedCategories when source data changes
+	$effect(() => {
+		// Don't sync during drag - let the drag operation control the items
+		if (isCategoryDragging) return;
+
+		const newItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
+		// Only update if the underlying categories changed (not during DnD)
+		const currentNames = categoryItems.map(c => c.name).join(',');
+		const newNames = newItems.map(c => c.name).join(',');
+		if (currentNames !== newNames || categoryItems.length === 0) {
+			categoryItems = newItems;
+		}
+	});
 
 	// Check if a category is disabled
 	function isCategoryDisabled(category: string): boolean {
-		return disabledCategories?.includes(category) ?? false;
+		return _disabledCategories.includes(category);
 	}
 
 	// Check if a category is expanded
@@ -106,14 +133,14 @@
 	// Get count of selected skills in a category
 	function getSelectedCount(category: string): number {
 		const skills = groupedSkills[category] || [];
-		const selectedSet = new Set(selectedItems);
+		const selectedSet = new Set(_selectedItems);
 		return skills.filter(s => selectedSet.has(s.id)).length;
 	}
 
-	// Get total skills in a category (excluding drafts and private)
+	// Get total skills in a category (only public visibility, excluding drafts)
 	function getPublicSkillCount(category: string): number {
 		const skills = groupedSkills[category] || [];
-		return skills.filter(s => s.visibility !== 'private' && !s.is_draft).length;
+		return skills.filter(s => s.visibility === 'public' && !s.is_draft).length;
 	}
 
 	// Toggle category expanded state
@@ -130,21 +157,38 @@
 	function toggleCategoryEnabled(category: string) {
 		if (isCategoryDisabled(category)) {
 			// Enable: remove from disabled list
-			disabledCategories = disabledCategories.filter(c => c !== category);
+			disabledCategories = _disabledCategories.filter(c => c !== category);
 		} else {
 			// Disable: add to disabled list
-			disabledCategories = [...(disabledCategories || []), category];
+			disabledCategories = [..._disabledCategories, category];
+		}
+		onUpdate();
+	}
+
+	// Get the display mode for a category (empty string means use section default)
+	function getCategoryDisplayMode(category: string): string {
+		return _categoryDisplayModes[category] || '';
+	}
+
+	// Update display mode for a category
+	function updateCategoryDisplayMode(category: string, mode: string) {
+		if (mode === '') {
+			// Remove custom mode, use section default
+			const { [category]: _, ...rest } = _categoryDisplayModes;
+			categoryDisplayModes = rest;
+		} else {
+			categoryDisplayModes = { ..._categoryDisplayModes, [category]: mode };
 		}
 		onUpdate();
 	}
 
 	// Toggle individual skill selection
 	function toggleSkill(skillId: string) {
-		const idx = selectedItems.indexOf(skillId);
+		const idx = _selectedItems.indexOf(skillId);
 		if (idx === -1) {
-			selectedItems = [...selectedItems, skillId];
+			selectedItems = [..._selectedItems, skillId];
 		} else {
-			selectedItems = selectedItems.filter(id => id !== skillId);
+			selectedItems = _selectedItems.filter(id => id !== skillId);
 		}
 		onUpdate();
 	}
@@ -153,9 +197,9 @@
 	function selectAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
 		const publicSkillIds = skills
-			.filter(s => s.visibility !== 'private' && !s.is_draft)
+			.filter(s => s.visibility === 'public' && !s.is_draft)
 			.map(s => s.id);
-		const currentSet = new Set(selectedItems);
+		const currentSet = new Set(_selectedItems);
 		for (const id of publicSkillIds) {
 			currentSet.add(id);
 		}
@@ -167,20 +211,25 @@
 	function clearAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
 		const skillIds = new Set(skills.map(s => s.id));
-		selectedItems = selectedItems.filter(id => !skillIds.has(id));
+		selectedItems = _selectedItems.filter(id => !skillIds.has(id));
 		onUpdate();
 	}
 
 	// Handle category drag-and-drop
-	function handleCategoryDndConsider(e: CustomEvent<{ items: typeof categoryItems }>) {
-		// Just update visual during drag
+	function handleCategoryDndConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		// Mark as dragging to prevent effect from resetting items
+		isCategoryDragging = true;
+		// Update categoryItems during drag for visual feedback
+		categoryItems = e.detail.items;
 	}
 
 	function handleCategoryDndFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
-		const newOrder = e.detail.items
-			.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID)
-			.map(c => c.name);
-		categoryOrder = newOrder;
+		// Filter out placeholder and update both categoryItems and categoryOrder
+		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		categoryItems = filteredItems;
+		categoryOrder = filteredItems.map(c => c.name);
+		// Clear dragging state after updating order
+		isCategoryDragging = false;
 		onUpdate();
 	}
 
@@ -203,9 +252,9 @@
 		// Update selected items order to match display order
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
 			const displayOrder = finalSkills.map(s => s.id);
-			const selectedSet = new Set(selectedItems);
+			const selectedSet = new Set(_selectedItems);
 			const categorySelectedInOrder = displayOrder.filter(id => selectedSet.has(id));
-			const otherSelected = selectedItems.filter(id => !displayOrder.includes(id));
+			const otherSelected = _selectedItems.filter(id => !displayOrder.includes(id));
 			selectedItems = [...otherSelected, ...categorySelectedInOrder];
 			onUpdate();
 		}
@@ -216,9 +265,9 @@
 		return groupedSkills[category] || [];
 	}
 
-	// Get public skills for a category (excluding private and drafts)
+	// Get public skills for a category (only public visibility, excluding drafts)
 	function getPublicCategorySkills(category: string): SkillItem[] {
-		return (groupedSkills[category] || []).filter(s => s.visibility !== 'private' && !s.is_draft);
+		return (groupedSkills[category] || []).filter(s => s.visibility === 'public' && !s.is_draft);
 	}
 </script>
 
@@ -290,6 +339,21 @@
 							{/if}
 						</span>
 
+						<!-- Per-Category Layout Selector -->
+						{#if !isDisabled && (sectionLayout === 'grouped' || sectionLayout === 'bars')}
+							<select
+								class="text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded px-2 py-1 flex-shrink-0"
+								value={getCategoryDisplayMode(category)}
+								onchange={(e) => updateCategoryDisplayMode(category, e.currentTarget.value)}
+								onclick={(e) => e.stopPropagation()}
+								aria-label={$t('admin.view_editor.skills_categories.display_mode_label', { values: { category } })}
+							>
+								<option value="">{$t('admin.view_editor.skills_categories.use_section_default')}</option>
+								<option value="grouped">{$t('admin.view_editor.skills_categories.layout_grouped')}</option>
+								<option value="bars">{$t('admin.view_editor.skills_categories.layout_bars')}</option>
+							</select>
+						{/if}
+
 						<!-- Expand/Collapse Button -->
 						{#if publicCount > 0 && !isDisabled}
 							<button
@@ -352,7 +416,7 @@
 								onfinalize={(e: any) => handleSkillDndFinalize(category, e)}
 							>
 								{#each categorySkills as skill (skill.id)}
-									{@const isSelected = selectedItems.includes(skill.id)}
+									{@const isSelected = _selectedItems.includes(skill.id)}
 									<div
 										class="flex items-center gap-2 p-2 rounded bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
 										animate:flip={{ duration: flipDurationMs }}
