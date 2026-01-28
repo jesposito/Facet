@@ -50,15 +50,12 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 
 			externalItems, err := collectExternalMediaItems(app)
 			if err != nil {
-				app.Logger().Error("media external scan failed", "error", err)
-				externalItems = nil
+				externalItems = []services.MediaItem{}
 			}
-			app.Logger().Info("media: external items collected", "count", len(externalItems))
 
 			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, referenced)
 			if err != nil {
-				app.Logger().Error("media orphan scan failed", "error", err)
-				orphanItems = nil
+				orphanItems = []services.MediaItem{}
 				orphanSize = 0
 				storageSize = 0
 				storageFiles = 0
@@ -499,8 +496,8 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 		return []services.MediaItem{}, nil
 	}
 
-	// Get all records - empty filter, sorted by created desc
-	records, err := app.FindRecordsByFilter(collection.Name, "", "-created", 500, 0, nil)
+	// Get all records from external_media collection
+	records, err := app.FindAllRecords(collection.Name)
 	if err != nil {
 		return []services.MediaItem{}, err
 	}
