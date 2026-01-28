@@ -44,6 +44,7 @@ const flipDurationMs = 200;
 
 let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 let dndLoaded = $state(false);
+let SHADOW_PLACEHOLDER_ITEM_ID: string = $state('');
 
 // Load saved category order from site settings
 let savedCategoryOrder: string[] = $state([]);
@@ -126,8 +127,9 @@ onMount(loadSkills);
 onMount(loadCategoryOrder);
 onMount(async () => {
 	if (browser) {
-		const { dndzone: dnd } = await import('svelte-dnd-action');
+		const { dndzone: dnd, SHADOW_PLACEHOLDER_ITEM_ID: shadowId } = await import('svelte-dnd-action');
 		dndzone = dnd;
+		SHADOW_PLACEHOLDER_ITEM_ID = shadowId;
 		dndLoaded = true;
 	}
 });
@@ -382,8 +384,8 @@ async function loadCategoryOrder() {
 			reorderData.set(cat, catSkills.map(s => ({ id: s.id, name: s.name })));
 			catNames.push(cat);
 		}
-		// Set up category order for drag-drop
-		categoryOrder = catNames.map((name, i) => ({ id: `cat-${i}`, name }));
+		// Set up category order for drag-drop (use name-based IDs for stability)
+		categoryOrder = catNames.map(name => ({ id: `cat-${name}`, name }));
 		reorderMode = true;
 		selectMode = false;
 	}
@@ -401,7 +403,8 @@ async function loadCategoryOrder() {
 	}
 
 	function handleSkillReorderFinalize(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
-		reorderData.set(cat, e.detail.items);
+		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		reorderData.set(cat, filteredItems);
 		reorderData = new Map(reorderData);
 	}
 
@@ -411,13 +414,23 @@ async function loadCategoryOrder() {
 	}
 
 	function handleCategoryOrderFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
-		categoryOrder = e.detail.items;
+		// Filter out the shadow placeholder item
+		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		categoryOrder = filteredItems;
+
 		// Rebuild reorderData in new category order
 		const oldData = new Map(reorderData);
 		reorderData = new Map();
 		for (const cat of categoryOrder) {
 			if (oldData.has(cat.name)) {
 				reorderData.set(cat.name, oldData.get(cat.name)!);
+			}
+		}
+
+		// Preserve any categories that might have been missed (defensive)
+		for (const [catName, skills] of oldData) {
+			if (!reorderData.has(catName)) {
+				reorderData.set(catName, skills);
 			}
 		}
 	}
