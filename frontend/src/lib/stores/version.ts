@@ -70,18 +70,29 @@ export async function checkForNewVersion(force = false): Promise<void> {
 			}
 		}
 
-		// Fetch latest release from GitHub
-		const response = await fetch('https://api.github.com/repos/jesposito/Facet/releases/latest', {
-			headers: { Accept: 'application/vnd.github.v3+json' }
-		});
+		// Try LATEST_VERSION file first (avoids API rate limits, works without releases)
+		let latest = '';
 
-		if (!response.ok) {
+		const versionFileResponse = await fetch('https://raw.githubusercontent.com/jesposito/Facet/main/LATEST_VERSION');
+		if (versionFileResponse.ok) {
+			latest = (await versionFileResponse.text()).trim();
+		} else {
+			// Fall back to GitHub releases API
+			const releaseResponse = await fetch('https://api.github.com/repos/jesposito/Facet/releases/latest', {
+				headers: { Accept: 'application/vnd.github.v3+json' }
+			});
+
+			if (releaseResponse.ok) {
+				const data = await releaseResponse.json();
+				latest = data.tag_name || '';
+			}
+		}
+
+		// If we couldn't get a version from either source, exit gracefully
+		if (!latest) {
 			isCheckingVersion.set(false);
 			return;
 		}
-
-		const data = await response.json();
-		const latest = data.tag_name || '';
 
 		const hasUpdate = calculateHasUpdate(latest, appVersion);
 
