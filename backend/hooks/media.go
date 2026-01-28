@@ -110,6 +110,20 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				end = total
 			}
 
+			// Build sample items for debug (first 3 items showing usage data)
+			sampleItems := make([]map[string]interface{}, 0, 3)
+			for i := 0; i < len(filtered) && i < 3; i++ {
+				item := filtered[i]
+				sampleItems = append(sampleItems, map[string]interface{}{
+					"collection":   item.Collection,
+					"filename":     item.Filename,
+					"external":     item.External,
+					"orphan":       item.Orphan,
+					"usage_count":  item.UsageCount,
+					"used_by_len":  len(item.UsedBy),
+				})
+			}
+
 			response := map[string]interface{}{
 				"items":      filtered[start:end],
 				"page":       page,
@@ -123,6 +137,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 					"combinedCount":  len(combined),
 					"filteredCount":  len(filtered),
 					"referencedKeys": len(referenced),
+					"sampleItems":    sampleItems,
 				},
 				"stats": map[string]interface{}{
 					"referencedFiles": len(items) + len(externalItems),
