@@ -50,8 +50,8 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 		}
 
 		// Find records that reference this external_media ID
-		// PocketBase stores relations as arrays, so we need to check if the ID is in the array
-		filter := fmt.Sprintf("media_refs~'%s'", externalMediaID)
+		// PocketBase relation fields use ?~ for "any relation contains" checks
+		filter := fmt.Sprintf("media_refs.id ?= '%s'", externalMediaID)
 		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
 		if err != nil {
 			app.Logger().Warn("media usage: failed to query collection", "collection", collName, "error", err)
