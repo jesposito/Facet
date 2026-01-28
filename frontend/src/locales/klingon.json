@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub dispatches",
 			"changelog_empty_after_link": "for updates.",
 			"new_version_available": "{version} ready for battle",
+			"check_for_updates": "Scan for updates",
 			"github_releases": "GitHub dispatches",
 			"bug_fixes": "Enemies Defeated",
 			"new_features": "New Weapons",
@@ -287,6 +288,11 @@
 			"save_failed": "Tag could not be secured",
 			"delete_failed": "Tag could not be destroyed"
 		},
+		"form": {
+			"saving": "Transmitting...",
+			"saved": "Secured",
+			"error_saving": "Transmission failed"
+		},
 		"sidebar": {
 			"dashboard": "Command Center",
 			"homepage": "Home Base",
@@ -328,7 +334,8 @@
 			"update_now": "Deploy now",
 			"manage": "Command",
 			"request_links": "Request Links",
-			"update_available": "Update ready"
+			"update_available": "Update ready",
+			"check_for_updates": "Scan for updates"
 		},
 		"dashboard": {
 			"title": "Command Center",
@@ -710,6 +717,11 @@
 				"video_url_placeholder": "https://subspace.klingon/...",
 				"required_error": "Title and event are required"
 			},
+			"testimonials": {
+				"title": "Testimonials",
+				"visibility_updated": "Visibility updated to {visibility}",
+				"visibility_update_failed": "Failed to update visibility"
+			},
 			"posts": {
 				"title": "Battle Logs",
 				"help_text": "<strong>Battle Logs</strong> are your essays, articles, and written content.",
@@ -937,7 +949,10 @@
 				"posts": "Battle Logs",
 				"talks": "Speeches",
 				"contacts": "Channels",
-				"testimonials": "Testimonials"
+				"testimonials": "Testimonials",
+				"featured_testimonial_label": "Honored Testimonial",
+				"primary_testimonial_label": "Primary Testimonial (displayed first in rotation)",
+				"use_global_featured": "Use global honored (or first)"
 			},
 			"category_reorder": {
 				"title": "Reorder Skill Categories",

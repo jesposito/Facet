@@ -92,10 +92,66 @@
 
 <div class="max-w-6xl mx-auto">
 	{#if loading}
-		<!-- Loading state -->
-		<div class="card p-8 mb-8 animate-pulse">
-			<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-4"></div>
-			<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96"></div>
+		<!-- Loading skeleton that matches content structure -->
+		<div class="animate-fade-in">
+			<!-- Title skeleton -->
+			<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-6 relative overflow-hidden">
+				<div class="absolute inset-0 animate-shimmer"></div>
+			</div>
+
+			<!-- Stats grid skeleton -->
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+				{#each Array(4) as _}
+					<div class="card p-6">
+						<div class="flex items-center justify-between">
+							<div class="space-y-2">
+								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+								<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+							</div>
+							<div class="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+								<div class="absolute inset-0 animate-shimmer"></div>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Quick actions and activity skeleton -->
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<div class="card p-6">
+					<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 relative overflow-hidden">
+						<div class="absolute inset-0 animate-shimmer"></div>
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						{#each Array(6) as _}
+							<div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
+								<div class="absolute inset-0 animate-shimmer"></div>
+							</div>
+						{/each}
+					</div>
+				</div>
+				<div class="card p-6">
+					<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 relative overflow-hidden">
+						<div class="absolute inset-0 animate-shimmer"></div>
+					</div>
+					<div class="space-y-3">
+						{#each Array(3) as _}
+							<div class="flex items-center gap-3">
+								<div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+								<div class="flex-1 h-4 bg-gray-200 dark:bg-gray-700 rounded relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
 		</div>
 	{:else if isEmpty}
 		<!-- Welcome state for first-time users -->
@@ -182,39 +238,39 @@
 		<div class="card p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.dashboard.quick_actions')}</h2>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				<a href="/admin/projects?new=true" class="btn btn-secondary justify-start">
-					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<a href="/admin/projects?new=true" class="group btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
 					{$t('admin.dashboard.add_project')}
 				</a>
-				<a href="/admin/experience?new=true" class="btn btn-secondary justify-start">
-					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<a href="/admin/experience?new=true" class="group btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 					</svg>
 					{$t('admin.dashboard.add_experience')}
 				</a>
-				<a href="/admin/import" class="btn btn-secondary justify-start">
-					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<a href="/admin/import" class="group btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:-translate-y-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
 					</svg>
 					{$t('admin.dashboard.import_github')}
 				</a>
-				<a href="/admin/views/new" class="btn btn-secondary justify-start">
-					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<a href="/admin/views/new" class="group btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
 					</svg>
 					{$t('admin.dashboard.create_view')}
 				</a>
-				<a href="/rss.xml" target="_blank" class="btn btn-secondary justify-start">
-					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<a href="/rss.xml" target="_blank" class="group btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 5c7.18 0 13 5.82 13 13M6 11a7 7 0 017 7M6 17a1 1 0 11-2 0 1 1 0 012 0z" />
 					</svg>
 					{$t('admin.dashboard.rss_feed')}
 				</a>
-				<a href="/talks.ics" class="btn btn-secondary justify-start">
-					<svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<a href="/talks.ics" class="group btn btn-secondary justify-start">
+					<svg class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
 					</svg>
 					{$t('admin.dashboard.talks_calendar')}

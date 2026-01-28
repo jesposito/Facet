@@ -94,7 +94,7 @@
 	{#if isOpen && !useNative}
 		<div
 			bind:this={dropdownRef}
-			class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+			class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50 animate-scale-in-tr"
 			role="menu"
 			aria-orientation="vertical"
 		>

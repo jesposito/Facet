@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub releesez",
 			"changelog_empty_after_link": "4 updaets.",
 			"new_version_available": "{version} availabl",
+			"check_for_updates": "Chek 4 updaetz",
 			"github_releases": "GitHub releesez",
 			"bug_fixes": "Bug Fiksez",
 			"new_features": "New Featurez",
@@ -287,6 +288,11 @@
 			"save_failed": "Faild 2 saev tag",
 			"delete_failed": "Faild 2 delet tag"
 		},
+		"form": {
+			"saving": "Saevin...",
+			"saved": "Saevd!",
+			"error_saving": "Faild 2 saev"
+		},
 		"sidebar": {
 			"dashboard": "Dashbord",
 			"homepage": "Homepaj",
@@ -328,7 +334,8 @@
 			"update_now": "Updat nao",
 			"manage": "Manaj",
 			"request_links": "Request Linkz",
-			"update_available": "Updat availabl"
+			"update_available": "Updat availabl",
+			"check_for_updates": "Chek 4 updaetz"
 		},
 		"dashboard": {
 			"title": "Dashbord",
@@ -710,6 +717,11 @@
 				"video_url_placeholder": "https://youtube.com/...",
 				"required_error": "Tietl n event r requird"
 			},
+			"testimonials": {
+				"title": "Testimonialz",
+				"visibility_updated": "Vizibility updatd 2 {visibility}",
+				"visibility_update_failed": "Faild 2 updat vizibility"
+			},
 			"posts": {
 				"title": "Posts",
 				"help_text": "<strong>Posts</strong> r blog posts, artiklez, n written content.",
@@ -937,7 +949,10 @@
 				"posts": "Posts",
 				"talks": "Talkz",
 				"contacts": "Contact Methodz",
-				"testimonials": "Testimonialz"
+				"testimonials": "Testimonialz",
+				"featured_testimonial_label": "Featurd Testimonial",
+				"primary_testimonial_label": "Primary Testimonial (shown first in carusel)",
+				"use_global_featured": "Use global featurd (or first)"
 			},
 			"category_reorder": {
 				"title": "Reordr Skill Categoriez",

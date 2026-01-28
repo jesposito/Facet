@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub-Releases",
 			"changelog_empty_after_link": "für Updates.",
 			"new_version_available": "{version} verfügbar",
+			"check_for_updates": "Nach Updates suchen",
 			"github_releases": "GitHub-Releases",
 			"bug_fixes": "Fehlerbehebungen",
 			"new_features": "Neue Funktionen",
@@ -287,6 +288,11 @@
 			"save_failed": "Tag konnte nicht gespeichert werden",
 			"delete_failed": "Tag konnte nicht gelöscht werden"
 		},
+		"form": {
+			"saving": "Speichern...",
+			"saved": "Gespeichert",
+			"error_saving": "Speichern fehlgeschlagen"
+		},
 		"sidebar": {
 			"dashboard": "Dashboard",
 			"homepage": "Startseite",
@@ -328,7 +334,8 @@
 			"update_now": "Jetzt aktualisieren",
 			"manage": "Verwalten",
 			"request_links": "Anfrage-Links",
-			"update_available": "Update verfügbar"
+			"update_available": "Update verfügbar",
+			"check_for_updates": "Nach Updates suchen"
 		},
 		"dashboard": {
 			"title": "Dashboard",
@@ -710,6 +717,11 @@
 				"video_url_placeholder": "https://youtube.com/...",
 				"required_error": "Titel und Veranstaltung sind erforderlich"
 			},
+			"testimonials": {
+				"title": "Referenzen",
+				"visibility_updated": "Sichtbarkeit auf {visibility} aktualisiert",
+				"visibility_update_failed": "Sichtbarkeit konnte nicht aktualisiert werden"
+			},
 			"posts": {
 				"title": "Beiträge",
 				"help_text": "<strong>Beiträge</strong> sind Blog-Posts, Artikel und schriftliche Inhalte.",
@@ -937,7 +949,10 @@
 				"posts": "Beiträge",
 				"talks": "Vorträge",
 				"contacts": "Kontaktmethoden",
-				"testimonials": "Referenzen"
+				"testimonials": "Referenzen",
+				"featured_testimonial_label": "Ausgewählte Referenz",
+				"primary_testimonial_label": "Primäre Referenz (wird zuerst im Karussell angezeigt)",
+				"use_global_featured": "Globale Auswahl verwenden (oder erste)"
 			},
 			"category_reorder": {
 				"title": "Fähigkeitskategorien neu ordnen",
