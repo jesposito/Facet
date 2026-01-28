@@ -822,7 +822,7 @@
 									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric' })}
 								</td>
 								<td class="px-3 py-2 text-sm hidden md:table-cell">
-									{#if (item.external || item.collection === 'external_media') && item.usage_count && item.usage_count > 0}
+									{#if !item.orphan && item.usage_count && item.usage_count > 0}
 										<div class="group relative">
 											<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 cursor-help">
 												{$t('admin.media.used_by_count', { values: { count: item.usage_count } })}
@@ -842,6 +842,8 @@
 												</div>
 											{/if}
 										</div>
+									{:else if item.orphan}
+										<span class="text-amber-600 dark:text-amber-400 text-xs">{$t('admin.media.badge_orphan')}</span>
 									{:else}
 										<span class="text-gray-400 dark:text-gray-500 text-xs">—</span>
 									{/if}
