@@ -468,6 +468,7 @@
 								bind:disabledCategories={sections['skills'].disabledCategories}
 								bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
 								sectionLayout={sections['skills'].layout || 'grouped'}
+								showAllVisibilities={true}
 								onUpdate={updateSections}
 							/>
 						{:else}
