@@ -80,6 +80,14 @@
 		return ['youtube', 'vimeo', 'loom'].includes(provider);
 	}
 
+	// Check if item supports title editing (only uploads and external_media)
+	function isEditable(item: MediaItem): boolean {
+		if (item.orphan) return false;
+		if (item.external || item.collection === 'external_media') return true;
+		if (item.collection === 'uploads') return true;
+		return false;
+	}
+
 	type MediaStats = {
 		referencedFiles: number;
 		referencedSize: number;
@@ -94,8 +102,8 @@
 	let items: MediaItem[] = $state([]);
 	let loading = $state(true);
 	let page = $state(1);
-	let perPage = 50;
-	let totalItems = 0;
+	let perPage = $state(50);
+	let totalItems = $state(0);
 	let totalPages = $state(1);
 	let search = $state('');
 	let typeFilter: 'all' | 'image' = $state('all');
@@ -119,7 +127,7 @@
 		thumbnail_url: '',
 		saving: false
 	});
-	let uploadFile: File | null = null;
+	let uploadFile: File | null = $state(null);
 	let uploadTitle = $state('');
 	let uploading = $state(false);
 	let uploadProgress = $state({ current: 0, total: 0 });
@@ -853,9 +861,11 @@
 										<button class="btn btn-ghost btn-sm" onclick={() => openPreview(item)} title={$t('admin.media.preview_button')}>
 											{@html icon('eye')}
 										</button>
-										<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
-											{@html icon('edit')}
-										</button>
+										{#if isEditable(item)}
+											<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
+												{@html icon('edit')}
+											</button>
+										{/if}
 										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)} title={$t('admin.media.copy_url_button')}>
 											{@html icon('copy')}
 										</button>
