@@ -413,7 +413,7 @@ function openEditForm(post: Post) {
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				+ {$t('admin.content.common.new_button', { values: { type: $t('admin.content.posts.title').slice(0, -1) } })}
+				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.posts.title').slice(0, -1) } })}
 			</button>
 		</div>
 	</div>

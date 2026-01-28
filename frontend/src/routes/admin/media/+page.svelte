@@ -161,22 +161,31 @@
 		if (!editItem || !editItem.record_id) return;
 		editForm.saving = true;
 		try {
-			const res = await fetch(`/api/collections/external_media/records/${editItem.record_id}`, {
+			const isExternal = editItem.external || editItem.collection === 'external_media';
+			const collectionName = isExternal ? 'external_media' : editItem.collection;
+
+			const body = isExternal
+				? {
+						title: editForm.title.trim(),
+						url: editForm.url.trim(),
+						mime: editForm.mime.trim(),
+						thumbnail_url: editForm.thumbnail_url.trim()
+				  }
+				: {
+						title: editForm.title.trim()
+				  };
+
+			const res = await fetch(`/api/collections/${collectionName}/records/${editItem.record_id}`, {
 				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
 					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 				},
-				body: JSON.stringify({
-					title: editForm.title.trim(),
-					url: editForm.url.trim(),
-					mime: editForm.mime.trim(),
-					thumbnail_url: editForm.thumbnail_url.trim()
-				})
+				body: JSON.stringify(body)
 			});
 			if (!res.ok) {
-				const body = await res.json().catch(() => ({}));
-				throw new Error(body.message || body.error || 'Failed to update media');
+				const respBody = await res.json().catch(() => ({}));
+				throw new Error(respBody.message || respBody.error || 'Failed to update media');
 			}
 			toasts.add('success', $t('admin.media.toast_media_updated'));
 			closeEdit();
@@ -248,32 +257,6 @@
 				storageSize: 0
 			};
 			items = data.items || [];
-			// Append external media directly (some environments may not surface them via /api/media)
-			const externalRes = await fetch('/api/collections/external_media/records?perPage=200', {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-			});
-			if (externalRes.ok) {
-				const ext = await externalRes.json();
-				const externalItems =
-					(ext.items || []).map((item: any) => ({
-						collection: 'external_media',
-						collection_id: item.collectionId,
-						record_id: item.id,
-						field: 'external',
-						filename: item.title || item.url,
-						display_name: item.title || item.url,
-						record_label: item.title || item.url,
-						url: item.url,
-						mime: item.mime || '',
-						uploaded_at: item.created || new Date().toISOString(),
-						external: true,
-						collection_key: 'external',
-						provider: item.provider || 'external'
-					})) || [];
-				items = [...items, ...externalItems];
-				stats.referencedFiles += externalItems.length;
-				stats.totalFiles += externalItems.length;
-			}
 			totalItems = items.length;
 			totalPages = Math.max(1, Math.ceil(totalItems / perPage));
 			selectedOrphans = new Set();
@@ -293,8 +276,11 @@
 	}
 
 	async function deleteFile(item: MediaItem, force = false) {
+		// Check if item is external media (either by flag or by collection name)
+		const isExternal = item.external || item.collection === 'external_media';
+
 		// For non-external or orphan items, show standard confirmation
-		if (!item.external || item.orphan) {
+		if (!isExternal || item.orphan) {
 			const confirmed = await confirm({
 				title: $t('admin.media.confirm_delete_title'),
 				message: $t('admin.media.confirm_delete_message', { values: { filename: item.filename } }),
@@ -314,7 +300,7 @@
 		}
 
 		try {
-			if (item.external && item.record_id) {
+			if (isExternal && item.record_id) {
 				const url = force
 					? `/api/media/external/${item.record_id}?force=1`
 					: `/api/media/external/${item.record_id}`;
@@ -751,25 +737,23 @@
 	{:else}
 		<div class="card overflow-hidden">
 			<div class="overflow-x-auto">
-				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 						<thead class="bg-gray-50 dark:bg-gray-800">
 							<tr>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
-								<th class="px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-16">{$t('admin.media.table_preview')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-1/4">{$t('admin.media.table_file')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_type')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_size')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_collection')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_record')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_uploaded')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_used_by')}</th>
-								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_actions')}</th>
+								<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
+								<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-14">{$t('admin.media.table_preview')}</th>
+								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_file')}</th>
+								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-20">{$t('admin.media.table_type')}</th>
+								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-20">{$t('admin.media.table_size')}</th>
+								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-24">{$t('admin.media.table_uploaded')}</th>
+								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-24">{$t('admin.media.table_used_by')}</th>
+								<th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase w-28">{$t('admin.media.table_actions')}</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 							{#each items as item}
 								<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-									<td class="px-4 py-3">
+									<td class="px-2 py-2">
 										{#if item.orphan && item.relative_path}
 											<input
 												type="checkbox"
@@ -780,7 +764,7 @@
 										{/if}
 									</td>
 									<td class="px-2 py-2">
-										<div class="w-12 h-12 relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+										<div class="w-10 h-10 relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
 											{#if hasThumbnail(item)}
 												<img
 													src={getThumbnailUrl(item)}
@@ -796,16 +780,16 @@
 												{/if}
 											{:else}
 												<span class="text-gray-400 dark:text-gray-500">
-													{@html icon(getProviderIcon(item))}
+													{@html icon(getProviderIcon(item) as keyof typeof import('$lib/icons').icons)}
 												</span>
 											{/if}
 										</div>
 									</td>
-									<td class="px-4 py-3 max-w-xs">
-										<div class="flex items-center gap-2">
-											<div class="min-w-0 flex-1 overflow-hidden">
+									<td class="px-3 py-2">
+										<div class="flex items-center gap-2 min-w-0">
+											<div class="min-w-0 flex-1">
 												<a
-													class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2"
+													class="text-primary-600 dark:text-primary-300 hover:underline truncate block text-sm"
 													href={item.url}
 													target="_blank"
 													rel="noopener noreferrer"
@@ -814,48 +798,37 @@
 													{item.display_name || item.filename}
 												</a>
 												{#if item.display_name && item.display_name !== item.filename}
-													<span class="text-xs text-gray-500 dark:text-gray-400 break-words line-clamp-1">{item.filename}</span>
+													<span class="text-xs text-gray-500 dark:text-gray-400 truncate block">{item.filename}</span>
 												{/if}
 											</div>
 											{#if item.orphan}
-												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0">
+												<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0">
 													{$t('admin.media.badge_orphan')}
 												</span>
-											{:else if item.external}
-												<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0">
+											{:else if item.external || item.collection === 'external_media'}
+												<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0">
 													{$t('admin.media.badge_external')}
 												</span>
 											{/if}
 										</div>
 									</td>
-								<td class="px-4 py-3">
-									<span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+								<td class="px-3 py-2 hidden md:table-cell">
+									<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
 										{mimeLabel(item.mime)}
 									</span>
 								</td>
-								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{humanSize(item.size)}</td>
-								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{item.collection}</td>
-								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
-									{#if item.field}
-										<code class="bg-gray-100 dark:bg-gray-800 px-1 rounded">{item.field}</code>
-									{:else}
-										<span class="text-gray-500 dark:text-gray-400">—</span>
-									{/if}
-									{#if item.record_id}
-										<span class="text-gray-500 dark:text-gray-400 ml-1">({item.record_id})</span>
-									{/if}
+								<td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hidden lg:table-cell">{humanSize(item.size)}</td>
+								<td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hidden lg:table-cell">
+									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric' })}
 								</td>
-								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
-									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric', year: 'numeric' })}
-								</td>
-								<td class="px-4 py-3 text-sm">
-									{#if item.external && item.usage_count && item.usage_count > 0}
+								<td class="px-3 py-2 text-sm hidden md:table-cell">
+									{#if (item.external || item.collection === 'external_media') && item.usage_count && item.usage_count > 0}
 										<div class="group relative">
-											<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 cursor-help">
+											<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 cursor-help">
 												{$t('admin.media.used_by_count', { values: { count: item.usage_count } })}
 											</span>
 											{#if item.used_by && item.used_by.length > 0}
-												<div class="hidden group-hover:block absolute z-10 left-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 min-w-[200px] max-w-[300px]">
+												<div class="hidden group-hover:block absolute z-10 right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] max-w-[250px]">
 													<ul class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
 														{#each item.used_by.slice(0, 5) as usage}
 															<li class="truncate" title="{usage.collection}: {usage.title}">
@@ -870,15 +843,15 @@
 											{/if}
 										</div>
 									{:else}
-										<span class="text-gray-400 dark:text-gray-500">{$t('admin.media.used_by_none')}</span>
+										<span class="text-gray-400 dark:text-gray-500 text-xs">—</span>
 									{/if}
 								</td>
-								<td class="px-4 py-3">
-									<div class="flex items-center gap-2">
+								<td class="px-2 py-2">
+									<div class="flex items-center justify-end gap-1">
 										<button class="btn btn-ghost btn-sm" onclick={() => openPreview(item)} title={$t('admin.media.preview_button')}>
 											{@html icon('eye')}
 										</button>
-										{#if item.external}
+										{#if item.external || item.collection === 'external_media' || item.collection === 'uploads'}
 											<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
 												{@html icon('edit')}
 											</button>
@@ -938,6 +911,7 @@
 					{@html icon('x')}
 				</button>
 			</div>
+			
 			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); saveEdit(); }}>
 				{#if editItem.thumbnail_url || (editItem.mime?.startsWith('image/') && editItem.url)}
 					<div class="flex justify-center">
@@ -961,35 +935,37 @@
 					/>
 					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_title_help')}</p>
 				</div>
-				<div>
-					<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
-					<input
-						id="edit-url"
-						class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
-						bind:value={editForm.url}
-						placeholder={$t('admin.media.url_placeholder')}
-					/>
-				</div>
-				<div class="grid grid-cols-2 gap-3">
+				{#if editItem.external || editItem.collection === 'external_media'}
 					<div>
-						<label class="label" for="edit-mime">{$t('admin.media.edit_mime_label')}</label>
+						<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
 						<input
-							id="edit-mime"
+							id="edit-url"
 							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
-							bind:value={editForm.mime}
-							placeholder={$t('admin.media.mime_placeholder')}
+							bind:value={editForm.url}
+							placeholder={$t('admin.media.url_placeholder')}
 						/>
 					</div>
-					<div>
-						<label class="label" for="edit-thumbnail">{$t('admin.media.edit_thumbnail_label')}</label>
-						<input
-							id="edit-thumbnail"
-							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
-							bind:value={editForm.thumbnail_url}
-							placeholder={$t('admin.media.thumbnail_placeholder')}
-						/>
+					<div class="grid grid-cols-2 gap-3">
+						<div>
+							<label class="label" for="edit-mime">{$t('admin.media.edit_mime_label')}</label>
+							<input
+								id="edit-mime"
+								class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+								bind:value={editForm.mime}
+								placeholder={$t('admin.media.mime_placeholder')}
+							/>
+						</div>
+						<div>
+							<label class="label" for="edit-thumbnail">{$t('admin.media.edit_thumbnail_label')}</label>
+							<input
+								id="edit-thumbnail"
+								class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+								bind:value={editForm.thumbnail_url}
+								placeholder={$t('admin.media.thumbnail_placeholder')}
+							/>
+						</div>
 					</div>
-				</div>
+				{/if}
 				<div class="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
 					<button type="button" class="btn btn-secondary" onclick={closeEdit}>
 						{$t('shared.actions.cancel')}
