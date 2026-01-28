@@ -137,10 +137,10 @@
 		return skills.filter(s => selectedSet.has(s.id)).length;
 	}
 
-	// Get total skills in a category (excluding drafts and private)
+	// Get total skills in a category (only public visibility, excluding drafts)
 	function getPublicSkillCount(category: string): number {
 		const skills = groupedSkills[category] || [];
-		return skills.filter(s => s.visibility !== 'private' && !s.is_draft).length;
+		return skills.filter(s => s.visibility === 'public' && !s.is_draft).length;
 	}
 
 	// Toggle category expanded state
@@ -197,7 +197,7 @@
 	function selectAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
 		const publicSkillIds = skills
-			.filter(s => s.visibility !== 'private' && !s.is_draft)
+			.filter(s => s.visibility === 'public' && !s.is_draft)
 			.map(s => s.id);
 		const currentSet = new Set(_selectedItems);
 		for (const id of publicSkillIds) {
@@ -265,9 +265,9 @@
 		return groupedSkills[category] || [];
 	}
 
-	// Get public skills for a category (excluding private and drafts)
+	// Get public skills for a category (only public visibility, excluding drafts)
 	function getPublicCategorySkills(category: string): SkillItem[] {
-		return (groupedSkills[category] || []).filter(s => s.visibility !== 'private' && !s.is_draft);
+		return (groupedSkills[category] || []).filter(s => s.visibility === 'public' && !s.is_draft);
 	}
 </script>
 
