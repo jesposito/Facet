@@ -287,6 +287,11 @@
 			"save_failed": "Failed to save tag",
 			"delete_failed": "Failed to delete tag"
 		},
+		"form": {
+			"saving": "Saving...",
+			"saved": "Saved",
+			"error_saving": "Failed to save"
+		},
 		"sidebar": {
 			"dashboard": "Dashboard",
 			"homepage": "Homepage",
