@@ -787,9 +787,9 @@
 									</td>
 									<td class="px-3 py-2">
 										<div class="flex items-center gap-2 min-w-0">
-											<div class="min-w-0 flex-1">
+											<div class="min-w-0 flex-1 max-w-[200px] lg:max-w-[300px]">
 												<a
-													class="text-primary-600 dark:text-primary-300 hover:underline truncate block text-sm"
+													class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2 text-sm"
 													href={item.url}
 													target="_blank"
 													rel="noopener noreferrer"
