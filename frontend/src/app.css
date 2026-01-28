@@ -112,6 +112,11 @@
 }
 
 @layer utilities {
+	/* ==========================================================================
+	   Animation Utilities - UX Delight Initiative
+	   Reusable animations for micro-interactions. All respect prefers-reduced-motion.
+	   ========================================================================== */
+
 	.animate-fade-in {
 		animation: fadeIn 0.3s ease-out;
 	}
@@ -125,6 +130,167 @@
 			opacity: 1;
 			transform: translateY(0);
 		}
+	}
+
+	/* Slide animations for dropdowns and menus */
+	.animate-slide-in-down {
+		animation: slideInDown 0.2s ease-out;
+	}
+
+	@keyframes slideInDown {
+		from {
+			opacity: 0;
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.animate-slide-in-up {
+		animation: slideInUp 0.2s ease-out;
+	}
+
+	@keyframes slideInUp {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	/* Scale animation for modals and popovers */
+	.animate-scale-in {
+		animation: scaleIn 0.2s ease-out;
+	}
+
+	@keyframes scaleIn {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	/* Scale from top-right origin for dropdown menus */
+	.animate-scale-in-tr {
+		animation: scaleInTR 0.15s ease-out;
+		transform-origin: top right;
+	}
+
+	@keyframes scaleInTR {
+		from {
+			opacity: 0;
+			transform: scale(0.95);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
+	}
+
+	/* Subtle pulse for attention states */
+	.animate-pulse-subtle {
+		animation: pulseSubtle 0.4s ease-out;
+	}
+
+	@keyframes pulseSubtle {
+		0% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.05);
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+
+	/* Success checkmark animation */
+	.animate-success-pop {
+		animation: successPop 0.3s ease-out;
+	}
+
+	@keyframes successPop {
+		0% {
+			transform: scale(0);
+			opacity: 0;
+		}
+		50% {
+			transform: scale(1.2);
+		}
+		100% {
+			transform: scale(1);
+			opacity: 1;
+		}
+	}
+
+	/* Shimmer effect for skeleton loading */
+	.animate-shimmer {
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			rgba(255, 255, 255, 0.4) 50%,
+			transparent 100%
+		);
+		background-size: 200% 100%;
+		animation: shimmer 1.5s infinite;
+	}
+
+	.dark .animate-shimmer {
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			rgba(255, 255, 255, 0.1) 50%,
+			transparent 100%
+		);
+		background-size: 200% 100%;
+	}
+
+	@keyframes shimmer {
+		0% {
+			background-position: 200% 0;
+		}
+		100% {
+			background-position: -200% 0;
+		}
+	}
+
+	/* Chevron rotation for expandable sections */
+	.rotate-0 {
+		transform: rotate(0deg);
+	}
+
+	.rotate-180 {
+		transform: rotate(180deg);
+	}
+
+	/* Staggered animation delays for list items */
+	.animation-delay-75 {
+		animation-delay: 75ms;
+	}
+
+	.animation-delay-100 {
+		animation-delay: 100ms;
+	}
+
+	.animation-delay-150 {
+		animation-delay: 150ms;
+	}
+
+	.animation-delay-200 {
+		animation-delay: 200ms;
+	}
+
+	.animation-delay-300 {
+		animation-delay: 300ms;
 	}
 
 	/* Screen reader only - visually hidden but accessible */
@@ -173,9 +339,16 @@
    ========================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
-	/* Disable custom animations */
-	.animate-fade-in {
-		animation: none;
+	/* Disable all custom animations */
+	.animate-fade-in,
+	.animate-slide-in-down,
+	.animate-slide-in-up,
+	.animate-scale-in,
+	.animate-scale-in-tr,
+	.animate-pulse-subtle,
+	.animate-success-pop,
+	.animate-shimmer {
+		animation: none !important;
 	}
 
 	/* Disable smooth scrolling */
@@ -183,19 +356,13 @@
 		scroll-behavior: auto;
 	}
 
-	/* Reduce transition durations significantly */
-	.transition-colors,
-	.transition-opacity,
-	.transition-transform,
-	.transition-all {
+	/* Reduce transition durations to minimum (instant but not jarring) */
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
-	}
-
-	/* Disable transform animations on buttons/interactive elements */
-	.btn,
-	button,
-	a {
-		transition: none !important;
 	}
 }
 
