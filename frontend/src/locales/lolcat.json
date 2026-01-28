@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub releesez",
 			"changelog_empty_after_link": "4 updaets.",
 			"new_version_available": "{version} availabl",
+			"check_for_updates": "Chek 4 updaetz",
 			"github_releases": "GitHub releesez",
 			"bug_fixes": "Bug Fiksez",
 			"new_features": "New Featurez",
@@ -333,7 +334,8 @@
 			"update_now": "Updat nao",
 			"manage": "Manaj",
 			"request_links": "Request Linkz",
-			"update_available": "Updat availabl"
+			"update_available": "Updat availabl",
+			"check_for_updates": "Chek 4 updaetz"
 		},
 		"dashboard": {
 			"title": "Dashbord",

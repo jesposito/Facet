@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub-Releases",
 			"changelog_empty_after_link": "für Updates.",
 			"new_version_available": "{version} verfügbar",
+			"check_for_updates": "Nach Updates suchen",
 			"github_releases": "GitHub-Releases",
 			"bug_fixes": "Fehlerbehebungen",
 			"new_features": "Neue Funktionen",
@@ -333,7 +334,8 @@
 			"update_now": "Jetzt aktualisieren",
 			"manage": "Verwalten",
 			"request_links": "Anfrage-Links",
-			"update_available": "Update verfügbar"
+			"update_available": "Update verfügbar",
+			"check_for_updates": "Nach Updates suchen"
 		},
 		"dashboard": {
 			"title": "Dashboard",

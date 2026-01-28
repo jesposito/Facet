@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub tidings",
 			"changelog_empty_after_link": "for tidings.",
 			"new_version_available": "{version} awaits",
+			"check_for_updates": "Seek renewals",
 			"github_releases": "GitHub tidings",
 			"bug_fixes": "Troubles Mended",
 			"new_features": "New Enchantments",
@@ -333,7 +334,8 @@
 			"update_now": "Renew now",
 			"manage": "Govern",
 			"request_links": "Request Bindings",
-			"update_available": "Renewal awaits"
+			"update_available": "Renewal awaits",
+			"check_for_updates": "Seek renewals"
 		},
 		"dashboard": {
 			"title": "Great Hall",
