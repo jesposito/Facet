@@ -17,6 +17,7 @@
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 
 	let experiences: Experience[] = $state([]);
 	let loading = $state(true);
@@ -53,6 +54,8 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let companyLogoFile: FileList | null = $state(null);
+	let companyLogoLibraryUrl = $state('');
+	let clearCompanyLogo = $state(false);
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
 
@@ -173,6 +176,8 @@
 		isDraft = false;
 		sortOrder = 0;
 		companyLogoFile = null;
+		companyLogoLibraryUrl = '';
+		clearCompanyLogo = false;
 		adminTagIds = [];
 		editingExp = null;
 	}
@@ -217,6 +222,8 @@
 		visibility = exp.visibility;
 		isDraft = exp.is_draft;
 		sortOrder = exp.sort_order;
+		companyLogoLibraryUrl = exp.company_logo_library_url || '';
+		clearCompanyLogo = false;
 		adminTagIds = (exp as any).admin_tags || [];
 		showForm = true;
 	}
@@ -247,10 +254,12 @@
 				.map((s) => s.trim())
 				.filter((s) => s);
 
-			// Use FormData for file uploads, plain object otherwise
+			// Use FormData for file uploads or clearing files, plain object otherwise
 			const hasFile = companyLogoFile && companyLogoFile.length > 0;
-			
-			if (hasFile) {
+			const needsClearFile = clearCompanyLogo && editingExp?.company_logo;
+			const needsFormData = hasFile || needsClearFile;
+
+			if (needsFormData) {
 				const formData = new FormData();
 				formData.append('company', company.trim());
 				formData.append('title', title.trim());
@@ -264,7 +273,16 @@
 				formData.append('is_draft', String(isDraft));
 				formData.append('sort_order', String(sortOrder));
 				formData.append('admin_tags', JSON.stringify(adminTagIds));
-				formData.append('company_logo', companyLogoFile![0]);
+
+				if (hasFile) {
+					formData.append('company_logo', companyLogoFile![0]);
+					// Clear library URL when uploading a new file
+					formData.append('company_logo_library_url', '');
+				} else if (needsClearFile) {
+					// Clear existing file - PocketBase accepts empty string to remove file
+					formData.append('company_logo', '');
+					formData.append('company_logo_library_url', companyLogoLibraryUrl || '');
+				}
 
 				if (editingExp) {
 					await collection('experience').update(editingExp.id, formData);
@@ -274,7 +292,7 @@
 					toasts.add('success', 'Experience created successfully');
 				}
 			} else {
-				const data = {
+				const data: Record<string, unknown> = {
 					company: company.trim(),
 					title: title.trim(),
 					location: location.trim(),
@@ -286,7 +304,8 @@
 					visibility,
 					is_draft: isDraft,
 					sort_order: sortOrder,
-					admin_tags: adminTagIds
+					admin_tags: adminTagIds,
+					company_logo_library_url: companyLogoLibraryUrl || null
 				};
 
 				if (editingExp) {
@@ -543,25 +562,16 @@
 				</div>
 
 				<div>
-					<label for="company_logo" class="label">{$t('admin.content.experience.company_logo_label')}</label>
-					<input
-						type="file"
-						id="company_logo"
-						accept="image/*"
-						bind:files={companyLogoFile}
-						class="input"
+					<SingleMediaPicker
+						label={$t('admin.content.experience.company_logo_label')}
+						helpText={$t('admin.content.experience.company_logo_help')}
+						bind:value={companyLogoLibraryUrl}
+						bind:fileInput={companyLogoFile}
+						bind:clearExisting={clearCompanyLogo}
+						currentFileUrl={editingExp?.company_logo ? pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' }) : ''}
+						currentFileName={editingExp?.company_logo || ''}
+						imagesOnly={true}
 					/>
-					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.company_logo_help')}</p>
-					{#if editingExp?.company_logo}
-						<div class="mt-2 flex items-center gap-2">
-							<img
-								src={pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' })}
-								alt={$t('admin.content.experience.company_logo_current')}
-								class="w-8 h-8 object-contain rounded border border-gray-200 dark:border-gray-600"
-							/>
-							<span class="text-sm text-gray-500">{$t('admin.content.experience.company_logo_current')}</span>
-						</div>
-					{/if}
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">

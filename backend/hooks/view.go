@@ -862,7 +862,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					experience := serializeRecords(experienceRecords)
 					expCollectionID := experienceRecords[0].Collection().Id
 					for i, e := range experience {
-						if companyLogo, ok := e["company_logo"].(string); ok && companyLogo != "" {
+						// Prefer library URL over file upload
+						if libraryURL, ok := e["company_logo_library_url"].(string); ok && libraryURL != "" {
+							experience[i]["company_logo_url"] = libraryURL
+						} else if companyLogo, ok := e["company_logo"].(string); ok && companyLogo != "" {
 							if id, ok := e["id"].(string); ok {
 								experience[i]["company_logo_url"] = fileURL(expCollectionID, id, companyLogo, "")
 							}
@@ -911,7 +914,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					0,
 					nil,
 				)
-				if err == nil {
+				if err == nil && len(educationRecords) > 0 {
+					education := serializeRecords(educationRecords)
+					eduCollectionID := educationRecords[0].Collection().Id
+					for i, e := range education {
+						// Prefer library URL over file upload
+						if libraryURL, ok := e["institution_logo_library_url"].(string); ok && libraryURL != "" {
+							education[i]["institution_logo_url"] = libraryURL
+						} else if institutionLogo, ok := e["institution_logo"].(string); ok && institutionLogo != "" {
+							if id, ok := e["id"].(string); ok {
+								education[i]["institution_logo_url"] = fileURL(eduCollectionID, id, institutionLogo, "")
+							}
+						}
+					}
+					response["education"] = filterBySelectedItemsWithDefault(education, eduSelectedItems, eduConfigured)
+				} else if err == nil {
 					education := serializeRecords(educationRecords)
 					response["education"] = filterBySelectedItemsWithDefault(education, eduSelectedItems, eduConfigured)
 				}

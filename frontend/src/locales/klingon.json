@@ -623,6 +623,9 @@
 				"empty_state_message": "Add your training background, degrees, and academic victories.",
 				"institution_label": "Academy",
 				"institution_placeholder": "Klingon Warrior Academy",
+				"institution_logo_label": "Academy Emblem",
+				"institution_logo_help": "Upload an emblem for this academy (PNG, JPG, or SVG)",
+				"institution_logo_current": "Current emblem",
 				"degree_label": "Degree / Program",
 				"degree_placeholder": "Advanced Tactical Operations",
 				"field_label": "Field of Study",
@@ -1154,7 +1157,15 @@
 			"edit_mime_label": "Classification",
 			"edit_thumbnail_label": "Preview Coordinates",
 			"toast_media_updated": "Asset modified",
-			"toast_update_failed": "Modification failed"
+			"toast_update_failed": "Modification failed",
+			"single_picker_select_from_library": "Select from Arsenal",
+			"single_picker_upload_new": "Upload New",
+			"single_picker_or": "or",
+			"single_picker_remove": "Remove",
+			"single_picker_new_upload": "New upload (replaces current)",
+			"single_picker_from_library": "Selected from arsenal",
+			"single_picker_current": "Current asset",
+			"single_picker_modal_title": "Select Image"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",

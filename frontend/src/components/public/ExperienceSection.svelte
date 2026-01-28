@@ -143,7 +143,7 @@
 								<img
 									src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '48x48' })}
 									alt="{item.company} logo"
-									class="w-12 h-12 object-contain rounded border border-gray-200 dark:border-gray-600 bg-white"
+									class="w-12 h-12 object-contain rounded"
 								/>
 							</div>
 						{/if}
@@ -179,7 +179,7 @@
 							{#each item.bullets as bullet}
 								<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300">
 									<span class="text-primary-500 mt-1">•</span>
-									<span>{stripBulletPrefix(bullet)}</span>
+									<span class="mt-[0.1rem]">{stripBulletPrefix(bullet)}</span>
 								</li>
 							{/each}
 						</ul>

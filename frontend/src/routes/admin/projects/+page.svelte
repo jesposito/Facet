@@ -19,6 +19,7 @@
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 
 	let projects: Project[] = $state([]);
 	let loading = $state(true);
@@ -38,6 +39,8 @@ let isDraft = $state(false);
 let isFeatured = $state(false);
 let sortOrder = $state(0);
 let coverImageFile: FileList | null = $state(null);
+let coverImageLibraryUrl = $state('');
+let clearCoverImage = $state(false);
 let mediaRefs: string[] = $state([]);
 let mediaPickerRef: MediaPicker | undefined = $state();
 let showShortcodes = $state(false);
@@ -181,6 +184,8 @@ let filteredProjects = $derived(
 		isFeatured = false;
 		sortOrder = 0;
 		coverImageFile = null;
+		coverImageLibraryUrl = '';
+		clearCoverImage = false;
 	editingProject = null;
 	mediaRefs = [];
 	adminTagIds = [];
@@ -230,6 +235,8 @@ let filteredProjects = $derived(
 	isFeatured = project.is_featured;
 	sortOrder = project.sort_order;
 	adminTagIds = project.admin_tags || [];
+	coverImageLibraryUrl = (project as any).cover_image_library_url || '';
+	clearCoverImage = false;
 	showForm = true;
 	}
 
@@ -295,6 +302,15 @@ let filteredProjects = $derived(
 
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
+				// Clear library URL when uploading a new file
+				formData.append('cover_image_library_url', '');
+			} else if (clearCoverImage && editingProject?.cover_image) {
+				// Clear existing file - PocketBase accepts empty string to remove file
+				formData.append('cover_image', '');
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
+			} else {
+				// Set library URL when not uploading a file
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
 			}
 
 			if (editingProject) {
@@ -742,24 +758,16 @@ let filteredProjects = $derived(
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Media</h2>
 
 				<div>
-					<label for="cover_image" class="label">Cover Image</label>
-					<input
-						type="file"
-						id="cover_image"
-						accept="image/*"
-						bind:files={coverImageFile}
-						class="input"
+					<SingleMediaPicker
+						label="Cover Image"
+						helpText="Displayed in project cards and as the header image"
+						bind:value={coverImageLibraryUrl}
+						bind:fileInput={coverImageFile}
+						bind:clearExisting={clearCoverImage}
+						currentFileUrl={editingProject?.cover_image ? getCoverImageUrl(editingProject) : ''}
+						currentFileName={editingProject?.cover_image || ''}
+						imagesOnly={true}
 					/>
-					{#if editingProject?.cover_image && !coverImageFile}
-						<div class="mt-2 flex items-center gap-2">
-							<img
-								src={getCoverImageUrl(editingProject)}
-								alt="Current cover"
-								class="w-20 h-20 object-cover rounded"
-							/>
-							<span class="text-sm text-gray-500">Current image</span>
-						</div>
-					{/if}
 				</div>
 
 			<MediaPicker

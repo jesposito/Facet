@@ -64,6 +64,7 @@ func main() {
 	hooks.RegisterDemoHandlers(app)
 	hooks.RegisterTestimonialHooks(app, testimonialService, rateLimitService)
 	hooks.RegisterDuplicateHooks(app)
+	hooks.RegisterExperienceHooks(app)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)

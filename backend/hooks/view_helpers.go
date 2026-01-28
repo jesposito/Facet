@@ -220,7 +220,12 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 		}
 
 		if sectionName == "projects" || sectionName == "posts" || isCustomContentSection(sectionName) {
-			if coverImage := record.GetString("cover_image"); coverImage != "" {
+			// Prefer library URL over file upload
+			if libraryURL := record.GetString("cover_image_library_url"); libraryURL != "" {
+				item["cover_image_url"] = libraryURL
+				item["cover_image_large_url"] = libraryURL
+				item["cover_image_thumb_url"] = libraryURL
+			} else if coverImage := record.GetString("cover_image"); coverImage != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["cover_image_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage
@@ -256,10 +261,24 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 		}
 
 		if sectionName == "experience" {
-			if companyLogo := record.GetString("company_logo"); companyLogo != "" {
+			// Prefer library URL over file upload
+			if libraryURL := record.GetString("company_logo_library_url"); libraryURL != "" {
+				item["company_logo_url"] = libraryURL
+			} else if companyLogo := record.GetString("company_logo"); companyLogo != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["company_logo_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + companyLogo
+			}
+		}
+
+		if sectionName == "education" {
+			// Prefer library URL over file upload
+			if libraryURL := record.GetString("institution_logo_library_url"); libraryURL != "" {
+				item["institution_logo_url"] = libraryURL
+			} else if institutionLogo := record.GetString("institution_logo"); institutionLogo != "" {
+				collectionID := record.Collection().Id
+				recordID := record.Id
+				item["institution_logo_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + institutionLogo
 			}
 		}
 

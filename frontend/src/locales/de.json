@@ -623,6 +623,9 @@
 				"empty_state_message": "Fügen Sie Ihren Bildungshintergrund, Abschlüsse und akademischen Erfolge hinzu.",
 				"institution_label": "Institution",
 				"institution_placeholder": "Technische Universität München",
+				"institution_logo_label": "Institutionslogo",
+				"institution_logo_help": "Logo für diese Institution hochladen (PNG, JPG oder SVG)",
+				"institution_logo_current": "Aktuelles Logo",
 				"degree_label": "Abschluss / Programm",
 				"degree_placeholder": "B.Sc. Informatik",
 				"field_label": "Studienfach",
@@ -1154,7 +1157,15 @@
 			"edit_mime_label": "MIME-Typ",
 			"edit_thumbnail_label": "Vorschaubild-URL",
 			"toast_media_updated": "Medium aktualisiert",
-			"toast_update_failed": "Medium konnte nicht aktualisiert werden"
+			"toast_update_failed": "Medium konnte nicht aktualisiert werden",
+			"single_picker_select_from_library": "Aus Bibliothek wählen",
+			"single_picker_upload_new": "Neu hochladen",
+			"single_picker_or": "oder",
+			"single_picker_remove": "Entfernen",
+			"single_picker_new_upload": "Neuer Upload (ersetzt aktuelles)",
+			"single_picker_from_library": "Aus Bibliothek ausgewählt",
+			"single_picker_current": "Aktuelle Datei",
+			"single_picker_modal_title": "Bild auswählen"
 		},
 		"tokens": {
 			"page_title": "Freigabe-Token | Facet",

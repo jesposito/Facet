@@ -623,6 +623,9 @@
 				"empty_state_message": "Add thy learning background, degrees, and scholarly achievements.",
 				"institution_label": "House of Learning",
 				"institution_placeholder": "Grey Havens Academy",
+				"institution_logo_label": "House Sigil",
+				"institution_logo_help": "Upload a sigil for this house of learning (PNG, JPG, or SVG)",
+				"institution_logo_current": "Current sigil",
 				"degree_label": "Degree / Program",
 				"degree_placeholder": "Master of Lore",
 				"field_label": "Field of Study",
@@ -1154,7 +1157,15 @@
 			"edit_mime_label": "Essence Type",
 			"edit_thumbnail_label": "Vision Path",
 			"toast_media_updated": "Memory inscribed anew",
-			"toast_update_failed": "The inscription faltered"
+			"toast_update_failed": "The inscription faltered",
+			"single_picker_select_from_library": "Choose from Archives",
+			"single_picker_upload_new": "Inscribe Anew",
+			"single_picker_or": "or",
+			"single_picker_remove": "Unbind",
+			"single_picker_new_upload": "New inscription (shall replace current)",
+			"single_picker_from_library": "Chosen from archives",
+			"single_picker_current": "Current binding",
+			"single_picker_modal_title": "Choose Vision"
 		},
 		"tokens": {
 			"page_title": "Tokens of Passage | Facet",

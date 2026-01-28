@@ -623,6 +623,9 @@
 				"empty_state_message": "Add your educational background, degrees, and academic achievements.",
 				"institution_label": "Institution",
 				"institution_placeholder": "Stanford University",
+				"institution_logo_label": "Institution Logo",
+				"institution_logo_help": "Upload a logo for this institution (PNG, JPG, or SVG)",
+				"institution_logo_current": "Current logo",
 				"degree_label": "Degree / Program",
 				"degree_placeholder": "B.S. Computer Science",
 				"field_label": "Field of Study",
@@ -1154,7 +1157,15 @@
 			"edit_mime_label": "MIME Type",
 			"edit_thumbnail_label": "Thumbnail URL",
 			"toast_media_updated": "Media updated",
-			"toast_update_failed": "Failed to update media"
+			"toast_update_failed": "Failed to update media",
+			"single_picker_select_from_library": "Select from Library",
+			"single_picker_upload_new": "Upload New",
+			"single_picker_or": "or",
+			"single_picker_remove": "Remove",
+			"single_picker_new_upload": "New upload (will replace current)",
+			"single_picker_from_library": "Selected from library",
+			"single_picker_current": "Current file",
+			"single_picker_modal_title": "Select Image"
 		},
 		"tokens": {
 			"page_title": "Share Tokens | Facet",

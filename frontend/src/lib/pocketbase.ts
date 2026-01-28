@@ -88,6 +88,7 @@ export interface Experience {
 	media?: string[];
 	company_logo?: string;
 	company_logo_url?: string;
+	company_logo_library_url?: string;
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
@@ -111,6 +112,7 @@ export interface Project {
 	media?: string[];
 	media_refs?: string[];
 	cover_image?: string;
+	cover_image_library_url?: string;
 	categories?: string[];
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	view_visibility?: Record<string, boolean>;
@@ -138,6 +140,9 @@ export interface Education {
 	start_date?: string;
 	end_date?: string;
 	description?: string;
+	institution_logo?: string;
+	institution_logo_url?: string;
+	institution_logo_library_url?: string;
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
@@ -169,6 +174,7 @@ export interface Post {
 	excerpt?: string;
 	content?: string;
 	cover_image?: string;
+	cover_image_library_url?: string;
 	tags?: string[];
 	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';

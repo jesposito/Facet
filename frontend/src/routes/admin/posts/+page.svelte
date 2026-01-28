@@ -16,6 +16,7 @@ import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
 import PageHelp from '$components/admin/PageHelp.svelte';
 import AdminFilters from '$components/admin/AdminFilters.svelte';
+import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 
 let posts: Post[] = $state([]);
 let loading = $state(true);
@@ -104,6 +105,8 @@ afterNavigate(() => {
 	let publishedAt = $state('');
 	let saving = $state(false);
 	let coverImageFile: FileList | null = $state(null);
+	let coverImageLibraryUrl = $state('');
+	let clearCoverImage = $state(false);
 
 	// Simple pattern - admin layout handles auth
 onMount(loadPosts);
@@ -143,6 +146,8 @@ function resetForm() {
 	featured = false;
 	publishedAt = '';
 	coverImageFile = null;
+	coverImageLibraryUrl = '';
+	clearCoverImage = false;
 		editingPost = null;
 	}
 
@@ -184,6 +189,8 @@ function openEditForm(post: Post) {
 	featured = post.featured || false;
 	publishedAt = toDateInputValue(post.published_at);
 	coverImageFile = null;
+	coverImageLibraryUrl = (post as any).cover_image_library_url || '';
+	clearCoverImage = false;
 	showForm = true;
 	}
 
@@ -259,6 +266,15 @@ function openEditForm(post: Post) {
 
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
+				// Clear library URL when uploading a new file
+				formData.append('cover_image_library_url', '');
+			} else if (clearCoverImage && (editingPost as any)?.cover_image) {
+				// Clear existing file - PocketBase accepts empty string to remove file
+				formData.append('cover_image', '');
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
+			} else {
+				// Set library URL when not uploading a file
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
 			}
 
 			if (editingPost) {
@@ -546,25 +562,16 @@ function openEditForm(post: Post) {
 				</div>
 
 				<div>
-					<label for="cover_image" class="label">Cover Image</label>
-					<input
-						type="file"
-						id="cover_image"
-						accept="image/*"
-						bind:files={coverImageFile}
-						class="input"
+					<SingleMediaPicker
+						label="Cover Image"
+						helpText="Displayed in post grids and as the header image"
+						bind:value={coverImageLibraryUrl}
+						bind:fileInput={coverImageFile}
+						bind:clearExisting={clearCoverImage}
+						currentFileUrl={editingPost ? getCoverImageUrl(editingPost) : ''}
+						currentFileName={(editingPost as any)?.cover_image || ''}
+						imagesOnly={true}
 					/>
-					{#if editingPost && getCoverImageUrl(editingPost) && !coverImageFile}
-						<div class="mt-2 flex items-center gap-2">
-							<img
-								src={getCoverImageUrl(editingPost)}
-								alt="Current cover"
-								class="w-20 h-20 object-cover rounded"
-							/>
-							<span class="text-sm text-gray-500">Current image</span>
-						</div>
-					{/if}
-					<p class="text-xs text-gray-500 mt-1">Displayed in post grids and as the header image</p>
 				</div>
 			</div>
 
