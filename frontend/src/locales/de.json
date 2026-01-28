@@ -287,6 +287,11 @@
 			"save_failed": "Tag konnte nicht gespeichert werden",
 			"delete_failed": "Tag konnte nicht gelöscht werden"
 		},
+		"form": {
+			"saving": "Speichern...",
+			"saved": "Gespeichert",
+			"error_saving": "Speichern fehlgeschlagen"
+		},
 		"sidebar": {
 			"dashboard": "Dashboard",
 			"homepage": "Startseite",

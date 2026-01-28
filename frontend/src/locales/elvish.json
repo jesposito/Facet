@@ -287,6 +287,11 @@
 			"save_failed": "Token could not be preserved",
 			"delete_failed": "Token could not be unmade"
 		},
+		"form": {
+			"saving": "Preserving...",
+			"saved": "Preserved",
+			"error_saving": "Preservation failed"
+		},
 		"sidebar": {
 			"dashboard": "Great Hall",
 			"homepage": "Home Realm",

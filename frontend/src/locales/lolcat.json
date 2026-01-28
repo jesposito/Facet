@@ -287,6 +287,11 @@
 			"save_failed": "Faild 2 saev tag",
 			"delete_failed": "Faild 2 delet tag"
 		},
+		"form": {
+			"saving": "Saevin...",
+			"saved": "Saevd!",
+			"error_saving": "Faild 2 saev"
+		},
 		"sidebar": {
 			"dashboard": "Dashbord",
 			"homepage": "Homepaj",

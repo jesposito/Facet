@@ -287,6 +287,11 @@
 			"save_failed": "Tag could not be secured",
 			"delete_failed": "Tag could not be destroyed"
 		},
+		"form": {
+			"saving": "Transmitting...",
+			"saved": "Secured",
+			"error_saving": "Transmission failed"
+		},
 		"sidebar": {
 			"dashboard": "Command Center",
 			"homepage": "Home Base",

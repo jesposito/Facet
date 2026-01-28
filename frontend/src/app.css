@@ -94,7 +94,7 @@
 	.input {
 		@apply w-full px-4 py-2 rounded-lg border border-gray-300 bg-white;
 		@apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
-		@apply dark:bg-gray-800 dark:border-gray-700 dark:text-white;
+		@apply dark:bg-gray-800 dark:border-gray-600 dark:text-white;
 		@apply disabled:bg-gray-100 disabled:cursor-not-allowed dark:disabled:bg-gray-900;
 	}
 
@@ -103,7 +103,7 @@
 	}
 
 	.card {
-		@apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700;
+		@apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600;
 	}
 
 	.section-title {
