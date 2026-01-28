@@ -98,7 +98,7 @@
 	let generatingToken = $state(false);
 
 	// Sections configuration with layout and width support (itemConfig empty for new views)
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }>; categoryOrder?: string[] }> = $state({});
+	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }>; categoryOrder?: string[]; disabledCategories?: string[]; categoryDisplayModes?: Record<string, string> }> = $state({});
 
 	// Section order for drag-drop
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
@@ -180,7 +180,7 @@
 		// Start with all sections enabled by default for new views, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
+			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined, disabledCategories: undefined, categoryDisplayModes: undefined };
 		}
 
 		// Add custom content sections (each custom content item is its own section)
@@ -463,8 +463,17 @@
 						layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default',
 						width: sections[key]?.width || 'full'
 					};
-					if (key === 'skills' && sections[key]?.categoryOrder?.length) {
-						sectionData.categoryOrder = sections[key].categoryOrder;
+					// Include skills section settings if set
+					if (key === 'skills') {
+						if (sections[key]?.categoryOrder?.length) {
+							sectionData.categoryOrder = sections[key].categoryOrder;
+						}
+						if (sections[key]?.disabledCategories?.length) {
+							sectionData.disabledCategories = sections[key].disabledCategories;
+						}
+						if (sections[key]?.categoryDisplayModes && Object.keys(sections[key].categoryDisplayModes).length > 0) {
+							sectionData.categoryDisplayModes = sections[key].categoryDisplayModes;
+						}
 					}
 					return sectionData;
 				});

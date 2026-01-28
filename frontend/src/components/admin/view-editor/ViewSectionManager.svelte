@@ -464,6 +464,8 @@
 								bind:selectedItems={sections['skills'].items}
 								bind:categoryOrder={sections['skills'].categoryOrder}
 								bind:disabledCategories={sections['skills'].disabledCategories}
+								bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
+								sectionLayout={sections['skills'].layout || 'grouped'}
 								onUpdate={updateSections}
 							/>
 						{:else}

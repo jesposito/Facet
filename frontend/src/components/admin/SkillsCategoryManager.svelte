@@ -43,12 +43,16 @@
 		selectedItems = $bindable(),
 		categoryOrder = $bindable(),
 		disabledCategories = $bindable(),
+		categoryDisplayModes = $bindable(),
+		sectionLayout = 'grouped',
 		onUpdate
 	}: {
 		items: SkillItem[];
 		selectedItems: string[];
 		categoryOrder: string[];
 		disabledCategories: string[];
+		categoryDisplayModes: Record<string, string>;
+		sectionLayout: string;
 		onUpdate: () => void;
 	} = $props();
 
@@ -134,6 +138,23 @@
 		} else {
 			// Disable: add to disabled list
 			disabledCategories = [...(disabledCategories || []), category];
+		}
+		onUpdate();
+	}
+
+	// Get the display mode for a category (empty string means use section default)
+	function getCategoryDisplayMode(category: string): string {
+		return categoryDisplayModes?.[category] || '';
+	}
+
+	// Update display mode for a category
+	function updateCategoryDisplayMode(category: string, mode: string) {
+		if (mode === '') {
+			// Remove custom mode, use section default
+			const { [category]: _, ...rest } = categoryDisplayModes || {};
+			categoryDisplayModes = rest;
+		} else {
+			categoryDisplayModes = { ...(categoryDisplayModes || {}), [category]: mode };
 		}
 		onUpdate();
 	}
@@ -289,6 +310,21 @@
 								{publicCount} {$t('admin.view_editor.skills_categories.skills')}
 							{/if}
 						</span>
+
+						<!-- Per-Category Layout Selector -->
+						{#if !isDisabled && (sectionLayout === 'grouped' || sectionLayout === 'bars')}
+							<select
+								class="text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded px-2 py-1 flex-shrink-0"
+								value={getCategoryDisplayMode(category)}
+								onchange={(e) => updateCategoryDisplayMode(category, e.currentTarget.value)}
+								onclick={(e) => e.stopPropagation()}
+								aria-label={$t('admin.view_editor.skills_categories.display_mode_label', { values: { category } })}
+							>
+								<option value="">{$t('admin.view_editor.skills_categories.use_section_default')}</option>
+								<option value="grouped">{$t('admin.view_editor.skills_categories.layout_grouped')}</option>
+								<option value="bars">{$t('admin.view_editor.skills_categories.layout_bars')}</option>
+							</select>
+						{/if}
 
 						<!-- Expand/Collapse Button -->
 						{#if publicCount > 0 && !isDisabled}

@@ -168,6 +168,18 @@
 		return undefined;
 	}
 
+	function getCategoryDisplayModes(sectionKey: string): Record<string, string> | undefined {
+		// First check view display modes (default view), then homepage settings (legacy)
+		if (data.sectionCategoryDisplayModes?.[sectionKey]) {
+			return data.sectionCategoryDisplayModes[sectionKey];
+		}
+		// For legacy homepage, check the section config
+		if (data.homepageSections?.[sectionKey]?.categoryDisplayModes) {
+			return data.homepageSections[sectionKey].categoryDisplayModes;
+		}
+		return undefined;
+	}
+
 	function getWidthClass(width: string): string {
 		switch (width) {
 			case 'half': return 'section-half';
@@ -531,7 +543,7 @@
 				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
 					<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
 				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} />
+					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
 					<div class="flex items-center justify-between gap-3 mb-4">
 						<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>

@@ -956,7 +956,11 @@
 				"all_selected": "alle",
 				"none_selected_hint": "Alle Fähigkeiten werden angezeigt. Zum Anpassen auswählen.",
 				"drag_hint": "Ziehen zum Neuordnen der Fähigkeiten in dieser Kategorie.",
-				"no_skills": "Keine Fähigkeiten gefunden. Fügen Sie zuerst Fähigkeiten im Bereich Fähigkeiten hinzu."
+				"no_skills": "Keine Fähigkeiten gefunden. Fügen Sie zuerst Fähigkeiten im Bereich Fähigkeiten hinzu.",
+				"display_mode_label": "Anzeigemodus für {category}",
+				"use_section_default": "Standard",
+				"layout_grouped": "Abzeichen",
+				"layout_bars": "Balken"
 			},
 			"override_editor": {
 				"title": "Für diese Ansicht anpassen",

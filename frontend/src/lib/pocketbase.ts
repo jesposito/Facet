@@ -335,6 +335,7 @@ export interface ViewSection {
 	itemConfig?: Record<string, ItemConfig>;
 	categoryOrder?: string[]; // For skills section: custom order of categories
 	disabledCategories?: string[]; // For skills section: categories to hide entirely
+	categoryDisplayModes?: Record<string, string>; // For skills section: per-category layout overrides
 }
 
 // Valid width options with labels

@@ -186,7 +186,9 @@
 				width,
 				widthClass,
 				visible: config?.enabled && data.length > 0,
-				categoryOrder: config?.categoryOrder
+				categoryOrder: config?.categoryOrder,
+				disabledCategories: config?.disabledCategories,
+				categoryDisplayModes: config?.categoryDisplayModes
 			};
 		}
 
@@ -314,6 +316,8 @@
 							items={computed.data}
 							layout={computed.layout}
 							categoryOrder={computed.categoryOrder}
+							disabledCategories={computed.disabledCategories}
+							categoryDisplayModes={computed.categoryDisplayModes}
 						/>
 					</div>
 				{:else if sectionKey === 'posts' && computed?.visible}

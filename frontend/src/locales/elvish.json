@@ -956,7 +956,11 @@
 				"all_selected": "all",
 				"none_selected_hint": "All crafts shown. Select to tailor.",
 				"drag_hint": "Draw to reorder crafts within this category.",
-				"no_skills": "No crafts found. Add crafts in the Crafts section first."
+				"no_skills": "No crafts found. Add crafts in the Crafts section first.",
+				"display_mode_label": "Display manner for {category}",
+				"use_section_default": "Default",
+				"layout_grouped": "Badges",
+				"layout_bars": "Bars"
 			},
 			"override_editor": {
 				"title": "Tailor for This Vision",

@@ -94,6 +94,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						sectionWidths: viewData.section_widths || {},
 						sectionCategoryOrders: viewData.section_category_orders || {},
 						sectionDisabledCategories: viewData.section_disabled_categories || {},
+						sectionCategoryDisplayModes: viewData.section_category_display_modes || {},
 						experience: viewData.sections?.experience || [],
 						projects: viewData.sections?.projects || [],
 						education: viewData.sections?.education || [],

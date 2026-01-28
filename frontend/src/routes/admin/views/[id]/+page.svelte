@@ -116,6 +116,8 @@
 		width: SectionWidth;
 		itemConfig: Record<string, ItemConfig>;
 		categoryOrder?: string[];
+		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
 	}> = $state({});
 
 	// Section order for drag-drop (array of section keys with unique ids for dndzone)
@@ -661,7 +663,7 @@
 		// Start with all standard sections disabled, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined };
+			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined, disabledCategories: undefined, categoryDisplayModes: undefined };
 		}
 
 		// Add custom content sections (each custom content item is its own section)
@@ -694,6 +696,8 @@
 					sections[vs.section].width = vs.width || 'full';
 					sections[vs.section].itemConfig = vs.itemConfig || {};
 					sections[vs.section].categoryOrder = vs.categoryOrder;
+					sections[vs.section].disabledCategories = vs.disabledCategories;
+					sections[vs.section].categoryDisplayModes = vs.categoryDisplayModes;
 				}
 			}
 		} else {
@@ -847,9 +851,17 @@
 							sectionData.itemConfig = filteredConfig;
 						}
 					}
-					// Include categoryOrder for skills section if set
-					if (key === 'skills' && sectionConfig?.categoryOrder?.length) {
-						sectionData.categoryOrder = sectionConfig.categoryOrder;
+					// Include skills section settings if set
+					if (key === 'skills') {
+						if (sectionConfig?.categoryOrder?.length) {
+							sectionData.categoryOrder = sectionConfig.categoryOrder;
+						}
+						if (sectionConfig?.disabledCategories?.length) {
+							sectionData.disabledCategories = sectionConfig.disabledCategories;
+						}
+						if (sectionConfig?.categoryDisplayModes && Object.keys(sectionConfig.categoryDisplayModes).length > 0) {
+							sectionData.categoryDisplayModes = sectionConfig.categoryDisplayModes;
+						}
 					}
 					return sectionData;
 				});
