@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
 )
 
 // MediaUsageItem represents a single content item that references a media item.
@@ -242,4 +243,65 @@ func BuildMediaItem(dataDir, collectionName, collectionID, recordID, field, file
 	item.Mime = mimeType
 
 	return item, nil
+}
+
+// GetMediaDisplayName retrieves a custom display name for a media file.
+// Returns empty string if no custom name is set.
+func GetMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, filename string) string {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return ""
+	}
+
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	if err != nil || len(records) == 0 {
+		return ""
+	}
+
+	return records[0].GetString("display_name")
+}
+
+// SetMediaDisplayName sets a custom display name for a media file.
+// Creates a new record or updates existing one.
+func SetMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, filename, displayName string) error {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return fmt.Errorf("media_display_names collection not found: %w", err)
+	}
+
+	// Check if record already exists
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+
+	var record *core.Record
+	if err == nil && len(records) > 0 {
+		// Update existing
+		record = records[0]
+	} else {
+		// Create new
+		record = core.NewRecord(collection)
+		record.Set("collection_id", collectionID)
+		record.Set("record_id", recordID)
+		record.Set("filename", filename)
+	}
+
+	record.Set("display_name", displayName)
+	return app.Save(record)
+}
+
+// DeleteMediaDisplayName removes a custom display name for a media file.
+func DeleteMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, filename string) error {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return nil // Collection doesn't exist, nothing to delete
+	}
+
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	if err != nil || len(records) == 0 {
+		return nil // No record to delete
+	}
+
+	return app.Delete(records[0])
 }

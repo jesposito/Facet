@@ -80,12 +80,9 @@
 		return ['youtube', 'vimeo', 'loom'].includes(provider);
 	}
 
-	// Check if item supports title editing (only uploads and external_media)
+	// Check if item supports editing (all non-orphan media can have display names)
 	function isEditable(item: MediaItem): boolean {
-		if (item.orphan) return false;
-		if (item.external || item.collection === 'external_media') return true;
-		if (item.collection === 'uploads') return true;
-		return false;
+		return !item.orphan;
 	}
 
 	type MediaStats = {
@@ -170,31 +167,63 @@
 		editForm.saving = true;
 		try {
 			const isExternal = editItem.external || editItem.collection === 'external_media';
-			const collectionName = isExternal ? 'external_media' : editItem.collection;
+			const isUploads = editItem.collection === 'uploads';
 
-			const body = isExternal
-				? {
-						title: editForm.title.trim(),
-						url: editForm.url.trim(),
-						mime: editForm.mime.trim(),
-						thumbnail_url: editForm.thumbnail_url.trim()
-				  }
-				: {
-						title: editForm.title.trim()
-				  };
-
-			const res = await fetch(`/api/collections/${collectionName}/records/${editItem.record_id}`, {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
-				},
-				body: JSON.stringify(body)
-			});
-			if (!res.ok) {
-				const respBody = await res.json().catch(() => ({}));
-				throw new Error(respBody.message || respBody.error || 'Failed to update media');
+			if (isExternal) {
+				// External media: update the external_media record directly
+				const body = {
+					title: editForm.title.trim(),
+					url: editForm.url.trim(),
+					mime: editForm.mime.trim(),
+					thumbnail_url: editForm.thumbnail_url.trim()
+				};
+				const res = await fetch(`/api/collections/external_media/records/${editItem.record_id}`, {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json',
+						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+					},
+					body: JSON.stringify(body)
+				});
+				if (!res.ok) {
+					const respBody = await res.json().catch(() => ({}));
+					throw new Error(respBody.message || respBody.error || 'Failed to update media');
+				}
+			} else if (isUploads) {
+				// Uploads collection: update the record's title field
+				const res = await fetch(`/api/collections/uploads/records/${editItem.record_id}`, {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json',
+						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+					},
+					body: JSON.stringify({ title: editForm.title.trim() })
+				});
+				if (!res.ok) {
+					const respBody = await res.json().catch(() => ({}));
+					throw new Error(respBody.message || respBody.error || 'Failed to update media');
+				}
+			} else {
+				// Other collections: use display-name endpoint to set custom name
+				const res = await fetch('/api/media/display-name', {
+					method: 'PATCH',
+					headers: {
+						'Content-Type': 'application/json',
+						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+					},
+					body: JSON.stringify({
+						collection_id: editItem.collection_id,
+						record_id: editItem.record_id,
+						filename: editItem.filename,
+						display_name: editForm.title.trim()
+					})
+				});
+				if (!res.ok) {
+					const respBody = await res.json().catch(() => ({}));
+					throw new Error(respBody.message || respBody.error || 'Failed to update display name');
+				}
 			}
+
 			toasts.add('success', $t('admin.media.toast_media_updated'));
 			closeEdit();
 			await loadMedia();

@@ -322,6 +322,35 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
+		// Update display name for any media file
+		se.Router.PATCH("/api/media/display-name", func(e *core.RequestEvent) error {
+			var req struct {
+				CollectionID string `json:"collection_id"`
+				RecordID     string `json:"record_id"`
+				Filename     string `json:"filename"`
+				DisplayName  string `json:"display_name"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			if req.CollectionID == "" || req.RecordID == "" || req.Filename == "" {
+				return apis.NewBadRequestError("collection_id, record_id, and filename are required", nil)
+			}
+
+			if req.DisplayName == "" {
+				// If display name is empty, delete any custom name
+				if err := services.DeleteMediaDisplayName(app, req.CollectionID, req.RecordID, req.Filename); err != nil {
+					return apis.NewBadRequestError("failed to delete display name", err)
+				}
+			} else {
+				if err := services.SetMediaDisplayName(app, req.CollectionID, req.RecordID, req.Filename, req.DisplayName); err != nil {
+					return apis.NewBadRequestError("failed to set display name", err)
+				}
+			}
+
+			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
+		}).Bind(apis.RequireAuth())
 
 	se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
 		var req struct {
@@ -457,24 +486,37 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 					if err != nil {
 						continue
 					}
-					// Set display name from record title if available (uploads collection has title field)
-					recordTitle := record.GetString("title")
-					if recordTitle == "" {
-						recordTitle = record.GetString("name")
+
+					// Check for custom display name first
+					customName := services.GetMediaDisplayName(app, collection.Id, record.Id, filename)
+					if customName != "" {
+						item.DisplayName = customName
+					} else {
+						// Fall back to record title for uploads collection
+						recordTitle := record.GetString("title")
+						if recordTitle == "" {
+							recordTitle = record.GetString("name")
+						}
+						if recordTitle != "" {
+							item.DisplayName = recordTitle
+						}
 					}
-					if recordTitle == "" {
-						recordTitle = record.Id
+
+					// Set record label (for "used by" display)
+					recordLabel := record.GetString("title")
+					if recordLabel == "" {
+						recordLabel = record.GetString("name")
 					}
-					if recordTitle != "" {
-						item.DisplayName = recordTitle
-						item.RecordLabel = recordTitle
+					if recordLabel == "" {
+						recordLabel = record.Id
 					}
+					item.RecordLabel = recordLabel
 					// For internal media, set usage to the owning record
 					item.UsageCount = 1
 					item.UsedBy = []services.MediaUsageItem{{
 						Collection: collection.Name,
 						RecordID:   record.Id,
-						Title:      recordTitle,
+						Title:      recordLabel,
 						Slug:       record.GetString("slug"),
 					}}
 					all = append(all, item)
