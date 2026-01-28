@@ -422,6 +422,7 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 		"uploads",
 		"view_exports",
 		"resume_imports",
+		"custom_content",
 	}
 
 	var all []services.MediaItem
