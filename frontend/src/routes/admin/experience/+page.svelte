@@ -683,8 +683,8 @@
 				</div>
 
 				<div>
-					<label class="label">{$t('admin.content.common.admin_tags_label')}</label>
-					<AdminTagSelector bind:selectedIds={adminTagIds} />
+					<span id="admin-tags-label" class="label">{$t('admin.content.common.admin_tags_label')}</span>
+					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
 					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.admin_tags_help')}</p>
 				</div>
 			</div>

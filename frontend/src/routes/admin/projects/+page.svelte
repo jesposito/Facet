@@ -822,8 +822,8 @@ let filteredProjects = $derived(
 				</div>
 
 				<div>
-					<label class="label">Admin Tags</label>
-					<AdminTagSelector bind:selectedIds={adminTagIds} />
+					<span id="admin-tags-label" class="label">Admin Tags</span>
+					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
 					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
 				</div>
 			</div>

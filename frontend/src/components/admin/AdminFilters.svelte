@@ -217,9 +217,9 @@
 
 					{#if filterStore.config.enableTagFilter && availableTags.length > 0}
 						<div>
-							<label id="tags-filter-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							<span id="tags-filter-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 								Tags
-							</label>
+							</span>
 							<div class="relative">
 								<button
 									type="button"

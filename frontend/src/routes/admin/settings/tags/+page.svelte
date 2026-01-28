@@ -169,8 +169,8 @@
 			</div>
 
 			<div>
-				<label class="label">{$t('admin.tags_page.color_label')}</label>
-				<div class="flex flex-wrap gap-2">
+				<span id="color-picker-label" class="label">{$t('admin.tags_page.color_label')}</span>
+				<div class="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="color-picker-label">
 					{#each TAG_COLOR_LIST as color}
 						{@const info = TAG_COLORS[color]}
 						<button

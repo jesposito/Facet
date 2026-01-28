@@ -697,8 +697,8 @@
 				/>
 
 				<div>
-					<label class="label">Admin Tags</label>
-					<AdminTagSelector bind:selectedIds={adminTagIds} />
+					<span id="admin-tags-label" class="label">Admin Tags</span>
+					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
 				</div>
 			</div>
 
