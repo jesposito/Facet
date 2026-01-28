@@ -101,7 +101,10 @@
 	});
 
 	// Category items for drag-and-drop
-	let categoryItems = $derived(orderedCategories.map(name => ({ id: `cat-${name}`, name })));
+	let categoryItems: Array<{ id: string; name: string }> = $state([]);
+	$effect(() => {
+		categoryItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
+	});
 
 	// Check if a category is disabled
 	function isCategoryDisabled(category: string): boolean {
@@ -199,15 +202,14 @@
 	}
 
 	// Handle category drag-and-drop
-	function handleCategoryDndConsider(e: CustomEvent<{ items: typeof categoryItems }>) {
-		// Just update visual during drag
+	function handleCategoryDndConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		categoryItems = e.detail.items;
 	}
 
 	function handleCategoryDndFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
-		const newOrder = e.detail.items
-			.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID)
-			.map(c => c.name);
-		categoryOrder = newOrder;
+		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		categoryItems = filteredItems;
+		categoryOrder = filteredItems.map(c => c.name);
 		onUpdate();
 	}
 
