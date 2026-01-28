@@ -13,6 +13,7 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import MediaPicker from '$components/admin/MediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
@@ -38,9 +39,7 @@
 
 	// Media library refs
 	let mediaRefs: string[] = $state([]);
-	let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = $state([]);
-	let mediaSearch = $state('');
-	let loadingMedia = $state(false);
+	let mediaPickerRef: MediaPicker | undefined = $state();
 
 	let selectMode = $state(false);
 	let selectedIds: Set<string> = $state(new Set());
@@ -109,7 +108,6 @@
 
 	onMount(loadItems);
 	onMount(loadAvailableTags);
-	onMount(loadMediaOptions);
 	onMount(async () => {
 		if (browser) {
 			const { dndzone: dnd } = await import('svelte-dnd-action');
@@ -131,110 +129,6 @@
 		} catch (err) {
 			console.error('Failed to load available tags:', err);
 		}
-	}
-
-	async function loadMediaOptions(search = '') {
-		loadingMedia = true;
-		try {
-			const headers: Record<string, string> = pb.authStore.isValid
-				? { Authorization: `Bearer ${pb.authStore.token}` }
-				: {};
-
-			const mediaParams = new URLSearchParams({ perPage: '50' });
-			if (search) mediaParams.set('q', search);
-
-			const externalFilter = search ? `&filter=${encodeURIComponent(`title~"${search}" || url~"${search}"`)}` : '';
-
-			const [mediaRes, externalRes] = await Promise.all([
-				fetch(`/api/media?${mediaParams.toString()}`, { headers }),
-				fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
-			]);
-
-			const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
-			const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
-
-			const options: { id: string; title: string; provider?: string; url?: string }[] = [];
-
-			for (const item of mediaData.items || []) {
-				options.push({
-					id: item.record_id || item.relative_path || item.url,
-					title: item.display_name || item.filename || item.url,
-					provider: item.provider || (item.external ? 'external' : 'upload'),
-					url: item.url
-				});
-			}
-
-			for (const item of externalData.items || []) {
-				if (!options.find((opt) => opt.id === item.id || opt.url === item.url)) {
-					options.push({
-						id: item.id,
-						title: item.title || item.url,
-						provider: 'external',
-						url: item.url
-					});
-				}
-			}
-
-			mediaOptions = options;
-		} catch (err) {
-			console.error('Failed to load media options', err);
-		} finally {
-			loadingMedia = false;
-		}
-	}
-
-	async function resolveMediaRefs(selected: string[]) {
-		const headers: Record<string, string> = pb.authStore.isValid
-			? { Authorization: `Bearer ${pb.authStore.token}` }
-			: {};
-		const optionMap = new Map(mediaOptions.map((opt) => [opt.id, opt]));
-		const resolved: string[] = [];
-
-		const toAbsolute = (url?: string) => {
-			if (!url) return '';
-			if (/^https?:\/\//i.test(url)) return url;
-			const base = pb.baseUrl.replace(/\/$/, '');
-			return `${base}${url.startsWith('/') ? url : `/${url}`}`;
-		};
-
-		for (const id of selected) {
-			const opt = optionMap.get(id);
-			if (!opt) continue;
-			if (opt.provider === 'upload' && opt.url) {
-				try {
-					const filter = encodeURIComponent(`url="${opt.url}"`);
-					const existingRes = await fetch(
-						`/api/collections/external_media/records?perPage=1&filter=${filter}`,
-						{ headers }
-					);
-					if (existingRes.ok) {
-						const existing = await existingRes.json();
-						if (existing.items?.[0]?.id) {
-							resolved.push(existing.items[0].id);
-							continue;
-						}
-					}
-					const created = await fetch('/api/media/external', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json', ...headers },
-						body: JSON.stringify({ url: toAbsolute(opt.url), title: opt.title })
-					});
-					if (created.ok) {
-						const body = await created.json();
-						if (body.id) {
-							resolved.push(body.id);
-							continue;
-						}
-					}
-				} catch (err) {
-					console.error('Failed to mirror upload to external_media', err);
-				}
-			} else {
-				resolved.push(id);
-			}
-		}
-
-		return resolved;
 	}
 
 	let filteredItems = $derived(
@@ -367,7 +261,7 @@
 			}
 
 			// Handle media library refs
-			const resolvedRefs = await resolveMediaRefs(mediaRefs);
+			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
 			formData.append('media_refs', JSON.stringify(resolvedRefs));
 
 			if (editingItem) {
@@ -795,68 +689,12 @@
 					<p class="text-xs text-gray-500 mt-1">Select images to add (you can select multiple times to build up your gallery)</p>
 				</div>
 
-				<div>
-					<p class="label">Attached media / embeds</p>
-					<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-						Link media from the library (YouTube, Vimeo, external URLs, or uploaded files).
-					</p>
-					<div class="flex flex-wrap items-center gap-2 mb-2 text-sm text-gray-600 dark:text-gray-400">
-						<input
-							class="input w-full md:w-64"
-							placeholder="Search media..."
-							bind:value={mediaSearch}
-							onkeydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
-						/>
-						<button
-							type="button"
-							class="btn btn-secondary btn-sm"
-							onclick={() => loadMediaOptions(mediaSearch)}
-							aria-busy={loadingMedia}
-						>
-							{loadingMedia ? 'Searching…' : 'Search'}
-						</button>
-						<button
-							type="button"
-							class="btn btn-ghost btn-sm"
-							onclick={() => {
-								mediaSearch = '';
-								loadMediaOptions('');
-							}}
-						>
-							Clear
-						</button>
-					</div>
-					{#if loadingMedia}
-						<p class="text-sm text-gray-500 dark:text-gray-400">Loading media…</p>
-					{:else if mediaOptions.length === 0}
-						<p class="text-sm text-gray-500 dark:text-gray-400">
-							No media found. Add uploads or external links in the <a
-								href="/admin/media"
-								class="text-primary-600 dark:text-primary-400 hover:underline">Media Library</a
-							>.
-						</p>
-					{:else}
-						<div class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
-							{#each mediaOptions as opt}
-								<label
-									class={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${
-										mediaRefs.includes(opt.id)
-											? 'bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700 text-primary-700 dark:text-primary-200'
-											: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-									}`}
-								>
-									<input type="checkbox" class="w-4 h-4" bind:group={mediaRefs} value={opt.id} />
-									<div class="flex flex-col min-w-0">
-										<span class="text-sm font-medium truncate">{opt.title}</span>
-										{#if opt.provider}
-											<span class="text-xs text-gray-500 dark:text-gray-400">{opt.provider}</span>
-										{/if}
-									</div>
-								</label>
-							{/each}
-						</div>
-					{/if}
-				</div>
+				<MediaPicker
+					bind:this={mediaPickerRef}
+					bind:value={mediaRefs}
+					label={$t('admin.content.common.attached_media')}
+					showHelp={true}
+				/>
 
 				<div>
 					<label class="label">Admin Tags</label>

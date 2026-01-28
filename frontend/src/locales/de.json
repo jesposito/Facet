@@ -543,7 +543,8 @@
 				"reorder_saving": "Wird gespeichert...",
 				"details_section": "Details",
 				"settings_section": "Einstellungen",
-				"required_field": "*"
+				"required_field": "*",
+				"attached_media": "Angehängte Medien / Einbettungen"
 			},
 			"experience": {
 				"title": "Erfahrung",

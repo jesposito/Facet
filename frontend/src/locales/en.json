@@ -543,7 +543,8 @@
 				"reorder_saving": "Saving...",
 				"details_section": "Details",
 				"settings_section": "Settings",
-				"required_field": "*"
+				"required_field": "*",
+				"attached_media": "Attached media / embeds"
 			},
 			"experience": {
 				"title": "Experience",

@@ -543,7 +543,8 @@
 				"reorder_saving": "Saevin...",
 				"details_section": "Detailz",
 				"settings_section": "Settingz",
-				"required_field": "*"
+				"required_field": "*",
+				"attached_media": "Attached meowdia / embedz"
 			},
 			"experience": {
 				"title": "Eksperienz",

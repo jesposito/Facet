@@ -543,7 +543,8 @@
 				"reorder_saving": "Preserving...",
 				"details_section": "Details",
 				"settings_section": "Inscriptions",
-				"required_field": "*"
+				"required_field": "*",
+				"attached_media": "Attached glimpses / echoes"
 			},
 			"experience": {
 				"title": "Journeys",

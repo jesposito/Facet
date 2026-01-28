@@ -543,7 +543,8 @@
 				"reorder_saving": "Securing...",
 				"details_section": "Details",
 				"settings_section": "Configurations",
-				"required_field": "*"
+				"required_field": "*",
+				"attached_media": "Attached battle recordings"
 			},
 			"experience": {
 				"title": "Battle History",
