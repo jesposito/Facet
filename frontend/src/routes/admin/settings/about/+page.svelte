@@ -18,11 +18,18 @@
 		const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
 		try {
+			// Clean current version for comparison
+			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
+
 			// Check cache first
 			const cached = localStorage.getItem(CACHE_KEY);
 			if (cached) {
-				const { timestamp, latest, hasUpdate } = JSON.parse(cached);
+				const { timestamp, latest } = JSON.parse(cached);
 				if (Date.now() - timestamp < CACHE_DURATION) {
+					// Recalculate hasUpdate against current version (may have changed since cache)
+					const latestClean = latest.replace(/^v/, '');
+					const hasUpdate = latestClean && currentClean !== latestClean &&
+						compareVersions(latestClean, currentClean) > 0;
 					latestVersion = latest;
 					newVersionAvailable = hasUpdate;
 					return;
@@ -40,7 +47,6 @@
 			const latest = data.tag_name || '';
 
 			// Compare versions (strip 'v' prefix for comparison)
-			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
 			const latestClean = latest.replace(/^v/, '');
 
 			const hasUpdate = latestClean && currentClean !== latestClean &&
