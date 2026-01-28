@@ -92,10 +92,66 @@
 
 <div class="max-w-6xl mx-auto">
 	{#if loading}
-		<!-- Loading state -->
-		<div class="card p-8 mb-8 animate-pulse">
-			<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-4"></div>
-			<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-96"></div>
+		<!-- Loading skeleton that matches content structure -->
+		<div class="animate-fade-in">
+			<!-- Title skeleton -->
+			<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-6 relative overflow-hidden">
+				<div class="absolute inset-0 animate-shimmer"></div>
+			</div>
+
+			<!-- Stats grid skeleton -->
+			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+				{#each Array(4) as _}
+					<div class="card p-6">
+						<div class="flex items-center justify-between">
+							<div class="space-y-2">
+								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+								<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+							</div>
+							<div class="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+								<div class="absolute inset-0 animate-shimmer"></div>
+							</div>
+						</div>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Quick actions and activity skeleton -->
+			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+				<div class="card p-6">
+					<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 relative overflow-hidden">
+						<div class="absolute inset-0 animate-shimmer"></div>
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						{#each Array(6) as _}
+							<div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
+								<div class="absolute inset-0 animate-shimmer"></div>
+							</div>
+						{/each}
+					</div>
+				</div>
+				<div class="card p-6">
+					<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 relative overflow-hidden">
+						<div class="absolute inset-0 animate-shimmer"></div>
+					</div>
+					<div class="space-y-3">
+						{#each Array(3) as _}
+							<div class="flex items-center gap-3">
+								<div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+								<div class="flex-1 h-4 bg-gray-200 dark:bg-gray-700 rounded relative overflow-hidden">
+									<div class="absolute inset-0 animate-shimmer"></div>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</div>
+			</div>
 		</div>
 	{:else if isEmpty}
 		<!-- Welcome state for first-time users -->
