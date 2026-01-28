@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub tidings",
 			"changelog_empty_after_link": "for tidings.",
 			"new_version_available": "{version} awaits",
+			"check_for_updates": "Seek renewals",
 			"github_releases": "GitHub tidings",
 			"bug_fixes": "Troubles Mended",
 			"new_features": "New Enchantments",
@@ -287,6 +288,11 @@
 			"save_failed": "Token could not be preserved",
 			"delete_failed": "Token could not be unmade"
 		},
+		"form": {
+			"saving": "Preserving...",
+			"saved": "Preserved",
+			"error_saving": "Preservation failed"
+		},
 		"sidebar": {
 			"dashboard": "Great Hall",
 			"homepage": "Home Realm",
@@ -328,7 +334,8 @@
 			"update_now": "Renew now",
 			"manage": "Govern",
 			"request_links": "Request Bindings",
-			"update_available": "Renewal awaits"
+			"update_available": "Renewal awaits",
+			"check_for_updates": "Seek renewals"
 		},
 		"dashboard": {
 			"title": "Great Hall",
@@ -710,6 +717,11 @@
 				"video_url_placeholder": "https://palantir.com/...",
 				"required_error": "Title and gathering are required"
 			},
+			"testimonials": {
+				"title": "Testimonies",
+				"visibility_updated": "Visibility set to {visibility}",
+				"visibility_update_failed": "Failed to alter visibility"
+			},
 			"posts": {
 				"title": "Writings",
 				"help_text": "<strong>Writings</strong> are thy essays, articles, and written lore.",
@@ -937,7 +949,10 @@
 				"posts": "Writings",
 				"talks": "Orations",
 				"contacts": "Ways of Reaching",
-				"testimonials": "Testimonies"
+				"testimonials": "Testimonies",
+				"featured_testimonial_label": "Honored Testimony",
+				"primary_testimonial_label": "First Voice (appears first in the carousel)",
+				"use_global_featured": "Use the honored voice (or the first)"
 			},
 			"category_reorder": {
 				"title": "Reorder Craft Categories",

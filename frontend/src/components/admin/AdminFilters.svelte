@@ -232,13 +232,13 @@
 											? 'Select tags...' 
 											: `${filterStore.selectedTagIds.length} tag${filterStore.selectedTagIds.length > 1 ? 's' : ''} selected`}
 									</span>
-									<svg class="w-4 h-4 transition-transform {showTagSelector ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<svg class="w-4 h-4 transition-transform duration-200 {showTagSelector ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 									</svg>
 								</button>
 
 								{#if showTagSelector}
-									<div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+									<div class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto animate-slide-in-down">
 										{#each availableTags as tag (tag.id)}
 											<button
 												type="button"

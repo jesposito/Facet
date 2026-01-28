@@ -6,78 +6,14 @@
 	import { adminSidebarOpen, sidebarSectionStates, sidebarFacetsVersion } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
 	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
-	import { browser } from '$app/environment';
+	import {
+		newVersionAvailable,
+		isCheckingVersion,
+		checkForNewVersion,
+		forceVersionCheck
+	} from '$lib/stores/version';
 
 	const appVersion = __APP_VERSION__;
-
-	// Version check state
-	let newVersionAvailable = $state(false);
-	let latestVersion = $state('');
-
-	// Check for new version (cached daily)
-	async function checkForNewVersion() {
-		if (!browser) return;
-
-		const CACHE_KEY = 'facet_version_check';
-		const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-		try {
-			// Check cache first
-			const cached = localStorage.getItem(CACHE_KEY);
-			if (cached) {
-				const { timestamp, latest, hasUpdate } = JSON.parse(cached) as {
-					timestamp: number;
-					latest: string;
-					hasUpdate: boolean;
-				};
-				if (Date.now() - timestamp < CACHE_DURATION) {
-					latestVersion = latest;
-					newVersionAvailable = hasUpdate;
-					return;
-				}
-			}
-
-			// Fetch latest version from static file (avoids API rate limits)
-			const response = await fetch('https://raw.githubusercontent.com/jesposito/Facet/main/LATEST_VERSION');
-
-			if (!response.ok) return;
-
-			const latest = (await response.text()).trim();
-
-			// Compare versions (strip 'v' prefix for comparison)
-			const currentClean = appVersion.replace(/^v/, '').split('-')[0];
-			const latestClean = latest.replace(/^v/, '');
-
-			const hasUpdate = Boolean(latestClean && currentClean !== latestClean &&
-				compareVersions(latestClean, currentClean) > 0);
-
-			// Cache result
-			localStorage.setItem(CACHE_KEY, JSON.stringify({
-				timestamp: Date.now(),
-				latest,
-				hasUpdate
-			}));
-
-			latestVersion = latest;
-			newVersionAvailable = hasUpdate;
-		} catch {
-			// Silently fail - version check is non-critical
-		}
-	}
-
-	// Compare semver versions: returns 1 if a > b, -1 if a < b, 0 if equal
-	function compareVersions(a: string, b: string): number {
-		const partsA = a.split('.').map(Number);
-		const partsB = b.split('.').map(Number);
-
-		for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-			const numA = partsA[i] || 0;
-			const numB = partsB[i] || 0;
-			if (numA > numB) return 1;
-			if (numA < numB) return -1;
-		}
-		return 0;
-	}
 
 	interface Props {
 		isMobile?: boolean;
@@ -401,7 +337,7 @@ let isActive = $derived((href: string): boolean => {
 					</svg>
 				</button>
 				{#if isSectionExpanded(sectionId)}
-					<div id="{sectionId}-items" class="space-y-1">
+					<div id="{sectionId}-items" class="space-y-1 animate-slide-in-down">
 						{#each section.items as item (item.href)}
 							<a
 								href={item.href}
@@ -532,7 +468,7 @@ let isActive = $derived((href: string): boolean => {
 				</svg>
 			</button>
 			{#if isSectionExpanded(SECTION_IDS.testimonials)}
-				<div id="sidebar-testimonials-items" class="space-y-1">
+				<div id="sidebar-testimonials-items" class="space-y-1 animate-slide-in-down">
 					<a
 						href="/admin/testimonials"
 						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/testimonials')
@@ -586,7 +522,7 @@ let isActive = $derived((href: string): boolean => {
 					</svg>
 				</button>
 				{#if isSectionExpanded(sectionId)}
-					<div id="{sectionId}-items" class="space-y-1">
+					<div id="{sectionId}-items" class="space-y-1 animate-slide-in-down">
 						{#each section.items as item (item.href)}
 							<a
 								href={item.href}
@@ -649,12 +585,28 @@ let isActive = $derived((href: string): boolean => {
 
 	<!-- Version -->
 	{#if $adminSidebarOpen}
-		<div class="shrink-0 px-3 pb-4">
-			<div class="text-center text-xs text-gray-400 dark:text-gray-500">
-				{appVersion}
+		<div class="shrink-0 px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+			<div class="flex items-center justify-center gap-1.5">
+				<span class="text-xs text-gray-400 dark:text-gray-500">{appVersion}</span>
+				<button
+					type="button"
+					class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors disabled:opacity-50"
+					onclick={() => forceVersionCheck()}
+					disabled={$isCheckingVersion}
+					title={$t('admin.sidebar.check_for_updates')}
+				>
+					<svg
+						class="w-3.5 h-3.5 {$isCheckingVersion ? 'animate-spin' : ''}"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+					</svg>
+				</button>
 			</div>
-			{#if newVersionAvailable}
-				<div class="mt-1 text-center">
+			{#if $newVersionAvailable}
+				<div class="mt-1.5 text-center">
 					<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">
 						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />

@@ -3,6 +3,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 	import { scheduleTestimonialsRefresh } from '$lib/stores/testimonials';
+	import { t } from 'svelte-i18n';
 
 	interface Testimonial {
 		id: string;
@@ -181,11 +182,11 @@
 			});
 			
 			if (response.ok) {
-				toasts.success(`Visibility updated to ${visibility}`);
+				toasts.success($t('admin.content.testimonials.visibility_updated', { values: { visibility } }));
 				await loadTestimonials();
 			}
 		} catch (err) {
-			toasts.error('Failed to update visibility');
+			toasts.error($t('admin.content.testimonials.visibility_update_failed'));
 		}
 	}
 

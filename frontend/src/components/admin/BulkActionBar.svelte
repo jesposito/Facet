@@ -59,9 +59,17 @@
 					type="button"
 					class="btn btn-secondary text-sm flex items-center gap-1"
 					onclick={() => showVisibilityMenu = !showVisibilityMenu}
+					aria-expanded={showVisibilityMenu}
+					aria-haspopup="true"
 				>
 					Change Visibility
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<svg
+						class="w-4 h-4 transition-transform duration-200"
+						class:rotate-180={showVisibilityMenu}
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 					</svg>
 				</button>
@@ -73,7 +81,7 @@
 						onclick={() => showVisibilityMenu = false}
 						aria-label="Close menu"
 					></button>
-					<div class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-30">
+					<div class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-30 animate-slide-in-down">
 						<button
 							type="button"
 							class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"

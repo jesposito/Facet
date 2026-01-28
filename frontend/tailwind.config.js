@@ -24,6 +24,17 @@ export default {
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
 				mono: ['JetBrains Mono', 'monospace']
+			},
+			// UX Delight: Standardized transition timing
+			transitionDuration: {
+				fast: '150ms',
+				normal: '200ms',
+				slow: '300ms'
+			},
+			// UX Delight: Custom easing for snappy interactions
+			transitionTimingFunction: {
+				'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+				'in-out-expo': 'cubic-bezier(0.87, 0, 0.13, 1)'
 			}
 		}
 	},

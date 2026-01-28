@@ -199,6 +199,7 @@
 			"changelog_empty_link": "GitHub releases",
 			"changelog_empty_after_link": "for updates.",
 			"new_version_available": "{version} available",
+			"check_for_updates": "Check for updates",
 			"github_releases": "GitHub releases",
 			"bug_fixes": "Bug Fixes",
 			"new_features": "New Features",
@@ -287,6 +288,11 @@
 			"save_failed": "Failed to save tag",
 			"delete_failed": "Failed to delete tag"
 		},
+		"form": {
+			"saving": "Saving...",
+			"saved": "Saved",
+			"error_saving": "Failed to save"
+		},
 		"sidebar": {
 			"dashboard": "Dashboard",
 			"homepage": "Homepage",
@@ -328,7 +334,8 @@
 			"update_now": "Update now",
 			"manage": "Manage",
 			"request_links": "Request Links",
-			"update_available": "Update available"
+			"update_available": "Update available",
+			"check_for_updates": "Check for updates"
 		},
 		"dashboard": {
 			"title": "Dashboard",
@@ -710,6 +717,11 @@
 				"video_url_placeholder": "https://youtube.com/...",
 				"required_error": "Title and event are required"
 			},
+			"testimonials": {
+				"title": "Testimonials",
+				"visibility_updated": "Visibility updated to {visibility}",
+				"visibility_update_failed": "Failed to update visibility"
+			},
 			"posts": {
 				"title": "Posts",
 				"help_text": "<strong>Posts</strong> are blog posts, articles, and written content.",
@@ -937,7 +949,10 @@
 				"posts": "Posts",
 				"talks": "Talks",
 				"contacts": "Contact Methods",
-				"testimonials": "Testimonials"
+				"testimonials": "Testimonials",
+				"featured_testimonial_label": "Featured Testimonial",
+				"primary_testimonial_label": "Primary Testimonial (shown first in carousel)",
+				"use_global_featured": "Use global featured (or first)"
 			},
 			"category_reorder": {
 				"title": "Reorder Skill Categories",

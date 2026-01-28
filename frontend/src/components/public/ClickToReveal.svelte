@@ -132,6 +132,7 @@
 		<button
 			type="button"
 			class="copy-button"
+			class:copied={copying}
 			onclick={copyToClipboard}
 			aria-label="Copy to clipboard"
 			disabled={copying}
@@ -243,6 +244,33 @@
 	.copy-button:disabled {
 		color: var(--success-color, #10b981);
 		cursor: default;
+	}
+
+	/* Success animation for copy button */
+	.copy-button.copied {
+		animation: copySuccess 0.3s ease-out;
+	}
+
+	@keyframes copySuccess {
+		0% {
+			transform: scale(1);
+		}
+		50% {
+			transform: scale(1.15);
+		}
+		100% {
+			transform: scale(1);
+		}
+	}
+
+	/* Respect reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.copy-button.copied {
+			animation: none;
+		}
+		.arrow {
+			transition: none;
+		}
 	}
 
 	.copy-button:focus-visible {

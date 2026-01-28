@@ -34,19 +34,35 @@
 	};
 </script>
 
-<div class="card p-8 text-center">
-	<svg class="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={icons[icon] || icons.folder} />
-	</svg>
-	<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">{title}</h3>
-	{#if description}
-		<p class="text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
-			{description}
-		</p>
-	{/if}
-	{#if actions}
-		<div class="flex flex-wrap gap-2 justify-center">
-			{@render actions()}
+<div class="card p-8 text-center animate-fade-in relative overflow-hidden">
+	<!-- Subtle decorative background pattern -->
+	<div class="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" aria-hidden="true">
+		<svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+			<defs>
+				<pattern id="empty-state-pattern" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+					<circle cx="2" cy="2" r="1" fill="currentColor" />
+				</pattern>
+			</defs>
+			<rect width="100%" height="100%" fill="url(#empty-state-pattern)" />
+		</svg>
+	</div>
+	<!-- Content -->
+	<div class="relative">
+		<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center">
+			<svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d={icons[icon] || icons.folder} />
+			</svg>
 		</div>
-	{/if}
+		<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">{title}</h3>
+		{#if description}
+			<p class="text-gray-500 dark:text-gray-400 mb-4 max-w-md mx-auto">
+				{description}
+			</p>
+		{/if}
+		{#if actions}
+			<div class="flex flex-wrap gap-2 justify-center">
+				{@render actions()}
+			</div>
+		{/if}
+	</div>
 </div>
