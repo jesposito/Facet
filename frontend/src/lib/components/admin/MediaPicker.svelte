@@ -59,20 +59,33 @@
 			const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
 
 			const options: MediaOption[] = [];
+			const urlToExternalId = new Map<string, string>();
 
+			// First pass: collect external_media IDs by URL
+			for (const item of externalData.items || []) {
+				if (item.url) {
+					urlToExternalId.set(item.url, item.id);
+				}
+			}
+
+			// Add internal media items, preferring external_media ID if one exists for same URL
 			for (const item of mediaData.items || []) {
+				const externalId = item.url ? urlToExternalId.get(item.url) : null;
 				options.push({
-					id: item.record_id || item.relative_path || item.url,
+					// Use external_media ID if available (since that's what media_refs stores)
+					id: externalId || item.record_id || item.relative_path || item.url,
 					title: item.display_name || item.filename || item.url,
-					provider: item.provider || (item.external ? 'external' : 'upload'),
+					provider: externalId ? 'external' : (item.provider || (item.external ? 'external' : 'upload')),
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
 					mime: item.mime
 				});
 			}
 
+			// Add external_media items that don't have a matching internal URL
+			const addedUrls = new Set(options.map((opt) => opt.url));
 			for (const item of externalData.items || []) {
-				if (!options.find((opt) => opt.id === item.id || opt.url === item.url)) {
+				if (!addedUrls.has(item.url)) {
 					options.push({
 						id: item.id,
 						title: item.title || item.url,
@@ -111,11 +124,17 @@
 
 		for (const id of selected) {
 			const opt = optionMap.get(id);
-			if (!opt) continue;
+			if (!opt) {
+				// ID not in current options - likely an existing external_media ID, preserve it
+				resolved.push(id);
+				continue;
+			}
 			if (opt.provider === 'upload' && opt.url) {
 				// Mirror upload into external_media so it can be stored in media_refs
 				try {
-					const filter = encodeURIComponent(`url="${opt.url}"`);
+					const absoluteUrl = toAbsolute(opt.url);
+					// Search for existing external_media with either relative or absolute URL
+					const filter = encodeURIComponent(`url="${opt.url}" || url="${absoluteUrl}"`);
 					const existingRes = await fetch(
 						`/api/collections/external_media/records?perPage=1&filter=${filter}`,
 						{ headers }
@@ -130,7 +149,7 @@
 					const created = await fetch('/api/media/external', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json', ...headers },
-						body: JSON.stringify({ url: toAbsolute(opt.url), title: opt.title })
+						body: JSON.stringify({ url: absoluteUrl, title: opt.title })
 					});
 					if (created.ok) {
 						const body = await created.json();

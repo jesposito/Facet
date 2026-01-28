@@ -37,18 +37,16 @@
 
 						<div class="pb-2">
 							<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-								<div class="flex items-center gap-2">
-									{#if item.company_logo_url || item.company_logo}
-										<img
-											src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '24x24' })}
-											alt="{item.company} logo"
-											class="w-5 h-5 object-contain rounded"
-										/>
-									{/if}
-									<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-										{item.title}
-									</h3>
-								</div>
+								{#if item.company_logo_url || item.company_logo}
+									<img
+										src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '24x24' })}
+										alt="{item.company} logo"
+										class="w-5 h-5 object-contain rounded self-center"
+									/>
+								{/if}
+								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+									{item.title}
+								</h3>
 								<span class="text-primary-600 dark:text-primary-400 font-medium">
 									{item.company}
 								</span>

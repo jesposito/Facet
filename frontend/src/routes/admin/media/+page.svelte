@@ -411,8 +411,8 @@
 					goto('/admin/login');
 					return;
 				}
-				const body = await res.json().catch(() => ({}));
-				throw new Error(body.error || 'Failed to delete file');
+				const respBody = await res.json().catch(() => ({}));
+				throw new Error(respBody.message || respBody.error || 'Failed to delete file');
 			}
 			toasts.add('success', $t('admin.media.toast_file_deleted'));
 			await loadMedia();
@@ -472,8 +472,8 @@
 					goto('/admin/login');
 					return;
 				}
-				const body = await res.json().catch(() => ({}));
-				throw new Error(body.error || 'Failed to delete files');
+				const respBody = await res.json().catch(() => ({}));
+				throw new Error(respBody.message || respBody.error || 'Failed to delete files');
 			}
 			const result = await res.json().catch(() => ({}));
 			toasts.add('success', $t('admin.media.toast_bulk_deleted', { values: { count: result.deleted ?? selectedOrphans.size } }));
@@ -506,8 +506,8 @@
 				})
 			});
 			if (!res.ok) {
-				const body = await res.json().catch(() => ({}));
-				throw new Error(body.error || 'Failed to add external media');
+				const respBody = await res.json().catch(() => ({}));
+				throw new Error(respBody.message || respBody.error || 'Failed to add external media');
 			}
 			toasts.add('success', $t('admin.media.toast_external_added'));
 			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false };

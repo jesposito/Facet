@@ -51,6 +51,10 @@
 		expanded: boolean;
 		layout: string;
 		width: string;
+		// Skills-specific settings
+		categoryOrder?: string[];
+		disabledCategories?: string[];
+		categoryDisplayModes?: Record<string, string>;
 	}> = $state({});
 
 	// Available items for each section
@@ -190,7 +194,11 @@
 					items: (config as any).items || [],
 					expanded: false,
 					layout: (config as any).layout || 'default',
-					width: (config as any).width || 'full'
+					width: (config as any).width || 'full',
+					// Skills-specific settings
+					categoryOrder: (config as any).categoryOrder || undefined,
+					disabledCategories: (config as any).disabledCategories || undefined,
+					categoryDisplayModes: (config as any).categoryDisplayModes || undefined
 				};
 			}
 		}
@@ -397,7 +405,15 @@
 			const orderKeys = sectionOrder.map(s => s.key);
 
 			// Build homepage_sections for API (without expanded state, only persistent config)
-			const homepageSections: Record<string, { enabled: boolean; items: string[]; layout: string; width: string }> = {};
+			const homepageSections: Record<string, {
+				enabled: boolean;
+				items: string[];
+				layout: string;
+				width: string;
+				categoryOrder?: string[];
+				disabledCategories?: string[];
+				categoryDisplayModes?: Record<string, string>;
+			}> = {};
 			for (const [key, config] of Object.entries(sections)) {
 				homepageSections[key] = {
 					enabled: config.enabled,
@@ -405,6 +421,16 @@
 					layout: config.layout,
 					width: config.width
 				};
+				// Include skills-specific settings if present
+				if (config.categoryOrder?.length) {
+					homepageSections[key].categoryOrder = config.categoryOrder;
+				}
+				if (config.disabledCategories?.length) {
+					homepageSections[key].disabledCategories = config.disabledCategories;
+				}
+				if (config.categoryDisplayModes && Object.keys(config.categoryDisplayModes).length > 0) {
+					homepageSections[key].categoryDisplayModes = config.categoryDisplayModes;
+				}
 			}
 
 			// Also build homepage_custom_content for backwards compatibility
