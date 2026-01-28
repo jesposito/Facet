@@ -94,9 +94,11 @@
 	<div
 		class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
 		onclick={handleBackdropClick}
+		onkeydown={handleKeyDown}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="preview-title"
+		tabindex="-1"
 	>
 		<div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
 			<!-- Header -->

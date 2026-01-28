@@ -591,10 +591,11 @@
 								{@const selectedTestimonials = (sectionItems['testimonials'] || []).filter(t => sectionConfig.items.includes(t.id))}
 								{#if selectedTestimonials.length > 0}
 									<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-										<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+										<label for="testimonial-featured-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 											{sectionConfig.layout === 'featured' ? $t('admin.view_editor.sections.featured_testimonial_label') : $t('admin.view_editor.sections.primary_testimonial_label')}
 										</label>
 										<select
+											id="testimonial-featured-select"
 											class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 											value={sectionConfig.featuredId || ''}
 											onchange={(e) => {

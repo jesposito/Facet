@@ -6,8 +6,8 @@
 	import { pb } from '$lib/pocketbase';
 	import { goto } from '$app/navigation';
 	import PageHelp from '$components/admin/PageHelp.svelte';
-	import DropZone from '$components/admin/DropZone.svelte';
-	import MediaPreviewModal from '$components/admin/MediaPreviewModal.svelte';
+	import DropZone from '$lib/components/admin/DropZone.svelte';
+	import MediaPreviewModal from '$lib/components/admin/MediaPreviewModal.svelte';
 	import { t } from 'svelte-i18n';
 
 	type MediaUsageItem = {
@@ -923,6 +923,7 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="edit-modal-title"
+		tabindex="-1"
 	>
 		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
 			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
