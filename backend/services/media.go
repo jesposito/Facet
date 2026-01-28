@@ -40,28 +40,21 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 	for _, collName := range collectionsWithMediaRefs {
 		collection, err := app.FindCollectionByNameOrId(collName)
 		if err != nil {
-			app.Logger().Debug("media usage: collection not found", "collection", collName)
 			continue
 		}
 
 		// Check if collection has media_refs field
-		field := collection.Fields.GetByName("media_refs")
-		if field == nil {
-			app.Logger().Debug("media usage: no media_refs field", "collection", collName)
+		if collection.Fields.GetByName("media_refs") == nil {
 			continue
 		}
-		app.Logger().Debug("media usage: found media_refs field", "collection", collName, "fieldType", field.Type())
 
 		// Find records that reference this external_media ID
-		// PocketBase multi-relation fields: use ~ for contains check (substring matching the ID)
-		filter := fmt.Sprintf("media_refs ~ '%s'", externalMediaID)
-		app.Logger().Info("media usage: querying", "collection", collName, "filter", filter, "externalMediaID", externalMediaID)
+		// PocketBase multi-relation: expand relation and check if any ID matches
+		filter := fmt.Sprintf("media_refs.id ?= '%s'", externalMediaID)
 		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
 		if err != nil {
-			app.Logger().Warn("media usage: failed to query collection", "collection", collName, "filter", filter, "error", err)
 			continue
 		}
-		app.Logger().Info("media usage: query result", "collection", collName, "found", len(records))
 
 		for _, record := range records {
 			title := record.GetString("title")

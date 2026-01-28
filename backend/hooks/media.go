@@ -120,7 +120,12 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				"totalItems": total,
 				"totalPages": (total + perPage - 1) / perPage,
 				"debug": map[string]interface{}{
-					"externalCount": len(externalItems),
+					"internalCount":  len(items),
+					"externalCount":  len(externalItems),
+					"orphanCount":    len(orphanItems),
+					"combinedCount":  len(combined),
+					"filteredCount":  len(filtered),
+					"referencedKeys": len(referenced),
 				},
 				"stats": map[string]interface{}{
 					"referencedFiles": len(items) + len(externalItems),
@@ -409,8 +414,6 @@ func parseIntDefault(raw string, def int) int {
 func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[string]struct{}, int64, error) {
 	dataDir := app.DataDir()
 
-	app.Logger().Info("media: collecting files")
-
 	collections := []string{
 		"profile",
 		"experience",
@@ -433,24 +436,19 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 	for _, name := range collections {
 		collection, err := app.FindCollectionByNameOrId(name)
 		if err != nil {
-			app.Logger().Warn("media: collection not found", "collection", name, "error", err)
 			continue
 		}
 
 		fileFields := fileFieldNames(collection)
 		if len(fileFields) == 0 {
-			app.Logger().Debug("media: no file fields", "collection", collection.Name)
 			continue
 		}
 
 		// Avoid relying on created/updated columns because older seeded data may not include them.
 		records, err := app.FindRecordsByFilter(collection.Name, "", "", 500, 0, nil)
 		if err != nil {
-			app.Logger().Warn("media: failed to load records", "collection", collection.Name, "error", err)
 			continue
 		}
-
-		app.Logger().Info("media: collection scan", "collection", collection.Name, "records", len(records), "fileFields", fileFields)
 
 		for _, record := range records {
 			created := record.GetDateTime("created")
@@ -460,7 +458,6 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 				for _, filename := range values {
 					item, err := services.BuildMediaItem(dataDir, collection.Name, collection.Id, record.Id, field, filename, createdAt)
 					if err != nil {
-						app.Logger().Warn("media: failed to build item", "collection", collection.Name, "record", record.Id, "field", field, "file", filename, "error", err)
 						continue
 					}
 					// Set display name from record title if available (uploads collection has title field)
@@ -498,22 +495,17 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error) {
 	collection, err := app.FindCollectionByNameOrId("external_media")
 	if err != nil {
-		app.Logger().Warn("media: external_media collection not found", "error", err)
-		return nil, nil
+		// Collection might not exist yet - this is not an error condition
+		return []services.MediaItem{}, nil
 	}
-	app.Logger().Info("media: external_media collection found", "id", collection.Id, "name", collection.Name)
 
+	// Get all records - empty filter, sorted by created desc
 	records, err := app.FindRecordsByFilter(collection.Name, "", "-created", 500, 0, nil)
 	if err != nil {
-		app.Logger().Warn("media: failed to query external_media", "error", err)
-		return nil, err
-	}
-	app.Logger().Info("media: found external_media records", "count", len(records))
-	for i, r := range records {
-		app.Logger().Debug("media: external record", "index", i, "id", r.Id, "url", r.GetString("url"), "title", r.GetString("title"))
+		return []services.MediaItem{}, err
 	}
 
-	var items []services.MediaItem
+	items := make([]services.MediaItem, 0, len(records))
 	for _, record := range records {
 		created := record.GetDateTime("created").Time()
 		title := record.GetString("title")
@@ -552,16 +544,21 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, int64, int, error) {
 	dataDir := app.DataDir()
 	storageRoot := filepath.Join(dataDir, "storage")
-	var orphans []services.MediaItem
+	orphans := make([]services.MediaItem, 0)
 	var totalSize int64
 	var storageSize int64
 	var storageFiles int
 
-	app.Logger().Info("media: scanning for orphans", "storageRoot", storageRoot, "referencedCount", len(referenced))
+	// Check if storage directory exists
+	if _, err := os.Stat(storageRoot); os.IsNotExist(err) {
+		// No storage directory means no files and no orphans
+		return orphans, 0, 0, 0, nil
+	}
 
 	err := filepath.WalkDir(storageRoot, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			// Skip inaccessible files/directories but continue walking
+			return nil
 		}
 		if d.IsDir() {
 			return nil
@@ -597,7 +594,6 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]s
 
 		item, buildErr := services.BuildMediaItem(dataDir, collectionName, collectionID, recordID, "orphan", filename, time.Time{})
 		if buildErr != nil {
-			app.Logger().Warn("media: failed to build orphan item", "path", rel, "error", buildErr)
 			return nil
 		}
 		item.Orphan = true
@@ -607,7 +603,6 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]s
 		return nil
 	})
 
-	app.Logger().Info("media: orphan scan complete", "orphanCount", len(orphans), "storageFiles", storageFiles, "orphanSize", totalSize, "storageSize", storageSize)
 	return orphans, totalSize, storageSize, storageFiles, err
 }
 
