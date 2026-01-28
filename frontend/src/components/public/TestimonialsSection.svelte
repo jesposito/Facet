@@ -19,9 +19,10 @@
 	interface Props {
 		items: Testimonial[];
 		layout?: 'wall' | 'carousel' | 'featured';
+		featuredId?: string;
 	}
 
-	let { items, layout = 'wall' }: Props = $props();
+	let { items, layout = 'wall', featuredId }: Props = $props();
 
 	// Carousel state
 	let carouselContainer: HTMLDivElement | null = $state(null);
@@ -147,7 +148,9 @@
 			{/each}
 		</div>
 	{:else if layout === 'carousel'}
-		{@const featuredItems = items.filter(t => t.featured)}
+		{@const featuredItems = featuredId 
+			? items.filter(t => t.id === featuredId)
+			: items.filter(t => t.featured)}
 		{@const displayItems = featuredItems.length > 0 ? featuredItems : items}
 		<div class="relative">
 			<!-- Navigation buttons (endless loop, no disabled state) -->
@@ -212,7 +215,7 @@
 
 		</div>
 	{:else if layout === 'featured'}
-		{@const featured = items.find(t => t.featured) || items[0]}
+		{@const featured = (featuredId ? items.find(t => t.id === featuredId) : items.find(t => t.featured)) || items[0]}
 		{#if featured}
 			<div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 sm:p-8 md:p-12 text-center shadow-lg">
 				<svg class="w-10 h-10 sm:w-12 sm:h-12 mx-auto text-primary-400 dark:text-primary-500 mb-4 sm:mb-6" fill="currentColor" viewBox="0 0 24 24">

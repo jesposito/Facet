@@ -336,6 +336,7 @@ export interface ViewSection {
 	categoryOrder?: string[]; // For skills section: custom order of categories
 	disabledCategories?: string[]; // For skills section: categories to hide entirely
 	categoryDisplayModes?: Record<string, string>; // For skills section: per-category layout overrides
+	featuredId?: string; // For testimonials section: per-view featured testimonial
 }
 
 // Valid width options with labels

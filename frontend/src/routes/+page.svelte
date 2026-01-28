@@ -180,6 +180,10 @@
 		return undefined;
 	}
 
+	function getFeaturedId(sectionKey: string): string | undefined {
+		return data.sectionFeaturedIds?.[sectionKey];
+	}
+
 	function getWidthClass(width: string): string {
 		switch (width) {
 			case 'half': return 'section-half';
@@ -563,7 +567,7 @@
 					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
 					<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
 				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
-					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} />
+					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
 				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
 					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
 				{/if}

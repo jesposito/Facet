@@ -27,7 +27,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				return {
 					homepageDisabled: true,
 					landingPageMessage: defaultViewInfo.landing_page_message || '',
-					hideLoginButton: defaultViewInfo.hide_login_button || false
+					hideLoginButton: defaultViewInfo.hide_login_button || false,
+					sectionFeaturedIds: {}
 				};
 			}
 
@@ -95,6 +96,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						sectionCategoryOrders: viewData.section_category_orders || {},
 						sectionDisabledCategories: viewData.section_disabled_categories || {},
 						sectionCategoryDisplayModes: viewData.section_category_display_modes || {},
+						sectionFeaturedIds: viewData.section_featured_ids || {},
 						experience: viewData.sections?.experience || [],
 						projects: viewData.sections?.projects || [],
 						education: viewData.sections?.education || [],
@@ -137,6 +139,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				sectionOrder: [],
 				sectionLayouts: {},
 				sectionWidths: {},
+				sectionFeaturedIds: {},
 				error: 'Failed to load profile',
 				isDefaultView: false,
 				homepageDisabled: false,
@@ -163,7 +166,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				posts: [],
 				talks: [],
 				view: null,
-				isDefaultView: false
+				isDefaultView: false,
+				sectionFeaturedIds: {}
 			};
 		}
 
@@ -182,7 +186,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				error: 'Profile is private',
 				isDefaultView: false,
 				hideLoginButton: data.hide_login_button || false,
-				siteCtaEnabled: data.site_cta_enabled !== false
+				siteCtaEnabled: data.site_cta_enabled !== false,
+				sectionFeaturedIds: {}
 			};
 		}
 
@@ -221,6 +226,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			homepageSectionOrder: data.homepage_section_order || [],
 			homepageSections: data.homepage_sections || {},
 			skillsCategoryOrder: data.skills_category_order || [],
+			sectionFeaturedIds: {},
 			view: null,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
@@ -241,6 +247,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			testimonials: [],
 			contacts: [],
 			view: null,
+			sectionFeaturedIds: {},
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,

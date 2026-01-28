@@ -463,6 +463,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			sectionCategoryOrders := make(map[string][]string)
 			sectionDisabledCategories := make(map[string][]string)
 			sectionCategoryDisplayModes := make(map[string]map[string]string)
+			sectionFeaturedIds := make(map[string]string)
 
 			for _, section := range sections {
 				sectionName, ok := section["section"].(string)
@@ -526,6 +527,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					if len(modes) > 0 {
 						sectionCategoryDisplayModes[sectionName] = modes
 					}
+				}
+
+				// Extract featuredId (for testimonials featured selection per-view)
+				if featuredId, ok := section["featuredId"].(string); ok && featuredId != "" {
+					sectionFeaturedIds[sectionName] = featuredId
 				}
 
 				// Handle custom content sections specially
@@ -598,6 +604,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["section_category_orders"] = sectionCategoryOrders
 			response["section_disabled_categories"] = sectionDisabledCategories
 			response["section_category_display_modes"] = sectionCategoryDisplayModes
+			response["section_featured_ids"] = sectionFeaturedIds
 
 			// Fetch profile data for the view
 			profileTableName := "profile"
@@ -1080,12 +1087,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Fetch testimonials - only approved ones appear on homepage
+			// Fetch testimonials - only approved and public/empty visibility appear on homepage
 			testimonialsEnabled, testimonialsSelectedItems, testimonialsConfigured := getSectionConfig(settings, "testimonials")
 			if testimonialsEnabled {
 				testimonialRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "testimonials"),
-					"status = 'approved'",
+					"status = 'approved' && (visibility = 'public' || visibility = '')",
 					"-featured,-sort_order",
 					100,
 					0,

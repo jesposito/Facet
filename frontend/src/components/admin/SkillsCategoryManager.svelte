@@ -100,10 +100,18 @@
 		return ordered;
 	});
 
-	// Category items for drag-and-drop
+	// Category items for drag-and-drop - must be $state for svelte-dnd-action to work
 	let categoryItems: Array<{ id: string; name: string }> = $state([]);
+
+	// Sync categoryItems from orderedCategories when source data changes
 	$effect(() => {
-		categoryItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
+		const newItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
+		// Only update if the underlying categories changed (not during DnD)
+		const currentNames = categoryItems.map(c => c.name).join(',');
+		const newNames = newItems.map(c => c.name).join(',');
+		if (currentNames !== newNames || categoryItems.length === 0) {
+			categoryItems = newItems;
+		}
 	});
 
 	// Check if a category is disabled
@@ -203,10 +211,12 @@
 
 	// Handle category drag-and-drop
 	function handleCategoryDndConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		// Update categoryItems during drag for visual feedback
 		categoryItems = e.detail.items;
 	}
 
 	function handleCategoryDndFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+		// Filter out placeholder and update both categoryItems and categoryOrder
 		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		categoryItems = filteredItems;
 		categoryOrder = filteredItems.map(c => c.name);

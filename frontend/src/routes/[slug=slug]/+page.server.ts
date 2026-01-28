@@ -92,6 +92,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				},
 				profile: null,
 				sections: {},
+				sectionFeaturedIds: {},
 				requiresPassword: true
 			};
 		}
@@ -127,6 +128,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 						},
 						profile: null,
 						sections: {},
+						sectionFeaturedIds: {},
 						requiresPassword: true
 					};
 				}
@@ -168,6 +170,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionCategoryOrders: viewData.section_category_orders || {},
 			sectionDisabledCategories: viewData.section_disabled_categories || {},
 			sectionCategoryDisplayModes: viewData.section_category_display_modes || {},
+			sectionFeaturedIds: viewData.section_featured_ids || {},
 			requiresPassword: false,
 			shareToken: effectiveShareToken || null,
 			isPublicView: accessInfo.visibility === 'public',

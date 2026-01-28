@@ -118,6 +118,7 @@
 		categoryOrder?: string[];
 		disabledCategories?: string[];
 		categoryDisplayModes?: Record<string, string>;
+		featuredId?: string;
 	}> = $state({});
 
 	// Section order for drag-drop (array of section keys with unique ids for dndzone)
@@ -660,26 +661,21 @@
 	}
 
 	function initializeSections(viewSections?: ViewSection[]) {
-		// Start with all standard sections disabled, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined, disabledCategories: undefined, categoryDisplayModes: undefined };
+			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined, disabledCategories: undefined, categoryDisplayModes: undefined, featuredId: undefined };
 		}
 
-		// Add custom content sections (each custom content item is its own section)
 		for (const item of customContentItems) {
 			const sectionKey = `custom:${item.id}`;
 			const defaultLayout = VALID_LAYOUTS['custom']?.default || 'default';
 			sections[sectionKey] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
 		}
 
-		// Build list of all available section keys (standard + custom)
 		const customSectionKeys = customContentItems.map(item => `custom:${item.id}`);
 		const allAvailableSections = [...DEFAULT_SECTION_ORDER, ...customSectionKeys];
 
-		// Apply saved section configuration and extract order
 		if (viewSections && viewSections.length > 0) {
-			// Build order from saved sections, then add any missing sections at the end
 			const savedOrder = viewSections.map(vs => vs.section);
 			const remainingSections = allAvailableSections.filter(k => !savedOrder.includes(k));
 			const fullOrder = [...savedOrder, ...remainingSections];
@@ -687,7 +683,6 @@
 			sectionOrder = fullOrder.map(key => ({ id: `section-${key}`, key }));
 
 			for (const vs of viewSections) {
-				// Handle both standard sections and custom content sections
 				if (sections[vs.section] !== undefined) {
 					sections[vs.section].enabled = vs.enabled;
 					sections[vs.section].items = vs.items || [];
@@ -698,13 +693,12 @@
 					sections[vs.section].categoryOrder = vs.categoryOrder;
 					sections[vs.section].disabledCategories = vs.disabledCategories;
 					sections[vs.section].categoryDisplayModes = vs.categoryDisplayModes;
+					sections[vs.section].featuredId = vs.featuredId;
 				}
 			}
 		} else {
-			// Default order (standard sections first, then custom content)
 			sectionOrder = allAvailableSections.map(key => ({ id: `section-${key}`, key }));
 		}
-		// Trigger Svelte 5 reactivity
 		updateSections();
 	}
 
@@ -862,6 +856,10 @@
 						if (sectionConfig?.categoryDisplayModes && Object.keys(sectionConfig.categoryDisplayModes).length > 0) {
 							sectionData.categoryDisplayModes = sectionConfig.categoryDisplayModes;
 						}
+					}
+					// Include testimonials section settings if set
+					if (key === 'testimonials' && sectionConfig?.featuredId) {
+						sectionData.featuredId = sectionConfig.featuredId;
 					}
 					return sectionData;
 				});
