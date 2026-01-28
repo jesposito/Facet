@@ -715,6 +715,11 @@
 				"video_url_placeholder": "https://palantir.com/...",
 				"required_error": "Title and gathering are required"
 			},
+			"testimonials": {
+				"title": "Testimonies",
+				"visibility_updated": "Visibility set to {visibility}",
+				"visibility_update_failed": "Failed to alter visibility"
+			},
 			"posts": {
 				"title": "Writings",
 				"help_text": "<strong>Writings</strong> are thy essays, articles, and written lore.",
@@ -942,7 +947,10 @@
 				"posts": "Writings",
 				"talks": "Orations",
 				"contacts": "Ways of Reaching",
-				"testimonials": "Testimonies"
+				"testimonials": "Testimonies",
+				"featured_testimonial_label": "Honored Testimony",
+				"primary_testimonial_label": "First Voice (appears first in the carousel)",
+				"use_global_featured": "Use the honored voice (or the first)"
 			},
 			"category_reorder": {
 				"title": "Reorder Craft Categories",

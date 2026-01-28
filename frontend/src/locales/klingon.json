@@ -715,6 +715,11 @@
 				"video_url_placeholder": "https://subspace.klingon/...",
 				"required_error": "Title and event are required"
 			},
+			"testimonials": {
+				"title": "Testimonials",
+				"visibility_updated": "Visibility updated to {visibility}",
+				"visibility_update_failed": "Failed to update visibility"
+			},
 			"posts": {
 				"title": "Battle Logs",
 				"help_text": "<strong>Battle Logs</strong> are your essays, articles, and written content.",
@@ -942,7 +947,10 @@
 				"posts": "Battle Logs",
 				"talks": "Speeches",
 				"contacts": "Channels",
-				"testimonials": "Testimonials"
+				"testimonials": "Testimonials",
+				"featured_testimonial_label": "Honored Testimonial",
+				"primary_testimonial_label": "Primary Testimonial (displayed first in rotation)",
+				"use_global_featured": "Use global honored (or first)"
 			},
 			"category_reorder": {
 				"title": "Reorder Skill Categories",

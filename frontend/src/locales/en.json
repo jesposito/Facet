@@ -715,6 +715,11 @@
 				"video_url_placeholder": "https://youtube.com/...",
 				"required_error": "Title and event are required"
 			},
+			"testimonials": {
+				"title": "Testimonials",
+				"visibility_updated": "Visibility updated to {visibility}",
+				"visibility_update_failed": "Failed to update visibility"
+			},
 			"posts": {
 				"title": "Posts",
 				"help_text": "<strong>Posts</strong> are blog posts, articles, and written content.",
@@ -942,7 +947,10 @@
 				"posts": "Posts",
 				"talks": "Talks",
 				"contacts": "Contact Methods",
-				"testimonials": "Testimonials"
+				"testimonials": "Testimonials",
+				"featured_testimonial_label": "Featured Testimonial",
+				"primary_testimonial_label": "Primary Testimonial (shown first in carousel)",
+				"use_global_featured": "Use global featured (or first)"
 			},
 			"category_reorder": {
 				"title": "Reorder Skill Categories",

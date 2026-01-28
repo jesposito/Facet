@@ -592,17 +592,17 @@
 								{#if selectedTestimonials.length > 0}
 									<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 										<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-											{sectionConfig.layout === 'featured' ? 'Featured Testimonial' : 'Primary Testimonial (shown first in carousel)'}
+											{sectionConfig.layout === 'featured' ? $t('admin.view_editor.sections.featured_testimonial_label') : $t('admin.view_editor.sections.primary_testimonial_label')}
 										</label>
 										<select
-											class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+											class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 											value={sectionConfig.featuredId || ''}
 											onchange={(e) => {
 												sections['testimonials'].featuredId = e.currentTarget.value || undefined;
 												updateSections();
 											}}
 										>
-											<option value="">Use global featured (or first)</option>
+											<option value="">{$t('admin.view_editor.sections.use_global_featured')}</option>
 											{#each selectedTestimonials as testimonial}
 												<option value={testimonial.id}>{testimonial.label}</option>
 											{/each}

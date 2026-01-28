@@ -715,6 +715,11 @@
 				"video_url_placeholder": "https://youtube.com/...",
 				"required_error": "Titel und Veranstaltung sind erforderlich"
 			},
+			"testimonials": {
+				"title": "Referenzen",
+				"visibility_updated": "Sichtbarkeit auf {visibility} aktualisiert",
+				"visibility_update_failed": "Sichtbarkeit konnte nicht aktualisiert werden"
+			},
 			"posts": {
 				"title": "Beiträge",
 				"help_text": "<strong>Beiträge</strong> sind Blog-Posts, Artikel und schriftliche Inhalte.",
@@ -942,7 +947,10 @@
 				"posts": "Beiträge",
 				"talks": "Vorträge",
 				"contacts": "Kontaktmethoden",
-				"testimonials": "Referenzen"
+				"testimonials": "Referenzen",
+				"featured_testimonial_label": "Ausgewählte Referenz",
+				"primary_testimonial_label": "Primäre Referenz (wird zuerst im Karussell angezeigt)",
+				"use_global_featured": "Globale Auswahl verwenden (oder erste)"
 			},
 			"category_reorder": {
 				"title": "Fähigkeitskategorien neu ordnen",
