@@ -9,28 +9,126 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pocketbase/pocketbase"
 )
+
+// MediaUsageItem represents a single content item that references a media item.
+type MediaUsageItem struct {
+	Collection string `json:"collection"`
+	RecordID   string `json:"record_id"`
+	Title      string `json:"title"`
+	Slug       string `json:"slug,omitempty"`
+}
+
+// MediaUsage represents usage information for a media item.
+type MediaUsage struct {
+	UsageCount int              `json:"usage_count"`
+	UsedBy     []MediaUsageItem `json:"used_by"`
+}
+
+// FindMediaUsage queries all collections with media_refs to find which content references the given external_media ID.
+func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUsage, error) {
+	usage := MediaUsage{
+		UsageCount: 0,
+		UsedBy:     []MediaUsageItem{},
+	}
+
+	// Collections that have media_refs relation to external_media
+	collectionsWithMediaRefs := []string{"posts", "projects", "talks", "custom_content"}
+
+	for _, collName := range collectionsWithMediaRefs {
+		collection, err := app.FindCollectionByNameOrId(collName)
+		if err != nil {
+			// Collection doesn't exist, skip
+			continue
+		}
+
+		// Check if collection has media_refs field
+		if collection.Fields.GetByName("media_refs") == nil {
+			continue
+		}
+
+		// Find records that reference this external_media ID
+		// PocketBase stores relations as arrays, so we need to check if the ID is in the array
+		filter := fmt.Sprintf("media_refs~'%s'", externalMediaID)
+		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+		if err != nil {
+			app.Logger().Warn("media usage: failed to query collection", "collection", collName, "error", err)
+			continue
+		}
+
+		for _, record := range records {
+			title := record.GetString("title")
+			if title == "" {
+				title = record.GetString("name")
+			}
+			if title == "" {
+				title = record.Id
+			}
+
+			item := MediaUsageItem{
+				Collection: collName,
+				RecordID:   record.Id,
+				Title:      title,
+				Slug:       record.GetString("slug"),
+			}
+			usage.UsedBy = append(usage.UsedBy, item)
+			usage.UsageCount++
+		}
+	}
+
+	return usage, nil
+}
+
+// RemoveMediaRefFromRecord removes an external_media ID from a record's media_refs field.
+func RemoveMediaRefFromRecord(app *pocketbase.PocketBase, collectionName, recordID, externalMediaID string) error {
+	record, err := app.FindRecordById(collectionName, recordID)
+	if err != nil {
+		return err
+	}
+
+	// Get current media_refs
+	mediaRefs := record.GetStringSlice("media_refs")
+	if mediaRefs == nil {
+		return nil // Nothing to remove
+	}
+
+	// Filter out the external media ID
+	newRefs := make([]string, 0, len(mediaRefs))
+	for _, ref := range mediaRefs {
+		if ref != externalMediaID {
+			newRefs = append(newRefs, ref)
+		}
+	}
+
+	// Update the record
+	record.Set("media_refs", newRefs)
+	return app.Save(record)
+}
 
 // MediaItem represents a single stored file and its context.
 type MediaItem struct {
-	Collection    string    `json:"collection"`
-	CollectionID  string    `json:"collection_id"`
-	RecordID      string    `json:"record_id"`
-	Field         string    `json:"field"`
-	Filename      string    `json:"filename"`
-	URL           string    `json:"url"`
-	Size          int64     `json:"size"`
-	Mime          string    `json:"mime"`
-	UploadedAt    time.Time `json:"uploaded_at"`
-	RelativePath  string    `json:"relative_path"`
-	DisplayName   string    `json:"display_name,omitempty"`
-	RecordLabel   string    `json:"record_label,omitempty"`
-	CollectionKey string    `json:"collection_key,omitempty"`
-	Orphan        bool      `json:"orphan,omitempty"`
-	ThumbnailURL  string    `json:"thumbnail_url,omitempty"`
-	External      bool      `json:"external,omitempty"`
-	Provider      string    `json:"provider,omitempty"`
-	EmbedURL      string    `json:"embed_url,omitempty"`
+	Collection    string           `json:"collection"`
+	CollectionID  string           `json:"collection_id"`
+	RecordID      string           `json:"record_id"`
+	Field         string           `json:"field"`
+	Filename      string           `json:"filename"`
+	URL           string           `json:"url"`
+	Size          int64            `json:"size"`
+	Mime          string           `json:"mime"`
+	UploadedAt    time.Time        `json:"uploaded_at"`
+	RelativePath  string           `json:"relative_path"`
+	DisplayName   string           `json:"display_name,omitempty"`
+	RecordLabel   string           `json:"record_label,omitempty"`
+	CollectionKey string           `json:"collection_key,omitempty"`
+	Orphan        bool             `json:"orphan,omitempty"`
+	ThumbnailURL  string           `json:"thumbnail_url,omitempty"`
+	External      bool             `json:"external,omitempty"`
+	Provider      string           `json:"provider,omitempty"`
+	EmbedURL      string           `json:"embed_url,omitempty"`
+	UsageCount    int              `json:"usage_count,omitempty"`
+	UsedBy        []MediaUsageItem `json:"used_by,omitempty"`
 }
 
 // FlattenFileValue normalizes PocketBase file field values (string or []string) into a slice.

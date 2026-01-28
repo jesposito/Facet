@@ -6,7 +6,16 @@
 	import { pb } from '$lib/pocketbase';
 	import { goto } from '$app/navigation';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import DropZone from '$components/admin/DropZone.svelte';
+	import MediaPreviewModal from '$components/admin/MediaPreviewModal.svelte';
 	import { t } from 'svelte-i18n';
+
+	type MediaUsageItem = {
+		collection: string;
+		record_id: string;
+		title: string;
+		slug?: string;
+	};
 
 	type MediaItem = {
 		collection: string;
@@ -25,7 +34,51 @@
 		thumbnail_url?: string;
 		collection_key?: string;
 		external?: boolean;
+		provider?: string;
+		embed_url?: string;
+		usage_count?: number;
+		used_by?: MediaUsageItem[];
 	};
+
+	// Get provider icon name for external media
+	function getProviderIcon(item: MediaItem): string {
+		if (!item.external) {
+			if (item.mime?.startsWith('image/')) return 'image';
+			if (item.mime?.startsWith('video/')) return 'video';
+			if (item.mime?.startsWith('audio/')) return 'music';
+			return 'file';
+		}
+		const provider = (item.provider || '').toLowerCase();
+		if (provider === 'youtube') return 'youtube';
+		if (provider === 'vimeo') return 'vimeo';
+		if (provider === 'spotify') return 'spotify';
+		if (provider === 'soundcloud') return 'soundcloud';
+		if (item.mime?.startsWith('video/')) return 'video';
+		if (item.mime?.startsWith('audio/')) return 'music';
+		if (item.mime?.startsWith('image/')) return 'image';
+		return 'globe';
+	}
+
+	// Check if item has a displayable thumbnail
+	function hasThumbnail(item: MediaItem): boolean {
+		if (item.thumbnail_url) return true;
+		if (item.mime?.startsWith('image/') && item.url) return true;
+		return false;
+	}
+
+	// Get thumbnail URL for an item
+	function getThumbnailUrl(item: MediaItem): string {
+		if (item.thumbnail_url) return item.thumbnail_url;
+		if (item.mime?.startsWith('image/') && item.url) return item.url;
+		return '';
+	}
+
+	// Check if item is a video type
+	function isVideo(item: MediaItem): boolean {
+		if (item.mime?.startsWith('video/')) return true;
+		const provider = (item.provider || '').toLowerCase();
+		return ['youtube', 'vimeo', 'loom'].includes(provider);
+	}
 
 	type MediaStats = {
 		referencedFiles: number;
@@ -69,6 +122,72 @@
 	let uploadFile: File | null = null;
 	let uploadTitle = $state('');
 	let uploading = $state(false);
+	let uploadProgress = $state({ current: 0, total: 0 });
+	let previewItem: MediaItem | null = $state(null);
+	let editItem: MediaItem | null = $state(null);
+	let editForm = $state({
+		title: '',
+		url: '',
+		mime: '',
+		thumbnail_url: '',
+		saving: false
+	});
+
+	function openPreview(item: MediaItem) {
+		previewItem = item;
+	}
+
+	function closePreview() {
+		previewItem = null;
+	}
+
+	function openEdit(item: MediaItem) {
+		editItem = item;
+		editForm = {
+			title: item.display_name || item.filename || '',
+			url: item.url || '',
+			mime: item.mime || '',
+			thumbnail_url: item.thumbnail_url || '',
+			saving: false
+		};
+	}
+
+	function closeEdit() {
+		editItem = null;
+		editForm = { title: '', url: '', mime: '', thumbnail_url: '', saving: false };
+	}
+
+	async function saveEdit() {
+		if (!editItem || !editItem.record_id) return;
+		editForm.saving = true;
+		try {
+			const res = await fetch(`/api/collections/external_media/records/${editItem.record_id}`, {
+				method: 'PATCH',
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+				},
+				body: JSON.stringify({
+					title: editForm.title.trim(),
+					url: editForm.url.trim(),
+					mime: editForm.mime.trim(),
+					thumbnail_url: editForm.thumbnail_url.trim()
+				})
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to update media');
+			}
+			toasts.add('success', $t('admin.media.toast_media_updated'));
+			closeEdit();
+			await loadMedia();
+		} catch (err) {
+			console.error(err);
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_update_failed'));
+		} finally {
+			editForm.saving = false;
+		}
+	}
 
 	const humanSize = (bytes: number) => {
 		if (!bytes) return '0 B';
@@ -173,25 +292,76 @@
 		toasts.add('success', $t('admin.media.toast_url_copied'));
 	}
 
-	async function deleteFile(item: MediaItem) {
-		const confirmed = await confirm({
-			title: $t('admin.media.confirm_delete_title'),
-			message: $t('admin.media.confirm_delete_message', { values: { filename: item.filename } }),
-			confirmText: $t('admin.media.confirm_delete_button'),
-			danger: true
-		});
-		if (!confirmed) return;
+	async function deleteFile(item: MediaItem, force = false) {
+		// For non-external or orphan items, show standard confirmation
+		if (!item.external || item.orphan) {
+			const confirmed = await confirm({
+				title: $t('admin.media.confirm_delete_title'),
+				message: $t('admin.media.confirm_delete_message', { values: { filename: item.filename } }),
+				confirmText: $t('admin.media.confirm_delete_button'),
+				danger: true
+			});
+			if (!confirmed) return;
+		} else if (!force) {
+			// For external items without force flag, show standard confirmation first
+			const confirmed = await confirm({
+				title: $t('admin.media.confirm_delete_title'),
+				message: $t('admin.media.confirm_delete_message', { values: { filename: item.filename } }),
+				confirmText: $t('admin.media.confirm_delete_button'),
+				danger: true
+			});
+			if (!confirmed) return;
+		}
+
 		try {
 			if (item.external && item.record_id) {
-				const res = await fetch(`/api/media/external/${item.record_id}`, {
+				const url = force
+					? `/api/media/external/${item.record_id}?force=1`
+					: `/api/media/external/${item.record_id}`;
+				const res = await fetch(url, {
 					method: 'DELETE',
 					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
 				});
+
+				// Handle conflict response (media is referenced)
+				if (res.status === 409) {
+					const body = await res.json().catch(() => ({}));
+					const usedBy = body.used_by || [];
+					const usageCount = body.usage_count || usedBy.length;
+
+					// Build list of content items using this media
+					const usageList = usedBy
+						.slice(0, 5)
+						.map((u: { collection: string; title: string }) => `• ${u.collection}: ${u.title}`)
+						.join('\n');
+					const moreText = usedBy.length > 5 ? `\n...and ${usedBy.length - 5} more` : '';
+
+					const forceConfirmed = await confirm({
+						title: $t('admin.media.confirm_force_delete_title'),
+						message: $t('admin.media.confirm_force_delete_message', { values: { count: usageCount } }) +
+							'\n\n' + usageList + moreText,
+						confirmText: $t('admin.media.confirm_force_delete_button'),
+						danger: true
+					});
+
+					if (forceConfirmed) {
+						// Retry with force flag
+						await deleteFile(item, true);
+					}
+					return;
+				}
+
 				if (!res.ok) {
 					const body = await res.json().catch(() => ({}));
-					throw new Error(body.error || 'Failed to delete external media');
+					throw new Error(body.message || body.error || 'Failed to delete external media');
 				}
-				toasts.add('success', $t('admin.media.toast_external_deleted'));
+
+				const result = await res.json().catch(() => ({}));
+				if (result.references_removed) {
+					toasts.add('success', $t('admin.media.toast_references_removed', { values: { count: result.references_removed } }));
+				} else {
+					toasts.add('success', $t('admin.media.toast_external_deleted'));
+				}
 				await loadMedia();
 				return;
 			}
@@ -379,6 +549,56 @@
 		loadMedia();
 	}
 
+	async function handleDropZoneFiles(event: CustomEvent<{ files: File[] }>) {
+		const files = event.detail.files;
+		if (files.length === 0) return;
+
+		uploading = true;
+		uploadProgress = { current: 0, total: files.length };
+		error = '';
+
+		let successCount = 0;
+		let failCount = 0;
+
+		for (const file of files) {
+			uploadProgress.current++;
+			try {
+				const form = new FormData();
+				form.append('file', file);
+				form.append('title', file.name);
+				if (file.type) {
+					form.append('mime', file.type);
+				}
+				const res = await fetch('/api/collections/uploads/records', {
+					method: 'POST',
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
+					body: form
+				});
+				if (!res.ok) {
+					failCount++;
+					console.error('Failed to upload:', file.name);
+				} else {
+					successCount++;
+				}
+			} catch (err) {
+				failCount++;
+				console.error('Failed to upload:', file.name, err);
+			}
+		}
+
+		uploading = false;
+		uploadProgress = { current: 0, total: 0 };
+
+		if (successCount > 0) {
+			toasts.add('success', $t('admin.media.upload_complete', { values: { count: successCount } }));
+		}
+		if (failCount > 0) {
+			toasts.add('error', $t('admin.media.toast_upload_failed') + ` (${failCount})`);
+		}
+
+		await loadMedia();
+	}
+
 	onMount(loadMedia);
 </script>
 
@@ -478,29 +698,19 @@
 					{$t('admin.media.upload_description')}
 				</p>
 			</div>
-			<button class="btn btn-primary" onclick={uploadMedia} aria-busy={uploading}>
-				{uploading ? $t('admin.media.uploading') : $t('admin.media.upload_button')}
-			</button>
+			{#if uploadProgress.total > 0}
+				<span class="text-sm text-gray-600 dark:text-gray-400">
+					{$t('admin.media.upload_progress', { values: { current: uploadProgress.current, total: uploadProgress.total } })}
+				</span>
+			{/if}
 		</div>
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-			<div class="md:col-span-2">
-				<label class="label" for="upload-file">{$t('admin.media.file_required')}</label>
-				<input
-					id="upload-file"
-					type="file"
-					class="input"
-					onchange={handleFileChange}
-				/>
-			</div>
-			<div>
-				<label class="label" for="upload-title">{$t('admin.media.title_label')}</label>
-				<input
-					id="upload-title"
-					class="input"
-					placeholder={$t('admin.media.title_placeholder')}
-					bind:value={uploadTitle}
-				/>
-			</div>
+		<DropZone
+			on:drop={handleDropZoneFiles}
+			disabled={uploading}
+			multiple={true}
+		/>
+		<div class="text-xs text-gray-500 dark:text-gray-400 text-center">
+			{$t('admin.media.upload_description')}
 		</div>
 	</div>
 
@@ -545,12 +755,14 @@
 						<thead class="bg-gray-50 dark:bg-gray-800">
 							<tr>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
+								<th class="px-2 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-16">{$t('admin.media.table_preview')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase w-1/4">{$t('admin.media.table_file')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_type')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_size')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_collection')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_record')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_uploaded')}</th>
+								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_used_by')}</th>
 								<th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_actions')}</th>
 							</tr>
 						</thead>
@@ -567,9 +779,30 @@
 											/>
 										{/if}
 									</td>
+									<td class="px-2 py-2">
+										<div class="w-12 h-12 relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+											{#if hasThumbnail(item)}
+												<img
+													src={getThumbnailUrl(item)}
+													alt=""
+													class="w-full h-full object-cover"
+													loading="lazy"
+													onerror={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+												/>
+												{#if isVideo(item)}
+													<div class="absolute inset-0 flex items-center justify-center bg-black/30">
+														<span class="text-white">{@html icon('play')}</span>
+													</div>
+												{/if}
+											{:else}
+												<span class="text-gray-400 dark:text-gray-500">
+													{@html icon(getProviderIcon(item))}
+												</span>
+											{/if}
+										</div>
+									</td>
 									<td class="px-4 py-3 max-w-xs">
 										<div class="flex items-center gap-2">
-											<span class="shrink-0">{@html icon(item.mime.startsWith('image/') ? 'image' : 'document')}</span>
 											<div class="min-w-0 flex-1 overflow-hidden">
 												<a
 													class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2"
@@ -615,12 +848,45 @@
 								<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
 									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric', year: 'numeric' })}
 								</td>
+								<td class="px-4 py-3 text-sm">
+									{#if item.external && item.usage_count && item.usage_count > 0}
+										<div class="group relative">
+											<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 cursor-help">
+												{$t('admin.media.used_by_count', { values: { count: item.usage_count } })}
+											</span>
+											{#if item.used_by && item.used_by.length > 0}
+												<div class="hidden group-hover:block absolute z-10 left-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 min-w-[200px] max-w-[300px]">
+													<ul class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
+														{#each item.used_by.slice(0, 5) as usage}
+															<li class="truncate" title="{usage.collection}: {usage.title}">
+																<span class="font-medium">{usage.collection}</span>: {usage.title}
+															</li>
+														{/each}
+														{#if item.used_by.length > 5}
+															<li class="text-gray-400 italic">+{item.used_by.length - 5} more</li>
+														{/if}
+													</ul>
+												</div>
+											{/if}
+										</div>
+									{:else}
+										<span class="text-gray-400 dark:text-gray-500">{$t('admin.media.used_by_none')}</span>
+									{/if}
+								</td>
 								<td class="px-4 py-3">
 									<div class="flex items-center gap-2">
-										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)}>
+										<button class="btn btn-ghost btn-sm" onclick={() => openPreview(item)} title={$t('admin.media.preview_button')}>
+											{@html icon('eye')}
+										</button>
+										{#if item.external}
+											<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
+												{@html icon('edit')}
+											</button>
+										{/if}
+										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)} title={$t('admin.media.copy_url_button')}>
 											{@html icon('copy')}
 										</button>
-										<button class="btn btn-danger-ghost btn-sm" onclick={() => deleteFile(item)}>
+										<button class="btn btn-danger-ghost btn-sm" onclick={() => deleteFile(item)} title={$t('admin.media.delete_button')}>
 											{@html icon('trash')}
 										</button>
 									</div>
@@ -646,3 +912,103 @@
 		</div>
 	{/if}
 </div>
+
+<MediaPreviewModal item={previewItem} on:close={closePreview} />
+
+{#if editItem}
+	<div
+		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+		onclick={(e) => e.target === e.currentTarget && closeEdit()}
+		onkeydown={(e) => e.key === 'Escape' && closeEdit()}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="edit-modal-title"
+	>
+		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+				<h2 id="edit-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
+					{$t('admin.media.edit_modal_title')}
+				</h2>
+				<button
+					class="btn btn-ghost btn-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+					onclick={closeEdit}
+					aria-label={$t('shared.actions.close')}
+				>
+					{@html icon('x')}
+				</button>
+			</div>
+			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); saveEdit(); }}>
+				{#if editItem.thumbnail_url || (editItem.mime?.startsWith('image/') && editItem.url)}
+					<div class="flex justify-center">
+						<div class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+							<img
+								src={editItem.thumbnail_url || editItem.url}
+								alt=""
+								class="w-full h-full object-cover"
+								loading="lazy"
+							/>
+						</div>
+					</div>
+				{/if}
+				<div>
+					<label class="label" for="edit-title">{$t('admin.media.edit_title_label')}</label>
+					<input
+						id="edit-title"
+						class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+						bind:value={editForm.title}
+						placeholder={$t('admin.media.edit_title_placeholder')}
+					/>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_title_help')}</p>
+				</div>
+				<div>
+					<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
+					<input
+						id="edit-url"
+						class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+						bind:value={editForm.url}
+						placeholder={$t('admin.media.url_placeholder')}
+					/>
+				</div>
+				<div class="grid grid-cols-2 gap-3">
+					<div>
+						<label class="label" for="edit-mime">{$t('admin.media.edit_mime_label')}</label>
+						<input
+							id="edit-mime"
+							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+							bind:value={editForm.mime}
+							placeholder={$t('admin.media.mime_placeholder')}
+						/>
+					</div>
+					<div>
+						<label class="label" for="edit-thumbnail">{$t('admin.media.edit_thumbnail_label')}</label>
+						<input
+							id="edit-thumbnail"
+							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+							bind:value={editForm.thumbnail_url}
+							placeholder={$t('admin.media.thumbnail_placeholder')}
+						/>
+					</div>
+				</div>
+				<div class="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+					<button type="button" class="btn btn-secondary" onclick={closeEdit}>
+						{$t('shared.actions.cancel')}
+					</button>
+					<button
+						type="submit"
+						class="btn btn-primary transition-transform active:scale-95"
+						disabled={editForm.saving}
+					>
+						{#if editForm.saving}
+							<span class="inline-flex items-center gap-2">
+								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								{$t('admin.media.saving')}
+							</span>
+						{:else}
+							{$t('shared.actions.save')}
+						{/if}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}

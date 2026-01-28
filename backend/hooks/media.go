@@ -188,6 +188,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			if id == "" {
 				return apis.NewBadRequestError("missing id", nil)
 			}
+
+			// Check for force parameter
+			query := e.Request.URL.Query()
+			forceDelete := strings.TrimSpace(strings.ToLower(query.Get("force"))) == "1"
+
 			collection, err := app.FindCollectionByNameOrId("external_media")
 			if err != nil {
 				return apis.NewBadRequestError("external media not configured", err)
@@ -196,10 +201,47 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			if err != nil {
 				return apis.NewNotFoundError("not found", err)
 			}
+
+			// Check if media is referenced by any content
+			usage, err := services.FindMediaUsage(app, id)
+			if err != nil {
+				app.Logger().Warn("media: failed to check usage", "id", id, "error", err)
+				// Continue with deletion check even if usage check fails
+			}
+
+			// If media is referenced and force is not set, return usage info
+			if usage.UsageCount > 0 && !forceDelete {
+				return e.JSON(http.StatusConflict, map[string]interface{}{
+					"status":      "referenced",
+					"message":     fmt.Sprintf("Media is referenced by %d content item(s)", usage.UsageCount),
+					"usage_count": usage.UsageCount,
+					"used_by":     usage.UsedBy,
+				})
+			}
+
+			// If force delete, remove references from all content first
+			if forceDelete && usage.UsageCount > 0 {
+				for _, item := range usage.UsedBy {
+					if err := services.RemoveMediaRefFromRecord(app, item.Collection, item.RecordID, id); err != nil {
+						app.Logger().Warn("media: failed to remove reference", "collection", item.Collection, "record", item.RecordID, "error", err)
+						// Continue trying to remove other references
+					}
+				}
+				app.Logger().Info("media: removed references before delete", "id", id, "count", usage.UsageCount)
+			}
+
 			if err := app.Delete(record); err != nil {
 				return apis.NewBadRequestError("failed to delete external media", err)
 			}
-			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
+
+			response := map[string]interface{}{
+				"status": "deleted",
+			}
+			if forceDelete && usage.UsageCount > 0 {
+				response["references_removed"] = usage.UsageCount
+			}
+
+			return e.JSON(http.StatusOK, response)
 		}).Bind(apis.RequireAuth())
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
@@ -455,6 +497,10 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 			title = record.GetString("url")
 		}
 		normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+
+		// Get usage info for this external media item
+		usage, _ := services.FindMediaUsage(app, record.Id)
+
 		item := services.MediaItem{
 			Collection:    collection.Name,
 			CollectionID:  collection.Id,
@@ -471,6 +517,8 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 			Provider:      normalized.Provider,
 			UploadedAt:    created,
 			External:      true,
+			UsageCount:    usage.UsageCount,
+			UsedBy:        usage.UsedBy,
 		}
 		items = append(items, item)
 	}
