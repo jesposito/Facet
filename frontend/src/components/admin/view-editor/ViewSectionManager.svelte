@@ -595,7 +595,7 @@
 											{sectionConfig.layout === 'featured' ? $t('admin.view_editor.sections.featured_testimonial_label') : $t('admin.view_editor.sections.primary_testimonial_label')}
 										</label>
 										<select
-											class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+											class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 											value={sectionConfig.featuredId || ''}
 											onchange={(e) => {
 												sections['testimonials'].featuredId = e.currentTarget.value || undefined;
