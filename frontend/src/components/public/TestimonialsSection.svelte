@@ -148,10 +148,12 @@
 			{/each}
 		</div>
 	{:else if layout === 'carousel'}
-		{@const featuredItems = featuredId 
-			? items.filter(t => t.id === featuredId)
-			: items.filter(t => t.featured)}
-		{@const displayItems = featuredItems.length > 0 ? featuredItems : items}
+		{@const featuredItem = featuredId
+			? items.find(t => t.id === featuredId)
+			: items.find(t => t.featured)}
+		{@const displayItems = featuredItem
+			? [featuredItem, ...items.filter(t => t.id !== featuredItem.id)]
+			: items}
 		<div class="relative">
 			<!-- Navigation buttons (endless loop, no disabled state) -->
 			{#if displayItems.length > 1}
