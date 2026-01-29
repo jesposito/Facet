@@ -226,9 +226,22 @@ onMount(() => {
 
 	// Listen for favicon changes from settings page
 	const handleFaviconChange = (event: CustomEvent<string | null>) => {
-		// Just update the state - the {#key} block in svelte:head will
-		// force Svelte to recreate the link element, triggering a fresh fetch
-		faviconUrl = event.detail;
+		const newUrl = event.detail;
+
+		// Force browser to reload favicon by removing old link and adding new one
+		// Browsers cache favicons aggressively and may ignore href changes
+		const existingLinks = document.querySelectorAll('link[rel="icon"]');
+		existingLinks.forEach(link => link.remove());
+
+		if (newUrl) {
+			const newLink = document.createElement('link');
+			newLink.rel = 'icon';
+			newLink.href = newUrl;
+			document.head.appendChild(newLink);
+		}
+
+		// Also update state so Svelte's {#key} block keeps it in sync
+		faviconUrl = newUrl;
 	};
 	window.addEventListener('favicon-changed', handleFaviconChange as EventListener);
 
