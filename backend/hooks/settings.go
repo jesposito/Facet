@@ -182,15 +182,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				return apis.NewBadRequestError("failed to save favicon", err)
 			}
 
-			// Reload settings to get the actual saved filename
-			// (PocketBase generates unique filenames during save)
-			updatedSettings, err := services.LoadSiteSettings(app)
-			if err != nil {
-				return apis.NewBadRequestError("failed to reload settings", err)
+			// Build the new favicon URL
+			faviconFile := settings.Record.GetString("favicon")
+			var faviconURL string
+			if faviconFile != "" {
+				faviconURL = "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
 			}
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"favicon": updatedSettings.Favicon,
+				"favicon": faviconURL,
 			})
 		})
 
