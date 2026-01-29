@@ -319,20 +319,30 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			}
 
 			current := record.Get(req.Field)
-			updated, removed := services.RemoveFileFromValue(current, req.Filename)
+			_, removed := services.RemoveFileFromValue(current, req.Filename)
 			if !removed {
 				return apis.NewBadRequestError("file not found on record", nil)
 			}
 
-			record.Set(req.Field, updated)
-			if err := app.Save(record); err != nil {
-				app.Logger().Error("media delete failed to update record", "error", err)
-				return apis.NewBadRequestError("failed to update record", err)
-			}
+			// For uploads collection, delete the entire record since the file field is required
+			// and clearing it would fail validation. For other collections, just clear the file field.
+			if collection.Name == "uploads" {
+				if err := app.Delete(record); err != nil {
+					app.Logger().Error("media delete failed to delete uploads record", "error", err)
+					return apis.NewBadRequestError("failed to delete record", err)
+				}
+			} else {
+				updated, _ := services.RemoveFileFromValue(current, req.Filename)
+				record.Set(req.Field, updated)
+				if err := app.Save(record); err != nil {
+					app.Logger().Error("media delete failed to update record", "error", err)
+					return apis.NewBadRequestError("failed to update record", err)
+				}
 
-			// Remove file from storage (ignore errors to avoid blocking user if already missing)
-			dataDir := app.DataDir()
-			_ = os.Remove(filepath.Join(dataDir, "storage", collection.Id, record.Id, req.Filename))
+				// Remove file from storage (ignore errors to avoid blocking user if already missing)
+				dataDir := app.DataDir()
+				_ = os.Remove(filepath.Join(dataDir, "storage", collection.Id, record.Id, req.Filename))
+			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
