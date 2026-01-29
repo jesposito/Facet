@@ -54,7 +54,7 @@ func main() {
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterSiteSettingsHooks(app)
-	hooks.RegisterMediaHooks(app)
+	hooks.RegisterMediaHooks(app, os.Getenv("UPLOADS_DIR"))
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)
 	hooks.RegisterExportHooks(app)
@@ -64,6 +64,7 @@ func main() {
 	hooks.RegisterDemoHandlers(app)
 	hooks.RegisterTestimonialHooks(app, testimonialService, rateLimitService)
 	hooks.RegisterDuplicateHooks(app)
+	hooks.RegisterExperienceHooks(app)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)

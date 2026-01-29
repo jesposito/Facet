@@ -9,28 +9,125 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
 )
+
+// MediaUsageItem represents a single content item that references a media item.
+type MediaUsageItem struct {
+	Collection string `json:"collection"`
+	RecordID   string `json:"record_id"`
+	Title      string `json:"title"`
+	Slug       string `json:"slug,omitempty"`
+}
+
+// MediaUsage represents usage information for a media item.
+type MediaUsage struct {
+	UsageCount int              `json:"usage_count"`
+	UsedBy     []MediaUsageItem `json:"used_by"`
+}
+
+// FindMediaUsage queries all collections with media_refs to find which content references the given external_media ID.
+func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUsage, error) {
+	usage := MediaUsage{
+		UsageCount: 0,
+		UsedBy:     []MediaUsageItem{},
+	}
+
+	// Collections that have media_refs relation to external_media
+	collectionsWithMediaRefs := []string{"posts", "projects", "talks", "custom_content"}
+
+	for _, collName := range collectionsWithMediaRefs {
+		collection, err := app.FindCollectionByNameOrId(collName)
+		if err != nil {
+			continue
+		}
+
+		// Check if collection has media_refs field
+		if collection.Fields.GetByName("media_refs") == nil {
+			continue
+		}
+
+		// Find records that reference this external_media ID
+		// PocketBase multi-relation: expand relation and check if any ID matches
+		filter := fmt.Sprintf("media_refs.id ?= '%s'", externalMediaID)
+		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+		if err != nil {
+			continue
+		}
+
+		for _, record := range records {
+			title := record.GetString("title")
+			if title == "" {
+				title = record.GetString("name")
+			}
+			if title == "" {
+				title = record.Id
+			}
+
+			item := MediaUsageItem{
+				Collection: collName,
+				RecordID:   record.Id,
+				Title:      title,
+				Slug:       record.GetString("slug"),
+			}
+			usage.UsedBy = append(usage.UsedBy, item)
+			usage.UsageCount++
+		}
+	}
+
+	return usage, nil
+}
+
+// RemoveMediaRefFromRecord removes an external_media ID from a record's media_refs field.
+func RemoveMediaRefFromRecord(app *pocketbase.PocketBase, collectionName, recordID, externalMediaID string) error {
+	record, err := app.FindRecordById(collectionName, recordID)
+	if err != nil {
+		return err
+	}
+
+	// Get current media_refs
+	mediaRefs := record.GetStringSlice("media_refs")
+	if mediaRefs == nil {
+		return nil // Nothing to remove
+	}
+
+	// Filter out the external media ID
+	newRefs := make([]string, 0, len(mediaRefs))
+	for _, ref := range mediaRefs {
+		if ref != externalMediaID {
+			newRefs = append(newRefs, ref)
+		}
+	}
+
+	// Update the record
+	record.Set("media_refs", newRefs)
+	return app.Save(record)
+}
 
 // MediaItem represents a single stored file and its context.
 type MediaItem struct {
-	Collection    string    `json:"collection"`
-	CollectionID  string    `json:"collection_id"`
-	RecordID      string    `json:"record_id"`
-	Field         string    `json:"field"`
-	Filename      string    `json:"filename"`
-	URL           string    `json:"url"`
-	Size          int64     `json:"size"`
-	Mime          string    `json:"mime"`
-	UploadedAt    time.Time `json:"uploaded_at"`
-	RelativePath  string    `json:"relative_path"`
-	DisplayName   string    `json:"display_name,omitempty"`
-	RecordLabel   string    `json:"record_label,omitempty"`
-	CollectionKey string    `json:"collection_key,omitempty"`
-	Orphan        bool      `json:"orphan,omitempty"`
-	ThumbnailURL  string    `json:"thumbnail_url,omitempty"`
-	External      bool      `json:"external,omitempty"`
-	Provider      string    `json:"provider,omitempty"`
-	EmbedURL      string    `json:"embed_url,omitempty"`
+	Collection    string           `json:"collection"`
+	CollectionID  string           `json:"collection_id"`
+	RecordID      string           `json:"record_id"`
+	Field         string           `json:"field"`
+	Filename      string           `json:"filename"`
+	URL           string           `json:"url"`
+	Size          int64            `json:"size"`
+	Mime          string           `json:"mime"`
+	UploadedAt    time.Time        `json:"uploaded_at"`
+	RelativePath  string           `json:"relative_path"`
+	DisplayName   string           `json:"display_name,omitempty"`
+	RecordLabel   string           `json:"record_label,omitempty"`
+	CollectionKey string           `json:"collection_key,omitempty"`
+	Orphan        bool             `json:"orphan,omitempty"`
+	ThumbnailURL  string           `json:"thumbnail_url,omitempty"`
+	External      bool             `json:"external,omitempty"`
+	Provider      string           `json:"provider,omitempty"`
+	EmbedURL      string           `json:"embed_url,omitempty"`
+	UsageCount    int              `json:"usage_count,omitempty"`
+	UsedBy        []MediaUsageItem `json:"used_by,omitempty"`
 }
 
 // FlattenFileValue normalizes PocketBase file field values (string or []string) into a slice.
@@ -101,8 +198,8 @@ func RemoveFileFromValue(current interface{}, filename string) (interface{}, boo
 }
 
 // BuildMediaItem constructs MediaItem metadata by inspecting the file on disk.
-// dataDir should be the PocketBase data dir (e.g., pb_data).
-func BuildMediaItem(dataDir, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
+// Uses StorageService to locate files across multiple storage locations.
+func BuildMediaItem(storage *StorageService, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
 	item := MediaItem{
 		Collection:    collectionName,
 		CollectionID:  collectionID,
@@ -110,7 +207,60 @@ func BuildMediaItem(dataDir, collectionName, collectionID, recordID, field, file
 		Field:         field,
 		Filename:      filename,
 		URL:           fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, filename),
-		RelativePath:  filepath.ToSlash(filepath.Join("storage", collectionID, recordID, filename)),
+		RelativePath:  filepath.ToSlash(filepath.Join(collectionID, recordID, filename)),
+		CollectionKey: collectionName,
+	}
+
+	fullPath, found := storage.FindFile(collectionID, recordID, filename)
+	if !found {
+		return item, fmt.Errorf("file not found: %s/%s/%s", collectionID, recordID, filename)
+	}
+
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return item, err
+	}
+
+	item.Size = info.Size()
+
+	uploadedAt := info.ModTime()
+	if uploadedAt.IsZero() && !recordCreated.IsZero() {
+		uploadedAt = recordCreated
+	}
+	item.UploadedAt = uploadedAt
+
+	// Detect mime
+	mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(filename)))
+	if mimeType == "" {
+		// Read a small sample to detect content type
+		f, err := os.Open(fullPath)
+		if err == nil {
+			defer f.Close()
+			sniff := make([]byte, 512)
+			n, _ := io.ReadFull(f, sniff)
+			mimeType = http.DetectContentType(sniff[:n])
+		}
+	}
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	item.Mime = mimeType
+
+	return item, nil
+}
+
+// BuildMediaItemLegacy constructs MediaItem metadata using the old dataDir-based approach.
+// Deprecated: Use BuildMediaItem with StorageService instead.
+// This is kept for backward compatibility during migration.
+func BuildMediaItemLegacy(dataDir, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
+	item := MediaItem{
+		Collection:    collectionName,
+		CollectionID:  collectionID,
+		RecordID:      recordID,
+		Field:         field,
+		Filename:      filename,
+		URL:           fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, filename),
+		RelativePath:  filepath.ToSlash(filepath.Join(collectionID, recordID, filename)),
 		CollectionKey: collectionName,
 	}
 
@@ -146,4 +296,65 @@ func BuildMediaItem(dataDir, collectionName, collectionID, recordID, field, file
 	item.Mime = mimeType
 
 	return item, nil
+}
+
+// GetMediaDisplayName retrieves a custom display name for a media file.
+// Returns empty string if no custom name is set.
+func GetMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, filename string) string {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return ""
+	}
+
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	if err != nil || len(records) == 0 {
+		return ""
+	}
+
+	return records[0].GetString("display_name")
+}
+
+// SetMediaDisplayName sets a custom display name for a media file.
+// Creates a new record or updates existing one.
+func SetMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, filename, displayName string) error {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return fmt.Errorf("media_display_names collection not found: %w", err)
+	}
+
+	// Check if record already exists
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+
+	var record *core.Record
+	if err == nil && len(records) > 0 {
+		// Update existing
+		record = records[0]
+	} else {
+		// Create new
+		record = core.NewRecord(collection)
+		record.Set("collection_id", collectionID)
+		record.Set("record_id", recordID)
+		record.Set("filename", filename)
+	}
+
+	record.Set("display_name", displayName)
+	return app.Save(record)
+}
+
+// DeleteMediaDisplayName removes a custom display name for a media file.
+func DeleteMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, filename string) error {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return nil // Collection doesn't exist, nothing to delete
+	}
+
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	if err != nil || len(records) == 0 {
+		return nil // No record to delete
+	}
+
+	return app.Delete(records[0])
 }

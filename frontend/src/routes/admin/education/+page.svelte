@@ -15,6 +15,7 @@
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 
 	let educations: Education[] = $state([]);
 	let loading = $state(true);
@@ -49,7 +50,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { institution, degree, field, startDate, endDate, description, visibility, isDraft, sortOrder };
+	return { institution, degree, field, startDate, endDate, description, visibility, isDraft, sortOrder, hasLogoFile: !!(institutionLogoFile && institutionLogoFile.length > 0) };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -96,6 +97,9 @@ afterNavigate(() => {
 	let visibility = $state('public');
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
+	let institutionLogoFile: FileList | null = $state(null);
+	let institutionLogoLibraryUrl = $state('');
+	let clearInstitutionLogo = $state(false);
 	let saving = $state(false);
 
 	onMount(loadEducations);
@@ -131,6 +135,9 @@ afterNavigate(() => {
 		visibility = 'public';
 		isDraft = false;
 		sortOrder = 0;
+		institutionLogoFile = null;
+		institutionLogoLibraryUrl = '';
+		clearInstitutionLogo = false;
 		editingEdu = null;
 	}
 
@@ -170,6 +177,8 @@ afterNavigate(() => {
 		visibility = edu.visibility;
 		isDraft = edu.is_draft;
 		sortOrder = edu.sort_order;
+		institutionLogoLibraryUrl = edu.institution_logo_library_url || '';
+		clearInstitutionLogo = false;
 		showForm = true;
 	}
 
@@ -187,24 +196,61 @@ afterNavigate(() => {
 
 		saving = true;
 		try {
-			const data = {
-				institution: institution.trim(),
-				degree: degree.trim(),
-				field: field.trim(),
-				start_date: startDate ? new Date(startDate).toISOString() : null,
-				end_date: endDate ? new Date(endDate).toISOString() : null,
-				description: description.trim(),
-				visibility,
-				is_draft: isDraft,
-				sort_order: sortOrder
-			};
+			// Use FormData for file uploads or clearing files, plain object otherwise
+			const hasFile = institutionLogoFile && institutionLogoFile.length > 0;
+			const needsClearFile = clearInstitutionLogo && editingEdu?.institution_logo;
+			const needsFormData = hasFile || needsClearFile;
 
-			if (editingEdu) {
-				await await collection('education').update(editingEdu.id, data);
-				toasts.add('success', 'Education updated successfully');
+			if (needsFormData) {
+				const formData = new FormData();
+				formData.append('institution', institution.trim());
+				formData.append('degree', degree.trim());
+				formData.append('field', field.trim());
+				formData.append('start_date', startDate ? new Date(startDate).toISOString() : '');
+				formData.append('end_date', endDate ? new Date(endDate).toISOString() : '');
+				formData.append('description', description.trim());
+				formData.append('visibility', visibility);
+				formData.append('is_draft', String(isDraft));
+				formData.append('sort_order', String(sortOrder));
+
+				if (hasFile) {
+					formData.append('institution_logo', institutionLogoFile![0]);
+					// Clear library URL when uploading a new file
+					formData.append('institution_logo_library_url', '');
+				} else if (needsClearFile) {
+					// Clear existing file - PocketBase accepts empty string to remove file
+					formData.append('institution_logo', '');
+					formData.append('institution_logo_library_url', institutionLogoLibraryUrl || '');
+				}
+
+				if (editingEdu) {
+					await collection('education').update(editingEdu.id, formData);
+					toasts.add('success', 'Education updated successfully');
+				} else {
+					await collection('education').create(formData);
+					toasts.add('success', 'Education created successfully');
+				}
 			} else {
-				await await collection('education').create(data);
-				toasts.add('success', 'Education created successfully');
+				const data: Record<string, unknown> = {
+					institution: institution.trim(),
+					degree: degree.trim(),
+					field: field.trim(),
+					start_date: startDate ? new Date(startDate).toISOString() : null,
+					end_date: endDate ? new Date(endDate).toISOString() : null,
+					description: description.trim(),
+					visibility,
+					is_draft: isDraft,
+					sort_order: sortOrder,
+					institution_logo_library_url: institutionLogoLibraryUrl || null
+				};
+
+				if (editingEdu) {
+					await collection('education').update(editingEdu.id, data);
+					toasts.add('success', 'Education updated successfully');
+				} else {
+					await collection('education').create(data);
+					toasts.add('success', 'Education created successfully');
+				}
 			}
 
 			closeForm();
@@ -383,6 +429,19 @@ afterNavigate(() => {
 						class="input"
 						placeholder="Stanford University"
 						required
+					/>
+				</div>
+
+				<div>
+					<SingleMediaPicker
+						label={$t('admin.content.education.institution_logo_label')}
+						helpText={$t('admin.content.education.institution_logo_help')}
+						bind:value={institutionLogoLibraryUrl}
+						bind:fileInput={institutionLogoFile}
+						bind:clearExisting={clearInstitutionLogo}
+						currentFileUrl={editingEdu?.institution_logo ? pb.files.getUrl(editingEdu, editingEdu.institution_logo, { thumb: '64x64' }) : ''}
+						currentFileName={editingEdu?.institution_logo || ''}
+						imagesOnly={true}
 					/>
 				</div>
 

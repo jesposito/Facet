@@ -176,14 +176,15 @@
 				<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 					{#if filterStore.config.enableVisibilityFilter}
 						<div>
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							<label for="visibility-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 								Visibility
 							</label>
 							<select
+								id="visibility-filter"
 								value={filterStore.visibilityFilter}
 								onchange={(e) => filterStore.setVisibilityFilter(e.currentTarget.value as any)}
-								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-								       bg-white dark:bg-gray-800 text-gray-900 dark:text-white 
+								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+								       bg-white dark:bg-gray-800 text-gray-900 dark:text-white
 								       focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 							>
 								<option value="all">All visibility levels</option>
@@ -196,14 +197,15 @@
 
 					{#if filterStore.config.enableDraftFilter}
 						<div>
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							<label for="status-filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 								Status
 							</label>
 							<select
+								id="status-filter"
 								value={filterStore.draftFilter}
 								onchange={(e) => filterStore.setDraftFilter(e.currentTarget.value as any)}
-								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-								       bg-white dark:bg-gray-800 text-gray-900 dark:text-white 
+								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+								       bg-white dark:bg-gray-800 text-gray-900 dark:text-white
 								       focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
 							>
 								<option value="all">All statuses</option>
@@ -215,15 +217,17 @@
 
 					{#if filterStore.config.enableTagFilter && availableTags.length > 0}
 						<div>
-							<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+							<span id="tags-filter-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
 								Tags
-							</label>
+							</span>
 							<div class="relative">
 								<button
 									type="button"
 									onclick={() => showTagSelector = !showTagSelector}
-									class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg 
-									       bg-white dark:bg-gray-800 text-gray-900 dark:text-white 
+									aria-labelledby="tags-filter-label"
+									aria-expanded={showTagSelector}
+									class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+									       bg-white dark:bg-gray-800 text-gray-900 dark:text-white
 									       focus:ring-2 focus:ring-primary-500 focus:border-primary-500
 									       text-left flex items-center justify-between"
 								>
