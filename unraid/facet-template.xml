@@ -8,7 +8,7 @@
         <TagDescription>Latest stable release</TagDescription>
     </Branch>
     <Network>bridge</Network>
-    <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+    <WebUI>http://[IP]:[PORT:8080]/</WebUI>
     <Privileged>false</Privileged>
     <Support>https://github.com/jesposito/Facet/issues</Support>
     <Project>https://github.com/jesposito/Facet</Project>
@@ -34,10 +34,9 @@
     <Changes>
         ### 2026-01-30
 
+        - Fix container port to 8080 (Caddy proxy)
         - Change Project link to GitHub repo
         - Move Google/GitHub OAuth back to main settings
-        - Fix internal container port to 3000
-        - Lock Admin UI Enabled to false (hidden setting)
         - Keep AI API keys in advanced section
         - Make data paths visible by default
         - Cross-promote Walkabout
@@ -47,7 +46,7 @@
         Initial release
     </Changes>
     <!-- ==================== ALWAYS VISIBLE ==================== -->
-    <Config Name="Web UI Port" Target="3000" Default="8080" Mode="tcp" Description="Container Port: 3000" Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+    <Config Name="Web UI Port" Target="8080" Default="8080" Mode="tcp" Description="Container Port: 8080" Type="Port" Display="always" Required="true" Mask="false">8080</Config>
     <Config Name="App Data" Target="/data" Default="/mnt/user/appdata/facet/data" Description="Path to app data (database and configuration). Include this in backups." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/facet/data</Config>
     <Config Name="Uploads Storage" Target="/uploads" Default="/mnt/user/appdata/facet/uploads" Description="Path to uploaded images and files." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/facet/uploads</Config>
     <Config Name="Public URL" Target="APP_URL" Default="" Description="Public URL for Facet (e.g. http://IP_ADDRESS:8080). Used for OAuth callbacks and share links." Type="Variable" Display="always" Required="false" Mask="false"/>
@@ -66,7 +65,4 @@
     <Config Name="PGID" Target="PGID" Default="100" Description="Group ID for file permissions." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
     <!-- ==================== ADVANCED-HIDE (Internal settings) ==================== -->
     <Config Name="Admin UI Enabled" Target="ADMIN_ENABLED" Default="false" Description="Enable PocketBase admin UI at /_/ for debugging." Type="Variable" Display="advanced-hide" Required="false" Mask="false">false</Config>
-    <Config Name="Internal Port" Target="PORT" Default="3000" Description="Internal port. Do not change." Type="Variable" Display="advanced-hide" Required="true" Mask="false">3000</Config>
-    <Config Name="Internal Data Path" Target="DATA_PATH" Default="./data" Description="Internal data path. Do not change." Type="Variable" Display="advanced-hide" Required="true" Mask="false">./data</Config>
-    <Config Name="Internal Uploads Path" Target="UPLOADS_PATH" Default="./uploads" Description="Internal uploads path. Do not change." Type="Variable" Display="advanced-hide" Required="true" Mask="false">./uploads</Config>
 </Container>
