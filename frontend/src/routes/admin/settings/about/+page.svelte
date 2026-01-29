@@ -115,9 +115,9 @@
 
 <div class="max-w-4xl mx-auto p-6">
 	<div class="card p-6">
-		<div class="flex items-center justify-between mb-4">
+		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
 			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{$t('admin.about_page.title')}</h1>
-			<div class="flex items-center gap-2">
+			<div class="flex flex-wrap items-center gap-2">
 				<span class="px-3 py-1 text-sm font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">
 					{appVersion}
 				</span>
@@ -138,8 +138,8 @@
 					</svg>
 				</button>
 				{#if $newVersionAvailable}
-					<span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">
-						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 whitespace-nowrap">
+						<svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
 						</svg>
 						{$t('admin.about_page.new_version_available', { values: { version: $latestVersion } })}
