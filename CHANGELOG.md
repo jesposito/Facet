@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.13.2 - January 29, 2026
+
+**Bugs Fixed:**
+- Fix About page mobile layout overflow by adjusting header stacking and allowing version/notification container to wrap.
+
+**Pull Requests:** [#346](https://github.com/jesposito/Facet/pull/346),
+
+---
+
+
 ## v2.13.1 - January 29, 2026
 
 **Bugs Fixed:**
