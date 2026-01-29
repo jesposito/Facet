@@ -130,10 +130,10 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		}
 	}
 
-	// Build favicon URL if set
+	// Build favicon URL if set - use /api/favicon endpoint which serves with no-cache headers
 	var faviconURL string
 	if faviconFile := record.GetString("favicon"); faviconFile != "" {
-		faviconURL = "/api/files/" + record.Collection().Id + "/" + record.Id + "/" + faviconFile
+		faviconURL = "/api/favicon"
 	}
 
 	return &SiteSettings{
