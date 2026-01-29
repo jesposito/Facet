@@ -13,9 +13,10 @@
 	import { isLoading as i18nLoading } from 'svelte-i18n';
 	interface Props {
 		children?: import('svelte').Snippet;
+		data: { faviconUrl: string | null };
 	}
 
-	let { children }: Props = $props();
+	let { children, data }: Props = $props();
 
 	// Debug navigation in development
 	beforeNavigate((navigation) => {
@@ -43,7 +44,8 @@ let gaMeasurementId = $state('');
 let gaInitialized = $state(false);
 let accentStyleEl: HTMLStyleElement | null = $state(null);
 let customPaletteLocked = false;
-let faviconUrl = $state<string | null>(null);
+// Initialize from server-loaded data for correct SSR
+let faviconUrl = $state<string | null>(data.faviconUrl);
 
 function applyPaletteFromCSS(css: string) {
 	if (!browser || !css) return;
