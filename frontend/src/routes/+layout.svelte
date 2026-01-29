@@ -13,9 +13,10 @@
 	import { isLoading as i18nLoading } from 'svelte-i18n';
 	interface Props {
 		children?: import('svelte').Snippet;
+		data: { faviconUrl: string | null };
 	}
 
-	let { children }: Props = $props();
+	let { children, data }: Props = $props();
 
 	// Debug navigation in development
 	beforeNavigate((navigation) => {
@@ -43,7 +44,8 @@ let gaMeasurementId = $state('');
 let gaInitialized = $state(false);
 let accentStyleEl: HTMLStyleElement | null = $state(null);
 let customPaletteLocked = false;
-let faviconUrl = $state<string | null>(null);
+// Initialize from server-loaded data for correct SSR
+let faviconUrl = $state<string | null>(data.faviconUrl);
 
 function applyPaletteFromCSS(css: string) {
 	if (!browser || !css) return;
@@ -169,7 +171,8 @@ function applyFlatAccent(color: string) {
 
 async function loadSiteSettings(): Promise<string | undefined> {
 	try {
-		const response = await fetch('/api/site-settings');
+		// Add cache buster to prevent browser from caching stale settings
+		const response = await fetch(`/api/site-settings?_=${Date.now()}`);
 		if (response.ok) {
 			const data = await response.json();
 			customCSS = data.custom_css || '';
@@ -225,23 +228,9 @@ onMount(() => {
 	window.addEventListener('accent-color-changed', handleColorChange as EventListener);
 
 	// Listen for favicon changes from settings page
+	// The {#key faviconUrl} block in <svelte:head> handles DOM updates via Svelte reactivity
 	const handleFaviconChange = (event: CustomEvent<string | null>) => {
-		const newUrl = event.detail;
-
-		// Force browser to reload favicon by removing old link and adding new one
-		// Browsers cache favicons aggressively and may ignore href changes
-		const existingLinks = document.querySelectorAll('link[rel="icon"]');
-		existingLinks.forEach(link => link.remove());
-
-		if (newUrl) {
-			const newLink = document.createElement('link');
-			newLink.rel = 'icon';
-			newLink.href = newUrl;
-			document.head.appendChild(newLink);
-		}
-
-		// Also update state so Svelte's {#key} block keeps it in sync
-		faviconUrl = newUrl;
+		faviconUrl = event.detail;
 	};
 	window.addEventListener('favicon-changed', handleFaviconChange as EventListener);
 
@@ -296,9 +285,9 @@ run(() => {
 	<!-- Use {#key} to force browser to fetch new favicon when URL changes -->
 	{#key faviconUrl}
 		{#if faviconUrl}
-			<link rel="icon" href={faviconUrl} />
+			<link rel="icon" type="image/x-icon" href={faviconUrl} />
 		{:else}
-			<link rel="icon" href="/favicon.png" />
+			<link rel="icon" type="image/png" href="/favicon.png" />
 		{/if}
 	{/key}
 </svelte:head>
