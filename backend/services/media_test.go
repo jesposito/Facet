@@ -82,6 +82,13 @@ func TestBuildMediaItem(t *testing.T) {
 	colID := "col1"
 	recID := "rec1"
 	filename := "test.txt"
+
+	// Create storage service with tmp as the data dir
+	storage := NewStorageService(StorageConfig{
+		DataDir: tmp,
+	})
+
+	// Files should be in {dataDir}/storage/{colID}/{recID}/
 	fullPath := filepath.Join(tmp, "storage", colID, recID)
 	if err := os.MkdirAll(fullPath, 0o755); err != nil {
 		t.Fatalf("mkdir: %v", err)
@@ -92,7 +99,7 @@ func TestBuildMediaItem(t *testing.T) {
 	}
 
 	created := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
-	item, err := BuildMediaItem(tmp, "projects", colID, recID, "cover_image", filename, created)
+	item, err := BuildMediaItem(storage, "projects", colID, recID, "cover_image", filename, created)
 	if err != nil {
 		t.Fatalf("BuildMediaItem error: %v", err)
 	}
@@ -111,5 +118,94 @@ func TestBuildMediaItem(t *testing.T) {
 	}
 	if item.Mime == "" {
 		t.Fatalf("mime should not be empty")
+	}
+}
+
+func TestBuildMediaItemWithPrimaryStorage(t *testing.T) {
+	tmp := t.TempDir()
+	uploadsDir := filepath.Join(tmp, "uploads")
+	dataDir := filepath.Join(tmp, "data")
+
+	// Create both directories
+	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
+		t.Fatalf("mkdir uploads: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dataDir, "storage"), 0o755); err != nil {
+		t.Fatalf("mkdir data: %v", err)
+	}
+
+	colID := "col1"
+	recID := "rec1"
+	filename := "test.txt"
+
+	// Create storage service with both primary and fallback
+	storage := NewStorageService(StorageConfig{
+		UploadsDir: uploadsDir,
+		DataDir:    dataDir,
+	})
+
+	// Put file in primary storage (uploads dir)
+	fullPath := filepath.Join(uploadsDir, colID, recID)
+	if err := os.MkdirAll(fullPath, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	content := []byte("hello from uploads")
+	if err := os.WriteFile(filepath.Join(fullPath, filename), content, 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	created := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+	item, err := BuildMediaItem(storage, "projects", colID, recID, "cover_image", filename, created)
+	if err != nil {
+		t.Fatalf("BuildMediaItem error: %v", err)
+	}
+
+	if item.Size != int64(len(content)) {
+		t.Fatalf("size mismatch got %d want %d", item.Size, len(content))
+	}
+}
+
+func TestBuildMediaItemFallback(t *testing.T) {
+	tmp := t.TempDir()
+	uploadsDir := filepath.Join(tmp, "uploads")
+	dataDir := filepath.Join(tmp, "data")
+
+	// Create both directories
+	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
+		t.Fatalf("mkdir uploads: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(dataDir, "storage"), 0o755); err != nil {
+		t.Fatalf("mkdir data: %v", err)
+	}
+
+	colID := "col1"
+	recID := "rec1"
+	filename := "test.txt"
+
+	// Create storage service with both primary and fallback
+	storage := NewStorageService(StorageConfig{
+		UploadsDir: uploadsDir,
+		DataDir:    dataDir,
+	})
+
+	// Put file in FALLBACK storage (data/storage dir) - simulating legacy file
+	fullPath := filepath.Join(dataDir, "storage", colID, recID)
+	if err := os.MkdirAll(fullPath, 0o755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	content := []byte("hello from fallback")
+	if err := os.WriteFile(filepath.Join(fullPath, filename), content, 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	created := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+	item, err := BuildMediaItem(storage, "projects", colID, recID, "cover_image", filename, created)
+	if err != nil {
+		t.Fatalf("BuildMediaItem error: %v", err)
+	}
+
+	// Should find file in fallback location
+	if item.Size != int64(len(content)) {
+		t.Fatalf("size mismatch got %d want %d", item.Size, len(content))
 	}
 }

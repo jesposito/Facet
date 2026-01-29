@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run } from 'svelte/legacy';
-
 	import { onMount, onDestroy } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { confirmDialog } from '$lib/stores';
@@ -11,8 +9,8 @@
 	let previousActiveElement: HTMLElement | null = $state(null);
 	let isMobile = $state(false);
 
-	let isOpen = $derived($confirmDialog.open);
-	let options = $derived($confirmDialog.options);
+	// Use the store directly - $confirmDialog auto-subscribes in Svelte 5
+	// Don't wrap in $derived as it may not track store updates properly
 
 	onMount(() => {
 		const mq = window.matchMedia('(max-width: 767px)');
@@ -24,7 +22,7 @@
 
 	// Focus trap and keyboard handling
 	function handleKeydown(event: KeyboardEvent) {
-		if (!isOpen) return;
+		if (!$confirmDialog.open) return;
 
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -61,9 +59,9 @@
 	}
 
 	// Lock body scroll when open
-	run(() => {
+	$effect(() => {
 		if (typeof document !== 'undefined') {
-			if (isOpen) {
+			if ($confirmDialog.open) {
 				previousActiveElement = document.activeElement as HTMLElement;
 				document.body.style.overflow = 'hidden';
 				// Focus cancel button after dialog renders
@@ -89,7 +87,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-{#if isOpen && options}
+{#if $confirmDialog.open && $confirmDialog.options}
 	<!-- Backdrop -->
 	<div
 		class="fixed inset-0 z-50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
@@ -108,7 +106,7 @@
 		>
 			<!-- Icon and Title -->
 			<div class="flex items-start gap-4">
-				{#if options.danger}
+				{#if $confirmDialog.options.danger}
 					<div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
 						{@html icon('warning')}
 					</div>
@@ -122,13 +120,13 @@
 						id="confirm-dialog-title"
 						class="text-lg font-semibold text-gray-900 dark:text-white"
 					>
-						{options.title}
+						{$confirmDialog.options.title}
 					</h2>
 					<p
 						id="confirm-dialog-message"
 						class="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap"
 					>
-						{options.message}
+						{$confirmDialog.options.message}
 					</p>
 				</div>
 			</div>
@@ -141,14 +139,14 @@
 					class="btn btn-secondary"
 					onclick={() => confirmDialog.respond(false)}
 				>
-					{options.cancelText || $t('shared.actions.cancel')}
+					{$confirmDialog.options.cancelText || $t('shared.actions.cancel')}
 				</button>
 				<button
 					type="button"
-					class="btn {options.danger ? 'btn-danger' : 'btn-primary'}"
+					class="btn {$confirmDialog.options.danger ? 'btn-danger' : 'btn-primary'}"
 					onclick={() => confirmDialog.respond(true)}
 				>
-					{options.confirmText || $t('shared.actions.confirm')}
+					{$confirmDialog.options.confirmText || $t('shared.actions.confirm')}
 				</button>
 			</div>
 		</div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Education } from '$lib/pocketbase';
+	import { pb, type Education } from '$lib/pocketbase';
 	import { formatDateRange, parseMarkdown } from '$lib/utils';
 	import { t } from 'svelte-i18n';
 
@@ -25,11 +25,21 @@
 			<div class="space-y-6 pl-12">
 				{#each items as item (item.id)}
 					<article class="relative animate-fade-in">
-						<div class="absolute -left-12 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center z-10">
-							<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path d="M12 14l9-5-9-5-9 5 9 5z" />
-							</svg>
-						</div>
+						{#if item.institution_logo_url || item.institution_logo}
+							<div class="absolute -left-12 w-8 h-8 rounded-full overflow-hidden z-10 bg-white dark:bg-gray-800 flex items-center justify-center">
+								<img
+									src={item.institution_logo_url || pb.files.getUrl(item, item.institution_logo!, { thumb: '32x32' })}
+									alt="{item.institution} logo"
+									class="w-6 h-6 object-contain"
+								/>
+							</div>
+						{:else}
+							<div class="absolute -left-12 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center z-10">
+								<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path d="M12 14l9-5-9-5-9 5 9 5z" />
+								</svg>
+							</div>
+						{/if}
 
 						<div>
 							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -61,13 +71,23 @@
 			{#each items as item (item.id)}
 				<article class="card p-6 animate-fade-in">
 					<div class="flex items-start gap-4">
-						<div class="shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-							<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path d="M12 14l9-5-9-5-9 5 9 5z" />
-								<path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
-							</svg>
-						</div>
+						{#if item.institution_logo_url || item.institution_logo}
+							<div class="shrink-0">
+								<img
+									src={item.institution_logo_url || pb.files.getUrl(item, item.institution_logo!, { thumb: '48x48' })}
+									alt="{item.institution} logo"
+									class="w-12 h-12 object-contain rounded"
+								/>
+							</div>
+						{:else}
+							<div class="shrink-0 w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
+								<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path d="M12 14l9-5-9-5-9 5 9 5z" />
+									<path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+								</svg>
+							</div>
+						{/if}
 
 						<div class="flex-1">
 							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">

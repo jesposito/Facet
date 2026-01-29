@@ -14,10 +14,12 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 
 	let projects: Project[] = $state([]);
 	let loading = $state(true);
@@ -37,10 +39,10 @@ let isDraft = $state(false);
 let isFeatured = $state(false);
 let sortOrder = $state(0);
 let coverImageFile: FileList | null = $state(null);
+let coverImageLibraryUrl = $state('');
+let clearCoverImage = $state(false);
 let mediaRefs: string[] = $state([]);
-let mediaOptions: { id: string; title: string; provider?: string; url?: string }[] = $state([]);
-let mediaSearch = $state('');
-let loadingMedia = $state(false);
+let mediaPickerRef: MediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 let saving = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -113,7 +115,6 @@ afterNavigate(() => {
 });
 
 onMount(loadProjects);
-onMount(loadMediaOptions);
 onMount(loadAvailableTags);
 onMount(async () => {
 	if (browser) {
@@ -147,105 +148,6 @@ let filteredProjects = $derived(
 		(proj) => (proj as any).admin_tags || []
 	)
 );
-
-async function loadMediaOptions(searchTerm = '') {
-	loadingMedia = true;
-	try {
-		const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
-		const mediaParams = new URLSearchParams({ perPage: '50' });
-		if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
-		const externalFilter = searchTerm.trim()
-			? `&filter=${encodeURIComponent(`title~"${searchTerm}" || url~"${searchTerm}"`)}`
-			: '';
-
-		const [mediaRes, externalRes] = await Promise.all([
-			fetch(`/api/media?${mediaParams.toString()}`, { headers }),
-			fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
-		]);
-
-		const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
-		const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
-
-		const options: { id: string; title: string; provider?: string; url?: string }[] = [];
-
-		for (const item of mediaData.items || []) {
-			options.push({
-				id: item.record_id || item.relative_path || item.url,
-				title: item.display_name || item.filename || item.url,
-				provider: item.provider || (item.external ? 'external' : 'upload'),
-				url: item.url
-			});
-		}
-
-		for (const item of externalData.items || []) {
-			if (!options.find((opt) => opt.id === item.id || opt.url === item.url)) {
-				options.push({
-					id: item.id,
-					title: item.title || item.url,
-					provider: 'external',
-					url: item.url
-				});
-			}
-		}
-
-		mediaOptions = options;
-	} catch (err) {
-		console.error('Failed to load media options', err);
-	} finally {
-		loadingMedia = false;
-	}
-}
-
-async function resolveMediaRefs(selected: string[]) {
-	const headers: Record<string, string> = pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
-	const optionMap = new Map(mediaOptions.map((opt) => [opt.id, opt]));
-	const resolved: string[] = [];
-
-	const toAbsolute = (url?: string) => {
-		if (!url) return '';
-		if (/^https?:\/\//i.test(url)) return url;
-		const base = pb.baseUrl.replace(/\/$/, '');
-		return `${base}${url.startsWith('/') ? url : `/${url}`}`;
-	};
-
-	for (const id of selected) {
-		const opt = optionMap.get(id);
-		if (!opt) continue;
-		if (opt.provider === 'upload' && opt.url) {
-			try {
-				const filter = encodeURIComponent(`url="${opt.url}"`);
-				const existingRes = await fetch(`/api/collections/external_media/records?perPage=1&filter=${filter}`, {
-					headers
-				});
-				if (existingRes.ok) {
-					const existing = await existingRes.json();
-					if (existing.items?.[0]?.id) {
-						resolved.push(existing.items[0].id);
-						continue;
-					}
-				}
-				const created = await fetch('/api/media/external', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json', ...headers },
-					body: JSON.stringify({ url: toAbsolute(opt.url), title: opt.title })
-				});
-				if (created.ok) {
-					const body = await created.json();
-					if (body.id) {
-						resolved.push(body.id);
-						continue;
-					}
-				}
-			} catch (err) {
-				console.error('Failed to mirror upload to external_media', err);
-			}
-		} else {
-			resolved.push(id);
-		}
-	}
-
-	return resolved;
-}
 
 	async function loadProjects() {
 	loading = true;
@@ -282,6 +184,8 @@ async function resolveMediaRefs(selected: string[]) {
 		isFeatured = false;
 		sortOrder = 0;
 		coverImageFile = null;
+		coverImageLibraryUrl = '';
+		clearCoverImage = false;
 	editingProject = null;
 	mediaRefs = [];
 	adminTagIds = [];
@@ -331,6 +235,8 @@ async function resolveMediaRefs(selected: string[]) {
 	isFeatured = project.is_featured;
 	sortOrder = project.sort_order;
 	adminTagIds = project.admin_tags || [];
+	coverImageLibraryUrl = (project as any).cover_image_library_url || '';
+	clearCoverImage = false;
 	showForm = true;
 	}
 
@@ -363,7 +269,7 @@ async function resolveMediaRefs(selected: string[]) {
 
 		saving = true;
 		try {
-			const resolvedRefs = await resolveMediaRefs(mediaRefs);
+			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
 			// Parse tech stack from comma-separated
 			const techStack = techStackText
 				.split(',')
@@ -396,6 +302,15 @@ async function resolveMediaRefs(selected: string[]) {
 
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
+				// Clear library URL when uploading a new file
+				formData.append('cover_image_library_url', '');
+			} else if (clearCoverImage && editingProject?.cover_image) {
+				// Clear existing file - PocketBase accepts empty string to remove file
+				formData.append('cover_image', '');
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
+			} else {
+				// Set library URL when not uploading a file
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
 			}
 
 			if (editingProject) {
@@ -843,73 +758,24 @@ async function resolveMediaRefs(selected: string[]) {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Media</h2>
 
 				<div>
-					<label for="cover_image" class="label">Cover Image</label>
-					<input
-						type="file"
-						id="cover_image"
-						accept="image/*"
-						bind:files={coverImageFile}
-						class="input"
+					<SingleMediaPicker
+						label="Cover Image"
+						helpText="Displayed in project cards and as the header image"
+						bind:value={coverImageLibraryUrl}
+						bind:fileInput={coverImageFile}
+						bind:clearExisting={clearCoverImage}
+						currentFileUrl={editingProject?.cover_image ? getCoverImageUrl(editingProject) : ''}
+						currentFileName={editingProject?.cover_image || ''}
+						imagesOnly={true}
 					/>
-					{#if editingProject?.cover_image && !coverImageFile}
-						<div class="mt-2 flex items-center gap-2">
-							<img
-								src={getCoverImageUrl(editingProject)}
-								alt="Current cover"
-								class="w-20 h-20 object-cover rounded"
-							/>
-							<span class="text-sm text-gray-500">Current image</span>
-						</div>
-					{/if}
 				</div>
 
-			<div>
-				<p class="label">Attached media / embeds</p>
-				<div class="flex flex-wrap items-center gap-2 mb-2 text-sm text-gray-600 dark:text-gray-400">
-					<input
-						class="input w-full md:w-64"
-						placeholder="Search media..."
-						bind:value={mediaSearch}
-						onkeydown={(e) => e.key === 'Enter' && loadMediaOptions(mediaSearch)}
-					/>
-					<button type="button" class="btn btn-secondary btn-sm" onclick={() => loadMediaOptions(mediaSearch)} aria-busy={loadingMedia}>
-						{loadingMedia ? 'Searching…' : 'Search'}
-					</button>
-					<button type="button" class="btn btn-ghost btn-sm" onclick={() => { mediaSearch = ''; loadMediaOptions(''); }}>
-						Clear
-					</button>
-				</div>
-				{#if loadingMedia}
-					<p class="text-sm text-gray-500 dark:text-gray-400">Loading media…</p>
-				{:else if mediaOptions.length === 0}
-					<p class="text-sm text-gray-500 dark:text-gray-400">No media found. Add uploads or external links in the Media Library.</p>
-				{:else}
-					<div class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
-						{#each mediaOptions as opt}
-							<label
-								class={`flex items-center gap-2 px-3 py-2 rounded border cursor-pointer ${
-									mediaRefs.includes(opt.id)
-										? 'bg-primary-50 border-primary-200 text-primary-700'
-										: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-								}`}
-							>
-								<input
-									type="checkbox"
-									class="w-4 h-4"
-									bind:group={mediaRefs}
-									value={opt.id}
-								/>
-								<div class="flex flex-col">
-									<span class="text-sm font-medium">{opt.title}</span>
-									{#if opt.provider}
-										<span class="text-xs text-gray-500">{opt.provider}</span>
-									{/if}
-								</div>
-							</label>
-						{/each}
-					</div>
-				{/if}
-			</div>
+			<MediaPicker
+				bind:this={mediaPickerRef}
+				bind:value={mediaRefs}
+				label={$t('admin.content.common.attached_media')}
+				showHelp={true}
+			/>
 		</div>
 
 			<div class="card p-6 space-y-4">
@@ -964,8 +830,8 @@ async function resolveMediaRefs(selected: string[]) {
 				</div>
 
 				<div>
-					<label class="label">Admin Tags</label>
-					<AdminTagSelector bind:selectedIds={adminTagIds} />
+					<span id="admin-tags-label" class="label">Admin Tags</span>
+					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
 					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
 				</div>
 			</div>

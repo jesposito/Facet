@@ -45,6 +45,7 @@
 		disabledCategories = $bindable(),
 		categoryDisplayModes = $bindable(),
 		sectionLayout = 'grouped',
+		showAllVisibilities = false,
 		onUpdate
 	}: {
 		items: SkillItem[];
@@ -53,6 +54,7 @@
 		disabledCategories?: string[];
 		categoryDisplayModes?: Record<string, string>;
 		sectionLayout?: string;
+		showAllVisibilities?: boolean;
 		onUpdate: () => void;
 	} = $props();
 
@@ -137,9 +139,12 @@
 		return skills.filter(s => selectedSet.has(s.id)).length;
 	}
 
-	// Get total skills in a category (only public visibility, excluding drafts)
-	function getPublicSkillCount(category: string): number {
+	// Get total skills in a category (filtered by visibility unless showAllVisibilities is true)
+	function getSelectableSkillCount(category: string): number {
 		const skills = groupedSkills[category] || [];
+		if (showAllVisibilities) {
+			return skills.filter(s => !s.is_draft).length;
+		}
 		return skills.filter(s => s.visibility === 'public' && !s.is_draft).length;
 	}
 
@@ -196,11 +201,11 @@
 	// Select all skills in a category
 	function selectAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
-		const publicSkillIds = skills
-			.filter(s => s.visibility === 'public' && !s.is_draft)
+		const selectableSkillIds = skills
+			.filter(s => (showAllVisibilities || s.visibility === 'public') && !s.is_draft)
 			.map(s => s.id);
 		const currentSet = new Set(_selectedItems);
-		for (const id of publicSkillIds) {
+		for (const id of selectableSkillIds) {
 			currentSet.add(id);
 		}
 		selectedItems = Array.from(currentSet);
@@ -265,9 +270,13 @@
 		return groupedSkills[category] || [];
 	}
 
-	// Get public skills for a category (only public visibility, excluding drafts)
-	function getPublicCategorySkills(category: string): SkillItem[] {
-		return (groupedSkills[category] || []).filter(s => s.visibility === 'public' && !s.is_draft);
+	// Get selectable skills for a category (filtered by visibility unless showAllVisibilities is true)
+	function getSelectableCategorySkills(category: string): SkillItem[] {
+		const skills = groupedSkills[category] || [];
+		if (showAllVisibilities) {
+			return skills.filter(s => !s.is_draft);
+		}
+		return skills.filter(s => s.visibility === 'public' && !s.is_draft);
 	}
 </script>
 
@@ -289,9 +298,9 @@
 				{@const category = cat.name}
 				{@const isDisabled = isCategoryDisabled(category)}
 				{@const isExpanded = isCategoryExpanded(category)}
-				{@const publicCount = getPublicSkillCount(category)}
+				{@const selectableCount = getSelectableSkillCount(category)}
 				{@const selectedCount = getSelectedCount(category)}
-				{@const categorySkills = getPublicCategorySkills(category)}
+				{@const categorySkills = getSelectableCategorySkills(category)}
 
 				<div
 					class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 {isDisabled ? 'opacity-60' : ''}"
@@ -330,12 +339,12 @@
 
 						<!-- Skill Count -->
 						<span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-							{#if selectedCount > 0 && selectedCount < publicCount}
-								{selectedCount}/{publicCount} {$t('admin.view_editor.skills_categories.selected')}
-							{:else if selectedCount === publicCount && publicCount > 0}
+							{#if selectedCount > 0 && selectedCount < selectableCount}
+								{selectedCount}/{selectableCount} {$t('admin.view_editor.skills_categories.selected')}
+							{:else if selectedCount === selectableCount && selectableCount > 0}
 								{$t('admin.view_editor.skills_categories.all_selected')}
 							{:else}
-								{publicCount} {$t('admin.view_editor.skills_categories.skills')}
+								{selectableCount} {$t('admin.view_editor.skills_categories.skills')}
 							{/if}
 						</span>
 
@@ -355,7 +364,7 @@
 						{/if}
 
 						<!-- Expand/Collapse Button -->
-						{#if publicCount > 0 && !isDisabled}
+						{#if selectableCount > 0 && !isDisabled}
 							<button
 								type="button"
 								class="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"

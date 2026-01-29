@@ -174,7 +174,8 @@ async function loadSiteSettings(): Promise<string | undefined> {
 			const data = await response.json();
 			customCSS = data.custom_css || '';
 			gaMeasurementId = data.ga_measurement_id || '';
-			faviconUrl = data.favicon || null;
+			// Add cache buster to favicon URL to prevent browser caching
+			faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
 			applyPaletteFromCSS(customCSS);
 			applyCustomCSS(customCSS);
 			return data.default_locale || undefined;
@@ -225,7 +226,22 @@ onMount(() => {
 
 	// Listen for favicon changes from settings page
 	const handleFaviconChange = (event: CustomEvent<string | null>) => {
-		faviconUrl = event.detail;
+		const newUrl = event.detail;
+
+		// Force browser to reload favicon by removing old link and adding new one
+		// Browsers cache favicons aggressively and may ignore href changes
+		const existingLinks = document.querySelectorAll('link[rel="icon"]');
+		existingLinks.forEach(link => link.remove());
+
+		if (newUrl) {
+			const newLink = document.createElement('link');
+			newLink.rel = 'icon';
+			newLink.href = newUrl;
+			document.head.appendChild(newLink);
+		}
+
+		// Also update state so Svelte's {#key} block keeps it in sync
+		faviconUrl = newUrl;
 	};
 	window.addEventListener('favicon-changed', handleFaviconChange as EventListener);
 
@@ -277,11 +293,14 @@ run(() => {
 
 <svelte:head>
 	<meta name="theme-color" content={themeColor} />
-	{#if faviconUrl}
-		<link rel="icon" href={faviconUrl} />
-	{:else}
-		<link rel="icon" href="/favicon.png" />
-	{/if}
+	<!-- Use {#key} to force browser to fetch new favicon when URL changes -->
+	{#key faviconUrl}
+		{#if faviconUrl}
+			<link rel="icon" href={faviconUrl} />
+		{:else}
+			<link rel="icon" href="/favicon.png" />
+		{/if}
+	{/key}
 </svelte:head>
 
 <!-- Skip link for keyboard navigation -->

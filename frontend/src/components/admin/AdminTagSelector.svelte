@@ -15,9 +15,11 @@
 		selectedIds: string[];
 		onchange?: (ids: string[]) => void;
 		compact?: boolean;
+		/** ID of the label element for a11y association */
+		labelledBy?: string;
 	}
 
-	let { selectedIds = $bindable([]), onchange, compact = false }: Props = $props();
+	let { selectedIds = $bindable([]), onchange, compact = false, labelledBy }: Props = $props();
 
 	let availableTags: AdminTag[] = $state([]);
 	let loading = $state(true);
@@ -81,6 +83,8 @@
 				type="button"
 				class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
 				onclick={() => showDropdown = !showDropdown}
+				aria-labelledby={labelledBy}
+				aria-expanded={showDropdown}
 			>
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -104,6 +108,8 @@
 			type="button"
 			class="btn btn-secondary btn-sm"
 			onclick={() => showDropdown = !showDropdown}
+			aria-labelledby={labelledBy}
+			aria-expanded={showDropdown}
 		>
 			{selectedTags.length > 0 ? 'Edit Tags' : 'Add Tags'}
 		</button>

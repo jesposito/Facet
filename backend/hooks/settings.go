@@ -50,9 +50,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 
 			var req struct {
 				HomepageEnabled       *bool                                         `json:"homepage_enabled"`
-				LandingPageMessage    string                                        `json:"landing_page_message"`
-				CustomCSS             string                                        `json:"custom_css"`
-				GAMeasurementID       string                                        `json:"ga_measurement_id"`
+				LandingPageMessage    *string                                       `json:"landing_page_message"`
+				CustomCSS             *string                                       `json:"custom_css"`
+				GAMeasurementID       *string                                       `json:"ga_measurement_id"`
 				HideLoginButton       *bool                                         `json:"hide_login_button"`
 				HideDemoToggle        *bool                                         `json:"hide_demo_toggle"`
 				HomepageCustomContent []services.HomepageCustomContentItem          `json:"homepage_custom_content"`
@@ -62,7 +62,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				SiteNavItems          []services.SiteNavItem                        `json:"site_nav_items"`
 				SkillsCategoryOrder   []string                                      `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                         `json:"site_cta_enabled"`
-				DefaultLocale         string                                        `json:"default_locale"`
+				DefaultLocale         *string                                       `json:"default_locale"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -73,23 +73,23 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.HomepageEnabled != nil {
 				updates["homepage_enabled"] = *req.HomepageEnabled
 			}
-			if req.LandingPageMessage != "" || req.LandingPageMessage == "" {
-				// Always allow clearing the message
-				msg := strings.TrimSpace(req.LandingPageMessage)
+			if req.LandingPageMessage != nil {
+				// Allow clearing the message by sending empty string
+				msg := strings.TrimSpace(*req.LandingPageMessage)
 				if len(msg) > 2000 {
 					msg = msg[:2000]
 				}
 				updates["landing_page_message"] = msg
 			}
-			if req.CustomCSS != "" || req.CustomCSS == "" {
-				css := strings.TrimSpace(req.CustomCSS)
+			if req.CustomCSS != nil {
+				css := strings.TrimSpace(*req.CustomCSS)
 				if len(css) > 20000 {
 					css = css[:20000]
 				}
 				updates["custom_css"] = css
 			}
-			if req.GAMeasurementID != "" || req.GAMeasurementID == "" {
-				id := strings.TrimSpace(req.GAMeasurementID)
+			if req.GAMeasurementID != nil {
+				id := strings.TrimSpace(*req.GAMeasurementID)
 				if len(id) > 100 {
 					id = id[:100]
 				}
@@ -122,8 +122,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			if req.SiteCtaEnabled != nil {
 				updates["site_cta_enabled"] = *req.SiteCtaEnabled
 			}
-			if req.DefaultLocale != "" {
-				updates["default_locale"] = req.DefaultLocale
+			if req.DefaultLocale != nil {
+				locale := strings.TrimSpace(*req.DefaultLocale)
+				updates["default_locale"] = locale
 			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
@@ -178,15 +179,24 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			settings.Record.Set("favicon", fsFile)
 
 			if err := app.Save(settings.Record); err != nil {
+				app.Logger().Error("favicon save failed", "error", err)
 				return apis.NewBadRequestError("failed to save favicon", err)
 			}
 
 			// Build the new favicon URL
 			faviconFile := settings.Record.GetString("favicon")
-			var faviconURL string
-			if faviconFile != "" {
-				faviconURL = "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
+			app.Logger().Info("favicon uploaded",
+				"filename", faviconFile,
+				"collection_id", settings.Record.Collection().Id,
+				"record_id", settings.Record.Id)
+
+			if faviconFile == "" {
+				app.Logger().Error("favicon save succeeded but filename is empty")
+				return apis.NewBadRequestError("favicon file was not saved", nil)
 			}
+
+			faviconURL := "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
+			app.Logger().Info("favicon URL returned", "url", faviconURL)
 
 			return e.JSON(http.StatusOK, map[string]any{
 				"favicon": faviconURL,

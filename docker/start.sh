@@ -42,11 +42,10 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 DATA_DIR="/data"
-UPLOADS_DIR="/uploads"
+export UPLOADS_DIR="/uploads"  # Export so Go app can use it for direct storage
 KEY_FILE="$DATA_DIR/.encryption_key"
-STORAGE_PATH="$DATA_DIR/pb_data/storage"
-
-mkdir -p "$DATA_DIR/pb_data"
+# PocketBase --dir=/data means storage is at /data/storage (not /data/pb_data/storage)
+STORAGE_PATH="$DATA_DIR/storage"
 
 if [ -n "$ENCRYPTION_KEY" ]; then
     echo "[Config] Using ENCRYPTION_KEY from environment"
@@ -74,46 +73,62 @@ else
     echo ""
 fi
 
+# Storage setup - gracefully handle existing files
+STORAGE_BACKUP="$DATA_DIR/.storage-backup"
+
 if [ -d "$UPLOADS_DIR" ]; then
     if [ -L "$STORAGE_PATH" ]; then
+        # Symlink exists - verify it points to uploads
         CURRENT_TARGET=$(readlink "$STORAGE_PATH")
         if [ "$CURRENT_TARGET" = "$UPLOADS_DIR" ]; then
-            echo "[Storage] Symlink already configured: $STORAGE_PATH -> $UPLOADS_DIR"
+            echo "[Storage] Using uploads directory: $UPLOADS_DIR"
         else
-            echo "[Storage] Updating symlink target..."
             rm "$STORAGE_PATH"
             ln -s "$UPLOADS_DIR" "$STORAGE_PATH"
-            echo "[Storage] Symlink updated: $STORAGE_PATH -> $UPLOADS_DIR"
+            echo "[Storage] Using uploads directory: $UPLOADS_DIR"
+        fi
+    elif [ -d "$STORAGE_PATH" ] && [ "$(ls -A $STORAGE_PATH 2>/dev/null)" ]; then
+        # Existing files in old location - migrate gracefully
+        OLD_COUNT=$(find "$STORAGE_PATH" -type f ! -name "*.attrs" 2>/dev/null | wc -l)
+        echo "[Storage] Found $OLD_COUNT files in legacy location"
+        echo "[Storage] Copying to uploads directory (keeping backup)..."
+
+        # Copy files to uploads directory
+        if cp -a "$STORAGE_PATH"/* "$UPLOADS_DIR"/ 2>/dev/null; then
+            COPIED_COUNT=$(find "$UPLOADS_DIR" -type f ! -name "*.attrs" 2>/dev/null | wc -l)
+            echo "[Storage] Copied $COPIED_COUNT files to uploads directory"
+
+            # Move old storage to backup (not delete)
+            if [ -d "$STORAGE_BACKUP" ]; then
+                # Backup already exists from previous migration - remove old storage
+                rm -rf "$STORAGE_PATH"
+            else
+                mv "$STORAGE_PATH" "$STORAGE_BACKUP"
+                echo "[Storage] Original files backed up to: $STORAGE_BACKUP"
+            fi
+
+            # Create symlink
+            ln -s "$UPLOADS_DIR" "$STORAGE_PATH"
+            echo "[Storage] Using uploads directory: $UPLOADS_DIR"
+            echo "[Storage] (backup at $STORAGE_BACKUP can be removed once verified)"
+        else
+            echo "[Storage] Could not copy files (check permissions/space)"
+            echo "[Storage] Using legacy location: $STORAGE_PATH"
         fi
     elif [ -d "$STORAGE_PATH" ]; then
-        if [ "$(ls -A $STORAGE_PATH 2>/dev/null)" ]; then
-            echo ""
-            echo "========================================"
-            echo "  STORAGE MIGRATION NEEDED"
-            echo "========================================"
-            echo ""
-            echo "  Existing uploads found in: $STORAGE_PATH"
-            echo "  New uploads directory: $UPLOADS_DIR"
-            echo ""
-            echo "  Please manually move your files:"
-            echo "    mv $STORAGE_PATH/* $UPLOADS_DIR/"
-            echo "    rm -rf $STORAGE_PATH"
-            echo ""
-            echo "  Then restart the container."
-            echo ""
-            echo "========================================"
-            echo ""
-        else
-            rmdir "$STORAGE_PATH"
-            ln -s "$UPLOADS_DIR" "$STORAGE_PATH"
-            echo "[Storage] Symlink created: $STORAGE_PATH -> $UPLOADS_DIR"
-        fi
-    else
+        # Empty directory - replace with symlink
+        rmdir "$STORAGE_PATH" 2>/dev/null
         ln -s "$UPLOADS_DIR" "$STORAGE_PATH"
-        echo "[Storage] Symlink created: $STORAGE_PATH -> $UPLOADS_DIR"
+        echo "[Storage] Using uploads directory: $UPLOADS_DIR"
+    else
+        # Fresh install - create symlink
+        ln -s "$UPLOADS_DIR" "$STORAGE_PATH"
+        echo "[Storage] Using uploads directory: $UPLOADS_DIR"
     fi
 else
-    echo "[Storage] Using default storage location: $STORAGE_PATH"
+    # No /uploads mount - use default location
+    echo "[Storage] No /uploads mount detected"
+    echo "[Storage] Using default location: $STORAGE_PATH"
     mkdir -p "$STORAGE_PATH"
 fi
 

@@ -355,6 +355,59 @@
 					<!-- Section Items (expanded) -->
 					{#if sectionConfig.enabled && sectionConfig.expanded && publicItems.length > 0 && !isCustom}
 						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
+							<!-- Mobile Layout/Width Controls -->
+							<div class="lg:hidden grid grid-cols-1 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+								{#if sectionConfig.enabled}
+									{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
+									{#if validWidths.length > 1}
+										<div>
+											<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Width</label>
+											<div class="flex items-center gap-2">
+												<div class="flex gap-0.5">
+													{#if sectionConfig.width === 'half'}
+														<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+														<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+													{:else if sectionConfig.width === 'third'}
+														<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+													{:else}
+														<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+													{/if}
+												</div>
+												<select
+													id="width-mobile-{sectionKey}"
+													class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+													value={sectionConfig.width}
+													onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+												>
+													{#each validWidths as widthOption}
+														<option value={widthOption.value}>{widthOption.label}</option>
+													{/each}
+												</select>
+											</div>
+										</div>
+									{/if}
+
+									{#if VALID_LAYOUTS[layoutKey]}
+										{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
+										<div>
+											<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Layout</label>
+											<select
+												id="layout-mobile-{sectionKey}"
+												class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+												value={sectionConfig.layout}
+												onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+											>
+												{#each layoutConfig.layouts as layoutOption}
+													<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
+												{/each}
+											</select>
+										</div>
+									{/if}
+								{/if}
+							</div>
+
 							{#if sectionKey === 'skills'}
 								<!-- Skills use category-based management -->
 								<SkillsCategoryManager
