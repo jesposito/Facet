@@ -30,8 +30,15 @@ var (
 )
 
 // RegisterMediaHooks exposes admin-only media listing and deletion endpoints.
-func RegisterMediaHooks(app *pocketbase.PocketBase) {
+// uploadsDir is the path to the primary uploads directory (e.g., /uploads in Docker).
+// If empty, only the fallback location (pb_data/storage) will be used.
+func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		// Create StorageService with app's data directory now that it's available
+		storage := services.NewStorageService(services.StorageConfig{
+			UploadsDir: uploadsDir,
+			DataDir:    app.DataDir(),
+		})
 		se.Router.GET("/api/media", func(e *core.RequestEvent) error {
 			// Auth is enforced by middleware; log principal
 			if e.Auth != nil {
@@ -42,7 +49,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
 			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
 
-			items, referenced, referencedSize, err := collectMediaItems(app)
+			items, referenced, referencedSize, err := collectMediaItems(app, storage)
 			if err != nil {
 				app.Logger().Error("media list failed", "error", err)
 				return apis.NewBadRequestError("failed to enumerate media", err)
@@ -53,7 +60,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				externalItems = []services.MediaItem{}
 			}
 
-			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, referenced)
+			orphanItems, orphanSize, storageSize, storageFiles, err := collectOrphanMediaItems(app, storage, referenced)
 			if err != nil {
 				orphanItems = []services.MediaItem{}
 				orphanSize = 0
@@ -111,26 +118,29 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			}
 
 			// Build sample items for debug (first 3 items showing usage data)
-			sampleItems := make([]map[string]interface{}, 0, 3)
+			sampleItems := make([]map[string]any, 0, 3)
 			for i := 0; i < len(filtered) && i < 3; i++ {
 				item := filtered[i]
-				sampleItems = append(sampleItems, map[string]interface{}{
-					"collection":   item.Collection,
-					"filename":     item.Filename,
-					"external":     item.External,
-					"orphan":       item.Orphan,
-					"usage_count":  item.UsageCount,
-					"used_by_len":  len(item.UsedBy),
+				sampleItems = append(sampleItems, map[string]any{
+					"collection":  item.Collection,
+					"filename":    item.Filename,
+					"external":    item.External,
+					"orphan":      item.Orphan,
+					"usage_count": item.UsageCount,
+					"used_by_len": len(item.UsedBy),
 				})
 			}
 
-			response := map[string]interface{}{
+			// Include storage configuration in debug info
+			storageInfo := storage.GetStorageInfo()
+
+			response := map[string]any{
 				"items":      filtered[start:end],
 				"page":       page,
 				"perPage":    perPage,
 				"totalItems": total,
 				"totalPages": (total + perPage - 1) / perPage,
-				"debug": map[string]interface{}{
+				"debug": map[string]any{
 					"internalCount":  len(items),
 					"externalCount":  len(externalItems),
 					"orphanCount":    len(orphanItems),
@@ -138,8 +148,9 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 					"filteredCount":  len(filtered),
 					"referencedKeys": len(referenced),
 					"sampleItems":    sampleItems,
+					"storage":        storageInfo,
 				},
-				"stats": map[string]interface{}{
+				"stats": map[string]any{
 					"referencedFiles": len(items) + len(externalItems),
 					"referencedSize":  referencedSize,
 					"orphanFiles":     len(orphanItems),
@@ -229,7 +240,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 
 			// If media is referenced and force is not set, return usage info
 			if usage.UsageCount > 0 && !forceDelete {
-				return e.JSON(http.StatusConflict, map[string]interface{}{
+				return e.JSON(http.StatusConflict, map[string]any{
 					"status":      "referenced",
 					"message":     fmt.Sprintf("Media is referenced by %d content item(s)", usage.UsageCount),
 					"usage_count": usage.UsageCount,
@@ -252,7 +263,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				return apis.NewBadRequestError("failed to delete external media", err)
 			}
 
-			response := map[string]interface{}{
+			response := map[string]any{
 				"status": "deleted",
 			}
 			if forceDelete && usage.UsageCount > 0 {
@@ -274,11 +285,9 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 				return apis.NewBadRequestError("invalid request body", err)
 			}
 
-			// Orphan deletion path: delete by relative path under /storage
+			// Orphan deletion path: delete by relative path
 			if req.RelativePath != "" && (req.CollectionID == "" || req.Field == "") {
-				dataDir := app.DataDir()
-				storageRoot := filepath.Join(dataDir, "storage")
-				target, err := resolveStoragePath(storageRoot, req.RelativePath)
+				target, err := resolveStoragePathMulti(storage, req.RelativePath)
 				if err != nil {
 					// Return specific error messages based on error type
 					switch err {
@@ -339,9 +348,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 					return apis.NewBadRequestError("failed to update record", err)
 				}
 
-				// Remove file from storage (ignore errors to avoid blocking user if already missing)
-				dataDir := app.DataDir()
-				_ = os.Remove(filepath.Join(dataDir, "storage", collection.Id, record.Id, req.Filename))
+				// Remove file from storage using StorageService (handles multiple locations)
+				if err := storage.DeleteFile(collection.Id, record.Id, req.Filename); err != nil {
+					app.Logger().Warn("media: failed to delete file from storage", "error", err)
+					// Don't fail the request - file might already be gone
+				}
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
@@ -377,76 +388,80 @@ func RegisterMediaHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
 		}).Bind(apis.RequireAuth())
 
-	se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
-		var req struct {
-			Orphans []string `json:"orphans"`
-		}
-		if err := e.BindBody(&req); err != nil {
-			return apis.NewBadRequestError("invalid request body", err)
-		}
+		se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
+			var req struct {
+				Orphans []string `json:"orphans"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
 
-		if len(req.Orphans) == 0 {
-			return apis.NewBadRequestError("no orphans specified", nil)
-		}
+			if len(req.Orphans) == 0 {
+				return apis.NewBadRequestError("no orphans specified", nil)
+			}
 
-		if len(req.Orphans) > 100 {
-			return apis.NewBadRequestError("maximum 100 files per request", nil)
-		}
+			if len(req.Orphans) > 100 {
+				return apis.NewBadRequestError("maximum 100 files per request", nil)
+			}
 
-		dataDir := app.DataDir()
-		storageRoot := filepath.Join(dataDir, "storage")
+			deleted := 0
+			failed := 0
+			var errors []map[string]string
 
-		deleted := 0
-		failed := 0
-		var errors []map[string]string
+			for _, relativePath := range req.Orphans {
+				target, err := resolveStoragePathMulti(storage, relativePath)
+				if err != nil {
+					failed++
+					errorMsg := "invalid path"
+					switch err {
+					case ErrSymlink:
+						errorMsg = "symbolic link"
+						app.Logger().Warn("bulk delete: rejected symlink", "path", relativePath)
+					case ErrPathEscapes:
+						errorMsg = "path escapes storage"
+						app.Logger().Warn("bulk delete: rejected path escape", "path", relativePath)
+					case ErrAbsolutePath:
+						errorMsg = "absolute path not allowed"
+						app.Logger().Warn("bulk delete: rejected absolute path", "path", relativePath)
+					default:
+						app.Logger().Warn("bulk delete: invalid path", "path", relativePath, "error", err)
+					}
 
-		for _, relativePath := range req.Orphans {
-			target, err := resolveStoragePath(storageRoot, relativePath)
-			if err != nil {
-				failed++
-				errorMsg := "invalid path"
-				switch err {
-				case ErrSymlink:
-					errorMsg = "symbolic link"
-					app.Logger().Warn("bulk delete: rejected symlink", "path", relativePath)
-				case ErrPathEscapes:
-					errorMsg = "path escapes storage"
-					app.Logger().Warn("bulk delete: rejected path escape", "path", relativePath)
-				case ErrAbsolutePath:
-					errorMsg = "absolute path not allowed"
-					app.Logger().Warn("bulk delete: rejected absolute path", "path", relativePath)
-				default:
-					app.Logger().Warn("bulk delete: invalid path", "path", relativePath, "error", err)
+					errors = append(errors, map[string]string{
+						"path":  relativePath,
+						"error": errorMsg,
+					})
+					continue
 				}
 
-				errors = append(errors, map[string]string{
-					"path":  relativePath,
-					"error": errorMsg,
-				})
-				continue
+				if err := os.Remove(target); err != nil {
+					app.Logger().Warn("bulk delete: failed to delete file", "path", target, "error", err)
+					failed++
+					errors = append(errors, map[string]string{
+						"path":  relativePath,
+						"error": err.Error(),
+					})
+				} else {
+					deleted++
+					app.Logger().Info("bulk delete: deleted orphan", "path", target, "relative", relativePath)
+				}
 			}
 
-			if err := os.Remove(target); err != nil {
-				app.Logger().Warn("bulk delete: failed to delete file", "path", target, "error", err)
-				failed++
-				errors = append(errors, map[string]string{
-					"path":  relativePath,
-					"error": err.Error(),
-				})
-			} else {
-				deleted++
-				app.Logger().Info("bulk delete: deleted orphan", "path", target, "relative", relativePath)
+			response := map[string]any{
+				"deleted": deleted,
+				"failed":  failed,
+				"errors":  errors,
 			}
-		}
 
-		response := map[string]interface{}{
-			"deleted": deleted,
-			"failed":  failed,
-			"errors":  errors,
-		}
+			return e.JSON(http.StatusOK, response)
+		}).Bind(apis.RequireAuth())
 
-		return e.JSON(http.StatusOK, response)
-	}).Bind(apis.RequireAuth())
+		// Storage info endpoint for diagnostics
+		se.Router.GET("/api/media/storage-info", func(e *core.RequestEvent) error {
+			info := storage.GetStorageInfo()
+			return e.JSON(http.StatusOK, info)
+		}).Bind(apis.RequireAuth())
+
 		return se.Next()
 	})
 }
@@ -527,9 +542,7 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 	return usage
 }
 
-func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[string]struct{}, int64, error) {
-	dataDir := app.DataDir()
-
+func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageService) ([]services.MediaItem, map[string]struct{}, int64, error) {
 	collections := []string{
 		"profile",
 		"experience",
@@ -572,7 +585,7 @@ func collectMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, map[st
 			for _, field := range fileFields {
 				values := services.FlattenFileValue(record.Get(field))
 				for _, filename := range values {
-					item, err := services.BuildMediaItem(dataDir, collection.Name, collection.Id, record.Id, field, filename, createdAt)
+					item, err := services.BuildMediaItem(storage, collection.Name, collection.Id, record.Id, field, filename, createdAt)
 					if err != nil {
 						continue
 					}
@@ -678,69 +691,74 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 	return items, nil
 }
 
-func collectOrphanMediaItems(app *pocketbase.PocketBase, referenced map[string]struct{}) ([]services.MediaItem, int64, int64, int, error) {
-	dataDir := app.DataDir()
-	storageRoot := filepath.Join(dataDir, "storage")
+// collectOrphanMediaItems scans all storage locations for files not referenced by any record.
+func collectOrphanMediaItems(app *pocketbase.PocketBase, storage *services.StorageService, referenced map[string]struct{}) ([]services.MediaItem, int64, int64, int, error) {
 	orphans := make([]services.MediaItem, 0)
-	var totalSize int64
-	var storageSize int64
-	var storageFiles int
+	var totalOrphanSize int64
+	var totalStorageSize int64
+	var totalStorageFiles int
 
-	// Check if storage directory exists
-	if _, err := os.Stat(storageRoot); os.IsNotExist(err) {
-		// No storage directory means no files and no orphans
-		return orphans, 0, 0, 0, nil
+	// Scan all storage roots (primary and fallback)
+	for _, storageRoot := range storage.GetStorageRoots() {
+		// Check if storage directory exists
+		if _, err := os.Stat(storageRoot); os.IsNotExist(err) {
+			continue
+		}
+
+		err := filepath.WalkDir(storageRoot, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				// Skip inaccessible files/directories but continue walking
+				return nil
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if strings.HasSuffix(d.Name(), ".attrs") {
+				return nil
+			}
+			info, infoErr := d.Info()
+			if infoErr == nil {
+				totalStorageSize += info.Size()
+				totalStorageFiles++
+			}
+			rel, err := filepath.Rel(storageRoot, path)
+			if err != nil {
+				return nil
+			}
+			rel = filepath.ToSlash(rel)
+			if _, ok := referenced[rel]; ok {
+				return nil
+			}
+
+			parts := strings.Split(rel, "/")
+			if len(parts) < 3 {
+				return nil
+			}
+			collectionID := parts[0]
+			recordID := parts[1]
+			filename := strings.Join(parts[2:], "/")
+			collectionName := collectionID
+			if c, err := app.FindCollectionByNameOrId(collectionID); err == nil && c != nil {
+				collectionName = c.Name
+			}
+
+			item, buildErr := services.BuildMediaItem(storage, collectionName, collectionID, recordID, "orphan", filename, time.Time{})
+			if buildErr != nil {
+				return nil
+			}
+			item.Orphan = true
+			item.Field = "orphan"
+			orphans = append(orphans, item)
+			totalOrphanSize += item.Size
+			return nil
+		})
+		if err != nil {
+			// Log but continue with other roots
+			continue
+		}
 	}
 
-	err := filepath.WalkDir(storageRoot, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			// Skip inaccessible files/directories but continue walking
-			return nil
-		}
-		if d.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(d.Name(), ".attrs") {
-			return nil
-		}
-		info, infoErr := d.Info()
-		if infoErr == nil {
-			storageSize += info.Size()
-			storageFiles++
-		}
-		rel, err := filepath.Rel(storageRoot, path)
-		if err != nil {
-			return nil
-		}
-		rel = filepath.ToSlash(rel)
-		if _, ok := referenced[rel]; ok {
-			return nil
-		}
-
-		parts := strings.Split(rel, "/")
-		if len(parts) < 3 {
-			return nil
-		}
-		collectionID := parts[0]
-		recordID := parts[1]
-		filename := strings.Join(parts[2:], "/")
-		collectionName := collectionID
-		if c, err := app.FindCollectionByNameOrId(collectionID); err == nil && c != nil {
-			collectionName = c.Name
-		}
-
-		item, buildErr := services.BuildMediaItem(dataDir, collectionName, collectionID, recordID, "orphan", filename, time.Time{})
-		if buildErr != nil {
-			return nil
-		}
-		item.Orphan = true
-		item.Field = "orphan"
-		orphans = append(orphans, item)
-		totalSize += item.Size
-		return nil
-	})
-
-	return orphans, totalSize, storageSize, storageFiles, err
+	return orphans, totalOrphanSize, totalStorageSize, totalStorageFiles, nil
 }
 
 func fileFieldNames(c *core.Collection) []string {
@@ -753,18 +771,77 @@ func fileFieldNames(c *core.Collection) []string {
 	return names
 }
 
-// resolveStoragePath securely resolves a user-provided relative path within the storage root directory.
-// It prevents:
-// - Path traversal attacks (../ sequences)
-// - Symlink attacks (links pointing outside storage)
-// - Absolute path injection
-// - Platform-specific path bypass techniques
-//
-// This function implements defense-in-depth with multiple validation layers:
-// 1. Input validation (non-empty, non-absolute)
-// 2. Path cleaning (normalize separators, remove ..)
-// 3. Containment validation (must remain within storage root)
-// 4. Symlink detection (reject symbolic links)
+// resolveStoragePathMulti securely resolves a user-provided relative path across multiple storage roots.
+// It finds the file in any configured storage location and validates the path for security.
+func resolveStoragePathMulti(storage *services.StorageService, rel string) (string, error) {
+	// 1. Validate input
+	if rel == "" {
+		return "", ErrInvalidPath
+	}
+
+	// 2. Clean the user input (handles .., //, platform separators)
+	clean := filepath.Clean(rel)
+
+	// 3. Reject absolute paths (prevents /etc/passwd injection)
+	if filepath.IsAbs(clean) {
+		return "", ErrAbsolutePath
+	}
+
+	// 4. Remove leading slashes and backslashes
+	clean = strings.TrimPrefix(clean, "/")
+	clean = strings.TrimPrefix(clean, "\\")
+
+	// 5. Remove "storage" prefix if present (backward compatibility)
+	clean = strings.TrimPrefix(clean, "storage/")
+	clean = strings.TrimPrefix(clean, "storage\\")
+
+	// 6. Defense in depth: reject if still contains .. after cleaning
+	if strings.Contains(clean, "..") {
+		return "", ErrInvalidPath
+	}
+
+	// 7. Try to find the file in any storage root
+	for _, storageRoot := range storage.GetStorageRoots() {
+		target := filepath.Join(storageRoot, clean)
+
+		// Validate containment using filepath.Rel
+		relPath, err := filepath.Rel(storageRoot, target)
+		if err != nil {
+			continue
+		}
+
+		// Check if relative path tries to escape
+		if strings.HasPrefix(relPath, ".."+string(filepath.Separator)) || relPath == ".." {
+			continue
+		}
+
+		// Additional containment check
+		if !strings.HasPrefix(target, storageRoot+string(filepath.Separator)) && target != storageRoot {
+			continue
+		}
+
+		// Check if path exists
+		info, err := os.Lstat(target)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue // Try next root
+			}
+			continue
+		}
+
+		// Reject symbolic links
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", ErrSymlink
+		}
+
+		return target, nil
+	}
+
+	return "", fmt.Errorf("file not found in any storage location: %s", rel)
+}
+
+// resolveStoragePath is the legacy single-root version for backward compatibility.
+// Deprecated: Use resolveStoragePathMulti with StorageService instead.
 func resolveStoragePath(storageRoot, rel string) (string, error) {
 	// 1. Validate inputs
 	if storageRoot == "" || rel == "" {

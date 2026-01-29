@@ -198,8 +198,8 @@ func RemoveFileFromValue(current interface{}, filename string) (interface{}, boo
 }
 
 // BuildMediaItem constructs MediaItem metadata by inspecting the file on disk.
-// dataDir should be the PocketBase data dir (e.g., pb_data).
-func BuildMediaItem(dataDir, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
+// Uses StorageService to locate files across multiple storage locations.
+func BuildMediaItem(storage *StorageService, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
 	item := MediaItem{
 		Collection:    collectionName,
 		CollectionID:  collectionID,
@@ -207,7 +207,60 @@ func BuildMediaItem(dataDir, collectionName, collectionID, recordID, field, file
 		Field:         field,
 		Filename:      filename,
 		URL:           fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, filename),
-		RelativePath:  filepath.ToSlash(filepath.Join("storage", collectionID, recordID, filename)),
+		RelativePath:  filepath.ToSlash(filepath.Join(collectionID, recordID, filename)),
+		CollectionKey: collectionName,
+	}
+
+	fullPath, found := storage.FindFile(collectionID, recordID, filename)
+	if !found {
+		return item, fmt.Errorf("file not found: %s/%s/%s", collectionID, recordID, filename)
+	}
+
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		return item, err
+	}
+
+	item.Size = info.Size()
+
+	uploadedAt := info.ModTime()
+	if uploadedAt.IsZero() && !recordCreated.IsZero() {
+		uploadedAt = recordCreated
+	}
+	item.UploadedAt = uploadedAt
+
+	// Detect mime
+	mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(filename)))
+	if mimeType == "" {
+		// Read a small sample to detect content type
+		f, err := os.Open(fullPath)
+		if err == nil {
+			defer f.Close()
+			sniff := make([]byte, 512)
+			n, _ := io.ReadFull(f, sniff)
+			mimeType = http.DetectContentType(sniff[:n])
+		}
+	}
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+	item.Mime = mimeType
+
+	return item, nil
+}
+
+// BuildMediaItemLegacy constructs MediaItem metadata using the old dataDir-based approach.
+// Deprecated: Use BuildMediaItem with StorageService instead.
+// This is kept for backward compatibility during migration.
+func BuildMediaItemLegacy(dataDir, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
+	item := MediaItem{
+		Collection:    collectionName,
+		CollectionID:  collectionID,
+		RecordID:      recordID,
+		Field:         field,
+		Filename:      filename,
+		URL:           fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, filename),
+		RelativePath:  filepath.ToSlash(filepath.Join(collectionID, recordID, filename)),
 		CollectionKey: collectionName,
 	}
 
