@@ -380,9 +380,12 @@
 				faviconUrl = newUrl;
 				// Notify layout to update favicon in browser tab
 				window.dispatchEvent(new CustomEvent('favicon-changed', { detail: newUrl }));
+				toasts.add('success', $t('admin.settings_page.appearance.favicon_updated'));
+			} else {
+				// Backend returned success but no favicon URL - something went wrong
+				console.error('Favicon upload succeeded but no URL returned:', result);
+				toasts.add('error', $t('admin.settings_page.appearance.favicon_error'));
 			}
-
-			toasts.add('success', $t('admin.settings_page.appearance.favicon_updated'));
 		} catch (err) {
 			console.error('Failed to save favicon:', err);
 			toasts.add('error', $t('admin.settings_page.appearance.favicon_error'));

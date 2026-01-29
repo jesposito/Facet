@@ -190,11 +190,12 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"collection_id", settings.Record.Collection().Id,
 				"record_id", settings.Record.Id)
 
-			var faviconURL string
-			if faviconFile != "" {
-				faviconURL = "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
+			if faviconFile == "" {
+				app.Logger().Error("favicon save succeeded but filename is empty")
+				return apis.NewBadRequestError("favicon file was not saved", nil)
 			}
 
+			faviconURL := "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
 			app.Logger().Info("favicon URL returned", "url", faviconURL)
 
 			return e.JSON(http.StatusOK, map[string]any{
