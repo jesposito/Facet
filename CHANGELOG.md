@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.13.1 - January 29, 2026
+
+**Bugs Fixed:**
+- Fix favicon persistence across page refreshes, ensuring it updates correctly and shows consistently on mobile and desktop.
+
+**Pull Requests:** [#345](https://github.com/jesposito/Facet/pull/345),
+
+---
+
+
 ## v2.13.0 - January 29, 2026
 
 **Bugs Fixed:**
