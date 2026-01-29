@@ -267,7 +267,8 @@
 
 	async function loadSiteSettings() {
 		try {
-			const response = await fetch('/api/site-settings');
+			// Add cache buster to prevent browser from caching stale settings
+			const response = await fetch(`/api/site-settings?_=${Date.now()}`);
 			if (response.ok) {
 				const data = await response.json();
 				customCSS = data.custom_css || '';
