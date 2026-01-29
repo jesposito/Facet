@@ -261,8 +261,7 @@
 		try {
 			const params = new URLSearchParams({
 				page: String(page),
-				perPage: String(perPage),
-				_t: String(Date.now()) // Cache buster to ensure fresh data
+				perPage: String(perPage)
 			});
 			if (search.trim()) params.set('q', search.trim());
 			if (typeFilter === 'image') params.set('type', 'image');

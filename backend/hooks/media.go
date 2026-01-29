@@ -587,6 +587,12 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 				for _, filename := range values {
 					item, err := services.BuildMediaItem(storage, collection.Name, collection.Id, record.Id, field, filename, createdAt)
 					if err != nil {
+						app.Logger().Warn("media: failed to build media item",
+							"collection", collection.Name,
+							"record_id", record.Id,
+							"field", field,
+							"filename", filename,
+							"error", err)
 						continue
 					}
 
