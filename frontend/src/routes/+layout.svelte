@@ -174,7 +174,8 @@ async function loadSiteSettings(): Promise<string | undefined> {
 			const data = await response.json();
 			customCSS = data.custom_css || '';
 			gaMeasurementId = data.ga_measurement_id || '';
-			faviconUrl = data.favicon || null;
+			// Add cache buster to favicon URL to prevent browser caching
+			faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
 			applyPaletteFromCSS(customCSS);
 			applyCustomCSS(customCSS);
 			return data.default_locale || undefined;
