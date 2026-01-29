@@ -1,229 +1,72 @@
 <?xml version="1.0"?>
-<Container version="2">
-  <Name>Facet</Name>
-  <Repository>ghcr.io/jesposito/facet:latest</Repository>
-  <Registry>https://github.com/jesposito/Facet</Registry>
-  <Network>bridge</Network>
-  <MyIP/>
-  <Shell>bash</Shell>
-  <Privileged>false</Privileged>
+<Container version="2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://raw.githubusercontent.com/jesposito/unraid_templates/main/templates/template_schema.xsd template_schema.xsd">
+    <Name>Facet</Name>
+    <Repository>ghcr.io/jesposito/facet:latest</Repository>
+    <Registry>ghcr.io/jesposito/facet</Registry>
+    <Branch>
+        <Tag>latest</Tag>
+        <TagDescription>Latest stable release</TagDescription>
+    </Branch>
+    <Network>bridge</Network>
+    <WebUI>http://[IP]:[PORT:3000]/</WebUI>
+    <Privileged>false</Privileged>
+    <Support>https://github.com/jesposito/Facet/issues</Support>
+    <Project>https://github.com/jesposito/Facet</Project>
+    <Overview>
+        Facet is a self-hosted personal profile platform that lets you create multiple views of your professional profile for different audiences (recruiters, conferences, clients). &#xD;
+        &#xD;
+        You own your data and control what each audience sees. &#xD;
+        &#xD;
+        Default password: changeme123 (you'll be prompted to change the password immediately after first login) &#xD;
+        &#xD;
+        Also check out Walkabout - a self-hosted flight deal monitor: https://github.com/jesposito/walkabout
+    </Overview>
+    <Beta>False</Beta>
+    <Category>AI: Productivity: Tools: Other: Status:Stable</Category>
+    <ExtraSearchTerms>personal profile portfolio resume cv recruiter conference client self-hosted</ExtraSearchTerms>
+    <Icon>https://raw.githubusercontent.com/jesposito/unraid_templates/main/images/facet-icon.png</Icon>
+    <TemplateURL>https://raw.githubusercontent.com/jesposito/unraid_templates/main/templates/facet.xml</TemplateURL>
+    <Maintainer>
+        <WebPage>https://github.com/jesposito</WebPage>
+    </Maintainer>
+    <DonateText>Buy me a coffee</DonateText>
+    <DonateLink>https://buymeacoffee.com/jesposito</DonateLink>
+    <Changes>
+        ### 2026-01-30
 
-  <Support>https://github.com/jesposito/Facet/issues</Support>
-  <Project>https://github.com/jesposito/Facet</Project>
+        - Change Project link to GitHub repo
+        - Move Google/GitHub OAuth back to main settings
+        - Fix internal container port to 3000
+        - Lock Admin UI Enabled to false (hidden setting)
+        - Keep AI API keys in advanced section
+        - Make data paths visible by default
+        - Cross-promote Walkabout
 
-  <Overview>
-Facet is a self-hosted personal profile platform that lets you create multiple views of your professional profile for different audiences (recruiters, conferences, clients).
+        ### 2026-01-20
 
-You own your data and control what each audience sees.
-
-Default password: changeme123 (you will be prompted to change it on first login)
-  </Overview>
-
-  <Category>Tools:</Category>
-
-  <WebUI>http://[IP]:[PORT:8080]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/jesposito/Facet/main/unraid/facet-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/jesposito/Facet/main/assets/icon.png</Icon>
-
-  <ExtraParams/>
-  <PostArgs/>
-  <CPUset/>
-
-  <DonateText>Buy me a coffee</DonateText>
-  <DonateLink>https://buymeacoffee.com/jesposito</DonateLink>
-
-  <Requires/>
-
-  <!-- Web UI Port -->
-  <Config
-    Name="Web UI Port"
-    Target="8080"
-    Default="8080"
-    Mode="tcp"
-    Description="The port used to access Facet in your browser. Change this if 8080 is already in use."
-    Type="Port"
-    Display="always"
-    Required="true"
-    Mask="false">8080</Config>
-
-  <!-- App Data -->
-  <Config
-    Name="App Data"
-    Target="/data"
-    Default="/mnt/user/appdata/facet"
-    Mode="rw"
-    Description="Database and core configuration storage. Include this path in your appdata backups."
-    Type="Path"
-    Display="always"
-    Required="true"
-    Mask="false">/mnt/user/appdata/facet</Config>
-
-  <!-- Uploads -->
-  <Config
-    Name="Uploads"
-    Target="/uploads"
-    Default="/mnt/user/appdata/facet/uploads"
-    Mode="rw"
-    Description="Storage for uploaded images and files. Can grow large depending on usage."
-    Type="Path"
-    Display="always"
-    Required="true"
-    Mask="false">/mnt/user/appdata/facet/uploads</Config>
-
-  <!-- Admin Email -->
-  <Config
-    Name="Admin Email"
-    Target="ADMIN_EMAILS"
-    Default=""
-    Mode=""
-    Description="Email address for admin access. Required for all authentication methods."
-    Type="Variable"
-    Display="always"
-    Required="true"
-    Mask="false"/>
-
-  <!-- Public URL -->
-  <Config
-    Name="Public URL"
-    Target="APP_URL"
-    Default=""
-    Mode=""
-    Description="Public URL for Facet (e.g. https://facet.yourdomain.com or http://192.168.1.100:8080). Used for OAuth callbacks and share links."
-    Type="Variable"
-    Display="always"
-    Required="false"
-    Mask="false"/>
-
-  <!-- Trust Proxy -->
-  <Config
-    Name="Trust Proxy"
-    Target="TRUST_PROXY"
-    Default="true"
-    Mode=""
-    Description="Leave enabled if running behind Nginx Proxy Manager, Traefik, Cloudflare Tunnel, or another reverse proxy."
-    Type="Variable"
-    Display="always"
-    Required="false"
-    Mask="false">true</Config>
-
-  <!-- PUID -->
-  <Config
-    Name="PUID"
-    Target="PUID"
-    Default="99"
-    Mode=""
-    Description="User ID for file permissions. Use 99 for Unraid's nobody user, or match your host user's UID."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false">99</Config>
-
-  <!-- PGID -->
-  <Config
-    Name="PGID"
-    Target="PGID"
-    Default="100"
-    Mode=""
-    Description="Group ID for file permissions. Use 100 for Unraid's users group, or match your host user's GID."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false">100</Config>
-
-  <!-- Google Client ID -->
-  <Config
-    Name="Google Client ID"
-    Target="GOOGLE_CLIENT_ID"
-    Default=""
-    Mode=""
-    Description="Client ID for 'Sign in with Google'. Redirect URI: YOUR_URL/api/oauth2-redirect"
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false"/>
-
-  <!-- Google Client Secret -->
-  <Config
-    Name="Google Client Secret"
-    Target="GOOGLE_CLIENT_SECRET"
-    Default=""
-    Mode=""
-    Description="Client secret from Google Cloud Console."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="true"/>
-
-  <!-- GitHub Client ID -->
-  <Config
-    Name="GitHub Client ID"
-    Target="GITHUB_CLIENT_ID"
-    Default=""
-    Mode=""
-    Description="Client ID for 'Sign in with GitHub'. Redirect URI: YOUR_URL/api/oauth2-redirect"
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false"/>
-
-  <!-- GitHub Client Secret -->
-  <Config
-    Name="GitHub Client Secret"
-    Target="GITHUB_CLIENT_SECRET"
-    Default=""
-    Mode=""
-    Description="Client secret from GitHub OAuth App settings."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="true"/>
-
-  <!-- OpenAI API Key -->
-  <Config
-    Name="OpenAI API Key"
-    Target="OPENAI_API_KEY"
-    Default=""
-    Mode=""
-    Description="Enables AI features such as content rewriting and summaries."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="true"/>
-
-  <!-- Anthropic API Key -->
-  <Config
-    Name="Anthropic API Key"
-    Target="ANTHROPIC_API_KEY"
-    Default=""
-    Mode=""
-    Description="Optional alternative to OpenAI using Claude models."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="true"/>
-
-  <!-- Ollama URL -->
-  <Config
-    Name="Ollama URL"
-    Target="OLLAMA_BASE_URL"
-    Default=""
-    Mode=""
-    Description="URL of a local Ollama instance (e.g. http://192.168.1.100:11434)."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false"/>
-
-  <!-- Ollama Model -->
-  <Config
-    Name="Ollama Model"
-    Target="OLLAMA_MODEL"
-    Default="llama3.2"
-    Mode=""
-    Description="Ollama model to use when enabled."
-    Type="Variable"
-    Display="advanced"
-    Required="false"
-    Mask="false">llama3.2</Config>
-
+        Initial release
+    </Changes>
+    <!-- ==================== ALWAYS VISIBLE ==================== -->
+    <Config Name="Web UI Port" Target="3000" Default="8080" Mode="tcp" Description="Container Port: 3000" Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+    <Config Name="App Data" Target="/data" Default="/mnt/user/appdata/facet/data" Description="Path to app data (database and configuration). Include this in backups." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/facet/data</Config>
+    <Config Name="Uploads Storage" Target="/uploads" Default="/mnt/user/appdata/facet/uploads" Description="Path to uploaded images and files." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/facet/uploads</Config>
+    <Config Name="Public URL" Target="APP_URL" Default="" Description="Public URL for Facet (e.g. http://IP_ADDRESS:8080). Used for OAuth callbacks and share links." Type="Variable" Display="always" Required="false" Mask="false"/>
+    <Config Name="Admin Emails" Target="ADMIN_EMAILS" Default="" Description="Comma-separated email allowlist for OAuth login." Type="Variable" Display="always" Required="false" Mask="false"/>
+    <Config Name="Behind Proxy" Target="TRUST_PROXY" Default="false|true" Description="Set to true if running behind a reverse proxy (NPM, Traefik, Cloudflare)." Type="Variable" Display="always" Required="false" Mask="false"/>
+    <Config Name="OAuth - Google - Client ID" Target="GOOGLE_CLIENT_ID" Default="" Description="Client ID for 'Sign in with Google'. Redirect URI: YOUR_URL/api/oauth2-redirect" Type="Variable" Display="always" Required="false" Mask="false"/>
+    <Config Name="OAuth - Google - Client Secret" Target="GOOGLE_CLIENT_SECRET" Default="" Description="Client secret from Google Cloud Console." Type="Variable" Display="always" Required="false" Mask="true"/>
+    <Config Name="OAuth - GitHub - Client ID" Target="GITHUB_CLIENT_ID" Default="" Description="Client ID for 'Sign in with GitHub'. Redirect URI: YOUR_URL/api/oauth2-redirect" Type="Variable" Display="always" Required="false" Mask="false"/>
+    <Config Name="OAuth - GitHub - Client Secret" Target="GITHUB_CLIENT_SECRET" Default="" Description="Client secret from GitHub OAuth Apps." Type="Variable" Display="always" Required="false" Mask="true"/>
+    <!-- ==================== ADVANCED (Show more settings) ==================== -->
+    <Config Name="AI - OpenAI - API Key" Target="OPENAI_API_KEY" Default="" Description="API key for OpenAI services (optional)." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+    <Config Name="AI - Anthropic - API Key" Target="ANTHROPIC_API_KEY" Default="" Description="API key for Anthropic services (optional)." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+    <Config Name="AI - Ollama - URL" Target="OLLAMA_BASE_URL" Default="" Description="URL for local Ollama instance (e.g. http://192.168.1.100:11434)." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+    <Config Name="AI - Ollama - Model" Target="OLLAMA_MODEL" Default="llama3.2" Description="Ollama model name." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+    <Config Name="PUID" Target="PUID" Default="99" Description="User ID for file permissions." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+    <Config Name="PGID" Target="PGID" Default="100" Description="Group ID for file permissions." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+    <!-- ==================== ADVANCED-HIDE (Internal settings) ==================== -->
+    <Config Name="Admin UI Enabled" Target="ADMIN_ENABLED" Default="false" Description="Enable PocketBase admin UI at /_/ for debugging." Type="Variable" Display="advanced-hide" Required="false" Mask="false">false</Config>
+    <Config Name="Internal Port" Target="PORT" Default="3000" Description="Internal port. Do not change." Type="Variable" Display="advanced-hide" Required="true" Mask="false">3000</Config>
+    <Config Name="Internal Data Path" Target="DATA_PATH" Default="./data" Description="Internal data path. Do not change." Type="Variable" Display="advanced-hide" Required="true" Mask="false">./data</Config>
+    <Config Name="Internal Uploads Path" Target="UPLOADS_PATH" Default="./uploads" Description="Internal uploads path. Do not change." Type="Variable" Display="advanced-hide" Required="true" Mask="false">./uploads</Config>
 </Container>
