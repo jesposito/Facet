@@ -273,7 +273,7 @@
 				customCSS = data.custom_css || '';
 				gaMeasurementId = data.ga_measurement_id || '';
 				hideDemoToggle = data.hide_demo_toggle || false;
-				faviconUrl = data.favicon || null;
+				faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
