@@ -261,7 +261,8 @@
 		try {
 			const params = new URLSearchParams({
 				page: String(page),
-				perPage: String(perPage)
+				perPage: String(perPage),
+				_t: String(Date.now()) // Cache buster to ensure fresh data
 			});
 			if (search.trim()) params.set('q', search.trim());
 			if (typeFilter === 'image') params.set('type', 'image');
@@ -272,7 +273,8 @@
 			}
 
 			const res = await fetch(`/api/media?${params.toString()}`, {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
+				cache: 'no-store' // Prevent browser caching
 			});
 			if (!res.ok) {
 				if (res.status === 401) {
