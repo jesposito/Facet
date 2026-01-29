@@ -179,7 +179,7 @@
 							{#each item.bullets as bullet}
 								<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300">
 									<span class="text-primary-500 mt-1">•</span>
-									<span class="mt-[0.1rem]">{stripBulletPrefix(bullet)}</span>
+									<span class="mt-[0.26rem]">{stripBulletPrefix(bullet)}</span>
 								</li>
 							{/each}
 						</ul>

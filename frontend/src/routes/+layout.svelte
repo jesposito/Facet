@@ -226,21 +226,9 @@ onMount(() => {
 
 	// Listen for favicon changes from settings page
 	const handleFaviconChange = (event: CustomEvent<string | null>) => {
-		const newUrl = event.detail;
-
-		// Force browser to reload favicon by removing old link and adding new one
-		// Browsers cache favicons aggressively and may ignore href changes
-		const existingLinks = document.querySelectorAll('link[rel="icon"]');
-		existingLinks.forEach(link => link.remove());
-
-		if (newUrl) {
-			const newLink = document.createElement('link');
-			newLink.rel = 'icon';
-			newLink.href = newUrl;
-			document.head.appendChild(newLink);
-		}
-
-		faviconUrl = newUrl;
+		// Just update the state - the {#key} block in svelte:head will
+		// force Svelte to recreate the link element, triggering a fresh fetch
+		faviconUrl = event.detail;
 	};
 	window.addEventListener('favicon-changed', handleFaviconChange as EventListener);
 
@@ -292,11 +280,14 @@ run(() => {
 
 <svelte:head>
 	<meta name="theme-color" content={themeColor} />
-	{#if faviconUrl}
-		<link rel="icon" href={faviconUrl} />
-	{:else}
-		<link rel="icon" href="/favicon.png" />
-	{/if}
+	<!-- Use {#key} to force browser to fetch new favicon when URL changes -->
+	{#key faviconUrl}
+		{#if faviconUrl}
+			<link rel="icon" href={faviconUrl} />
+		{:else}
+			<link rel="icon" href="/favicon.png" />
+		{/if}
+	{/key}
 </svelte:head>
 
 <!-- Skip link for keyboard navigation -->
