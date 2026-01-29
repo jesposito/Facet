@@ -2,6 +2,8 @@ package hooks
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"facet/services"
@@ -183,7 +185,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				return apis.NewBadRequestError("failed to save favicon", err)
 			}
 
-			// Build the new favicon URL
+			// Verify the file was saved
 			faviconFile := settings.Record.GetString("favicon")
 			app.Logger().Info("favicon uploaded",
 				"filename", faviconFile,
@@ -195,11 +197,11 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				return apis.NewBadRequestError("favicon file was not saved", nil)
 			}
 
-			faviconURL := "/api/files/" + settings.Record.Collection().Id + "/" + settings.Record.Id + "/" + faviconFile
-			app.Logger().Info("favicon URL returned", "url", faviconURL)
+			// Return the /api/favicon endpoint which serves with no-cache headers
+			app.Logger().Info("favicon URL returned", "url", "/api/favicon")
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"favicon": faviconURL,
+				"favicon": "/api/favicon",
 			})
 		})
 
@@ -224,6 +226,70 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]any{
 				"favicon": nil,
 			})
+		})
+
+		// Public: serve favicon with no-cache headers
+		// This bypasses PocketBase's aggressive file caching (1 year max-age)
+		se.Router.GET("/api/favicon", func(e *core.RequestEvent) error {
+			settings, err := services.LoadSiteSettings(app)
+			if err != nil || settings.Record == nil {
+				return e.Redirect(http.StatusTemporaryRedirect, "/favicon.png")
+			}
+
+			faviconFile := settings.Record.GetString("favicon")
+			if faviconFile == "" {
+				return e.Redirect(http.StatusTemporaryRedirect, "/favicon.png")
+			}
+
+			// Build the storage path - PocketBase stores files in {dataDir}/storage/{collection}/{record}/{filename}
+			collectionID := settings.Record.Collection().Id
+			recordID := settings.Record.Id
+			relPath := filepath.Join(collectionID, recordID, faviconFile)
+
+			// Try primary storage first (UPLOADS_DIR), then fallback to pb_data/storage
+			var content []byte
+			var readErr error
+
+			// Check UPLOADS_DIR environment variable
+			uploadsDir := filepath.Clean(filepath.Join("/uploads"))
+			primaryPath := filepath.Join(uploadsDir, relPath)
+			fallbackPath := filepath.Join(app.DataDir(), "storage", relPath)
+
+			// Try primary storage
+			content, readErr = os.ReadFile(primaryPath)
+			if readErr != nil {
+				// Try fallback storage
+				content, readErr = os.ReadFile(fallbackPath)
+			}
+
+			if readErr != nil {
+				app.Logger().Error("failed to read favicon file",
+					"error", readErr,
+					"primaryPath", primaryPath,
+					"fallbackPath", fallbackPath)
+				return e.Redirect(http.StatusTemporaryRedirect, "/favicon.png")
+			}
+
+			// Determine content type from extension
+			contentType := "image/x-icon"
+			ext := strings.ToLower(filepath.Ext(faviconFile))
+			switch ext {
+			case ".png":
+				contentType = "image/png"
+			case ".svg":
+				contentType = "image/svg+xml"
+			case ".gif":
+				contentType = "image/gif"
+			case ".ico":
+				contentType = "image/x-icon"
+			}
+
+			// Set headers to prevent caching
+			e.Response.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			e.Response.Header().Set("Pragma", "no-cache")
+			e.Response.Header().Set("Expires", "0")
+
+			return e.Blob(http.StatusOK, contentType, content)
 		})
 
 		return se.Next()
