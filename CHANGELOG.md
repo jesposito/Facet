@@ -3,6 +3,26 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.13.0 - January 29, 2026
+
+**Bugs Fixed:**
+- Fix users unable to delete media referenced by content with force-delete confirmation.
+- Fix skills dropdown to allow selection of all skills (public, unlisted, private) on facets/views.
+- Fix homepage settings to prevent wiping of Custom CSS field.
+- Fix PNG logo background issue in experience section.
+- Fix alignment of company names in timeline view of experiences.
+- Fix favicon upload persistence across navigation.
+
+**New Features:**
+- Overhaul Media Manager with unified MediaPicker, including thumbnail previews, drag-and-drop uploads, inline previews, and usage tracking.
+- Add media library selection for logos and cover images in content editors.
+- Add missing mobile layout/width controls in homepage section manager.
+
+**Pull Requests:** [#333](https://github.com/jesposito/Facet/pull/333),
+
+---
+
+
 ## v2.12.0 - January 28, 2026
 
 **Bugs Fixed:**
