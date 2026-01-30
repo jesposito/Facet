@@ -768,6 +768,7 @@ let filteredProjects = $derived(
 						currentFileUrl={editingProject?.cover_image ? getCoverImageUrl(editingProject) : ''}
 						currentFileName={editingProject?.cover_image || ''}
 						imagesOnly={true}
+						onchange={handleFormChange}
 					/>
 				</div>
 

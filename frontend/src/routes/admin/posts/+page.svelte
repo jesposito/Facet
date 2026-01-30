@@ -572,6 +572,7 @@ function openEditForm(post: Post) {
 						currentFileUrl={editingPost ? getCoverImageUrl(editingPost) : ''}
 						currentFileName={(editingPost as any)?.cover_image || ''}
 						imagesOnly={true}
+						onchange={handleFormChange}
 					/>
 				</div>
 			</div>
