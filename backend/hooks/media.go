@@ -125,11 +125,12 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
-			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image", "video", "audio", "document", or ""
+			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type")))       // "image", "video", "audio", "document", or ""
 			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
-			tagsFilter := strings.TrimSpace(query.Get("tags")) // comma-separated tag IDs
-			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))   // "date", "name", "size"
-			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))  // "asc", "desc"
+			tagsFilter := strings.TrimSpace(query.Get("tags"))                        // comma-separated tag IDs
+			usageFilter := strings.ToLower(strings.TrimSpace(query.Get("usage")))     // "in_use", "not_in_use", or "" for all
+			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))        // "date", "name", "size"
+			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))       // "asc", "desc"
 			if sortOrder == "" {
 				sortOrder = "desc"
 			}
@@ -188,6 +189,13 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 					if !match {
 						continue
 					}
+				}
+				// Usage filtering
+				if usageFilter == "in_use" && item.UsageCount == 0 {
+					continue
+				}
+				if usageFilter == "not_in_use" && item.UsageCount > 0 {
+					continue
 				}
 				filtered = append(filtered, item)
 			}
@@ -899,6 +907,27 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, map[string]any{
 				"items": items,
 			})
+		}).Bind(apis.RequireAuth())
+
+		// Get usage details for a specific external_media item (for delete warning)
+		se.Router.GET("/api/media/usage/{id}", func(e *core.RequestEvent) error {
+			id := e.Request.PathValue("id")
+			if id == "" {
+				return apis.NewBadRequestError("missing id", nil)
+			}
+
+			// Verify the external_media record exists
+			_, err := app.FindRecordById("external_media", id)
+			if err != nil {
+				return apis.NewNotFoundError("external_media not found", err)
+			}
+
+			usage, err := services.FindMediaUsage(app, id)
+			if err != nil {
+				return apis.NewBadRequestError("failed to find usage", err)
+			}
+
+			return e.JSON(http.StatusOK, usage)
 		}).Bind(apis.RequireAuth())
 
 		return se.Next()

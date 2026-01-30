@@ -116,6 +116,7 @@
 	let search = $state('');
 	let typeFilter: 'all' | 'image' | 'video' | 'audio' | 'document' = $state('all');
 	let statusFilter: 'referenced' | 'all' | 'orphans' = $state('referenced');
+	let usageFilter: 'all' | 'in_use' | 'not_in_use' = $state('all');
 	let sortField: 'date' | 'name' | 'size' = $state('date');
 	let sortOrder: 'asc' | 'desc' = $state('desc');
 	let error = $state('');
@@ -337,6 +338,7 @@
 				params.set('includeOrphans', '1');
 			}
 			if (selectedTagFilter) params.set('tags', selectedTagFilter);
+			if (usageFilter !== 'all') params.set('usage', usageFilter);
 			params.set('sort', sortField);
 			params.set('order', sortOrder);
 
@@ -385,6 +387,46 @@
 	async function deleteFile(item: MediaItem, force = false) {
 		// Check if item is external media (either by flag or by collection name)
 		const isExternal = item.external || item.collection === 'external_media';
+
+		// If item is in use, show a warning with usage details before confirmation
+		if ((item.usage_count ?? 0) > 0 && !force) {
+			// Fetch full usage details
+			let usageDetails: MediaUsageItem[] = item.used_by || [];
+
+			// If we don't have used_by details, fetch them
+			if (usageDetails.length === 0 && item.record_id) {
+				try {
+					const res = await fetch(`/api/media/usage/${item.record_id}`, {
+						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+					});
+					if (res.ok) {
+						const data = await res.json();
+						usageDetails = data.used_by || [];
+					}
+				} catch {
+					// Continue with what we have
+				}
+			}
+
+			// Build list of content items using this media
+			const usageList = usageDetails
+				.slice(0, 5)
+				.map((u) => `• ${u.collection}: ${u.title}`)
+				.join('\n');
+			const moreText = usageDetails.length > 5 ? `\n...${$t('admin.media.usage_warning_more', { values: { count: usageDetails.length - 5 } })}` : '';
+
+			const confirmed = await confirm({
+				title: $t('admin.media.confirm_force_delete_title'),
+				message: $t('admin.media.usage_warning_message', { values: { filename: item.display_name || item.filename, count: item.usage_count } }) +
+					'\n\n' + usageList + moreText,
+				confirmText: $t('admin.media.confirm_force_delete_button'),
+				danger: true
+			});
+
+			if (!confirmed) return;
+			// Continue with force delete
+			return deleteFile(item, true);
+		}
 
 		// For non-external or orphan items, show standard confirmation
 		if (!isExternal || item.orphan) {
@@ -894,6 +936,14 @@
 					<option value="referenced">{$t('admin.media.filter_scope_referenced')}</option>
 					<option value="all">{$t('admin.media.filter_scope_all')}</option>
 					<option value="orphans">{$t('admin.media.filter_scope_orphans')}</option>
+				</select>
+			</div>
+			<div class="flex items-center gap-2">
+				<label class="label mb-0" for="usage-filter">{$t('admin.media.filter_usage')}</label>
+				<select id="usage-filter" class="input" bind:value={usageFilter} onchange={resetAndLoad}>
+					<option value="all">{$t('admin.media.filter_usage_all')}</option>
+					<option value="in_use">{$t('admin.media.filter_usage_in_use')}</option>
+					<option value="not_in_use">{$t('admin.media.filter_usage_not_in_use')}</option>
 				</select>
 			</div>
 			{#if availableTags.length > 0}
