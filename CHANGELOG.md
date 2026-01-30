@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.15.0 - January 30, 2026
+
+**Bugs Fixed:**
+- Fix cover images from library in public view and admin list, prevent duplicate external media, detect favicon orphans, ensure all non-orphan media can be selected, prevent recursive thumbnails, eliminate welcome page flash, and improve timeline layout for logos.
+
+**New Features:**
+- Deliver media library improvements including image dimensions, metadata editing, media tagging, recently used section, auto-fetch metadata, thumbnail generation, bulk operations, and usage filter.
+
+**Pull Requests:** [#359](https://github.com/jesposito/Facet/pull/359),
+
+---
+
+
 ## v2.14.0 - January 30, 2026
 
 **New Features:**
