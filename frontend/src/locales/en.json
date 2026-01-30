@@ -1062,8 +1062,6 @@
 			"sort_size": "Size",
 			"sort_ascending": "Ascending",
 			"sort_descending": "Descending",
-			"show_preview": "Show Preview",
-			"hide_preview": "Hide Preview",
 			"video_preview_note": "Video preview will be available after adding to library",
 			"open_link": "Open Link",
 			"upload_title": "Upload media",

@@ -1062,8 +1062,6 @@
 			"sort_size": "Magnitude",
 			"sort_ascending": "Ascending",
 			"sort_descending": "Descending",
-			"show_preview": "Scan Target",
-			"hide_preview": "Cease Scan",
 			"video_preview_note": "Visual scan available after archive upload",
 			"open_link": "Engage",
 			"upload_title": "Deploy media",
