@@ -103,8 +103,10 @@
 	let totalItems = $state(0);
 	let totalPages = $state(1);
 	let search = $state('');
-	let typeFilter: 'all' | 'image' = $state('all');
+	let typeFilter: 'all' | 'image' | 'video' | 'audio' | 'document' = $state('all');
 	let statusFilter: 'referenced' | 'all' | 'orphans' = $state('referenced');
+	let sortField: 'date' | 'name' | 'size' = $state('date');
+	let sortOrder: 'asc' | 'desc' = $state('desc');
 	let error = $state('');
 	let stats: MediaStats = $state({
 		referencedFiles: 0,
@@ -128,6 +130,11 @@
 	let uploadTitle = $state('');
 	let uploading = $state(false);
 	let uploadProgress = $state({ current: 0, total: 0 });
+
+	type FileProgress = { name: string; loaded: number; total: number; status: 'pending' | 'uploading' | 'done' | 'error' };
+	let fileProgresses = $state<FileProgress[]>([]);
+
+	let externalPreviewFailed = $state(false);
 	let previewItem: MediaItem | null = $state(null);
 	let editItem: MediaItem | null = $state(null);
 	let editModalMouseDownTarget: EventTarget | null = $state(null);
@@ -265,12 +272,14 @@
 				perPage: String(perPage)
 			});
 			if (search.trim()) params.set('q', search.trim());
-			if (typeFilter === 'image') params.set('type', 'image');
+			if (typeFilter !== 'all') params.set('type', typeFilter);
 			if (statusFilter === 'orphans') {
 				params.set('orphans', '1');
 			} else if (statusFilter === 'all') {
 				params.set('includeOrphans', '1');
 			}
+			params.set('sort', sortField);
+			params.set('order', sortOrder);
 
 			const res = await fetch(`/api/media?${params.toString()}`, {
 				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
@@ -574,6 +583,32 @@
 		loadMedia();
 	}
 
+	/**
+	 * Upload a single file with progress tracking using XMLHttpRequest
+	 */
+	function uploadFileWithProgress(
+		file: File,
+		onProgress: (loaded: number, total: number) => void
+	): Promise<boolean> {
+		return new Promise((resolve) => {
+			const xhr = new XMLHttpRequest();
+			const form = new FormData();
+			form.append('file', file);
+			form.append('title', file.name);
+			if (file.type) form.append('mime', file.type);
+
+			xhr.upload.onprogress = (e) => {
+				if (e.lengthComputable) onProgress(e.loaded, e.total);
+			};
+			xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+			xhr.onerror = () => resolve(false);
+
+			xhr.open('POST', '/api/collections/uploads/records');
+			if (pb.authStore.isValid) xhr.setRequestHeader('Authorization', `Bearer ${pb.authStore.token}`);
+			xhr.send(form);
+		});
+	}
+
 	async function handleDropZoneFiles(event: CustomEvent<{ files: File[] }>) {
 		const files = event.detail.files;
 		if (files.length === 0) return;
@@ -582,32 +617,35 @@
 		uploadProgress = { current: 0, total: files.length };
 		error = '';
 
+		// Initialize progress tracking for all files
+		fileProgresses = files.map((f) => ({
+			name: f.name,
+			loaded: 0,
+			total: f.size,
+			status: 'pending' as const
+		}));
+
 		let successCount = 0;
 		let failCount = 0;
 
-		for (const file of files) {
-			uploadProgress.current++;
-			try {
-				const form = new FormData();
-				form.append('file', file);
-				form.append('title', file.name);
-				if (file.type) {
-					form.append('mime', file.type);
-				}
-				const res = await fetch('/api/collections/uploads/records', {
-					method: 'POST',
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
-					body: form
-				});
-				if (!res.ok) {
-					failCount++;
-					console.error('Failed to upload:', file.name);
-				} else {
-					successCount++;
-				}
-			} catch (err) {
+		for (let i = 0; i < files.length; i++) {
+			const file = files[i];
+			uploadProgress.current = i + 1;
+
+			// Mark file as uploading
+			fileProgresses[i] = { ...fileProgresses[i], status: 'uploading' };
+
+			const success = await uploadFileWithProgress(file, (loaded, total) => {
+				fileProgresses[i] = { ...fileProgresses[i], loaded, total };
+			});
+
+			if (success) {
+				successCount++;
+				fileProgresses[i] = { ...fileProgresses[i], loaded: fileProgresses[i].total, status: 'done' };
+			} else {
 				failCount++;
-				console.error('Failed to upload:', file.name, err);
+				fileProgresses[i] = { ...fileProgresses[i], status: 'error' };
+				console.error('Failed to upload:', file.name);
 			}
 		}
 
@@ -620,6 +658,11 @@
 		if (failCount > 0) {
 			toasts.add('error', $t('admin.media.toast_upload_failed') + ` (${failCount})`);
 		}
+
+		// Clear progress after a short delay to show completion
+		setTimeout(() => {
+			fileProgresses = [];
+		}, 2000);
 
 		await loadMedia();
 	}
@@ -649,7 +692,7 @@
 	</div>
 
 	<div class="card p-4 mb-4 space-y-3">
-		<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 			<div class="flex items-center gap-2">
 				<input
 					class="input"
@@ -664,6 +707,9 @@
 				<select id="type-filter" class="input" bind:value={typeFilter} onchange={resetAndLoad}>
 					<option value="all">{$t('admin.media.filter_type_all')}</option>
 					<option value="image">{$t('admin.media.filter_type_images')}</option>
+					<option value="video">{$t('admin.media.filter_type_video')}</option>
+					<option value="audio">{$t('admin.media.filter_type_audio')}</option>
+					<option value="document">{$t('admin.media.filter_type_document')}</option>
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
@@ -674,15 +720,30 @@
 					<option value="orphans">{$t('admin.media.filter_scope_orphans')}</option>
 				</select>
 			</div>
-			<div class="flex items-center justify-end gap-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
-				<span>{$t('admin.media.stats_files', { values: { count: stats.totalFiles } })} • {humanSize(stats.totalSize)}</span>
-				<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-					{stats.orphanFiles === 1 ? $t('admin.media.stats_orphan', { values: { count: stats.orphanFiles } }) : $t('admin.media.stats_orphans', { values: { count: stats.orphanFiles } })}
-				</span>
-				{#if totalPages > 1}
-					<span>{$t('admin.media.stats_page', { values: { page, total: totalPages } })}</span>
-				{/if}
+			<div class="flex items-center gap-2">
+				<label class="label mb-0" for="sort-field">{$t('admin.media.sort_by')}</label>
+				<select id="sort-field" class="input" bind:value={sortField} onchange={resetAndLoad}>
+					<option value="date">{$t('admin.media.sort_date')}</option>
+					<option value="name">{$t('admin.media.sort_name')}</option>
+					<option value="size">{$t('admin.media.sort_size')}</option>
+				</select>
+				<button
+					class="btn btn-ghost btn-sm px-2"
+					onclick={() => { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; resetAndLoad(); }}
+					title={sortOrder === 'asc' ? $t('admin.media.sort_ascending') : $t('admin.media.sort_descending')}
+				>
+					{sortOrder === 'asc' ? '↑' : '↓'}
+				</button>
 			</div>
+		</div>
+		<div class="flex items-center justify-end gap-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
+			<span>{$t('admin.media.stats_files', { values: { count: stats.totalFiles } })} • {humanSize(stats.totalSize)}</span>
+			<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+				{stats.orphanFiles === 1 ? $t('admin.media.stats_orphan', { values: { count: stats.orphanFiles } }) : $t('admin.media.stats_orphans', { values: { count: stats.orphanFiles } })}
+			</span>
+			{#if totalPages > 1}
+				<span>{$t('admin.media.stats_page', { values: { page, total: totalPages } })}</span>
+			{/if}
 		</div>
 		<div class="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
 			<div class="flex flex-wrap gap-3">
@@ -729,6 +790,32 @@
 				</span>
 			{/if}
 		</div>
+		{#if fileProgresses.length > 0}
+			<div class="space-y-2">
+				{#each fileProgresses as fp}
+					<div class="flex items-center gap-2">
+						<span class="text-sm truncate w-32 text-gray-700 dark:text-gray-300" title={fp.name}>{fp.name}</span>
+						<div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
+							<div
+								class="h-full transition-all duration-200 {fp.status === 'error' ? 'bg-red-500' : fp.status === 'done' ? 'bg-green-500' : 'bg-primary-500'}"
+								style="width: {fp.total ? Math.round(fp.loaded / fp.total * 100) : 0}%"
+							></div>
+						</div>
+						<span class="text-xs w-12 text-right text-gray-500 dark:text-gray-400">
+							{#if fp.status === 'done'}
+								✓
+							{:else if fp.status === 'error'}
+								✗
+							{:else if fp.status === 'pending'}
+								—
+							{:else}
+								{fp.total ? Math.round(fp.loaded / fp.total * 100) : 0}%
+							{/if}
+						</span>
+					</div>
+				{/each}
+			</div>
+		{/if}
 		<DropZone
 			on:drop={handleDropZoneFiles}
 			disabled={uploading}
@@ -752,7 +839,7 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 			<div class="md:col-span-2">
 				<label class="label" for="ext-url">{$t('admin.media.url_required')}</label>
-				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} />
+				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} oninput={() => { externalPreviewFailed = false; }} />
 			</div>
 			<div>
 				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
@@ -766,6 +853,41 @@
 				<label class="label" for="ext-thumb">{$t('admin.media.thumbnail_label')}</label>
 				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder={$t('admin.media.thumbnail_placeholder')} />
 			</div>
+			{#if newExternal.url.trim()}
+				{@const previewMime = newExternal.mime.trim()}
+				{@const previewUrl = newExternal.url.trim()}
+				{@const thumbUrl = newExternal.thumbnail_url.trim()}
+				{@const isVideo = previewMime.startsWith('video/') || /youtube|vimeo|loom/i.test(previewUrl)}
+				<div class="lg:col-span-4">
+					{#key previewUrl}
+						<div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+							{#if isVideo}
+								{#if thumbUrl}
+									<img src={thumbUrl} alt="Thumbnail" class="max-h-48 mx-auto rounded" />
+								{:else}
+									<p class="text-sm text-gray-500 dark:text-gray-400 text-center">{$t('admin.media.video_preview_note')}</p>
+								{/if}
+							{:else}
+								<!-- Try to load as image; show fallback on error -->
+								{#if !externalPreviewFailed}
+									<img
+										src={previewUrl}
+										alt="Preview"
+										class="max-h-48 mx-auto rounded"
+										onerror={() => { externalPreviewFailed = true; }}
+									/>
+								{:else}
+									<div class="flex items-center justify-center h-24">
+										<a href={previewUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+											{$t('admin.media.open_link')}
+										</a>
+									</div>
+								{/if}
+							{/if}
+						</div>
+					{/key}
+				</div>
+			{/if}
 		</div>
 	</div>
 
