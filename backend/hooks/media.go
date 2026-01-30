@@ -874,6 +874,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 					if _, seen := seenIDs[record.Id]; seen {
 						continue
 					}
+					// Skip "mirror" entries that point to internal PocketBase files
+					recordURL := record.GetString("url")
+					if strings.Contains(recordURL, "/api/files/") {
+						continue
+					}
 					created := record.GetDateTime("created").Time()
 					title := record.GetString("title")
 					if title == "" {
