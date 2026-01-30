@@ -149,8 +149,6 @@ const navSections = [
 			{ href: '/admin/settings#analytics', labelKey: 'admin.sidebar.analytics', icon: 'eye' },
 			{ href: '/admin/settings#integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
 			{ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' },
-			{ href: '/admin/media', labelKey: 'admin.sidebar.media_library', icon: 'image' },
-			{ href: '/admin/tokens', labelKey: 'admin.sidebar.share_tokens', icon: 'link' },
 			{ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' }
 		]
 	}
@@ -497,6 +495,38 @@ let isActive = $derived((href: string): boolean => {
 					</a>
 				</div>
 			{/if}
+		</div>
+
+		<!-- Media Library & Share Tokens - standalone items -->
+		<div class="space-y-1">
+			<a
+				href="/admin/media"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/media')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.media_library') : undefined}
+				aria-current={isActive('/admin/media') ? 'page' : undefined}
+			>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+					<circle cx="9" cy="9" r="2" />
+					<path d="m21 15-4-4a3 3 0 0 0-4.24 0L3 21" />
+				</svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.media_library')}</span>
+			</a>
+			<a
+				href="/admin/tokens"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/tokens')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.share_tokens') : undefined}
+				aria-current={isActive('/admin/tokens') ? 'page' : undefined}
+			>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+				</svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.share_tokens')}</span>
+			</a>
 		</div>
 
 		<!-- Settings Section -->
