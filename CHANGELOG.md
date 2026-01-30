@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.14.0 - January 30, 2026
+
+**New Features:**
+- Implement media library improvements including upload progress bars, sorting options, type filtering, and preview before save. Reorganize sidebar for better navigation.
+
+**Pull Requests:** [#352](https://github.com/jesposito/Facet/pull/352),
+
+---
+
+
 ## v2.13.3 - January 30, 2026
 
 **Bugs Fixed:**
