@@ -728,10 +728,10 @@
 
 		for (const item of itemsToDelete) {
 			try {
-				// Determine the delete endpoint based on collection type
 				const isExternal = item.external || item.collection === 'external_media';
 
 				if (isExternal && item.record_id) {
+					// External media - use dedicated endpoint with force flag
 					const res = await fetch(`/api/media/external/${item.record_id}?force=1`, {
 						method: 'DELETE',
 						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
@@ -741,20 +741,28 @@
 					} else {
 						failed++;
 					}
-				} else if (item.collection === 'uploads' && item.record_id) {
-					// For uploads, delete the record
-					const res = await fetch(`/api/media/uploads/${item.record_id}`, {
+				} else {
+					// All other items (uploads, profile photos, experience logos, etc.)
+					// Use the same pattern as single delete
+					const body = {
+						collection_id: item.collection_id,
+						record_id: item.record_id,
+						field: item.field,
+						filename: item.filename
+					};
+					const res = await fetch('/api/media', {
 						method: 'DELETE',
-						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+						headers: {
+							'Content-Type': 'application/json',
+							...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+						},
+						body: JSON.stringify(body)
 					});
 					if (res.ok) {
 						deleted++;
 					} else {
 						failed++;
 					}
-				} else {
-					// For other collections, we can't bulk delete - they're attached to content
-					failed++;
 				}
 			} catch {
 				failed++;
