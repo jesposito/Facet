@@ -686,12 +686,23 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			var errors []map[string]string
 
 			for _, item := range req.Items {
-				// Validate collection
-				if item.Collection != "uploads" && item.Collection != "external_media" {
+				// Validate collection exists and has admin_tags field
+				collection, colErr := app.FindCollectionByNameOrId(item.Collection)
+				if colErr != nil {
 					failed++
 					errors = append(errors, map[string]string{
 						"id":    item.ID,
 						"error": "invalid collection",
+					})
+					continue
+				}
+
+				// Check if collection has admin_tags field
+				if collection.Fields.GetByName("admin_tags") == nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": "collection does not support tags",
 					})
 					continue
 				}
@@ -1118,10 +1129,9 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						usage := findLibraryURLUsage(app, item.URL)
 						item.UsageCount = usage.UsageCount
 						item.UsedBy = usage.UsedBy
-						// Get alt_text, description, and tags for uploads
+						// Get alt_text, description for uploads
 						item.AltText = record.GetString("alt_text")
 						item.Description = record.GetString("description")
-						item.Tags = fetchMediaTags(app, record)
 					} else {
 						item.UsageCount = 1
 						item.UsedBy = []services.MediaUsageItem{{
@@ -1130,6 +1140,11 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 							Title:      recordLabel,
 							Slug:       record.GetString("slug"),
 						}}
+					}
+
+					// Fetch tags for all collections that have admin_tags field
+					if collection.Fields.GetByName("admin_tags") != nil {
+						item.Tags = fetchMediaTags(app, record)
 					}
 					all = append(all, item)
 					key := filepath.ToSlash(filepath.Join(collection.Id, record.Id, filename))
