@@ -36,6 +36,13 @@ on:
         required: false
         default: 'true'
         type: boolean
+  # Called by auto-tag workflow after changelog is committed
+  workflow_call:
+    inputs:
+      tag:
+        description: 'The version tag to build (e.g., v2.15.0)'
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
@@ -74,6 +81,8 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          # When called via workflow_call, checkout the specific tag
+          ref: ${{ inputs.tag || github.ref }}
 
       - name: Get version from git
         id: version
