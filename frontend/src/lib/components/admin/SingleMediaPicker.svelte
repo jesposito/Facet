@@ -30,6 +30,8 @@
 		imagesOnly?: boolean;
 		/** Flag to indicate existing file should be cleared (bindable) */
 		clearExisting?: boolean;
+		/** Callback when selection changes (for triggering form autosave) */
+		onchange?: () => void;
 	}
 
 	let {
@@ -41,7 +43,8 @@
 		fileInput = $bindable(null),
 		accept = 'image/*',
 		imagesOnly = true,
-		clearExisting = $bindable(false)
+		clearExisting = $bindable(false),
+		onchange
 	}: Props = $props();
 
 	let mediaOptions: MediaOption[] = $state([]);
@@ -137,6 +140,7 @@
 		fileInput = null; // Clear file input when selecting from library
 		clearExisting = false; // Selecting from library overrides, no need to clear
 		showPicker = false;
+		onchange?.();
 	}
 
 	function handleClearSelection() {
@@ -146,6 +150,7 @@
 		if (currentFileUrl) {
 			clearExisting = true;
 		}
+		onchange?.();
 	}
 
 	function handleOpenPicker() {

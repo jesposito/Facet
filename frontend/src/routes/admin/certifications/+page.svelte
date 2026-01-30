@@ -371,7 +371,7 @@ onMount(loadCertifications);
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.certifications.singular') } })}
+				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.certifications.title').slice(0, -1) } })}
 			</button>
 		</div>
 	</div>
