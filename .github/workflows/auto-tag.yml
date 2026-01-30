@@ -329,6 +329,19 @@ jobs:
             echo "" >> "$ENTRY_FILE"
           fi
 
+          # If no content was added (no PRs found), add a fallback message
+          # This ensures the entry appears in the in-app changelog
+          HAS_CONTENT=false
+          [ -f /tmp/bugs.txt ] && [ -s /tmp/bugs.txt ] && HAS_CONTENT=true
+          [ -f /tmp/features.txt ] && [ -s /tmp/features.txt ] && HAS_CONTENT=true
+          [ -f /tmp/other.txt ] && [ -s /tmp/other.txt ] && HAS_CONTENT=true
+
+          if [ "$HAS_CONTENT" = false ]; then
+            echo "**Other Changes:**" >> "$ENTRY_FILE"
+            echo "- Internal improvements and maintenance" >> "$ENTRY_FILE"
+            echo "" >> "$ENTRY_FILE"
+          fi
+
           echo "---" >> "$ENTRY_FILE"
           echo "" >> "$ENTRY_FILE"
 
