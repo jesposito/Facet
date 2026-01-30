@@ -76,8 +76,13 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
-			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image" or ""
+			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image", "video", "audio", "document", or ""
 			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
+			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))   // "date", "name", "size"
+			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))  // "asc", "desc"
+			if sortOrder == "" {
+				sortOrder = "desc"
+			}
 
 			filtered := make([]services.MediaItem, 0, len(combined))
 			for _, item := range combined {
@@ -87,15 +92,46 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				if collectionFilter != "" && strings.ToLower(item.Collection) != collectionFilter && strings.ToLower(item.CollectionKey) != collectionFilter {
 					continue
 				}
-				if typeFilter == "image" && !strings.HasPrefix(item.Mime, "image/") {
-					continue
+				// Extended type filtering
+				if typeFilter != "" {
+					var match bool
+					switch typeFilter {
+					case "image":
+						match = strings.HasPrefix(item.Mime, "image/")
+					case "video":
+						match = strings.HasPrefix(item.Mime, "video/")
+					case "audio":
+						match = strings.HasPrefix(item.Mime, "audio/")
+					case "document":
+						match = strings.HasPrefix(item.Mime, "application/pdf") ||
+							strings.HasPrefix(item.Mime, "application/msword") ||
+							strings.HasPrefix(item.Mime, "application/vnd.openxmlformats-officedocument") ||
+							strings.HasPrefix(item.Mime, "application/vnd.ms-") ||
+							strings.HasPrefix(item.Mime, "application/vnd.oasis.opendocument") ||
+							strings.HasPrefix(item.Mime, "text/")
+					}
+					if !match {
+						continue
+					}
 				}
 				filtered = append(filtered, item)
 			}
 
-			// Sort by uploaded_at desc
+			// Sort by requested field and order
 			sort.Slice(filtered, func(i, j int) bool {
-				return filtered[i].UploadedAt.After(filtered[j].UploadedAt)
+				var less bool
+				switch sortField {
+				case "name":
+					less = strings.ToLower(filtered[i].Filename) < strings.ToLower(filtered[j].Filename)
+				case "size":
+					less = filtered[i].Size < filtered[j].Size
+				default: // "date" or empty
+					less = filtered[i].UploadedAt.Before(filtered[j].UploadedAt)
+				}
+				if sortOrder == "asc" {
+					return less
+				}
+				return !less
 			})
 
 			page := parseIntDefault(query.Get("page"), 1)
