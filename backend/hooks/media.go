@@ -3,6 +3,7 @@ package hooks
 import (
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,6 +34,54 @@ var (
 // uploadsDir is the path to the primary uploads directory (e.g., /uploads in Docker).
 // If empty, only the fallback location (pb_data/storage) will be used.
 func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
+	// Register thumbnail generation hook for uploads collection
+	app.OnRecordAfterCreateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
+		// Generate thumbnail in a goroutine to not block the request
+		go func() {
+			storage := services.NewStorageService(services.StorageConfig{
+				UploadsDir: uploadsDir,
+				DataDir:    app.DataDir(),
+			})
+			thumbService := services.NewThumbnailService(storage)
+
+			filename := e.Record.GetString("file")
+			if filename == "" {
+				return
+			}
+
+			collection, err := app.FindCollectionByNameOrId("uploads")
+			if err != nil {
+				app.Logger().Warn("thumbnail: failed to find uploads collection", "error", err)
+				return
+			}
+
+			// Get the file path to determine mime type
+			fullPath, found := storage.FindFile(collection.Id, e.Record.Id, filename)
+			if !found {
+				app.Logger().Warn("thumbnail: file not found", "record", e.Record.Id, "filename", filename)
+				return
+			}
+
+			// Determine mime type
+			mimeType := detectMimeType(fullPath, filename)
+
+			// Only generate thumbnails for supported image formats
+			if !services.IsSupportedFormat(mimeType) {
+				return
+			}
+
+			// Generate thumbnail
+			_, err = thumbService.GenerateThumbnail(collection.Id, e.Record.Id, filename, services.ThumbnailSize)
+			if err != nil {
+				app.Logger().Warn("thumbnail: generation failed", "record", e.Record.Id, "error", err)
+				return
+			}
+
+			app.Logger().Debug("thumbnail: generated", "record", e.Record.Id, "filename", filename)
+		}()
+		return e.Next()
+	})
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Create StorageService with app's data directory now that it's available
 		storage := services.NewStorageService(services.StorageConfig{
@@ -1165,4 +1214,28 @@ func validateURL(raw string) (*url.URL, error) {
 		return nil, os.ErrInvalid
 	}
 	return parsed, nil
+}
+
+// detectMimeType determines the MIME type of a file using extension and content sniffing.
+func detectMimeType(fullPath, filename string) string {
+	// Try extension first
+	mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(filename)))
+	if mimeType != "" {
+		return mimeType
+	}
+
+	// Fallback to content sniffing
+	f, err := os.Open(fullPath)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	defer f.Close()
+
+	sniff := make([]byte, 512)
+	n, _ := f.Read(sniff)
+	if n > 0 {
+		return http.DetectContentType(sniff[:n])
+	}
+
+	return "application/octet-stream"
 }

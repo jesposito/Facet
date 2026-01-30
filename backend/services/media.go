@@ -285,6 +285,12 @@ func BuildMediaItem(storage *StorageService, collectionName, collectionID, recor
 		item.Width, item.Height = extractImageDimensions(fullPath)
 	}
 
+	// Check for existing thumbnail (don't generate here - done via hooks)
+	thumbFilename := GetThumbnailPath(filename)
+	if _, found := storage.FindFile(collectionID, recordID, thumbFilename); found {
+		item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
+	}
+
 	return item, nil
 }
 
