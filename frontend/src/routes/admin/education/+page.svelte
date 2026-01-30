@@ -100,6 +100,7 @@ afterNavigate(() => {
 	let institutionLogoFile: FileList | null = $state(null);
 	let institutionLogoLibraryUrl = $state('');
 	let clearInstitutionLogo = $state(false);
+	let logoBackground: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent' = $state('none');
 	let saving = $state(false);
 
 	onMount(loadEducations);
@@ -138,6 +139,7 @@ afterNavigate(() => {
 		institutionLogoFile = null;
 		institutionLogoLibraryUrl = '';
 		clearInstitutionLogo = false;
+		logoBackground = 'none';
 		editingEdu = null;
 	}
 
@@ -179,6 +181,7 @@ afterNavigate(() => {
 		sortOrder = edu.sort_order;
 		institutionLogoLibraryUrl = edu.institution_logo_library_url || '';
 		clearInstitutionLogo = false;
+		logoBackground = edu.logo_background || 'none';
 		showForm = true;
 	}
 
@@ -212,6 +215,7 @@ afterNavigate(() => {
 				formData.append('visibility', visibility);
 				formData.append('is_draft', String(isDraft));
 				formData.append('sort_order', String(sortOrder));
+				formData.append('logo_background', logoBackground);
 
 				if (hasFile) {
 					formData.append('institution_logo', institutionLogoFile![0]);
@@ -241,6 +245,7 @@ afterNavigate(() => {
 					visibility,
 					is_draft: isDraft,
 					sort_order: sortOrder,
+					logo_background: logoBackground,
 					institution_logo_library_url: institutionLogoLibraryUrl || null
 				};
 
@@ -432,17 +437,35 @@ afterNavigate(() => {
 					/>
 				</div>
 
-				<div>
-					<SingleMediaPicker
-						label={$t('admin.content.education.institution_logo_label')}
-						helpText={$t('admin.content.education.institution_logo_help')}
-						bind:value={institutionLogoLibraryUrl}
-						bind:fileInput={institutionLogoFile}
-						bind:clearExisting={clearInstitutionLogo}
-						currentFileUrl={editingEdu?.institution_logo ? pb.files.getUrl(editingEdu, editingEdu.institution_logo, { thumb: '64x64' }) : ''}
-						currentFileName={editingEdu?.institution_logo || ''}
-						imagesOnly={true}
-					/>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<SingleMediaPicker
+							label={$t('admin.content.education.institution_logo_label')}
+							helpText={$t('admin.content.education.institution_logo_help')}
+							bind:value={institutionLogoLibraryUrl}
+							bind:fileInput={institutionLogoFile}
+							bind:clearExisting={clearInstitutionLogo}
+							currentFileUrl={editingEdu?.institution_logo ? pb.files.getUrl(editingEdu, editingEdu.institution_logo, { thumb: '64x64' }) : ''}
+							currentFileName={editingEdu?.institution_logo || ''}
+							imagesOnly={true}
+						/>
+					</div>
+					<div>
+						<label for="logo_background" class="label">{$t('admin.content.education.logo_background_label')}</label>
+						<select
+							id="logo_background"
+							bind:value={logoBackground}
+							class="input"
+						>
+							<option value="none">{$t('admin.content.common.logo_background.none')}</option>
+							<option value="white">{$t('admin.content.common.logo_background.white')}</option>
+							<option value="light-gray">{$t('admin.content.common.logo_background.light_gray')}</option>
+							<option value="dark-gray">{$t('admin.content.common.logo_background.dark_gray')}</option>
+							<option value="black">{$t('admin.content.common.logo_background.black')}</option>
+							<option value="accent">{$t('admin.content.common.logo_background.accent')}</option>
+						</select>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.content.education.logo_background_help')}</p>
+					</div>
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
 
+	import { browser } from '$app/environment';
 	import { onMount, onDestroy } from 'svelte';
+	import { flip } from 'svelte/animate';
 	import { pb, type View, type CustomContent, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -9,6 +11,12 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
+
+	// Import DnD safely - only in browser (for site navigation reordering)
+	let navDndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+	let NAV_DND_TRIGGERS: any = $state({});
+	let navDndLoaded = $state(false);
+	const navFlipDurationMs = 200;
 
 	// Section definitions for loading items - same as ViewSectionManager
 	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
@@ -101,6 +109,13 @@
 	let viewsOverridingSummary: View[] = $state([]);
 
 	onMount(async () => {
+		// Load DnD library for site navigation reordering
+		if (browser) {
+			const { dndzone: dnd, TRIGGERS: trig } = await import('svelte-dnd-action');
+			navDndzone = dnd;
+			NAV_DND_TRIGGERS = trig;
+			navDndLoaded = true;
+		}
 		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems(), loadPublicViews()]);
 	});
 
@@ -563,12 +578,82 @@
 		new Map(siteNavItems.map(item => [item.viewId, item]))
 	);
 
+	// Ordered nav items for DnD - this is a $state array that DnD can mutate directly
+	type OrderedNavItem = { id: string; viewId: string; view: View };
+	let orderedNavItems: OrderedNavItem[] = $state([]);
+	let navItemsInitialized = false;
+
+	// Build the ordered nav items list from current state
+	function buildOrderedNavItems(): OrderedNavItem[] {
+		const viewsById = new Map(publicViews.map(v => [v.id, v]));
+		const result: OrderedNavItem[] = [];
+		const seenViewIds = new Set<string>();
+
+		// First, add items in siteNavItems order
+		for (const navItem of siteNavItems) {
+			const view = viewsById.get(navItem.viewId);
+			if (view) {
+				result.push({ id: `nav-${navItem.viewId}`, viewId: navItem.viewId, view });
+				seenViewIds.add(navItem.viewId);
+			}
+		}
+
+		// Then add any publicViews not yet in siteNavItems (new views)
+		for (const view of publicViews) {
+			if (!seenViewIds.has(view.id)) {
+				result.push({ id: `nav-${view.id}`, viewId: view.id, view });
+			}
+		}
+
+		return result;
+	}
+
+	// Initialize orderedNavItems once when publicViews first loads
+	$effect(() => {
+		if (publicViews.length > 0 && !navItemsInitialized) {
+			orderedNavItems = buildOrderedNavItems();
+			navItemsInitialized = true;
+		}
+	});
+
 	function isNavItemEnabled(viewId: string): boolean {
 		return navItemsByViewId.get(viewId)?.enabled ?? false;
 	}
 
 	function getNavItemLabel(viewId: string): string {
 		return navItemsByViewId.get(viewId)?.label || '';
+	}
+
+	// DnD handlers for site navigation reordering
+	function handleNavDndConsider(e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>) {
+		// Just update the display array during drag - don't touch siteNavItems yet
+		orderedNavItems = e.detail.items;
+	}
+
+	function handleNavDndFinalize(e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>) {
+		// Update the display array
+		orderedNavItems = e.detail.items;
+
+		// Now sync back to siteNavItems and save
+		syncNavItemsFromDisplay();
+		saveSiteNavSettings();
+	}
+
+	function syncNavItemsFromDisplay() {
+		// Rebuild siteNavItems in the new order from orderedNavItems, preserving enabled/label state
+		const currentNavItemsByViewId = new Map(siteNavItems.map(item => [item.viewId, item]));
+		const newNavItems: typeof siteNavItems = [];
+		for (const item of orderedNavItems) {
+			const existing = currentNavItemsByViewId.get(item.viewId);
+			if (existing) {
+				// Keep existing state
+				newNavItems.push({ ...existing });
+			} else {
+				// New item - not yet in siteNavItems, add with defaults
+				newNavItems.push({ viewId: item.viewId, enabled: false, label: '' });
+			}
+		}
+		siteNavItems = newNavItems;
 	}
 
 	// Save site nav settings immediately to database
@@ -1067,38 +1152,66 @@
 							</p>
 						{:else}
 							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-								Select which facets to show in navigation. You can customize the button labels.
+								Select which facets to show in navigation. Drag to reorder. You can customize the button labels.
 							</p>
-							<div class="space-y-3">
-								{#each publicViews as view (view.id)}
-									<div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+							{#key navDndLoaded}
+							<div
+								class="space-y-3"
+								use:navDndzone={{ items: orderedNavItems, flipDurationMs: navFlipDurationMs, type: 'site-nav-items' }}
+								onconsider={handleNavDndConsider}
+								onfinalize={handleNavDndFinalize}
+							>
+								{#each orderedNavItems as item (item.id)}
+									<div
+										class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+										animate:flip={{ duration: navFlipDurationMs }}
+									>
 										<div class="flex items-center gap-3 flex-1 min-w-0">
-											<label class="relative inline-flex items-center cursor-pointer">
+											<!-- Drag Handle -->
+											<div class="cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 shrink-0" title="Drag to reorder">
+												<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+												</svg>
+											</div>
+											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+											<label
+												class="relative inline-flex items-center cursor-pointer shrink-0"
+												onpointerdown={(e) => e.stopPropagation()}
+												onmousedown={(e) => e.stopPropagation()}
+												ontouchstart={(e) => e.stopPropagation()}
+											>
 												<input
 													type="checkbox"
 													class="sr-only peer"
-													checked={isNavItemEnabled(view.id)}
-													onchange={() => toggleNavItem(view.id)}
+													checked={isNavItemEnabled(item.viewId)}
+													onchange={() => toggleNavItem(item.viewId)}
 												/>
 												<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 											</label>
 											<div class="flex-1 min-w-0">
-												<span class="font-medium text-gray-900 dark:text-white truncate block">{view.name}</span>
-												<span class="text-xs text-gray-500 dark:text-gray-400">/{view.slug}</span>
+												<span class="font-medium text-gray-900 dark:text-white truncate block">{item.view.name}</span>
+												<span class="text-xs text-gray-500 dark:text-gray-400">/{item.view.slug}</span>
 											</div>
 										</div>
-										<div class="sm:w-48">
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<div
+											class="sm:w-48"
+											onpointerdown={(e) => e.stopPropagation()}
+											onmousedown={(e) => e.stopPropagation()}
+											ontouchstart={(e) => e.stopPropagation()}
+										>
 											<input
 												type="text"
 												class="input input-sm w-full"
-												placeholder={view.name}
-												value={getNavItemLabel(view.id)}
-												oninput={(e) => updateNavItemLabel(view.id, e.currentTarget.value)}
+												placeholder={item.view.name}
+												value={getNavItemLabel(item.viewId)}
+												oninput={(e) => updateNavItemLabel(item.viewId, e.currentTarget.value)}
 											/>
 										</div>
 									</div>
 								{/each}
 							</div>
+							{/key}
 							<p class="text-xs text-gray-500 mt-3">
 								Navigation appears on all public pages. The CTA button will move to the right side of the navigation bar.
 							</p>

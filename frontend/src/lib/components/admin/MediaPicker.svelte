@@ -10,6 +10,7 @@
 		url?: string;
 		thumbnail_url?: string;
 		mime?: string;
+		collection?: string;
 	};
 
 	interface Props {
@@ -32,8 +33,62 @@
 	}>();
 
 	let mediaOptions: MediaOption[] = $state([]);
+	let recentItems: MediaOption[] = $state([]);
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
+
+	/**
+	 * Load recently used media
+	 */
+	async function loadRecentItems() {
+		try {
+			const headers: Record<string, string> = pb.authStore.isValid
+				? { Authorization: `Bearer ${pb.authStore.token}` }
+				: {};
+			const res = await fetch('/api/media/recent?limit=10', { headers });
+			if (res.ok) {
+				const data = await res.json();
+				recentItems = (data.items || []).map((item: {
+					record_id: string;
+					display_name?: string;
+					filename?: string;
+					url?: string;
+					thumbnail_url?: string;
+					mime?: string;
+					collection?: string;
+					external?: boolean;
+				}) => ({
+					id: item.record_id,
+					title: item.display_name || item.filename || item.url || '',
+					url: item.url,
+					thumbnail_url: item.thumbnail_url,
+					mime: item.mime,
+					collection: item.collection,
+					provider: item.external ? 'external' : 'upload'
+				}));
+			}
+		} catch (err) {
+			console.error('Failed to load recent items', err);
+		}
+	}
+
+	/**
+	 * Mark a media item as recently used
+	 */
+	async function markAsUsed(id: string, collection: string) {
+		try {
+			const headers: Record<string, string> = pb.authStore.isValid
+				? { Authorization: `Bearer ${pb.authStore.token}`, 'Content-Type': 'application/json' }
+				: { 'Content-Type': 'application/json' };
+			await fetch('/api/media/mark-used', {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({ id, collection })
+			});
+		} catch (err) {
+			console.error('Failed to mark media as used', err);
+		}
+	}
 
 	/**
 	 * Load media options from the API
@@ -61,9 +116,9 @@
 			const options: MediaOption[] = [];
 			const urlToExternalId = new Map<string, string>();
 
-			// First pass: collect external_media IDs by URL
+			// First pass: collect external_media IDs by URL (skip internal mirrors)
 			for (const item of externalData.items || []) {
-				if (item.url) {
+				if (item.url && !item.url.includes('/api/files/')) {
 					urlToExternalId.set(item.url, item.id);
 				}
 			}
@@ -78,21 +133,24 @@
 					provider: externalId ? 'external' : (item.provider || (item.external ? 'external' : 'upload')),
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
-					mime: item.mime
+					mime: item.mime,
+					collection: item.collection
 				});
 			}
 
 			// Add external_media items that don't have a matching internal URL
+			// Skip "mirror" entries that point to internal PocketBase files
 			const addedUrls = new Set(options.map((opt) => opt.url));
 			for (const item of externalData.items || []) {
-				if (!addedUrls.has(item.url)) {
+				if (!addedUrls.has(item.url) && !item.url?.includes('/api/files/')) {
 					options.push({
 						id: item.id,
 						title: item.title || item.url,
 						provider: 'external',
 						url: item.url,
 						thumbnail_url: item.thumbnail_url,
-						mime: item.mime
+						mime: item.mime,
+						collection: 'external_media'
 					});
 				}
 			}
@@ -185,9 +243,13 @@
 		}
 	}
 
-	function handleSelectionChange(id: string, checked: boolean) {
+	function handleSelectionChange(id: string, checked: boolean, collection?: string) {
 		if (checked) {
 			value = [...value, id];
+			// Mark as used when selected
+			if (collection === 'uploads' || collection === 'external_media') {
+				markAsUsed(id, collection);
+			}
 		} else {
 			value = value.filter((v) => v !== id);
 		}
@@ -198,9 +260,10 @@
 		return option.mime?.startsWith('image/') || false;
 	}
 
-	// Load media options on mount
+	// Load media options and recent items on mount
 	$effect(() => {
 		loadMediaOptions();
+		loadRecentItems();
 	});
 </script>
 
@@ -229,6 +292,35 @@
 		</button>
 	</div>
 
+	{#if recentItems.length > 0 && !mediaSearch}
+		<div class="mb-3">
+			<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{$t('admin.media.picker_recent')}</p>
+			<div class="flex flex-wrap gap-1.5">
+				{#each recentItems.slice(0, 6) as opt}
+					<button
+						type="button"
+						class="flex items-center gap-1.5 px-2 py-1 rounded text-xs border transition-colors {value.includes(opt.id)
+							? 'bg-primary-50 dark:bg-primary-900/30 border-primary-300 dark:border-primary-600 text-primary-700 dark:text-primary-200'
+							: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+						onclick={() => handleSelectionChange(opt.id, !value.includes(opt.id), opt.collection)}
+					>
+						{#if opt.thumbnail_url || (isImage(opt) && opt.url)}
+							<div class="w-5 h-5 rounded overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0">
+								<img
+									src={opt.thumbnail_url || opt.url}
+									alt=""
+									class="w-full h-full object-cover"
+									loading="lazy"
+								/>
+							</div>
+						{/if}
+						<span class="truncate max-w-[100px]">{opt.title}</span>
+					</button>
+				{/each}
+			</div>
+		</div>
+	{/if}
+
 	{#if loadingMedia}
 		<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.picker_loading')}</p>
 	{:else if mediaOptions.length === 0}
@@ -252,7 +344,7 @@
 						type="checkbox"
 						class="w-4 h-4"
 						checked={value.includes(opt.id)}
-						onchange={(e) => handleSelectionChange(opt.id, (e.target as HTMLInputElement).checked)}
+						onchange={(e) => handleSelectionChange(opt.id, (e.target as HTMLInputElement).checked, opt.collection)}
 					/>
 					{#if opt.thumbnail_url || (isImage(opt) && opt.url)}
 						<div class="w-8 h-8 rounded overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0">

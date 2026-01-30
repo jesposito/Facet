@@ -381,8 +381,15 @@ let filteredProjects = $derived(
 	}
 
 	function getCoverImageUrl(project: Project): string {
+		// Prefer library URL over direct upload
+		const libraryUrl = (project as any).cover_image_library_url;
+		if (libraryUrl) return libraryUrl;
 		if (!project.cover_image) return '';
 		return getFileUrl(project, project.cover_image);
+	}
+
+	function hasCoverImage(project: Project): boolean {
+		return !!(project.cover_image || (project as any).cover_image_library_url);
 	}
 
 	const linkTypes = [
@@ -939,7 +946,7 @@ let filteredProjects = $derived(
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			{#each filteredProjects as project (project.id)}
 				<div class="card overflow-hidden {selectMode && selectedIds.has(project.id) ? 'ring-2 ring-primary-500' : ''}">
-					{#if project.cover_image}
+					{#if hasCoverImage(project)}
 						<div class="h-32 bg-gray-100 dark:bg-gray-800">
 							<img
 								src={getCoverImageUrl(project)}

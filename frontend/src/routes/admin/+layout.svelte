@@ -133,34 +133,30 @@
 		}
 
 		// CRITICAL: Check auth state - MUST be authenticated to proceed
-		const isAuthenticated = $currentUser && pb.authStore.isValid;
-
-		if (isAuthenticated) {
-			const needsPasswordChange = await checkDefaultPassword();
-			if (!needsPasswordChange) {
-				checkSetupWizard();
-			}
-			authorized = true;
-			loading = false;
-		} else if (pb.authStore.isValid && !$currentUser) {
-			await new Promise(resolve => setTimeout(resolve, 150));
-
-			const stillAuthenticated = $currentUser && pb.authStore.isValid;
-			if (stillAuthenticated) {
+		// Use authRefresh to validate token server-side and prevent redirect loops
+		if (pb.authStore.isValid) {
+			try {
+				// Validate token with server - this catches stale/invalid tokens
+				await pb.collection('users').authRefresh();
+				// Token is valid - proceed
 				const needsPasswordChange = await checkDefaultPassword();
 				if (!needsPasswordChange) {
 					checkSetupWizard();
 				}
 				authorized = true;
 				loading = false;
-			} else {
-				// Auth check failed - redirect to login
-				loading = false; // Stop loading before redirect
+			} catch (err) {
+				// Token validation failed - clear stale auth and redirect to login
+				console.log('[LAYOUT] Auth validation failed, clearing stale auth state');
+				pb.authStore.clear();
+				// Clear the cookie to prevent redirect loops
+				document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+				loading = false;
 				goto('/admin/login');
 			}
 		} else {
 			// Not authenticated at all - redirect to login immediately
-			loading = false; // Stop loading before redirect
+			loading = false;
 			goto('/admin/login');
 		}
 	});
@@ -212,6 +208,7 @@
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
 			if (isAuth && !authorized) {
+				// User just became authenticated - validate and authorize
 				authorized = true;
 				loading = false;
 				(async () => {
@@ -221,7 +218,13 @@
 					}
 				})();
 			} else if (!isAuth && authorized) {
+				// User is no longer authenticated - clear state and redirect
 				authorized = false;
+				// Clear any stale auth to prevent redirect loops
+				if (pb.authStore.isValid) {
+					pb.authStore.clear();
+					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+				}
 				goto('/admin/login');
 			}
 		}

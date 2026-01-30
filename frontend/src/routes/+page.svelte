@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
+	import { navigating } from '$app/stores';
 	import { t } from 'svelte-i18n';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
@@ -26,6 +27,9 @@
 	import { pb, currentUser } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 	import { goto } from '$app/navigation';
+
+	// Track navigation to prevent showing WelcomePage during transitions
+	let isNavigating = $derived($navigating !== null);
 
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
@@ -399,8 +403,8 @@
 			</p>
 		</div>
 	</div>
-{:else if !data.profile && !data.experience?.length && !data.projects?.length}
-	<!-- First-time visitor: no profile exists yet -->
+{:else if !data.profile && !data.experience?.length && !data.projects?.length && !isNavigating}
+	<!-- First-time visitor: no profile exists yet (don't show during navigation transitions) -->
 	<WelcomePage />
 {:else}
 <div class="min-h-screen">
