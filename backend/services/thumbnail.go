@@ -93,7 +93,8 @@ func (ts *ThumbnailService) ThumbnailExists(collectionID, recordID, filename str
 func (ts *ThumbnailService) GetThumbnailURL(collectionID, recordID, filename string) string {
 	thumbFilename := GetThumbnailPath(filename)
 	if _, found := ts.storage.FindFile(collectionID, recordID, thumbFilename); found {
-		return fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
+		// Use custom thumbnail endpoint (PocketBase won't serve unregistered files)
+		return fmt.Sprintf("/api/media/thumb/%s/%s/%s", collectionID, recordID, thumbFilename)
 	}
 	return ""
 }
@@ -133,7 +134,8 @@ func (ts *ThumbnailService) EnsureThumbnail(collectionID, recordID, filename, mi
 		return ""
 	}
 
-	return fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
+	// Use custom thumbnail endpoint (PocketBase won't serve unregistered files)
+	return fmt.Sprintf("/api/media/thumb/%s/%s/%s", collectionID, recordID, thumbFilename)
 }
 
 // DeleteThumbnail removes the thumbnail for a given file.

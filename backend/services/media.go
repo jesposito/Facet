@@ -291,12 +291,14 @@ func BuildMediaItem(storage *StorageService, collectionName, collectionID, recor
 	if !isAlreadyThumbnail {
 		thumbFilename := GetThumbnailPath(filename)
 		if _, found := storage.FindFile(collectionID, recordID, thumbFilename); found {
-			item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
+			// Use custom thumbnail endpoint (PocketBase won't serve unregistered files)
+			item.ThumbnailURL = fmt.Sprintf("/api/media/thumb/%s/%s/%s", collectionID, recordID, thumbFilename)
 		} else if IsSupportedFormat(mimeType) {
 			// Thumbnail missing but format is supported - regenerate it
 			thumbService := NewThumbnailService(storage)
 			if generatedName, err := thumbService.GenerateThumbnail(collectionID, recordID, filename, ThumbnailSize); err == nil {
-				item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, generatedName)
+				// Use custom thumbnail endpoint (PocketBase won't serve unregistered files)
+				item.ThumbnailURL = fmt.Sprintf("/api/media/thumb/%s/%s/%s", collectionID, recordID, generatedName)
 			}
 		}
 	}

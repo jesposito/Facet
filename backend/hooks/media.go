@@ -746,6 +746,38 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			})
 		}).Bind(apis.RequireAuth())
 
+		// Serve thumbnail files directly (PocketBase doesn't serve unregistered files)
+		se.Router.GET("/api/media/thumb/{collection}/{record}/{filename}", func(e *core.RequestEvent) error {
+			collectionID := e.Request.PathValue("collection")
+			recordID := e.Request.PathValue("record")
+			filename := e.Request.PathValue("filename")
+
+			if collectionID == "" || recordID == "" || filename == "" {
+				return apis.NewNotFoundError("invalid path", nil)
+			}
+
+			// Security: ensure filename contains thumbnail suffix
+			if !strings.Contains(filename, services.ThumbnailSuffix) {
+				return apis.NewBadRequestError("not a thumbnail file", nil)
+			}
+
+			// Find the thumbnail file
+			fullPath, found := storage.FindFile(collectionID, recordID, filename)
+			if !found {
+				return apis.NewNotFoundError("thumbnail not found", nil)
+			}
+
+			// Detect MIME type
+			mimeType := detectMimeType(fullPath, filename)
+
+			// Set caching headers (thumbnails are immutable - cache for 1 year)
+			e.Response.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			e.Response.Header().Set("Content-Type", mimeType)
+
+			// Serve the file
+			return e.FileFS(os.DirFS(filepath.Dir(fullPath)), filepath.Base(fullPath))
+		}) // No auth required - thumbnails are public like regular files
+
 		// Get recently used media (with fallback to recently created)
 		se.Router.GET("/api/media/recent", func(e *core.RequestEvent) error {
 			query := e.Request.URL.Query()
