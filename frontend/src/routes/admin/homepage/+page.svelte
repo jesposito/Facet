@@ -578,10 +578,13 @@
 		new Map(siteNavItems.map(item => [item.viewId, item]))
 	);
 
-	// Ordered nav items for display - maintains siteNavItems order, adds any new publicViews at end
-	// Each item has an `id` field for dndzone compatibility
+	// Ordered nav items for DnD - this is a $state array that DnD can mutate directly
 	type OrderedNavItem = { id: string; viewId: string; view: View };
-	let orderedNavItems: OrderedNavItem[] = $derived.by(() => {
+	let orderedNavItems: OrderedNavItem[] = $state([]);
+	let navItemsInitialized = false;
+
+	// Build the ordered nav items list from current state
+	function buildOrderedNavItems(): OrderedNavItem[] {
 		const viewsById = new Map(publicViews.map(v => [v.id, v]));
 		const result: OrderedNavItem[] = [];
 		const seenViewIds = new Set<string>();
@@ -603,6 +606,14 @@
 		}
 
 		return result;
+	}
+
+	// Initialize orderedNavItems once when publicViews first loads
+	$effect(() => {
+		if (publicViews.length > 0 && !navItemsInitialized) {
+			orderedNavItems = buildOrderedNavItems();
+			navItemsInitialized = true;
+		}
 	});
 
 	function isNavItemEnabled(viewId: string): boolean {
@@ -615,24 +626,25 @@
 
 	// DnD handlers for site navigation reordering
 	function handleNavDndConsider(e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>) {
-		// Update the order during drag (visual feedback)
-		updateNavItemsOrder(e.detail.items);
+		// Just update the display array during drag - don't touch siteNavItems yet
+		orderedNavItems = e.detail.items;
 	}
 
 	function handleNavDndFinalize(e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>) {
-		// Finalize the order after drop
-		updateNavItemsOrder(e.detail.items);
-		const trigger = e.detail.info?.trigger;
-		if (trigger === NAV_DND_TRIGGERS.DROPPED_INTO_ZONE || trigger === NAV_DND_TRIGGERS.DROPPED_INTO_ANOTHER) {
-			saveSiteNavSettings();
-		}
+		// Update the display array
+		orderedNavItems = e.detail.items;
+
+		// Now sync back to siteNavItems and save
+		syncNavItemsFromDisplay();
+		saveSiteNavSettings();
 	}
 
-	function updateNavItemsOrder(items: OrderedNavItem[]) {
-		// Rebuild siteNavItems in the new order, preserving enabled/label state
+	function syncNavItemsFromDisplay() {
+		// Rebuild siteNavItems in the new order from orderedNavItems, preserving enabled/label state
+		const currentNavItemsByViewId = new Map(siteNavItems.map(item => [item.viewId, item]));
 		const newNavItems: typeof siteNavItems = [];
-		for (const item of items) {
-			const existing = navItemsByViewId.get(item.viewId);
+		for (const item of orderedNavItems) {
+			const existing = currentNavItemsByViewId.get(item.viewId);
 			if (existing) {
 				// Keep existing state
 				newNavItems.push({ ...existing });
