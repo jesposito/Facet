@@ -455,6 +455,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			// For uploads collection, delete the entire record since the file field is required
 			// and clearing it would fail validation. For other collections, just clear the file field.
 			if collection.Name == "uploads" {
+				// Before deleting, clean up any mirror entries in external_media
+				// that point to this upload's file URL
+				fileURL := fmt.Sprintf("/api/files/%s/%s/%s", collection.Id, record.Id, req.Filename)
+				cleanupMirrorEntries(app, fileURL)
+
 				if err := app.Delete(record); err != nil {
 					app.Logger().Error("media delete failed to delete uploads record", "error", err)
 					return apis.NewBadRequestError("failed to delete record", err)
@@ -992,6 +997,33 @@ func parseIntDefault(raw string, def int) int {
 		return def
 	}
 	return v
+}
+
+// cleanupMirrorEntries removes external_media records that are mirrors pointing to internal files.
+// This is called when an upload is deleted to clean up orphaned mirror entries.
+func cleanupMirrorEntries(app *pocketbase.PocketBase, fileURL string) {
+	collection, err := app.FindCollectionByNameOrId("external_media")
+	if err != nil {
+		return
+	}
+
+	// Find mirror entries that contain this file URL (could be relative or absolute)
+	records, err := app.FindAllRecords(collection.Name)
+	if err != nil {
+		return
+	}
+
+	for _, record := range records {
+		recordURL := record.GetString("url")
+		// Check if this external_media points to the deleted file
+		if strings.Contains(recordURL, fileURL) {
+			if err := app.Delete(record); err != nil {
+				app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
+			} else {
+				app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", recordURL)
+			}
+		}
+	}
 }
 
 // fetchMediaTags retrieves admin_tags for a record and returns them as MediaTag slice.
