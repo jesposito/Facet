@@ -42,10 +42,8 @@
 			<div class="space-y-8 pl-12">
 				{#each items as item, index (item.id)}
 					<article class="relative animate-fade-in">
-						<!-- Timeline node (small accent dot) -->
-						<div class="absolute -left-12 w-8 h-8 flex items-center justify-center z-10">
-							<div class="w-4 h-4 bg-primary-600 rounded-full ring-4 ring-white dark:ring-gray-900"></div>
-						</div>
+						<!-- Timeline node -->
+						<div class="absolute -left-12 w-8 h-8 bg-primary-600 rounded-full ring-4 ring-white dark:ring-gray-900 z-10"></div>
 
 						<!-- Content with optional logo as visual anchor -->
 						<div class="flex gap-4">
