@@ -2,6 +2,10 @@ package services
 
 import (
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"mime"
 	"net/http"
@@ -9,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	_ "golang.org/x/image/webp"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -116,9 +122,13 @@ type MediaItem struct {
 	URL           string           `json:"url"`
 	Size          int64            `json:"size"`
 	Mime          string           `json:"mime"`
+	Width         int              `json:"width,omitempty"`
+	Height        int              `json:"height,omitempty"`
 	UploadedAt    time.Time        `json:"uploaded_at"`
 	RelativePath  string           `json:"relative_path"`
 	DisplayName   string           `json:"display_name,omitempty"`
+	AltText       string           `json:"alt_text,omitempty"`
+	Description   string           `json:"description,omitempty"`
 	RecordLabel   string           `json:"record_label,omitempty"`
 	CollectionKey string           `json:"collection_key,omitempty"`
 	Orphan        bool             `json:"orphan,omitempty"`
@@ -128,6 +138,14 @@ type MediaItem struct {
 	EmbedURL      string           `json:"embed_url,omitempty"`
 	UsageCount    int              `json:"usage_count,omitempty"`
 	UsedBy        []MediaUsageItem `json:"used_by,omitempty"`
+	Tags          []MediaTag       `json:"tags,omitempty"`
+}
+
+// MediaTag represents a tag associated with a media item.
+type MediaTag struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Color string `json:"color,omitempty"`
 }
 
 // FlattenFileValue normalizes PocketBase file field values (string or []string) into a slice.
@@ -197,6 +215,22 @@ func RemoveFileFromValue(current interface{}, filename string) (interface{}, boo
 	}
 }
 
+// extractImageDimensions reads only the image header to get dimensions without loading the full image.
+// Returns (0, 0) if dimensions cannot be determined (not an image, corrupt, etc.).
+func extractImageDimensions(filePath string) (width, height int) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return 0, 0
+	}
+	defer f.Close()
+
+	config, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return 0, 0
+	}
+	return config.Width, config.Height
+}
+
 // BuildMediaItem constructs MediaItem metadata by inspecting the file on disk.
 // Uses StorageService to locate files across multiple storage locations.
 func BuildMediaItem(storage *StorageService, collectionName, collectionID, recordID, field, filename string, recordCreated time.Time) (MediaItem, error) {
@@ -246,6 +280,11 @@ func BuildMediaItem(storage *StorageService, collectionName, collectionID, recor
 	}
 	item.Mime = mimeType
 
+	// Extract image dimensions for image files (fast: only reads header)
+	if strings.HasPrefix(mimeType, "image/") {
+		item.Width, item.Height = extractImageDimensions(fullPath)
+	}
+
 	return item, nil
 }
 
@@ -294,6 +333,11 @@ func BuildMediaItemLegacy(dataDir, collectionName, collectionID, recordID, field
 		mimeType = "application/octet-stream"
 	}
 	item.Mime = mimeType
+
+	// Extract image dimensions for image files (fast: only reads header)
+	if strings.HasPrefix(mimeType, "image/") {
+		item.Width, item.Height = extractImageDimensions(fullPath)
+	}
 
 	return item, nil
 }

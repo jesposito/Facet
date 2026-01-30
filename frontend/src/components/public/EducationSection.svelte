@@ -12,6 +12,18 @@
 
 	// Get translated "Present" text for date ranges
 	let presentText = $derived($t('shared.time.present'));
+
+	// Get background class for logo based on logo_background field
+	function getLogoBgClass(bg: string | undefined): string {
+		switch (bg) {
+			case 'white': return 'bg-white';
+			case 'light-gray': return 'bg-gray-100';
+			case 'dark-gray': return 'bg-gray-700';
+			case 'black': return 'bg-black';
+			case 'accent': return 'bg-primary-500';
+			default: return '';
+		}
+	}
 </script>
 
 <section id="education" class="mb-16">
@@ -26,7 +38,7 @@
 				{#each items as item (item.id)}
 					<article class="relative animate-fade-in">
 						{#if item.institution_logo_url || item.institution_logo}
-							<div class="absolute -left-12 w-8 h-8 rounded-full overflow-hidden z-10 bg-white dark:bg-gray-800 flex items-center justify-center">
+							<div class="absolute -left-12 w-8 h-8 rounded-full overflow-hidden z-10 flex items-center justify-center {getLogoBgClass(item.logo_background) || 'bg-white dark:bg-gray-800'}">
 								<img
 									src={item.institution_logo_url || pb.files.getUrl(item, item.institution_logo!, { thumb: '32x32' })}
 									alt="{item.institution} logo"
@@ -76,7 +88,7 @@
 								<img
 									src={item.institution_logo_url || pb.files.getUrl(item, item.institution_logo!, { thumb: '48x48' })}
 									alt="{item.institution} logo"
-									class="w-12 h-12 object-contain rounded"
+									class="w-12 h-12 object-contain rounded {getLogoBgClass(item.logo_background)}"
 								/>
 							</div>
 						{:else}

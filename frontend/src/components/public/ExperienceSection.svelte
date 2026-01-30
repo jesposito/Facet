@@ -16,6 +16,18 @@
 	function stripBulletPrefix(text: string): string {
 		return text.replace(/^\s*[•\-\*–—·●◦▪▸►]\s*/, '').replace(/^\s*\d+[.)]\s+/, '');
 	}
+
+	// Get background class for logo based on logo_background field
+	function getLogoBgClass(bg: string | undefined): string {
+		switch (bg) {
+			case 'white': return 'bg-white';
+			case 'light-gray': return 'bg-gray-100';
+			case 'dark-gray': return 'bg-gray-700';
+			case 'black': return 'bg-black';
+			case 'accent': return 'bg-primary-500';
+			default: return '';
+		}
+	}
 </script>
 
 <section id="experience" class="mb-16">
@@ -41,7 +53,7 @@
 									<img
 										src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '24x24' })}
 										alt="{item.company} logo"
-										class="w-5 h-5 object-contain rounded self-center"
+										class="w-5 h-5 object-contain rounded self-center {getLogoBgClass(item.logo_background)}"
 									/>
 								{/if}
 								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -102,7 +114,7 @@
 									<img
 										src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '20x20' })}
 										alt="{item.company} logo"
-										class="w-4 h-4 object-contain rounded"
+										class="w-4 h-4 object-contain rounded {getLogoBgClass(item.logo_background)}"
 									/>
 								{/if}
 								<h3 class="font-semibold text-gray-900 dark:text-white">
@@ -143,7 +155,7 @@
 								<img
 									src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '48x48' })}
 									alt="{item.company} logo"
-									class="w-12 h-12 object-contain rounded"
+									class="w-12 h-12 object-contain rounded {getLogoBgClass(item.logo_background)}"
 								/>
 							</div>
 						{/if}

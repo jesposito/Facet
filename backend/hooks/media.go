@@ -78,10 +78,23 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
 			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image", "video", "audio", "document", or ""
 			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
+			tagsFilter := strings.TrimSpace(query.Get("tags")) // comma-separated tag IDs
 			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))   // "date", "name", "size"
 			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))  // "asc", "desc"
 			if sortOrder == "" {
 				sortOrder = "desc"
+			}
+
+			// Parse tags filter into a set for efficient lookup
+			var tagFilterSet map[string]struct{}
+			if tagsFilter != "" {
+				tagFilterSet = make(map[string]struct{})
+				for _, tagID := range strings.Split(tagsFilter, ",") {
+					tagID = strings.TrimSpace(tagID)
+					if tagID != "" {
+						tagFilterSet[tagID] = struct{}{}
+					}
+				}
 			}
 
 			filtered := make([]services.MediaItem, 0, len(combined))
@@ -91,6 +104,19 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				}
 				if collectionFilter != "" && strings.ToLower(item.Collection) != collectionFilter && strings.ToLower(item.CollectionKey) != collectionFilter {
 					continue
+				}
+				// Tag filtering: item must have at least one of the requested tags
+				if tagFilterSet != nil {
+					hasTag := false
+					for _, tag := range item.Tags {
+						if _, ok := tagFilterSet[tag.ID]; ok {
+							hasTag = true
+							break
+						}
+					}
+					if !hasTag {
+						continue
+					}
 				}
 				// Extended type filtering
 				if typeFilter != "" {
@@ -498,6 +524,155 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, info)
 		}).Bind(apis.RequireAuth())
 
+		// Fetch metadata from external URLs (YouTube, Vimeo, etc.)
+		se.Router.GET("/api/media/fetch-metadata", func(e *core.RequestEvent) error {
+			rawURL := e.Request.URL.Query().Get("url")
+			if rawURL == "" {
+				return apis.NewBadRequestError("url parameter is required", nil)
+			}
+
+			if !mediaembed.IsSupportedProvider(rawURL) {
+				return e.JSON(http.StatusOK, map[string]any{
+					"supported": false,
+					"message":   "URL is not from a supported provider",
+				})
+			}
+
+			metadata, err := mediaembed.FetchMetadata(rawURL)
+			if err != nil {
+				app.Logger().Warn("media: failed to fetch metadata", "url", rawURL, "error", err)
+				return e.JSON(http.StatusOK, map[string]any{
+					"supported": true,
+					"error":     err.Error(),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"supported":     true,
+				"title":         metadata.Title,
+				"thumbnail_url": metadata.ThumbnailURL,
+				"provider":      metadata.Provider,
+				"duration":      metadata.Duration,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// Mark media as recently used (updates last_used_at timestamp)
+		se.Router.POST("/api/media/mark-used", func(e *core.RequestEvent) error {
+			var req struct {
+				ID         string `json:"id"`
+				Collection string `json:"collection"` // "uploads" or "external_media"
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+			if req.ID == "" {
+				return apis.NewBadRequestError("id is required", nil)
+			}
+			if req.Collection == "" {
+				req.Collection = "external_media" // default for backwards compatibility
+			}
+
+			// Validate collection name
+			if req.Collection != "uploads" && req.Collection != "external_media" {
+				return apis.NewBadRequestError("invalid collection", nil)
+			}
+
+			record, err := app.FindRecordById(req.Collection, req.ID)
+			if err != nil {
+				return apis.NewNotFoundError("media not found", err)
+			}
+
+			record.Set("last_used_at", time.Now().UTC())
+			if err := app.Save(record); err != nil {
+				return apis.NewBadRequestError("failed to update media", err)
+			}
+
+			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
+		}).Bind(apis.RequireAuth())
+
+		// Get recently used media
+		se.Router.GET("/api/media/recent", func(e *core.RequestEvent) error {
+			query := e.Request.URL.Query()
+			limit := parseIntDefault(query.Get("limit"), 10)
+			if limit > 20 {
+				limit = 20
+			}
+
+			var items []services.MediaItem
+
+			// Get recent uploads
+			uploadsCollection, err := app.FindCollectionByNameOrId("uploads")
+			if err == nil {
+				records, err := app.FindRecordsByFilter(uploadsCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
+				if err == nil {
+					for _, record := range records {
+						created := record.GetDateTime("created").Time()
+						filename := record.GetString("file")
+						if filename == "" {
+							continue
+						}
+						item, err := services.BuildMediaItem(storage, uploadsCollection.Name, uploadsCollection.Id, record.Id, "file", filename, created)
+						if err != nil {
+							continue
+						}
+						item.DisplayName = record.GetString("title")
+						if item.DisplayName == "" {
+							item.DisplayName = filename
+						}
+						item.AltText = record.GetString("alt_text")
+						item.Description = record.GetString("description")
+						item.Tags = fetchMediaTags(app, record)
+						items = append(items, item)
+					}
+				}
+			}
+
+			// Get recent external media
+			externalCollection, err := app.FindCollectionByNameOrId("external_media")
+			if err == nil {
+				records, err := app.FindRecordsByFilter(externalCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
+				if err == nil {
+					for _, record := range records {
+						created := record.GetDateTime("created").Time()
+						title := record.GetString("title")
+						if title == "" {
+							title = record.GetString("url")
+						}
+						normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+						item := services.MediaItem{
+							Collection:    externalCollection.Name,
+							CollectionID:  externalCollection.Id,
+							CollectionKey: "external",
+							RecordID:      record.Id,
+							Field:         "external",
+							Filename:      title,
+							DisplayName:   title,
+							URL:           record.GetString("url"),
+							Mime:          normalized.Mime,
+							ThumbnailURL:  normalized.ThumbnailURL,
+							EmbedURL:      normalized.EmbedURL,
+							Provider:      normalized.Provider,
+							UploadedAt:    created,
+							External:      true,
+							AltText:       record.GetString("alt_text"),
+							Description:   record.GetString("description"),
+							Tags:          fetchMediaTags(app, record),
+						}
+						items = append(items, item)
+					}
+				}
+			}
+
+			// Sort by last_used_at and limit
+			if len(items) > limit {
+				items = items[:limit]
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"items": items,
+			})
+		}).Bind(apis.RequireAuth())
+
 		return se.Next()
 	})
 }
@@ -511,6 +686,28 @@ func parseIntDefault(raw string, def int) int {
 		return def
 	}
 	return v
+}
+
+// fetchMediaTags retrieves admin_tags for a record and returns them as MediaTag slice.
+func fetchMediaTags(app *pocketbase.PocketBase, record *core.Record) []services.MediaTag {
+	tagIDs := record.GetStringSlice("admin_tags")
+	if len(tagIDs) == 0 {
+		return nil
+	}
+
+	tags := make([]services.MediaTag, 0, len(tagIDs))
+	for _, tagID := range tagIDs {
+		tagRecord, err := app.FindRecordById("admin_tags", tagID)
+		if err != nil {
+			continue
+		}
+		tags = append(tags, services.MediaTag{
+			ID:    tagRecord.Id,
+			Name:  tagRecord.GetString("name"),
+			Color: tagRecord.GetString("color"),
+		})
+	}
+	return tags
 }
 
 // findLibraryURLUsage checks all *_library_url fields across collections to find
@@ -663,6 +860,10 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						usage := findLibraryURLUsage(app, item.URL)
 						item.UsageCount = usage.UsageCount
 						item.UsedBy = usage.UsedBy
+						// Get alt_text, description, and tags for uploads
+						item.AltText = record.GetString("alt_text")
+						item.Description = record.GetString("description")
+						item.Tags = fetchMediaTags(app, record)
 					} else {
 						item.UsageCount = 1
 						item.UsedBy = []services.MediaUsageItem{{
@@ -725,8 +926,11 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 			Provider:      normalized.Provider,
 			UploadedAt:    created,
 			External:      true,
+			AltText:       record.GetString("alt_text"),
+			Description:   record.GetString("description"),
 			UsageCount:    usage.UsageCount,
 			UsedBy:        usage.UsedBy,
+			Tags:          fetchMediaTags(app, record),
 		}
 		items = append(items, item)
 	}

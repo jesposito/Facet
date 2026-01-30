@@ -17,6 +17,12 @@
 		slug?: string;
 	};
 
+	type MediaTag = {
+		id: string;
+		name: string;
+		color?: string;
+	};
+
 	type MediaItem = {
 		collection: string;
 		collection_id: string;
@@ -26,10 +32,14 @@
 		url: string;
 		size: number;
 		mime: string;
+		width?: number;
+		height?: number;
 		uploaded_at: string;
 		relative_path?: string;
 		orphan?: boolean;
 		display_name?: string;
+		alt_text?: string;
+		description?: string;
 		record_label?: string;
 		thumbnail_url?: string;
 		collection_key?: string;
@@ -38,6 +48,7 @@
 		embed_url?: string;
 		usage_count?: number;
 		used_by?: MediaUsageItem[];
+		tags?: MediaTag[];
 	};
 
 	// Get provider icon name for external media
@@ -124,7 +135,8 @@
 		title: '',
 		mime: '',
 		thumbnail_url: '',
-		saving: false
+		saving: false,
+		fetching: false
 	});
 	let uploadFile: File | null = $state(null);
 	let uploadTitle = $state('');
@@ -140,11 +152,19 @@
 	let editModalMouseDownTarget: EventTarget | null = $state(null);
 	let editForm = $state({
 		title: '',
+		alt_text: '',
+		description: '',
 		url: '',
 		mime: '',
 		thumbnail_url: '',
+		tag_ids: [] as string[],
 		saving: false
 	});
+
+	// Available admin tags for filtering and editing
+	type AdminTag = { id: string; name: string; color?: string };
+	let availableTags = $state<AdminTag[]>([]);
+	let selectedTagFilter = $state('');
 
 	function openPreview(item: MediaItem) {
 		previewItem = item;
@@ -158,16 +178,19 @@
 		editItem = item;
 		editForm = {
 			title: item.display_name || item.filename || '',
+			alt_text: item.alt_text || '',
+			description: item.description || '',
 			url: item.url || '',
 			mime: item.mime || '',
 			thumbnail_url: item.thumbnail_url || '',
+			tag_ids: item.tags?.map(t => t.id) || [],
 			saving: false
 		};
 	}
 
 	function closeEdit() {
 		editItem = null;
-		editForm = { title: '', url: '', mime: '', thumbnail_url: '', saving: false };
+		editForm = { title: '', alt_text: '', description: '', url: '', mime: '', thumbnail_url: '', tag_ids: [], saving: false };
 	}
 
 	async function saveEdit() {
@@ -183,7 +206,10 @@
 					title: editForm.title.trim(),
 					url: editForm.url.trim(),
 					mime: editForm.mime.trim(),
-					thumbnail_url: editForm.thumbnail_url.trim()
+					thumbnail_url: editForm.thumbnail_url.trim(),
+					alt_text: editForm.alt_text.trim(),
+					description: editForm.description.trim(),
+					admin_tags: editForm.tag_ids
 				};
 				const res = await fetch(`/api/collections/external_media/records/${editItem.record_id}`, {
 					method: 'PATCH',
@@ -198,14 +224,19 @@
 					throw new Error(respBody.message || respBody.error || 'Failed to update media');
 				}
 			} else if (isUploads) {
-				// Uploads collection: update the record's title field
+				// Uploads collection: update the record's title, metadata, and tags
 				const res = await fetch(`/api/collections/uploads/records/${editItem.record_id}`, {
 					method: 'PATCH',
 					headers: {
 						'Content-Type': 'application/json',
 						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 					},
-					body: JSON.stringify({ title: editForm.title.trim() })
+					body: JSON.stringify({
+						title: editForm.title.trim(),
+						alt_text: editForm.alt_text.trim(),
+						description: editForm.description.trim(),
+						admin_tags: editForm.tag_ids
+					})
 				});
 				if (!res.ok) {
 					const respBody = await res.json().catch(() => ({}));
@@ -263,6 +294,24 @@
 		return $t('admin.media.type_file');
 	};
 
+	async function loadTags() {
+		try {
+			const res = await fetch('/api/collections/admin_tags/records?perPage=100', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (res.ok) {
+				const data = await res.json();
+				availableTags = (data.items || []).map((t: { id: string; name: string; color?: string }) => ({
+					id: t.id,
+					name: t.name,
+					color: t.color
+				}));
+			}
+		} catch (e) {
+			console.error('Failed to load tags', e);
+		}
+	}
+
 	async function loadMedia() {
 		loading = true;
 		error = '';
@@ -278,6 +327,7 @@
 			} else if (statusFilter === 'all') {
 				params.set('includeOrphans', '1');
 			}
+			if (selectedTagFilter) params.set('tags', selectedTagFilter);
 			params.set('sort', sortField);
 			params.set('order', sortOrder);
 
@@ -496,6 +546,34 @@
 		}
 	}
 
+	async function fetchExternalMetadata() {
+		const url = newExternal.url.trim();
+		if (!url) return;
+
+		newExternal.fetching = true;
+		try {
+			const res = await fetch(`/api/media/fetch-metadata?url=${encodeURIComponent(url)}`, {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (data.supported && !data.error) {
+					// Only auto-fill if fields are empty (don't override user input)
+					if (data.title && !newExternal.title.trim()) {
+						newExternal.title = data.title;
+					}
+					if (data.thumbnail_url && !newExternal.thumbnail_url.trim()) {
+						newExternal.thumbnail_url = data.thumbnail_url;
+					}
+				}
+			}
+		} catch (err) {
+			console.error('Failed to fetch metadata', err);
+		} finally {
+			newExternal.fetching = false;
+		}
+	}
+
 	async function createExternal() {
 		if (!newExternal.url.trim()) {
 			toasts.add('error', $t('admin.media.toast_url_required'));
@@ -521,7 +599,7 @@
 				throw new Error(respBody.message || respBody.error || 'Failed to add external media');
 			}
 			toasts.add('success', $t('admin.media.toast_external_added'));
-			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false };
+			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false, fetching: false };
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
@@ -667,7 +745,10 @@
 		await loadMedia();
 	}
 
-	onMount(loadMedia);
+	onMount(() => {
+		loadTags();
+		loadMedia();
+	});
 </script>
 
 <svelte:head>
@@ -720,6 +801,17 @@
 					<option value="orphans">{$t('admin.media.filter_scope_orphans')}</option>
 				</select>
 			</div>
+			{#if availableTags.length > 0}
+				<div class="flex items-center gap-2">
+					<label class="label mb-0" for="tag-filter">{$t('admin.media.filter_tag')}</label>
+					<select id="tag-filter" class="input" bind:value={selectedTagFilter} onchange={resetAndLoad}>
+						<option value="">{$t('admin.media.filter_tag_all')}</option>
+						{#each availableTags as tag}
+							<option value={tag.id}>{tag.name}</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
 			<div class="flex items-center gap-2">
 				<label class="label mb-0" for="sort-field">{$t('admin.media.sort_by')}</label>
 				<select id="sort-field" class="input" bind:value={sortField} onchange={resetAndLoad}>
@@ -839,7 +931,39 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 			<div class="md:col-span-2">
 				<label class="label" for="ext-url">{$t('admin.media.url_required')}</label>
-				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} oninput={() => { externalPreviewFailed = false; }} />
+				<div class="flex gap-2">
+					<input
+						id="ext-url"
+						class="input flex-1"
+						bind:value={newExternal.url}
+						placeholder={$t('admin.media.url_placeholder')}
+						oninput={() => { externalPreviewFailed = false; }}
+						onblur={() => {
+							// Auto-fetch metadata when URL is from a supported provider
+							const url = newExternal.url.trim().toLowerCase();
+							if (url && (url.includes('youtube.') || url.includes('youtu.be') || url.includes('vimeo.') || url.includes('loom.') || url.includes('soundcloud.'))) {
+								fetchExternalMetadata();
+							}
+						}}
+					/>
+					{#if newExternal.url.trim() && (newExternal.url.toLowerCase().includes('youtube.') || newExternal.url.toLowerCase().includes('youtu.be') || newExternal.url.toLowerCase().includes('vimeo.') || newExternal.url.toLowerCase().includes('loom.') || newExternal.url.toLowerCase().includes('soundcloud.'))}
+						<button
+							type="button"
+							class="btn btn-secondary btn-sm whitespace-nowrap"
+							onclick={fetchExternalMetadata}
+							disabled={newExternal.fetching}
+						>
+							{#if newExternal.fetching}
+								<span class="inline-flex items-center gap-1">
+									<span class="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+									{$t('admin.media.fetching_metadata')}
+								</span>
+							{:else}
+								{$t('admin.media.fetch_metadata')}
+							{/if}
+						</button>
+					{/if}
+				</div>
 			</div>
 			<div>
 				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
@@ -971,6 +1095,19 @@
 													{$t('admin.media.badge_external')}
 												</span>
 											{/if}
+											{#if item.tags && item.tags.length > 0}
+												{#each item.tags.slice(0, 2) as tag}
+													<span
+														class="inline-flex items-center px-1.5 py-0.5 text-xs rounded shrink-0"
+														style="background-color: {tag.color || '#e5e7eb'}20; color: {tag.color || '#374151'}"
+													>
+														{tag.name}
+													</span>
+												{/each}
+												{#if item.tags.length > 2}
+													<span class="text-xs text-gray-500">+{item.tags.length - 2}</span>
+												{/if}
+											{/if}
 										</div>
 									</td>
 								<td class="px-3 py-2 hidden md:table-cell">
@@ -978,7 +1115,9 @@
 										{mimeLabel(item.mime)}
 									</span>
 								</td>
-								<td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hidden lg:table-cell">{humanSize(item.size)}</td>
+								<td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hidden lg:table-cell">
+								{humanSize(item.size)}{#if item.width && item.height}<span class="text-gray-400 dark:text-gray-500 mx-1">•</span><span class="text-xs">{item.width}×{item.height}</span>{/if}
+							</td>
 								<td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hidden lg:table-cell">
 									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric' })}
 								</td>
@@ -1104,6 +1243,64 @@
 					/>
 					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_title_help')}</p>
 				</div>
+				{#if editItem.external || editItem.collection === 'external_media' || editItem.collection === 'uploads'}
+					<div>
+						<label class="label" for="edit-alt-text">{$t('admin.media.edit_alt_text_label')}</label>
+						<input
+							id="edit-alt-text"
+							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+							bind:value={editForm.alt_text}
+							placeholder={$t('admin.media.edit_alt_text_placeholder')}
+							maxlength="255"
+						/>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_alt_text_help')}</p>
+					</div>
+					<div>
+						<label class="label" for="edit-description">{$t('admin.media.edit_description_label')}</label>
+						<textarea
+							id="edit-description"
+							class="input min-h-[80px] transition-shadow focus:ring-2 focus:ring-primary-500/20"
+							bind:value={editForm.description}
+							placeholder={$t('admin.media.edit_description_placeholder')}
+							maxlength="1000"
+							rows="3"
+						></textarea>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_description_help')}</p>
+					</div>
+					{#if availableTags.length > 0}
+						<div>
+							<label class="label">{$t('admin.media.edit_tags_label')}</label>
+							<div class="flex flex-wrap gap-2">
+								{#each availableTags as tag}
+									<label
+										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {editForm.tag_ids.includes(tag.id) ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+									>
+										<input
+											type="checkbox"
+											class="hidden"
+											checked={editForm.tag_ids.includes(tag.id)}
+											onchange={() => {
+												if (editForm.tag_ids.includes(tag.id)) {
+													editForm.tag_ids = editForm.tag_ids.filter(id => id !== tag.id);
+												} else {
+													editForm.tag_ids = [...editForm.tag_ids, tag.id];
+												}
+											}}
+										/>
+										{#if tag.color}
+											<span
+												class="w-2.5 h-2.5 rounded-full shrink-0"
+												style="background-color: {tag.color}"
+											></span>
+										{/if}
+										<span class="text-sm">{tag.name}</span>
+									</label>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_tags_help')}</p>
+						</div>
+					{/if}
+				{/if}
 				{#if editItem.external || editItem.collection === 'external_media'}
 					<div>
 						<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
