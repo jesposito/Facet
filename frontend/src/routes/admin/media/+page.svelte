@@ -130,6 +130,7 @@
 	let uploadProgress = $state({ current: 0, total: 0 });
 	let previewItem: MediaItem | null = $state(null);
 	let editItem: MediaItem | null = $state(null);
+	let editModalMouseDownTarget: EventTarget | null = $state(null);
 	let editForm = $state({
 		title: '',
 		url: '',
@@ -931,7 +932,13 @@
 {#if editItem}
 	<div
 		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-		onclick={(e) => e.target === e.currentTarget && closeEdit()}
+		onmousedown={(e) => editModalMouseDownTarget = e.target}
+		onclick={(e) => {
+			if (e.target === e.currentTarget && editModalMouseDownTarget === e.currentTarget) {
+				closeEdit();
+			}
+			editModalMouseDownTarget = null;
+		}}
 		onkeydown={(e) => e.key === 'Escape' && closeEdit()}
 		role="dialog"
 		aria-modal="true"

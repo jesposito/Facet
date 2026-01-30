@@ -54,7 +54,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, excerpt, content, tags, visibility, isDraft, featured, publishedAt, mediaRefs };
+	return { title, slug, excerpt, content, tags, visibility, isDraft, featured, publishedAt, mediaRefs, coverImageLibraryUrl };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -68,6 +68,7 @@ function restoreFromDraft(data: Record<string, any>) {
 	featured = data.featured === true;
 	publishedAt = data.publishedAt || '';
 	mediaRefs = data.mediaRefs || [];
+	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 }
 
 function handleFormChange() {
@@ -571,6 +572,7 @@ function openEditForm(post: Post) {
 						currentFileUrl={editingPost ? getCoverImageUrl(editingPost) : ''}
 						currentFileName={(editingPost as any)?.cover_image || ''}
 						imagesOnly={true}
+						onchange={handleFormChange}
 					/>
 				</div>
 			</div>
