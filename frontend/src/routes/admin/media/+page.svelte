@@ -683,6 +683,95 @@
 		}
 	}
 
+	// Bulk delete selected items (non-orphans)
+	async function bulkDeleteSelectedItems() {
+		if (selectedItems.length === 0) return;
+
+		// Get the actual media items for the selected IDs
+		const itemsToDelete = items.filter(item =>
+			selectedItems.some(s => s.id === item.record_id && s.collection === item.collection)
+		);
+
+		// Check if any items are in use
+		const inUseItems = itemsToDelete.filter(item => (item.usage_count ?? 0) > 0);
+		const notInUseItems = itemsToDelete.filter(item => (item.usage_count ?? 0) === 0);
+
+		// Build confirmation message
+		let message = $t('admin.media.confirm_bulk_delete_items', { values: { count: selectedItems.length } });
+
+		if (inUseItems.length > 0) {
+			const usageList = inUseItems
+				.slice(0, 5)
+				.map(item => {
+					const usedByText = item.used_by?.slice(0, 2).map(u => `${u.collection}: ${u.title}`).join(', ') || '';
+					return `• ${item.display_name || item.filename} (${item.usage_count} uses${usedByText ? ': ' + usedByText : ''})`;
+				})
+				.join('\n');
+			const moreText = inUseItems.length > 5 ? `\n...${$t('admin.media.usage_warning_more', { values: { count: inUseItems.length - 5 } })}` : '';
+
+			message += '\n\n' + $t('admin.media.bulk_delete_in_use_warning', { values: { count: inUseItems.length } }) +
+				'\n' + usageList + moreText;
+		}
+
+		const confirmed = await confirm({
+			title: $t('admin.media.confirm_bulk_delete_title'),
+			message,
+			confirmText: $t('admin.media.confirm_bulk_delete_button'),
+			danger: true
+		});
+
+		if (!confirmed) return;
+
+		// Delete items one by one
+		let deleted = 0;
+		let failed = 0;
+
+		for (const item of itemsToDelete) {
+			try {
+				// Determine the delete endpoint based on collection type
+				const isExternal = item.external || item.collection === 'external_media';
+
+				if (isExternal && item.record_id) {
+					const res = await fetch(`/api/media/external/${item.record_id}?force=1`, {
+						method: 'DELETE',
+						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+					});
+					if (res.ok) {
+						deleted++;
+					} else {
+						failed++;
+					}
+				} else if (item.collection === 'uploads' && item.record_id) {
+					// For uploads, delete the record
+					const res = await fetch(`/api/media/uploads/${item.record_id}`, {
+						method: 'DELETE',
+						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+					});
+					if (res.ok) {
+						deleted++;
+					} else {
+						failed++;
+					}
+				} else {
+					// For other collections, we can't bulk delete - they're attached to content
+					failed++;
+				}
+			} catch {
+				failed++;
+			}
+		}
+
+		if (deleted > 0) {
+			toasts.add('success', $t('admin.media.toast_bulk_items_deleted', { values: { count: deleted } }));
+		}
+		if (failed > 0) {
+			toasts.add('error', $t('admin.media.toast_bulk_delete_some_failed', { values: { count: failed } }));
+		}
+
+		selectedItems = [];
+		await loadMedia();
+	}
+
 	async function fetchExternalMetadata() {
 		const url = newExternal.url.trim();
 		if (!url) return;
@@ -1010,6 +1099,9 @@
 							{$t('admin.media.bulk_tag_button')}
 						</button>
 					{/if}
+					<button class="btn btn-danger" onclick={bulkDeleteSelectedItems}>
+						{$t('admin.media.bulk_delete_button')}
+					</button>
 					<button class="btn btn-ghost btn-sm" onclick={() => { selectedItems = []; }}>{$t('admin.media.clear_selection')}</button>
 				{:else if statusFilter !== 'orphans'}
 					<button class="btn btn-secondary btn-sm" onclick={selectVisibleForBulk}>
