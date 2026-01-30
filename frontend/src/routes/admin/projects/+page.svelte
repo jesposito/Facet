@@ -74,7 +74,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs };
+	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -90,6 +90,7 @@ function restoreFromDraft(data: Record<string, any>) {
 	isFeatured = data.isFeatured || false;
 	sortOrder = data.sortOrder || 0;
 	mediaRefs = data.mediaRefs || [];
+	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 }
 
 function handleFormChange() {
