@@ -89,6 +89,7 @@ export interface Experience {
 	company_logo?: string;
 	company_logo_url?: string;
 	company_logo_library_url?: string;
+	logo_background?: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent';
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
@@ -143,6 +144,7 @@ export interface Education {
 	institution_logo?: string;
 	institution_logo_url?: string;
 	institution_logo_library_url?: string;
+	logo_background?: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent';
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;

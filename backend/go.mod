@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.4
 
 require (
+	github.com/disintegration/imaging v1.6.2
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
 	github.com/gen2brain/go-fitz v1.23.7
 	github.com/golang-jwt/jwt/v4 v4.5.2
@@ -13,6 +14,7 @@ require (
 	github.com/pocketbase/pocketbase v0.23.4
 	github.com/spf13/cobra v1.8.1
 	golang.org/x/crypto v0.45.0
+	golang.org/x/image v0.22.0
 	golang.org/x/time v0.8.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -39,7 +41,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.2 // indirect
 	github.com/aws/smithy-go v1.22.1 // indirect
-	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/domodwyer/mailyak/v3 v3.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -62,7 +63,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	gocloud.dev v0.40.0 // indirect
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
-	golang.org/x/image v0.22.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect

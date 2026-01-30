@@ -59,6 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     openssl \
     gosu \
+    libheif-examples \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -g 1000 facet \
     && useradd -u 1000 -g facet -s /bin/bash -m facet

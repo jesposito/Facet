@@ -13,10 +13,14 @@
 		url: string;
 		size: number;
 		mime: string;
+		width?: number;
+		height?: number;
 		uploaded_at: string;
 		relative_path?: string;
 		orphan?: boolean;
 		display_name?: string;
+		alt_text?: string;
+		description?: string;
 		thumbnail_url?: string;
 		external?: boolean;
 		provider?: string;
@@ -206,6 +210,12 @@
 						<div>
 							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_size')}</span>
 							<p class="text-gray-900 dark:text-white">{humanSize(item.size)}</p>
+						</div>
+					{/if}
+					{#if item.width && item.height}
+						<div>
+							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_dimensions')}</span>
+							<p class="text-gray-900 dark:text-white">{item.width}×{item.height}</p>
 						</div>
 					{/if}
 					{#if item.uploaded_at}

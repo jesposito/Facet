@@ -56,6 +56,7 @@
 	let companyLogoFile: FileList | null = $state(null);
 	let companyLogoLibraryUrl = $state('');
 	let clearCompanyLogo = $state(false);
+	let logoBackground: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent' = $state('none');
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
 
@@ -178,6 +179,7 @@
 		companyLogoFile = null;
 		companyLogoLibraryUrl = '';
 		clearCompanyLogo = false;
+		logoBackground = 'none';
 		adminTagIds = [];
 		editingExp = null;
 	}
@@ -224,6 +226,7 @@
 		sortOrder = exp.sort_order;
 		companyLogoLibraryUrl = exp.company_logo_library_url || '';
 		clearCompanyLogo = false;
+		logoBackground = exp.logo_background || 'none';
 		adminTagIds = (exp as any).admin_tags || [];
 		showForm = true;
 	}
@@ -272,6 +275,7 @@
 				formData.append('visibility', visibility);
 				formData.append('is_draft', String(isDraft));
 				formData.append('sort_order', String(sortOrder));
+				formData.append('logo_background', logoBackground);
 				formData.append('admin_tags', JSON.stringify(adminTagIds));
 
 				if (hasFile) {
@@ -304,6 +308,7 @@
 					visibility,
 					is_draft: isDraft,
 					sort_order: sortOrder,
+					logo_background: logoBackground,
 					admin_tags: adminTagIds,
 					company_logo_library_url: companyLogoLibraryUrl || null
 				};
@@ -561,17 +566,35 @@
 					/>
 				</div>
 
-				<div>
-					<SingleMediaPicker
-						label={$t('admin.content.experience.company_logo_label')}
-						helpText={$t('admin.content.experience.company_logo_help')}
-						bind:value={companyLogoLibraryUrl}
-						bind:fileInput={companyLogoFile}
-						bind:clearExisting={clearCompanyLogo}
-						currentFileUrl={editingExp?.company_logo ? pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' }) : ''}
-						currentFileName={editingExp?.company_logo || ''}
-						imagesOnly={true}
-					/>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+					<div>
+						<SingleMediaPicker
+							label={$t('admin.content.experience.company_logo_label')}
+							helpText={$t('admin.content.experience.company_logo_help')}
+							bind:value={companyLogoLibraryUrl}
+							bind:fileInput={companyLogoFile}
+							bind:clearExisting={clearCompanyLogo}
+							currentFileUrl={editingExp?.company_logo ? pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' }) : ''}
+							currentFileName={editingExp?.company_logo || ''}
+							imagesOnly={true}
+						/>
+					</div>
+					<div>
+						<label for="logo_background" class="label">{$t('admin.content.experience.logo_background_label')}</label>
+						<select
+							id="logo_background"
+							bind:value={logoBackground}
+							class="input"
+						>
+							<option value="none">{$t('admin.content.common.logo_background.none')}</option>
+							<option value="white">{$t('admin.content.common.logo_background.white')}</option>
+							<option value="light-gray">{$t('admin.content.common.logo_background.light_gray')}</option>
+							<option value="dark-gray">{$t('admin.content.common.logo_background.dark_gray')}</option>
+							<option value="black">{$t('admin.content.common.logo_background.black')}</option>
+							<option value="accent">{$t('admin.content.common.logo_background.accent')}</option>
+						</select>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.content.experience.logo_background_help')}</p>
+					</div>
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">

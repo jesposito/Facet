@@ -3,6 +3,7 @@ package hooks
 import (
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,6 +34,54 @@ var (
 // uploadsDir is the path to the primary uploads directory (e.g., /uploads in Docker).
 // If empty, only the fallback location (pb_data/storage) will be used.
 func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
+	// Register thumbnail generation hook for uploads collection
+	app.OnRecordAfterCreateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
+		// Generate thumbnail in a goroutine to not block the request
+		go func() {
+			storage := services.NewStorageService(services.StorageConfig{
+				UploadsDir: uploadsDir,
+				DataDir:    app.DataDir(),
+			})
+			thumbService := services.NewThumbnailService(storage)
+
+			filename := e.Record.GetString("file")
+			if filename == "" {
+				return
+			}
+
+			collection, err := app.FindCollectionByNameOrId("uploads")
+			if err != nil {
+				app.Logger().Warn("thumbnail: failed to find uploads collection", "error", err)
+				return
+			}
+
+			// Get the file path to determine mime type
+			fullPath, found := storage.FindFile(collection.Id, e.Record.Id, filename)
+			if !found {
+				app.Logger().Warn("thumbnail: file not found", "record", e.Record.Id, "filename", filename)
+				return
+			}
+
+			// Determine mime type
+			mimeType := detectMimeType(fullPath, filename)
+
+			// Only generate thumbnails for supported image formats
+			if !services.IsSupportedFormat(mimeType) {
+				return
+			}
+
+			// Generate thumbnail
+			_, err = thumbService.GenerateThumbnail(collection.Id, e.Record.Id, filename, services.ThumbnailSize)
+			if err != nil {
+				app.Logger().Warn("thumbnail: generation failed", "record", e.Record.Id, "error", err)
+				return
+			}
+
+			app.Logger().Debug("thumbnail: generated", "record", e.Record.Id, "filename", filename)
+		}()
+		return e.Next()
+	})
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Create StorageService with app's data directory now that it's available
 		storage := services.NewStorageService(services.StorageConfig{
@@ -76,12 +125,26 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
-			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image", "video", "audio", "document", or ""
+			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type")))       // "image", "video", "audio", "document", or ""
 			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
-			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))   // "date", "name", "size"
-			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))  // "asc", "desc"
+			tagsFilter := strings.TrimSpace(query.Get("tags"))                        // comma-separated tag IDs
+			usageFilter := strings.ToLower(strings.TrimSpace(query.Get("usage")))     // "in_use", "not_in_use", or "" for all
+			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))        // "date", "name", "size"
+			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))       // "asc", "desc"
 			if sortOrder == "" {
 				sortOrder = "desc"
+			}
+
+			// Parse tags filter into a set for efficient lookup
+			var tagFilterSet map[string]struct{}
+			if tagsFilter != "" {
+				tagFilterSet = make(map[string]struct{})
+				for _, tagID := range strings.Split(tagsFilter, ",") {
+					tagID = strings.TrimSpace(tagID)
+					if tagID != "" {
+						tagFilterSet[tagID] = struct{}{}
+					}
+				}
 			}
 
 			filtered := make([]services.MediaItem, 0, len(combined))
@@ -91,6 +154,19 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				}
 				if collectionFilter != "" && strings.ToLower(item.Collection) != collectionFilter && strings.ToLower(item.CollectionKey) != collectionFilter {
 					continue
+				}
+				// Tag filtering: item must have at least one of the requested tags
+				if tagFilterSet != nil {
+					hasTag := false
+					for _, tag := range item.Tags {
+						if _, ok := tagFilterSet[tag.ID]; ok {
+							hasTag = true
+							break
+						}
+					}
+					if !hasTag {
+						continue
+					}
 				}
 				// Extended type filtering
 				if typeFilter != "" {
@@ -113,6 +189,13 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 					if !match {
 						continue
 					}
+				}
+				// Usage filtering
+				if usageFilter == "in_use" && item.UsageCount == 0 {
+					continue
+				}
+				if usageFilter == "not_in_use" && item.UsageCount > 0 {
+					continue
 				}
 				filtered = append(filtered, item)
 			}
@@ -372,6 +455,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			// For uploads collection, delete the entire record since the file field is required
 			// and clearing it would fail validation. For other collections, just clear the file field.
 			if collection.Name == "uploads" {
+				// Before deleting, clean up any mirror entries in external_media
+				// that point to this upload's file URL
+				fileURL := fmt.Sprintf("/api/files/%s/%s/%s", collection.Id, record.Id, req.Filename)
+				cleanupMirrorEntries(app, fileURL)
+
 				if err := app.Delete(record); err != nil {
 					app.Logger().Error("media delete failed to delete uploads record", "error", err)
 					return apis.NewBadRequestError("failed to delete record", err)
@@ -394,7 +482,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
-		// Update display name for any media file
+		// Update display name for any media file (legacy endpoint, still works)
 		se.Router.PATCH("/api/media/display-name", func(e *core.RequestEvent) error {
 			var req struct {
 				CollectionID string `json:"collection_id"`
@@ -419,6 +507,39 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				if err := services.SetMediaDisplayName(app, req.CollectionID, req.RecordID, req.Filename, req.DisplayName); err != nil {
 					return apis.NewBadRequestError("failed to set display name", err)
 				}
+			}
+
+			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
+		}).Bind(apis.RequireAuth())
+
+		// Update all metadata for any media file (display_name, alt_text, description, tags)
+		se.Router.PATCH("/api/media/metadata", func(e *core.RequestEvent) error {
+			var req struct {
+				CollectionID string   `json:"collection_id"`
+				RecordID     string   `json:"record_id"`
+				Filename     string   `json:"filename"`
+				DisplayName  string   `json:"display_name"`
+				AltText      string   `json:"alt_text"`
+				Description  string   `json:"description"`
+				TagIDs       []string `json:"tag_ids"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			if req.CollectionID == "" || req.RecordID == "" || req.Filename == "" {
+				return apis.NewBadRequestError("collection_id, record_id, and filename are required", nil)
+			}
+
+			metadata := services.MediaMetadata{
+				DisplayName: req.DisplayName,
+				AltText:     req.AltText,
+				Description: req.Description,
+				TagIDs:      req.TagIDs,
+			}
+
+			if err := services.SetMediaMetadata(app, req.CollectionID, req.RecordID, req.Filename, metadata); err != nil {
+				return apis.NewBadRequestError("failed to set metadata", err)
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
@@ -498,6 +619,371 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, info)
 		}).Bind(apis.RequireAuth())
 
+		// Fetch metadata from external URLs (YouTube, Vimeo, etc.)
+		se.Router.GET("/api/media/fetch-metadata", func(e *core.RequestEvent) error {
+			rawURL := e.Request.URL.Query().Get("url")
+			if rawURL == "" {
+				return apis.NewBadRequestError("url parameter is required", nil)
+			}
+
+			if !mediaembed.IsSupportedProvider(rawURL) {
+				return e.JSON(http.StatusOK, map[string]any{
+					"supported": false,
+					"message":   "URL is not from a supported provider",
+				})
+			}
+
+			metadata, err := mediaembed.FetchMetadata(rawURL)
+			if err != nil {
+				app.Logger().Warn("media: failed to fetch metadata", "url", rawURL, "error", err)
+				return e.JSON(http.StatusOK, map[string]any{
+					"supported": true,
+					"error":     err.Error(),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"supported":     true,
+				"title":         metadata.Title,
+				"thumbnail_url": metadata.ThumbnailURL,
+				"provider":      metadata.Provider,
+				"duration":      metadata.Duration,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// Mark media as recently used (updates last_used_at timestamp)
+		se.Router.POST("/api/media/mark-used", func(e *core.RequestEvent) error {
+			var req struct {
+				ID         string `json:"id"`
+				Collection string `json:"collection"` // "uploads" or "external_media"
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+			if req.ID == "" {
+				return apis.NewBadRequestError("id is required", nil)
+			}
+			if req.Collection == "" {
+				req.Collection = "external_media" // default for backwards compatibility
+			}
+
+			// Validate collection name
+			if req.Collection != "uploads" && req.Collection != "external_media" {
+				return apis.NewBadRequestError("invalid collection", nil)
+			}
+
+			record, err := app.FindRecordById(req.Collection, req.ID)
+			if err != nil {
+				return apis.NewNotFoundError("media not found", err)
+			}
+
+			record.Set("last_used_at", time.Now().UTC())
+			if err := app.Save(record); err != nil {
+				return apis.NewBadRequestError("failed to update media", err)
+			}
+
+			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
+		}).Bind(apis.RequireAuth())
+
+		// Bulk tag media items
+		se.Router.POST("/api/media/bulk-tag", func(e *core.RequestEvent) error {
+			var req struct {
+				Items []struct {
+					ID         string `json:"id"`
+					Collection string `json:"collection"`
+				} `json:"items"`
+				AddTags    []string `json:"add_tags"`
+				RemoveTags []string `json:"remove_tags"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			if len(req.Items) == 0 {
+				return apis.NewBadRequestError("no items specified", nil)
+			}
+			if len(req.Items) > 100 {
+				return apis.NewBadRequestError("maximum 100 items per request", nil)
+			}
+			if len(req.AddTags) == 0 && len(req.RemoveTags) == 0 {
+				return apis.NewBadRequestError("must specify add_tags or remove_tags", nil)
+			}
+
+			// Build sets for efficient lookup
+			addSet := make(map[string]struct{})
+			for _, id := range req.AddTags {
+				addSet[id] = struct{}{}
+			}
+			removeSet := make(map[string]struct{})
+			for _, id := range req.RemoveTags {
+				removeSet[id] = struct{}{}
+			}
+
+			updated := 0
+			failed := 0
+			var errors []map[string]string
+
+			for _, item := range req.Items {
+				// Validate collection exists and has admin_tags field
+				collection, colErr := app.FindCollectionByNameOrId(item.Collection)
+				if colErr != nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": "invalid collection",
+					})
+					continue
+				}
+
+				// Check if collection has admin_tags field
+				if collection.Fields.GetByName("admin_tags") == nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": "collection does not support tags",
+					})
+					continue
+				}
+
+				record, err := app.FindRecordById(item.Collection, item.ID)
+				if err != nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": "not found",
+					})
+					continue
+				}
+
+				// Get current tags
+				currentTags := record.GetStringSlice("admin_tags")
+				tagSet := make(map[string]struct{})
+				for _, id := range currentTags {
+					tagSet[id] = struct{}{}
+				}
+
+				// Add new tags
+				for id := range addSet {
+					tagSet[id] = struct{}{}
+				}
+
+				// Remove tags
+				for id := range removeSet {
+					delete(tagSet, id)
+				}
+
+				// Convert back to slice
+				newTags := make([]string, 0, len(tagSet))
+				for id := range tagSet {
+					newTags = append(newTags, id)
+				}
+
+				// Enforce max 10 tags
+				if len(newTags) > 10 {
+					newTags = newTags[:10]
+				}
+
+				record.Set("admin_tags", newTags)
+				if err := app.Save(record); err != nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				updated++
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"updated": updated,
+				"failed":  failed,
+				"errors":  errors,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// Serve thumbnail files directly (PocketBase doesn't serve unregistered files)
+		se.Router.GET("/api/media/thumb/{collection}/{record}/{filename}", func(e *core.RequestEvent) error {
+			collectionID := e.Request.PathValue("collection")
+			recordID := e.Request.PathValue("record")
+			filename := e.Request.PathValue("filename")
+
+			if collectionID == "" || recordID == "" || filename == "" {
+				return apis.NewNotFoundError("invalid path", nil)
+			}
+
+			// Security: ensure filename contains thumbnail suffix
+			if !strings.Contains(filename, services.ThumbnailSuffix) {
+				return apis.NewBadRequestError("not a thumbnail file", nil)
+			}
+
+			// Find the thumbnail file
+			fullPath, found := storage.FindFile(collectionID, recordID, filename)
+			if !found {
+				return apis.NewNotFoundError("thumbnail not found", nil)
+			}
+
+			// Detect MIME type
+			mimeType := detectMimeType(fullPath, filename)
+
+			// Set caching headers (thumbnails are immutable - cache for 1 year)
+			e.Response.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			e.Response.Header().Set("Content-Type", mimeType)
+
+			// Serve the file
+			return e.FileFS(os.DirFS(filepath.Dir(fullPath)), filepath.Base(fullPath))
+		}) // No auth required - thumbnails are public like regular files
+
+		// Get recently used media (with fallback to recently created)
+		se.Router.GET("/api/media/recent", func(e *core.RequestEvent) error {
+			query := e.Request.URL.Query()
+			limit := parseIntDefault(query.Get("limit"), 10)
+			if limit > 20 {
+				limit = 20
+			}
+
+			var items []services.MediaItem
+			seenIDs := make(map[string]struct{})
+
+			// Helper to add upload items
+			addUploadItems := func(records []*core.Record, uploadsCollection *core.Collection) {
+				for _, record := range records {
+					if _, seen := seenIDs[record.Id]; seen {
+						continue
+					}
+					created := record.GetDateTime("created").Time()
+					filename := record.GetString("file")
+					if filename == "" {
+						continue
+					}
+					item, err := services.BuildMediaItem(storage, uploadsCollection.Name, uploadsCollection.Id, record.Id, "file", filename, created)
+					if err != nil {
+						continue
+					}
+					item.DisplayName = record.GetString("title")
+					if item.DisplayName == "" {
+						item.DisplayName = filename
+					}
+					item.AltText = record.GetString("alt_text")
+					item.Description = record.GetString("description")
+					item.Tags = fetchMediaTags(app, record)
+					items = append(items, item)
+					seenIDs[record.Id] = struct{}{}
+				}
+			}
+
+			// Helper to add external media items
+			addExternalItems := func(records []*core.Record, externalCollection *core.Collection) {
+				for _, record := range records {
+					if _, seen := seenIDs[record.Id]; seen {
+						continue
+					}
+					// Skip "mirror" entries that point to internal PocketBase files
+					recordURL := record.GetString("url")
+					if strings.Contains(recordURL, "/api/files/") {
+						continue
+					}
+					created := record.GetDateTime("created").Time()
+					title := record.GetString("title")
+					if title == "" {
+						title = record.GetString("url")
+					}
+					normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+					item := services.MediaItem{
+						Collection:    externalCollection.Name,
+						CollectionID:  externalCollection.Id,
+						CollectionKey: "external",
+						RecordID:      record.Id,
+						Field:         "external",
+						Filename:      title,
+						DisplayName:   title,
+						URL:           record.GetString("url"),
+						Mime:          normalized.Mime,
+						ThumbnailURL:  normalized.ThumbnailURL,
+						EmbedURL:      normalized.EmbedURL,
+						Provider:      normalized.Provider,
+						UploadedAt:    created,
+						External:      true,
+						AltText:       record.GetString("alt_text"),
+						Description:   record.GetString("description"),
+						Tags:          fetchMediaTags(app, record),
+					}
+					items = append(items, item)
+					seenIDs[record.Id] = struct{}{}
+				}
+			}
+
+			// First pass: get items with last_used_at set (recently selected)
+			uploadsCollection, uploadsErr := app.FindCollectionByNameOrId("uploads")
+			externalCollection, externalErr := app.FindCollectionByNameOrId("external_media")
+
+			if uploadsErr == nil {
+				records, err := app.FindRecordsByFilter(uploadsCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
+				if err == nil {
+					addUploadItems(records, uploadsCollection)
+				}
+			}
+
+			if externalErr == nil {
+				records, err := app.FindRecordsByFilter(externalCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
+				if err == nil {
+					addExternalItems(records, externalCollection)
+				}
+			}
+
+			// Second pass: if we don't have enough items, fill with recently created
+			remaining := limit - len(items)
+			if remaining > 0 {
+				if uploadsErr == nil {
+					records, err := app.FindRecordsByFilter(uploadsCollection.Name, "", "-created", remaining, 0, nil)
+					if err == nil {
+						addUploadItems(records, uploadsCollection)
+					}
+				}
+			}
+
+			remaining = limit - len(items)
+			if remaining > 0 {
+				if externalErr == nil {
+					records, err := app.FindRecordsByFilter(externalCollection.Name, "", "-created", remaining, 0, nil)
+					if err == nil {
+						addExternalItems(records, externalCollection)
+					}
+				}
+			}
+
+			// Trim to limit
+			if len(items) > limit {
+				items = items[:limit]
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"items": items,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// Get usage details for a specific external_media item (for delete warning)
+		se.Router.GET("/api/media/usage/{id}", func(e *core.RequestEvent) error {
+			id := e.Request.PathValue("id")
+			if id == "" {
+				return apis.NewBadRequestError("missing id", nil)
+			}
+
+			// Verify the external_media record exists
+			_, err := app.FindRecordById("external_media", id)
+			if err != nil {
+				return apis.NewNotFoundError("external_media not found", err)
+			}
+
+			usage, err := services.FindMediaUsage(app, id)
+			if err != nil {
+				return apis.NewBadRequestError("failed to find usage", err)
+			}
+
+			return e.JSON(http.StatusOK, usage)
+		}).Bind(apis.RequireAuth())
+
 		return se.Next()
 	})
 }
@@ -511,6 +997,55 @@ func parseIntDefault(raw string, def int) int {
 		return def
 	}
 	return v
+}
+
+// cleanupMirrorEntries removes external_media records that are mirrors pointing to internal files.
+// This is called when an upload is deleted to clean up orphaned mirror entries.
+func cleanupMirrorEntries(app *pocketbase.PocketBase, fileURL string) {
+	collection, err := app.FindCollectionByNameOrId("external_media")
+	if err != nil {
+		return
+	}
+
+	// Find mirror entries that contain this file URL (could be relative or absolute)
+	records, err := app.FindAllRecords(collection.Name)
+	if err != nil {
+		return
+	}
+
+	for _, record := range records {
+		recordURL := record.GetString("url")
+		// Check if this external_media points to the deleted file
+		if strings.Contains(recordURL, fileURL) {
+			if err := app.Delete(record); err != nil {
+				app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
+			} else {
+				app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", recordURL)
+			}
+		}
+	}
+}
+
+// fetchMediaTags retrieves admin_tags for a record and returns them as MediaTag slice.
+func fetchMediaTags(app *pocketbase.PocketBase, record *core.Record) []services.MediaTag {
+	tagIDs := record.GetStringSlice("admin_tags")
+	if len(tagIDs) == 0 {
+		return nil
+	}
+
+	tags := make([]services.MediaTag, 0, len(tagIDs))
+	for _, tagID := range tagIDs {
+		tagRecord, err := app.FindRecordById("admin_tags", tagID)
+		if err != nil {
+			continue
+		}
+		tags = append(tags, services.MediaTag{
+			ID:    tagRecord.Id,
+			Name:  tagRecord.GetString("name"),
+			Color: tagRecord.GetString("color"),
+		})
+	}
+	return tags
 }
 
 // findLibraryURLUsage checks all *_library_url fields across collections to find
@@ -592,6 +1127,7 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 		"view_exports",
 		"resume_imports",
 		"custom_content",
+		"site_settings",
 	}
 
 	var all []services.MediaItem
@@ -632,21 +1168,6 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						continue
 					}
 
-					// Check for custom display name first
-					customName := services.GetMediaDisplayName(app, collection.Id, record.Id, filename)
-					if customName != "" {
-						item.DisplayName = customName
-					} else {
-						// Fall back to record title for uploads collection
-						recordTitle := record.GetString("title")
-						if recordTitle == "" {
-							recordTitle = record.GetString("name")
-						}
-						if recordTitle != "" {
-							item.DisplayName = recordTitle
-						}
-					}
-
 					// Set record label (for "used by" display)
 					recordLabel := record.GetString("title")
 					if recordLabel == "" {
@@ -663,6 +1184,13 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						usage := findLibraryURLUsage(app, item.URL)
 						item.UsageCount = usage.UsageCount
 						item.UsedBy = usage.UsedBy
+						// Get alt_text, description, display_name for uploads from record
+						item.AltText = record.GetString("alt_text")
+						item.Description = record.GetString("description")
+						customName := record.GetString("title")
+						if customName != "" {
+							item.DisplayName = customName
+						}
 					} else {
 						item.UsageCount = 1
 						item.UsedBy = []services.MediaUsageItem{{
@@ -671,6 +1199,42 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 							Title:      recordLabel,
 							Slug:       record.GetString("slug"),
 						}}
+						// For other collections, get metadata from media_display_names
+						if metadata := services.GetMediaMetadata(app, collection.Id, record.Id, filename); metadata != nil {
+							if metadata.DisplayName != "" {
+								item.DisplayName = metadata.DisplayName
+							}
+							item.AltText = metadata.AltText
+							item.Description = metadata.Description
+							// Fetch tags from media_display_names
+							if len(metadata.TagIDs) > 0 {
+								item.Tags = make([]services.MediaTag, 0, len(metadata.TagIDs))
+								for _, tagID := range metadata.TagIDs {
+									tagRecord, err := app.FindRecordById("admin_tags", tagID)
+									if err != nil {
+										continue
+									}
+									item.Tags = append(item.Tags, services.MediaTag{
+										ID:    tagRecord.Id,
+										Name:  tagRecord.GetString("name"),
+										Color: tagRecord.GetString("color"),
+									})
+								}
+							}
+						}
+						// Fall back to record title if no custom display name
+						if item.DisplayName == "" {
+							if recordTitle := record.GetString("title"); recordTitle != "" {
+								item.DisplayName = recordTitle
+							} else if recordName := record.GetString("name"); recordName != "" {
+								item.DisplayName = recordName
+							}
+						}
+					}
+
+					// Fetch tags for uploads collection (from record's admin_tags field)
+					if collection.Name == "uploads" && collection.Fields.GetByName("admin_tags") != nil {
+						item.Tags = fetchMediaTags(app, record)
 					}
 					all = append(all, item)
 					key := filepath.ToSlash(filepath.Join(collection.Id, record.Id, filename))
@@ -699,12 +1263,21 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 
 	items := make([]services.MediaItem, 0, len(records))
 	for _, record := range records {
+		recordURL := record.GetString("url")
+
+		// Skip "mirror" entries that point to internal PocketBase files
+		// These are created when attaching uploads to posts/projects/talks via media_refs
+		// and appear as duplicates in the media library
+		if strings.Contains(recordURL, "/api/files/") {
+			continue
+		}
+
 		created := record.GetDateTime("created").Time()
 		title := record.GetString("title")
 		if title == "" {
-			title = record.GetString("url")
+			title = recordURL
 		}
-		normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+		normalized := mediaembed.Normalize(recordURL, record.GetString("mime"), record.GetString("thumbnail_url"))
 
 		// Get usage info for this external media item
 		usage, _ := services.FindMediaUsage(app, record.Id)
@@ -725,8 +1298,11 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 			Provider:      normalized.Provider,
 			UploadedAt:    created,
 			External:      true,
+			AltText:       record.GetString("alt_text"),
+			Description:   record.GetString("description"),
 			UsageCount:    usage.UsageCount,
 			UsedBy:        usage.UsedBy,
+			Tags:          fetchMediaTags(app, record),
 		}
 		items = append(items, item)
 	}
@@ -756,6 +1332,10 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, storage *services.Stora
 				return nil
 			}
 			if strings.HasSuffix(d.Name(), ".attrs") {
+				return nil
+			}
+			// Skip thumbnail files - they are generated artifacts, not orphans
+			if strings.Contains(d.Name(), services.ThumbnailSuffix) {
 				return nil
 			}
 			info, infoErr := d.Info()
@@ -961,4 +1541,28 @@ func validateURL(raw string) (*url.URL, error) {
 		return nil, os.ErrInvalid
 	}
 	return parsed, nil
+}
+
+// detectMimeType determines the MIME type of a file using extension and content sniffing.
+func detectMimeType(fullPath, filename string) string {
+	// Try extension first
+	mimeType := mime.TypeByExtension(strings.ToLower(filepath.Ext(filename)))
+	if mimeType != "" {
+		return mimeType
+	}
+
+	// Fallback to content sniffing
+	f, err := os.Open(fullPath)
+	if err != nil {
+		return "application/octet-stream"
+	}
+	defer f.Close()
+
+	sniff := make([]byte, 512)
+	n, _ := f.Read(sniff)
+	if n > 0 {
+		return http.DetectContentType(sniff[:n])
+	}
+
+	return "application/octet-stream"
 }

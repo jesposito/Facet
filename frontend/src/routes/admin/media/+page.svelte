@@ -17,6 +17,12 @@
 		slug?: string;
 	};
 
+	type MediaTag = {
+		id: string;
+		name: string;
+		color?: string;
+	};
+
 	type MediaItem = {
 		collection: string;
 		collection_id: string;
@@ -26,10 +32,14 @@
 		url: string;
 		size: number;
 		mime: string;
+		width?: number;
+		height?: number;
 		uploaded_at: string;
 		relative_path?: string;
 		orphan?: boolean;
 		display_name?: string;
+		alt_text?: string;
+		description?: string;
 		record_label?: string;
 		thumbnail_url?: string;
 		collection_key?: string;
@@ -38,6 +48,7 @@
 		embed_url?: string;
 		usage_count?: number;
 		used_by?: MediaUsageItem[];
+		tags?: MediaTag[];
 	};
 
 	// Get provider icon name for external media
@@ -105,6 +116,7 @@
 	let search = $state('');
 	let typeFilter: 'all' | 'image' | 'video' | 'audio' | 'document' = $state('all');
 	let statusFilter: 'referenced' | 'all' | 'orphans' = $state('referenced');
+	let usageFilter: 'all' | 'in_use' | 'not_in_use' = $state('all');
 	let sortField: 'date' | 'name' | 'size' = $state('date');
 	let sortOrder: 'asc' | 'desc' = $state('desc');
 	let error = $state('');
@@ -119,12 +131,22 @@
 		storageSize: 0
 	});
 	let selectedOrphans: Set<string> = $state(new Set());
+	// Track selected items for bulk operations (uploads and external_media)
+	type SelectedItem = { id: string; collection: string };
+	let selectedItems: SelectedItem[] = $state([]);
+	let bulkTagModalOpen = $state(false);
+	let bulkTagForm = $state({
+		addTags: [] as string[],
+		removeTags: [] as string[],
+		saving: false
+	});
 	let newExternal = $state({
 		url: '',
 		title: '',
 		mime: '',
 		thumbnail_url: '',
-		saving: false
+		saving: false,
+		fetching: false
 	});
 	let uploadFile: File | null = $state(null);
 	let uploadTitle = $state('');
@@ -140,11 +162,19 @@
 	let editModalMouseDownTarget: EventTarget | null = $state(null);
 	let editForm = $state({
 		title: '',
+		alt_text: '',
+		description: '',
 		url: '',
 		mime: '',
 		thumbnail_url: '',
+		tag_ids: [] as string[],
 		saving: false
 	});
+
+	// Available admin tags for filtering and editing
+	type AdminTag = { id: string; name: string; color?: string };
+	let availableTags = $state<AdminTag[]>([]);
+	let selectedTagFilter = $state('');
 
 	function openPreview(item: MediaItem) {
 		previewItem = item;
@@ -158,16 +188,19 @@
 		editItem = item;
 		editForm = {
 			title: item.display_name || item.filename || '',
+			alt_text: item.alt_text || '',
+			description: item.description || '',
 			url: item.url || '',
 			mime: item.mime || '',
 			thumbnail_url: item.thumbnail_url || '',
+			tag_ids: item.tags?.map(t => t.id) || [],
 			saving: false
 		};
 	}
 
 	function closeEdit() {
 		editItem = null;
-		editForm = { title: '', url: '', mime: '', thumbnail_url: '', saving: false };
+		editForm = { title: '', alt_text: '', description: '', url: '', mime: '', thumbnail_url: '', tag_ids: [], saving: false };
 	}
 
 	async function saveEdit() {
@@ -183,7 +216,10 @@
 					title: editForm.title.trim(),
 					url: editForm.url.trim(),
 					mime: editForm.mime.trim(),
-					thumbnail_url: editForm.thumbnail_url.trim()
+					thumbnail_url: editForm.thumbnail_url.trim(),
+					alt_text: editForm.alt_text.trim(),
+					description: editForm.description.trim(),
+					admin_tags: editForm.tag_ids
 				};
 				const res = await fetch(`/api/collections/external_media/records/${editItem.record_id}`, {
 					method: 'PATCH',
@@ -198,22 +234,27 @@
 					throw new Error(respBody.message || respBody.error || 'Failed to update media');
 				}
 			} else if (isUploads) {
-				// Uploads collection: update the record's title field
+				// Uploads collection: update the record's title, metadata, and tags
 				const res = await fetch(`/api/collections/uploads/records/${editItem.record_id}`, {
 					method: 'PATCH',
 					headers: {
 						'Content-Type': 'application/json',
 						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 					},
-					body: JSON.stringify({ title: editForm.title.trim() })
+					body: JSON.stringify({
+						title: editForm.title.trim(),
+						alt_text: editForm.alt_text.trim(),
+						description: editForm.description.trim(),
+						admin_tags: editForm.tag_ids
+					})
 				});
 				if (!res.ok) {
 					const respBody = await res.json().catch(() => ({}));
 					throw new Error(respBody.message || respBody.error || 'Failed to update media');
 				}
 			} else {
-				// Other collections: use display-name endpoint to set custom name
-				const res = await fetch('/api/media/display-name', {
+				// Other collections: use metadata endpoint to set all metadata
+				const res = await fetch('/api/media/metadata', {
 					method: 'PATCH',
 					headers: {
 						'Content-Type': 'application/json',
@@ -223,12 +264,15 @@
 						collection_id: editItem.collection_id,
 						record_id: editItem.record_id,
 						filename: editItem.filename,
-						display_name: editForm.title.trim()
+						display_name: editForm.title.trim(),
+						alt_text: editForm.alt_text.trim(),
+						description: editForm.description.trim(),
+						tag_ids: editForm.tag_ids
 					})
 				});
 				if (!res.ok) {
 					const respBody = await res.json().catch(() => ({}));
-					throw new Error(respBody.message || respBody.error || 'Failed to update display name');
+					throw new Error(respBody.message || respBody.error || 'Failed to update metadata');
 				}
 			}
 
@@ -263,6 +307,24 @@
 		return $t('admin.media.type_file');
 	};
 
+	async function loadTags() {
+		try {
+			const res = await fetch('/api/collections/admin_tags/records?perPage=100', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (res.ok) {
+				const data = await res.json();
+				availableTags = (data.items || []).map((t: { id: string; name: string; color?: string }) => ({
+					id: t.id,
+					name: t.name,
+					color: t.color
+				}));
+			}
+		} catch (e) {
+			console.error('Failed to load tags', e);
+		}
+	}
+
 	async function loadMedia() {
 		loading = true;
 		error = '';
@@ -278,6 +340,8 @@
 			} else if (statusFilter === 'all') {
 				params.set('includeOrphans', '1');
 			}
+			if (selectedTagFilter) params.set('tags', selectedTagFilter);
+			if (usageFilter !== 'all') params.set('usage', usageFilter);
 			params.set('sort', sortField);
 			params.set('order', sortOrder);
 
@@ -326,6 +390,46 @@
 	async function deleteFile(item: MediaItem, force = false) {
 		// Check if item is external media (either by flag or by collection name)
 		const isExternal = item.external || item.collection === 'external_media';
+
+		// If item is in use, show a warning with usage details before confirmation
+		if ((item.usage_count ?? 0) > 0 && !force) {
+			// Fetch full usage details
+			let usageDetails: MediaUsageItem[] = item.used_by || [];
+
+			// If we don't have used_by details, fetch them
+			if (usageDetails.length === 0 && item.record_id) {
+				try {
+					const res = await fetch(`/api/media/usage/${item.record_id}`, {
+						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+					});
+					if (res.ok) {
+						const data = await res.json();
+						usageDetails = data.used_by || [];
+					}
+				} catch {
+					// Continue with what we have
+				}
+			}
+
+			// Build list of content items using this media
+			const usageList = usageDetails
+				.slice(0, 5)
+				.map((u) => `• ${u.collection}: ${u.title}`)
+				.join('\n');
+			const moreText = usageDetails.length > 5 ? `\n...${$t('admin.media.usage_warning_more', { values: { count: usageDetails.length - 5 } })}` : '';
+
+			const confirmed = await confirm({
+				title: $t('admin.media.confirm_force_delete_title'),
+				message: $t('admin.media.usage_warning_message', { values: { filename: item.display_name || item.filename, count: item.usage_count } }) +
+					'\n\n' + usageList + moreText,
+				confirmText: $t('admin.media.confirm_force_delete_button'),
+				danger: true
+			});
+
+			if (!confirmed) return;
+			// Continue with force delete
+			return deleteFile(item, true);
+		}
 
 		// For non-external or orphan items, show standard confirmation
 		if (!isExternal || item.orphan) {
@@ -456,6 +560,92 @@
 
 	function clearSelection() {
 		selectedOrphans = new Set();
+		selectedItems = [];
+	}
+
+	// Check if an item is selectable for bulk operations (any non-orphan item with a record_id)
+	function isSelectableForBulk(item: MediaItem): boolean {
+		return !item.orphan && !!item.record_id;
+	}
+
+	// Toggle selection for bulk operations
+	function toggleBulkSelection(item: MediaItem) {
+		if (!isSelectableForBulk(item)) return;
+		const idx = selectedItems.findIndex(s => s.id === item.record_id && s.collection === item.collection);
+		if (idx >= 0) {
+			selectedItems = selectedItems.filter((_, i) => i !== idx);
+		} else {
+			selectedItems = [...selectedItems, { id: item.record_id, collection: item.collection }];
+		}
+	}
+
+	// Check if item is selected for bulk operations
+	function isSelectedForBulk(item: MediaItem): boolean {
+		return selectedItems.some(s => s.id === item.record_id && s.collection === item.collection);
+	}
+
+	// Select all visible selectable items
+	function selectVisibleForBulk() {
+		const newSelections: SelectedItem[] = [];
+		items.forEach((item) => {
+			if (isSelectableForBulk(item)) {
+				if (!selectedItems.some(s => s.id === item.record_id && s.collection === item.collection)) {
+					newSelections.push({ id: item.record_id, collection: item.collection });
+				}
+			}
+		});
+		selectedItems = [...selectedItems, ...newSelections];
+	}
+
+	// Open bulk tag modal
+	function openBulkTagModal() {
+		bulkTagForm = { addTags: [], removeTags: [], saving: false };
+		bulkTagModalOpen = true;
+	}
+
+	// Close bulk tag modal
+	function closeBulkTagModal() {
+		bulkTagModalOpen = false;
+		bulkTagForm = { addTags: [], removeTags: [], saving: false };
+	}
+
+	// Execute bulk tagging
+	async function executeBulkTag() {
+		if (selectedItems.length === 0) return;
+		if (bulkTagForm.addTags.length === 0 && bulkTagForm.removeTags.length === 0) {
+			toasts.add('error', $t('admin.media.bulk_tag_no_changes'));
+			return;
+		}
+
+		bulkTagForm.saving = true;
+		try {
+			const res = await fetch('/api/media/bulk-tag', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+				},
+				body: JSON.stringify({
+					items: selectedItems,
+					add_tags: bulkTagForm.addTags,
+					remove_tags: bulkTagForm.removeTags
+				})
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.message || body.error || 'Failed to update tags');
+			}
+			const result = await res.json();
+			toasts.add('success', $t('admin.media.bulk_tag_success', { values: { count: result.updated } }));
+			closeBulkTagModal();
+			selectedItems = [];
+			await loadMedia();
+		} catch (err) {
+			console.error(err);
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.bulk_tag_failed'));
+		} finally {
+			bulkTagForm.saving = false;
+		}
 	}
 
 	async function bulkDeleteSelected() {
@@ -496,6 +686,131 @@
 		}
 	}
 
+	// Bulk delete selected items (non-orphans)
+	async function bulkDeleteSelectedItems() {
+		if (selectedItems.length === 0) return;
+
+		// Get the actual media items for the selected IDs
+		const itemsToDelete = items.filter(item =>
+			selectedItems.some(s => s.id === item.record_id && s.collection === item.collection)
+		);
+
+		// Check if any items are in use
+		const inUseItems = itemsToDelete.filter(item => (item.usage_count ?? 0) > 0);
+		const notInUseItems = itemsToDelete.filter(item => (item.usage_count ?? 0) === 0);
+
+		// Build confirmation message
+		let message = $t('admin.media.confirm_bulk_delete_items', { values: { count: selectedItems.length } });
+
+		if (inUseItems.length > 0) {
+			const usageList = inUseItems
+				.slice(0, 5)
+				.map(item => {
+					const usedByText = item.used_by?.slice(0, 2).map(u => `${u.collection}: ${u.title}`).join(', ') || '';
+					return `• ${item.display_name || item.filename} (${item.usage_count} uses${usedByText ? ': ' + usedByText : ''})`;
+				})
+				.join('\n');
+			const moreText = inUseItems.length > 5 ? `\n...${$t('admin.media.usage_warning_more', { values: { count: inUseItems.length - 5 } })}` : '';
+
+			message += '\n\n' + $t('admin.media.bulk_delete_in_use_warning', { values: { count: inUseItems.length } }) +
+				'\n' + usageList + moreText;
+		}
+
+		const confirmed = await confirm({
+			title: $t('admin.media.confirm_bulk_delete_title'),
+			message,
+			confirmText: $t('admin.media.confirm_bulk_delete_button'),
+			danger: true
+		});
+
+		if (!confirmed) return;
+
+		// Delete items one by one
+		let deleted = 0;
+		let failed = 0;
+
+		for (const item of itemsToDelete) {
+			try {
+				const isExternal = item.external || item.collection === 'external_media';
+
+				if (isExternal && item.record_id) {
+					// External media - use dedicated endpoint with force flag
+					const res = await fetch(`/api/media/external/${item.record_id}?force=1`, {
+						method: 'DELETE',
+						headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+					});
+					if (res.ok) {
+						deleted++;
+					} else {
+						failed++;
+					}
+				} else {
+					// All other items (uploads, profile photos, experience logos, etc.)
+					// Use the same pattern as single delete
+					const body = {
+						collection_id: item.collection_id,
+						record_id: item.record_id,
+						field: item.field,
+						filename: item.filename
+					};
+					const res = await fetch('/api/media', {
+						method: 'DELETE',
+						headers: {
+							'Content-Type': 'application/json',
+							...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+						},
+						body: JSON.stringify(body)
+					});
+					if (res.ok) {
+						deleted++;
+					} else {
+						failed++;
+					}
+				}
+			} catch {
+				failed++;
+			}
+		}
+
+		if (deleted > 0) {
+			toasts.add('success', $t('admin.media.toast_bulk_items_deleted', { values: { count: deleted } }));
+		}
+		if (failed > 0) {
+			toasts.add('error', $t('admin.media.toast_bulk_delete_some_failed', { values: { count: failed } }));
+		}
+
+		selectedItems = [];
+		await loadMedia();
+	}
+
+	async function fetchExternalMetadata() {
+		const url = newExternal.url.trim();
+		if (!url) return;
+
+		newExternal.fetching = true;
+		try {
+			const res = await fetch(`/api/media/fetch-metadata?url=${encodeURIComponent(url)}`, {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			});
+			if (res.ok) {
+				const data = await res.json();
+				if (data.supported && !data.error) {
+					// Only auto-fill if fields are empty (don't override user input)
+					if (data.title && !newExternal.title.trim()) {
+						newExternal.title = data.title;
+					}
+					if (data.thumbnail_url && !newExternal.thumbnail_url.trim()) {
+						newExternal.thumbnail_url = data.thumbnail_url;
+					}
+				}
+			}
+		} catch (err) {
+			console.error('Failed to fetch metadata', err);
+		} finally {
+			newExternal.fetching = false;
+		}
+	}
+
 	async function createExternal() {
 		if (!newExternal.url.trim()) {
 			toasts.add('error', $t('admin.media.toast_url_required'));
@@ -521,7 +836,7 @@
 				throw new Error(respBody.message || respBody.error || 'Failed to add external media');
 			}
 			toasts.add('success', $t('admin.media.toast_external_added'));
-			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false };
+			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false, fetching: false };
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
@@ -667,7 +982,10 @@
 		await loadMedia();
 	}
 
-	onMount(loadMedia);
+	onMount(() => {
+		loadTags();
+		loadMedia();
+	});
 </script>
 
 <svelte:head>
@@ -721,6 +1039,25 @@
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
+				<label class="label mb-0" for="usage-filter">{$t('admin.media.filter_usage')}</label>
+				<select id="usage-filter" class="input" bind:value={usageFilter} onchange={resetAndLoad}>
+					<option value="all">{$t('admin.media.filter_usage_all')}</option>
+					<option value="in_use">{$t('admin.media.filter_usage_in_use')}</option>
+					<option value="not_in_use">{$t('admin.media.filter_usage_not_in_use')}</option>
+				</select>
+			</div>
+			{#if availableTags.length > 0}
+				<div class="flex items-center gap-2">
+					<label class="label mb-0" for="tag-filter">{$t('admin.media.filter_tag')}</label>
+					<select id="tag-filter" class="input" bind:value={selectedTagFilter} onchange={resetAndLoad}>
+						<option value="">{$t('admin.media.filter_tag_all')}</option>
+						{#each availableTags as tag}
+							<option value={tag.id}>{tag.name}</option>
+						{/each}
+					</select>
+				</div>
+			{/if}
+			<div class="flex items-center gap-2">
 				<label class="label mb-0" for="sort-field">{$t('admin.media.sort_by')}</label>
 				<select id="sort-field" class="input" bind:value={sortField} onchange={resetAndLoad}>
 					<option value="date">{$t('admin.media.sort_date')}</option>
@@ -764,6 +1101,22 @@
 				{:else if statusFilter !== 'referenced'}
 					<button class="btn btn-secondary btn-sm" onclick={selectVisibleOrphans}>
 						{$t('admin.media.select_visible_orphans')}
+					</button>
+				{/if}
+				{#if selectedItems.length > 0}
+					<span class="text-gray-700 dark:text-gray-200">{$t('admin.media.selected_items', { values: { count: selectedItems.length } })}</span>
+					{#if availableTags.length > 0}
+						<button class="btn btn-secondary" onclick={openBulkTagModal}>
+							{$t('admin.media.bulk_tag_button')}
+						</button>
+					{/if}
+					<button class="btn btn-danger" onclick={bulkDeleteSelectedItems}>
+						{$t('admin.media.bulk_delete_button')}
+					</button>
+					<button class="btn btn-ghost btn-sm" onclick={() => { selectedItems = []; }}>{$t('admin.media.clear_selection')}</button>
+				{:else if statusFilter !== 'orphans'}
+					<button class="btn btn-secondary btn-sm" onclick={selectVisibleForBulk}>
+						{$t('admin.media.select_visible')}
 					</button>
 				{/if}
 			</div>
@@ -839,7 +1192,39 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 			<div class="md:col-span-2">
 				<label class="label" for="ext-url">{$t('admin.media.url_required')}</label>
-				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} oninput={() => { externalPreviewFailed = false; }} />
+				<div class="flex gap-2">
+					<input
+						id="ext-url"
+						class="input flex-1"
+						bind:value={newExternal.url}
+						placeholder={$t('admin.media.url_placeholder')}
+						oninput={() => { externalPreviewFailed = false; }}
+						onblur={() => {
+							// Auto-fetch metadata when URL is from a supported provider
+							const url = newExternal.url.trim().toLowerCase();
+							if (url && (url.includes('youtube.') || url.includes('youtu.be') || url.includes('vimeo.') || url.includes('loom.') || url.includes('soundcloud.'))) {
+								fetchExternalMetadata();
+							}
+						}}
+					/>
+					{#if newExternal.url.trim() && (newExternal.url.toLowerCase().includes('youtube.') || newExternal.url.toLowerCase().includes('youtu.be') || newExternal.url.toLowerCase().includes('vimeo.') || newExternal.url.toLowerCase().includes('loom.') || newExternal.url.toLowerCase().includes('soundcloud.'))}
+						<button
+							type="button"
+							class="btn btn-secondary btn-sm whitespace-nowrap"
+							onclick={fetchExternalMetadata}
+							disabled={newExternal.fetching}
+						>
+							{#if newExternal.fetching}
+								<span class="inline-flex items-center gap-1">
+									<span class="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+									{$t('admin.media.fetching_metadata')}
+								</span>
+							{:else}
+								{$t('admin.media.fetch_metadata')}
+							{/if}
+						</button>
+					{/if}
+				</div>
 			</div>
 			<div>
 				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
@@ -922,6 +1307,13 @@
 												checked={selectedOrphans.has(item.relative_path)}
 												onchange={() => toggleSelection(item)}
 											/>
+										{:else if isSelectableForBulk(item)}
+											<input
+												type="checkbox"
+												class="w-4 h-4 text-primary-600 rounded border-gray-300"
+												checked={isSelectedForBulk(item)}
+												onchange={() => toggleBulkSelection(item)}
+											/>
 										{/if}
 									</td>
 									<td class="px-2 py-2">
@@ -971,6 +1363,21 @@
 													{$t('admin.media.badge_external')}
 												</span>
 											{/if}
+											{#if item.tags && item.tags.length > 0}
+												{#each item.tags.slice(0, 2) as tag}
+													<span
+														class="inline-flex items-center px-1.5 py-0.5 text-xs rounded shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+													>
+														{#if tag.color}
+															<span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: {tag.color}"></span>
+														{/if}
+														{tag.name}
+													</span>
+												{/each}
+												{#if item.tags.length > 2}
+													<span class="text-xs text-gray-500 dark:text-gray-400">+{item.tags.length - 2}</span>
+												{/if}
+											{/if}
 										</div>
 									</td>
 								<td class="px-3 py-2 hidden md:table-cell">
@@ -978,7 +1385,9 @@
 										{mimeLabel(item.mime)}
 									</span>
 								</td>
-								<td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hidden lg:table-cell">{humanSize(item.size)}</td>
+								<td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hidden lg:table-cell">
+								{humanSize(item.size)}{#if item.width && item.height}<span class="text-gray-400 dark:text-gray-500 mx-1">•</span><span class="text-xs">{item.width}×{item.height}</span>{/if}
+							</td>
 								<td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hidden lg:table-cell">
 									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric' })}
 								</td>
@@ -1104,6 +1513,63 @@
 					/>
 					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_title_help')}</p>
 				</div>
+				<!-- Alt text, description, and tags available for all media items -->
+				<div>
+					<label class="label" for="edit-alt-text">{$t('admin.media.edit_alt_text_label')}</label>
+						<input
+							id="edit-alt-text"
+							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+							bind:value={editForm.alt_text}
+							placeholder={$t('admin.media.edit_alt_text_placeholder')}
+							maxlength="255"
+						/>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_alt_text_help')}</p>
+					</div>
+					<div>
+						<label class="label" for="edit-description">{$t('admin.media.edit_description_label')}</label>
+						<textarea
+							id="edit-description"
+							class="input min-h-[80px] transition-shadow focus:ring-2 focus:ring-primary-500/20"
+							bind:value={editForm.description}
+							placeholder={$t('admin.media.edit_description_placeholder')}
+							maxlength="1000"
+							rows="3"
+						></textarea>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_description_help')}</p>
+					</div>
+					{#if availableTags.length > 0}
+						<div>
+							<label class="label">{$t('admin.media.edit_tags_label')}</label>
+							<div class="flex flex-wrap gap-2">
+								{#each availableTags as tag}
+									<label
+										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {editForm.tag_ids.includes(tag.id) ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/50' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+									>
+										<input
+											type="checkbox"
+											class="hidden"
+											checked={editForm.tag_ids.includes(tag.id)}
+											onchange={() => {
+												if (editForm.tag_ids.includes(tag.id)) {
+													editForm.tag_ids = editForm.tag_ids.filter(id => id !== tag.id);
+												} else {
+													editForm.tag_ids = [...editForm.tag_ids, tag.id];
+												}
+											}}
+										/>
+										{#if tag.color}
+											<span
+												class="w-2.5 h-2.5 rounded-full shrink-0"
+												style="background-color: {tag.color}"
+											></span>
+										{/if}
+										<span class="text-sm text-gray-900 dark:text-gray-100">{tag.name}</span>
+									</label>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_tags_help')}</p>
+						</div>
+					{/if}
 				{#if editItem.external || editItem.collection === 'external_media'}
 					<div>
 						<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
@@ -1151,6 +1617,127 @@
 							</span>
 						{:else}
 							{$t('shared.actions.save')}
+						{/if}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+{#if bulkTagModalOpen}
+	<div
+		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+		onclick={(e) => e.target === e.currentTarget && closeBulkTagModal()}
+		onkeydown={(e) => e.key === 'Escape' && closeBulkTagModal()}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="bulk-tag-modal-title"
+		tabindex="-1"
+	>
+		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+				<h2 id="bulk-tag-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
+					{$t('admin.media.bulk_tag_title', { values: { count: selectedItems.length } })}
+				</h2>
+				<button
+					class="btn btn-ghost btn-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+					onclick={closeBulkTagModal}
+					aria-label={$t('shared.actions.close')}
+				>
+					{@html icon('x')}
+				</button>
+			</div>
+
+			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); executeBulkTag(); }}>
+				<div>
+					<label class="label">{$t('admin.media.bulk_tag_add_label')}</label>
+					<div class="flex flex-wrap gap-2">
+						{#each availableTags as tag}
+							<label
+								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {bulkTagForm.addTags.includes(tag.id) ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
+							>
+								<input
+									type="checkbox"
+									class="hidden"
+									checked={bulkTagForm.addTags.includes(tag.id)}
+									onchange={() => {
+										if (bulkTagForm.addTags.includes(tag.id)) {
+											bulkTagForm.addTags = bulkTagForm.addTags.filter(id => id !== tag.id);
+										} else {
+											bulkTagForm.addTags = [...bulkTagForm.addTags, tag.id];
+											// Remove from remove if adding
+											bulkTagForm.removeTags = bulkTagForm.removeTags.filter(id => id !== tag.id);
+										}
+									}}
+								/>
+								{#if tag.color}
+									<span
+										class="w-2.5 h-2.5 rounded-full shrink-0"
+										style="background-color: {tag.color}"
+									></span>
+								{/if}
+								<span class="text-sm">{tag.name}</span>
+								{#if bulkTagForm.addTags.includes(tag.id)}
+									<span class="text-green-600 dark:text-green-400">+</span>
+								{/if}
+							</label>
+						{/each}
+					</div>
+				</div>
+
+				<div>
+					<label class="label">{$t('admin.media.bulk_tag_remove_label')}</label>
+					<div class="flex flex-wrap gap-2">
+						{#each availableTags as tag}
+							<label
+								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {bulkTagForm.removeTags.includes(tag.id) ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
+							>
+								<input
+									type="checkbox"
+									class="hidden"
+									checked={bulkTagForm.removeTags.includes(tag.id)}
+									onchange={() => {
+										if (bulkTagForm.removeTags.includes(tag.id)) {
+											bulkTagForm.removeTags = bulkTagForm.removeTags.filter(id => id !== tag.id);
+										} else {
+											bulkTagForm.removeTags = [...bulkTagForm.removeTags, tag.id];
+											// Remove from add if removing
+											bulkTagForm.addTags = bulkTagForm.addTags.filter(id => id !== tag.id);
+										}
+									}}
+								/>
+								{#if tag.color}
+									<span
+										class="w-2.5 h-2.5 rounded-full shrink-0"
+										style="background-color: {tag.color}"
+									></span>
+								{/if}
+								<span class="text-sm">{tag.name}</span>
+								{#if bulkTagForm.removeTags.includes(tag.id)}
+									<span class="text-red-600 dark:text-red-400">−</span>
+								{/if}
+							</label>
+						{/each}
+					</div>
+				</div>
+
+				<div class="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+					<button type="button" class="btn btn-secondary" onclick={closeBulkTagModal}>
+						{$t('shared.actions.cancel')}
+					</button>
+					<button
+						type="submit"
+						class="btn btn-primary transition-transform active:scale-95"
+						disabled={bulkTagForm.saving || (bulkTagForm.addTags.length === 0 && bulkTagForm.removeTags.length === 0)}
+					>
+						{#if bulkTagForm.saving}
+							<span class="inline-flex items-center gap-2">
+								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								{$t('admin.media.saving')}
+							</span>
+						{:else}
+							{$t('admin.media.bulk_tag_apply')}
 						{/if}
 					</button>
 				</div>

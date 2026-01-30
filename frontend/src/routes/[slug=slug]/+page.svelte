@@ -4,6 +4,7 @@
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { navigating } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
@@ -37,6 +38,9 @@
 	}
 
 	let { data }: Props = $props();
+
+	// Track navigation to prevent showing "Not Found" during transitions
+	let isNavigating = $derived($navigating !== null);
 
 	// Print menu state
 	let showPrintMenu = $state(false);
@@ -300,7 +304,8 @@
 		viewId={data.view?.id || ''}
 		on:verified={handlePasswordVerified}
 	/>
-{:else if !data.view}
+{:else if !data.view && !isNavigating}
+	<!-- Only show "Not Found" when not navigating (prevents flash during transitions) -->
 	<div class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">Not Found</h1>
@@ -308,7 +313,7 @@
 			<a href="/" class="mt-4 inline-block btn btn-primary">Go Home</a>
 		</div>
 	</div>
-{:else}
+{:else if data.view}
 	<div class="min-h-screen">
 		<div
 			class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
