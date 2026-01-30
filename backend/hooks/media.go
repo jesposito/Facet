@@ -1226,12 +1226,21 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 
 	items := make([]services.MediaItem, 0, len(records))
 	for _, record := range records {
+		recordURL := record.GetString("url")
+
+		// Skip "mirror" entries that point to internal PocketBase files
+		// These are created when attaching uploads to posts/projects/talks via media_refs
+		// and appear as duplicates in the media library
+		if strings.Contains(recordURL, "/api/files/") {
+			continue
+		}
+
 		created := record.GetDateTime("created").Time()
 		title := record.GetString("title")
 		if title == "" {
-			title = record.GetString("url")
+			title = recordURL
 		}
-		normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+		normalized := mediaembed.Normalize(recordURL, record.GetString("mime"), record.GetString("thumbnail_url"))
 
 		// Get usage info for this external media item
 		usage, _ := services.FindMediaUsage(app, record.Id)
