@@ -37,66 +37,71 @@
 		<!-- Timeline Layout -->
 		<div class="relative">
 			<!-- Timeline line -->
-			<div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
+			<div class="absolute left-4 top-0 bottom-0 w-0.5 bg-primary-200 dark:bg-primary-800"></div>
 
 			<div class="space-y-8 pl-12">
 				{#each items as item, index (item.id)}
 					<article class="relative animate-fade-in">
-						<!-- Timeline node -->
-						<div class="absolute -left-12 w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center z-10">
-							<div class="w-3 h-3 bg-white rounded-full"></div>
+						<!-- Timeline node (small accent dot) -->
+						<div class="absolute -left-12 w-8 h-8 flex items-center justify-center z-10">
+							<div class="w-3 h-3 bg-primary-600 rounded-full ring-4 ring-white dark:ring-gray-900"></div>
 						</div>
 
-						<div class="pb-2">
-							<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-								{#if item.company_logo_url || item.company_logo}
+						<!-- Content with optional logo as visual anchor -->
+						<div class="flex gap-4">
+							{#if item.company_logo_url || item.company_logo}
+								<div class="shrink-0 w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center {getLogoBgClass(item.logo_background) || 'bg-gray-100 dark:bg-gray-800'}">
 									<img
-										src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '24x24' })}
+										src={item.company_logo_url || pb.files.getUrl(item, item.company_logo!, { thumb: '40x40' })}
 										alt="{item.company} logo"
-										class="w-5 h-5 object-contain rounded self-center {getLogoBgClass(item.logo_background)}"
+										class="w-8 h-8 object-contain"
 									/>
+								</div>
+							{/if}
+							<div class="flex-1 min-w-0">
+								<div class="pb-2">
+									<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+										{item.title}
+									</h3>
+									<span class="text-primary-600 dark:text-primary-400 font-medium">
+										{item.company}
+									</span>
+									<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400 mt-1">
+										<span class="font-medium">{formatDateRange(item.start_date, item.end_date, presentText)}</span>
+										{#if item.location}
+											<span>• {item.location}</span>
+										{/if}
+									</div>
+								</div>
+
+								{#if item.description}
+									<div class="prose-custom text-gray-600 dark:text-gray-300 text-sm">
+										{@html parseMarkdown(item.description)}
+									</div>
 								{/if}
-								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-									{item.title}
-								</h3>
-								<span class="text-primary-600 dark:text-primary-400 font-medium">
-									{item.company}
-								</span>
-							</div>
-							<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-								<span class="font-medium">{formatDateRange(item.start_date, item.end_date, presentText)}</span>
-								{#if item.location}
-									<span>• {item.location}</span>
+
+								{#if item.bullets && item.bullets.length > 0}
+									<ul class="mt-2 space-y-1">
+										{#each item.bullets as bullet}
+											<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
+												<span class="text-primary-500 mt-0.5">•</span>
+												<span>{stripBulletPrefix(bullet)}</span>
+											</li>
+										{/each}
+									</ul>
+								{/if}
+
+								{#if item.skills && item.skills.length > 0}
+									<div class="mt-3 flex flex-wrap gap-1.5">
+										{#each item.skills as skill}
+											<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+												{skill}
+											</span>
+										{/each}
+									</div>
 								{/if}
 							</div>
 						</div>
-
-						{#if item.description}
-							<div class="prose-custom text-gray-600 dark:text-gray-300 text-sm">
-								{@html parseMarkdown(item.description)}
-							</div>
-						{/if}
-
-						{#if item.bullets && item.bullets.length > 0}
-							<ul class="mt-2 space-y-1">
-								{#each item.bullets as bullet}
-									<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
-										<span class="text-primary-500 mt-0.5">•</span>
-										<span>{stripBulletPrefix(bullet)}</span>
-									</li>
-								{/each}
-							</ul>
-						{/if}
-
-						{#if item.skills && item.skills.length > 0}
-							<div class="mt-3 flex flex-wrap gap-1.5">
-								{#each item.skills as skill}
-									<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
-										{skill}
-									</span>
-								{/each}
-							</div>
-						{/if}
 					</article>
 				{/each}
 			</div>
