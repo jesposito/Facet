@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -57,8 +58,21 @@ func (ts *ThumbnailService) GenerateThumbnail(collectionID, recordID, filename s
 		return thumbFilename, nil
 	}
 
+	// For HEIC/HEIF files, convert to JPEG first
+	imagePath := srcPath
+	var tempFile string
+	if isHEICFile(filename) {
+		converted, err := convertHEICToJPEG(srcPath)
+		if err != nil {
+			return "", fmt.Errorf("failed to convert HEIC: %w", err)
+		}
+		imagePath = converted
+		tempFile = converted
+		defer os.Remove(tempFile)
+	}
+
 	// Open and decode the source image
-	srcImage, err := imaging.Open(srcPath)
+	srcImage, err := imaging.Open(imagePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open image: %w", err)
 	}
@@ -109,8 +123,38 @@ func IsSupportedFormat(mimeType string) bool {
 		"image/webp": true,
 		"image/bmp":  true,
 		"image/tiff": true,
+		"image/heic": true,
+		"image/heif": true,
 	}
 	return supportedMimes[strings.ToLower(mimeType)]
+}
+
+// IsHEICFormat checks if the mime type is HEIC/HEIF format.
+func IsHEICFormat(mimeType string) bool {
+	lower := strings.ToLower(mimeType)
+	return lower == "image/heic" || lower == "image/heif"
+}
+
+// convertHEICToJPEG uses heif-convert (from libheif) to convert HEIC to JPEG.
+// Returns the path to the converted JPEG file, which should be cleaned up after use.
+func convertHEICToJPEG(heicPath string) (string, error) {
+	// Create temp file for output
+	tmpDir := os.TempDir()
+	outPath := filepath.Join(tmpDir, fmt.Sprintf("heic_convert_%d.jpg", os.Getpid()))
+
+	// Run heif-convert
+	cmd := exec.Command("heif-convert", "-q", "90", heicPath, outPath)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("heif-convert failed: %w", err)
+	}
+
+	return outPath, nil
+}
+
+// isHEICFile checks if the filename has a HEIC/HEIF extension.
+func isHEICFile(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	return ext == ".heic" || ext == ".heif"
 }
 
 // EnsureThumbnail generates a thumbnail if one doesn't exist and the format is supported.
@@ -145,8 +189,20 @@ func (ts *ThumbnailService) DeleteThumbnail(collectionID, recordID, filename str
 }
 
 // GetImageDimensions reads the dimensions of an image without loading the full image.
+// For HEIC/HEIF files, it converts to JPEG first since Go's standard library doesn't support HEIC.
 func GetImageDimensions(filePath string) (width, height int, err error) {
-	f, err := os.Open(filePath)
+	// For HEIC files, convert to JPEG first to read dimensions
+	readPath := filePath
+	if isHEICFile(filePath) {
+		converted, err := convertHEICToJPEG(filePath)
+		if err != nil {
+			return 0, 0, fmt.Errorf("failed to convert HEIC for dimensions: %w", err)
+		}
+		defer os.Remove(converted)
+		readPath = converted
+	}
+
+	f, err := os.Open(readPath)
 	if err != nil {
 		return 0, 0, err
 	}
