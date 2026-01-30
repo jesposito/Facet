@@ -1213,14 +1213,16 @@
 											{#if item.tags && item.tags.length > 0}
 												{#each item.tags.slice(0, 2) as tag}
 													<span
-														class="inline-flex items-center px-1.5 py-0.5 text-xs rounded shrink-0"
-														style="background-color: {tag.color || '#e5e7eb'}20; color: {tag.color || '#374151'}"
+														class="inline-flex items-center px-1.5 py-0.5 text-xs rounded shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
 													>
+														{#if tag.color}
+															<span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: {tag.color}"></span>
+														{/if}
 														{tag.name}
 													</span>
 												{/each}
 												{#if item.tags.length > 2}
-													<span class="text-xs text-gray-500">+{item.tags.length - 2}</span>
+													<span class="text-xs text-gray-500 dark:text-gray-400">+{item.tags.length - 2}</span>
 												{/if}
 											{/if}
 										</div>
@@ -1388,7 +1390,7 @@
 							<div class="flex flex-wrap gap-2">
 								{#each availableTags as tag}
 									<label
-										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {editForm.tag_ids.includes(tag.id) ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {editForm.tag_ids.includes(tag.id) ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
 									>
 										<input
 											type="checkbox"
@@ -1501,7 +1503,7 @@
 					<div class="flex flex-wrap gap-2">
 						{#each availableTags as tag}
 							<label
-								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {bulkTagForm.addTags.includes(tag.id) ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {bulkTagForm.addTags.includes(tag.id) ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
 							>
 								<input
 									type="checkbox"
@@ -1525,7 +1527,7 @@
 								{/if}
 								<span class="text-sm">{tag.name}</span>
 								{#if bulkTagForm.addTags.includes(tag.id)}
-									<span class="text-green-600">+</span>
+									<span class="text-green-600 dark:text-green-400">+</span>
 								{/if}
 							</label>
 						{/each}
@@ -1537,7 +1539,7 @@
 					<div class="flex flex-wrap gap-2">
 						{#each availableTags as tag}
 							<label
-								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {bulkTagForm.removeTags.includes(tag.id) ? 'border-red-500 bg-red-50 dark:bg-red-900/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {bulkTagForm.removeTags.includes(tag.id) ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
 							>
 								<input
 									type="checkbox"
@@ -1561,7 +1563,7 @@
 								{/if}
 								<span class="text-sm">{tag.name}</span>
 								{#if bulkTagForm.removeTags.includes(tag.id)}
-									<span class="text-red-600">−</span>
+									<span class="text-red-600 dark:text-red-400">−</span>
 								{/if}
 							</label>
 						{/each}

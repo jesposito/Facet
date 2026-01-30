@@ -593,7 +593,7 @@
 							<option value="black">{$t('admin.content.common.logo_background.black')}</option>
 							<option value="accent">{$t('admin.content.common.logo_background.accent')}</option>
 						</select>
-						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.logo_background_help')}</p>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.content.experience.logo_background_help')}</p>
 					</div>
 				</div>
 
