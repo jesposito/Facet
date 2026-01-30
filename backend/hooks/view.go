@@ -889,9 +889,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if err == nil && len(projectRecords) > 0 {
 					projects := serializeRecords(projectRecords)
 					projectCollectionID := projectRecords[0].Collection().Id
-					// Add file URLs for cover images
+					// Add file URLs for cover images - prefer library URL over direct upload
 					for i, p := range projects {
-						if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+						if libraryURL, ok := p["cover_image_library_url"].(string); ok && libraryURL != "" {
+							projects[i]["cover_image_url"] = libraryURL
+							projects[i]["cover_image_large_url"] = libraryURL
+							projects[i]["cover_image_thumb_url"] = libraryURL
+						} else if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
 							if id, ok := p["id"].(string); ok {
 								projects[i]["cover_image_url"] = fileURL(projectCollectionID, id, coverImage, "")
 								projects[i]["cover_image_large_url"] = fileURL(projectCollectionID, id, coverImage, "thumb=1600x0")
@@ -966,9 +970,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					if len(postRecords) > 0 {
 						posts := serializeRecords(postRecords)
 						postCollectionID := postRecords[0].Collection().Id
-						// Add file URLs for cover images
+						// Add file URLs for cover images - prefer library URL over direct upload
 						for i, p := range posts {
-							if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+							if libraryURL, ok := p["cover_image_library_url"].(string); ok && libraryURL != "" {
+								posts[i]["cover_image_url"] = libraryURL
+								posts[i]["cover_image_large_url"] = libraryURL
+								posts[i]["cover_image_thumb_url"] = libraryURL
+							} else if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
 								if id, ok := p["id"].(string); ok {
 									posts[i]["cover_image_url"] = fileURL(postCollectionID, id, coverImage, "")
 									posts[i]["cover_image_large_url"] = fileURL(postCollectionID, id, coverImage, "thumb=1600x0")
@@ -1186,9 +1194,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			posts := serializeRecords(postRecords)
 			if len(postRecords) > 0 {
 				postCollectionID := postRecords[0].Collection().Id
-				// Add file URLs for cover images
+				// Add file URLs for cover images - prefer library URL over direct upload
 				for i, p := range posts {
-					if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
+					if libraryURL, ok := p["cover_image_library_url"].(string); ok && libraryURL != "" {
+						posts[i]["cover_image_url"] = libraryURL
+						posts[i]["cover_image_large_url"] = libraryURL
+						posts[i]["cover_image_thumb_url"] = libraryURL
+					} else if coverImage, ok := p["cover_image"].(string); ok && coverImage != "" {
 						if id, ok := p["id"].(string); ok {
 							posts[i]["cover_image_url"] = fileURL(postCollectionID, id, coverImage, "")
 							posts[i]["cover_image_large_url"] = fileURL(postCollectionID, id, coverImage, "thumb=1600x0")
@@ -1678,8 +1690,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Resolve cover image URL
-			if coverImage := post.GetString("cover_image"); coverImage != "" {
+			// Resolve cover image URL - prefer library URL over direct upload
+			if libraryURL := post.GetString("cover_image_library_url"); libraryURL != "" {
+				response["cover_image_url"] = libraryURL
+				response["cover_image_large_url"] = libraryURL
+				response["cover_image_thumb_url"] = libraryURL
+			} else if coverImage := post.GetString("cover_image"); coverImage != "" {
 				response["cover_image_url"] = fileURL(post.Collection().Id, post.Id, coverImage, "")
 				response["cover_image_large_url"] = fileURL(post.Collection().Id, post.Id, coverImage, "thumb=1600x0")
 				response["cover_image_thumb_url"] = fileURL(post.Collection().Id, post.Id, coverImage, "thumb=480x0")
@@ -1825,8 +1841,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Resolve cover image URL
-			if coverImage := project.GetString("cover_image"); coverImage != "" {
+			// Resolve cover image URL - prefer library URL over direct upload
+			if libraryURL := project.GetString("cover_image_library_url"); libraryURL != "" {
+				response["cover_image_url"] = libraryURL
+				response["cover_image_large_url"] = libraryURL
+				response["cover_image_thumb_url"] = libraryURL
+			} else if coverImage := project.GetString("cover_image"); coverImage != "" {
 				response["cover_image_url"] = fileURL(project.Collection().Id, project.Id, coverImage, "")
 				response["cover_image_large_url"] = fileURL(project.Collection().Id, project.Id, coverImage, "thumb=1600x0")
 				response["cover_image_thumb_url"] = fileURL(project.Collection().Id, project.Id, coverImage, "thumb=480x0")
