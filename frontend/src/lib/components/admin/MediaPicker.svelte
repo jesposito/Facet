@@ -116,9 +116,9 @@
 			const options: MediaOption[] = [];
 			const urlToExternalId = new Map<string, string>();
 
-			// First pass: collect external_media IDs by URL
+			// First pass: collect external_media IDs by URL (skip internal mirrors)
 			for (const item of externalData.items || []) {
-				if (item.url) {
+				if (item.url && !item.url.includes('/api/files/')) {
 					urlToExternalId.set(item.url, item.id);
 				}
 			}
@@ -139,9 +139,10 @@
 			}
 
 			// Add external_media items that don't have a matching internal URL
+			// Skip "mirror" entries that point to internal PocketBase files
 			const addedUrls = new Set(options.map((opt) => opt.url));
 			for (const item of externalData.items || []) {
-				if (!addedUrls.has(item.url)) {
+				if (!addedUrls.has(item.url) && !item.url?.includes('/api/files/')) {
 					options.push({
 						id: item.id,
 						title: item.title || item.url,
