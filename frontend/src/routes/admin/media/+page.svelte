@@ -134,7 +134,6 @@
 	type FileProgress = { name: string; loaded: number; total: number; status: 'pending' | 'uploading' | 'done' | 'error' };
 	let fileProgresses = $state<FileProgress[]>([]);
 
-	let showExternalPreview = $state(false);
 	let externalPreviewFailed = $state(false);
 	let previewItem: MediaItem | null = $state(null);
 	let editItem: MediaItem | null = $state(null);
@@ -855,20 +854,13 @@
 				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder={$t('admin.media.thumbnail_placeholder')} />
 			</div>
 			{#if newExternal.url.trim()}
+				{@const previewMime = newExternal.mime.trim()}
+				{@const previewUrl = newExternal.url.trim()}
+				{@const thumbUrl = newExternal.thumbnail_url.trim()}
+				{@const isVideo = previewMime.startsWith('video/') || /youtube|vimeo|loom/i.test(previewUrl)}
 				<div class="lg:col-span-4">
-					<button
-						type="button"
-						class="btn btn-ghost btn-sm"
-						onclick={() => { showExternalPreview = !showExternalPreview; externalPreviewFailed = false; }}
-					>
-						{showExternalPreview ? $t('admin.media.hide_preview') : $t('admin.media.show_preview')}
-					</button>
-					{#if showExternalPreview}
-						{@const previewMime = newExternal.mime.trim()}
-						{@const previewUrl = newExternal.url.trim()}
-						{@const thumbUrl = newExternal.thumbnail_url.trim()}
-						{@const isVideo = previewMime.startsWith('video/') || /youtube|vimeo|loom/i.test(previewUrl)}
-						<div class="mt-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+					{#key previewUrl}
+						<div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
 							{#if isVideo}
 								{#if thumbUrl}
 									<img src={thumbUrl} alt="Thumbnail" class="max-h-48 mx-auto rounded" />
@@ -893,7 +885,7 @@
 								{/if}
 							{/if}
 						</div>
-					{/if}
+					{/key}
 				</div>
 			{/if}
 		</div>
