@@ -232,6 +232,9 @@ function openEditForm(post: Post) {
 	}
 
 	function getCoverImageUrl(post: Post): string {
+		// Prefer library URL over direct upload
+		const libraryUrl = (post as any).cover_image_library_url;
+		if (libraryUrl) return libraryUrl;
 		if (!(post as any).cover_image) return '';
 		return getFileUrl(post, (post as any).cover_image);
 	}
