@@ -1158,6 +1158,10 @@ func collectOrphanMediaItems(app *pocketbase.PocketBase, storage *services.Stora
 			if strings.HasSuffix(d.Name(), ".attrs") {
 				return nil
 			}
+			// Skip thumbnail files - they are generated artifacts, not orphans
+			if strings.Contains(d.Name(), services.ThumbnailSuffix) {
+				return nil
+			}
 			info, infoErr := d.Info()
 			if infoErr == nil {
 				totalStorageSize += info.Size()

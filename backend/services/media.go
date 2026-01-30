@@ -286,14 +286,18 @@ func BuildMediaItem(storage *StorageService, collectionName, collectionID, recor
 	}
 
 	// Check for existing thumbnail, regenerate if missing for supported formats
-	thumbFilename := GetThumbnailPath(filename)
-	if _, found := storage.FindFile(collectionID, recordID, thumbFilename); found {
-		item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
-	} else if IsSupportedFormat(mimeType) {
-		// Thumbnail missing but format is supported - regenerate it
-		thumbService := NewThumbnailService(storage)
-		if generatedName, err := thumbService.GenerateThumbnail(collectionID, recordID, filename, ThumbnailSize); err == nil {
-			item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, generatedName)
+	// Skip if this file is already a thumbnail (prevent recursive thumbnail generation)
+	isAlreadyThumbnail := strings.Contains(filename, ThumbnailSuffix)
+	if !isAlreadyThumbnail {
+		thumbFilename := GetThumbnailPath(filename)
+		if _, found := storage.FindFile(collectionID, recordID, thumbFilename); found {
+			item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
+		} else if IsSupportedFormat(mimeType) {
+			// Thumbnail missing but format is supported - regenerate it
+			thumbService := NewThumbnailService(storage)
+			if generatedName, err := thumbService.GenerateThumbnail(collectionID, recordID, filename, ThumbnailSize); err == nil {
+				item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, generatedName)
+			}
 		}
 	}
 
