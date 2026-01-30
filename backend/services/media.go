@@ -420,3 +420,74 @@ func DeleteMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, 
 
 	return app.Delete(records[0])
 }
+
+// MediaMetadata holds all custom metadata for a media file.
+type MediaMetadata struct {
+	DisplayName string   `json:"display_name"`
+	AltText     string   `json:"alt_text"`
+	Description string   `json:"description"`
+	TagIDs      []string `json:"tag_ids"`
+}
+
+// GetMediaMetadata retrieves all custom metadata for a media file.
+func GetMediaMetadata(app *pocketbase.PocketBase, collectionID, recordID, filename string) *MediaMetadata {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return nil
+	}
+
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	if err != nil || len(records) == 0 {
+		return nil
+	}
+
+	record := records[0]
+	return &MediaMetadata{
+		DisplayName: record.GetString("display_name"),
+		AltText:     record.GetString("alt_text"),
+		Description: record.GetString("description"),
+		TagIDs:      record.GetStringSlice("admin_tags"),
+	}
+}
+
+// SetMediaMetadata sets all custom metadata for a media file.
+// Creates a new record or updates existing one.
+func SetMediaMetadata(app *pocketbase.PocketBase, collectionID, recordID, filename string, metadata MediaMetadata) error {
+	collection, err := app.FindCollectionByNameOrId("media_display_names")
+	if err != nil {
+		return fmt.Errorf("media_display_names collection not found: %w", err)
+	}
+
+	// Check if record already exists
+	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+
+	// If all fields are empty and record exists, delete it
+	isEmpty := metadata.DisplayName == "" && metadata.AltText == "" && metadata.Description == "" && len(metadata.TagIDs) == 0
+	if isEmpty {
+		if err == nil && len(records) > 0 {
+			return app.Delete(records[0])
+		}
+		return nil
+	}
+
+	var record *core.Record
+	if err == nil && len(records) > 0 {
+		// Update existing
+		record = records[0]
+	} else {
+		// Create new
+		record = core.NewRecord(collection)
+		record.Set("collection_id", collectionID)
+		record.Set("record_id", recordID)
+		record.Set("filename", filename)
+	}
+
+	record.Set("display_name", metadata.DisplayName)
+	record.Set("alt_text", metadata.AltText)
+	record.Set("description", metadata.Description)
+	record.Set("admin_tags", metadata.TagIDs)
+
+	return app.Save(record)
+}

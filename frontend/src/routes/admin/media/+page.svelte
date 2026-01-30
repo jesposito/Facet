@@ -253,8 +253,8 @@
 					throw new Error(respBody.message || respBody.error || 'Failed to update media');
 				}
 			} else {
-				// Other collections: use display-name endpoint to set custom name
-				const res = await fetch('/api/media/display-name', {
+				// Other collections: use metadata endpoint to set all metadata
+				const res = await fetch('/api/media/metadata', {
 					method: 'PATCH',
 					headers: {
 						'Content-Type': 'application/json',
@@ -264,12 +264,15 @@
 						collection_id: editItem.collection_id,
 						record_id: editItem.record_id,
 						filename: editItem.filename,
-						display_name: editForm.title.trim()
+						display_name: editForm.title.trim(),
+						alt_text: editForm.alt_text.trim(),
+						description: editForm.description.trim(),
+						tag_ids: editForm.tag_ids
 					})
 				});
 				if (!res.ok) {
 					const respBody = await res.json().catch(() => ({}));
-					throw new Error(respBody.message || respBody.error || 'Failed to update display name');
+					throw new Error(respBody.message || respBody.error || 'Failed to update metadata');
 				}
 			}
 
@@ -1510,9 +1513,9 @@
 					/>
 					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_title_help')}</p>
 				</div>
-				{#if editItem.external || editItem.collection === 'external_media' || editItem.collection === 'uploads'}
-					<div>
-						<label class="label" for="edit-alt-text">{$t('admin.media.edit_alt_text_label')}</label>
+				<!-- Alt text, description, and tags available for all media items -->
+				<div>
+					<label class="label" for="edit-alt-text">{$t('admin.media.edit_alt_text_label')}</label>
 						<input
 							id="edit-alt-text"
 							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
@@ -1567,7 +1570,6 @@
 							<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_tags_help')}</p>
 						</div>
 					{/if}
-				{/if}
 				{#if editItem.external || editItem.collection === 'external_media'}
 					<div>
 						<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>

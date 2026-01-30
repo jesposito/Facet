@@ -477,7 +477,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}).Bind(apis.RequireAuth())
 
-		// Update display name for any media file
+		// Update display name for any media file (legacy endpoint, still works)
 		se.Router.PATCH("/api/media/display-name", func(e *core.RequestEvent) error {
 			var req struct {
 				CollectionID string `json:"collection_id"`
@@ -502,6 +502,39 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				if err := services.SetMediaDisplayName(app, req.CollectionID, req.RecordID, req.Filename, req.DisplayName); err != nil {
 					return apis.NewBadRequestError("failed to set display name", err)
 				}
+			}
+
+			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
+		}).Bind(apis.RequireAuth())
+
+		// Update all metadata for any media file (display_name, alt_text, description, tags)
+		se.Router.PATCH("/api/media/metadata", func(e *core.RequestEvent) error {
+			var req struct {
+				CollectionID string   `json:"collection_id"`
+				RecordID     string   `json:"record_id"`
+				Filename     string   `json:"filename"`
+				DisplayName  string   `json:"display_name"`
+				AltText      string   `json:"alt_text"`
+				Description  string   `json:"description"`
+				TagIDs       []string `json:"tag_ids"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			if req.CollectionID == "" || req.RecordID == "" || req.Filename == "" {
+				return apis.NewBadRequestError("collection_id, record_id, and filename are required", nil)
+			}
+
+			metadata := services.MediaMetadata{
+				DisplayName: req.DisplayName,
+				AltText:     req.AltText,
+				Description: req.Description,
+				TagIDs:      req.TagIDs,
+			}
+
+			if err := services.SetMediaMetadata(app, req.CollectionID, req.RecordID, req.Filename, metadata); err != nil {
+				return apis.NewBadRequestError("failed to set metadata", err)
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
@@ -1098,21 +1131,6 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						continue
 					}
 
-					// Check for custom display name first
-					customName := services.GetMediaDisplayName(app, collection.Id, record.Id, filename)
-					if customName != "" {
-						item.DisplayName = customName
-					} else {
-						// Fall back to record title for uploads collection
-						recordTitle := record.GetString("title")
-						if recordTitle == "" {
-							recordTitle = record.GetString("name")
-						}
-						if recordTitle != "" {
-							item.DisplayName = recordTitle
-						}
-					}
-
 					// Set record label (for "used by" display)
 					recordLabel := record.GetString("title")
 					if recordLabel == "" {
@@ -1129,9 +1147,13 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						usage := findLibraryURLUsage(app, item.URL)
 						item.UsageCount = usage.UsageCount
 						item.UsedBy = usage.UsedBy
-						// Get alt_text, description for uploads
+						// Get alt_text, description, display_name for uploads from record
 						item.AltText = record.GetString("alt_text")
 						item.Description = record.GetString("description")
+						customName := record.GetString("title")
+						if customName != "" {
+							item.DisplayName = customName
+						}
 					} else {
 						item.UsageCount = 1
 						item.UsedBy = []services.MediaUsageItem{{
@@ -1140,10 +1162,41 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 							Title:      recordLabel,
 							Slug:       record.GetString("slug"),
 						}}
+						// For other collections, get metadata from media_display_names
+						if metadata := services.GetMediaMetadata(app, collection.Id, record.Id, filename); metadata != nil {
+							if metadata.DisplayName != "" {
+								item.DisplayName = metadata.DisplayName
+							}
+							item.AltText = metadata.AltText
+							item.Description = metadata.Description
+							// Fetch tags from media_display_names
+							if len(metadata.TagIDs) > 0 {
+								item.Tags = make([]services.MediaTag, 0, len(metadata.TagIDs))
+								for _, tagID := range metadata.TagIDs {
+									tagRecord, err := app.FindRecordById("admin_tags", tagID)
+									if err != nil {
+										continue
+									}
+									item.Tags = append(item.Tags, services.MediaTag{
+										ID:    tagRecord.Id,
+										Name:  tagRecord.GetString("name"),
+										Color: tagRecord.GetString("color"),
+									})
+								}
+							}
+						}
+						// Fall back to record title if no custom display name
+						if item.DisplayName == "" {
+							if recordTitle := record.GetString("title"); recordTitle != "" {
+								item.DisplayName = recordTitle
+							} else if recordName := record.GetString("name"); recordName != "" {
+								item.DisplayName = recordName
+							}
+						}
 					}
 
-					// Fetch tags for all collections that have admin_tags field
-					if collection.Fields.GetByName("admin_tags") != nil {
+					// Fetch tags for uploads collection (from record's admin_tags field)
+					if collection.Name == "uploads" && collection.Fields.GetByName("admin_tags") != nil {
 						item.Tags = fetchMediaTags(app, record)
 					}
 					all = append(all, item)
