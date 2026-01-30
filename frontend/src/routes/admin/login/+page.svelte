@@ -43,10 +43,25 @@
 	});
 
 	onMount(async () => {
-		// If already logged in, redirect to admin
+		// If we have what looks like valid auth, verify it's actually valid server-side
+		// This prevents redirect loops when the local token is stale/invalid
 		if (pb.authStore.isValid && pb.authStore.model) {
-			redirecting = true;
-			goto('/admin', { replaceState: true });
+			try {
+				// Try to refresh/validate the token with the server
+				await pb.collection('users').authRefresh();
+				// Token is valid - redirect to admin
+				redirecting = true;
+				goto('/admin', { replaceState: true });
+				return; // Don't load auth methods if we're redirecting
+			} catch (err) {
+				// Token is invalid - clear the stale auth state
+				console.log('[LOGIN] Stale auth detected, clearing auth state');
+				pb.authStore.clear();
+				// Clear the cookie by setting it to empty
+				if (browser) {
+					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+				}
+			}
 		}
 
 		if (browser) {
