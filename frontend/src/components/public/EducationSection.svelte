@@ -39,7 +39,7 @@
 					<article class="relative animate-fade-in">
 						<!-- Timeline node (small accent dot) -->
 						<div class="absolute -left-12 w-8 h-8 flex items-center justify-center z-10">
-							<div class="w-3 h-3 bg-primary-600 rounded-full ring-4 ring-white dark:ring-gray-900"></div>
+							<div class="w-4 h-4 bg-primary-600 rounded-full ring-4 ring-white dark:ring-gray-900"></div>
 						</div>
 
 						<!-- Content with optional logo as visual anchor -->
