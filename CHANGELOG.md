@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.13.3 - January 30, 2026
+
+**Bugs Fixed:**
+- Fix Certifications button to display the correct i18n label instead of a raw key.
+- Fix cover image selection to persist after navigation and browser crashes.
+- Fix rename modal to remain open when selecting text.
+
+**Pull Requests:** [#351](https://github.com/jesposito/Facet/pull/351),
+
+---
+
+
 ## v2.13.2 - January 29, 2026
 
 **Bugs Fixed:**
