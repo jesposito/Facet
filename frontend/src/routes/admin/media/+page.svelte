@@ -560,9 +560,9 @@
 		selectedItems = [];
 	}
 
-	// Check if an item is selectable for bulk operations (uploads or external_media)
+	// Check if an item is selectable for bulk operations (any non-orphan item with a record_id)
 	function isSelectableForBulk(item: MediaItem): boolean {
-		return !item.orphan && (item.collection === 'uploads' || item.collection === 'external_media');
+		return !item.orphan && !!item.record_id;
 	}
 
 	// Toggle selection for bulk operations
