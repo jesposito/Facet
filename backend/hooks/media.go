@@ -746,7 +746,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			})
 		}).Bind(apis.RequireAuth())
 
-		// Get recently used media
+		// Get recently used media (with fallback to recently created)
 		se.Router.GET("/api/media/recent", func(e *core.RequestEvent) error {
 			query := e.Request.URL.Query()
 			limit := parseIntDefault(query.Get("limit"), 10)
@@ -755,71 +755,111 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			var items []services.MediaItem
+			seenIDs := make(map[string]struct{})
 
-			// Get recent uploads
-			uploadsCollection, err := app.FindCollectionByNameOrId("uploads")
-			if err == nil {
+			// Helper to add upload items
+			addUploadItems := func(records []*core.Record, uploadsCollection *core.Collection) {
+				for _, record := range records {
+					if _, seen := seenIDs[record.Id]; seen {
+						continue
+					}
+					created := record.GetDateTime("created").Time()
+					filename := record.GetString("file")
+					if filename == "" {
+						continue
+					}
+					item, err := services.BuildMediaItem(storage, uploadsCollection.Name, uploadsCollection.Id, record.Id, "file", filename, created)
+					if err != nil {
+						continue
+					}
+					item.DisplayName = record.GetString("title")
+					if item.DisplayName == "" {
+						item.DisplayName = filename
+					}
+					item.AltText = record.GetString("alt_text")
+					item.Description = record.GetString("description")
+					item.Tags = fetchMediaTags(app, record)
+					items = append(items, item)
+					seenIDs[record.Id] = struct{}{}
+				}
+			}
+
+			// Helper to add external media items
+			addExternalItems := func(records []*core.Record, externalCollection *core.Collection) {
+				for _, record := range records {
+					if _, seen := seenIDs[record.Id]; seen {
+						continue
+					}
+					created := record.GetDateTime("created").Time()
+					title := record.GetString("title")
+					if title == "" {
+						title = record.GetString("url")
+					}
+					normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+					item := services.MediaItem{
+						Collection:    externalCollection.Name,
+						CollectionID:  externalCollection.Id,
+						CollectionKey: "external",
+						RecordID:      record.Id,
+						Field:         "external",
+						Filename:      title,
+						DisplayName:   title,
+						URL:           record.GetString("url"),
+						Mime:          normalized.Mime,
+						ThumbnailURL:  normalized.ThumbnailURL,
+						EmbedURL:      normalized.EmbedURL,
+						Provider:      normalized.Provider,
+						UploadedAt:    created,
+						External:      true,
+						AltText:       record.GetString("alt_text"),
+						Description:   record.GetString("description"),
+						Tags:          fetchMediaTags(app, record),
+					}
+					items = append(items, item)
+					seenIDs[record.Id] = struct{}{}
+				}
+			}
+
+			// First pass: get items with last_used_at set (recently selected)
+			uploadsCollection, uploadsErr := app.FindCollectionByNameOrId("uploads")
+			externalCollection, externalErr := app.FindCollectionByNameOrId("external_media")
+
+			if uploadsErr == nil {
 				records, err := app.FindRecordsByFilter(uploadsCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
 				if err == nil {
-					for _, record := range records {
-						created := record.GetDateTime("created").Time()
-						filename := record.GetString("file")
-						if filename == "" {
-							continue
-						}
-						item, err := services.BuildMediaItem(storage, uploadsCollection.Name, uploadsCollection.Id, record.Id, "file", filename, created)
-						if err != nil {
-							continue
-						}
-						item.DisplayName = record.GetString("title")
-						if item.DisplayName == "" {
-							item.DisplayName = filename
-						}
-						item.AltText = record.GetString("alt_text")
-						item.Description = record.GetString("description")
-						item.Tags = fetchMediaTags(app, record)
-						items = append(items, item)
-					}
+					addUploadItems(records, uploadsCollection)
 				}
 			}
 
-			// Get recent external media
-			externalCollection, err := app.FindCollectionByNameOrId("external_media")
-			if err == nil {
+			if externalErr == nil {
 				records, err := app.FindRecordsByFilter(externalCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
 				if err == nil {
-					for _, record := range records {
-						created := record.GetDateTime("created").Time()
-						title := record.GetString("title")
-						if title == "" {
-							title = record.GetString("url")
-						}
-						normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
-						item := services.MediaItem{
-							Collection:    externalCollection.Name,
-							CollectionID:  externalCollection.Id,
-							CollectionKey: "external",
-							RecordID:      record.Id,
-							Field:         "external",
-							Filename:      title,
-							DisplayName:   title,
-							URL:           record.GetString("url"),
-							Mime:          normalized.Mime,
-							ThumbnailURL:  normalized.ThumbnailURL,
-							EmbedURL:      normalized.EmbedURL,
-							Provider:      normalized.Provider,
-							UploadedAt:    created,
-							External:      true,
-							AltText:       record.GetString("alt_text"),
-							Description:   record.GetString("description"),
-							Tags:          fetchMediaTags(app, record),
-						}
-						items = append(items, item)
+					addExternalItems(records, externalCollection)
+				}
+			}
+
+			// Second pass: if we don't have enough items, fill with recently created
+			remaining := limit - len(items)
+			if remaining > 0 {
+				if uploadsErr == nil {
+					records, err := app.FindRecordsByFilter(uploadsCollection.Name, "", "-created", remaining, 0, nil)
+					if err == nil {
+						addUploadItems(records, uploadsCollection)
 					}
 				}
 			}
 
-			// Sort by last_used_at and limit
+			remaining = limit - len(items)
+			if remaining > 0 {
+				if externalErr == nil {
+					records, err := app.FindRecordsByFilter(externalCollection.Name, "", "-created", remaining, 0, nil)
+					if err == nil {
+						addExternalItems(records, externalCollection)
+					}
+				}
+			}
+
+			// Trim to limit
 			if len(items) > limit {
 				items = items[:limit]
 			}

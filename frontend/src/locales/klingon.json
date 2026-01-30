@@ -1185,7 +1185,7 @@
 			"picker_loading": "Loading assets...",
 			"picker_empty": "No assets detected. Deploy uploads or external transmissions in the",
 			"picker_go_to_library": "Asset Arsenal",
-			"picker_recent": "Recently deployed",
+			"picker_recent": "Recent",
 			"preview_button": "Inspect",
 			"edit_button": "Modify",
 			"copy_url_button": "Capture Coordinates",

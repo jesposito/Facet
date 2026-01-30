@@ -1185,7 +1185,7 @@
 			"picker_loading": "Gathering memories...",
 			"picker_empty": "No memories found. Add scrolls or external bindings in the",
 			"picker_go_to_library": "Archive of Memories",
-			"picker_recent": "Recently summoned",
+			"picker_recent": "Recent",
 			"preview_button": "Behold",
 			"edit_button": "Inscribe Anew",
 			"copy_url_button": "Copy the Path",

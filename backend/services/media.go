@@ -285,10 +285,16 @@ func BuildMediaItem(storage *StorageService, collectionName, collectionID, recor
 		item.Width, item.Height = extractImageDimensions(fullPath)
 	}
 
-	// Check for existing thumbnail (don't generate here - done via hooks)
+	// Check for existing thumbnail, regenerate if missing for supported formats
 	thumbFilename := GetThumbnailPath(filename)
 	if _, found := storage.FindFile(collectionID, recordID, thumbFilename); found {
 		item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, thumbFilename)
+	} else if IsSupportedFormat(mimeType) {
+		// Thumbnail missing but format is supported - regenerate it
+		thumbService := NewThumbnailService(storage)
+		if generatedName, err := thumbService.GenerateThumbnail(collectionID, recordID, filename, ThumbnailSize); err == nil {
+			item.ThumbnailURL = fmt.Sprintf("/api/files/%s/%s/%s", collectionID, recordID, generatedName)
+		}
 	}
 
 	return item, nil
