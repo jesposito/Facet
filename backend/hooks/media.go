@@ -639,6 +639,113 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
 		}).Bind(apis.RequireAuth())
 
+		// Bulk tag media items
+		se.Router.POST("/api/media/bulk-tag", func(e *core.RequestEvent) error {
+			var req struct {
+				Items []struct {
+					ID         string `json:"id"`
+					Collection string `json:"collection"`
+				} `json:"items"`
+				AddTags    []string `json:"add_tags"`
+				RemoveTags []string `json:"remove_tags"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			if len(req.Items) == 0 {
+				return apis.NewBadRequestError("no items specified", nil)
+			}
+			if len(req.Items) > 100 {
+				return apis.NewBadRequestError("maximum 100 items per request", nil)
+			}
+			if len(req.AddTags) == 0 && len(req.RemoveTags) == 0 {
+				return apis.NewBadRequestError("must specify add_tags or remove_tags", nil)
+			}
+
+			// Build sets for efficient lookup
+			addSet := make(map[string]struct{})
+			for _, id := range req.AddTags {
+				addSet[id] = struct{}{}
+			}
+			removeSet := make(map[string]struct{})
+			for _, id := range req.RemoveTags {
+				removeSet[id] = struct{}{}
+			}
+
+			updated := 0
+			failed := 0
+			var errors []map[string]string
+
+			for _, item := range req.Items {
+				// Validate collection
+				if item.Collection != "uploads" && item.Collection != "external_media" {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": "invalid collection",
+					})
+					continue
+				}
+
+				record, err := app.FindRecordById(item.Collection, item.ID)
+				if err != nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": "not found",
+					})
+					continue
+				}
+
+				// Get current tags
+				currentTags := record.GetStringSlice("admin_tags")
+				tagSet := make(map[string]struct{})
+				for _, id := range currentTags {
+					tagSet[id] = struct{}{}
+				}
+
+				// Add new tags
+				for id := range addSet {
+					tagSet[id] = struct{}{}
+				}
+
+				// Remove tags
+				for id := range removeSet {
+					delete(tagSet, id)
+				}
+
+				// Convert back to slice
+				newTags := make([]string, 0, len(tagSet))
+				for id := range tagSet {
+					newTags = append(newTags, id)
+				}
+
+				// Enforce max 10 tags
+				if len(newTags) > 10 {
+					newTags = newTags[:10]
+				}
+
+				record.Set("admin_tags", newTags)
+				if err := app.Save(record); err != nil {
+					failed++
+					errors = append(errors, map[string]string{
+						"id":    item.ID,
+						"error": err.Error(),
+					})
+					continue
+				}
+
+				updated++
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"updated": updated,
+				"failed":  failed,
+				"errors":  errors,
+			})
+		}).Bind(apis.RequireAuth())
+
 		// Get recently used media
 		se.Router.GET("/api/media/recent", func(e *core.RequestEvent) error {
 			query := e.Request.URL.Query()
