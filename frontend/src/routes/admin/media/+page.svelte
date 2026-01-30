@@ -135,6 +135,7 @@
 	let fileProgresses = $state<FileProgress[]>([]);
 
 	let showExternalPreview = $state(false);
+	let externalPreviewFailed = $state(false);
 	let previewItem: MediaItem | null = $state(null);
 	let editItem: MediaItem | null = $state(null);
 	let editModalMouseDownTarget: EventTarget | null = $state(null);
@@ -839,7 +840,7 @@
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 			<div class="md:col-span-2">
 				<label class="label" for="ext-url">{$t('admin.media.url_required')}</label>
-				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} />
+				<input id="ext-url" class="input" bind:value={newExternal.url} placeholder={$t('admin.media.url_placeholder')} oninput={() => { externalPreviewFailed = false; }} />
 			</div>
 			<div>
 				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
@@ -858,7 +859,7 @@
 					<button
 						type="button"
 						class="btn btn-ghost btn-sm"
-						onclick={() => showExternalPreview = !showExternalPreview}
+						onclick={() => { showExternalPreview = !showExternalPreview; externalPreviewFailed = false; }}
 					>
 						{showExternalPreview ? $t('admin.media.hide_preview') : $t('admin.media.show_preview')}
 					</button>
@@ -866,21 +867,30 @@
 						{@const previewMime = newExternal.mime.trim()}
 						{@const previewUrl = newExternal.url.trim()}
 						{@const thumbUrl = newExternal.thumbnail_url.trim()}
+						{@const isVideo = previewMime.startsWith('video/') || /youtube|vimeo|loom/i.test(previewUrl)}
 						<div class="mt-2 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-							{#if previewMime.startsWith('image/') || (!previewMime && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(previewUrl))}
-								<img src={previewUrl} alt="Preview" class="max-h-48 mx-auto rounded" />
-							{:else if previewMime.startsWith('video/') || /youtube|vimeo|loom/i.test(previewUrl)}
+							{#if isVideo}
 								{#if thumbUrl}
 									<img src={thumbUrl} alt="Thumbnail" class="max-h-48 mx-auto rounded" />
 								{:else}
 									<p class="text-sm text-gray-500 dark:text-gray-400 text-center">{$t('admin.media.video_preview_note')}</p>
 								{/if}
 							{:else}
-								<div class="flex items-center justify-center h-24">
-									<a href={previewUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
-										{$t('admin.media.open_link')}
-									</a>
-								</div>
+								<!-- Try to load as image; show fallback on error -->
+								{#if !externalPreviewFailed}
+									<img
+										src={previewUrl}
+										alt="Preview"
+										class="max-h-48 mx-auto rounded"
+										onerror={() => { externalPreviewFailed = true; }}
+									/>
+								{:else}
+									<div class="flex items-center justify-center h-24">
+										<a href={previewUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+											{$t('admin.media.open_link')}
+										</a>
+									</div>
+								{/if}
 							{/if}
 						</div>
 					{/if}
