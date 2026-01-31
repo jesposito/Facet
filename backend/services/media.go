@@ -134,6 +134,7 @@ type MediaItem struct {
 	Orphan        bool             `json:"orphan,omitempty"`
 	ThumbnailURL  string           `json:"thumbnail_url,omitempty"`
 	External      bool             `json:"external,omitempty"`
+	Type          string           `json:"type,omitempty"`     // "upload" or "external" for media_library
 	Provider      string           `json:"provider,omitempty"`
 	EmbedURL      string           `json:"embed_url,omitempty"`
 	UsageCount    int              `json:"usage_count,omitempty"`

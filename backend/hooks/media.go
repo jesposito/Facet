@@ -1223,6 +1223,10 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						if customName != "" {
 							item.DisplayName = customName
 						}
+						// Set type for media_library items
+						if collection.Name == "media_library" {
+							item.Type = record.GetString("type")
+						}
 					} else {
 						item.UsageCount = 1
 						item.UsedBy = []services.MediaUsageItem{{
@@ -1343,6 +1347,7 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 			Provider:      normalized.Provider,
 			UploadedAt:    created,
 			External:      true,
+			Type:          record.GetString("type"), // "external" for media_library
 			AltText:       record.GetString("alt_text"),
 			Description:   record.GetString("description"),
 			UsageCount:    usage.UsageCount,
