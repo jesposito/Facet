@@ -11,6 +11,8 @@
 		thumbnail_url?: string;
 		mime?: string;
 		collection?: string;
+		description?: string;
+		alt_text?: string;
 	};
 
 	interface Props {
@@ -134,7 +136,9 @@
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
 					mime: item.mime,
-					collection: item.collection
+					collection: item.collection,
+					description: item.description || '',
+					alt_text: item.alt_text || ''
 				});
 			}
 
@@ -150,7 +154,9 @@
 						url: item.url,
 						thumbnail_url: item.thumbnail_url,
 						mime: item.mime,
-						collection: 'external_media'
+						collection: 'external_media',
+						description: item.description || '',
+						alt_text: item.alt_text || ''
 					});
 				}
 			}
@@ -260,10 +266,60 @@
 		return option.mime?.startsWith('image/') || false;
 	}
 
+	/**
+	 * Fetch metadata for IDs that are in value but not in loaded options
+	 * This ensures pre-selected items from editing are shown as checked
+	 */
+	async function reconcileSelectedItems() {
+		if (value.length === 0 || mediaOptions.length === 0) return;
+
+		const loadedIds = new Set(mediaOptions.map((opt) => opt.id));
+		const missingIds = value.filter((id) => !loadedIds.has(id));
+
+		if (missingIds.length === 0) return;
+
+		const headers: Record<string, string> = pb.authStore.isValid
+			? { Authorization: `Bearer ${pb.authStore.token}` }
+			: {};
+
+		// Fetch metadata for missing IDs from external_media
+		for (const id of missingIds) {
+			try {
+				const res = await fetch(`/api/collections/external_media/records/${id}`, { headers });
+				if (res.ok) {
+					const item = await res.json();
+					mediaOptions = [
+						...mediaOptions,
+						{
+							id: item.id,
+							title: item.title || item.url || id,
+							provider: 'external',
+							url: item.url,
+							thumbnail_url: item.thumbnail_url,
+							mime: item.mime,
+							collection: 'external_media',
+							description: item.description || '',
+							alt_text: item.alt_text || ''
+						}
+					];
+				}
+			} catch (err) {
+				console.error('Failed to fetch metadata for', id, err);
+			}
+		}
+	}
+
 	// Load media options and recent items on mount
 	$effect(() => {
 		loadMediaOptions();
 		loadRecentItems();
+	});
+
+	// Reconcile selected items after options load
+	$effect(() => {
+		if (!loadingMedia && mediaOptions.length > 0 && value.length > 0) {
+			reconcileSelectedItems();
+		}
 	});
 </script>
 
@@ -358,7 +414,9 @@
 					{/if}
 					<div class="flex flex-col min-w-0 flex-1">
 						<span class="text-sm font-medium truncate">{opt.title}</span>
-						{#if opt.provider}
+						{#if opt.description}
+							<span class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{opt.description}</span>
+						{:else if opt.provider}
 							<span class="text-xs text-gray-500 dark:text-gray-400">{opt.provider}</span>
 						{/if}
 					</div>
