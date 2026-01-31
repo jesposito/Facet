@@ -13,23 +13,6 @@ All notable changes to Facet will be documented in this file.
 ---
 
 
-## [Unreleased]
-
-**Bugs Fixed:**
-- Fix cover images not clickable on posts and projects sections (#365)
-- Fix media picker checkboxes not showing as selected when editing items with attached media (#363)
-- Fix company logo picker showing job title instead of company name (#340)
-
-**New Features:**
-- Add i18n support for testimonial submission and verification pages (#368)
-- Add media descriptions display in media picker (#355)
-- Add optional profile picture upload for testimonial submissions (#370)
-
-**Other Changes:**
-- Disable "Verify with Email" button with "(Coming Soon)" text until email infrastructure is ready (#371)
-
----
-
 ## v2.15.6 - January 31, 2026
 
 **Bugs Fixed:**
