@@ -2,24 +2,7 @@
 
 All notable changes to Facet will be documented in this file.
 
-
-## v2.15.5 - January 30, 2026
-
-**Other Changes:**
-- Internal improvements and maintenance
-
----
-
-
-## v2.15.4 - January 30, 2026
-
-**Other Changes:**
-- Internal improvements and maintenance
-
----
-
-
-## v2.15.1 - v2.15.3 - January 30, 2026
+## v2.15.1 - v2.15.5 - January 30, 2026
 
 **Other Changes:**
 - Internal improvements to CI/CD and changelog generation
