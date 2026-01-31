@@ -100,8 +100,10 @@
 				}
 			}
 
-			// Add external_media items
+			// Add external_media items (skip mirrors that point to internal files)
 			for (const item of externalData.items || []) {
+				// Skip "mirror" entries that point to internal PocketBase files
+				if (item.url?.includes('/api/files/')) continue;
 				if (imagesOnly && item.mime && !item.mime.startsWith('image/')) continue;
 				if (item.url && !addedUrls.has(item.url)) {
 					addedUrls.add(item.url);
