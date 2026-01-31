@@ -154,7 +154,12 @@ jobs:
           if [ "$EVENT_NAME" == "pull_request" ]; then
             echo "Using PR data from event (guaranteed available)"
             # Read PR data from pre-written JSON file (avoids shell escaping issues)
-            CURRENT_PR=$(cat /tmp/current_pr_event.json)
+            if [ -f /tmp/current_pr_event.json ]; then
+              CURRENT_PR=$(cat /tmp/current_pr_event.json)
+            else
+              echo "WARNING: PR event file not found, falling back to search only"
+              CURRENT_PR="[]"
+            fi
 
             # Also try to get any other PRs merged since the last tag (best-effort)
             # Short delay helps but isn't critical since we have the current PR
