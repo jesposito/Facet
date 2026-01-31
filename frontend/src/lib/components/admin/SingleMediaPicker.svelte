@@ -58,7 +58,7 @@
 	let showPicker = $state(false);
 
 	/**
-	 * Load media options from the API
+	 * Load media options from the unified media_library API
 	 */
 	async function loadMediaOptions(searchTerm = '') {
 		loadingMedia = true;
@@ -69,22 +69,14 @@
 			const mediaParams = new URLSearchParams({ perPage: '50' });
 			if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
 			if (imagesOnly) mediaParams.set('type', 'image');
-			const externalFilter = searchTerm.trim()
-				? `&filter=${encodeURIComponent(`title~"${searchTerm}" || url~"${searchTerm}"`)}`
-				: '';
 
-			const [mediaRes, externalRes] = await Promise.all([
-				fetch(`/api/media?${mediaParams.toString()}`, { headers }),
-				fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
-			]);
-
+			// Query the unified /api/media endpoint which returns both uploads and external media
+			const mediaRes = await fetch(`/api/media?${mediaParams.toString()}`, { headers });
 			const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
-			const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
 
 			const options: MediaOption[] = [];
 			const addedUrls = new Set<string>();
 
-			// Add internal media items
 			for (const item of mediaData.items || []) {
 				if (imagesOnly && !item.mime?.startsWith('image/')) continue;
 				if (item.url && !addedUrls.has(item.url)) {
@@ -93,24 +85,6 @@
 						id: item.record_id || item.relative_path || item.url,
 						title: item.display_name || item.filename || item.url,
 						provider: item.provider || (item.external ? 'external' : 'upload'),
-						url: item.url,
-						thumbnail_url: item.thumbnail_url,
-						mime: item.mime
-					});
-				}
-			}
-
-			// Add external_media items (skip mirrors that point to internal files)
-			for (const item of externalData.items || []) {
-				// Skip "mirror" entries that point to internal PocketBase files
-				if (item.url?.includes('/api/files/')) continue;
-				if (imagesOnly && item.mime && !item.mime.startsWith('image/')) continue;
-				if (item.url && !addedUrls.has(item.url)) {
-					addedUrls.add(item.url);
-					options.push({
-						id: item.id,
-						title: item.title || item.url,
-						provider: 'external',
 						url: item.url,
 						thumbnail_url: item.thumbnail_url,
 						mime: item.mime

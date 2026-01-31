@@ -37,7 +37,6 @@ let visibility = $state('public');
 let isDraft = $state(false);
 let sortOrder = $state(0);
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 let saving = $state(false);
 
@@ -227,7 +226,6 @@ afterNavigate(() => {
 
 		saving = true;
 		try {
-			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
 			const data = {
 				title: title.trim(),
 				slug: slug.trim(),
@@ -238,7 +236,7 @@ afterNavigate(() => {
 				description: description,
 				slides_url: slidesUrl.trim(),
 				video_url: videoUrl.trim(),
-				media_refs: resolvedRefs,
+				media_refs: mediaRefs,
 				visibility,
 				is_draft: isDraft,
 				sort_order: sortOrder
@@ -551,7 +549,6 @@ afterNavigate(() => {
 				</div>
 
 				<MediaPicker
-					bind:this={mediaPickerRef}
 					bind:value={mediaRefs}
 					label={$t('admin.content.common.attached_media')}
 					showHelp={true}

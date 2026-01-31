@@ -44,6 +44,7 @@
 		thumbnail_url?: string;
 		collection_key?: string;
 		external?: boolean;
+		type?: 'upload' | 'external';  // For media_library collection
 		provider?: string;
 		embed_url?: string;
 		usage_count?: number;
@@ -131,7 +132,7 @@
 		storageSize: 0
 	});
 	let selectedOrphans: Set<string> = $state(new Set());
-	// Track selected items for bulk operations (uploads and external_media)
+	// Track selected items for bulk operations (media_library items)
 	type SelectedItem = { id: string; collection: string };
 	let selectedItems: SelectedItem[] = $state([]);
 	let bulkTagModalOpen = $state(false);
@@ -207,46 +208,31 @@
 		if (!editItem || !editItem.record_id) return;
 		editForm.saving = true;
 		try {
-			const isExternal = editItem.external || editItem.collection === 'external_media';
-			const isUploads = editItem.collection === 'uploads';
+			// Check if this is from the unified media_library collection
+			const isMediaLibrary = editItem.collection === 'media_library' || editItem.collection === 'uploads' || editItem.collection === 'external_media';
+			const isExternal = editItem.external || editItem.type === 'external' || editItem.collection === 'external_media';
 
-			if (isExternal) {
-				// External media: update the external_media record directly
-				const body = {
+			if (isMediaLibrary) {
+				// Media library: update the record directly
+				const body: Record<string, unknown> = {
 					title: editForm.title.trim(),
-					url: editForm.url.trim(),
-					mime: editForm.mime.trim(),
-					thumbnail_url: editForm.thumbnail_url.trim(),
 					alt_text: editForm.alt_text.trim(),
 					description: editForm.description.trim(),
 					admin_tags: editForm.tag_ids
 				};
-				const res = await fetch(`/api/collections/external_media/records/${editItem.record_id}`, {
+				// For external type, also update URL fields
+				if (isExternal) {
+					body.url = editForm.url.trim();
+					body.mime = editForm.mime.trim();
+					body.thumbnail_url = editForm.thumbnail_url.trim();
+				}
+				const res = await fetch(`/api/collections/media_library/records/${editItem.record_id}`, {
 					method: 'PATCH',
 					headers: {
 						'Content-Type': 'application/json',
 						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 					},
 					body: JSON.stringify(body)
-				});
-				if (!res.ok) {
-					const respBody = await res.json().catch(() => ({}));
-					throw new Error(respBody.message || respBody.error || 'Failed to update media');
-				}
-			} else if (isUploads) {
-				// Uploads collection: update the record's title, metadata, and tags
-				const res = await fetch(`/api/collections/uploads/records/${editItem.record_id}`, {
-					method: 'PATCH',
-					headers: {
-						'Content-Type': 'application/json',
-						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
-					},
-					body: JSON.stringify({
-						title: editForm.title.trim(),
-						alt_text: editForm.alt_text.trim(),
-						description: editForm.description.trim(),
-						admin_tags: editForm.tag_ids
-					})
 				});
 				if (!res.ok) {
 					const respBody = await res.json().catch(() => ({}));
@@ -388,8 +374,8 @@
 	}
 
 	async function deleteFile(item: MediaItem, force = false) {
-		// Check if item is external media (either by flag or by collection name)
-		const isExternal = item.external || item.collection === 'external_media';
+		// Check if item is external media (either by flag or by type)
+		const isExternal = item.external || item.type === 'external' || item.collection === 'external_media';
 
 		// If item is in use, show a warning with usage details before confirmation
 		if ((item.usage_count ?? 0) > 0 && !force) {
@@ -731,7 +717,7 @@
 
 		for (const item of itemsToDelete) {
 			try {
-				const isExternal = item.external || item.collection === 'external_media';
+				const isExternal = item.external || item.type === 'external' || item.collection === 'external_media';
 
 				if (isExternal && item.record_id) {
 					// External media - use dedicated endpoint with force flag
@@ -1358,7 +1344,7 @@
 												<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0">
 													{$t('admin.media.badge_orphan')}
 												</span>
-											{:else if item.external || item.collection === 'external_media'}
+											{:else if item.external || item.type === 'external'}
 												<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0">
 													{$t('admin.media.badge_external')}
 												</span>
@@ -1570,7 +1556,7 @@
 							<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_tags_help')}</p>
 						</div>
 					{/if}
-				{#if editItem.external || editItem.collection === 'external_media'}
+				{#if editItem.external || editItem.type === 'external'}
 					<div>
 						<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
 						<input

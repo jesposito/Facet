@@ -24,7 +24,6 @@ let showForm = $state(false);
 let editingPost: Post | null = $state(null);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 
 let selectMode = $state(false);
@@ -255,15 +254,13 @@ function openEditForm(post: Post) {
 
 		saving = true;
 		try {
-			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
-
 			// Use FormData to support file uploads
 			const formData = new FormData();
 			formData.append('title', title.trim());
 			formData.append('slug', slug.trim());
 			formData.append('excerpt', excerpt.trim());
 			formData.append('content', content);
-			formData.append('media_refs', JSON.stringify(resolvedRefs));
+			formData.append('media_refs', JSON.stringify(mediaRefs));
 			formData.append('tags', JSON.stringify(tags));
 			formData.append('visibility', visibility);
 			formData.append('is_draft', String(isDraft));
@@ -537,7 +534,6 @@ function openEditForm(post: Post) {
 				</div>
 
 			<MediaPicker
-				bind:this={mediaPickerRef}
 				bind:value={mediaRefs}
 				label={$t('admin.content.common.attached_media')}
 				showHelp={true}

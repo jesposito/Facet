@@ -42,7 +42,6 @@ let coverImageFile: FileList | null = $state(null);
 let coverImageLibraryUrl = $state('');
 let clearCoverImage = $state(false);
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 let saving = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -270,7 +269,6 @@ let filteredProjects = $derived(
 
 		saving = true;
 		try {
-			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
 			// Parse tech stack from comma-separated
 			const techStack = techStackText
 				.split(',')
@@ -294,7 +292,7 @@ let filteredProjects = $derived(
 			formData.append('tech_stack', JSON.stringify(techStack));
 			formData.append('links', JSON.stringify(validLinks));
 			formData.append('categories', JSON.stringify(categories));
-			formData.append('media_refs', JSON.stringify(resolvedRefs));
+			formData.append('media_refs', JSON.stringify(mediaRefs));
 			formData.append('visibility', visibility);
 			formData.append('is_draft', String(isDraft));
 			formData.append('is_featured', String(isFeatured));
@@ -780,7 +778,6 @@ let filteredProjects = $derived(
 				</div>
 
 			<MediaPicker
-				bind:this={mediaPickerRef}
 				bind:value={mediaRefs}
 				label={$t('admin.content.common.attached_media')}
 				showHelp={true}

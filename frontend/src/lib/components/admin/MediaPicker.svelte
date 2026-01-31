@@ -93,7 +93,7 @@
 	}
 
 	/**
-	 * Load media options from the API
+	 * Load media options from the unified media_library API
 	 */
 	export async function loadMediaOptions(searchTerm = '') {
 		loadingMedia = true;
@@ -103,81 +103,31 @@
 				: {};
 			const mediaParams = new URLSearchParams({ perPage: '50' });
 			if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
-			const externalFilter = searchTerm.trim()
-				? `&filter=${encodeURIComponent(`title~"${searchTerm}" || url~"${searchTerm}"`)}`
-				: '';
 
-			const [mediaRes, externalRes] = await Promise.all([
-				fetch(`/api/media?${mediaParams.toString()}`, { headers }),
-				fetch(`/api/collections/external_media/records?perPage=50${externalFilter}`, { headers })
-			]);
-
+			// Query the unified /api/media endpoint which returns both uploads and external media
+			const mediaRes = await fetch(`/api/media?${mediaParams.toString()}`, { headers });
 			const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
-			const externalData = externalRes.ok ? await externalRes.json() : { items: [] };
 
 			const options: MediaOption[] = [];
-			const urlToExternalId = new Map<string, string>();
+			const addedIds = new Set<string>();
 
-			// Helper to normalize URL for comparison (strip origin for internal files)
-			const normalizeUrl = (url?: string) => {
-				if (!url) return '';
-				try {
-					const parsed = new URL(url, window.location.origin);
-					// For internal files, use just the pathname
-					if (parsed.pathname.includes('/api/files/')) {
-						return parsed.pathname;
-					}
-					return url;
-				} catch {
-					return url;
-				}
-			};
-
-			// First pass: collect ALL external_media IDs by normalized URL
-			// Include mirrors (URLs with /api/files/) since those are what media_refs stores
-			for (const item of externalData.items || []) {
-				if (item.url) {
-					urlToExternalId.set(normalizeUrl(item.url), item.id);
-				}
-			}
-
-			// Add internal media items, preferring external_media ID if one exists for same URL
 			for (const item of mediaData.items || []) {
-				const normalizedUrl = normalizeUrl(item.url);
-				const externalId = normalizedUrl ? urlToExternalId.get(normalizedUrl) : null;
+				// Use record_id (media_library ID) as the primary identifier
+				const id = item.record_id || item.relative_path || item.url;
+				if (addedIds.has(id)) continue;
+				addedIds.add(id);
+
 				options.push({
-					// Use external_media ID if available (since that's what media_refs stores)
-					id: externalId || item.record_id || item.relative_path || item.url,
+					id,
 					title: item.display_name || item.filename || item.url,
-					// Keep 'upload' provider for internal uploads even if they have an external_media mirror
 					provider: item.provider || (item.external ? 'external' : 'upload'),
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
 					mime: item.mime,
-					collection: item.collection,
+					collection: item.collection || 'media_library',
 					description: item.description || '',
 					alt_text: item.alt_text || ''
 				});
-			}
-
-			// Add external_media items that don't have a matching internal URL
-			// Skip "mirror" entries that point to internal PocketBase files (already handled above)
-			const addedIds = new Set(options.map((opt) => opt.id));
-			for (const item of externalData.items || []) {
-				// Skip if already added (via mirror matching) or if it's an internal mirror
-				if (!addedIds.has(item.id) && !item.url?.includes('/api/files/')) {
-					options.push({
-						id: item.id,
-						title: item.title || item.url,
-						provider: 'external',
-						url: item.url,
-						thumbnail_url: item.thumbnail_url,
-						mime: item.mime,
-						collection: 'external_media',
-						description: item.description || '',
-						alt_text: item.alt_text || ''
-					});
-				}
 			}
 
 			mediaOptions = options;
@@ -186,70 +136,6 @@
 		} finally {
 			loadingMedia = false;
 		}
-	}
-
-	/**
-	 * Resolve media refs, mirroring uploads to external_media if needed
-	 */
-	export async function resolveMediaRefs(selected: string[]): Promise<string[]> {
-		const headers: Record<string, string> = pb.authStore.isValid
-			? { Authorization: `Bearer ${pb.authStore.token}` }
-			: {};
-		const optionMap = new Map(mediaOptions.map((opt) => [opt.id, opt]));
-		const resolved: string[] = [];
-
-		const toAbsolute = (url?: string) => {
-			if (!url) return '';
-			if (/^https?:\/\//i.test(url)) return url;
-			const base = pb.baseUrl.replace(/\/$/, '');
-			return `${base}${url.startsWith('/') ? url : `/${url}`}`;
-		};
-
-		for (const id of selected) {
-			const opt = optionMap.get(id);
-			if (!opt) {
-				// ID not in current options - likely an existing external_media ID, preserve it
-				resolved.push(id);
-				continue;
-			}
-			if (opt.provider === 'upload' && opt.url) {
-				// Mirror upload into external_media so it can be stored in media_refs
-				try {
-					const absoluteUrl = toAbsolute(opt.url);
-					// Search for existing external_media with either relative or absolute URL
-					const filter = encodeURIComponent(`url="${opt.url}" || url="${absoluteUrl}"`);
-					const existingRes = await fetch(
-						`/api/collections/external_media/records?perPage=1&filter=${filter}`,
-						{ headers }
-					);
-					if (existingRes.ok) {
-						const existing = await existingRes.json();
-						if (existing.items?.[0]?.id) {
-							resolved.push(existing.items[0].id);
-							continue;
-						}
-					}
-					const created = await fetch('/api/media/external', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json', ...headers },
-						body: JSON.stringify({ url: absoluteUrl, title: opt.title })
-					});
-					if (created.ok) {
-						const body = await created.json();
-						if (body.id) {
-							resolved.push(body.id);
-							continue;
-						}
-					}
-				} catch (err) {
-					console.error('Failed to mirror upload to external_media', err);
-				}
-			} else {
-				resolved.push(id);
-			}
-		}
-
-		return resolved;
 	}
 
 	function handleSearch() {
@@ -272,7 +158,7 @@
 		if (checked) {
 			value = [...value, id];
 			// Mark as used when selected
-			if (collection === 'uploads' || collection === 'external_media') {
+			if (collection) {
 				markAsUsed(id, collection);
 			}
 		} else {
@@ -303,35 +189,28 @@
 
 		const newOptions: MediaOption[] = [];
 
-		// Fetch metadata for missing IDs from external_media
+		// Fetch metadata for missing IDs from media_library
 		for (const id of missingIds) {
 			try {
-				const res = await fetch(`/api/collections/external_media/records/${id}`, { headers });
+				const res = await fetch(`/api/collections/media_library/records/${id}`, { headers });
 				if (res.ok) {
 					const item = await res.json();
+					const isUpload = item.type === 'upload';
 
-					// Check if this is a mirror of an internal upload
-					const isMirror = item.url?.includes('/api/files/');
-
-					// For mirrors, try to get thumbnail from the internal URL
+					// For uploads, construct thumbnail URL from file field
 					let thumbnailUrl = item.thumbnail_url;
-					if (isMirror && item.url && !thumbnailUrl) {
-						// Extract path parts to construct thumbnail URL
-						const match = item.url.match(/\/api\/files\/([^/]+)\/([^/]+)\/(.+)/);
-						if (match) {
-							const [, collection, recordId, filename] = match;
-							thumbnailUrl = `/api/media/thumb/${collection}/${recordId}/${filename}`;
-						}
+					if (isUpload && item.file && !thumbnailUrl) {
+						thumbnailUrl = `/api/media/thumb/media_library/${item.id}/${item.file}`;
 					}
 
 					newOptions.push({
 						id: item.id,
 						title: item.title || item.url || id,
-						provider: isMirror ? 'upload' : 'external',
-						url: item.url,
+						provider: isUpload ? 'upload' : 'external',
+						url: isUpload ? `/api/files/media_library/${item.id}/${item.file}` : item.url,
 						thumbnail_url: thumbnailUrl,
 						mime: item.mime,
-						collection: isMirror ? 'uploads' : 'external_media',
+						collection: 'media_library',
 						description: item.description || '',
 						alt_text: item.alt_text || ''
 					});

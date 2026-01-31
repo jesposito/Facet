@@ -39,7 +39,6 @@
 
 	// Media library refs
 	let mediaRefs: string[] = $state([]);
-	let mediaPickerRef: MediaPicker | undefined = $state();
 
 	let selectMode = $state(false);
 	let selectedIds: Set<string> = $state(new Set());
@@ -261,8 +260,7 @@
 			}
 
 			// Handle media library refs
-			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
-			formData.append('media_refs', JSON.stringify(resolvedRefs));
+			formData.append('media_refs', JSON.stringify(mediaRefs));
 
 			if (editingItem) {
 				await collection('custom_content').update(editingItem.id, formData);
@@ -690,7 +688,6 @@
 				</div>
 
 				<MediaPicker
-					bind:this={mediaPickerRef}
 					bind:value={mediaRefs}
 					label={$t('admin.content.common.attached_media')}
 					showHelp={true}
