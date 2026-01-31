@@ -393,7 +393,7 @@
 					<button
 						type="button"
 						class="flex items-center gap-1.5 px-2 py-1 rounded text-xs border transition-colors {value.includes(opt.id)
-							? 'bg-primary-50 dark:bg-primary-900 border-primary-300 dark:border-primary-600 text-primary-700 dark:text-primary-200'
+							? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300'
 							: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
 						onclick={() => handleSelectionChange(opt.id, !value.includes(opt.id), opt.collection)}
 					>
@@ -431,7 +431,7 @@
 				{@const isSelected = value.includes(opt.id)}
 				<label
 					class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer {isSelected
-						? 'bg-primary-50 dark:bg-primary-900 border-primary-200 dark:border-primary-700 text-primary-700 dark:text-primary-200'
+						? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300'
 						: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}"
 				>
 					<input
