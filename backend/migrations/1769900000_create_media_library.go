@@ -14,11 +14,8 @@ func init() {
 			return nil
 		}
 
-		// Get admin_tags collection for relation
-		tagsCollection, err := app.FindCollectionByNameOrId("admin_tags")
-		if err != nil {
-			return err
-		}
+		// Get admin_tags collection for relation (optional - may not exist)
+		tagsCollection, _ := app.FindCollectionByNameOrId("admin_tags")
 
 		collection := core.NewBaseCollection("media_library")
 
@@ -74,13 +71,15 @@ func init() {
 			Max:  1000,
 		})
 
-		// Tags relation
-		collection.Fields.Add(&core.RelationField{
-			Name:          "admin_tags",
-			CollectionId:  tagsCollection.Id,
-			MaxSelect:     10,
-			CascadeDelete: false,
-		})
+		// Tags relation (only if admin_tags collection exists)
+		if tagsCollection != nil {
+			collection.Fields.Add(&core.RelationField{
+				Name:          "admin_tags",
+				CollectionId:  tagsCollection.Id,
+				MaxSelect:     10,
+				CascadeDelete: false,
+			})
+		}
 
 		// Usage tracking
 		collection.Fields.Add(&core.DateField{

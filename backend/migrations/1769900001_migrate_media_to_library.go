@@ -45,10 +45,12 @@ func init() {
 				record.Set("admin_tags", upload.Get("admin_tags"))
 				record.Set("last_used_at", upload.Get("last_used_at"))
 
-				// If no title, use filename
+				// Ensure title is set (required field)
 				if record.GetString("title") == "" {
 					if file := upload.GetString("file"); file != "" {
 						record.Set("title", file)
+					} else {
+						record.Set("title", "Untitled Upload")
 					}
 				}
 
@@ -94,9 +96,13 @@ func init() {
 				record.Set("admin_tags", external.Get("admin_tags"))
 				record.Set("last_used_at", external.Get("last_used_at"))
 
-				// If no title, use URL
+				// Ensure title is set (required field)
 				if record.GetString("title") == "" {
-					record.Set("title", url)
+					if url != "" {
+						record.Set("title", url)
+					} else {
+						record.Set("title", "Untitled External Media")
+					}
 				}
 
 				if err := app.Save(record); err != nil {
