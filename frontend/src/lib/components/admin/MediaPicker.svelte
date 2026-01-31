@@ -428,15 +428,16 @@
 	{:else}
 		<div class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
 			{#each mediaOptions as opt}
+				{@const isSelected = value.includes(opt.id)}
 				<label
-					class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer {value.includes(opt.id)
+					class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer {isSelected
 						? 'bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700 text-primary-700 dark:text-primary-200'
 						: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}"
 				>
 					<input
 						type="checkbox"
 						class="w-4 h-4"
-						checked={value.includes(opt.id)}
+						checked={isSelected}
 						onchange={(e) => handleSelectionChange(opt.id, (e.target as HTMLInputElement).checked, opt.collection)}
 					/>
 					{#if opt.thumbnail_url || (isImage(opt) && opt.url)}
@@ -452,9 +453,9 @@
 					<div class="flex flex-col min-w-0 flex-1">
 						<span class="text-sm font-medium truncate">{opt.title}</span>
 						{#if opt.description}
-							<span class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{opt.description}</span>
+							<span class="text-xs line-clamp-2 {isSelected ? 'text-primary-600 dark:text-primary-300' : 'text-gray-600 dark:text-gray-300'}">{opt.description}</span>
 						{:else if opt.provider}
-							<span class="text-xs text-gray-500 dark:text-gray-400">{opt.provider}</span>
+							<span class="text-xs {isSelected ? 'text-primary-500 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400'}">{opt.provider}</span>
 						{/if}
 					</div>
 				</label>
