@@ -13,6 +13,7 @@ All notable changes to Facet will be documented in this file.
 **New Features:**
 - Add i18n support for testimonial submission and verification pages (#368)
 - Add media descriptions display in media picker (#355)
+- Add optional profile picture upload for testimonial submissions (#370)
 
 **Other Changes:**
 - Disable "Verify with Email" button with "(Coming Soon)" text until email infrastructure is ready (#371)

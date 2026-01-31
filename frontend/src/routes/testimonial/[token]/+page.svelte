@@ -28,6 +28,8 @@
 	let authorCompany = $state('');
 	let content = $state('');
 	let relationship = $state('');
+	let authorPhotoFile: FileList | null = $state(null);
+	let authorPhotoPreview = $state('');
 	let verificationEmail = $state('');
 	let showEmailVerification = $state(false);
 	let sendingVerification = $state(false);
@@ -65,25 +67,75 @@
 		}
 	});
 
+	function handlePhotoChange(e: Event) {
+		const input = e.target as HTMLInputElement;
+		if (input.files && input.files[0]) {
+			const file = input.files[0];
+			// Validate file type
+			if (!file.type.startsWith('image/')) {
+				error = 'Please select an image file';
+				return;
+			}
+			// Validate file size (max 2MB)
+			if (file.size > 2 * 1024 * 1024) {
+				error = 'Image must be less than 2MB';
+				return;
+			}
+			authorPhotoFile = input.files;
+			// Create preview
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				authorPhotoPreview = e.target?.result as string;
+			};
+			reader.readAsDataURL(file);
+		}
+	}
+
+	function clearPhoto() {
+		authorPhotoFile = null;
+		authorPhotoPreview = '';
+	}
+
 	async function handleSubmit() {
 		if (!authorName.trim() || !content.trim()) {
 			return;
 		}
 
 		submitting = true;
+		error = '';
 		try {
-			const response = await fetch('/api/testimonials/submit', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					request_token: $page.params.token,
-					author_name: authorName,
-					author_title: authorTitle,
-					author_company: authorCompany,
-					content,
-					relationship
-				})
-			});
+			let response: Response;
+
+			if (authorPhotoFile && authorPhotoFile[0]) {
+				// Use FormData for file upload
+				const formData = new FormData();
+				formData.append('request_token', $page.params.token);
+				formData.append('author_name', authorName);
+				formData.append('author_title', authorTitle);
+				formData.append('author_company', authorCompany);
+				formData.append('content', content);
+				formData.append('relationship', relationship);
+				formData.append('author_photo', authorPhotoFile[0]);
+
+				response = await fetch('/api/testimonials/submit', {
+					method: 'POST',
+					body: formData
+				});
+			} else {
+				// Use JSON for regular submission
+				response = await fetch('/api/testimonials/submit', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						request_token: $page.params.token,
+						author_name: authorName,
+						author_title: authorTitle,
+						author_company: authorCompany,
+						content,
+						relationship
+					})
+				});
+			}
 
 			if (response.ok) {
 				const data = await response.json();
@@ -272,6 +324,47 @@
 								class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 							/>
 						</div>
+					</div>
+
+					<!-- Profile Photo Upload -->
+					<div>
+						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+							{$t('public.testimonials.submit.profile_photo_label')}
+						</label>
+						{#if authorPhotoPreview}
+							<div class="flex items-center gap-4">
+								<img
+									src={authorPhotoPreview}
+									alt="Preview"
+									class="w-16 h-16 rounded-full object-cover"
+								/>
+								<button
+									type="button"
+									onclick={clearPhoto}
+									class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+								>
+									Remove
+								</button>
+							</div>
+						{:else}
+							<label class="flex items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors">
+								<div class="flex flex-col items-center gap-1">
+									<svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+									</svg>
+									<span class="text-sm text-gray-500 dark:text-gray-400">Click to upload</span>
+								</div>
+								<input
+									type="file"
+									accept="image/jpeg,image/png,image/webp"
+									class="hidden"
+									onchange={handlePhotoChange}
+								/>
+							</label>
+						{/if}
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+							{$t('public.testimonials.submit.profile_photo_help')}
+						</p>
 					</div>
 
 					<div>
