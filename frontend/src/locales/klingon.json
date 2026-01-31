@@ -1455,7 +1455,11 @@
 				"sending_verification": "ngeH...",
 				"email_placeholder": "SoH@QIn.com",
 				"profile_photo_label": "mIllogh (chaq)",
-				"profile_photo_help": "mIllogh yIlan pongwI' quvmoH lIn"
+				"profile_photo_help": "mIllogh yIlan pongwI' quvmoH lIn",
+				"click_to_upload": "yIlan",
+				"remove_photo": "teq",
+				"error_invalid_image": "mIllogh yIwIv",
+				"error_image_too_large": "mIllogh 2MB law' tIn"
 			},
 			"verify": {
 				"page_title": "pongwI' quvmoH Dachup",
