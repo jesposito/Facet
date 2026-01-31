@@ -11,6 +11,8 @@
 		thumbnail_url?: string;
 		mime?: string;
 		collection?: string;
+		description?: string;
+		alt_text?: string;
 	};
 
 	interface Props {
@@ -116,33 +118,54 @@
 			const options: MediaOption[] = [];
 			const urlToExternalId = new Map<string, string>();
 
-			// First pass: collect external_media IDs by URL (skip internal mirrors)
+			// Helper to normalize URL for comparison (strip origin for internal files)
+			const normalizeUrl = (url?: string) => {
+				if (!url) return '';
+				try {
+					const parsed = new URL(url, window.location.origin);
+					// For internal files, use just the pathname
+					if (parsed.pathname.includes('/api/files/')) {
+						return parsed.pathname;
+					}
+					return url;
+				} catch {
+					return url;
+				}
+			};
+
+			// First pass: collect ALL external_media IDs by normalized URL
+			// Include mirrors (URLs with /api/files/) since those are what media_refs stores
 			for (const item of externalData.items || []) {
-				if (item.url && !item.url.includes('/api/files/')) {
-					urlToExternalId.set(item.url, item.id);
+				if (item.url) {
+					urlToExternalId.set(normalizeUrl(item.url), item.id);
 				}
 			}
 
 			// Add internal media items, preferring external_media ID if one exists for same URL
 			for (const item of mediaData.items || []) {
-				const externalId = item.url ? urlToExternalId.get(item.url) : null;
+				const normalizedUrl = normalizeUrl(item.url);
+				const externalId = normalizedUrl ? urlToExternalId.get(normalizedUrl) : null;
 				options.push({
 					// Use external_media ID if available (since that's what media_refs stores)
 					id: externalId || item.record_id || item.relative_path || item.url,
 					title: item.display_name || item.filename || item.url,
-					provider: externalId ? 'external' : (item.provider || (item.external ? 'external' : 'upload')),
+					// Keep 'upload' provider for internal uploads even if they have an external_media mirror
+					provider: item.provider || (item.external ? 'external' : 'upload'),
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
 					mime: item.mime,
-					collection: item.collection
+					collection: item.collection,
+					description: item.description || '',
+					alt_text: item.alt_text || ''
 				});
 			}
 
 			// Add external_media items that don't have a matching internal URL
-			// Skip "mirror" entries that point to internal PocketBase files
-			const addedUrls = new Set(options.map((opt) => opt.url));
+			// Skip "mirror" entries that point to internal PocketBase files (already handled above)
+			const addedIds = new Set(options.map((opt) => opt.id));
 			for (const item of externalData.items || []) {
-				if (!addedUrls.has(item.url) && !item.url?.includes('/api/files/')) {
+				// Skip if already added (via mirror matching) or if it's an internal mirror
+				if (!addedIds.has(item.id) && !item.url?.includes('/api/files/')) {
 					options.push({
 						id: item.id,
 						title: item.title || item.url,
@@ -150,7 +173,9 @@
 						url: item.url,
 						thumbnail_url: item.thumbnail_url,
 						mime: item.mime,
-						collection: 'external_media'
+						collection: 'external_media',
+						description: item.description || '',
+						alt_text: item.alt_text || ''
 					});
 				}
 			}
@@ -260,10 +285,79 @@
 		return option.mime?.startsWith('image/') || false;
 	}
 
+	/**
+	 * Fetch metadata for IDs that are in value but not in loaded options
+	 * This ensures pre-selected items from editing are shown as checked
+	 */
+	async function reconcileSelectedItems() {
+		if (value.length === 0 || mediaOptions.length === 0) return;
+
+		const loadedIds = new Set(mediaOptions.map((opt) => opt.id));
+		const missingIds = value.filter((id) => !loadedIds.has(id));
+
+		if (missingIds.length === 0) return;
+
+		const headers: Record<string, string> = pb.authStore.isValid
+			? { Authorization: `Bearer ${pb.authStore.token}` }
+			: {};
+
+		const newOptions: MediaOption[] = [];
+
+		// Fetch metadata for missing IDs from external_media
+		for (const id of missingIds) {
+			try {
+				const res = await fetch(`/api/collections/external_media/records/${id}`, { headers });
+				if (res.ok) {
+					const item = await res.json();
+
+					// Check if this is a mirror of an internal upload
+					const isMirror = item.url?.includes('/api/files/');
+
+					// For mirrors, try to get thumbnail from the internal URL
+					let thumbnailUrl = item.thumbnail_url;
+					if (isMirror && item.url && !thumbnailUrl) {
+						// Extract path parts to construct thumbnail URL
+						const match = item.url.match(/\/api\/files\/([^/]+)\/([^/]+)\/(.+)/);
+						if (match) {
+							const [, collection, recordId, filename] = match;
+							thumbnailUrl = `/api/media/thumb/${collection}/${recordId}/${filename}`;
+						}
+					}
+
+					newOptions.push({
+						id: item.id,
+						title: item.title || item.url || id,
+						provider: isMirror ? 'upload' : 'external',
+						url: item.url,
+						thumbnail_url: thumbnailUrl,
+						mime: item.mime,
+						collection: isMirror ? 'uploads' : 'external_media',
+						description: item.description || '',
+						alt_text: item.alt_text || ''
+					});
+				}
+			} catch (err) {
+				console.error('Failed to fetch metadata for', id, err);
+			}
+		}
+
+		// Prepend new options so selected items appear at the top
+		if (newOptions.length > 0) {
+			mediaOptions = [...newOptions, ...mediaOptions];
+		}
+	}
+
 	// Load media options and recent items on mount
 	$effect(() => {
 		loadMediaOptions();
 		loadRecentItems();
+	});
+
+	// Reconcile selected items after options load
+	$effect(() => {
+		if (!loadingMedia && mediaOptions.length > 0 && value.length > 0) {
+			reconcileSelectedItems();
+		}
 	});
 </script>
 
@@ -300,7 +394,7 @@
 					<button
 						type="button"
 						class="flex items-center gap-1.5 px-2 py-1 rounded text-xs border transition-colors {value.includes(opt.id)
-							? 'bg-primary-50 dark:bg-primary-900/30 border-primary-300 dark:border-primary-600 text-primary-700 dark:text-primary-200'
+							? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300'
 							: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
 						onclick={() => handleSelectionChange(opt.id, !value.includes(opt.id), opt.collection)}
 					>
@@ -335,15 +429,16 @@
 	{:else}
 		<div class="flex flex-col gap-2 max-h-48 overflow-y-auto pr-2">
 			{#each mediaOptions as opt}
+				{@const isSelected = value.includes(opt.id)}
 				<label
-					class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer {value.includes(opt.id)
-						? 'bg-primary-50 dark:bg-primary-900/30 border-primary-200 dark:border-primary-700 text-primary-700 dark:text-primary-200'
+					class="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer {isSelected
+						? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300'
 						: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}"
 				>
 					<input
 						type="checkbox"
 						class="w-4 h-4"
-						checked={value.includes(opt.id)}
+						checked={isSelected}
 						onchange={(e) => handleSelectionChange(opt.id, (e.target as HTMLInputElement).checked, opt.collection)}
 					/>
 					{#if opt.thumbnail_url || (isImage(opt) && opt.url)}
@@ -358,8 +453,10 @@
 					{/if}
 					<div class="flex flex-col min-w-0 flex-1">
 						<span class="text-sm font-medium truncate">{opt.title}</span>
-						{#if opt.provider}
-							<span class="text-xs text-gray-500 dark:text-gray-400">{opt.provider}</span>
+						{#if opt.description}
+							<span class="text-xs line-clamp-2 {isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-600 dark:text-gray-300'}">{opt.description}</span>
+						{:else if opt.provider}
+							<span class="text-xs {isSelected ? 'text-primary-600 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'}">{opt.provider}</span>
 						{/if}
 					</div>
 				</label>

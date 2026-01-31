@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { t } from 'svelte-i18n';
 
 	let loading = $state(true);
 	let success = $state(false);
@@ -11,14 +12,14 @@
 		try {
 			const response = await fetch(`/api/testimonials/verify/email/${token}`);
 			const data = await response.json();
-			
+
 			if (response.ok && data.status === 'verified') {
 				success = true;
 			} else {
-				error = data.error || 'Verification failed. The link may have expired.';
+				error = data.error || $t('public.testimonials.verify.failed_default');
 			}
 		} catch {
-			error = 'Verification failed. Please try again.';
+			error = $t('public.testimonials.verify.failed_generic');
 		} finally {
 			loading = false;
 		}
@@ -26,7 +27,7 @@
 </script>
 
 <svelte:head>
-	<title>Verify Testimonial</title>
+	<title>{$t('public.testimonials.verify.page_title')}</title>
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center py-12 px-4">
@@ -34,7 +35,7 @@
 		{#if loading}
 			<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
 				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-				<p class="text-gray-600 dark:text-gray-400">Verifying your email...</p>
+				<p class="text-gray-600 dark:text-gray-400">{$t('public.testimonials.verify.verifying')}</p>
 			</div>
 		{:else if success}
 			<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
@@ -43,12 +44,12 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 					</svg>
 				</div>
-				<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Email Verified!</h1>
+				<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('public.testimonials.verify.success_title')}</h1>
 				<p class="text-gray-600 dark:text-gray-400 mb-4">
-					Your testimonial is now verified. Thank you for taking the time to provide feedback.
+					{$t('public.testimonials.verify.success_message')}
 				</p>
 				<p class="text-sm text-gray-500 dark:text-gray-400">
-					You can close this window.
+					{$t('public.testimonials.verify.close_window')}
 				</p>
 			</div>
 		{:else}
@@ -58,7 +59,7 @@
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 					</svg>
 				</div>
-				<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Verification Failed</h1>
+				<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('public.testimonials.verify.failed_title')}</h1>
 				<p class="text-gray-600 dark:text-gray-400">
 					{error}
 				</p>

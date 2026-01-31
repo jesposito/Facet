@@ -190,6 +190,14 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 			item[key] = value
 		}
 		item["id"] = record.Id
+
+		// Handle testimonials author_photo: convert filename to full URL
+		if record.Collection().Name == "testimonials" {
+			if photo := record.GetString("author_photo"); photo != "" {
+				item["author_photo"] = "/api/files/testimonials/" + record.Id + "/" + photo
+			}
+		}
+
 		result = append(result, item)
 	}
 	return result

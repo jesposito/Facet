@@ -109,6 +109,21 @@ jobs:
           echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
           echo "New version: $NEW_TAG"
 
+      - name: Write PR event data to file
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const pr = context.payload.pull_request;
+            const data = [{
+              number: pr.number,
+              title: pr.title,
+              url: pr.html_url,
+              body: pr.body || 'No description'
+            }];
+            fs.writeFileSync('/tmp/current_pr_event.json', JSON.stringify(data));
+
       - name: Update CHANGELOG
         env:
           GH_TOKEN: ${{ github.token }}
@@ -116,6 +131,7 @@ jobs:
           PREV_TAG: ${{ steps.get_tag.outputs.latest }}
           REPO: ${{ github.repository }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           # Configure git for commits
           git config user.name "github-actions[bot]"
@@ -133,14 +149,34 @@ jobs:
 
           echo "Fetching PRs merged since: $SINCE_DATE"
 
-          # Wait for GitHub's search index to update (eventual consistency)
-          # Without this delay, recently merged PRs may not appear in search results
-          echo "Waiting 30s for GitHub search index to update..."
-          sleep 30
+          # For PR-triggered runs: use the event data directly (avoids search index race condition)
+          # The triggering PR is guaranteed available, search may miss it due to eventual consistency
+          if [ "$EVENT_NAME" == "pull_request" ]; then
+            echo "Using PR data from event (guaranteed available)"
+            # Read PR data from pre-written JSON file (avoids shell escaping issues)
+            if [ -f /tmp/current_pr_event.json ]; then
+              CURRENT_PR=$(cat /tmp/current_pr_event.json)
+            else
+              echo "WARNING: PR event file not found, falling back to search only"
+              CURRENT_PR="[]"
+            fi
 
-          # Fetch merged PRs since previous tag (include body for AI context)
-          PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
+            # Also try to get any other PRs merged since the last tag (best-effort)
+            # Short delay helps but isn't critical since we have the current PR
+            sleep 10
+            SEARCH_PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100 2>/dev/null || echo "[]")
+
+            # Merge and deduplicate (current PR takes precedence)
+            PRS=$(echo "$CURRENT_PR" "$SEARCH_PRS" | jq -s 'add | unique_by(.number)')
+          else
+            # Manual dispatch: use search only (no event PR data)
+            echo "Manual dispatch - using search only"
+            sleep 10
+            PRS=$(gh pr list --state merged --base main --search "merged:>=$SINCE_DATE" --json number,title,url,body --limit 100)
+          fi
+
           echo "$PRS" > /tmp/pr_data.json
+          echo "Found $(echo "$PRS" | jq 'length') PRs to process"
 
           # Extract PR numbers already documented in changelog to avoid duplicates
           EXISTING_PRS=$(grep -oE '\[#[0-9]+\]' CHANGELOG.md | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')

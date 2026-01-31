@@ -9,6 +9,8 @@
 		url?: string;
 		thumbnail_url?: string;
 		mime?: string;
+		description?: string;
+		alt_text?: string;
 	};
 
 	interface Props {
@@ -32,6 +34,8 @@
 		clearExisting?: boolean;
 		/** Callback when selection changes (for triggering form autosave) */
 		onchange?: () => void;
+		/** Context hint to display instead of media title (e.g., company name for logo) */
+		contextHint?: string;
 	}
 
 	let {
@@ -44,7 +48,8 @@
 		accept = 'image/*',
 		imagesOnly = true,
 		clearExisting = $bindable(false),
-		onchange
+		onchange,
+		contextHint = ''
 	}: Props = $props();
 
 	let mediaOptions: MediaOption[] = $state([]);
@@ -95,8 +100,10 @@
 				}
 			}
 
-			// Add external_media items
+			// Add external_media items (skip mirrors that point to internal files)
 			for (const item of externalData.items || []) {
+				// Skip "mirror" entries that point to internal PocketBase files
+				if (item.url?.includes('/api/files/')) continue;
 				if (imagesOnly && item.mime && !item.mime.startsWith('image/')) continue;
 				if (item.url && !addedUrls.has(item.url)) {
 					addedUrls.add(item.url);
@@ -178,9 +185,10 @@
 	let effectiveCurrentFileUrl = $derived(clearExisting ? '' : currentFileUrl);
 	let displayUrl = $derived(value || effectiveCurrentFileUrl || '');
 	let displayTitle = $derived(
-		value
+		contextHint ||
+		(value
 			? mediaOptions.find((o) => o.url === value)?.title || value.split('/').pop() || 'Selected'
-			: (clearExisting ? '' : currentFileName) || ''
+			: (clearExisting ? '' : currentFileName) || '')
 	);
 	let hasSelection = $derived(!!value || !!effectiveCurrentFileUrl || (fileInput && fileInput.length > 0));
 </script>

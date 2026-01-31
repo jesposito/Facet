@@ -577,6 +577,7 @@
 							currentFileUrl={editingExp?.company_logo ? pb.files.getUrl(editingExp, editingExp.company_logo, { thumb: '64x64' }) : ''}
 							currentFileName={editingExp?.company_logo || ''}
 							imagesOnly={true}
+							contextHint={company || ''}
 						/>
 					</div>
 					<div>

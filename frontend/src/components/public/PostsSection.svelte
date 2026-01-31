@@ -40,15 +40,27 @@
 		{#each items as post (post.id)}
 			<article class="card overflow-hidden group animate-fade-in">
 				{#if thumbSrc(post)}
-					<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-						<img
-							src={largeSrc(post)}
-							srcset={`${thumbSrc(post)} 640w, ${largeSrc(post)} 1280w`}
-							sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-							alt={post.title}
-							class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-						/>
-					</div>
+					{#if post.slug}
+						<a href={getPostUrl(post.slug)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+							<img
+								src={largeSrc(post)}
+								srcset={`${thumbSrc(post)} 640w, ${largeSrc(post)} 1280w`}
+								sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+								alt={post.title}
+								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+							/>
+						</a>
+					{:else}
+						<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+							<img
+								src={largeSrc(post)}
+								srcset={`${thumbSrc(post)} 640w, ${largeSrc(post)} 1280w`}
+								sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+								alt={post.title}
+								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+							/>
+						</div>
+					{/if}
 				{:else}
 					<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
 						<svg class="w-12 h-12 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
