@@ -118,16 +118,33 @@
 			const options: MediaOption[] = [];
 			const urlToExternalId = new Map<string, string>();
 
-			// First pass: collect external_media IDs by URL (skip internal mirrors)
+			// Helper to normalize URL for comparison (strip origin for internal files)
+			const normalizeUrl = (url?: string) => {
+				if (!url) return '';
+				try {
+					const parsed = new URL(url, window.location.origin);
+					// For internal files, use just the pathname
+					if (parsed.pathname.includes('/api/files/')) {
+						return parsed.pathname;
+					}
+					return url;
+				} catch {
+					return url;
+				}
+			};
+
+			// First pass: collect ALL external_media IDs by normalized URL
+			// Include mirrors (URLs with /api/files/) since those are what media_refs stores
 			for (const item of externalData.items || []) {
-				if (item.url && !item.url.includes('/api/files/')) {
-					urlToExternalId.set(item.url, item.id);
+				if (item.url) {
+					urlToExternalId.set(normalizeUrl(item.url), item.id);
 				}
 			}
 
 			// Add internal media items, preferring external_media ID if one exists for same URL
 			for (const item of mediaData.items || []) {
-				const externalId = item.url ? urlToExternalId.get(item.url) : null;
+				const normalizedUrl = normalizeUrl(item.url);
+				const externalId = normalizedUrl ? urlToExternalId.get(normalizedUrl) : null;
 				options.push({
 					// Use external_media ID if available (since that's what media_refs stores)
 					id: externalId || item.record_id || item.relative_path || item.url,
@@ -143,10 +160,11 @@
 			}
 
 			// Add external_media items that don't have a matching internal URL
-			// Skip "mirror" entries that point to internal PocketBase files
-			const addedUrls = new Set(options.map((opt) => opt.url));
+			// Skip "mirror" entries that point to internal PocketBase files (already handled above)
+			const addedIds = new Set(options.map((opt) => opt.id));
 			for (const item of externalData.items || []) {
-				if (!addedUrls.has(item.url) && !item.url?.includes('/api/files/')) {
+				// Skip if already added (via mirror matching) or if it's an internal mirror
+				if (!addedIds.has(item.id) && !item.url?.includes('/api/files/')) {
 					options.push({
 						id: item.id,
 						title: item.title || item.url,
@@ -282,30 +300,49 @@
 			? { Authorization: `Bearer ${pb.authStore.token}` }
 			: {};
 
+		const newOptions: MediaOption[] = [];
+
 		// Fetch metadata for missing IDs from external_media
 		for (const id of missingIds) {
 			try {
 				const res = await fetch(`/api/collections/external_media/records/${id}`, { headers });
 				if (res.ok) {
 					const item = await res.json();
-					mediaOptions = [
-						...mediaOptions,
-						{
-							id: item.id,
-							title: item.title || item.url || id,
-							provider: 'external',
-							url: item.url,
-							thumbnail_url: item.thumbnail_url,
-							mime: item.mime,
-							collection: 'external_media',
-							description: item.description || '',
-							alt_text: item.alt_text || ''
+
+					// Check if this is a mirror of an internal upload
+					const isMirror = item.url?.includes('/api/files/');
+
+					// For mirrors, try to get thumbnail from the internal URL
+					let thumbnailUrl = item.thumbnail_url;
+					if (isMirror && item.url && !thumbnailUrl) {
+						// Extract path parts to construct thumbnail URL
+						const match = item.url.match(/\/api\/files\/([^/]+)\/([^/]+)\/(.+)/);
+						if (match) {
+							const [, collection, recordId, filename] = match;
+							thumbnailUrl = `/api/media/thumb/${collection}/${recordId}/${filename}`;
 						}
-					];
+					}
+
+					newOptions.push({
+						id: item.id,
+						title: item.title || item.url || id,
+						provider: isMirror ? 'upload' : 'external',
+						url: item.url,
+						thumbnail_url: thumbnailUrl,
+						mime: item.mime,
+						collection: isMirror ? 'uploads' : 'external_media',
+						description: item.description || '',
+						alt_text: item.alt_text || ''
+					});
 				}
 			} catch (err) {
 				console.error('Failed to fetch metadata for', id, err);
 			}
+		}
+
+		// Prepend new options so selected items appear at the top
+		if (newOptions.length > 0) {
+			mediaOptions = [...newOptions, ...mediaOptions];
 		}
 	}
 

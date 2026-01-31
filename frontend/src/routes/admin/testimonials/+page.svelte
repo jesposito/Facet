@@ -288,7 +288,7 @@
 				<div class="flex flex-col sm:flex-row sm:items-start gap-4">
 					<div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 shrink-0">
 						{#if testimonial.author_photo}
-							<img src={testimonial.author_photo} alt="" class="w-12 h-12 rounded-full object-cover" />
+							<img src={`/api/files/testimonials/${testimonial.id}/${testimonial.author_photo}`} alt="" class="w-12 h-12 rounded-full object-cover" />
 						{:else}
 							<span class="text-lg font-medium">{testimonial.author_name.charAt(0).toUpperCase()}</span>
 						{/if}
