@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.15.7 - January 31, 2026
+
+**Bugs Fixed:**
+- Address 7 issues from the backlog cleanup, including fixes for company logo picker, media descriptions, media picker checkboxes, clickable cover images, and disabled 'Verify with Email' button.
+
+**Pull Requests:** [#372](https://github.com/jesposito/Facet/pull/372),
+
+---
+
+
 ## [Unreleased]
 
 **Bugs Fixed:**
