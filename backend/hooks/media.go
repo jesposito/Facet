@@ -1124,6 +1124,7 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 		"talks",
 		"views",
 		"uploads",
+		"media_library", // Unified media library (type="upload" items have files)
 		"view_exports",
 		"resume_imports",
 		"custom_content",
@@ -1146,7 +1147,12 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 		}
 
 		// Avoid relying on created/updated columns because older seeded data may not include them.
-		records, err := app.FindRecordsByFilter(collection.Name, "", "", 500, 0, nil)
+		// For media_library, only get upload types (external types are handled separately)
+		filter := ""
+		if collection.Name == "media_library" {
+			filter = "type='upload'"
+		}
+		records, err := app.FindRecordsByFilter(collection.Name, filter, "", 500, 0, nil)
 		if err != nil {
 			continue
 		}
@@ -1178,13 +1184,14 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 					}
 					item.RecordLabel = recordLabel
 
-					// For uploads collection, check actual usage via library URL fields
+					// For uploads/media_library collections, check actual usage via library URL fields
 					// For other collections, the file is inherently "used" by its owning record
-					if collection.Name == "uploads" {
+					isLibraryCollection := collection.Name == "uploads" || collection.Name == "media_library"
+					if isLibraryCollection {
 						usage := findLibraryURLUsage(app, item.URL)
 						item.UsageCount = usage.UsageCount
 						item.UsedBy = usage.UsedBy
-						// Get alt_text, description, display_name for uploads from record
+						// Get alt_text, description, display_name from record
 						item.AltText = record.GetString("alt_text")
 						item.Description = record.GetString("description")
 						customName := record.GetString("title")
@@ -1232,8 +1239,8 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 						}
 					}
 
-					// Fetch tags for uploads collection (from record's admin_tags field)
-					if collection.Name == "uploads" && collection.Fields.GetByName("admin_tags") != nil {
+					// Fetch tags for library collections (from record's admin_tags field)
+					if isLibraryCollection && collection.Fields.GetByName("admin_tags") != nil {
 						item.Tags = fetchMediaTags(app, record)
 					}
 					all = append(all, item)
@@ -1249,14 +1256,28 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 }
 
 func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem, error) {
-	collection, err := app.FindCollectionByNameOrId("external_media")
+	// Try media_library first (new unified collection)
+	collection, err := app.FindCollectionByNameOrId("media_library")
 	if err != nil {
-		// Collection might not exist yet - this is not an error condition
-		return []services.MediaItem{}, nil
+		// Fall back to external_media for backward compatibility during migration
+		collection, err = app.FindCollectionByNameOrId("external_media")
+		if err != nil {
+			// Neither collection exists - not an error condition
+			return []services.MediaItem{}, nil
+		}
 	}
 
-	// Get all records from external_media collection
-	records, err := app.FindAllRecords(collection.Name)
+	isMediaLibrary := collection.Name == "media_library"
+
+	// Query for external items
+	var records []*core.Record
+	if isMediaLibrary {
+		// Filter for type="external" only
+		records, err = app.FindRecordsByFilter(collection.Name, "type='external'", "", 500, 0, nil)
+	} else {
+		// Legacy: get all records from external_media
+		records, err = app.FindAllRecords(collection.Name)
+	}
 	if err != nil {
 		return []services.MediaItem{}, err
 	}
@@ -1266,9 +1287,8 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 		recordURL := record.GetString("url")
 
 		// Skip "mirror" entries that point to internal PocketBase files
-		// These are created when attaching uploads to posts/projects/talks via media_refs
-		// and appear as duplicates in the media library
-		if strings.Contains(recordURL, "/api/files/") {
+		// (only needed for legacy external_media, media_library won't have mirrors)
+		if !isMediaLibrary && strings.Contains(recordURL, "/api/files/") {
 			continue
 		}
 

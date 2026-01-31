@@ -62,8 +62,9 @@ func getTableName(app core.App, collection string) string {
 	return collection
 }
 
-// fetchExternalMedia safely loads external_media records by IDs without relying on expand rules.
-func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, error) {
+// fetchMediaLibrary safely loads media_library records by IDs without relying on expand rules.
+// Handles both "upload" and "external" types, constructing file URLs for uploads.
+func fetchMediaLibrary(app core.App, ids []string) ([]map[string]interface{}, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
@@ -77,7 +78,7 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 	}
 
 	records, err := app.FindRecordsByFilter(
-		"external_media",
+		"media_library",
 		strings.Join(filters, " || "),
 		"",
 		len(ids),
@@ -90,12 +91,34 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 
 	out := make([]map[string]interface{}, 0, len(records))
 	for _, r := range records {
+		mediaType := r.GetString("type")
 		item := map[string]interface{}{
-			"id":       r.Id,
-			"title":    r.GetString("title"),
-			"url":      r.GetString("url"),
-			"provider": r.GetString("provider"),
+			"id":    r.Id,
+			"title": r.GetString("title"),
+			"type":  mediaType,
 		}
+
+		// Handle URL based on type
+		if mediaType == "upload" {
+			// Construct file URL for uploads
+			if file := r.GetString("file"); file != "" {
+				item["url"] = fmt.Sprintf("/api/files/%s/%s/%s", r.Collection().Id, r.Id, file)
+			}
+			item["provider"] = "upload"
+		} else {
+			// External media - use stored URL
+			item["url"] = r.GetString("url")
+			item["provider"] = r.GetString("provider")
+			if thumbURL := r.GetString("thumbnail_url"); thumbURL != "" {
+				item["thumbnail_url"] = thumbURL
+			}
+		}
+
+		// Include mime type
+		if mime := r.GetString("mime"); mime != "" {
+			item["mime"] = mime
+		}
+
 		// Include description and alt_text if present
 		if desc := r.GetString("description"); desc != "" {
 			item["description"] = desc
@@ -107,6 +130,12 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 	}
 
 	return out, nil
+}
+
+// fetchExternalMedia is deprecated - use fetchMediaLibrary instead.
+// Kept for backward compatibility during migration.
+func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, error) {
+	return fetchMediaLibrary(app, ids)
 }
 
 // Reserved slugs that cannot be used for views
