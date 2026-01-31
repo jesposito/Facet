@@ -306,15 +306,27 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				}
 			}
 
-			collection, err := app.FindCollectionByNameOrId("external_media")
+			// Try media_library first, fall back to external_media for backward compatibility
+			collection, err := app.FindCollectionByNameOrId("media_library")
 			if err != nil {
-				return apis.NewBadRequestError("external media not configured", err)
+				// Fall back to legacy external_media collection
+				collection, err = app.FindCollectionByNameOrId("external_media")
+				if err != nil {
+					return apis.NewBadRequestError("media library not configured", err)
+				}
 			}
 
 			record := core.NewRecord(collection)
+			// Set type for media_library collection
+			if collection.Name == "media_library" {
+				record.Set("type", "external")
+			}
 			record.Set("url", req.URL)
 			if req.Title != "" {
 				record.Set("title", req.Title)
+			} else {
+				// media_library requires title
+				record.Set("title", req.URL)
 			}
 			if req.Mime != "" {
 				record.Set("mime", req.Mime)
@@ -341,13 +353,26 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			query := e.Request.URL.Query()
 			forceDelete := strings.TrimSpace(strings.ToLower(query.Get("force"))) == "1"
 
-			collection, err := app.FindCollectionByNameOrId("external_media")
+			// Try media_library first, fall back to external_media for backward compatibility
+			collection, err := app.FindCollectionByNameOrId("media_library")
 			if err != nil {
-				return apis.NewBadRequestError("external media not configured", err)
+				collection, err = app.FindCollectionByNameOrId("external_media")
+				if err != nil {
+					return apis.NewBadRequestError("media library not configured", err)
+				}
 			}
 			record, err := app.FindRecordById(collection.Name, id)
 			if err != nil {
-				return apis.NewNotFoundError("not found", err)
+				// If not found in media_library, try external_media
+				if collection.Name == "media_library" {
+					legacyCollection, legacyErr := app.FindCollectionByNameOrId("external_media")
+					if legacyErr == nil {
+						record, err = app.FindRecordById(legacyCollection.Name, id)
+					}
+				}
+				if err != nil {
+					return apis.NewNotFoundError("not found", err)
+				}
 			}
 
 			// Check if media is referenced by any content
