@@ -383,6 +383,17 @@ jobs:
 
           # Create or update CHANGELOG.md
           if [ -f CHANGELOG.md ]; then
+            # Remove any [Unreleased] section before inserting new version
+            # This handles cases where unreleased content was manually added
+            awk '
+              BEGIN { skip = 0 }
+              /^## \[Unreleased\]/ { skip = 1; next }
+              /^## v[0-9]/ { skip = 0 }
+              /^---$/ && skip { next }
+              !skip { print }
+            ' CHANGELOG.md > CHANGELOG.clean
+            mv CHANGELOG.clean CHANGELOG.md
+
             {
               head -n 4 CHANGELOG.md
               echo ""
