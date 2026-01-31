@@ -153,10 +153,15 @@
 										<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-5-5 5 5 5-5"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>
 									{/if}
 								</div>
-								<div class="min-w-0">
-									<p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
+								<div class="min-w-0 flex-1">
+									<p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">
 										{media.title || media.url}
 									</p>
+									{#if media.description}
+										<p class="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 mt-0.5">
+											{media.description}
+										</p>
+									{/if}
 								</div>
 							</div>
 

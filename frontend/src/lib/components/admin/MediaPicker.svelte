@@ -149,7 +149,8 @@
 					// Use external_media ID if available (since that's what media_refs stores)
 					id: externalId || item.record_id || item.relative_path || item.url,
 					title: item.display_name || item.filename || item.url,
-					provider: externalId ? 'external' : (item.provider || (item.external ? 'external' : 'upload')),
+					// Keep 'upload' provider for internal uploads even if they have an external_media mirror
+					provider: item.provider || (item.external ? 'external' : 'upload'),
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
 					mime: item.mime,

@@ -109,7 +109,7 @@
 			if (authorPhotoFile && authorPhotoFile[0]) {
 				// Use FormData for file upload
 				const formData = new FormData();
-				formData.append('request_token', $page.params.token);
+				formData.append('request_token', $page.params.token as string);
 				formData.append('author_name', authorName);
 				formData.append('author_title', authorTitle);
 				formData.append('author_company', authorCompany);
