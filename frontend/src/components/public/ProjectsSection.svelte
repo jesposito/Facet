@@ -63,15 +63,27 @@ const projectHref = (project: Project) => {
 			<article class="card overflow-hidden group animate-fade-in">
 				<div class="grid md:grid-cols-2 gap-0">
 					{#if thumbSrc(featuredItem)}
-						<div class="aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700">
-							<img
-								src={largeSrc(featuredItem)}
-								srcset={`${thumbSrc(featuredItem)} 640w, ${largeSrc(featuredItem)} 1280w`}
-								sizes="(max-width: 768px) 100vw, 50vw"
-								alt={featuredItem.title}
-								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-							/>
-						</div>
+						{#if isLinkable(featuredItem)}
+							<a href={projectHref(featuredItem)} class="block aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<img
+									src={largeSrc(featuredItem)}
+									srcset={`${thumbSrc(featuredItem)} 640w, ${largeSrc(featuredItem)} 1280w`}
+									sizes="(max-width: 768px) 100vw, 50vw"
+									alt={featuredItem.title}
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+								/>
+							</a>
+						{:else}
+							<div class="aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<img
+									src={largeSrc(featuredItem)}
+									srcset={`${thumbSrc(featuredItem)} 640w, ${largeSrc(featuredItem)} 1280w`}
+									sizes="(max-width: 768px) 100vw, 50vw"
+									alt={featuredItem.title}
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+								/>
+							</div>
+						{/if}
 					{:else}
 						<div class="aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
 							<span class="text-6xl font-bold text-white/50">
@@ -83,18 +95,18 @@ const projectHref = (project: Project) => {
 					<div class="p-6 flex flex-col justify-center">
 						<div class="flex items-start justify-between gap-2">
 								<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
-								{#if isLinkable(featuredItem)}
-									<a href={projectHref(featuredItem)} class="hover:text-primary-600 dark:hover:text-primary-400">
-										{featuredItem.title}
-									</a>
-								{:else}
+							{#if isLinkable(featuredItem)}
+								<a href={projectHref(featuredItem)} class="hover:text-primary-600 dark:hover:text-primary-400">
 									{featuredItem.title}
-								{/if}
-							</h3>
-							<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
-								{$t('public.projects.featured')}
-							</span>
-						</div>
+								</a>
+							{:else}
+								{featuredItem.title}
+							{/if}
+						</h3>
+						<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+							{$t('public.projects.featured')}
+						</span>
+					</div>
 
 						{#if featuredItem.summary}
 							<p class="mt-3 text-gray-600 dark:text-gray-400">
@@ -137,15 +149,27 @@ const projectHref = (project: Project) => {
 					{#each remainingItems as project (project.id)}
 						<article class="card overflow-hidden group animate-fade-in">
 							{#if thumbSrc(project)}
-								<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-									<img
-										src={largeSrc(project)}
-										srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
-										sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-										alt={project.title}
-										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-									/>
-								</div>
+								{#if isLinkable(project)}
+									<a href={projectHref(project)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+										<img
+											src={largeSrc(project)}
+											srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+											sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+											alt={project.title}
+											class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+										/>
+									</a>
+								{:else}
+									<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+										<img
+											src={largeSrc(project)}
+											srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+											sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+											alt={project.title}
+											class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+										/>
+									</div>
+								{/if}
 							{:else}
 								<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
 									<span class="text-4xl font-bold text-white/50">
@@ -199,15 +223,27 @@ const projectHref = (project: Project) => {
 				<article class="card overflow-hidden group animate-fade-in">
 					<div class="flex flex-col sm:flex-row">
 						{#if thumbSrc(project)}
-							<div class="sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
-								<img
-									src={largeSrc(project)}
-									srcset={`${thumbSrc(project)} 480w, ${largeSrc(project)} 960w`}
-									sizes="(max-width: 640px) 100vw, 200px"
-									alt={project.title}
-									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-								/>
-							</div>
+							{#if isLinkable(project)}
+								<a href={projectHref(project)} class="block sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
+									<img
+										src={largeSrc(project)}
+										srcset={`${thumbSrc(project)} 480w, ${largeSrc(project)} 960w`}
+										sizes="(max-width: 640px) 100vw, 200px"
+										alt={project.title}
+										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+									/>
+								</a>
+							{:else}
+								<div class="sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
+									<img
+										src={largeSrc(project)}
+										srcset={`${thumbSrc(project)} 480w, ${largeSrc(project)} 960w`}
+										sizes="(max-width: 640px) 100vw, 200px"
+										alt={project.title}
+										class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+									/>
+								</div>
+							{/if}
 						{/if}
 
 						<div class="p-5 flex-1">
@@ -278,15 +314,27 @@ const projectHref = (project: Project) => {
 			{#each items as project (project.id)}
 				<article class="card overflow-hidden group animate-fade-in">
 					{#if thumbSrc(project)}
-						<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-							<img
-								src={largeSrc(project)}
-								srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
-								sizes="(max-width: 768px) 100vw, 50vw"
-								alt={project.title}
-								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-							/>
-						</div>
+						{#if isLinkable(project)}
+							<a href={projectHref(project)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<img
+									src={largeSrc(project)}
+									srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+									sizes="(max-width: 768px) 100vw, 50vw"
+									alt={project.title}
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+								/>
+							</a>
+						{:else}
+							<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<img
+									src={largeSrc(project)}
+									srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+									sizes="(max-width: 768px) 100vw, 50vw"
+									alt={project.title}
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+								/>
+							</div>
+						{/if}
 					{:else}
 						<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
 							<span class="text-5xl font-bold text-white/50">
@@ -360,15 +408,27 @@ const projectHref = (project: Project) => {
 			{#each items as project (project.id)}
 				<article class="card overflow-hidden group animate-fade-in">
 					{#if thumbSrc(project)}
-						<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
-							<img
-								src={largeSrc(project)}
-								srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
-								sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-								alt={project.title}
-								class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-							/>
-						</div>
+						{#if isLinkable(project)}
+							<a href={projectHref(project)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<img
+									src={largeSrc(project)}
+									srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+									sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+									alt={project.title}
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+								/>
+							</a>
+						{:else}
+							<div class="aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<img
+									src={largeSrc(project)}
+									srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
+									sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+									alt={project.title}
+									class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+								/>
+							</div>
+						{/if}
 					{:else}
 						<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
 							<span class="text-4xl font-bold text-white/50">

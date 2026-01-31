@@ -258,7 +258,7 @@ export interface CustomContent {
 	media?: string[];
 	media_urls?: string[];
 	media_refs?: string[];
-	media_refs_expand?: Array<{ id: string; url: string; title?: string; mime?: string; thumbnail_url?: string }>;
+	media_refs_expand?: Array<{ id: string; url: string; title?: string; mime?: string; thumbnail_url?: string; description?: string; alt_text?: string }>;
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;

@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"facet/services"
@@ -9,6 +10,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.TestimonialService, rl *services.RateLimitService) {
@@ -205,9 +207,30 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 		}))
 
 		se.Router.POST("/api/testimonials/submit", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
+			// Check content type to determine parsing method
+			contentType := e.Request.Header.Get("Content-Type")
+			isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+
 			var req services.TestimonialSubmission
-			if err := e.BindBody(&req); err != nil {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+
+			if isMultipart {
+				// Parse multipart form (max 5MB for photo)
+				if err := e.Request.ParseMultipartForm(5 << 20); err != nil {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid multipart form"})
+				}
+				req.RequestToken = e.Request.FormValue("request_token")
+				req.Content = e.Request.FormValue("content")
+				req.Relationship = e.Request.FormValue("relationship")
+				req.Project = e.Request.FormValue("project")
+				req.AuthorName = e.Request.FormValue("author_name")
+				req.AuthorTitle = e.Request.FormValue("author_title")
+				req.AuthorCompany = e.Request.FormValue("author_company")
+				req.AuthorWebsite = e.Request.FormValue("author_website")
+			} else {
+				// Parse JSON body
+				if err := e.BindBody(&req); err != nil {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
+				}
 			}
 
 			if req.AuthorName == "" || req.Content == "" {
@@ -257,6 +280,24 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			record.Set("submitted_at", time.Now())
 			record.Set("featured", false)
 			record.Set("sort_order", 0)
+
+			// Handle optional author photo upload
+			if isMultipart {
+				_, fileHeader, err := e.Request.FormFile("author_photo")
+				if err == nil && fileHeader != nil {
+					// Validate file type (images only)
+					contentType := fileHeader.Header.Get("Content-Type")
+					if strings.HasPrefix(contentType, "image/") {
+						// Validate file size (max 2MB)
+						if fileHeader.Size <= 2<<20 {
+							fsFile, err := filesystem.NewFileFromMultipart(fileHeader)
+							if err == nil {
+								record.Set("author_photo", fsFile)
+							}
+						}
+					}
+				}
+			}
 
 			if requestRecord != nil {
 				record.Set("request_id", requestRecord.Id)
