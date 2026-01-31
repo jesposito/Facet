@@ -239,6 +239,10 @@ function openEditForm(post: Post) {
 		return getFileUrl(post, (post as any).cover_image);
 	}
 
+	function hasCoverImage(post: Post): boolean {
+		return !!((post as any).cover_image || (post as any).cover_image_library_url);
+	}
+
 	async function handleSubmit() {
 		if (!title.trim()) {
 			toasts.add('error', 'Title is required');
@@ -734,6 +738,15 @@ function openEditForm(post: Post) {
 								onchange={() => toggleSelect(post.id)}
 								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 							/>
+						{/if}
+						{#if hasCoverImage(post)}
+							<div class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+								<img
+									src={getCoverImageUrl(post)}
+									alt={post.title}
+									class="w-full h-full object-cover"
+								/>
+							</div>
 						{/if}
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 mb-1">
