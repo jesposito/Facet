@@ -1147,6 +1147,7 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 		"certifications",
 		"posts",
 		"talks",
+		"testimonials", // author_photo field
 		"views",
 		"uploads",
 		"media_library", // Unified media library (type="upload" items have files)
