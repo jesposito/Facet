@@ -189,10 +189,41 @@
 
 		const newOptions: MediaOption[] = [];
 
-		// Fetch metadata for missing IDs from media_library
+		// Fetch metadata for missing IDs from media_library (with fallback to external_media)
 		for (const id of missingIds) {
 			try {
-				const res = await fetch(`/api/collections/media_library/records/${id}`, { headers });
+				// Try media_library first
+				let res = await fetch(`/api/collections/media_library/records/${id}`, { headers });
+
+				// Fallback to external_media for backward compatibility during migration
+				if (!res.ok) {
+					res = await fetch(`/api/collections/external_media/records/${id}`, { headers });
+					if (res.ok) {
+						const item = await res.json();
+						const isMirror = item.url?.includes('/api/files/');
+						let thumbnailUrl = item.thumbnail_url;
+						if (isMirror && item.url && !thumbnailUrl) {
+							const match = item.url.match(/\/api\/files\/([^/]+)\/([^/]+)\/(.+)/);
+							if (match) {
+								const [, collection, recordId, filename] = match;
+								thumbnailUrl = `/api/media/thumb/${collection}/${recordId}/${filename}`;
+							}
+						}
+						newOptions.push({
+							id: item.id,
+							title: item.title || item.url || id,
+							provider: isMirror ? 'upload' : 'external',
+							url: item.url,
+							thumbnail_url: thumbnailUrl,
+							mime: item.mime,
+							collection: 'external_media',
+							description: item.description || '',
+							alt_text: item.alt_text || ''
+						});
+						continue;
+					}
+				}
+
 				if (res.ok) {
 					const item = await res.json();
 					const isUpload = item.type === 'upload';
