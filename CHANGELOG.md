@@ -2,6 +2,16 @@
 
 All notable changes to Facet will be documented in this file.
 
+
+## v2.15.6 - January 31, 2026
+
+**Bugs Fixed:**
+- Add thumbnail preview for posts with cover images in the admin list
+
+**Pull Requests:** [#367](https://github.com/jesposito/Facet/pull/367),
+
+---
+
 ## v2.15.1 - v2.15.5 - January 30, 2026
 
 **Other Changes:**
