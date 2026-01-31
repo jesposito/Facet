@@ -453,9 +453,9 @@
 					<div class="flex flex-col min-w-0 flex-1">
 						<span class="text-sm font-medium truncate">{opt.title}</span>
 						{#if opt.description}
-							<span class="text-xs line-clamp-2 {isSelected ? 'text-primary-700 dark:text-primary-100' : 'text-gray-600 dark:text-gray-300'}">{opt.description}</span>
+							<span class="text-xs line-clamp-2 {isSelected ? 'text-primary-700 dark:text-gray-100' : 'text-gray-600 dark:text-gray-300'}">{opt.description}</span>
 						{:else if opt.provider}
-							<span class="text-xs {isSelected ? 'text-primary-600 dark:text-primary-200' : 'text-gray-500 dark:text-gray-400'}">{opt.provider}</span>
+							<span class="text-xs {isSelected ? 'text-primary-600 dark:text-gray-200' : 'text-gray-500 dark:text-gray-400'}">{opt.provider}</span>
 						{/if}
 					</div>
 				</label>
