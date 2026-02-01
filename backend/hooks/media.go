@@ -680,7 +680,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 		se.Router.POST("/api/media/mark-used", func(e *core.RequestEvent) error {
 			var req struct {
 				ID         string `json:"id"`
-				Collection string `json:"collection"` // "uploads" or "external_media"
+				Collection string `json:"collection"`
 			}
 			if err := e.BindBody(&req); err != nil {
 				return apis.NewBadRequestError("invalid request body", err)
@@ -692,9 +692,18 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				req.Collection = "media_library" // default to unified collection
 			}
 
-			// Validate collection name - accept media_library, uploads, and external_media for backward compatibility
-			if req.Collection != "uploads" && req.Collection != "external_media" && req.Collection != "media_library" {
-				return apis.NewBadRequestError("invalid collection", nil)
+			// Only library collections (media_library, uploads, external_media) support last_used_at
+			// For other collections (profile, projects, etc.), silently succeed without updating
+			// since those files don't have the last_used_at field
+			libraryCollections := map[string]bool{
+				"media_library":  true,
+				"uploads":        true,
+				"external_media": true,
+			}
+
+			if !libraryCollections[req.Collection] {
+				// Not a library collection - silently succeed (file is attached to content record)
+				return e.JSON(http.StatusOK, map[string]string{"status": "skipped"})
 			}
 
 			record, err := app.FindRecordById(req.Collection, req.ID)

@@ -64,11 +64,16 @@ func getTableName(app core.App, collection string) string {
 
 // fetchMediaLibrary safely loads media_library records by IDs without relying on expand rules.
 // Handles both "upload" and "external" types, constructing file URLs for uploads.
+// Falls back to legacy external_media collection for backward compatibility.
 func fetchMediaLibrary(app core.App, ids []string) ([]map[string]interface{}, error) {
 	if len(ids) == 0 {
 		return nil, nil
 	}
 
+	out := make([]map[string]interface{}, 0, len(ids))
+	foundIDs := make(map[string]bool)
+
+	// Try media_library first
 	filters := make([]string, 0, len(ids))
 	params := map[string]interface{}{}
 	for i, id := range ids {
@@ -85,48 +90,111 @@ func fetchMediaLibrary(app core.App, ids []string) ([]map[string]interface{}, er
 		0,
 		params,
 	)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		for _, r := range records {
+			foundIDs[r.Id] = true
+			mediaType := r.GetString("type")
+			item := map[string]interface{}{
+				"id":    r.Id,
+				"title": r.GetString("title"),
+				"type":  mediaType,
+			}
+
+			// Handle URL based on type
+			if mediaType == "upload" {
+				// Construct file URL for uploads
+				if file := r.GetString("file"); file != "" {
+					item["url"] = fmt.Sprintf("/api/files/%s/%s/%s", r.Collection().Id, r.Id, file)
+				}
+				item["provider"] = "upload"
+			} else {
+				// External media - use stored URL
+				item["url"] = r.GetString("url")
+				item["provider"] = r.GetString("provider")
+				if thumbURL := r.GetString("thumbnail_url"); thumbURL != "" {
+					item["thumbnail_url"] = thumbURL
+				}
+			}
+
+			// Include mime type
+			if mime := r.GetString("mime"); mime != "" {
+				item["mime"] = mime
+			}
+
+			// Include description and alt_text if present
+			if desc := r.GetString("description"); desc != "" {
+				item["description"] = desc
+			}
+			if alt := r.GetString("alt_text"); alt != "" {
+				item["alt_text"] = alt
+			}
+			out = append(out, item)
+		}
 	}
 
-	out := make([]map[string]interface{}, 0, len(records))
-	for _, r := range records {
-		mediaType := r.GetString("type")
-		item := map[string]interface{}{
-			"id":    r.Id,
-			"title": r.GetString("title"),
-			"type":  mediaType,
+	// Fall back to external_media for any IDs not found in media_library
+	missingIDs := make([]string, 0)
+	for _, id := range ids {
+		if !foundIDs[id] {
+			missingIDs = append(missingIDs, id)
+		}
+	}
+
+	if len(missingIDs) > 0 {
+		filters = make([]string, 0, len(missingIDs))
+		params = map[string]interface{}{}
+		for i, id := range missingIDs {
+			key := fmt.Sprintf("id%d", i)
+			filters = append(filters, fmt.Sprintf("id={:%s}", key))
+			params[key] = id
 		}
 
-		// Handle URL based on type
-		if mediaType == "upload" {
-			// Construct file URL for uploads
-			if file := r.GetString("file"); file != "" {
-				item["url"] = fmt.Sprintf("/api/files/%s/%s/%s", r.Collection().Id, r.Id, file)
+		legacyRecords, err := app.FindRecordsByFilter(
+			"external_media",
+			strings.Join(filters, " || "),
+			"",
+			len(missingIDs),
+			0,
+			params,
+		)
+		if err == nil {
+			for _, r := range legacyRecords {
+				url := r.GetString("url")
+				title := r.GetString("title")
+				if title == "" {
+					title = url
+				}
+
+				item := map[string]interface{}{
+					"id":    r.Id,
+					"title": title,
+					"url":   url,
+					"type":  "external",
+				}
+
+				// Check if this is a mirror entry (URL points to internal file)
+				if strings.Contains(url, "/api/files/") {
+					item["provider"] = "upload"
+					item["type"] = "mirror"
+				} else {
+					item["provider"] = r.GetString("provider")
+					if thumbURL := r.GetString("thumbnail_url"); thumbURL != "" {
+						item["thumbnail_url"] = thumbURL
+					}
+				}
+
+				if mime := r.GetString("mime"); mime != "" {
+					item["mime"] = mime
+				}
+				if desc := r.GetString("description"); desc != "" {
+					item["description"] = desc
+				}
+				if alt := r.GetString("alt_text"); alt != "" {
+					item["alt_text"] = alt
+				}
+				out = append(out, item)
 			}
-			item["provider"] = "upload"
-		} else {
-			// External media - use stored URL
-			item["url"] = r.GetString("url")
-			item["provider"] = r.GetString("provider")
-			if thumbURL := r.GetString("thumbnail_url"); thumbURL != "" {
-				item["thumbnail_url"] = thumbURL
-			}
 		}
-
-		// Include mime type
-		if mime := r.GetString("mime"); mime != "" {
-			item["mime"] = mime
-		}
-
-		// Include description and alt_text if present
-		if desc := r.GetString("description"); desc != "" {
-			item["description"] = desc
-		}
-		if alt := r.GetString("alt_text"); alt != "" {
-			item["alt_text"] = alt
-		}
-		out = append(out, item)
 	}
 
 	return out, nil
