@@ -95,6 +95,14 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			query := e.Request.URL.Query()
+			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
+
+			// Fast path: when requesting media_library only, skip aggregation from content collections
+			// This is the primary use case for MediaPicker (selecting items for media_refs)
+			if collectionFilter == "media_library" {
+				return handleMediaLibraryOnly(e, app, storage, query)
+			}
+
 			includeOrphans := strings.TrimSpace(strings.ToLower(query.Get("includeOrphans"))) == "1"
 			orphansOnly := strings.TrimSpace(strings.ToLower(query.Get("orphans"))) == "1"
 
@@ -126,7 +134,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
 			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type")))       // "image", "video", "audio", "document", or ""
-			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
+			_ = collectionFilter // already extracted above
 			tagsFilter := strings.TrimSpace(query.Get("tags"))                        // comma-separated tag IDs
 			usageFilter := strings.ToLower(strings.TrimSpace(query.Get("usage")))     // "in_use", "not_in_use", or "" for all
 			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))        // "date", "name", "size"
@@ -1227,6 +1235,159 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 	}
 
 	return usage
+}
+
+// handleMediaLibraryOnly handles the fast path for /api/media?collection=media_library
+// This directly queries media_library without aggregating from content collections,
+// avoiding duplicates after files are migrated to the unified library.
+func handleMediaLibraryOnly(e *core.RequestEvent, app *pocketbase.PocketBase, storage *services.StorageService, query url.Values) error {
+	collection, err := app.FindCollectionByNameOrId("media_library")
+	if err != nil {
+		return apis.NewNotFoundError("media_library collection not found", err)
+	}
+
+	search := strings.TrimSpace(strings.ToLower(query.Get("q")))
+	typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type")))
+	sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))
+	sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))
+	if sortOrder == "" {
+		sortOrder = "desc"
+	}
+
+	// Build filter for search
+	filter := ""
+	if search != "" {
+		filter = "title ~ {:search} || file ~ {:search} || url ~ {:search}"
+	}
+
+	// Query all media_library records
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "-created", 500, 0, map[string]any{"search": search})
+	if err != nil {
+		return apis.NewBadRequestError("failed to query media_library", err)
+	}
+
+	var items []services.MediaItem
+	for _, record := range records {
+		created := record.GetDateTime("created").Time()
+		mediaType := record.GetString("type")
+
+		var item services.MediaItem
+		if mediaType == "upload" {
+			filename := record.GetString("file")
+			if filename == "" {
+				continue
+			}
+			builtItem, err := services.BuildMediaItem(storage, collection.Name, collection.Id, record.Id, "file", filename, created)
+			if err != nil {
+				continue
+			}
+			item = builtItem
+			item.Type = "upload"
+		} else {
+			// External type
+			title := record.GetString("title")
+			if title == "" {
+				title = record.GetString("url")
+			}
+			normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+			item = services.MediaItem{
+				Collection:    collection.Name,
+				CollectionID:  collection.Id,
+				CollectionKey: "media_library",
+				RecordID:      record.Id,
+				Field:         "external",
+				Filename:      title,
+				DisplayName:   title,
+				URL:           record.GetString("url"),
+				Mime:          normalized.Mime,
+				ThumbnailURL:  normalized.ThumbnailURL,
+				EmbedURL:      normalized.EmbedURL,
+				Provider:      normalized.Provider,
+				UploadedAt:    created,
+				External:      true,
+				Type:          "external",
+			}
+		}
+
+		// Common fields
+		item.DisplayName = record.GetString("title")
+		if item.DisplayName == "" {
+			item.DisplayName = item.Filename
+		}
+		item.AltText = record.GetString("alt_text")
+		item.Description = record.GetString("description")
+		item.Tags = fetchMediaTags(app, record)
+
+		// Type filtering
+		if typeFilter != "" {
+			var match bool
+			switch typeFilter {
+			case "image":
+				match = strings.HasPrefix(item.Mime, "image/")
+			case "video":
+				match = strings.HasPrefix(item.Mime, "video/")
+			case "audio":
+				match = strings.HasPrefix(item.Mime, "audio/")
+			case "document":
+				match = strings.HasPrefix(item.Mime, "application/pdf") ||
+					strings.HasPrefix(item.Mime, "application/msword") ||
+					strings.HasPrefix(item.Mime, "application/vnd.openxmlformats-officedocument") ||
+					strings.HasPrefix(item.Mime, "application/vnd.ms-") ||
+					strings.HasPrefix(item.Mime, "application/vnd.oasis.opendocument") ||
+					strings.HasPrefix(item.Mime, "text/")
+			}
+			if !match {
+				continue
+			}
+		}
+
+		items = append(items, item)
+	}
+
+	// Sort
+	sort.Slice(items, func(i, j int) bool {
+		var less bool
+		switch sortField {
+		case "name":
+			less = strings.ToLower(items[i].Filename) < strings.ToLower(items[j].Filename)
+		case "size":
+			less = items[i].Size < items[j].Size
+		default:
+			less = items[i].UploadedAt.Before(items[j].UploadedAt)
+		}
+		if sortOrder == "asc" {
+			return less
+		}
+		return !less
+	})
+
+	// Pagination
+	page := parseIntDefault(query.Get("page"), 1)
+	perPage := parseIntDefault(query.Get("perPage"), 50)
+	if perPage <= 0 {
+		perPage = 50
+	}
+	if perPage > 200 {
+		perPage = 200
+	}
+
+	total := len(items)
+	start := (page - 1) * perPage
+	if start > total {
+		start = total
+	}
+	end := start + perPage
+	if end > total {
+		end = total
+	}
+
+	return e.JSON(http.StatusOK, map[string]any{
+		"items":      items[start:end],
+		"page":       page,
+		"perPage":    perPage,
+		"totalItems": total,
+		"totalPages": (total + perPage - 1) / perPage,
+	})
 }
 
 func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageService) ([]services.MediaItem, map[string]struct{}, int64, error) {
