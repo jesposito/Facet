@@ -35,8 +35,6 @@
 	let coverImageFile: FileList | null = $state(null);
 	let coverImageLibraryUrl = $state('');
 	let clearCoverImage = $state(false);
-	let pendingMediaFiles: File[] = $state([]); // Accumulated new files to upload
-	let mediaToKeep: string[] = $state([]); // Track existing media filenames to keep
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
 
@@ -176,8 +174,6 @@
 		coverImageFile = null;
 		coverImageLibraryUrl = '';
 		clearCoverImage = false;
-		pendingMediaFiles = [];
-		mediaToKeep = [];
 		editingItem = null;
 		adminTagIds = [];
 		mediaRefs = [];
@@ -219,8 +215,6 @@
 		coverImageFile = null;
 		coverImageLibraryUrl = (item as any).cover_image_library_url || '';
 		clearCoverImage = false;
-		pendingMediaFiles = [];
-		mediaToKeep = item.media ? [...item.media] : []; // Keep all existing media by default
 		mediaRefs = (item as any).media_refs || [];
 		showForm = true;
 	}
@@ -262,18 +256,6 @@
 			} else {
 				// Keep or set library URL
 				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
-			}
-
-			// Handle media files - include existing files to keep AND new files to add
-			if (editingItem) {
-				// When editing, first add existing media filenames to keep
-				for (const filename of mediaToKeep) {
-					formData.append('media', filename);
-				}
-			}
-			// Then add any new pending files
-			for (const file of pendingMediaFiles) {
-				formData.append('media', file);
 			}
 
 			// Handle media library refs
@@ -423,24 +405,6 @@
 		if (libraryUrl) return libraryUrl;
 		if (!item.cover_image) return '';
 		return getFileUrl({ id: item.id, collectionName: 'custom_content' }, item.cover_image);
-	}
-
-	function removeMediaFromKeep(filename: string) {
-		mediaToKeep = mediaToKeep.filter((f) => f !== filename);
-	}
-
-	function handleMediaFilesSelected(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (input.files && input.files.length > 0) {
-			// Accumulate new files instead of replacing
-			pendingMediaFiles = [...pendingMediaFiles, ...Array.from(input.files)];
-			// Clear the input so the same file can be selected again if needed
-			input.value = '';
-		}
-	}
-
-	function removePendingFile(index: number) {
-		pendingMediaFiles = pendingMediaFiles.filter((_, i) => i !== index);
 	}
 </script>
 
@@ -620,71 +584,6 @@
 						imagesOnly={true}
 						onchange={handleFormChange}
 					/>
-				</div>
-
-				<div>
-					<label for="media" class="label">Media Gallery</label>
-
-					<!-- Existing media (when editing) -->
-					{#if editingItem && mediaToKeep.length > 0}
-						<p class="text-xs text-gray-500 mb-1">Existing images:</p>
-						<div class="flex flex-wrap gap-2 mb-3">
-							{#each mediaToKeep as filename}
-								<div class="relative group">
-									<img
-										src={getFileUrl(
-											{ id: editingItem.id, collectionName: 'custom_content' },
-											filename
-										)}
-										alt="Media"
-										class="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-700"
-									/>
-									<button
-										type="button"
-										class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-										onclick={() => removeMediaFromKeep(filename)}
-										title="Remove image"
-									>
-										×
-									</button>
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					<!-- Pending new uploads -->
-					{#if pendingMediaFiles.length > 0}
-						<p class="text-xs text-gray-500 mb-1">New images to upload:</p>
-						<div class="flex flex-wrap gap-2 mb-3">
-							{#each pendingMediaFiles as file, index}
-								<div class="relative group">
-									<img
-										src={URL.createObjectURL(file)}
-										alt={file.name}
-										class="w-16 h-16 object-cover rounded border-2 border-primary-300 dark:border-primary-600"
-									/>
-									<button
-										type="button"
-										class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-										onclick={() => removePendingFile(index)}
-										title="Remove"
-									>
-										×
-									</button>
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					<input
-						type="file"
-						id="media"
-						accept="image/jpeg,image/png,image/webp,image/svg+xml"
-						multiple
-						onchange={handleMediaFilesSelected}
-						class="input"
-					/>
-					<p class="text-xs text-gray-500 mt-1">Select images to add (you can select multiple times to build up your gallery)</p>
 				</div>
 
 				<MultiMediaPicker
