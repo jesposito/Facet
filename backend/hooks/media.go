@@ -1128,6 +1128,7 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 		"resume_imports",
 		"custom_content",
 		"site_settings",
+		"testimonials",
 	}
 
 	var all []services.MediaItem
