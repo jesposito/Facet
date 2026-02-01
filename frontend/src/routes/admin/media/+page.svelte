@@ -849,7 +849,9 @@
 			if (mime) {
 				form.append('mime', mime);
 			}
-			const res = await fetch('/api/collections/uploads/records', {
+			// Set type for media_library collection
+			form.append('type', 'upload');
+			const res = await fetch('/api/collections/media_library/records', {
 				method: 'POST',
 				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
 				body: form
@@ -896,6 +898,7 @@
 			const form = new FormData();
 			form.append('file', file);
 			form.append('title', file.name);
+			form.append('type', 'upload'); // Required for media_library
 			if (file.type) form.append('mime', file.type);
 
 			xhr.upload.onprogress = (e) => {
@@ -904,7 +907,7 @@
 			xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
 			xhr.onerror = () => resolve(false);
 
-			xhr.open('POST', '/api/collections/uploads/records');
+			xhr.open('POST', '/api/collections/media_library/records');
 			if (pb.authStore.isValid) xhr.setRequestHeader('Authorization', `Bearer ${pb.authStore.token}`);
 			xhr.send(form);
 		});

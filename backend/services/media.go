@@ -34,14 +34,15 @@ type MediaUsage struct {
 	UsedBy     []MediaUsageItem `json:"used_by"`
 }
 
-// FindMediaUsage queries all collections with media_refs to find which content references the given external_media ID.
-func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUsage, error) {
+// FindMediaUsage queries all collections with media_refs to find which content references the given media ID.
+// Works with both media_library (new) and external_media (legacy) IDs.
+func FindMediaUsage(app *pocketbase.PocketBase, mediaID string) (MediaUsage, error) {
 	usage := MediaUsage{
 		UsageCount: 0,
 		UsedBy:     []MediaUsageItem{},
 	}
 
-	// Collections that have media_refs relation to external_media
+	// Collections that have media_refs relation
 	collectionsWithMediaRefs := []string{"posts", "projects", "talks", "custom_content"}
 
 	for _, collName := range collectionsWithMediaRefs {
@@ -55,9 +56,9 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 			continue
 		}
 
-		// Find records that reference this external_media ID
+		// Find records that reference this media ID
 		// PocketBase multi-relation: expand relation and check if any ID matches
-		filter := fmt.Sprintf("media_refs.id ?= '%s'", externalMediaID)
+		filter := fmt.Sprintf("media_refs.id ?= '%s'", mediaID)
 		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
 		if err != nil {
 			continue
@@ -86,8 +87,9 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 	return usage, nil
 }
 
-// RemoveMediaRefFromRecord removes an external_media ID from a record's media_refs field.
-func RemoveMediaRefFromRecord(app *pocketbase.PocketBase, collectionName, recordID, externalMediaID string) error {
+// RemoveMediaRefFromRecord removes a media ID from a record's media_refs field.
+// Works with both media_library (new) and external_media (legacy) IDs.
+func RemoveMediaRefFromRecord(app *pocketbase.PocketBase, collectionName, recordID, mediaID string) error {
 	record, err := app.FindRecordById(collectionName, recordID)
 	if err != nil {
 		return err
@@ -99,10 +101,10 @@ func RemoveMediaRefFromRecord(app *pocketbase.PocketBase, collectionName, record
 		return nil // Nothing to remove
 	}
 
-	// Filter out the external media ID
+	// Filter out the media ID
 	newRefs := make([]string, 0, len(mediaRefs))
 	for _, ref := range mediaRefs {
-		if ref != externalMediaID {
+		if ref != mediaID {
 			newRefs = append(newRefs, ref)
 		}
 	}
