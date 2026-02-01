@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -9,8 +10,32 @@ import (
 
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
-	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
+
+// copyMirrorFile copies a file from src to dst
+func copyMirrorFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	if _, err = io.Copy(destFile, sourceFile); err != nil {
+		return err
+	}
+
+	sourceInfo, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	return os.Chmod(dst, sourceInfo.Mode())
+}
 
 // migrationLog writes to stderr AND a persistent file in /data for visibility
 func migrationLog(dataDir, msg string) {
@@ -140,7 +165,7 @@ func init() {
 			log(fmt.Sprintf("Parsed: collection=%s record=%s file=%s", sourceCollectionId, sourceRecordId, filename))
 
 			// Find the source file in any storage location
-			srcPath, _, found := findFile(sourceCollectionId, sourceRecordId, filename)
+			srcPath, storageBase, found := findFile(sourceCollectionId, sourceRecordId, filename)
 			if !found {
 				log(fmt.Sprintf("ERROR: File not found for %s - tried: %v", external.Id, storagePaths))
 				log(fmt.Sprintf("  Looking for: %s/%s/%s", sourceCollectionId, sourceRecordId, filename))
@@ -148,40 +173,48 @@ func init() {
 			}
 			log(fmt.Sprintf("Found source file: %s", srcPath))
 
-			// Create a proper file object from the source file
-			// PocketBase requires files to be set via its filesystem API, not by copying
-			file, err := filesystem.NewFileFromPath(srcPath)
-			if err != nil {
-				log(fmt.Sprintf("ERROR: Failed to create file object from %s: %v", srcPath, err))
+			// Copy file to the media_library storage location (same base as source)
+			dstDir := filepath.Join(storageBase, mediaLibrary.Id, external.Id)
+			if err := os.MkdirAll(dstDir, 0755); err != nil {
+				log(fmt.Sprintf("ERROR: Failed to create dir %s: %v", dstDir, err))
 				continue
 			}
-			// Preserve original filename
-			file.OriginalName = filename
 
-			// Create media_library record with the external_media ID (preserves relations)
-			record := core.NewRecord(mediaLibrary)
-			record.Id = external.Id // CRITICAL: Preserve original ID for media_refs
+			dstPath := filepath.Join(dstDir, filename)
+			if err := copyMirrorFile(srcPath, dstPath); err != nil {
+				log(fmt.Sprintf("ERROR: Failed to copy file: %v", err))
+				continue
+			}
+			log(fmt.Sprintf("Copied to: %s", dstPath))
 
-			record.Set("type", "upload")
-			record.Set("file", file)
-			record.Set("title", external.GetString("title"))
-			record.Set("mime", external.GetString("mime"))
-			record.Set("alt_text", external.GetString("alt_text"))
-			record.Set("description", external.GetString("description"))
-			record.Set("admin_tags", external.Get("admin_tags"))
-			record.Set("last_used_at", external.Get("last_used_at"))
-
-			// Ensure title is set
-			if record.GetString("title") == "" {
-				if filename != "" {
-					record.Set("title", filename)
-				} else {
-					record.Set("title", "Untitled Upload")
-				}
+			// Get title
+			title := external.GetString("title")
+			if title == "" {
+				title = filename
+			}
+			if title == "" {
+				title = "Untitled Upload"
 			}
 
-			if err := app.Save(record); err != nil {
-				log(fmt.Sprintf("ERROR: Failed to save record %s: %v", external.Id, err))
+			// Use raw SQL to insert the record, bypassing PocketBase's file validation
+			// PocketBase stores files as just the filename in the database
+			_, err = app.DB().NewQuery(`
+				INSERT INTO ` + mediaLibrary.Name + ` (id, type, file, title, mime, alt_text, description, created, updated)
+				VALUES ({:id}, 'upload', {:file}, {:title}, {:mime}, {:alt_text}, {:description}, {:created}, {:updated})
+			`).Bind(map[string]any{
+				"id":          external.Id,
+				"file":        filename,
+				"title":       title,
+				"mime":        external.GetString("mime"),
+				"alt_text":    external.GetString("alt_text"),
+				"description": external.GetString("description"),
+				"created":     external.GetRaw("created"),
+				"updated":     external.GetRaw("updated"),
+			}).Execute()
+
+			if err != nil {
+				log(fmt.Sprintf("ERROR: Failed to insert record %s: %v", external.Id, err))
+				os.RemoveAll(dstDir)
 				continue
 			}
 
