@@ -280,15 +280,19 @@
 		}
 	}
 
+	// Track if we've already reconciled to prevent infinite loops
+	let hasReconciled = $state(false);
+
 	// Load media options and recent items on mount
 	$effect(() => {
 		loadMediaOptions();
 		loadRecentItems();
 	});
 
-	// Reconcile selected items after options load
+	// Reconcile selected items after options load (only once)
 	$effect(() => {
-		if (!loadingMedia && mediaOptions.length > 0 && value.length > 0) {
+		if (!loadingMedia && mediaOptions.length > 0 && value.length > 0 && !hasReconciled) {
+			hasReconciled = true;
 			reconcileSelectedItems();
 		}
 	});
