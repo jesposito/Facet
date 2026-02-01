@@ -1201,6 +1201,8 @@
 			"preview_uploaded": "Preserved",
 			"preview_provider": "Source",
 			"preview_collection": "Archive",
+			"preview_used_by": "Woven into",
+			"preview_not_used": "Not woven into any tapestry",
 			"preview_external": "This path leads beyond our realm",
 			"preview_open_link": "Follow the Path",
 			"preview_no_preview": "This scroll cannot be revealed here",

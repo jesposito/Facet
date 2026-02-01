@@ -1201,6 +1201,8 @@
 			"preview_uploaded": "Uploaded",
 			"preview_provider": "Provider",
 			"preview_collection": "Collection",
+			"preview_used_by": "Used by",
+			"preview_not_used": "Not used by any content",
 			"preview_external": "This is an external link",
 			"preview_open_link": "Open Link",
 			"preview_no_preview": "Preview not available for this file type",

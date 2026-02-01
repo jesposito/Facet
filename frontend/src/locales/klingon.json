@@ -1201,6 +1201,8 @@
 			"preview_uploaded": "Deployed",
 			"preview_provider": "Origin",
 			"preview_collection": "Arsenal",
+			"preview_used_by": "Deployed in",
+			"preview_not_used": "This weapon remains unused",
 			"preview_external": "This is an external transmission",
 			"preview_open_link": "Access Link",
 			"preview_no_preview": "Visual scan unavailable for this asset type",
