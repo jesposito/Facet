@@ -20,7 +20,7 @@ import (
 //   - views.hero_image_library_url
 //   - site_settings.favicon_library_url
 //   - custom_content.cover_image_library_url
-//   - testimonials.avatar_library_url (if avatar field exists)
+//   - testimonials.author_photo_library_url (if author_photo field exists)
 func init() {
 	m.Register(func(app core.App) error {
 		// Profile: hero_image and avatar
@@ -46,8 +46,8 @@ func init() {
 			// Log but continue
 		}
 
-		// Testimonials: avatar (if avatar field exists)
-		if err := addLibraryURLFieldIfSourceExists(app, "testimonials", "avatar", "avatar_library_url"); err != nil {
+		// Testimonials: author_photo (if author_photo field exists)
+		if err := addLibraryURLFieldIfSourceExists(app, "testimonials", "author_photo", "author_photo_library_url"); err != nil {
 			// Log but continue
 		}
 
@@ -59,7 +59,7 @@ func init() {
 		removeLibraryURLField(app, "views", "hero_image_library_url")
 		removeLibraryURLField(app, "site_settings", "favicon_library_url")
 		removeLibraryURLField(app, "custom_content", "cover_image_library_url")
-		removeLibraryURLField(app, "testimonials", "avatar_library_url")
+		removeLibraryURLField(app, "testimonials", "author_photo_library_url")
 		return nil
 	})
 }

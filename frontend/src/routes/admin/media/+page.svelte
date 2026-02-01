@@ -135,6 +135,7 @@
 		{ value: 'custom_content', label: 'Custom Content' },
 		{ value: 'testimonials', label: 'Testimonials' },
 		{ value: 'certifications', label: 'Certifications' },
+		{ value: 'media_library', label: 'Media Library' },
 		{ value: 'view_exports', label: 'View Exports' },
 		{ value: 'resume_imports', label: 'Resume Imports' },
 	];

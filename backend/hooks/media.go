@@ -1048,7 +1048,7 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 		"views":          {"hero_image_library_url"},
 		"site_settings":  {"favicon_library_url"},
 		"custom_content": {"cover_image_library_url"},
-		"testimonials":   {"avatar_library_url"},
+		"testimonials":   {"author_photo_library_url"},
 	}
 
 	for collName, fields := range libraryURLFields {
