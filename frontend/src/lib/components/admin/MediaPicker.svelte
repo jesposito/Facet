@@ -101,11 +101,9 @@
 			const headers: Record<string, string> = pb.authStore.isValid
 				? { Authorization: `Bearer ${pb.authStore.token}` }
 				: {};
-			// Filter to media_library collection only - media_refs relation targets this collection
-			const mediaParams = new URLSearchParams({ perPage: '50', collection: 'media_library' });
+			const mediaParams = new URLSearchParams({ perPage: '50' });
 			if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
 
-			// Query the unified /api/media endpoint filtered to media_library only
 			const mediaRes = await fetch(`/api/media?${mediaParams.toString()}`, { headers });
 			const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
 
