@@ -242,7 +242,7 @@ const getHost = (url?: string) => {
 
 		{#if mediaRefs && mediaRefs.length > 0}
 			<section class="mt-10 space-y-3">
-				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Attached media</h3>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h3>
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs as media}
 						<div class="card p-4 space-y-3">
@@ -268,7 +268,7 @@ const getHost = (url?: string) => {
 										<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">{media.description}</p>
 									{/if}
 									{#if media.url && media.provider && media.provider !== 'upload'}
-										<p class="text-xs text-gray-500 dark:text-gray-400">{getHost(media.url)}</p>
+										<p class="text-xs text-gray-500 dark:text-gray-400">Source: {getHost(media.url)}</p>
 									{/if}
 								</div>
 							</div>
