@@ -1225,7 +1225,14 @@
 			"single_picker_new_upload": "Nu upload (replaces current)",
 			"single_picker_from_library": "Picked frum library",
 			"single_picker_current": "Current file",
-			"single_picker_modal_title": "Pik a pikture"
+			"single_picker_modal_title": "Pik a pikture",
+			"multi_picker_select_from_library": "Pik frum library",
+			"multi_picker_modify_selection": "Change ur pikz",
+			"multi_picker_clear_all": "Clear all teh thingz",
+			"multi_picker_count": "{count} pikked",
+			"multi_picker_modal_title": "Pik sum medias",
+			"multi_picker_selected_count": "{count} pikked",
+			"multi_picker_confirm": "Okai ({count})"
 		},
 		"tokens": {
 			"page_title": "Shaer Tokenz | Facet",

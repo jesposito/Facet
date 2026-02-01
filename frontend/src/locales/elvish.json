@@ -1225,7 +1225,14 @@
 			"single_picker_new_upload": "New inscription (shall replace current)",
 			"single_picker_from_library": "Chosen from archives",
 			"single_picker_current": "Current binding",
-			"single_picker_modal_title": "Choose Vision"
+			"single_picker_modal_title": "Choose Vision",
+			"multi_picker_select_from_library": "Choose from Archives",
+			"multi_picker_modify_selection": "Alter Selection",
+			"multi_picker_clear_all": "Release All",
+			"multi_picker_count": "{count} chosen",
+			"multi_picker_modal_title": "Choose Visions",
+			"multi_picker_selected_count": "{count} chosen",
+			"multi_picker_confirm": "Affirm ({count})"
 		},
 		"tokens": {
 			"page_title": "Tokens of Passage | Facet",

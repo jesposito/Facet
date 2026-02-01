@@ -13,7 +13,7 @@ import { formatDate, toDateInputValue } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
-import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
+import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
 import PageHelp from '$components/admin/PageHelp.svelte';
 import AdminFilters from '$components/admin/AdminFilters.svelte';
 import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
@@ -24,7 +24,7 @@ let showForm = $state(false);
 let editingPost: Post | null = $state(null);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
+let mediaPickerRef: MultiMediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 
 let selectMode = $state(false);
@@ -536,11 +536,11 @@ function openEditForm(post: Post) {
 					</div>
 				</div>
 
-			<MediaPicker
+				<MultiMediaPicker
 				bind:this={mediaPickerRef}
 				bind:value={mediaRefs}
 				label={$t('admin.content.common.attached_media')}
-				showHelp={true}
+				helpText="Select media from your library to attach to this post"
 			/>
 
 				<div>

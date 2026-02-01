@@ -1225,7 +1225,14 @@
 			"single_picker_new_upload": "Neuer Upload (ersetzt aktuelles)",
 			"single_picker_from_library": "Aus Bibliothek ausgewählt",
 			"single_picker_current": "Aktuelle Datei",
-			"single_picker_modal_title": "Bild auswählen"
+			"single_picker_modal_title": "Bild auswählen",
+			"multi_picker_select_from_library": "Aus Bibliothek auswählen",
+			"multi_picker_modify_selection": "Auswahl bearbeiten",
+			"multi_picker_clear_all": "Alle entfernen",
+			"multi_picker_count": "{count} ausgewählt",
+			"multi_picker_modal_title": "Medien auswählen",
+			"multi_picker_selected_count": "{count} ausgewählt",
+			"multi_picker_confirm": "Bestätigen ({count})"
 		},
 		"tokens": {
 			"page_title": "Freigabe-Token | Facet",

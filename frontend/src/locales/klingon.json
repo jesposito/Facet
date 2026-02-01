@@ -1225,7 +1225,14 @@
 			"single_picker_new_upload": "New upload (replaces current)",
 			"single_picker_from_library": "Selected from arsenal",
 			"single_picker_current": "Current asset",
-			"single_picker_modal_title": "Select Image"
+			"single_picker_modal_title": "Select Image",
+			"multi_picker_select_from_library": "Select from Arsenal",
+			"multi_picker_modify_selection": "Modify Selection",
+			"multi_picker_clear_all": "Purge All",
+			"multi_picker_count": "{count} acquired",
+			"multi_picker_modal_title": "Select Assets",
+			"multi_picker_selected_count": "{count} acquired",
+			"multi_picker_confirm": "Confirm ({count})"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",

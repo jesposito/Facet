@@ -1243,7 +1243,14 @@
 			"single_picker_new_upload": "New upload (will replace current)",
 			"single_picker_from_library": "Selected from library",
 			"single_picker_current": "Current file",
-			"single_picker_modal_title": "Select Image"
+			"single_picker_modal_title": "Select Image",
+			"multi_picker_select_from_library": "Select from Library",
+			"multi_picker_modify_selection": "Modify Selection",
+			"multi_picker_clear_all": "Clear All",
+			"multi_picker_count": "{count} selected",
+			"multi_picker_modal_title": "Select Media",
+			"multi_picker_selected_count": "{count} selected",
+			"multi_picker_confirm": "Confirm ({count})"
 		},
 		"tokens": {
 			"page_title": "Share Tokens | Facet",
