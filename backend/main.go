@@ -39,9 +39,9 @@ func main() {
 	testimonialService := services.NewTestimonialService(cryptoService)
 	rateLimitService := services.NewRateLimitService()
 
-	// Register migrations
+	// Register migrations - always automigrate in all environments
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
-		Automigrate: strings.HasPrefix(os.Args[0], os.TempDir()),
+		Automigrate: true,
 	})
 
 	// Register custom hooks
