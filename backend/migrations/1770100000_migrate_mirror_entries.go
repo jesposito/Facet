@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 // migrationLog writes to stderr AND a persistent file in /data for visibility
@@ -140,7 +140,7 @@ func init() {
 			log(fmt.Sprintf("Parsed: collection=%s record=%s file=%s", sourceCollectionId, sourceRecordId, filename))
 
 			// Find the source file in any storage location
-			srcPath, storageBase, found := findFile(sourceCollectionId, sourceRecordId, filename)
+			srcPath, _, found := findFile(sourceCollectionId, sourceRecordId, filename)
 			if !found {
 				log(fmt.Sprintf("ERROR: File not found for %s - tried: %v", external.Id, storagePaths))
 				log(fmt.Sprintf("  Looking for: %s/%s/%s", sourceCollectionId, sourceRecordId, filename))
@@ -148,39 +148,22 @@ func init() {
 			}
 			log(fmt.Sprintf("Found source file: %s", srcPath))
 
-			// Create destination directory in the same storage location where source was found
-			dstDir := filepath.Join(storageBase, mediaLibrary.Id, external.Id)
-			if err := os.MkdirAll(dstDir, 0755); err != nil {
-				log(fmt.Sprintf("ERROR: Failed to create dir %s: %v", dstDir, err))
+			// Create a proper file object from the source file
+			// PocketBase requires files to be set via its filesystem API, not by copying
+			file, err := filesystem.NewFileFromPath(srcPath)
+			if err != nil {
+				log(fmt.Sprintf("ERROR: Failed to create file object from %s: %v", srcPath, err))
 				continue
 			}
-
-			// Copy the main file
-			dstPath := filepath.Join(dstDir, filename)
-			if err := copyFileMirror(srcPath, dstPath); err != nil {
-				log(fmt.Sprintf("ERROR: Failed to copy file: %v", err))
-				continue
-			}
-			log(fmt.Sprintf("Copied file to: %s", dstPath))
-
-			// Also copy any existing thumbnails (try common formats)
-			ext := filepath.Ext(filename)
-			nameWithoutExt := strings.TrimSuffix(filename, ext)
-			srcDir := filepath.Join(storageBase, sourceCollectionId, sourceRecordId)
-			for _, thumbExt := range []string{"_thumb.webp", "_thumb.jpg", "_thumb.png"} {
-				thumbFilename := nameWithoutExt + thumbExt
-				thumbSrc := filepath.Join(srcDir, thumbFilename)
-				if _, err := os.Stat(thumbSrc); err == nil {
-					copyFileMirror(thumbSrc, filepath.Join(dstDir, thumbFilename))
-				}
-			}
+			// Preserve original filename
+			file.OriginalName = filename
 
 			// Create media_library record with the external_media ID (preserves relations)
 			record := core.NewRecord(mediaLibrary)
 			record.Id = external.Id // CRITICAL: Preserve original ID for media_refs
 
 			record.Set("type", "upload")
-			record.Set("file", filename)
+			record.Set("file", file)
 			record.Set("title", external.GetString("title"))
 			record.Set("mime", external.GetString("mime"))
 			record.Set("alt_text", external.GetString("alt_text"))
@@ -199,8 +182,6 @@ func init() {
 
 			if err := app.Save(record); err != nil {
 				log(fmt.Sprintf("ERROR: Failed to save record %s: %v", external.Id, err))
-				// Clean up copied file on failure
-				os.RemoveAll(dstDir)
 				continue
 			}
 
@@ -212,7 +193,7 @@ func init() {
 		return nil
 	}, func(app core.App) error {
 		// Rollback: delete migrated mirror entries from media_library
-		// We only delete entries that originated from mirrors (have file but came from external_media)
+		// PocketBase handles file cleanup automatically when records are deleted
 		mediaLibrary, err := app.FindCollectionByNameOrId("media_library")
 		if err != nil {
 			return nil
@@ -222,14 +203,6 @@ func init() {
 		if err != nil {
 			return nil
 		}
-
-		// Check all possible storage locations
-		var storagePaths []string
-		if envDir := os.Getenv("UPLOADS_DIR"); envDir != "" {
-			storagePaths = append(storagePaths, envDir)
-		}
-		storagePaths = append(storagePaths, "/uploads")
-		storagePaths = append(storagePaths, filepath.Join(app.DataDir(), "storage"))
 
 		externals, err := app.FindAllRecords(externalCollection)
 		if err != nil {
@@ -248,43 +221,9 @@ func init() {
 				continue
 			}
 
-			// Remove copied files from all possible locations
-			if filename := record.GetString("file"); filename != "" {
-				for _, base := range storagePaths {
-					recordDir := filepath.Join(base, mediaLibrary.Id, record.Id)
-					os.RemoveAll(recordDir)
-				}
-			}
-
 			app.Delete(record)
 		}
 
 		return nil
 	})
-}
-
-// copyFileMirror copies a file from src to dst (same as copyFile but with unique name to avoid redeclaration)
-func copyFileMirror(src, dst string) error {
-	sourceFile, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer sourceFile.Close()
-
-	destFile, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destFile.Close()
-
-	_, err = io.Copy(destFile, sourceFile)
-	if err != nil {
-		return err
-	}
-
-	sourceInfo, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	return os.Chmod(dst, sourceInfo.Mode())
 }
