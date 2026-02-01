@@ -32,7 +32,15 @@ let ogTags = $derived(generateOpenGraphTags({
 }));
 
 let referrerPath = $state('');
-let mediaRefs = $derived(((data as any).media_refs as Array<RecordModel & { url?: string; title?: string; mime?: string }>) || []);
+let mediaRefs = $derived(((data as any).media_refs as Array<RecordModel & {
+	url?: string;
+	title?: string;
+	mime?: string;
+	description?: string;
+	alt_text?: string;
+	type?: string;
+	provider?: string;
+}>) || []);
 
 	onMount(() => {
 		if (!browser) return;
@@ -317,7 +325,10 @@ const getFileName = (url?: string) => {
 									<p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
 										{media.title || getFileName(media.url)}
 									</p>
-									{#if media.url}
+									{#if media.description}
+										<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">{media.description}</p>
+									{/if}
+									{#if media.url && media.provider && media.provider !== 'upload'}
 										<p class="text-xs text-gray-500 dark:text-gray-400">{getHost(media.url)}</p>
 									{/if}
 								</div>

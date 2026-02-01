@@ -63,6 +63,14 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 			return url;
 		}
 	};
+	const getHost = (url?: string) => {
+		if (!url) return '';
+		try {
+			return new URL(url, 'http://localhost').host || '';
+		} catch {
+			return '';
+		}
+	};
 
 	let referrerPath = $state('');
 
@@ -299,8 +307,11 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 									<p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
 										{media.title || getFileName(media.url)}
 									</p>
-									{#if media.url}
-										<p class="text-xs text-gray-500 dark:text-gray-400 break-all">{media.url}</p>
+									{#if media.description}
+										<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">{media.description}</p>
+									{/if}
+									{#if media.url && media.provider && media.provider !== 'upload'}
+										<p class="text-xs text-gray-500 dark:text-gray-400">{getHost(media.url)}</p>
 									{/if}
 								</div>
 							</div>

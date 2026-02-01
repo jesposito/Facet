@@ -37,7 +37,15 @@ import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 	let publishedDate = $derived(data.post.published_at ? formatDate(data.post.published_at) : null);
 	let postThumb = $derived((data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url);
 	let postLarge = $derived((data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url);
-	let mediaRefs = $derived((data.media_refs as Array<RecordModel & { url?: string; title?: string; mime?: string }>) || []);
+	let mediaRefs = $derived((data.media_refs as Array<RecordModel & {
+	url?: string;
+	title?: string;
+	mime?: string;
+	description?: string;
+	alt_text?: string;
+	type?: string;
+	provider?: string;
+}>) || []);
 
 	let referrerPath = $state('');
 
@@ -256,7 +264,10 @@ const getHost = (url?: string) => {
 									<p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
 										{media.title || getFileName(media.url)}
 									</p>
-									{#if media.url}
+									{#if media.description}
+										<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">{media.description}</p>
+									{/if}
+									{#if media.url && media.provider && media.provider !== 'upload'}
 										<p class="text-xs text-gray-500 dark:text-gray-400">{getHost(media.url)}</p>
 									{/if}
 								</div>
