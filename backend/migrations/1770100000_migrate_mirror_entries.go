@@ -56,19 +56,30 @@ func init() {
 
 		externals, err := app.FindAllRecords(externalCollection)
 		if err != nil {
+			app.Logger().Error("Failed to find external_media records", "error", err)
 			return err
 		}
+
+		app.Logger().Info("Starting mirror migration", "total_external_media", len(externals), "storage_paths", storagePaths)
+
+		migratedCount := 0
+		skippedCount := 0
 
 		for _, external := range externals {
 			url := external.GetString("url")
 
 			// Only process mirror entries
 			if !strings.Contains(url, "/api/files/") {
+				skippedCount++
 				continue
 			}
 
+			app.Logger().Info("Processing mirror entry", "id", external.Id, "url", url)
+
 			// Check if already migrated
 			if _, err := app.FindRecordById(mediaLibrary, external.Id); err == nil {
+				app.Logger().Info("Already migrated, skipping", "id", external.Id)
+				skippedCount++
 				continue
 			}
 
@@ -150,8 +161,10 @@ func init() {
 			}
 
 			app.Logger().Info("Migrated mirror entry", "id", external.Id, "filename", filename)
+			migratedCount++
 		}
 
+		app.Logger().Info("Mirror migration complete", "migrated", migratedCount, "skipped", skippedCount)
 		return nil
 	}, func(app core.App) error {
 		// Rollback: delete migrated mirror entries from media_library
