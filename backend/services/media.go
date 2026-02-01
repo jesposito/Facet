@@ -34,12 +34,16 @@ type MediaUsage struct {
 	UsedBy     []MediaUsageItem `json:"used_by"`
 }
 
-// FindMediaUsage queries all collections with media_refs to find which content references the given external_media ID.
+// FindMediaUsage queries all collections to find which content references the given external_media ID.
+// It checks both media_refs relations AND *_library_url fields that may contain the media's URL.
 func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUsage, error) {
 	usage := MediaUsage{
 		UsageCount: 0,
 		UsedBy:     []MediaUsageItem{},
 	}
+
+	// Track already-added records to avoid duplicates
+	seen := make(map[string]bool)
 
 	// Collections that have media_refs relation to external_media
 	collectionsWithMediaRefs := []string{"posts", "projects", "talks", "custom_content"}
@@ -64,6 +68,12 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 		}
 
 		for _, record := range records {
+			key := collName + ":" + record.Id
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+
 			title := record.GetString("title")
 			if title == "" {
 				title = record.GetString("name")
@@ -80,6 +90,80 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 			}
 			usage.UsedBy = append(usage.UsedBy, item)
 			usage.UsageCount++
+		}
+	}
+
+	// Also check *_library_url fields that might reference this external media's URL
+	// First, get the external_media record to find its URL
+	extRecord, err := app.FindRecordById("external_media", externalMediaID)
+	if err == nil {
+		mediaURL := extRecord.GetString("url")
+		if mediaURL != "" {
+			// Collections and their library URL fields
+			libraryURLFields := map[string][]string{
+				"experience":     {"company_logo_library_url"},
+				"education":      {"institution_logo_library_url"},
+				"projects":       {"cover_image_library_url"},
+				"posts":          {"cover_image_library_url"},
+				"talks":          {"cover_image_library_url"},
+				"profile":        {"hero_image_library_url", "avatar_library_url"},
+				"views":          {"hero_image_library_url"},
+				"site_settings":  {"favicon_library_url"},
+				"custom_content": {"cover_image_library_url"},
+				"testimonials":   {"author_photo_library_url"},
+				"certifications": {"badge_image_library_url"},
+			}
+
+			for collName, fields := range libraryURLFields {
+				collection, err := app.FindCollectionByNameOrId(collName)
+				if err != nil {
+					continue
+				}
+
+				for _, fieldName := range fields {
+					// Check if field exists
+					if collection.Fields.GetByName(fieldName) == nil {
+						continue
+					}
+
+					// Find records where this field matches our URL
+					filter := fmt.Sprintf("%s = '%s'", fieldName, mediaURL)
+					records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+					if err != nil {
+						continue
+					}
+
+					for _, record := range records {
+						key := collName + ":" + record.Id
+						if seen[key] {
+							continue
+						}
+						seen[key] = true
+
+						title := record.GetString("title")
+						if title == "" {
+							title = record.GetString("name")
+						}
+						if title == "" {
+							title = record.GetString("company")
+						}
+						if title == "" {
+							title = record.GetString("institution")
+						}
+						if title == "" {
+							title = record.Id
+						}
+
+						usage.UsedBy = append(usage.UsedBy, MediaUsageItem{
+							Collection: collName,
+							RecordID:   record.Id,
+							Title:      title,
+							Slug:       record.GetString("slug"),
+						})
+						usage.UsageCount++
+					}
+				}
+			}
 		}
 	}
 
