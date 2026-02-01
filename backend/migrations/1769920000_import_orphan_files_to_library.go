@@ -13,16 +13,20 @@ import (
 // This ensures every file in storage is accessible via media_library for MediaPicker.
 func init() {
 	m.Register(func(app core.App) error {
+		app.Logger().Info("=== ORPHAN FILE IMPORT MIGRATION STARTING ===")
+
 		mediaLibrary, err := app.FindCollectionByNameOrId("media_library")
 		if err != nil {
 			app.Logger().Error("media_library collection not found", "error", err)
 			return nil // Don't fail migration if collection doesn't exist
 		}
+		app.Logger().Info("Found media_library collection", "id", mediaLibrary.Id)
 
 		storageBase := os.Getenv("UPLOADS_DIR")
 		if storageBase == "" {
 			storageBase = filepath.Join(app.DataDir(), "storage")
 		}
+		app.Logger().Info("Using storage base", "path", storageBase)
 
 		// Track what we've created
 		created := 0
@@ -34,6 +38,7 @@ func init() {
 			app.Logger().Error("Failed to read storage directory", "path", storageBase, "error", err)
 			return nil
 		}
+		app.Logger().Info("Found storage entries", "count", len(entries))
 
 		for _, collEntry := range entries {
 			if !collEntry.IsDir() || !strings.HasPrefix(collEntry.Name(), "pbc_") {
@@ -45,14 +50,19 @@ func init() {
 
 			// Skip media_library's own storage - those records should already exist
 			if collectionID == mediaLibrary.Id {
+				app.Logger().Debug("Skipping media_library storage", "id", collectionID)
 				continue
 			}
+
+			app.Logger().Info("Processing collection storage", "collectionID", collectionID)
 
 			// Walk record directories within this collection
 			recordEntries, err := os.ReadDir(collectionPath)
 			if err != nil {
+				app.Logger().Error("Failed to read collection directory", "path", collectionPath, "error", err)
 				continue
 			}
+			app.Logger().Info("Found record entries", "collectionID", collectionID, "count", len(recordEntries))
 
 			for _, recEntry := range recordEntries {
 				if !recEntry.IsDir() {
