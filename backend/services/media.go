@@ -60,8 +60,8 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 		}
 
 		// Find records that reference this external_media ID
-		// PocketBase multi-relation: expand relation and check if any ID matches
-		filter := fmt.Sprintf("media_refs.id ?= '%s'", externalMediaID)
+		// PocketBase multi-relation: use ~ operator to check if relation contains the ID
+		filter := fmt.Sprintf("media_refs ~ '%s'", externalMediaID)
 		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
 		if err != nil {
 			continue
