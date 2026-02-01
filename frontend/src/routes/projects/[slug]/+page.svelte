@@ -339,36 +339,9 @@ const getFileName = (url?: string) => {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h2>
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs as media}
-						<div class="card p-4 space-y-3">
-							<div class="flex items-start gap-3">
-								<div class="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-200 shrink-0">
-									{#if isYouTube(media.url)}
-										<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2s-.2-1.5-.8-2.2c-.7-.8-1.5-.8-1.9-.8C15.7 4 12 4 12 4h-.1S8.3 4 5.1 4.2c-.4 0-1.2 0-1.9.8-.6.7-.8 2.2-.8 2.2S2 8.9 2 10.6v1.6c0 1.7.2 3.4.2 3.4s.2 1.5.8 2.2c.7.8 1.7.8 2.1.9 1.5.1 6.9.2 6.9.2s3.7 0 6.9-.2c.4 0 1.2 0 1.9-.9.6-.7.8-2.2.8-2.2s.2-1.7.2-3.4v-1.6c0-1.7-.2-3.4-.2-3.4Zm-12.7 6.8V8.8l5.2 2.6-5.2 2.6Z"/></svg>
-									{:else if isVimeo(media.url)}
-										<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.37 6.76c-.1 2.2-1.64 5.21-4.63 9.05-3.08 4-5.68 6-7.8 6-1.32 0-2.44-1.2-3.36-3.6l-1.84-6.6c-.68-2.4-1.4-3.6-2.16-3.6-.17 0-.78.36-1.82 1.08L0 7.38c1.15-1.01 2.29-2.02 3.43-3.03 1.54-1.33 2.7-2.03 3.5-2.1 1.84-.18 2.98 1.08 3.42 3.78.46 2.91.78 4.72.96 5.4.53 2.4 1.11 3.6 1.76 3.6.5 0 1.26-.79 2.28-2.36 1.01-1.58 1.55-2.79 1.62-3.64.14-1.38-.4-2.07-1.62-2.07-.58 0-1.18.12-1.8.36 1.2-3.9 3.47-5.79 6.8-5.68 2.48.06 3.64 1.68 3.48 4.86Z"/></svg>
-									{:else if isImage(media.url)}
-										<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15 16 10 5 21"/></svg>
-									{:else if isVideoFile(media.url)}
-										<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3V9Z"/></svg>
-									{:else}
-										<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-5-5 5 5 5-5"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>
-									{/if}
-								</div>
-								<div class="min-w-0">
-									<p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">
-										{media.title || getFileName(media.url)}
-									</p>
-									{#if media.description}
-										<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">{media.description}</p>
-									{/if}
-									{#if media.url && media.provider && media.provider !== 'upload'}
-										<p class="text-xs text-gray-500 dark:text-gray-400">Source: {getHost(media.url)}</p>
-									{/if}
-								</div>
-							</div>
-
+						<div class="card overflow-hidden">
 							{#if isYouTube(media.url)}
-								<div class="aspect-video rounded-lg overflow-hidden bg-black/10">
+								<div class="aspect-video bg-black/10">
 									<iframe
 										src={`https://www.youtube.com/embed/${isYouTube(media.url) ?? ''}`}
 										title={media.title || 'YouTube'}
@@ -378,7 +351,7 @@ const getFileName = (url?: string) => {
 									></iframe>
 								</div>
 							{:else if isVimeo(media.url)}
-								<div class="aspect-video rounded-lg overflow-hidden bg-black/10">
+								<div class="aspect-video bg-black/10">
 									<iframe
 										src={`https://player.vimeo.com/video/${isVimeo(media.url) ?? ''}`}
 										title={media.title || 'Vimeo'}
@@ -393,17 +366,32 @@ const getFileName = (url?: string) => {
 									onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))}
 									class="w-full cursor-zoom-in"
 								>
-									<img src={media.url || ''} alt={media.title || ''} class="w-full rounded-lg" loading="lazy" />
+									<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full" loading="lazy" />
 								</button>
 							{:else if isVideoFile(media.url)}
-								<video src={media.url || ''} controls class="w-full rounded-lg">
+								<video src={media.url || ''} controls class="w-full">
 									<track kind="captions" srclang="en" label="captions" />
 								</video>
 							{:else if media.url}
-								<a href={media.url} class="text-primary-600 dark:text-primary-300 hover:underline text-sm inline-flex items-center gap-1" target="_blank" rel="noopener noreferrer">
-									<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6h8m0 0v8m0-8-9.5 9.5a3 3 0 0 1-4.243 0l-.757-.757a3 3 0 0 1 0-4.243L12 6Z"/></svg>
-									Open link
-								</a>
+								<div class="p-4">
+									<a href={media.url} class="text-primary-600 dark:text-primary-300 hover:underline text-sm inline-flex items-center gap-1" target="_blank" rel="noopener noreferrer">
+										<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6h8m0 0v8m0-8-9.5 9.5a3 3 0 0 1-4.243 0l-.757-.757a3 3 0 0 1 0-4.243L12 6Z"/></svg>
+										{media.title || getFileName(media.url)}
+									</a>
+								</div>
+							{/if}
+							{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+								<div class="p-3 space-y-1">
+									{#if media.title}
+										<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+									{/if}
+									{#if media.description}
+										<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
+									{/if}
+									{#if media.url && media.provider && media.provider !== 'upload'}
+										<p class="text-xs text-gray-500 dark:text-gray-400">Source: {getHost(media.url)}</p>
+									{/if}
+								</div>
 							{/if}
 						</div>
 					{/each}
