@@ -592,11 +592,6 @@
 					label={$t('admin.content.common.attached_media')}
 					helpText="Select media from your library to attach to this content"
 				/>
-
-				<div>
-					<span id="admin-tags-label" class="label">Admin Tags</span>
-					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
-				</div>
 			</div>
 
 			<div class="card p-6 space-y-4">
@@ -628,6 +623,12 @@
 					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
 						Save as draft (won't be visible publicly)
 					</label>
+				</div>
+
+				<div>
+					<span id="admin-tags-label" class="label">Admin Tags</span>
+					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
+					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
 				</div>
 			</div>
 

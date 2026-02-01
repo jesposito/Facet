@@ -105,7 +105,6 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 				"education":      {"institution_logo_library_url"},
 				"projects":       {"cover_image_library_url"},
 				"posts":          {"cover_image_library_url"},
-				"talks":          {"cover_image_library_url"},
 				"profile":        {"hero_image_library_url", "avatar_library_url"},
 				"views":          {"hero_image_library_url"},
 				"site_settings":  {"favicon_library_url"},
