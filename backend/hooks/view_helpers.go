@@ -290,6 +290,12 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 			}
 		}
 
+		if sectionName == "testimonials" {
+			if photo := record.GetString("author_photo"); photo != "" {
+				item["author_photo"] = "/api/files/testimonials/" + record.Id + "/" + photo
+			}
+		}
+
 		result = append(result, item)
 	}
 	return result
