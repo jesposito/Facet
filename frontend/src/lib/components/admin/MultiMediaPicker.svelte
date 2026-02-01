@@ -120,7 +120,8 @@
 					url: item.url,
 					thumbnail_url: item.thumbnail_url,
 					mime: item.mime,
-					collection: item.collection,
+					// Use external_media collection if we're using the external mirror ID
+					collection: externalId ? 'external_media' : item.collection,
 					description: item.description || '',
 					alt_text: item.alt_text || ''
 				});
