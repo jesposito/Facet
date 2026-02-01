@@ -202,21 +202,29 @@
 						const item = await res.json();
 						const isMirror = item.url?.includes('/api/files/');
 						let thumbnailUrl = item.thumbnail_url;
-						if (isMirror && item.url && !thumbnailUrl) {
+						let resolvedId = item.id;
+
+						if (isMirror && item.url) {
+							// Extract the upload record ID from mirror URL
+							// Format: /api/files/{collection_id}/{record_id}/{filename}
 							const match = item.url.match(/\/api\/files\/([^/]+)\/([^/]+)\/(.+)/);
 							if (match) {
 								const [, collection, recordId, filename] = match;
-								thumbnailUrl = `/api/media/thumb/${collection}/${recordId}/${filename}`;
+								// Use the upload ID instead of mirror ID for media_library relation
+								resolvedId = recordId;
+								if (!thumbnailUrl) {
+									thumbnailUrl = `/api/media/thumb/${collection}/${recordId}/${filename}`;
+								}
 							}
 						}
 						newOptions.push({
-							id: item.id,
+							id: resolvedId,
 							title: item.title || item.url || id,
 							provider: isMirror ? 'upload' : 'external',
 							url: item.url,
 							thumbnail_url: thumbnailUrl,
 							mime: item.mime,
-							collection: 'external_media',
+							collection: 'media_library', // Use media_library for relation
 							description: item.description || '',
 							alt_text: item.alt_text || ''
 						});
