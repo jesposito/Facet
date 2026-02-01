@@ -559,7 +559,7 @@ afterNavigate(() => {
 			</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Publishing</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
