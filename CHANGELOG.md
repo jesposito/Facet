@@ -3,6 +3,13 @@
 All notable changes to Facet will be documented in this file.
 
 
+## [Unreleased]
+
+**Bugs Fixed:**
+- Fix media library unification migration not running due to build cache
+
+---
+
 ## v2.15.7 - January 31, 2026
 
 **Bugs Fixed:**
