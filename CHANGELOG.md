@@ -3,6 +3,28 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.15.8 - February 01, 2026
+
+**Bugs Fixed:**
+- Fix orphan detection for testimonials and media library collections
+- Resolve author photo URLs for testimonials
+- Fix dark mode tag styling in media gallery metadata editor
+
+**New Features:**
+- Show media description below the media when present
+- Hide source URL for uploaded files
+- Simplify card layout by removing unnecessary icon box headers
+- Rename section from 'Attached Media' to 'Image Gallery'
+- Add image lightbox with click-to-zoom and navigation
+
+**Other Changes:**
+- Disable Docker build caching
+
+**Pull Requests:** [#377](https://github.com/jesposito/Facet/pull/377),
+
+---
+
+
 ## v2.15.7 - January 31, 2026
 
 **Bugs Fixed:**
