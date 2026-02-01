@@ -14,6 +14,7 @@
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
@@ -32,6 +33,8 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let coverImageFile: FileList | null = $state(null);
+	let coverImageLibraryUrl = $state('');
+	let clearCoverImage = $state(false);
 	let pendingMediaFiles: File[] = $state([]); // Accumulated new files to upload
 	let mediaToKeep: string[] = $state([]); // Track existing media filenames to keep
 	let saving = $state(false);
@@ -67,7 +70,7 @@
 	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 	function getFormData() {
-		return { title, content, visibility, isDraft, sortOrder, mediaRefs };
+		return { title, content, visibility, isDraft, sortOrder, mediaRefs, coverImageLibraryUrl };
 	}
 
 	function restoreFromDraft(data: Record<string, any>) {
@@ -77,6 +80,7 @@
 		isDraft = data.isDraft || false;
 		sortOrder = data.sortOrder || 0;
 		mediaRefs = data.mediaRefs || [];
+		coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 	}
 
 	function handleFormChange() {
@@ -170,6 +174,8 @@
 		isDraft = false;
 		sortOrder = 0;
 		coverImageFile = null;
+		coverImageLibraryUrl = '';
+		clearCoverImage = false;
 		pendingMediaFiles = [];
 		mediaToKeep = [];
 		editingItem = null;
@@ -211,6 +217,8 @@
 		sortOrder = item.sort_order;
 		adminTagIds = item.admin_tags || [];
 		coverImageFile = null;
+		coverImageLibraryUrl = (item as any).cover_image_library_url || '';
+		clearCoverImage = false;
 		pendingMediaFiles = [];
 		mediaToKeep = item.media ? [...item.media] : []; // Keep all existing media by default
 		mediaRefs = (item as any).media_refs || [];
@@ -243,9 +251,17 @@
 				adminTagIds.forEach((tagId) => formData.append('admin_tags', tagId));
 			}
 
-			// Handle cover image upload
+			// Handle cover image - file upload takes priority, then library URL, then clearing
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
+				formData.append('cover_image_library_url', ''); // Clear library URL when uploading file
+			} else if (clearCoverImage && editingItem?.cover_image) {
+				// Clear existing file
+				formData.append('cover_image', '');
+				formData.append('cover_image_library_url', '');
+			} else {
+				// Keep or set library URL
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
 			}
 
 			// Handle media files - include existing files to keep AND new files to add
@@ -401,18 +417,12 @@
 		}
 	}
 
-	async function removeCoverImage() {
-		if (!editingItem) return;
-		try {
-			await collection('custom_content').update(editingItem.id, { cover_image: null });
-			toasts.add('success', 'Cover image removed');
-			await loadItems();
-			// Re-open form with updated item
-			const updated = items.find((i) => i.id === editingItem!.id);
-			if (updated) openEditForm(updated);
-		} catch (err) {
-			toasts.add('error', 'Failed to remove cover image');
-		}
+	function getCoverImageUrl(item: CustomContent): string {
+		// Prefer library URL over direct upload
+		const libraryUrl = (item as any).cover_image_library_url;
+		if (libraryUrl) return libraryUrl;
+		if (!item.cover_image) return '';
+		return getFileUrl({ id: item.id, collectionName: 'custom_content' }, item.cover_image);
 	}
 
 	function removeMediaFromKeep(filename: string) {
@@ -599,28 +609,16 @@
 				</div>
 
 				<div>
-					<label for="cover_image" class="label">Cover Image</label>
-					{#if editingItem?.cover_image}
-						<div class="mb-2 flex items-center gap-2">
-							<img
-								src={getFileUrl(
-									{ id: editingItem.id, collectionName: 'custom_content' },
-									editingItem.cover_image
-								)}
-								alt="Current cover"
-								class="w-24 h-24 object-cover rounded"
-							/>
-							<button type="button" class="btn btn-danger-ghost btn-sm" onclick={removeCoverImage}>
-								Remove
-							</button>
-						</div>
-					{/if}
-					<input
-						type="file"
-						id="cover_image"
-						accept="image/jpeg,image/png,image/webp"
-						bind:files={coverImageFile}
-						class="input"
+					<SingleMediaPicker
+						label="Cover Image"
+						helpText="Displayed in content grids and as the header image"
+						bind:value={coverImageLibraryUrl}
+						bind:fileInput={coverImageFile}
+						bind:clearExisting={clearCoverImage}
+						currentFileUrl={editingItem ? getCoverImageUrl(editingItem) : ''}
+						currentFileName={editingItem?.cover_image || ''}
+						imagesOnly={true}
+						onchange={handleFormChange}
 					/>
 				</div>
 
