@@ -57,8 +57,19 @@ func migrationLog(dataDir, msg string) {
 // Original IDs are preserved to maintain existing media_refs relations.
 func init() {
 	m.Register(func(app core.App) error {
+		// First thing: write to stderr to prove we started
+		fmt.Fprintln(os.Stderr, "[1770100000] Migration function called")
+
 		dataDir := app.DataDir()
 		log := func(msg string) { migrationLog(dataDir, msg) }
+
+		// Catch any panics and log them
+		defer func() {
+			if r := recover(); r != nil {
+				log(fmt.Sprintf("PANIC: %v", r))
+				fmt.Fprintf(os.Stderr, "[1770100000] PANIC: %v\n", r)
+			}
+		}()
 
 		log("=== MIRROR MIGRATION STARTING ===")
 		log(fmt.Sprintf("DataDir: %s", dataDir))
