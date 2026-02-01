@@ -119,6 +119,15 @@
 
 @layer utilities {
 	/* ==========================================================================
+	   Gallery Thumbnail - Uniform 16:9 aspect ratio for attached media
+	   Used in public content pages (projects, posts, talks, custom content)
+	   ========================================================================== */
+
+	.gallery-thumb {
+		aspect-ratio: 16 / 9;
+	}
+
+	/* ==========================================================================
 	   Animation Utilities - UX Delight Initiative
 	   Reusable animations for micro-interactions. All respect prefers-reduced-motion.
 	   ========================================================================== */
