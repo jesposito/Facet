@@ -271,8 +271,8 @@
 	function handleSelectionChange(id: string, checked: boolean, collection?: string) {
 		if (checked) {
 			value = [...value, id];
-			// Mark as used when selected
-			if (collection === 'uploads' || collection === 'external_media') {
+			// Mark as used when selected (all collections now support last_used_at)
+			if (collection) {
 				markAsUsed(id, collection);
 			}
 		} else {

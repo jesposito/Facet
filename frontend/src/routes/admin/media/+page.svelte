@@ -119,25 +119,25 @@
 	let usageFilter: 'all' | 'in_use' | 'not_in_use' = $state('all');
 	let collectionFilter = $state('');
 
-	// Available collections for filtering
+	// Available collections for filtering (using i18n keys)
 	const availableCollections = [
-		{ value: '', label: 'All Collections' },
-		{ value: 'uploads', label: 'Uploads' },
-		{ value: 'external_media', label: 'External Media' },
-		{ value: 'profile', label: 'Profile' },
-		{ value: 'experience', label: 'Experience' },
-		{ value: 'projects', label: 'Projects' },
-		{ value: 'education', label: 'Education' },
-		{ value: 'posts', label: 'Posts' },
-		{ value: 'talks', label: 'Talks' },
-		{ value: 'views', label: 'Views' },
-		{ value: 'site_settings', label: 'Site Settings' },
-		{ value: 'custom_content', label: 'Custom Content' },
-		{ value: 'testimonials', label: 'Testimonials' },
-		{ value: 'certifications', label: 'Certifications' },
-		{ value: 'media_library', label: 'Media Library' },
-		{ value: 'view_exports', label: 'View Exports' },
-		{ value: 'resume_imports', label: 'Resume Imports' },
+		{ value: '', labelKey: 'admin.media.filter_collection_all' },
+		{ value: 'uploads', labelKey: 'admin.media.filter_collection_uploads' },
+		{ value: 'external_media', labelKey: 'admin.media.filter_collection_external_media' },
+		{ value: 'profile', labelKey: 'admin.media.filter_collection_profile' },
+		{ value: 'experience', labelKey: 'admin.media.filter_collection_experience' },
+		{ value: 'projects', labelKey: 'admin.media.filter_collection_projects' },
+		{ value: 'education', labelKey: 'admin.media.filter_collection_education' },
+		{ value: 'posts', labelKey: 'admin.media.filter_collection_posts' },
+		{ value: 'talks', labelKey: 'admin.media.filter_collection_talks' },
+		{ value: 'views', labelKey: 'admin.media.filter_collection_views' },
+		{ value: 'site_settings', labelKey: 'admin.media.filter_collection_site_settings' },
+		{ value: 'custom_content', labelKey: 'admin.media.filter_collection_custom_content' },
+		{ value: 'testimonials', labelKey: 'admin.media.filter_collection_testimonials' },
+		{ value: 'certifications', labelKey: 'admin.media.filter_collection_certifications' },
+		{ value: 'media_library', labelKey: 'admin.media.filter_collection_media_library' },
+		{ value: 'view_exports', labelKey: 'admin.media.filter_collection_view_exports' },
+		{ value: 'resume_imports', labelKey: 'admin.media.filter_collection_resume_imports' },
 	];
 	let sortField: 'date' | 'name' | 'size' = $state('date');
 	let sortOrder: 'asc' | 'desc' = $state('desc');
@@ -1054,10 +1054,10 @@
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
-				<label class="label mb-0" for="collection-filter">Collection</label>
+				<label class="label mb-0" for="collection-filter">{$t('admin.media.filter_collection')}</label>
 				<select id="collection-filter" class="input" bind:value={collectionFilter} onchange={resetAndLoad}>
 					{#each availableCollections as coll}
-						<option value={coll.value}>{coll.label}</option>
+						<option value={coll.value}>{$t(coll.labelKey)}</option>
 					{/each}
 				</select>
 			</div>

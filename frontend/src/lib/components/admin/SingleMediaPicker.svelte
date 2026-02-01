@@ -11,6 +11,7 @@
 		mime?: string;
 		description?: string;
 		alt_text?: string;
+		collection?: string;
 	};
 
 	interface Props {
@@ -58,6 +59,24 @@
 	let showPicker = $state(false);
 
 	/**
+	 * Mark a media item as recently used
+	 */
+	async function markAsUsed(id: string, collection: string) {
+		try {
+			const headers: Record<string, string> = pb.authStore.isValid
+				? { Authorization: `Bearer ${pb.authStore.token}`, 'Content-Type': 'application/json' }
+				: { 'Content-Type': 'application/json' };
+			await fetch('/api/media/mark-used', {
+				method: 'POST',
+				headers,
+				body: JSON.stringify({ id, collection })
+			});
+		} catch (err) {
+			console.error('Failed to mark media as used', err);
+		}
+	}
+
+	/**
 	 * Load media options from the API
 	 */
 	async function loadMediaOptions(searchTerm = '') {
@@ -95,7 +114,8 @@
 						provider: item.provider || (item.external ? 'external' : 'upload'),
 						url: item.url,
 						thumbnail_url: item.thumbnail_url,
-						mime: item.mime
+						mime: item.mime,
+						collection: item.collection
 					});
 				}
 			}
@@ -113,7 +133,8 @@
 						provider: 'external',
 						url: item.url,
 						thumbnail_url: item.thumbnail_url,
-						mime: item.mime
+						mime: item.mime,
+						collection: 'external_media'
 					});
 				}
 			}
@@ -147,6 +168,10 @@
 		fileInput = null; // Clear file input when selecting from library
 		clearExisting = false; // Selecting from library overrides, no need to clear
 		showPicker = false;
+		// Mark as used when selected (all collections now support last_used_at)
+		if (option.collection && option.id) {
+			markAsUsed(option.id, option.collection);
+		}
 		onchange?.();
 	}
 
