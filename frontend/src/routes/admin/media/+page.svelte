@@ -117,6 +117,27 @@
 	let typeFilter: 'all' | 'image' | 'video' | 'audio' | 'document' = $state('all');
 	let statusFilter: 'referenced' | 'all' | 'orphans' = $state('referenced');
 	let usageFilter: 'all' | 'in_use' | 'not_in_use' = $state('all');
+	let collectionFilter = $state('');
+
+	// Available collections for filtering
+	const availableCollections = [
+		{ value: '', label: 'All Collections' },
+		{ value: 'uploads', label: 'Uploads' },
+		{ value: 'external_media', label: 'External Media' },
+		{ value: 'profile', label: 'Profile' },
+		{ value: 'experience', label: 'Experience' },
+		{ value: 'projects', label: 'Projects' },
+		{ value: 'education', label: 'Education' },
+		{ value: 'posts', label: 'Posts' },
+		{ value: 'talks', label: 'Talks' },
+		{ value: 'views', label: 'Views' },
+		{ value: 'site_settings', label: 'Site Settings' },
+		{ value: 'custom_content', label: 'Custom Content' },
+		{ value: 'testimonials', label: 'Testimonials' },
+		{ value: 'certifications', label: 'Certifications' },
+		{ value: 'view_exports', label: 'View Exports' },
+		{ value: 'resume_imports', label: 'Resume Imports' },
+	];
 	let sortField: 'date' | 'name' | 'size' = $state('date');
 	let sortOrder: 'asc' | 'desc' = $state('desc');
 	let error = $state('');
@@ -335,6 +356,7 @@
 			});
 			if (search.trim()) params.set('q', search.trim());
 			if (typeFilter !== 'all') params.set('type', typeFilter);
+			if (collectionFilter) params.set('collection', collectionFilter);
 			if (statusFilter === 'orphans') {
 				params.set('orphans', '1');
 			} else if (statusFilter === 'all') {
@@ -1028,6 +1050,14 @@
 					<option value="video">{$t('admin.media.filter_type_video')}</option>
 					<option value="audio">{$t('admin.media.filter_type_audio')}</option>
 					<option value="document">{$t('admin.media.filter_type_document')}</option>
+				</select>
+			</div>
+			<div class="flex items-center gap-2">
+				<label class="label mb-0" for="collection-filter">Collection</label>
+				<select id="collection-filter" class="input" bind:value={collectionFilter} onchange={resetAndLoad}>
+					{#each availableCollections as coll}
+						<option value={coll.value}>{coll.label}</option>
+					{/each}
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
