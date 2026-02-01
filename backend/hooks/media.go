@@ -1124,6 +1124,7 @@ func collectMediaItems(app *pocketbase.PocketBase, storage *services.StorageServ
 		"talks",
 		"views",
 		"uploads",
+		"media_library",
 		"view_exports",
 		"resume_imports",
 		"custom_content",
