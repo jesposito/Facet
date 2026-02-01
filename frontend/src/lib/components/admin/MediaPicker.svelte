@@ -101,7 +101,8 @@
 			const headers: Record<string, string> = pb.authStore.isValid
 				? { Authorization: `Bearer ${pb.authStore.token}` }
 				: {};
-			const mediaParams = new URLSearchParams({ perPage: '50' });
+			// Filter to media_library only - after migration all files have media_library records
+			const mediaParams = new URLSearchParams({ perPage: '50', collection: 'media_library' });
 			if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
 
 			const mediaRes = await fetch(`/api/media?${mediaParams.toString()}`, { headers });
