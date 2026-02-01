@@ -1256,12 +1256,14 @@ func handleMediaLibraryOnly(e *core.RequestEvent, app *pocketbase.PocketBase, st
 
 	// Build filter for search
 	filter := ""
+	var params map[string]any
 	if search != "" {
 		filter = "title ~ {:search} || file ~ {:search} || url ~ {:search}"
+		params = map[string]any{"search": search}
 	}
 
 	// Query all media_library records
-	records, err := app.FindRecordsByFilter(collection.Name, filter, "-created", 500, 0, map[string]any{"search": search})
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "-created", 500, 0, params)
 	if err != nil {
 		return apis.NewBadRequestError("failed to query media_library", err)
 	}
