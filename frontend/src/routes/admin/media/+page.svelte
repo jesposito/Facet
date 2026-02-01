@@ -1543,7 +1543,7 @@
 							<div class="flex flex-wrap gap-2">
 								{#each availableTags as tag}
 									<label
-										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {editForm.tag_ids.includes(tag.id) ? 'border-primary-500 bg-primary-100 dark:bg-primary-900/50' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border {editForm.tag_ids.includes(tag.id) ? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
 									>
 										<input
 											type="checkbox"
