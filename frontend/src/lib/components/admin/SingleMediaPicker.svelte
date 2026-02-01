@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { toasts } from '$lib/stores';
 
 	export type MediaOption = {
 		id: string;
@@ -57,6 +58,8 @@
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
 	let showPicker = $state(false);
+	let uploading = $state(false);
+	let uploadingFileName = $state('');
 
 	/**
 	 * Mark a media item as recently used
@@ -205,6 +208,70 @@
 		return `${base}${url.startsWith('/') ? url : `/${url}`}`;
 	}
 
+	/**
+	 * Handle file selection by uploading to the uploads collection first,
+	 * then setting the library URL. This ensures tracking works correctly.
+	 */
+	async function handleFileSelect(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+		if (!file) return;
+
+		// Clear the input so the same file can be selected again if needed
+		target.value = '';
+
+		uploading = true;
+		uploadingFileName = file.name;
+		try {
+			const form = new FormData();
+			form.append('file', file);
+			form.append('title', file.name);
+			if (file.type) {
+				form.append('mime', file.type);
+			}
+
+			const headers: Record<string, string> = pb.authStore.isValid
+				? { Authorization: `Bearer ${pb.authStore.token}` }
+				: {};
+
+			const res = await fetch('/api/collections/uploads/records', {
+				method: 'POST',
+				headers,
+				body: form
+			});
+
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.message || 'Upload failed');
+			}
+
+			const record = await res.json();
+			// Construct the URL to the uploaded file using collectionId for consistency with backend
+			const collectionId = record.collectionId || 'uploads';
+			const uploadUrl = `/api/files/${collectionId}/${record.id}/${record.file}`;
+
+			// Set the library URL value (this is what gets saved to *_library_url field)
+			value = uploadUrl;
+			// Clear fileInput so parent doesn't try to upload again
+			fileInput = null;
+			// Not clearing existing since we have a new selection
+			clearExisting = false;
+			showPicker = false;
+
+			// Mark as used
+			markAsUsed(record.id, 'uploads');
+
+			toasts.add('success', $t('admin.media.toast_upload_success'));
+			onchange?.();
+		} catch (err) {
+			console.error('Failed to upload file:', err);
+			toasts.add('error', $t('admin.media.toast_upload_failed'));
+		} finally {
+			uploading = false;
+			uploadingFileName = '';
+		}
+	}
+
 	// Computed: what to display as current selection
 	// If clearExisting is set, don't show currentFileUrl
 	let effectiveCurrentFileUrl = $derived(clearExisting ? '' : currentFileUrl);
@@ -215,7 +282,7 @@
 			? mediaOptions.find((o) => o.url === value)?.title || value.split('/').pop() || 'Selected'
 			: (clearExisting ? '' : currentFileName) || '')
 	);
-	let hasSelection = $derived(!!value || !!effectiveCurrentFileUrl || (fileInput && fileInput.length > 0));
+	let hasSelection = $derived(!!value || !!effectiveCurrentFileUrl || uploading);
 </script>
 
 <div class="single-media-picker">
@@ -227,30 +294,31 @@
 		<!-- Current selection display -->
 		{#if hasSelection && !showPicker}
 			<div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-				{#if displayUrl && !fileInput?.length}
+				{#if uploading}
+					<div class="w-12 h-12 flex items-center justify-center rounded bg-primary-100 dark:bg-primary-900">
+						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						</svg>
+					</div>
+				{:else if displayUrl}
 					<img
 						src={getAbsoluteUrl(displayUrl)}
 						alt=""
 						class="w-12 h-12 object-contain rounded bg-white dark:bg-gray-700"
 					/>
-				{:else if fileInput?.length}
-					<div class="w-12 h-12 flex items-center justify-center rounded bg-primary-100 dark:bg-primary-900">
-						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-						</svg>
-					</div>
 				{/if}
 				<div class="flex-1 min-w-0">
 					<p class="text-sm font-medium text-gray-900 dark:text-white truncate">
-						{#if fileInput?.length}
-							{fileInput[0].name}
+						{#if uploading}
+							{uploadingFileName}
 						{:else}
 							{displayTitle}
 						{/if}
 					</p>
 					<p class="text-xs text-gray-500 dark:text-gray-400">
-						{#if fileInput?.length}
-							{$t('admin.media.single_picker_new_upload')}
+						{#if uploading}
+							{$t('admin.media.uploading')}
 						{:else if value}
 							{$t('admin.media.single_picker_from_library')}
 						{:else}
@@ -258,13 +326,15 @@
 						{/if}
 					</p>
 				</div>
-				<button
-					type="button"
-					class="btn btn-ghost btn-sm text-red-600 hover:text-red-700"
-					onclick={handleClearSelection}
-				>
-					{$t('admin.media.single_picker_remove')}
-				</button>
+				{#if !uploading}
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm text-red-600 hover:text-red-700"
+						onclick={handleClearSelection}
+					>
+						{$t('admin.media.single_picker_remove')}
+					</button>
+				{/if}
 			</div>
 		{/if}
 
@@ -274,18 +344,23 @@
 				type="button"
 				class="btn btn-secondary btn-sm"
 				onclick={handleOpenPicker}
+				disabled={uploading}
 			>
 				{$t('admin.media.single_picker_select_from_library')}
 			</button>
 			<span class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.single_picker_or')}</span>
-			<label class="btn btn-secondary btn-sm cursor-pointer">
-				{$t('admin.media.single_picker_upload_new')}
+			<label class="btn btn-secondary btn-sm cursor-pointer {uploading ? 'opacity-50 pointer-events-none' : ''}">
+				{#if uploading}
+					{$t('admin.media.uploading')}
+				{:else}
+					{$t('admin.media.single_picker_upload_new')}
+				{/if}
 				<input
 					type="file"
 					{accept}
-					bind:files={fileInput}
 					class="hidden"
-					onchange={() => { value = ''; clearExisting = false; showPicker = false; }}
+					onchange={handleFileSelect}
+					disabled={uploading}
 				/>
 			</label>
 		</div>
