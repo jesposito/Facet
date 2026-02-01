@@ -28,15 +28,31 @@ func init() {
 			return nil
 		}
 
-		// Get storage base path
-		storageBase := os.Getenv("UPLOADS_DIR")
-		if storageBase == "" {
-			storageBase = filepath.Join(app.DataDir(), "storage")
+		// Build list of possible storage paths to check
+		// Docker containers typically mount uploads at /uploads
+		// UPLOADS_DIR env var can override this
+		// Fallback to app.DataDir()/storage (PocketBase default)
+		var storagePaths []string
+		if envDir := os.Getenv("UPLOADS_DIR"); envDir != "" {
+			storagePaths = append(storagePaths, envDir)
 		}
+		storagePaths = append(storagePaths, "/uploads") // Docker default
+		storagePaths = append(storagePaths, filepath.Join(app.DataDir(), "storage"))
 
 		// Pattern to extract collection ID, record ID, and filename from mirror URLs
 		// Format: /api/files/{collection_id}/{record_id}/{filename}
 		mirrorPattern := regexp.MustCompile(`/api/files/([^/]+)/([^/]+)/(.+)$`)
+
+		// Helper to find file in any of the storage paths
+		findFile := func(collectionId, recordId, filename string) (srcPath, storageBase string, found bool) {
+			for _, base := range storagePaths {
+				path := filepath.Join(base, collectionId, recordId, filename)
+				if _, err := os.Stat(path); err == nil {
+					return path, base, true
+				}
+			}
+			return "", "", false
+		}
 
 		externals, err := app.FindAllRecords(externalCollection)
 		if err != nil {
@@ -67,14 +83,19 @@ func init() {
 			sourceRecordId := matches[2]
 			filename := matches[3]
 
-			// Find the source file
-			srcPath := filepath.Join(storageBase, sourceCollectionId, sourceRecordId, filename)
-			if _, err := os.Stat(srcPath); err != nil {
-				app.Logger().Warn("Mirror source file not found", "id", external.Id, "path", srcPath)
+			// Find the source file in any storage location
+			srcPath, storageBase, found := findFile(sourceCollectionId, sourceRecordId, filename)
+			if !found {
+				app.Logger().Warn("Mirror source file not found in any storage path",
+					"id", external.Id,
+					"collection", sourceCollectionId,
+					"record", sourceRecordId,
+					"filename", filename,
+					"searched", storagePaths)
 				continue
 			}
 
-			// Create destination directory (using external_media ID to preserve relations)
+			// Create destination directory in the same storage location where source was found
 			dstDir := filepath.Join(storageBase, mediaLibrary.Id, external.Id)
 			if err := os.MkdirAll(dstDir, 0755); err != nil {
 				app.Logger().Error("Failed to create directory for mirror migration", "id", external.Id, "error", err)
@@ -87,13 +108,16 @@ func init() {
 				continue
 			}
 
-			// Also copy any existing thumbnail
+			// Also copy any existing thumbnails (try common formats)
 			ext := filepath.Ext(filename)
 			nameWithoutExt := strings.TrimSuffix(filename, ext)
-			thumbFilename := nameWithoutExt + "_thumb.webp"
-			thumbSrc := filepath.Join(storageBase, sourceCollectionId, sourceRecordId, thumbFilename)
-			if _, err := os.Stat(thumbSrc); err == nil {
-				copyFileMirror(thumbSrc, filepath.Join(dstDir, thumbFilename))
+			srcDir := filepath.Join(storageBase, sourceCollectionId, sourceRecordId)
+			for _, thumbExt := range []string{"_thumb.webp", "_thumb.jpg", "_thumb.png"} {
+				thumbFilename := nameWithoutExt + thumbExt
+				thumbSrc := filepath.Join(srcDir, thumbFilename)
+				if _, err := os.Stat(thumbSrc); err == nil {
+					copyFileMirror(thumbSrc, filepath.Join(dstDir, thumbFilename))
+				}
 			}
 
 			// Create media_library record with the external_media ID (preserves relations)
@@ -142,10 +166,13 @@ func init() {
 			return nil
 		}
 
-		storageBase := os.Getenv("UPLOADS_DIR")
-		if storageBase == "" {
-			storageBase = filepath.Join(app.DataDir(), "storage")
+		// Check all possible storage locations
+		var storagePaths []string
+		if envDir := os.Getenv("UPLOADS_DIR"); envDir != "" {
+			storagePaths = append(storagePaths, envDir)
 		}
+		storagePaths = append(storagePaths, "/uploads")
+		storagePaths = append(storagePaths, filepath.Join(app.DataDir(), "storage"))
 
 		externals, err := app.FindAllRecords(externalCollection)
 		if err != nil {
@@ -164,10 +191,12 @@ func init() {
 				continue
 			}
 
-			// Remove copied files
+			// Remove copied files from all possible locations
 			if filename := record.GetString("file"); filename != "" {
-				recordDir := filepath.Join(storageBase, mediaLibrary.Id, record.Id)
-				os.RemoveAll(recordDir)
+				for _, base := range storagePaths {
+					recordDir := filepath.Join(base, mediaLibrary.Id, record.Id)
+					os.RemoveAll(recordDir)
+				}
 			}
 
 			app.Delete(record)
