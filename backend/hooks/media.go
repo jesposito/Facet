@@ -689,11 +689,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				return apis.NewBadRequestError("id is required", nil)
 			}
 			if req.Collection == "" {
-				req.Collection = "external_media" // default for backwards compatibility
+				req.Collection = "media_library" // default to unified collection
 			}
 
-			// Validate collection name
-			if req.Collection != "uploads" && req.Collection != "external_media" {
+			// Validate collection name - accept media_library, uploads, and external_media for backward compatibility
+			if req.Collection != "uploads" && req.Collection != "external_media" && req.Collection != "media_library" {
 				return apis.NewBadRequestError("invalid collection", nil)
 			}
 
@@ -939,9 +939,79 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				}
 			}
 
+			// Helper to add media_library items (handles both upload and external types)
+			addMediaLibraryItems := func(records []*core.Record, collection *core.Collection) {
+				for _, record := range records {
+					if _, seen := seenIDs[record.Id]; seen {
+						continue
+					}
+					created := record.GetDateTime("created").Time()
+					mediaType := record.GetString("type")
+
+					if mediaType == "upload" {
+						filename := record.GetString("file")
+						if filename == "" {
+							continue
+						}
+						item, err := services.BuildMediaItem(storage, collection.Name, collection.Id, record.Id, "file", filename, created)
+						if err != nil {
+							continue
+						}
+						item.DisplayName = record.GetString("title")
+						if item.DisplayName == "" {
+							item.DisplayName = filename
+						}
+						item.Type = "upload"
+						item.AltText = record.GetString("alt_text")
+						item.Description = record.GetString("description")
+						item.Tags = fetchMediaTags(app, record)
+						items = append(items, item)
+						seenIDs[record.Id] = struct{}{}
+					} else {
+						// External type
+						title := record.GetString("title")
+						if title == "" {
+							title = record.GetString("url")
+						}
+						normalized := mediaembed.Normalize(record.GetString("url"), record.GetString("mime"), record.GetString("thumbnail_url"))
+						item := services.MediaItem{
+							Collection:    collection.Name,
+							CollectionID:  collection.Id,
+							CollectionKey: "external",
+							RecordID:      record.Id,
+							Field:         "external",
+							Filename:      title,
+							DisplayName:   title,
+							URL:           record.GetString("url"),
+							Mime:          normalized.Mime,
+							ThumbnailURL:  normalized.ThumbnailURL,
+							EmbedURL:      normalized.EmbedURL,
+							Provider:      normalized.Provider,
+							UploadedAt:    created,
+							External:      true,
+							Type:          "external",
+							AltText:       record.GetString("alt_text"),
+							Description:   record.GetString("description"),
+							Tags:          fetchMediaTags(app, record),
+						}
+						items = append(items, item)
+						seenIDs[record.Id] = struct{}{}
+					}
+				}
+			}
+
 			// First pass: get items with last_used_at set (recently selected)
+			// Prioritize media_library (new unified collection), fall back to legacy collections
+			mediaLibraryCollection, mediaLibraryErr := app.FindCollectionByNameOrId("media_library")
 			uploadsCollection, uploadsErr := app.FindCollectionByNameOrId("uploads")
 			externalCollection, externalErr := app.FindCollectionByNameOrId("external_media")
+
+			if mediaLibraryErr == nil {
+				records, err := app.FindRecordsByFilter(mediaLibraryCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
+				if err == nil {
+					addMediaLibraryItems(records, mediaLibraryCollection)
+				}
+			}
 
 			if uploadsErr == nil {
 				records, err := app.FindRecordsByFilter(uploadsCollection.Name, "last_used_at != ''", "-last_used_at", limit, 0, nil)
@@ -959,6 +1029,14 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 
 			// Second pass: if we don't have enough items, fill with recently created
 			remaining := limit - len(items)
+			if remaining > 0 && mediaLibraryErr == nil {
+				records, err := app.FindRecordsByFilter(mediaLibraryCollection.Name, "", "-created", remaining, 0, nil)
+				if err == nil {
+					addMediaLibraryItems(records, mediaLibraryCollection)
+				}
+			}
+
+			remaining = limit - len(items)
 			if remaining > 0 {
 				if uploadsErr == nil {
 					records, err := app.FindRecordsByFilter(uploadsCollection.Name, "", "-created", remaining, 0, nil)
@@ -988,17 +1066,21 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			})
 		}).Bind(apis.RequireAuth())
 
-		// Get usage details for a specific external_media item (for delete warning)
+		// Get usage details for a specific media item (for delete warning)
 		se.Router.GET("/api/media/usage/{id}", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
 			if id == "" {
 				return apis.NewBadRequestError("missing id", nil)
 			}
 
-			// Verify the external_media record exists
-			_, err := app.FindRecordById("external_media", id)
+			// Verify the media record exists - try media_library first, then external_media
+			_, err := app.FindRecordById("media_library", id)
 			if err != nil {
-				return apis.NewNotFoundError("external_media not found", err)
+				// Fall back to external_media for backward compatibility
+				_, err = app.FindRecordById("external_media", id)
+				if err != nil {
+					return apis.NewNotFoundError("media not found", err)
+				}
 			}
 
 			usage, err := services.FindMediaUsage(app, id)
