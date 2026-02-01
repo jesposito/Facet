@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,22 +12,45 @@ import (
 	m "github.com/pocketbase/pocketbase/migrations"
 )
 
+// migrationLog writes to stderr AND a persistent file in /data for visibility
+func migrationLog(dataDir, msg string) {
+	// Always write to stderr (more reliable in Docker than stdout)
+	fmt.Fprintln(os.Stderr, "[MIRROR-MIGRATION]", msg)
+
+	// Also write to persistent file in data directory
+	logPath := filepath.Join(dataDir, "mirror_migration.log")
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil && f != nil {
+		f.WriteString(msg + "\n")
+		f.Close()
+	}
+}
+
 // Migrates mirror entries from external_media to media_library.
 // Mirror entries have URLs containing /api/files/ pointing to internal storage.
 // These are converted to type="upload" records with the actual file copied.
 // Original IDs are preserved to maintain existing media_refs relations.
 func init() {
 	m.Register(func(app core.App) error {
+		dataDir := app.DataDir()
+		log := func(msg string) { migrationLog(dataDir, msg) }
+
+		log("=== MIRROR MIGRATION STARTING ===")
+		log(fmt.Sprintf("DataDir: %s", dataDir))
+
 		mediaLibrary, err := app.FindCollectionByNameOrId("media_library")
 		if err != nil {
+			log(fmt.Sprintf("ERROR: media_library not found: %v", err))
 			return err
 		}
+		log(fmt.Sprintf("Found media_library: %s", mediaLibrary.Id))
 
 		externalCollection, err := app.FindCollectionByNameOrId("external_media")
 		if err != nil {
-			// No external_media collection, nothing to migrate
+			log(fmt.Sprintf("No external_media collection, skipping migration: %v", err))
 			return nil
 		}
+		log(fmt.Sprintf("Found external_media: %s", externalCollection.Id))
 
 		// Build list of possible storage paths to check
 		// Docker containers typically mount uploads at /uploads
@@ -34,10 +58,20 @@ func init() {
 		// Fallback to app.DataDir()/storage (PocketBase default)
 		var storagePaths []string
 		if envDir := os.Getenv("UPLOADS_DIR"); envDir != "" {
+			log(fmt.Sprintf("UPLOADS_DIR env set: %s", envDir))
 			storagePaths = append(storagePaths, envDir)
 		}
 		storagePaths = append(storagePaths, "/uploads") // Docker default
-		storagePaths = append(storagePaths, filepath.Join(app.DataDir(), "storage"))
+		storagePaths = append(storagePaths, filepath.Join(dataDir, "storage"))
+
+		// Log which paths exist
+		for _, p := range storagePaths {
+			if info, err := os.Stat(p); err == nil && info.IsDir() {
+				log(fmt.Sprintf("Storage path EXISTS: %s", p))
+			} else {
+				log(fmt.Sprintf("Storage path missing: %s", p))
+			}
+		}
 
 		// Pattern to extract collection ID, record ID, and filename from mirror URLs
 		// Format: /api/files/{collection_id}/{record_id}/{filename}
@@ -56,14 +90,24 @@ func init() {
 
 		externals, err := app.FindAllRecords(externalCollection)
 		if err != nil {
-			app.Logger().Error("Failed to find external_media records", "error", err)
+			log(fmt.Sprintf("ERROR finding records: %v", err))
 			return err
 		}
 
-		app.Logger().Info("Starting mirror migration", "total_external_media", len(externals), "storage_paths", storagePaths)
+		log(fmt.Sprintf("Found %d external_media records total", len(externals)))
 
 		migratedCount := 0
 		skippedCount := 0
+		mirrorCount := 0
+
+		// First pass: count mirrors
+		for _, external := range externals {
+			url := external.GetString("url")
+			if strings.Contains(url, "/api/files/") {
+				mirrorCount++
+			}
+		}
+		log(fmt.Sprintf("Found %d mirror entries to process", mirrorCount))
 
 		for _, external := range externals {
 			url := external.GetString("url")
@@ -74,11 +118,11 @@ func init() {
 				continue
 			}
 
-			app.Logger().Info("Processing mirror entry", "id", external.Id, "url", url)
+			log(fmt.Sprintf("Processing mirror: %s -> %s", external.Id, url))
 
 			// Check if already migrated
 			if _, err := app.FindRecordById(mediaLibrary, external.Id); err == nil {
-				app.Logger().Info("Already migrated, skipping", "id", external.Id)
+				log(fmt.Sprintf("Already migrated, skipping: %s", external.Id))
 				skippedCount++
 				continue
 			}
@@ -86,38 +130,38 @@ func init() {
 			// Extract file info from mirror URL
 			matches := mirrorPattern.FindStringSubmatch(url)
 			if len(matches) != 4 {
-				app.Logger().Warn("Could not parse mirror URL", "id", external.Id, "url", url)
+				log(fmt.Sprintf("ERROR: Could not parse URL '%s' with pattern", url))
 				continue
 			}
 
 			sourceCollectionId := matches[1]
 			sourceRecordId := matches[2]
 			filename := matches[3]
+			log(fmt.Sprintf("Parsed: collection=%s record=%s file=%s", sourceCollectionId, sourceRecordId, filename))
 
 			// Find the source file in any storage location
 			srcPath, storageBase, found := findFile(sourceCollectionId, sourceRecordId, filename)
 			if !found {
-				app.Logger().Warn("Mirror source file not found in any storage path",
-					"id", external.Id,
-					"collection", sourceCollectionId,
-					"record", sourceRecordId,
-					"filename", filename,
-					"searched", storagePaths)
+				log(fmt.Sprintf("ERROR: File not found for %s - tried: %v", external.Id, storagePaths))
+				log(fmt.Sprintf("  Looking for: %s/%s/%s", sourceCollectionId, sourceRecordId, filename))
 				continue
 			}
+			log(fmt.Sprintf("Found source file: %s", srcPath))
 
 			// Create destination directory in the same storage location where source was found
 			dstDir := filepath.Join(storageBase, mediaLibrary.Id, external.Id)
 			if err := os.MkdirAll(dstDir, 0755); err != nil {
-				app.Logger().Error("Failed to create directory for mirror migration", "id", external.Id, "error", err)
+				log(fmt.Sprintf("ERROR: Failed to create dir %s: %v", dstDir, err))
 				continue
 			}
 
 			// Copy the main file
-			if err := copyFileMirror(srcPath, filepath.Join(dstDir, filename)); err != nil {
-				app.Logger().Error("Failed to copy file during mirror migration", "id", external.Id, "error", err)
+			dstPath := filepath.Join(dstDir, filename)
+			if err := copyFileMirror(srcPath, dstPath); err != nil {
+				log(fmt.Sprintf("ERROR: Failed to copy file: %v", err))
 				continue
 			}
+			log(fmt.Sprintf("Copied file to: %s", dstPath))
 
 			// Also copy any existing thumbnails (try common formats)
 			ext := filepath.Ext(filename)
@@ -154,17 +198,17 @@ func init() {
 			}
 
 			if err := app.Save(record); err != nil {
-				app.Logger().Error("Failed to migrate mirror entry", "id", external.Id, "error", err)
+				log(fmt.Sprintf("ERROR: Failed to save record %s: %v", external.Id, err))
 				// Clean up copied file on failure
 				os.RemoveAll(dstDir)
 				continue
 			}
 
-			app.Logger().Info("Migrated mirror entry", "id", external.Id, "filename", filename)
+			log(fmt.Sprintf("SUCCESS: Migrated %s -> media_library", external.Id))
 			migratedCount++
 		}
 
-		app.Logger().Info("Mirror migration complete", "migrated", migratedCount, "skipped", skippedCount)
+		log(fmt.Sprintf("=== MIGRATION COMPLETE: migrated=%d, skipped=%d ===", migratedCount, skippedCount))
 		return nil
 	}, func(app core.App) error {
 		// Rollback: delete migrated mirror entries from media_library
