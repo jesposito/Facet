@@ -9,21 +9,48 @@
 
 	let { item, layout = 'default' }: Props = $props();
 
-	// Process direct media uploads if available
-	let mediaUrls = $derived(() => {
-		if (item.media_urls && Array.isArray(item.media_urls)) {
-			return item.media_urls;
-		}
-		return [];
-	});
-
-	// Process library media refs if available
+	// Process library media refs (attached media/embeds)
 	let mediaRefs = $derived(() => {
 		if (item.media_refs_expand && Array.isArray(item.media_refs_expand)) {
 			return item.media_refs_expand;
 		}
 		return [];
 	});
+
+	// Filter for images only (for lightbox)
+	let imageMedia = $derived(mediaRefs().filter(m => m.url && /\.(png|jpe?g|webp|gif|avif)$/i.test(m.url)));
+
+	// Lightbox state
+	let lightboxOpen = $state(false);
+	let lightboxIndex = $state(0);
+
+	function openLightbox(index: number) {
+		lightboxIndex = index;
+		lightboxOpen = true;
+	}
+
+	function closeLightbox() {
+		lightboxOpen = false;
+	}
+
+	function nextImage() {
+		if (imageMedia.length > 0) {
+			lightboxIndex = (lightboxIndex + 1) % imageMedia.length;
+		}
+	}
+
+	function prevImage() {
+		if (imageMedia.length > 0) {
+			lightboxIndex = (lightboxIndex - 1 + imageMedia.length) % imageMedia.length;
+		}
+	}
+
+	function handleLightboxKeydown(e: KeyboardEvent) {
+		if (!lightboxOpen) return;
+		if (e.key === 'Escape') closeLightbox();
+		if (e.key === 'ArrowRight') nextImage();
+		if (e.key === 'ArrowLeft') prevImage();
+	}
 
 	function isYouTube(url?: string): string | null {
 		if (!url) return null;
@@ -66,6 +93,8 @@
 		alt_text?: string;
 	};
 </script>
+
+<svelte:window onkeydown={handleLightboxKeydown} />
 
 {#snippet mediaRefCard(media: MediaRef)}
 	<div class="card p-4 space-y-3">
@@ -116,7 +145,13 @@
 				></iframe>
 			</div>
 		{:else if isImage(media.url)}
-			<img src={media.url || ''} alt={media.title || ''} class="w-full rounded-lg" loading="lazy" />
+			<button
+				type="button"
+				onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))}
+				class="w-full cursor-zoom-in"
+			>
+				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full rounded-lg" loading="lazy" />
+			</button>
 		{:else if isVideoFile(media.url)}
 			<video src={media.url || ''} controls class="w-full rounded-lg">
 				<track kind="captions" srclang="en" label="captions" />
@@ -156,21 +191,7 @@
 				{/if}
 			</div>
 
-			<!-- Media galleries for hero layout -->
-			{#if mediaUrls().length > 0}
-				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-					{#each mediaUrls() as url (url)}
-						<a href={url} target="_blank" rel="noopener noreferrer" class="block">
-							<img
-								src={url}
-								alt="Media"
-								class="w-full h-32 object-cover rounded-lg hover:opacity-90 transition-opacity"
-							/>
-						</a>
-					{/each}
-				</div>
-			{/if}
-
+			<!-- Attached media/embeds for hero layout -->
 			{#if mediaRefs().length > 0}
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs() as media}
@@ -203,21 +224,7 @@
 				</div>
 			</div>
 
-			<!-- Media galleries for card layout -->
-			{#if mediaUrls().length > 0}
-				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-					{#each mediaUrls() as url (url)}
-						<a href={url} target="_blank" rel="noopener noreferrer" class="block">
-							<img
-								src={url}
-								alt="Media"
-								class="w-full h-32 object-cover rounded-lg hover:opacity-90 transition-opacity"
-							/>
-						</a>
-					{/each}
-				</div>
-			{/if}
-
+			<!-- Attached media/embeds for card layout -->
 			{#if mediaRefs().length > 0}
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs() as media}
@@ -245,20 +252,7 @@
 				</div>
 			{/if}
 
-			{#if mediaUrls().length > 0}
-				<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-					{#each mediaUrls() as url (url)}
-						<a href={url} target="_blank" rel="noopener noreferrer" class="block">
-							<img
-								src={url}
-								alt="Media"
-								class="w-full h-32 object-cover rounded-lg hover:opacity-90 transition-opacity"
-							/>
-						</a>
-					{/each}
-				</div>
-			{/if}
-
+			<!-- Attached media/embeds for default layout -->
 			{#if mediaRefs().length > 0}
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs() as media}
@@ -269,3 +263,71 @@
 		</div>
 	{/if}
 </section>
+
+<!-- Lightbox modal for images -->
+{#if lightboxOpen && imageMedia[lightboxIndex]}
+	<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
+	<div
+		class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+		onclick={closeLightbox}
+		oncontextmenu={(e) => e.preventDefault()}
+	>
+		<!-- Close button -->
+		<button
+			type="button"
+			onclick={closeLightbox}
+			class="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
+			aria-label="Close lightbox"
+		>
+			<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+			</svg>
+		</button>
+
+		<!-- Previous button -->
+		{#if imageMedia.length > 1}
+			<button
+				type="button"
+				onclick={(e) => { e.stopPropagation(); prevImage(); }}
+				class="absolute left-4 p-2 text-white/70 hover:text-white transition-colors"
+				aria-label="Previous image"
+			>
+				<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+				</svg>
+			</button>
+
+			<!-- Next button -->
+			<button
+				type="button"
+				onclick={(e) => { e.stopPropagation(); nextImage(); }}
+				class="absolute right-4 p-2 text-white/70 hover:text-white transition-colors"
+				aria-label="Next image"
+			>
+				<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+				</svg>
+			</button>
+		{/if}
+
+		<!-- Image -->
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
+		<img
+			src={imageMedia[lightboxIndex].url || ''}
+			alt={imageMedia[lightboxIndex].title || imageMedia[lightboxIndex].alt_text || ''}
+			class="max-h-[90vh] max-w-[90vw] object-contain"
+			onclick={(e) => e.stopPropagation()}
+			oncontextmenu={(e) => e.preventDefault()}
+		/>
+
+		<!-- Image counter and title -->
+		<div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
+			{#if imageMedia[lightboxIndex].title}
+				<p class="text-lg font-medium mb-1">{imageMedia[lightboxIndex].title}</p>
+			{/if}
+			{#if imageMedia.length > 1}
+				<p class="text-sm text-white/70">{lightboxIndex + 1} / {imageMedia.length}</p>
+			{/if}
+		</div>
+	</div>
+{/if}
