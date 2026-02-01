@@ -98,6 +98,13 @@
 	export async function loadMediaOptions(searchTerm = '') {
 		loadingMedia = true;
 		try {
+			// Debug: log auth state
+			console.log('[MediaPicker] loadMediaOptions called', {
+				authValid: pb.authStore.isValid,
+				hasToken: !!pb.authStore.token,
+				tokenPreview: pb.authStore.token ? pb.authStore.token.substring(0, 20) + '...' : 'none'
+			});
+
 			const headers: Record<string, string> = pb.authStore.isValid
 				? { Authorization: `Bearer ${pb.authStore.token}` }
 				: {};
@@ -105,7 +112,14 @@
 			const mediaParams = new URLSearchParams({ perPage: '50', collection: 'media_library' });
 			if (searchTerm.trim()) mediaParams.set('q', searchTerm.trim());
 
-			const mediaRes = await fetch(`/api/media?${mediaParams.toString()}`, { headers });
+			console.log('[MediaPicker] fetching', `/api/media?${mediaParams.toString()}`, { headers });
+
+			const mediaRes = await fetch(`/api/media?${mediaParams.toString()}`, {
+				headers,
+				credentials: 'include'  // Ensure cookies are sent for auth
+			});
+
+			console.log('[MediaPicker] response', { ok: mediaRes.ok, status: mediaRes.status });
 			const mediaData = mediaRes.ok ? await mediaRes.json() : { items: [] };
 
 			const options: MediaOption[] = [];

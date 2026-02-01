@@ -1254,12 +1254,12 @@ func handleMediaLibraryOnly(e *core.RequestEvent, app *pocketbase.PocketBase, st
 		sortOrder = "desc"
 	}
 
-	// Build filter for search
+	// Build filter for search (params must be non-nil even if empty)
 	filter := ""
-	var params map[string]any
+	params := map[string]any{}
 	if search != "" {
 		filter = "title ~ {:search} || file ~ {:search} || url ~ {:search}"
-		params = map[string]any{"search": search}
+		params["search"] = search
 	}
 
 	// Query all media_library records
