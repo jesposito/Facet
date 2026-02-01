@@ -1030,14 +1030,17 @@ func fetchMediaTags(app *pocketbase.PocketBase, record *core.Record) []services.
 
 // findLibraryURLUsage checks all *_library_url fields across collections to find
 // content that references the given URL (for uploads collection files).
+// It also finds usage via media_refs by looking for external_media mirrors of this upload.
 func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.MediaUsage {
 	usage := services.MediaUsage{
 		UsageCount: 0,
 		UsedBy:     []services.MediaUsageItem{},
 	}
 
+	// Track already-added records to avoid duplicates
+	seen := make(map[string]bool)
+
 	// Collections and their library URL fields
-	// Updated to include all collections with library URL fields
 	libraryURLFields := map[string][]string{
 		"experience":     {"company_logo_library_url"},
 		"education":      {"institution_logo_library_url"},
@@ -1071,6 +1074,12 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 			}
 
 			for _, record := range records {
+				key := collName + ":" + record.Id
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
+
 				title := record.GetString("title")
 				if title == "" {
 					title = record.GetString("name")
@@ -1092,6 +1101,30 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 					Slug:       record.GetString("slug"),
 				})
 				usage.UsageCount++
+			}
+		}
+	}
+
+	// Also check for usage via media_refs by finding external_media mirrors of this upload
+	// When uploads are attached via MultiMediaPicker, a mirror entry is created in external_media
+	extCollection, err := app.FindCollectionByNameOrId("external_media")
+	if err == nil {
+		// Find mirrors that point to this upload URL
+		filter := fmt.Sprintf("url ~ '%s'", fileURL)
+		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, nil)
+		if err == nil {
+			for _, mirror := range mirrors {
+				// For each mirror, find content that references it via media_refs
+				mirrorUsage, _ := services.FindMediaUsage(app, mirror.Id)
+				for _, item := range mirrorUsage.UsedBy {
+					key := item.Collection + ":" + item.RecordID
+					if seen[key] {
+						continue
+					}
+					seen[key] = true
+					usage.UsedBy = append(usage.UsedBy, item)
+					usage.UsageCount++
+				}
 			}
 		}
 	}
