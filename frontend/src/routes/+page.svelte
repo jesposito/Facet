@@ -114,6 +114,16 @@
 		sort_order: number;
 		cover_image_url?: string;
 		media_urls?: string[];
+		media_refs?: string[];
+		media_refs_expand?: Array<{
+			id: string;
+			url: string;
+			title?: string;
+			mime?: string;
+			thumbnail_url?: string;
+			description?: string;
+			alt_text?: string;
+		}>;
 	};
 	let customContentMap = $derived(new Map<string, CustomContentItem>(
 		(data.customContent || []).map((item: Record<string, unknown>) => [item.id as string, item as unknown as CustomContentItem])

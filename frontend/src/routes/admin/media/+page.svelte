@@ -117,6 +117,28 @@
 	let typeFilter: 'all' | 'image' | 'video' | 'audio' | 'document' = $state('all');
 	let statusFilter: 'referenced' | 'all' | 'orphans' = $state('referenced');
 	let usageFilter: 'all' | 'in_use' | 'not_in_use' = $state('all');
+	let collectionFilter = $state('');
+
+	// Available collections for filtering (using i18n keys)
+	const availableCollections = [
+		{ value: '', labelKey: 'admin.media.filter_collection_all' },
+		{ value: 'uploads', labelKey: 'admin.media.filter_collection_uploads' },
+		{ value: 'external_media', labelKey: 'admin.media.filter_collection_external_media' },
+		{ value: 'profile', labelKey: 'admin.media.filter_collection_profile' },
+		{ value: 'experience', labelKey: 'admin.media.filter_collection_experience' },
+		{ value: 'projects', labelKey: 'admin.media.filter_collection_projects' },
+		{ value: 'education', labelKey: 'admin.media.filter_collection_education' },
+		{ value: 'posts', labelKey: 'admin.media.filter_collection_posts' },
+		{ value: 'talks', labelKey: 'admin.media.filter_collection_talks' },
+		{ value: 'views', labelKey: 'admin.media.filter_collection_views' },
+		{ value: 'site_settings', labelKey: 'admin.media.filter_collection_site_settings' },
+		{ value: 'custom_content', labelKey: 'admin.media.filter_collection_custom_content' },
+		{ value: 'testimonials', labelKey: 'admin.media.filter_collection_testimonials' },
+		{ value: 'certifications', labelKey: 'admin.media.filter_collection_certifications' },
+		{ value: 'media_library', labelKey: 'admin.media.filter_collection_media_library' },
+		{ value: 'view_exports', labelKey: 'admin.media.filter_collection_view_exports' },
+		{ value: 'resume_imports', labelKey: 'admin.media.filter_collection_resume_imports' },
+	];
 	let sortField: 'date' | 'name' | 'size' = $state('date');
 	let sortOrder: 'asc' | 'desc' = $state('desc');
 	let error = $state('');
@@ -335,6 +357,7 @@
 			});
 			if (search.trim()) params.set('q', search.trim());
 			if (typeFilter !== 'all') params.set('type', typeFilter);
+			if (collectionFilter) params.set('collection', collectionFilter);
 			if (statusFilter === 'orphans') {
 				params.set('orphans', '1');
 			} else if (statusFilter === 'all') {
@@ -1028,6 +1051,14 @@
 					<option value="video">{$t('admin.media.filter_type_video')}</option>
 					<option value="audio">{$t('admin.media.filter_type_audio')}</option>
 					<option value="document">{$t('admin.media.filter_type_document')}</option>
+				</select>
+			</div>
+			<div class="flex items-center gap-2">
+				<label class="label mb-0" for="collection-filter">{$t('admin.media.filter_collection')}</label>
+				<select id="collection-filter" class="input" bind:value={collectionFilter} onchange={resetAndLoad}>
+					{#each availableCollections as coll}
+						<option value={coll.value}>{$t(coll.labelKey)}</option>
+					{/each}
 				</select>
 			</div>
 			<div class="flex items-center gap-2">

@@ -13,7 +13,8 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
-	import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
+	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
@@ -32,14 +33,14 @@
 	let isDraft = $state(false);
 	let sortOrder = $state(0);
 	let coverImageFile: FileList | null = $state(null);
-	let pendingMediaFiles: File[] = $state([]); // Accumulated new files to upload
-	let mediaToKeep: string[] = $state([]); // Track existing media filenames to keep
+	let coverImageLibraryUrl = $state('');
+	let clearCoverImage = $state(false);
 	let saving = $state(false);
 	let adminTagIds: string[] = $state([]);
 
 	// Media library refs
 	let mediaRefs: string[] = $state([]);
-	let mediaPickerRef: MediaPicker | undefined = $state();
+	let mediaPickerRef: MultiMediaPicker | undefined = $state();
 
 	let selectMode = $state(false);
 	let selectedIds: Set<string> = $state(new Set());
@@ -67,7 +68,7 @@
 	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 	function getFormData() {
-		return { title, content, visibility, isDraft, sortOrder, mediaRefs };
+		return { title, content, visibility, isDraft, sortOrder, mediaRefs, coverImageLibraryUrl };
 	}
 
 	function restoreFromDraft(data: Record<string, any>) {
@@ -77,6 +78,7 @@
 		isDraft = data.isDraft || false;
 		sortOrder = data.sortOrder || 0;
 		mediaRefs = data.mediaRefs || [];
+		coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 	}
 
 	function handleFormChange() {
@@ -170,8 +172,8 @@
 		isDraft = false;
 		sortOrder = 0;
 		coverImageFile = null;
-		pendingMediaFiles = [];
-		mediaToKeep = [];
+		coverImageLibraryUrl = '';
+		clearCoverImage = false;
 		editingItem = null;
 		adminTagIds = [];
 		mediaRefs = [];
@@ -211,8 +213,8 @@
 		sortOrder = item.sort_order;
 		adminTagIds = item.admin_tags || [];
 		coverImageFile = null;
-		pendingMediaFiles = [];
-		mediaToKeep = item.media ? [...item.media] : []; // Keep all existing media by default
+		coverImageLibraryUrl = (item as any).cover_image_library_url || '';
+		clearCoverImage = false;
 		mediaRefs = (item as any).media_refs || [];
 		showForm = true;
 	}
@@ -243,21 +245,17 @@
 				adminTagIds.forEach((tagId) => formData.append('admin_tags', tagId));
 			}
 
-			// Handle cover image upload
+			// Handle cover image - file upload takes priority, then library URL, then clearing
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
-			}
-
-			// Handle media files - include existing files to keep AND new files to add
-			if (editingItem) {
-				// When editing, first add existing media filenames to keep
-				for (const filename of mediaToKeep) {
-					formData.append('media', filename);
-				}
-			}
-			// Then add any new pending files
-			for (const file of pendingMediaFiles) {
-				formData.append('media', file);
+				formData.append('cover_image_library_url', ''); // Clear library URL when uploading file
+			} else if (clearCoverImage && editingItem?.cover_image) {
+				// Clear existing file
+				formData.append('cover_image', '');
+				formData.append('cover_image_library_url', '');
+			} else {
+				// Keep or set library URL
+				formData.append('cover_image_library_url', coverImageLibraryUrl || '');
 			}
 
 			// Handle media library refs
@@ -401,36 +399,12 @@
 		}
 	}
 
-	async function removeCoverImage() {
-		if (!editingItem) return;
-		try {
-			await collection('custom_content').update(editingItem.id, { cover_image: null });
-			toasts.add('success', 'Cover image removed');
-			await loadItems();
-			// Re-open form with updated item
-			const updated = items.find((i) => i.id === editingItem!.id);
-			if (updated) openEditForm(updated);
-		} catch (err) {
-			toasts.add('error', 'Failed to remove cover image');
-		}
-	}
-
-	function removeMediaFromKeep(filename: string) {
-		mediaToKeep = mediaToKeep.filter((f) => f !== filename);
-	}
-
-	function handleMediaFilesSelected(event: Event) {
-		const input = event.target as HTMLInputElement;
-		if (input.files && input.files.length > 0) {
-			// Accumulate new files instead of replacing
-			pendingMediaFiles = [...pendingMediaFiles, ...Array.from(input.files)];
-			// Clear the input so the same file can be selected again if needed
-			input.value = '';
-		}
-	}
-
-	function removePendingFile(index: number) {
-		pendingMediaFiles = pendingMediaFiles.filter((_, i) => i !== index);
+	function getCoverImageUrl(item: CustomContent): string {
+		// Prefer library URL over direct upload
+		const libraryUrl = (item as any).cover_image_library_url;
+		if (libraryUrl) return libraryUrl;
+		if (!item.cover_image) return '';
+		return getFileUrl({ id: item.id, collectionName: 'custom_content' }, item.cover_image);
 	}
 </script>
 
@@ -599,107 +573,25 @@
 				</div>
 
 				<div>
-					<label for="cover_image" class="label">Cover Image</label>
-					{#if editingItem?.cover_image}
-						<div class="mb-2 flex items-center gap-2">
-							<img
-								src={getFileUrl(
-									{ id: editingItem.id, collectionName: 'custom_content' },
-									editingItem.cover_image
-								)}
-								alt="Current cover"
-								class="w-24 h-24 object-cover rounded"
-							/>
-							<button type="button" class="btn btn-danger-ghost btn-sm" onclick={removeCoverImage}>
-								Remove
-							</button>
-						</div>
-					{/if}
-					<input
-						type="file"
-						id="cover_image"
-						accept="image/jpeg,image/png,image/webp"
-						bind:files={coverImageFile}
-						class="input"
+					<SingleMediaPicker
+						label="Cover Image"
+						helpText="Displayed in content grids and as the header image"
+						bind:value={coverImageLibraryUrl}
+						bind:fileInput={coverImageFile}
+						bind:clearExisting={clearCoverImage}
+						currentFileUrl={editingItem ? getCoverImageUrl(editingItem) : ''}
+						currentFileName={editingItem?.cover_image || ''}
+						imagesOnly={true}
+						onchange={handleFormChange}
 					/>
 				</div>
 
-				<div>
-					<label for="media" class="label">Media Gallery</label>
-
-					<!-- Existing media (when editing) -->
-					{#if editingItem && mediaToKeep.length > 0}
-						<p class="text-xs text-gray-500 mb-1">Existing images:</p>
-						<div class="flex flex-wrap gap-2 mb-3">
-							{#each mediaToKeep as filename}
-								<div class="relative group">
-									<img
-										src={getFileUrl(
-											{ id: editingItem.id, collectionName: 'custom_content' },
-											filename
-										)}
-										alt="Media"
-										class="w-16 h-16 object-cover rounded border border-gray-200 dark:border-gray-700"
-									/>
-									<button
-										type="button"
-										class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-										onclick={() => removeMediaFromKeep(filename)}
-										title="Remove image"
-									>
-										×
-									</button>
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					<!-- Pending new uploads -->
-					{#if pendingMediaFiles.length > 0}
-						<p class="text-xs text-gray-500 mb-1">New images to upload:</p>
-						<div class="flex flex-wrap gap-2 mb-3">
-							{#each pendingMediaFiles as file, index}
-								<div class="relative group">
-									<img
-										src={URL.createObjectURL(file)}
-										alt={file.name}
-										class="w-16 h-16 object-cover rounded border-2 border-primary-300 dark:border-primary-600"
-									/>
-									<button
-										type="button"
-										class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-										onclick={() => removePendingFile(index)}
-										title="Remove"
-									>
-										×
-									</button>
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					<input
-						type="file"
-						id="media"
-						accept="image/jpeg,image/png,image/webp,image/svg+xml"
-						multiple
-						onchange={handleMediaFilesSelected}
-						class="input"
-					/>
-					<p class="text-xs text-gray-500 mt-1">Select images to add (you can select multiple times to build up your gallery)</p>
-				</div>
-
-				<MediaPicker
+				<MultiMediaPicker
 					bind:this={mediaPickerRef}
 					bind:value={mediaRefs}
 					label={$t('admin.content.common.attached_media')}
-					showHelp={true}
+					helpText="Select media from your library to attach to this content"
 				/>
-
-				<div>
-					<span id="admin-tags-label" class="label">Admin Tags</span>
-					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
-				</div>
 			</div>
 
 			<div class="card p-6 space-y-4">
@@ -731,6 +623,12 @@
 					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
 						Save as draft (won't be visible publicly)
 					</label>
+				</div>
+
+				<div>
+					<span id="admin-tags-label" class="label">Admin Tags</span>
+					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
+					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
 				</div>
 			</div>
 

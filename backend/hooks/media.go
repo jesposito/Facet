@@ -30,57 +30,30 @@ var (
 	ErrIsDirectory  = errors.New("refusing to delete directories")
 )
 
+// collectionsWithImageFields lists collections that have image file fields
+// and should have thumbnails generated automatically.
+var collectionsWithImageFields = []string{
+	"uploads",
+	"profile",
+	"experience",
+	"projects",
+	"education",
+	"posts",
+	"talks",
+	"views",
+	"site_settings",
+	"custom_content",
+	"testimonials",
+}
+
 // RegisterMediaHooks exposes admin-only media listing and deletion endpoints.
 // uploadsDir is the path to the primary uploads directory (e.g., /uploads in Docker).
 // If empty, only the fallback location (pb_data/storage) will be used.
 func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
-	// Register thumbnail generation hook for uploads collection
-	app.OnRecordAfterCreateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
-		// Generate thumbnail in a goroutine to not block the request
-		go func() {
-			storage := services.NewStorageService(services.StorageConfig{
-				UploadsDir: uploadsDir,
-				DataDir:    app.DataDir(),
-			})
-			thumbService := services.NewThumbnailService(storage)
-
-			filename := e.Record.GetString("file")
-			if filename == "" {
-				return
-			}
-
-			collection, err := app.FindCollectionByNameOrId("uploads")
-			if err != nil {
-				app.Logger().Warn("thumbnail: failed to find uploads collection", "error", err)
-				return
-			}
-
-			// Get the file path to determine mime type
-			fullPath, found := storage.FindFile(collection.Id, e.Record.Id, filename)
-			if !found {
-				app.Logger().Warn("thumbnail: file not found", "record", e.Record.Id, "filename", filename)
-				return
-			}
-
-			// Determine mime type
-			mimeType := detectMimeType(fullPath, filename)
-
-			// Only generate thumbnails for supported image formats
-			if !services.IsSupportedFormat(mimeType) {
-				return
-			}
-
-			// Generate thumbnail
-			_, err = thumbService.GenerateThumbnail(collection.Id, e.Record.Id, filename, services.ThumbnailSize)
-			if err != nil {
-				app.Logger().Warn("thumbnail: generation failed", "record", e.Record.Id, "error", err)
-				return
-			}
-
-			app.Logger().Debug("thumbnail: generated", "record", e.Record.Id, "filename", filename)
-		}()
-		return e.Next()
-	})
+	// Register thumbnail generation hooks for all collections with image fields
+	for _, collName := range collectionsWithImageFields {
+		registerThumbnailHook(app, collName, uploadsDir)
+	}
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Create StorageService with app's data directory now that it's available
@@ -652,10 +625,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 		}).Bind(apis.RequireAuth())
 
 		// Mark media as recently used (updates last_used_at timestamp)
+		// Now supports all collections with file fields (not just uploads and external_media)
 		se.Router.POST("/api/media/mark-used", func(e *core.RequestEvent) error {
 			var req struct {
 				ID         string `json:"id"`
-				Collection string `json:"collection"` // "uploads" or "external_media"
+				Collection string `json:"collection"` // any collection with last_used_at field
 			}
 			if err := e.BindBody(&req); err != nil {
 				return apis.NewBadRequestError("invalid request body", err)
@@ -667,9 +641,15 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				req.Collection = "external_media" // default for backwards compatibility
 			}
 
-			// Validate collection name
-			if req.Collection != "uploads" && req.Collection != "external_media" {
-				return apis.NewBadRequestError("invalid collection", nil)
+			// Find the collection and verify it has a last_used_at field
+			collection, err := app.FindCollectionByNameOrId(req.Collection)
+			if err != nil {
+				return apis.NewBadRequestError("invalid collection", err)
+			}
+
+			// Check if collection has last_used_at field
+			if collection.Fields.GetByName("last_used_at") == nil {
+				return apis.NewBadRequestError("collection does not support usage tracking", nil)
 			}
 
 			record, err := app.FindRecordById(req.Collection, req.ID)
@@ -1050,19 +1030,28 @@ func fetchMediaTags(app *pocketbase.PocketBase, record *core.Record) []services.
 
 // findLibraryURLUsage checks all *_library_url fields across collections to find
 // content that references the given URL (for uploads collection files).
+// It also finds usage via media_refs by looking for external_media mirrors of this upload.
 func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.MediaUsage {
 	usage := services.MediaUsage{
 		UsageCount: 0,
 		UsedBy:     []services.MediaUsageItem{},
 	}
 
+	// Track already-added records to avoid duplicates
+	seen := make(map[string]bool)
+
 	// Collections and their library URL fields
 	libraryURLFields := map[string][]string{
-		"experience": {"company_logo_library_url"},
-		"education":  {"institution_logo_library_url"},
-		"projects":   {"cover_image_library_url"},
-		"posts":      {"cover_image_library_url"},
-		"talks":      {"cover_image_library_url"},
+		"experience":     {"company_logo_library_url"},
+		"education":      {"institution_logo_library_url"},
+		"projects":       {"cover_image_library_url"},
+		"posts":          {"cover_image_library_url"},
+		"talks":          {"cover_image_library_url"},
+		"profile":        {"hero_image_library_url", "avatar_library_url"},
+		"views":          {"hero_image_library_url"},
+		"site_settings":  {"favicon_library_url"},
+		"custom_content": {"cover_image_library_url"},
+		"testimonials":   {"author_photo_library_url"},
 	}
 
 	for collName, fields := range libraryURLFields {
@@ -1085,6 +1074,12 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 			}
 
 			for _, record := range records {
+				key := collName + ":" + record.Id
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
+
 				title := record.GetString("title")
 				if title == "" {
 					title = record.GetString("name")
@@ -1106,6 +1101,30 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 					Slug:       record.GetString("slug"),
 				})
 				usage.UsageCount++
+			}
+		}
+	}
+
+	// Also check for usage via media_refs by finding external_media mirrors of this upload
+	// When uploads are attached via MultiMediaPicker, a mirror entry is created in external_media
+	extCollection, err := app.FindCollectionByNameOrId("external_media")
+	if err == nil {
+		// Find mirrors that point to this upload URL
+		filter := fmt.Sprintf("url ~ '%s'", fileURL)
+		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, nil)
+		if err == nil {
+			for _, mirror := range mirrors {
+				// For each mirror, find content that references it via media_refs
+				mirrorUsage, _ := services.FindMediaUsage(app, mirror.Id)
+				for _, item := range mirrorUsage.UsedBy {
+					key := item.Collection + ":" + item.RecordID
+					if seen[key] {
+						continue
+					}
+					seen[key] = true
+					usage.UsedBy = append(usage.UsedBy, item)
+					usage.UsageCount++
+				}
 			}
 		}
 	}
@@ -1567,4 +1586,97 @@ func detectMimeType(fullPath, filename string) string {
 	}
 
 	return "application/octet-stream"
+}
+
+// registerThumbnailHook registers thumbnail generation hooks for a collection.
+// Generates thumbnails on both create and update (when new files are added).
+func registerThumbnailHook(app *pocketbase.PocketBase, collectionName string, uploadsDir string) {
+	// Hook for new records
+	app.OnRecordAfterCreateSuccess(collectionName).BindFunc(func(e *core.RecordEvent) error {
+		go generateThumbnailsForRecord(app, e.Record, uploadsDir)
+		return e.Next()
+	})
+
+	// Hook for updated records (new files added)
+	app.OnRecordAfterUpdateSuccess(collectionName).BindFunc(func(e *core.RecordEvent) error {
+		// Only generate thumbnails for newly added files
+		go generateThumbnailsForNewFiles(app, e.Record, uploadsDir)
+		return e.Next()
+	})
+}
+
+// generateThumbnailsForRecord generates thumbnails for all image files in a record.
+func generateThumbnailsForRecord(app *pocketbase.PocketBase, record *core.Record, uploadsDir string) {
+	storage := services.NewStorageService(services.StorageConfig{
+		UploadsDir: uploadsDir,
+		DataDir:    app.DataDir(),
+	})
+	thumbService := services.NewThumbnailService(storage)
+
+	collection := record.Collection()
+	fileFields := fileFieldNames(collection)
+
+	for _, fieldName := range fileFields {
+		filenames := services.FlattenFileValue(record.Get(fieldName))
+		for _, filename := range filenames {
+			generateThumbnailIfSupported(app, thumbService, storage, collection.Id, record.Id, filename)
+		}
+	}
+}
+
+// generateThumbnailsForNewFiles generates thumbnails only for newly added files.
+func generateThumbnailsForNewFiles(app *pocketbase.PocketBase, record *core.Record, uploadsDir string) {
+	storage := services.NewStorageService(services.StorageConfig{
+		UploadsDir: uploadsDir,
+		DataDir:    app.DataDir(),
+	})
+	thumbService := services.NewThumbnailService(storage)
+
+	collection := record.Collection()
+	fileFields := fileFieldNames(collection)
+
+	for _, fieldName := range fileFields {
+		oldFilenames := services.FlattenFileValue(record.Original().Get(fieldName))
+		newFilenames := services.FlattenFileValue(record.Get(fieldName))
+
+		// Build set of old filenames
+		oldSet := make(map[string]struct{})
+		for _, fn := range oldFilenames {
+			oldSet[fn] = struct{}{}
+		}
+
+		// Generate thumbnails for newly added files only
+		for _, filename := range newFilenames {
+			if _, exists := oldSet[filename]; !exists {
+				generateThumbnailIfSupported(app, thumbService, storage, collection.Id, record.Id, filename)
+			}
+		}
+	}
+}
+
+// generateThumbnailIfSupported generates a thumbnail if the file is a supported image format.
+func generateThumbnailIfSupported(app *pocketbase.PocketBase, thumbService *services.ThumbnailService, storage *services.StorageService, collectionID, recordID, filename string) {
+	// Get the file path to determine mime type
+	fullPath, found := storage.FindFile(collectionID, recordID, filename)
+	if !found {
+		app.Logger().Debug("thumbnail: file not found", "collection", collectionID, "record", recordID, "filename", filename)
+		return
+	}
+
+	// Determine mime type
+	mimeType := detectMimeType(fullPath, filename)
+
+	// Only generate thumbnails for supported image formats
+	if !services.IsSupportedFormat(mimeType) {
+		return
+	}
+
+	// Generate thumbnail
+	_, err := thumbService.GenerateThumbnail(collectionID, recordID, filename, services.ThumbnailSize)
+	if err != nil {
+		app.Logger().Warn("thumbnail: generation failed", "collection", collectionID, "record", recordID, "filename", filename, "error", err)
+		return
+	}
+
+	app.Logger().Debug("thumbnail: generated", "collection", collectionID, "record", recordID, "filename", filename)
 }

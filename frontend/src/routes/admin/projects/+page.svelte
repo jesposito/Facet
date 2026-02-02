@@ -14,7 +14,7 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
-	import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
+	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
@@ -42,7 +42,7 @@ let coverImageFile: FileList | null = $state(null);
 let coverImageLibraryUrl = $state('');
 let clearCoverImage = $state(false);
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
+let mediaPickerRef: MultiMediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 let saving = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -779,16 +779,16 @@ let filteredProjects = $derived(
 					/>
 				</div>
 
-			<MediaPicker
+			<MultiMediaPicker
 				bind:this={mediaPickerRef}
 				bind:value={mediaRefs}
 				label={$t('admin.content.common.attached_media')}
-				showHelp={true}
+				helpText="Select media from your library to attach to this project"
 			/>
 		</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Publishing</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>

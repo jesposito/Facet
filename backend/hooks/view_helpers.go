@@ -203,7 +203,7 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 	return result
 }
 
-func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string]map[string]interface{}, sectionName string) []map[string]interface{} {
+func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.Record, itemConfig map[string]map[string]interface{}, sectionName string) []map[string]interface{} {
 	var result []map[string]interface{}
 	overridableFields := getOverridableFields(sectionName)
 
@@ -264,6 +264,14 @@ func serializeRecordsWithOverrides(records []*core.Record, itemConfig map[string
 						mediaURLs = append(mediaURLs, "/api/files/"+collectionID+"/"+recordID+"/"+file)
 					}
 					item["media_urls"] = mediaURLs
+				}
+			}
+
+			// Handle media_refs from library (external_media references)
+			if mediaRefs := record.GetStringSlice("media_refs"); len(mediaRefs) > 0 {
+				item["media_refs"] = mediaRefs
+				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
+					item["media_refs_expand"] = expanded
 				}
 			}
 		}
