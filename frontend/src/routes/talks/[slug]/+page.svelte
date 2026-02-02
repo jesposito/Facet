@@ -346,9 +346,9 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 								<button
 									type="button"
 									onclick={() => openLightbox(imageMedia.findIndex((m: { url?: string }) => m.url === media.url))}
-									class="w-full cursor-zoom-in"
+									class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden"
 								>
-									<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full" loading="lazy" />
+									<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
 								</button>
 							{:else if isVideoFile(media.url)}
 								<video src={media.url || ''} controls class="w-full">

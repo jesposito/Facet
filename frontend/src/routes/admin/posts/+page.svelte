@@ -13,7 +13,7 @@ import { formatDate, toDateInputValue } from '$lib/utils';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
-import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
+import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
 import PageHelp from '$components/admin/PageHelp.svelte';
 import AdminFilters from '$components/admin/AdminFilters.svelte';
 import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
@@ -24,7 +24,7 @@ let showForm = $state(false);
 let editingPost: Post | null = $state(null);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
+let mediaPickerRef: MultiMediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 
 let selectMode = $state(false);
@@ -536,40 +536,7 @@ function openEditForm(post: Post) {
 					</div>
 				</div>
 
-			<MediaPicker
-				bind:this={mediaPickerRef}
-				bind:value={mediaRefs}
-				label={$t('admin.content.common.attached_media')}
-				showHelp={true}
-			/>
-
-				<div>
-					<span class="label">Tags</span>
-					<div class="flex flex-wrap gap-2 mb-2">
-						{#each tags as tag}
-							<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">
-								{tag}
-								<button type="button" class="text-gray-500 hover:text-red-500" onclick={() => removeTag(tag)} aria-label="Remove tag {tag}">
-									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-									</svg>
-								</button>
-							</span>
-						{/each}
-					</div>
-					<div class="flex gap-2">
-						<input
-							type="text"
-							bind:value={tagInput}
-							class="input flex-1"
-							placeholder="Add a tag..."
-							onkeydown={handleTagKeydown}
-						/>
-						<button type="button" class="btn btn-secondary" onclick={addTag}>Add</button>
-					</div>
-				</div>
-
-				<div>
+					<div>
 					<SingleMediaPicker
 						label="Cover Image"
 						helpText="Displayed in post grids and as the header image"
@@ -582,6 +549,13 @@ function openEditForm(post: Post) {
 						onchange={handleFormChange}
 					/>
 				</div>
+
+				<MultiMediaPicker
+					bind:this={mediaPickerRef}
+					bind:value={mediaRefs}
+					label={$t('admin.content.common.attached_media')}
+					helpText="Select media from your library to attach to this post"
+				/>
 			</div>
 
 			<div class="card p-6 space-y-4">
@@ -631,6 +605,33 @@ function openEditForm(post: Post) {
 					<label for="featured" class="text-sm text-gray-700 dark:text-gray-300">
 						Featured post (highlight in featured layout)
 					</label>
+				</div>
+
+				<div>
+					<span class="label">Tags</span>
+					<div class="flex flex-wrap gap-2 mb-2">
+						{#each tags as tag}
+							<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">
+								{tag}
+								<button type="button" class="text-gray-500 hover:text-red-500" onclick={() => removeTag(tag)} aria-label="Remove tag {tag}">
+									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+									</svg>
+								</button>
+							</span>
+						{/each}
+					</div>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							bind:value={tagInput}
+							class="input flex-1"
+							placeholder="Add a tag..."
+							onkeydown={handleTagKeydown}
+						/>
+						<button type="button" class="btn btn-secondary" onclick={addTag}>Add</button>
+					</div>
+					<p class="text-xs text-gray-500 mt-1">Public tags shown on the post</p>
 				</div>
 			</div>
 

@@ -4,6 +4,13 @@
 	import { t } from 'svelte-i18n';
 	import { formatDate } from '$lib/utils';
 
+	interface MediaUsageItem {
+		collection: string;
+		record_id: string;
+		title: string;
+		slug?: string;
+	}
+
 	interface MediaItem {
 		collection: string;
 		collection_id: string;
@@ -25,6 +32,8 @@
 		external?: boolean;
 		provider?: string;
 		embed_url?: string;
+		usage_count?: number;
+		used_by?: MediaUsageItem[];
 	}
 
 	interface Props {
@@ -192,7 +201,7 @@
 			</div>
 
 			<!-- Metadata footer -->
-			<div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+			<div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-4">
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
 					{#if item.filename}
 						<div>
@@ -237,6 +246,27 @@
 						</div>
 					{/if}
 				</div>
+
+				<!-- Used by section -->
+				{#if !item.orphan}
+					<div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+						<span class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.preview_used_by')}</span>
+						{#if item.usage_count && item.usage_count > 0 && item.used_by && item.used_by.length > 0}
+							<ul class="mt-2 space-y-1">
+								{#each item.used_by as usage}
+									<li class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+										<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+											{usage.collection}
+										</span>
+										<span class="truncate">{usage.title}</span>
+									</li>
+								{/each}
+							</ul>
+						{:else}
+							<p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">{$t('admin.media.preview_not_used')}</p>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>

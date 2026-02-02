@@ -66,6 +66,7 @@ func main() {
 	hooks.RegisterDuplicateHooks(app)
 	hooks.RegisterExperienceHooks(app)
 	hooks.RegisterCustomContentHooks(app)
+	hooks.RegisterMediaCleanupHooks(app)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)

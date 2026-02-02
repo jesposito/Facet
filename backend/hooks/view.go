@@ -553,7 +553,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						record, err := app.FindRecordById(collectionName, customContentId)
 						if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
 							itemConfig := make(map[string]map[string]interface{})
-							sectionData[sectionName] = serializeRecordsWithOverrides([]*core.Record{record}, itemConfig, sectionName)
+							sectionData[sectionName] = serializeRecordsWithOverrides(app, []*core.Record{record}, itemConfig, sectionName)
 						}
 					}
 					continue
@@ -591,7 +591,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							}
 						}
 					}
-					sectionData[sectionName] = serializeRecordsWithOverrides(itemRecords, itemConfig, sectionName)
+					sectionData[sectionName] = serializeRecordsWithOverrides(app, itemRecords, itemConfig, sectionName)
 				}
 				// If no items selected (len(items) == 0), section remains empty - nothing shown
 			}

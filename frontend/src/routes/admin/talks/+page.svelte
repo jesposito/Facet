@@ -13,7 +13,7 @@
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
-	import MediaPicker from '$lib/components/admin/MediaPicker.svelte';
+	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 
@@ -37,7 +37,7 @@ let visibility = $state('public');
 let isDraft = $state(false);
 let sortOrder = $state(0);
 let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MediaPicker | undefined = $state();
+let mediaPickerRef: MultiMediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 let saving = $state(false);
 
@@ -550,16 +550,16 @@ afterNavigate(() => {
 					/>
 				</div>
 
-				<MediaPicker
+				<MultiMediaPicker
 					bind:this={mediaPickerRef}
 					bind:value={mediaRefs}
 					label={$t('admin.content.common.attached_media')}
-					showHelp={true}
+					helpText="Select media from your library to attach to this talk"
 				/>
 			</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Publishing</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
