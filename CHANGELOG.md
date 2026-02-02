@@ -3,6 +3,27 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.15.9 - February 02, 2026
+
+**Bugs Fixed:**
+- Fix usage counts showing '1' or '—' even when media was used in multiple places
+- Fix testimonials field name
+- Add missing collection filters for orphan detection
+- Fix i18n validation by adding 18 missing filter_collection translation keys
+
+**New Features:**
+- Add new MultiMediaPicker component with modal grid UX for selecting attached media
+- Add new SingleMediaPicker component for cover image selection with consistent modal UI
+- Improve unified image upload handling across all collections
+- Improve media library usability with better filtering and selection feedback
+- Display attached media in public views with uniform 16:9 gallery thumbnails using crop & zoom
+- Add new lightbox viewer for images with prev/next navigation
+
+**Pull Requests:** [#378](https://github.com/jesposito/Facet/pull/378),
+
+---
+
+
 ## v2.15.8 - February 01, 2026
 
 **Bugs Fixed:**
