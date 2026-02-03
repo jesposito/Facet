@@ -40,10 +40,15 @@
 		return date;
 	}
 
-	// Get email from contacts
+	// Get important contacts for resume
 	let emailContact = $derived(contacts.find(c => c.type === 'email'));
 	let phoneContact = $derived(contacts.find(c => c.type === 'phone'));
 	let linkedinContact = $derived(contacts.find(c => c.type === 'linkedin'));
+	let githubContact = $derived(contacts.find(c => c.type === 'github'));
+	let websiteContact = $derived(contacts.find(c => c.type === 'website' || c.type === 'portfolio'));
+
+	// Check if we have any contact info at all
+	let hasAnyContact = $derived(emailContact || phoneContact || linkedinContact || githubContact || websiteContact || contacts.length > 0);
 
 	// Group skills by category for ATS
 	let skillsByCategory = $derived(skills.reduce((acc, skill) => {
@@ -76,7 +81,7 @@
 			<p>{profile.headline}</p>
 		{/if}
 		{#if profile?.location}
-			<p>{profile.location}</p>
+			<p>Location: {profile.location}</p>
 		{/if}
 		{#if emailContact}
 			<p>Email: {emailContact.value}</p>
@@ -86,6 +91,15 @@
 		{/if}
 		{#if linkedinContact}
 			<p>LinkedIn: {linkedinContact.value}</p>
+		{/if}
+		{#if githubContact}
+			<p>GitHub: {githubContact.value}</p>
+		{/if}
+		{#if websiteContact}
+			<p>Website: {websiteContact.value}</p>
+		{/if}
+		{#if !hasAnyContact && profile?.contact_email}
+			<p>Email: {profile.contact_email}</p>
 		{/if}
 	</section>
 

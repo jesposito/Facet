@@ -855,6 +855,103 @@
 	}
 
 	/* ==========================================================================
+	   ATS Content - Reveal hidden content for PDF text extraction
+	   The .ats-only content is normally hidden but contains plain-text versions
+	   of all resume content. In print mode, we reveal it so PDFs have
+	   extractable text for ATS systems.
+	   ========================================================================== */
+
+	.ats-only {
+		/* Reveal the hidden content */
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		overflow: visible !important;
+		clip: auto !important;
+		white-space: normal !important;
+		border: 0 !important;
+	}
+
+	#ats-content {
+		/* Style the ATS content block */
+		display: block !important;
+		page-break-before: always;
+		padding-top: 0.5rem;
+	}
+
+	#ats-content section {
+		margin-bottom: 0.75rem !important;
+	}
+
+	#ats-content h2 {
+		font-size: 11pt !important;
+		font-weight: 700 !important;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		border-bottom: 1.5pt solid #000 !important;
+		padding-bottom: 0.1rem !important;
+		margin-bottom: 0.3rem !important;
+		margin-top: 0 !important;
+	}
+
+	#ats-content p {
+		font-size: 10pt !important;
+		line-height: 1.4 !important;
+		margin-bottom: 0.15rem !important;
+		color: #000 !important;
+	}
+
+	#ats-content strong {
+		font-weight: 600;
+	}
+
+	/* ==========================================================================
+	   Skills Section - Fix badge styling for print
+	   Ensure skills badges have readable text (not dark on dark)
+	   ========================================================================== */
+
+	/* Reset all skill badge backgrounds */
+	[class*="bg-primary"],
+	[class*="bg-accent"],
+	.bg-blue-500,
+	.bg-blue-600,
+	.bg-blue-700,
+	.bg-indigo-500,
+	.bg-indigo-600,
+	.bg-sky-500,
+	.bg-sky-600 {
+		background: #f3f4f6 !important;
+		color: #000 !important;
+	}
+
+	/* Skills text should always be black */
+	[class*="bg-primary"] span,
+	[class*="bg-primary"] *,
+	.rounded-full span {
+		color: #000 !important;
+	}
+
+	/* ==========================================================================
+	   Contact Section - Ensure visibility
+	   ========================================================================== */
+
+	#contacts,
+	[id="contacts"],
+	section:has(h2:contains("Contact")) {
+		display: block !important;
+	}
+
+	/* Contact method items */
+	#contacts a,
+	#contacts span,
+	.contact-method {
+		color: #000 !important;
+		font-size: 9pt !important;
+	}
+
+	/* ==========================================================================
 	   Page Breaks - Smart content flow
 	   ========================================================================== */
 
