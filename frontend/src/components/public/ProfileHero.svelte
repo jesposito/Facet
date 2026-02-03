@@ -14,7 +14,7 @@
 	let avatarUrl = $derived((profile as unknown as Record<string, string>)?.avatar_url || null);
 </script>
 
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
 	{#if heroImageUrl}
 		<div class="absolute inset-0" aria-hidden="true">
 			<img
@@ -42,25 +42,25 @@
 
 			<div class="text-center sm:text-left flex-1">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
 
 				{#if profile?.headline}
-					<p class="text-xl sm:text-2xl text-gray-300 mb-4">
+					<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
 						{profile.headline}
 					</p>
 				{/if}
 
 				{#if profile?.location}
-					<p class="flex items-center justify-center sm:justify-start gap-2 text-gray-400 mb-4">
+					<p class="flex items-center justify-center sm:justify-start gap-2 text-gray-400 mb-4" itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
 						</svg>
 						<span class="sr-only">{$t('public.hero.location_label')}</span>
-						{profile.location}
+						<span itemprop="addressLocality">{profile.location}</span>
 					</p>
 				{/if}
 
@@ -73,6 +73,7 @@
 								rel="noopener noreferrer"
 								class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
 								aria-label={$t('public.hero.opens_new_tab', { values: { label: link.label || link.type } })}
+								itemprop={link.type === 'email' ? 'email' : 'sameAs'}
 							>
 								{#if link.type === 'github'}
 									<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -100,7 +101,7 @@
 		</div>
 
 		{#if profile?.summary}
-			<div class="mt-8 prose prose-invert prose-lg max-w-none">
+			<div class="mt-8 prose prose-invert prose-lg max-w-none" itemprop="description">
 				{@html parseMarkdown(profile.summary)}
 			</div>
 		{/if}

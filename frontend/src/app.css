@@ -44,6 +44,23 @@
 	:focus-visible {
 		@apply outline-2 outline-offset-2 outline-primary-500;
 	}
+
+	/* ==========================================================================
+	   ATS (Applicant Tracking System) Hidden Content
+	   Visually hidden but accessible to ATS parsers for resume/PDF text extraction.
+	   Uses the clip method which is more reliable for ATS than display:none.
+	   ========================================================================== */
+	.ats-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
 }
 
 @layer components {
@@ -473,6 +490,19 @@
 	header .absolute,
 	.animate-pulse,
 	[aria-hidden="true"] {
+		display: none !important;
+	}
+
+	/* ==========================================================================
+	   Non-Resume Sections - Hide content not suitable for ATS/resume printing
+	   Blog posts, talks, projects, testimonials, and custom content are typically
+	   not included in traditional resumes and can confuse ATS parsers.
+	   ========================================================================== */
+	#posts,
+	#talks,
+	#testimonials,
+	#projects,
+	[id^="custom-"] {
 		display: none !important;
 	}
 

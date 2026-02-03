@@ -20,6 +20,7 @@
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import SiteNav from '$components/public/SiteNav.svelte';
+	import ATSContent from '$components/public/ATSContent.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -418,6 +419,15 @@
 	<WelcomePage />
 {:else}
 <div class="min-h-screen">
+	<!-- ATS-optimized hidden content for resume parsing -->
+	<ATSContent
+		profile={data.profile}
+		experience={data.sections?.experience}
+		education={data.sections?.education}
+		skills={data.sections?.skills}
+		contacts={data.sections?.contacts}
+		certifications={data.sections?.certifications}
+	/>
 	<div
 		class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
 		class:opacity-0={navPinned}
