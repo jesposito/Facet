@@ -6,8 +6,8 @@ Thank you for helping make Facet accessible to more people around the world! Thi
 
 **Join our Discord community!** If you have questions about translating, need clarification on what a phrase means, or want to coordinate with other translators, come chat with us:
 
-- **Discord**: [Join the Facet Discord](https://discord.gg/your-discord-link) (ask in #translations channel)
-- **GitHub Issues**: [Open an issue](https://github.com/your-repo/issues/new) with the `i18n` label
+- **Discord**: [Join the Facet Discord](https://discord.gg/eKg4MhMkVJ) (ask in #translations channel)
+- **GitHub Issues**: [Open an issue](https://github.com/jesposito/Facet/issues/new) with the `i18n` label
 
 ---
 
@@ -21,7 +21,7 @@ If you don't have one, [sign up for free at GitHub.com](https://github.com/signu
 
 ### Step 2: Find the Translation Files
 
-1. Go to the [Facet repository](https://github.com/your-repo/facet)
+1. Go to the [Facet repository](https://github.com/jesposito/Facet)
 2. Navigate to: `frontend` → `src` → `locales`
 3. You'll see files like `en.json` (English), `de.json` (German), etc.
 
