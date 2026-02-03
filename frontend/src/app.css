@@ -411,6 +411,17 @@
 		-webkit-print-color-adjust: exact !important;
 		print-color-adjust: exact !important;
 		box-shadow: none !important;
+		/* Ensure text remains selectable in PDF */
+		-webkit-user-select: text !important;
+		user-select: text !important;
+		/* Disable properties that can cause text rasterization */
+		-webkit-background-clip: border-box !important;
+		background-clip: border-box !important;
+		-webkit-text-fill-color: inherit !important;
+		filter: none !important;
+		-webkit-filter: none !important;
+		transform: none !important;
+		-webkit-transform: none !important;
 	}
 
 	/* ==========================================================================
