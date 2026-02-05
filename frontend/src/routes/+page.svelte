@@ -419,15 +419,6 @@
 	<WelcomePage />
 {:else}
 <div class="min-h-screen">
-	<!-- ATS-optimized hidden content for resume parsing -->
-	<ATSContent
-		profile={data.profile}
-		experience={data.sections?.experience}
-		education={data.sections?.education}
-		skills={data.sections?.skills}
-		contacts={data.sections?.contacts}
-		certifications={data.sections?.certifications}
-	/>
 	<div
 		class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
 		class:opacity-0={navPinned}
@@ -607,6 +598,16 @@
 	</main>
 
 	<Footer profile={data.profile} />
+
+	<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
+	<ATSContent
+		profile={data.profile}
+		experience={data.sections?.experience}
+		education={data.sections?.education}
+		skills={data.sections?.skills}
+		contacts={data.sections?.contacts}
+		certifications={data.sections?.certifications}
+	/>
 </div>
 
 <!-- AI Resume Generation Modal -->

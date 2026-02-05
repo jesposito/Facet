@@ -405,16 +405,14 @@
    ========================================================================== */
 
 @media print {
-	/* Force color printing and reset base styles */
+	/* Reset base styles for clean PDF text rendering */
 	* {
-		color-adjust: exact !important;
-		-webkit-print-color-adjust: exact !important;
-		print-color-adjust: exact !important;
 		box-shadow: none !important;
+		text-shadow: none !important;
 		/* Ensure text remains selectable in PDF */
 		-webkit-user-select: text !important;
 		user-select: text !important;
-		/* Disable properties that can cause text rasterization */
+		/* Disable properties that cause Chrome to rasterize text as images */
 		-webkit-background-clip: border-box !important;
 		background-clip: border-box !important;
 		-webkit-text-fill-color: inherit !important;
@@ -422,6 +420,13 @@
 		-webkit-filter: none !important;
 		transform: none !important;
 		-webkit-transform: none !important;
+		/* Prevent compositing layers that cause rasterization */
+		opacity: 1 !important;
+		mix-blend-mode: normal !important;
+		isolation: auto !important;
+		will-change: auto !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
 	}
 
 	/* ==========================================================================
@@ -920,26 +925,34 @@
 
 	/* ==========================================================================
 	   Skills Section - Fix badge styling for print
-	   Ensure skills badges have readable text (not dark on dark)
+	   Ensure skills badges have readable text (not dark on dark).
+	   Targets all Tailwind bg-color classes used by skill proficiency badges
+	   including dark mode variants (dark:bg-blue-900, dark:bg-green-900, etc.)
 	   ========================================================================== */
 
-	/* Reset all skill badge backgrounds */
+	/* Reset all colored backgrounds to transparent for print */
 	[class*="bg-primary"],
 	[class*="bg-accent"],
-	.bg-blue-500,
-	.bg-blue-600,
-	.bg-blue-700,
-	.bg-indigo-500,
-	.bg-indigo-600,
-	.bg-sky-500,
-	.bg-sky-600 {
-		background: #f3f4f6 !important;
+	[class*="bg-blue-"],
+	[class*="bg-green-"],
+	[class*="bg-indigo-"],
+	[class*="bg-sky-"] {
+		background: transparent !important;
 		color: #000 !important;
 	}
 
-	/* Skills text should always be black */
-	[class*="bg-primary"] span,
-	[class*="bg-primary"] *,
+	/* Skill badges (.rounded-full) - force clean black text on white */
+	#skills .rounded-full,
+	#skills [class*="bg-"] {
+		background: transparent !important;
+		color: #000 !important;
+		border: none !important;
+		padding: 0 !important;
+	}
+
+	/* All text inside skill badges must be black */
+	#skills span,
+	#skills *,
 	.rounded-full span {
 		color: #000 !important;
 	}
