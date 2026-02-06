@@ -159,10 +159,12 @@ OUTPUT REQUIREMENTS:
 1. Generate clean Markdown suitable for PDF conversion via Pandoc
 2. Use these sections (in order, skip if no data): Contact Info, Professional Summary, Experience, Education, Skills, Projects, Certifications
 3. For Experience: Write strong achievement-focused bullet points (start with action verbs)
-4. For Skills: Group by category if categories are provided
+4. For Skills: Group by category if categories are provided. List skills as plain text, comma-separated per category. Do NOT use links, colored text, badges, or HTML.
 5. Keep formatting simple - use headers (#, ##), bullet points (-), and bold (**) only
-6. Do NOT include any code blocks, explanations, or meta-commentary
+6. Do NOT include any code blocks, explanations, meta-commentary, HTML tags, or YAML front matter
 7. Start directly with the person's name as an H1 header
+8. Do NOT add horizontal rules (---), page breaks, or separators between sections
+9. For Contact Info: list email, phone, location, LinkedIn, etc. as plain text on one line separated by pipes (|)
 
 Return ONLY the Markdown content for the resume.`)
 
@@ -285,6 +287,47 @@ func (r *ResumeService) cleanMarkdown(markdown string) string {
 		}
 	}
 
+	markdown = strings.TrimSpace(markdown)
+
+	// Strip YAML front matter (---...---) that could create a title page
+	if strings.HasPrefix(markdown, "---") {
+		lines := strings.SplitN(markdown, "\n", -1)
+		inFrontMatter := true
+		startIdx := 1 // skip the opening ---
+		for i := 1; i < len(lines); i++ {
+			trimmed := strings.TrimSpace(lines[i])
+			if trimmed == "---" || trimmed == "..." {
+				startIdx = i + 1
+				inFrontMatter = false
+				break
+			}
+		}
+		if !inFrontMatter && startIdx < len(lines) {
+			markdown = strings.Join(lines[startIdx:], "\n")
+		}
+	}
+
+	// Remove LaTeX page break commands the AI might include
+	markdown = strings.ReplaceAll(markdown, "\\newpage", "")
+	markdown = strings.ReplaceAll(markdown, "\\pagebreak", "")
+	markdown = strings.ReplaceAll(markdown, "\\clearpage", "")
+
+	// Remove trailing horizontal rules that could cause blank last page
+	markdown = strings.TrimSpace(markdown)
+	for {
+		trimmed := false
+		for _, rule := range []string{"---", "***", "___"} {
+			if strings.HasSuffix(markdown, rule) {
+				markdown = strings.TrimSuffix(markdown, rule)
+				markdown = strings.TrimSpace(markdown)
+				trimmed = true
+			}
+		}
+		if !trimmed {
+			break
+		}
+	}
+
 	return strings.TrimSpace(markdown)
 }
 
@@ -346,15 +389,45 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		"--standalone",
 	}
 
-	// Prefer Helvetica for PDF output; try xelatex first (for font support),
-	// then fall back to pdflatex if unavailable.
+	// PDF-specific settings for proper text selection, no blank pages, and black text
 	if format == "pdf" {
+		// Create a LaTeX header for sans-serif default and compact layout
+		headerContent := strings.Join([]string{
+			`\renewcommand{\familydefault}{\sfdefault}`,
+			`\usepackage{enumitem}`,
+			`\setlist{nosep, left=0pt}`,
+			`\usepackage{titlesec}`,
+			`\titlespacing*{\section}{0pt}{1.2ex plus 0.2ex minus 0.2ex}{0.6ex plus 0.1ex}`,
+			`\titlespacing*{\subsection}{0pt}{0.8ex plus 0.2ex minus 0.1ex}{0.4ex plus 0.1ex}`,
+			`\raggedbottom`,
+		}, "\n")
+
+		tmpHeader, herr := os.CreateTemp("", "resume-header-*.tex")
+		if herr != nil {
+			log.Printf("[AI-PRINT] Failed to create header file: %v", herr)
+			return nil, fmt.Errorf("failed to create header file: %w", herr)
+		}
+		defer os.Remove(tmpHeader.Name())
+
+		if _, err := tmpHeader.WriteString(headerContent); err != nil {
+			log.Printf("[AI-PRINT] Failed to write header file: %v", err)
+			return nil, fmt.Errorf("failed to write header file: %w", err)
+		}
+		tmpHeader.Close()
+
 		args = append(args,
-			"-V", "mainfont=Latin Modern Sans",
-			"--pdf-engine=xelatex",
+			"--pdf-engine=pdflatex",
+			"-V", "fontfamily=helvet",
+			"-V", "fontfamilyoptions=scaled",
+			"-V", "fontenc=T1",
+			"-V", "colorlinks=true",
+			"-V", "linkcolor=black",
+			"-V", "urlcolor=black",
+			"-V", "citecolor=black",
+			"--include-in-header="+tmpHeader.Name(),
+			"--metadata", "title=",
 		)
 	}
-
 
 	cmd := exec.Command("pandoc", args...)
 	var stderr bytes.Buffer
@@ -364,19 +437,25 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 		errMsg := stderr.String()
 		log.Printf("[AI-PRINT] Pandoc failed: %v, stderr: %s", err, errMsg)
 
-		// If xelatex or font selection failed, fall back to pdflatex with lmodern.
-		if format == "pdf" && (strings.Contains(errMsg, "xelatex") || strings.Contains(errMsg, "xetex") || strings.Contains(errMsg, "fontspec")) {
+		// If pdflatex failed, try xelatex as fallback
+		if format == "pdf" && (strings.Contains(errMsg, "pdflatex") || strings.Contains(errMsg, "helvet")) {
+			log.Printf("[AI-PRINT] Retrying with xelatex fallback")
 
-			// Remove pdf-engine and mainfont flags
+			// Remove pdflatex-specific flags and header include
 			filtered := make([]string, 0, len(args))
 			for i := 0; i < len(args); i++ {
 				a := args[i]
 				if strings.HasPrefix(a, "--pdf-engine=") {
 					continue
 				}
+				if strings.HasPrefix(a, "--include-in-header=") {
+					continue
+				}
 				if a == "-V" && i+1 < len(args) {
 					val := args[i+1]
-					if strings.HasPrefix(val, "mainfont=") || strings.HasPrefix(val, "mainfontfallback=") {
+					if strings.HasPrefix(val, "fontfamily=") ||
+						strings.HasPrefix(val, "fontfamilyoptions=") ||
+						strings.HasPrefix(val, "fontenc=") {
 						i++ // skip the value as well
 						continue
 					}
@@ -385,23 +464,21 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 			}
 
 			args = append(filtered,
-				"--pdf-engine=pdflatex",
-				"-V", "fontfamily=lmodern",
-				"-V", "microtypeoptions=expansion=false",
+				"--pdf-engine=xelatex",
+				"-V", "mainfont=Latin Modern Sans",
 			)
 
 			cmd = exec.Command("pandoc", args...)
 			stderr.Reset()
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {
-				log.Printf("[AI-PRINT] Pandoc retry failed: %v, stderr: %s", err, stderr.String())
+				log.Printf("[AI-PRINT] Pandoc xelatex fallback failed: %v, stderr: %s", err, stderr.String())
 				return nil, r.formatPandocError(stderr.String())
 			}
 		} else {
 			return nil, r.formatPandocError(errMsg)
 		}
 	}
-
 
 	// Read the output file
 	output, err := os.ReadFile(tmpOut)

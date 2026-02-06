@@ -30,7 +30,7 @@
 	}
 </script>
 
-<section id="experience" class="mb-16">
+<section id="experience" class="mb-16" itemscope itemtype="https://schema.org/Person">
 	<h2 class="section-title">{$t('public.sections.experience')}</h2>
 
 	{#if layout === 'timeline'}
@@ -151,7 +151,7 @@
 		<!-- Default Layout (Cards) -->
 		<div class="space-y-8">
 			{#each items as item (item.id)}
-				<article class="card p-6 animate-fade-in">
+				<article class="card p-6 animate-fade-in" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
 					<div class="flex flex-col sm:flex-row sm:items-start gap-4">
 						{#if item.company_logo_url || item.company_logo}
 							<div class="flex-shrink-0">
@@ -163,14 +163,18 @@
 							</div>
 						{/if}
 						<div class="flex-1">
-							<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+							<h3 class="text-xl font-semibold text-gray-900 dark:text-white" itemprop="name">
 								{item.title}
 							</h3>
-							<p class="text-lg text-primary-600 dark:text-primary-400 font-medium">
-								{item.company}
+							<p class="text-lg text-primary-600 dark:text-primary-400 font-medium" itemprop="occupationLocation" itemscope itemtype="https://schema.org/Organization">
+								<span itemprop="name">{item.company}</span>
 							</p>
 							<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
-								<span>{formatDateRange(item.start_date, item.end_date, presentText)}</span>
+								<span>
+									<meta itemprop="startDate" content={item.start_date || ''} />
+									<meta itemprop="endDate" content={item.end_date || ''} />
+									{formatDateRange(item.start_date, item.end_date, presentText)}
+								</span>
 								{#if item.location}
 									<span class="flex items-center gap-1">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -184,13 +188,13 @@
 					</div>
 
 					{#if item.description}
-						<div class="mt-4 prose-custom text-gray-600 dark:text-gray-300">
+						<div class="mt-4 prose-custom text-gray-600 dark:text-gray-300" itemprop="description">
 							{@html parseMarkdown(item.description)}
 						</div>
 					{/if}
 
 					{#if item.bullets && item.bullets.length > 0}
-						<ul class="mt-4 space-y-2">
+						<ul class="mt-4 space-y-2" itemprop="responsibilities">
 							{#each item.bullets as bullet}
 								<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300">
 									<span class="text-primary-500 mt-1">•</span>
@@ -203,7 +207,7 @@
 					{#if item.skills && item.skills.length > 0}
 						<div class="mt-4 flex flex-wrap gap-2">
 							{#each item.skills as skill}
-								<span class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+								<span class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full" itemprop="skills">
 									{skill}
 								</span>
 							{/each}
