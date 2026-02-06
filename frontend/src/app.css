@@ -44,6 +44,23 @@
 	:focus-visible {
 		@apply outline-2 outline-offset-2 outline-primary-500;
 	}
+
+	/* ==========================================================================
+	   ATS (Applicant Tracking System) Hidden Content
+	   Visually hidden but accessible to ATS parsers for resume/PDF text extraction.
+	   Uses the clip method which is more reliable for ATS than display:none.
+	   ========================================================================== */
+	.ats-only {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
 }
 
 @layer components {
@@ -388,12 +405,28 @@
    ========================================================================== */
 
 @media print {
-	/* Force color printing and reset base styles */
+	/* Reset base styles for clean PDF text rendering */
 	* {
-		color-adjust: exact !important;
-		-webkit-print-color-adjust: exact !important;
-		print-color-adjust: exact !important;
 		box-shadow: none !important;
+		text-shadow: none !important;
+		/* Ensure text remains selectable in PDF */
+		-webkit-user-select: text !important;
+		user-select: text !important;
+		/* Disable properties that cause Chrome to rasterize text as images */
+		-webkit-background-clip: border-box !important;
+		background-clip: border-box !important;
+		-webkit-text-fill-color: inherit !important;
+		filter: none !important;
+		-webkit-filter: none !important;
+		transform: none !important;
+		-webkit-transform: none !important;
+		/* Prevent compositing layers that cause rasterization */
+		opacity: 1 !important;
+		mix-blend-mode: normal !important;
+		isolation: auto !important;
+		will-change: auto !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
 	}
 
 	/* ==========================================================================
@@ -473,6 +506,19 @@
 	header .absolute,
 	.animate-pulse,
 	[aria-hidden="true"] {
+		display: none !important;
+	}
+
+	/* ==========================================================================
+	   Non-Resume Sections - Hide content not suitable for ATS/resume printing
+	   Blog posts, talks, projects, testimonials, and custom content are typically
+	   not included in traditional resumes and can confuse ATS parsers.
+	   ========================================================================== */
+	#posts,
+	#talks,
+	#testimonials,
+	#projects,
+	[id^="custom-"] {
 		display: none !important;
 	}
 
@@ -822,6 +868,111 @@
 	.dark .text-gray-200,
 	.dark .text-gray-300 {
 		color: #000 !important;
+	}
+
+	/* ==========================================================================
+	   ATS Content - Reveal hidden content for PDF text extraction
+	   The .ats-only content is normally hidden but contains plain-text versions
+	   of all resume content. In print mode, we reveal it so PDFs have
+	   extractable text for ATS systems.
+	   ========================================================================== */
+
+	.ats-only {
+		/* Reveal the hidden content */
+		position: static !important;
+		width: auto !important;
+		height: auto !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		overflow: visible !important;
+		clip: auto !important;
+		white-space: normal !important;
+		border: 0 !important;
+	}
+
+	#ats-content {
+		/* Style the ATS content block */
+		display: block !important;
+		page-break-before: always;
+		padding-top: 0.5rem;
+	}
+
+	#ats-content section {
+		margin-bottom: 0.75rem !important;
+	}
+
+	#ats-content h2 {
+		font-size: 11pt !important;
+		font-weight: 700 !important;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		border-bottom: 1.5pt solid #000 !important;
+		padding-bottom: 0.1rem !important;
+		margin-bottom: 0.3rem !important;
+		margin-top: 0 !important;
+	}
+
+	#ats-content p {
+		font-size: 10pt !important;
+		line-height: 1.4 !important;
+		margin-bottom: 0.15rem !important;
+		color: #000 !important;
+	}
+
+	#ats-content strong {
+		font-weight: 600;
+	}
+
+	/* ==========================================================================
+	   Skills Section - Fix badge styling for print
+	   Ensure skills badges have readable text (not dark on dark).
+	   Targets all Tailwind bg-color classes used by skill proficiency badges
+	   including dark mode variants (dark:bg-blue-900, dark:bg-green-900, etc.)
+	   ========================================================================== */
+
+	/* Reset all colored backgrounds to transparent for print */
+	[class*="bg-primary"],
+	[class*="bg-accent"],
+	[class*="bg-blue-"],
+	[class*="bg-green-"],
+	[class*="bg-indigo-"],
+	[class*="bg-sky-"] {
+		background: transparent !important;
+		color: #000 !important;
+	}
+
+	/* Skill badges (.rounded-full) - force clean black text on white */
+	#skills .rounded-full,
+	#skills [class*="bg-"] {
+		background: transparent !important;
+		color: #000 !important;
+		border: none !important;
+		padding: 0 !important;
+	}
+
+	/* All text inside skill badges must be black */
+	#skills span,
+	#skills *,
+	.rounded-full span {
+		color: #000 !important;
+	}
+
+	/* ==========================================================================
+	   Contact Section - Ensure visibility
+	   ========================================================================== */
+
+	#contacts,
+	[id="contacts"],
+	section:has(h2:contains("Contact")) {
+		display: block !important;
+	}
+
+	/* Contact method items */
+	#contacts a,
+	#contacts span,
+	.contact-method {
+		color: #000 !important;
+		font-size: 9pt !important;
 	}
 
 	/* ==========================================================================

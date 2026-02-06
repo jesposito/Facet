@@ -20,6 +20,7 @@
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import SiteNav from '$components/public/SiteNav.svelte';
+	import ATSContent from '$components/public/ATSContent.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
@@ -597,6 +598,16 @@
 	</main>
 
 	<Footer profile={data.profile} />
+
+	<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
+	<ATSContent
+		profile={data.profile}
+		experience={data.sections?.experience}
+		education={data.sections?.education}
+		skills={data.sections?.skills}
+		contacts={data.sections?.contacts}
+		certifications={data.sections?.certifications}
+	/>
 </div>
 
 <!-- AI Resume Generation Modal -->

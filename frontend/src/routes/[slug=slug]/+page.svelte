@@ -21,6 +21,7 @@
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import SiteNav from '$components/public/SiteNav.svelte';
+	import ATSContent from '$components/public/ATSContent.svelte';
 
 	// Helper to check if a section key is for custom content
 	function isCustomSection(sectionKey: string): boolean {
@@ -32,12 +33,16 @@
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { pb } from '$lib/pocketbase';
+	import { generatePersonJsonLd, serializeJsonLd } from '$lib/seo';
 
 	interface Props {
 		data: PageData;
 	}
 
 	let { data }: Props = $props();
+
+	// Generate JSON-LD for SEO (Person schema)
+	let personJsonLd = $derived(data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, browser ? window.location.origin : '')) : null);
 
 	// Track navigation to prevent showing "Not Found" during transitions
 	let isNavigating = $derived($navigating !== null);
@@ -279,6 +284,10 @@
 	<meta name="description" content={data.view?.hero_headline || data.profile?.headline || ''} />
 	<!-- Canonical URL is /<slug> -->
 	<link rel="canonical" href="/{data.view?.slug}" />
+	<!-- JSON-LD structured data for SEO -->
+	{#if personJsonLd}
+		{@html `<script type="application/ld+json">${personJsonLd}</script>`}
+	{/if}
 </svelte:head>
 
 <!-- Hidden form for setting password token cookie (must be outside conditional for password flow) -->
@@ -501,6 +510,16 @@
 		</main>
 
 		<Footer profile={data.profile} />
+
+		<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
+		<ATSContent
+			profile={data.profile}
+			experience={data.sections?.experience}
+			education={data.sections?.education}
+			skills={data.sections?.skills}
+			contacts={data.sections?.contacts}
+			certifications={data.sections?.certifications}
+		/>
 	</div>
 {/if}
 

@@ -26,7 +26,7 @@
 	}
 </script>
 
-<section id="education" class="mb-16">
+<section id="education" class="mb-16" itemscope itemtype="https://schema.org/Person">
 	<h2 class="section-title">{$t('public.sections.education')}</h2>
 
 	{#if layout === 'timeline'}
@@ -80,7 +80,7 @@
 		<!-- Default Layout (Cards with icons) -->
 		<div class="space-y-6">
 			{#each items as item (item.id)}
-				<article class="card p-6 animate-fade-in">
+				<article class="card p-6 animate-fade-in" itemprop="alumniOf" itemscope itemtype="https://schema.org/EducationalOrganization">
 					<div class="flex items-start gap-4">
 						{#if item.institution_logo_url || item.institution_logo}
 							<div class="shrink-0">
@@ -101,20 +101,24 @@
 						{/if}
 
 						<div class="flex-1">
-							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+							<h3 class="text-lg font-semibold text-gray-900 dark:text-white" itemprop="name">
 								{item.institution}
 							</h3>
 							{#if item.degree || item.field}
 								<p class="text-primary-600 dark:text-primary-400">
-									{[item.degree, item.field].filter(Boolean).join(' in ')}
+									<span itemprop="alumniOf" itemscope itemtype="https://schema.org/EducationalOccupationalCredential">
+										<span itemprop="credentialCategory">{[item.degree, item.field].filter(Boolean).join(' in ')}</span>
+									</span>
 								</p>
 							{/if}
 							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+								<meta itemprop="startDate" content={item.start_date || ''} />
+								<meta itemprop="endDate" content={item.end_date || ''} />
 								{formatDateRange(item.start_date, item.end_date, presentText)}
 							</p>
 
 							{#if item.description}
-								<div class="mt-3 prose-custom text-gray-600 dark:text-gray-300 text-sm">
+								<div class="mt-3 prose-custom text-gray-600 dark:text-gray-300 text-sm" itemprop="description">
 									{@html parseMarkdown(item.description)}
 								</div>
 							{/if}

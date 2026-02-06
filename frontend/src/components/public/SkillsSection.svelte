@@ -90,7 +90,7 @@
 	};
 </script>
 
-<section id="skills" class="mb-16">
+<section id="skills" class="mb-16" itemscope itemtype="https://schema.org/Person">
 	<h2 class="section-title">{$t('public.sections.skills')}</h2>
 
 	{#if layout === 'cloud'}
@@ -101,6 +101,7 @@
 					<span
 						class="{cloudSizes[skill.proficiency || 'familiar']} text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default"
 						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
+						itemprop="knowsAbout"
 					>
 						{skill.name}
 					</span>
@@ -116,6 +117,7 @@
 					<span
 						class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
 						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
+						itemprop="knowsAbout"
 					>
 						{skill.name}
 					</span>
@@ -140,7 +142,7 @@
 							{#each skills as skill (skill.id)}
 								<div>
 									<div class="flex items-center justify-between mb-1">
-										<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+										<span class="text-sm font-medium text-gray-700 dark:text-gray-300" itemprop="knowsAbout">
 											{skill.name}
 										</span>
 										{#if skill.proficiency}
@@ -169,6 +171,7 @@
 								<span
 									class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
 									title={skill.proficiency ? `Proficiency: ${skill.proficiency}` : undefined}
+									itemprop="knowsAbout"
 								>
 									{skill.name}
 								</span>
