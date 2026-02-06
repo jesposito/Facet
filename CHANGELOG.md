@@ -3,6 +3,22 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.16.0 - February 06, 2026
+
+**New Features:**
+- Add ATSContent component for hidden plain-text resume content
+- Enhance ProfileHero with Person schema microdata
+- Enhance ExperienceSection with Occupation schema microdata
+- Enhance EducationSection with EducationalOrganization schema microdata
+- Enhance SkillsSection with knowsAbout properties microdata
+- Improve print output by hiding non-resume sections
+- Inject JSON-LD structured data for SEO
+
+**Pull Requests:** [#380](https://github.com/jesposito/Facet/pull/380),
+
+---
+
+
 ## v2.15.9 - February 02, 2026
 
 **Bugs Fixed:**
