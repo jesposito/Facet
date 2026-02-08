@@ -217,7 +217,18 @@
 			"backup_count": "Total Bakupz",
 			"backup_location": "Bakup Locashun",
 			"backup_latest_file": "Laitest",
-			"backup_schedule_note": "Bakupz run automagikly wunce a dai. Configur wif BACKUP_DIR, BACKUP_MAX_COUNT, an BACKUP_HOUR env variabulz."
+			"backup_schedule_note": "Bakupz run automagikly wunce a dai. Configur wif BACKUP_DIR, BACKUP_MAX_COUNT, an BACKUP_HOUR env variabulz.",
+			"show_all_backups": "Show all bakupz",
+			"hide_backups": "Hied bakupz",
+			"restore_button": "Restor",
+			"restore_confirm_title": "Restor frum Bakup",
+			"restore_confirm_message": "Dis will replaec ur databais wif teh selektd bakup. U will be logd owt an teh servr will restart brieflee.",
+			"restore_confirm_warning": "Dis cant be undun. Maek shur u haz a curnt bakup furst.",
+			"restore_confirm_button": "Restor Bakup",
+			"restore_overlay_title": "Restorin frum Bakup...",
+			"restore_overlay_message": "Teh servr iz restartin wif restord data. DO NOT CLOEZ DIS PAEG.",
+			"restore_failed": "Restor Faild",
+			"restore_timeout": "Servr did not respond aftr restor. Chek ur containr logz."
 		},
 		"ai_assistant": {
 			"title": "AI Writin Halper",

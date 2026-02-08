@@ -217,7 +217,18 @@
 			"backup_count": "Total Backups",
 			"backup_location": "Backup Location",
 			"backup_latest_file": "Latest",
-			"backup_schedule_note": "Backups run automatically once daily. Configure with BACKUP_DIR, BACKUP_MAX_COUNT, and BACKUP_HOUR environment variables."
+			"backup_schedule_note": "Backups run automatically once daily. Configure with BACKUP_DIR, BACKUP_MAX_COUNT, and BACKUP_HOUR environment variables.",
+			"show_all_backups": "Show all backups",
+			"hide_backups": "Hide backups",
+			"restore_button": "Restore",
+			"restore_confirm_title": "Restore from Backup",
+			"restore_confirm_message": "This will replace your current database with the selected backup. You will be logged out and the server will restart briefly.",
+			"restore_confirm_warning": "This cannot be undone. Make sure you have a current backup before proceeding.",
+			"restore_confirm_button": "Restore Backup",
+			"restore_overlay_title": "Restoring from Backup...",
+			"restore_overlay_message": "The server is restarting with restored data. Do not close this page.",
+			"restore_failed": "Restore Failed",
+			"restore_timeout": "Server did not respond after restore. Check your container logs."
 		},
 		"ai_assistant": {
 			"title": "AI Writing Assistant",

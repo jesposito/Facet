@@ -217,7 +217,18 @@
 			"backup_count": "Sicherungen gesamt",
 			"backup_location": "Speicherort",
 			"backup_latest_file": "Neueste",
-			"backup_schedule_note": "Sicherungen werden automatisch einmal täglich erstellt. Konfigurieren Sie mit den Umgebungsvariablen BACKUP_DIR, BACKUP_MAX_COUNT und BACKUP_HOUR."
+			"backup_schedule_note": "Sicherungen werden automatisch einmal täglich erstellt. Konfigurieren Sie mit den Umgebungsvariablen BACKUP_DIR, BACKUP_MAX_COUNT und BACKUP_HOUR.",
+			"show_all_backups": "Alle Sicherungen anzeigen",
+			"hide_backups": "Sicherungen ausblenden",
+			"restore_button": "Wiederherstellen",
+			"restore_confirm_title": "Aus Sicherung wiederherstellen",
+			"restore_confirm_message": "Ihre aktuelle Datenbank wird durch die ausgewählte Sicherung ersetzt. Sie werden abgemeldet und der Server wird kurz neu gestartet.",
+			"restore_confirm_warning": "Dies kann nicht rückgängig gemacht werden. Stellen Sie sicher, dass Sie eine aktuelle Sicherung haben.",
+			"restore_confirm_button": "Sicherung wiederherstellen",
+			"restore_overlay_title": "Wiederherstellung läuft...",
+			"restore_overlay_message": "Der Server wird mit den wiederhergestellten Daten neu gestartet. Schließen Sie diese Seite nicht.",
+			"restore_failed": "Wiederherstellung fehlgeschlagen",
+			"restore_timeout": "Server hat nach der Wiederherstellung nicht geantwortet. Prüfen Sie die Container-Logs."
 		},
 		"ai_assistant": {
 			"title": "KI-Schreibassistent",
