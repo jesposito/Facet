@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
-	import { pb } from '$lib/pocketbase';
 	import {
 		latestVersion,
 		newVersionAvailable,
@@ -12,18 +11,6 @@
 
 	// App version from Vite config
 	const appVersion = __APP_VERSION__;
-
-	// Backup state
-	interface BackupEntry {
-		filename: string;
-		size: number;
-		created: string;
-	}
-	let backupLoading = $state(true);
-	let backupRunning = $state(false);
-	let lastBackup: BackupEntry | null = $state(null);
-	let backupCount = $state(0);
-	let backupDir = $state('');
 
 	// Changelog state
 	interface ChangelogEntry {
@@ -47,56 +34,13 @@
 	}
 
 	onMount(async () => {
-		await Promise.all([loadChangelog(), loadBackupStatus()]);
+		await loadChangelog();
 		checkForNewVersion();
 	});
 
-	async function loadBackupStatus() {
-		try {
-			const response = await fetch('/api/admin/backup/status', {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-			});
-			if (response.ok) {
-				const data = await response.json();
-				lastBackup = data.last_backup;
-				backupCount = data.total_count;
-				backupDir = data.backup_dir;
-			}
-		} catch (err) {
-			console.error('Failed to load backup status:', err);
-		} finally {
-			backupLoading = false;
-		}
-	}
-
-	async function triggerBackup() {
-		backupRunning = true;
-		try {
-			const response = await fetch('/api/admin/backup', {
-				method: 'POST',
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-			});
-			if (response.ok) {
-				await loadBackupStatus();
-			}
-		} catch (err) {
-			console.error('Backup failed:', err);
-		} finally {
-			backupRunning = false;
-		}
-	}
-
-	function formatBytes(bytes: number): string {
-		if (bytes === 0) return '0 B';
-		const k = 1024;
-		const sizes = ['B', 'KB', 'MB', 'GB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-	}
-
 	async function loadChangelog() {
 		try {
-			const response = await fetch('/CHANGELOG.md', { cache: 'no-store' });
+			const response = await fetch('/CHANGELOG.md');
 			if (!response.ok) {
 				changelogLoading = false;
 				return;
@@ -268,67 +212,6 @@
 					</a>
 				</div>
 			</div>
-		</div>
-
-		<!-- Backup Section -->
-		<div class="border-t border-gray-200 dark:border-gray-700 pt-6 mb-6">
-			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.about_page.backup_title')}</h2>
-				<button
-					type="button"
-					onclick={triggerBackup}
-					disabled={backupRunning}
-					class="btn btn-primary inline-flex items-center gap-2 text-sm disabled:opacity-50"
-				>
-					{#if backupRunning}
-						<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-						</svg>
-						{$t('admin.about_page.backup_running')}
-					{:else}
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-						</svg>
-						{$t('admin.about_page.backup_now')}
-					{/if}
-				</button>
-			</div>
-
-			{#if backupLoading}
-				<div class="animate-pulse text-sm text-gray-500 dark:text-gray-400">{$t('admin.layout.loading')}</div>
-			{:else}
-				<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-					<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.about_page.backup_last')}</span>
-							<p class="font-medium text-gray-900 dark:text-white mt-0.5">
-								{#if lastBackup}
-									{new Date(lastBackup.created).toLocaleString()}
-								{:else}
-									{$t('admin.about_page.backup_never')}
-								{/if}
-							</p>
-						</div>
-						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.about_page.backup_count')}</span>
-							<p class="font-medium text-gray-900 dark:text-white mt-0.5">{backupCount}</p>
-						</div>
-						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.about_page.backup_location')}</span>
-							<p class="font-medium font-mono text-xs text-gray-900 dark:text-white mt-0.5">{backupDir || '/data/backups'}</p>
-						</div>
-					</div>
-					{#if lastBackup}
-						<div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-							{$t('admin.about_page.backup_latest_file')}: {lastBackup.filename} ({formatBytes(lastBackup.size)})
-						</div>
-					{/if}
-				</div>
-				<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-					{$t('admin.about_page.backup_schedule_note')}
-				</p>
-			{/if}
 		</div>
 
 		<!-- Changelog Section -->

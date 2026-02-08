@@ -150,7 +150,6 @@ const navSections = [
 			{ href: '/admin/settings#analytics', labelKey: 'admin.sidebar.analytics', icon: 'eye' },
 			{ href: '/admin/settings#integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
 			{ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' },
-			{ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' },
 			{ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' }
 		]
 	}
@@ -494,10 +493,6 @@ let isActive = $derived((href: string): boolean => {
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 								</svg>
-							{:else if item.icon === 'shield'}
-								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-								</svg>
 							{/if}
 
 							<!-- Always render label for screen readers, visually hide when sidebar collapsed -->
@@ -651,10 +646,6 @@ let isActive = $derived((href: string): boolean => {
 							{:else if item.icon === 'info'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-								</svg>
-							{:else if item.icon === 'shield'}
-								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
 								</svg>
 							{/if}
 

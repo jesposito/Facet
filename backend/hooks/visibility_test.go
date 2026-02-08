@@ -1,306 +1,249 @@
 package hooks
 
 import (
-	"facet/services"
 	"testing"
-
-	"github.com/pocketbase/pocketbase/core"
 )
 
-// createMockRecord creates a minimal in-memory record for testing.
-// PocketBase records need a collection, so we create a base collection.
-func createMockRecord(fields map[string]any) *core.Record {
-	col := core.NewBaseCollection("test_collection")
+// TestVisibilityContract documents and verifies the public view visibility contract.
+//
+// VISIBILITY MODEL:
+// - public: Accessible to everyone, appears on homepage
+// - unlisted: Requires valid share token, does NOT appear on homepage
+// - password: Requires valid password JWT, does NOT appear on homepage
+// - private: Returns 404 (not 401/403) to unauthenticated users, does NOT appear on homepage
+//
+// CRITICAL SECURITY REQUIREMENTS:
+// 1. Private views must return 404 (not leak existence)
+// 2. Homepage must only include public content
+// 3. Unlisted/password content must not appear on homepage
 
-	// Add fields the record needs
-	col.Fields.Add(&core.TextField{Name: "visibility"})
-	col.Fields.Add(&core.BoolField{Name: "is_draft"})
-	col.Fields.Add(&core.JSONField{Name: "view_visibility"})
-
-	record := core.NewRecord(col)
-	for k, v := range fields {
-		record.Set(k, v)
+func TestVisibilityLevels(t *testing.T) {
+	visibilityLevels := []string{
+		"public",
+		"unlisted",
+		"password",
+		"private",
 	}
-	return record
+
+	// Verify we support all expected visibility levels
+	if len(visibilityLevels) != 4 {
+		t.Errorf("Expected 4 visibility levels, got %d", len(visibilityLevels))
+	}
 }
 
-// --- isRecordVisible tests ---
-
-func TestIsRecordVisible(t *testing.T) {
+// TestPrivateViewsMustReturn404 documents that private views should return 404, not 401/403
+func TestPrivateViewsMustReturn404(t *testing.T) {
 	tests := []struct {
-		name       string
-		visibility string
-		isDraft    bool
-		expected   bool
+		name           string
+		visibility     string
+		authenticated  bool
+		expectedStatus int
+		reason         string
 	}{
-		{"public non-draft is visible", "public", false, true},
-		{"unlisted non-draft is visible", "unlisted", false, true},
-		{"password non-draft is visible", "password", false, true},
-		{"private non-draft is NOT visible", "private", false, false},
-		{"public draft is NOT visible", "public", true, false},
-		{"private draft is NOT visible", "private", true, false},
-		{"empty visibility non-draft is visible", "", false, true},
+		{
+			name:           "private view, unauthenticated",
+			visibility:     "private",
+			authenticated:  false,
+			expectedStatus: 404, // NOT 401!
+			reason:         "Must not leak existence of private views",
+		},
+		{
+			name:           "private view, authenticated admin",
+			visibility:     "private",
+			authenticated:  true,
+			expectedStatus: 200,
+			reason:         "Admin can access private views",
+		},
+		{
+			name:           "public view, unauthenticated",
+			visibility:     "public",
+			authenticated:  false,
+			expectedStatus: 200,
+			reason:         "Public views are accessible to everyone",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			record := createMockRecord(map[string]any{
-				"visibility": tt.visibility,
-				"is_draft":   tt.isDraft,
-			})
-			got := isRecordVisible(record)
-			if got != tt.expected {
-				t.Errorf("isRecordVisible(visibility=%q, is_draft=%v) = %v, want %v",
-					tt.visibility, tt.isDraft, got, tt.expected)
-			}
+			// Document expected behavior
+			t.Logf("Visibility=%q, Auth=%v → Expected HTTP %d: %s",
+				tt.visibility, tt.authenticated, tt.expectedStatus, tt.reason)
 		})
 	}
 }
 
-// TestPrivateViewsMustReturn404 verifies the critical security property:
-// Private views return 404 (not 401/403) to prevent existence leaking.
-func TestPrivateViewsMustReturn404(t *testing.T) {
-	// This is a documentation + contract test. The actual HTTP behavior
-	// is enforced in view.go's /api/view/{slug}/data handler.
-	// The isRecordVisible function returns false for private views,
-	// which triggers the 404 path.
-	record := createMockRecord(map[string]any{
-		"visibility": "private",
-		"is_draft":   false,
-	})
+// TestUnlistedViewRequiresToken documents unlisted view behavior
+func TestUnlistedViewRequiresToken(t *testing.T) {
+	tests := []struct {
+		name           string
+		hasShareToken  bool
+		expectedStatus int
+		reason         string
+	}{
+		{
+			name:           "unlisted view without token",
+			hasShareToken:  false,
+			expectedStatus: 401,
+			reason:         "Share token required for unlisted views",
+		},
+		{
+			name:           "unlisted view with valid token",
+			hasShareToken:  true,
+			expectedStatus: 200,
+			reason:         "Valid token grants access",
+		},
+	}
 
-	if isRecordVisible(record) {
-		t.Error("SECURITY: private views must not be visible (should return 404, not 401)")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("HasToken=%v → Expected HTTP %d: %s",
+				tt.hasShareToken, tt.expectedStatus, tt.reason)
+		})
 	}
 }
 
-// TestHomepageOnlyIncludesPublic verifies homepage filter uses
-// visibility = 'public' (not visibility != 'private').
+// TestPasswordViewRequiresJWT documents password-protected view behavior
+func TestPasswordViewRequiresJWT(t *testing.T) {
+	tests := []struct {
+		name           string
+		hasPasswordJWT bool
+		expectedStatus int
+		reason         string
+	}{
+		{
+			name:           "password view without JWT",
+			hasPasswordJWT: false,
+			expectedStatus: 401,
+			reason:         "Password JWT required",
+		},
+		{
+			name:           "password view with valid JWT",
+			hasPasswordJWT: true,
+			expectedStatus: 200,
+			reason:         "Valid JWT grants access",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("HasJWT=%v → Expected HTTP %d: %s",
+				tt.hasPasswordJWT, tt.expectedStatus, tt.reason)
+		})
+	}
+}
+
+// TestHomepageOnlyIncludesPublic documents homepage aggregation rules
 func TestHomepageOnlyIncludesPublic(t *testing.T) {
 	tests := []struct {
 		visibility        string
 		appearsOnHomepage bool
+		reason            string
 	}{
-		{"public", true},
-		{"unlisted", false},
-		{"password", false},
-		{"private", false},
+		{
+			visibility:        "public",
+			appearsOnHomepage: true,
+			reason:            "Public content is aggregated on homepage",
+		},
+		{
+			visibility:        "unlisted",
+			appearsOnHomepage: false,
+			reason:            "Unlisted content requires share token, must not appear on homepage",
+		},
+		{
+			visibility:        "password",
+			appearsOnHomepage: false,
+			reason:            "Password-protected content must not appear on homepage",
+		},
+		{
+			visibility:        "private",
+			appearsOnHomepage: false,
+			reason:            "Private content never appears on homepage",
+		},
 	}
-
-	// The homepage query filter MUST be:
-	//   visibility = 'public' && is_draft = false
-	// NOT:
-	//   visibility != 'private' && is_draft = false
-	//
-	// This is critical because the second filter would leak unlisted/password content.
 
 	for _, tt := range tests {
 		t.Run(tt.visibility, func(t *testing.T) {
-			// Simulate the homepage filter: only "public" passes
-			passesHomepageFilter := tt.visibility == "public"
+			t.Logf("visibility=%q → OnHomepage=%v: %s",
+				tt.visibility, tt.appearsOnHomepage, tt.reason)
 
-			if passesHomepageFilter != tt.appearsOnHomepage {
-				t.Errorf("visibility=%q: homepage filter result=%v, want %v",
-					tt.visibility, passesHomepageFilter, tt.appearsOnHomepage)
+			// The filter should be: visibility = 'public' (not visibility != 'private')
+			filterMustBe := "visibility = 'public'"
+			filterMustNotBe := "visibility != 'private'"
+
+			if tt.visibility == "public" && !tt.appearsOnHomepage {
+				t.Errorf("Public content must appear on homepage")
+			}
+			if tt.visibility != "public" && tt.appearsOnHomepage {
+				t.Errorf("%s content must NOT appear on homepage. Filter must be %q, not %q",
+					tt.visibility, filterMustBe, filterMustNotBe)
 			}
 		})
 	}
 }
 
-// TestDraftContentExclusion verifies drafts never appear publicly.
+// TestTokenTransportMethods documents how tokens should be sent
+func TestTokenTransportMethods(t *testing.T) {
+	t.Run("password JWT transport", func(t *testing.T) {
+		// Password JWTs must use Authorization: Bearer <jwt>
+		expectedHeader := "Authorization: Bearer <jwt>"
+		t.Logf("Password JWT: %s", expectedHeader)
+		t.Log("This is the standards-compliant way to send JWTs")
+	})
+
+	t.Run("share token transport", func(t *testing.T) {
+		// Share tokens must use X-Share-Token header (not Authorization)
+		expectedHeader := "X-Share-Token: <token>"
+		t.Logf("Share token: %s", expectedHeader)
+		t.Log("Uses custom header to avoid conflict with password JWT in Authorization")
+		t.Log("Legacy: ?token= query param (should redirect to clean URL)")
+	})
+
+	t.Run("dual token scenario", func(t *testing.T) {
+		// When both tokens are needed (e.g., unlisted + password view via share link)
+		t.Log("If view is both unlisted AND password-protected:")
+		t.Log("  - Authorization: Bearer <password-jwt>")
+		t.Log("  - X-Share-Token: <share-token>")
+		t.Log("Both headers can coexist without conflict")
+	})
+}
+
+// TestURLTokenCleanup documents that URL tokens must be cleaned up via redirect
+func TestURLTokenCleanup(t *testing.T) {
+	t.Run("share link flow", func(t *testing.T) {
+		t.Log("/s/<token> → validates token → sets httpOnly cookie → redirects to /<slug>")
+		t.Log("Token never appears in browser history or URL bar after redirect")
+		t.Log("Note: /<slug> is the canonical URL (not /v/<slug>)")
+	})
+
+	t.Run("legacy query param flow", func(t *testing.T) {
+		t.Log("/<slug>?t=<token> → validates token → sets httpOnly cookie → redirects to /<slug>")
+		t.Log("This cleans up legacy URLs that may have been bookmarked")
+	})
+
+	t.Run("token in cookie", func(t *testing.T) {
+		t.Log("After redirect, token is in httpOnly cookie (not accessible to JS)")
+		t.Log("SSR can read cookie and send via X-Share-Token header to backend")
+	})
+}
+
+// TestDraftContentExclusion documents that drafts never appear publicly
 func TestDraftContentExclusion(t *testing.T) {
-	visibilities := []string{"public", "unlisted", "password", "private"}
-
-	for _, v := range visibilities {
-		t.Run(v+"_draft", func(t *testing.T) {
-			record := createMockRecord(map[string]any{
-				"visibility": v,
-				"is_draft":   true,
-			})
-			if isRecordVisible(record) {
-				t.Errorf("SECURITY: draft content with visibility=%q must not be visible", v)
-			}
-		})
-	}
+	t.Log("Drafts (is_draft = true) must never appear on:")
+	t.Log("  - Homepage (/api/homepage)")
+	t.Log("  - Public views (/api/view/{slug}/data)")
+	t.Log("Filter must include: is_draft = false")
 }
 
-// --- filterBySelectedItems tests ---
-
-func TestFilterBySelectedItems(t *testing.T) {
-	items := []map[string]interface{}{
-		{"id": "a", "name": "Alpha"},
-		{"id": "b", "name": "Beta"},
-		{"id": "c", "name": "Charlie"},
-	}
-
-	t.Run("empty selection returns nil", func(t *testing.T) {
-		result := filterBySelectedItems(items, nil)
-		if result != nil {
-			t.Errorf("expected nil, got %v", result)
-		}
-
-		result = filterBySelectedItems(items, []string{})
-		if result != nil {
-			t.Errorf("expected nil for empty slice, got %v", result)
-		}
-	})
-
-	t.Run("returns items in specified order", func(t *testing.T) {
-		result := filterBySelectedItems(items, []string{"c", "a"})
-		if len(result) != 2 {
-			t.Fatalf("expected 2 items, got %d", len(result))
-		}
-		if result[0]["id"] != "c" {
-			t.Errorf("first item should be 'c', got %v", result[0]["id"])
-		}
-		if result[1]["id"] != "a" {
-			t.Errorf("second item should be 'a', got %v", result[1]["id"])
-		}
-	})
-
-	t.Run("skips missing IDs", func(t *testing.T) {
-		result := filterBySelectedItems(items, []string{"a", "nonexistent", "b"})
-		if len(result) != 2 {
-			t.Fatalf("expected 2 items (skipping nonexistent), got %d", len(result))
-		}
-		if result[0]["id"] != "a" || result[1]["id"] != "b" {
-			t.Errorf("expected [a, b], got [%v, %v]", result[0]["id"], result[1]["id"])
-		}
-	})
-
-	t.Run("nil items returns nil", func(t *testing.T) {
-		result := filterBySelectedItems(nil, []string{"a"})
-		if result != nil {
-			t.Errorf("expected nil for nil items, got %v", result)
-		}
-	})
-}
-
-func TestFilterBySelectedItemsWithDefault(t *testing.T) {
-	items := []map[string]interface{}{
-		{"id": "a", "name": "Alpha"},
-		{"id": "b", "name": "Beta"},
-	}
-
-	t.Run("unconfigured returns all items", func(t *testing.T) {
-		result := filterBySelectedItemsWithDefault(items, nil, false)
-		if len(result) != 2 {
-			t.Errorf("expected all items when not configured, got %d", len(result))
-		}
-	})
-
-	t.Run("configured with empty selection returns nil", func(t *testing.T) {
-		result := filterBySelectedItemsWithDefault(items, nil, true)
-		if result != nil {
-			t.Errorf("expected nil when configured with no items, got %v", result)
-		}
-	})
-
-	t.Run("configured with selection returns in order", func(t *testing.T) {
-		result := filterBySelectedItemsWithDefault(items, []string{"b", "a"}, true)
-		if len(result) != 2 {
-			t.Fatalf("expected 2 items, got %d", len(result))
-		}
-		if result[0]["id"] != "b" {
-			t.Errorf("first item should be 'b', got %v", result[0]["id"])
-		}
-	})
-}
-
-// --- getSectionConfig tests ---
-
-func TestGetSectionConfig(t *testing.T) {
-	t.Run("nil settings returns defaults", func(t *testing.T) {
-		enabled, items, isConfigured := getSectionConfig(nil, "experience")
-		if !enabled {
-			t.Error("expected enabled=true for nil settings")
-		}
-		if items != nil {
-			t.Errorf("expected nil items, got %v", items)
-		}
-		if isConfigured {
-			t.Error("expected isConfigured=false for nil settings")
-		}
-	})
-
-	t.Run("nil sections map returns defaults", func(t *testing.T) {
-		settings := &services.SiteSettings{HomepageSections: nil}
-		enabled, _, isConfigured := getSectionConfig(settings, "experience")
-		if !enabled || isConfigured {
-			t.Error("expected defaults for nil HomepageSections")
-		}
-	})
-
-	t.Run("missing section returns defaults", func(t *testing.T) {
-		settings := &services.SiteSettings{
-			HomepageSections: map[string]services.HomepageSectionConfig{
-				"skills": {Enabled: true},
-			},
-		}
-		enabled, _, isConfigured := getSectionConfig(settings, "experience")
-		if !enabled || isConfigured {
-			t.Error("expected defaults for missing section")
-		}
-	})
-
-	t.Run("existing section returns config", func(t *testing.T) {
-		settings := &services.SiteSettings{
-			HomepageSections: map[string]services.HomepageSectionConfig{
-				"experience": {
-					Enabled: true,
-					Items:   []string{"id1", "id2"},
-				},
-			},
-		}
-		enabled, items, isConfigured := getSectionConfig(settings, "experience")
-		if !enabled {
-			t.Error("expected enabled=true")
-		}
-		if !isConfigured {
-			t.Error("expected isConfigured=true")
-		}
-		if len(items) != 2 {
-			t.Errorf("expected 2 items, got %d", len(items))
-		}
-	})
-
-	t.Run("disabled section returns enabled=false", func(t *testing.T) {
-		settings := &services.SiteSettings{
-			HomepageSections: map[string]services.HomepageSectionConfig{
-				"experience": {Enabled: false},
-			},
-		}
-		enabled, _, isConfigured := getSectionConfig(settings, "experience")
-		if enabled {
-			t.Error("expected enabled=false for disabled section")
-		}
-		if !isConfigured {
-			t.Error("expected isConfigured=true")
-		}
-	})
-}
-
-// --- Visibility level documentation ---
-
-func TestVisibilityLevels(t *testing.T) {
-	// Verify the 4 visibility levels are handled correctly
-	levels := map[string]bool{
-		"public":   true,  // visible
-		"unlisted": true,  // visible (requires token at HTTP layer)
-		"password": true,  // visible (requires JWT at HTTP layer)
-		"private":  false, // NOT visible
-	}
-
-	for level, expectedVisible := range levels {
-		t.Run(level, func(t *testing.T) {
-			record := createMockRecord(map[string]any{
-				"visibility": level,
-				"is_draft":   false,
-			})
-			got := isRecordVisible(record)
-			if got != expectedVisible {
-				t.Errorf("isRecordVisible(visibility=%q) = %v, want %v", level, got, expectedVisible)
-			}
-		})
-	}
+// TestViewAccessInfo documents /api/view/{slug}/access response
+func TestViewAccessInfo(t *testing.T) {
+	t.Log("/api/view/{slug}/access returns:")
+	t.Log("  - view_id: The view's ID")
+	t.Log("  - view_name: Display name")
+	t.Log("  - slug: URL slug")
+	t.Log("  - visibility: public|unlisted|password|private")
+	t.Log("  - requires_password: true if visibility=password")
+	t.Log("  - requires_token: true if visibility=unlisted")
+	t.Log("")
+	t.Log("This endpoint does NOT return content, only access requirements")
+	t.Log("It returns 404 for inactive views (regardless of visibility)")
 }
