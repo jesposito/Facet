@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Preparing for battle...",
-			"close_navigation": "Seal the tactical display"
+			"close_navigation": "Seal the tactical display",
+			"encryption_warning_title": "Encryption Key Not Configured",
+			"encryption_warning_message": "Your encryption key was auto-generated. If you lose the /data directory, encrypted API tokens cannot be recovered. Set ENCRYPTION_KEY in your battle configuration!",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Battle Configurations",

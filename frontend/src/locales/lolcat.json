@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Loadingz admin... plz wait kthx",
-			"close_navigation": "Cloze teh nav menu"
+			"close_navigation": "Cloze teh nav menu",
+			"encryption_warning_title": "OH NOES! Encrypshun Key Not Set",
+			"encryption_warning_message": "Ur encrypshun key wuz auto-maded. If u loze teh /data folder, ur API tokens iz gone 4evr. Set ENCRYPTION_KEY in ur env kthx.",
+			"encryption_warning_dismiss": "K whatevr"
 		},
 		"settings_page": {
 			"title": "Settingz",

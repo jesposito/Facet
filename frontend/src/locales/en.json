@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Loading admin...",
-			"close_navigation": "Close navigation menu"
+			"close_navigation": "Close navigation menu",
+			"encryption_warning_title": "Encryption Key Not Configured",
+			"encryption_warning_message": "Your encryption key was auto-generated. If you lose the /data directory, encrypted API tokens will be unrecoverable. Set ENCRYPTION_KEY in your environment for safety.",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Settings",
