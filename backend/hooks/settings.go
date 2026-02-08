@@ -17,6 +17,21 @@ import (
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
 func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		// Authenticated: check encryption key source
+		se.Router.GET("/api/system/encryption-status", func(e *core.RequestEvent) error {
+			source := os.Getenv("ENCRYPTION_KEY_SOURCE")
+			if source == "" {
+				// If not set by start.sh, the key came from env directly
+				source = "env"
+			}
+			return e.JSON(http.StatusOK, map[string]any{
+				"source": source,
+				// auto = generated on first run, saved to /data/.encryption_key
+				// file = loaded from /data/.encryption_key (previously generated)
+				// env  = explicitly set via ENCRYPTION_KEY environment variable
+			})
+		}).Bind(apis.RequireAuth())
+
 		// Public: fetch site settings (sanitized)
 		se.Router.GET("/api/site-settings", func(e *core.RequestEvent) error {
 			settings, err := services.LoadSiteSettings(app)

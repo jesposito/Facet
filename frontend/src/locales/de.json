@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Admin wird geladen...",
-			"close_navigation": "Navigationsmenü schließen"
+			"close_navigation": "Navigationsmenü schließen",
+			"encryption_warning_title": "Verschlüsselungsschlüssel nicht konfiguriert",
+			"encryption_warning_message": "Ihr Verschlüsselungsschlüssel wurde automatisch generiert. Wenn Sie das /data-Verzeichnis verlieren, sind verschlüsselte API-Tokens unwiederbringlich. Setzen Sie ENCRYPTION_KEY in Ihrer Umgebung.",
+			"encryption_warning_dismiss": "Schließen"
 		},
 		"settings_page": {
 			"title": "Einstellungen",
@@ -205,7 +208,16 @@
 			"new_features": "Neue Funktionen",
 			"other_changes": "Andere Änderungen",
 			"show_more": "Mehr anzeigen ({count} verbleibend)",
-			"view_full_changelog": "Vollständiges Änderungsprotokoll auf GitHub ansehen"
+			"view_full_changelog": "Vollständiges Änderungsprotokoll auf GitHub ansehen",
+			"backup_title": "Datenbank-Sicherung",
+			"backup_now": "Jetzt sichern",
+			"backup_running": "Sicherung läuft...",
+			"backup_last": "Letzte Sicherung",
+			"backup_never": "Nie",
+			"backup_count": "Sicherungen gesamt",
+			"backup_location": "Speicherort",
+			"backup_latest_file": "Neueste",
+			"backup_schedule_note": "Sicherungen werden automatisch einmal täglich erstellt. Konfigurieren Sie mit den Umgebungsvariablen BACKUP_DIR, BACKUP_MAX_COUNT und BACKUP_HOUR."
 		},
 		"ai_assistant": {
 			"title": "KI-Schreibassistent",
@@ -288,6 +300,27 @@
 			"save_failed": "Tag konnte nicht gespeichert werden",
 			"delete_failed": "Tag konnte nicht gelöscht werden"
 		},
+		"audit": {
+			"title": "Prüfprotokoll",
+			"description": "Ein schreibgeschütztes Protokoll der Admin-Aktionen — Anmeldungen, Inhaltsänderungen und Einstellungsänderungen.",
+			"filter_action": "Aktion",
+			"filter_resource": "Ressource",
+			"all_actions": "Alle Aktionen",
+			"all_resources": "Alle Ressourcen",
+			"action_create": "Erstellen",
+			"action_update": "Aktualisieren",
+			"action_delete": "Löschen",
+			"action_login": "Anmeldung",
+			"clear_filters": "Filter löschen",
+			"total_entries": "{count} Einträge",
+			"no_entries": "Noch keine Prüfprotokolleinträge.",
+			"col_time": "Zeit",
+			"col_action": "Aktion",
+			"col_resource": "Ressource",
+			"col_user": "Benutzer",
+			"col_ip": "IP-Adresse",
+			"page_info": "Seite {page} von {totalPages}"
+		},
 		"form": {
 			"saving": "Speichern...",
 			"saved": "Gespeichert",
@@ -324,6 +357,7 @@
 			"analytics": "Analysen",
 			"integrations": "Integrationen",
 			"admin_tags": "Admin-Tags",
+			"audit_log": "Prüfprotokoll",
 			"media_library": "Medienbibliothek",
 			"share_tokens": "Freigabe-Tokens",
 			"about_facet": "Über Facet",

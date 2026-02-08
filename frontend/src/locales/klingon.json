@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Preparing for battle...",
-			"close_navigation": "Seal the tactical display"
+			"close_navigation": "Seal the tactical display",
+			"encryption_warning_title": "Encryption Key Not Configured",
+			"encryption_warning_message": "Your encryption key was auto-generated. If you lose the /data directory, encrypted API tokens cannot be recovered. Set ENCRYPTION_KEY in your battle configuration!",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Battle Configurations",
@@ -205,7 +208,16 @@
 			"new_features": "New Weapons",
 			"other_changes": "Other Victories",
 			"show_more": "Show more ({count} remaining)",
-			"view_full_changelog": "View full battle records on GitHub"
+			"view_full_changelog": "View full battle records on GitHub",
+			"backup_title": "De' pol choq",
+			"backup_now": "DaH choq",
+			"backup_running": "choq taH...",
+			"backup_last": "Qav choq",
+			"backup_never": "not",
+			"backup_count": "Hoch choq mI'",
+			"backup_location": "choq Daq",
+			"backup_latest_file": "chu'",
+			"backup_schedule_note": "choq motlh jaj Hoch chenmoH. BACKUP_DIR, BACKUP_MAX_COUNT, BACKUP_HOUR yIlo'."
 		},
 		"ai_assistant": {
 			"title": "Tactical AI",
@@ -288,6 +300,27 @@
 			"save_failed": "Tag could not be secured",
 			"delete_failed": "Tag could not be destroyed"
 		},
+		"audit": {
+			"title": "yIqel ta",
+			"description": "ta laH neH — 'el, choH, choHmoH je.",
+			"filter_action": "ta",
+			"filter_resource": "Dol",
+			"all_actions": "Hoch ta",
+			"all_resources": "Hoch Dol",
+			"action_create": "chenmoH",
+			"action_update": "choH",
+			"action_delete": "Qaw'",
+			"action_login": "'el",
+			"clear_filters": "yIteq Soj",
+			"total_entries": "{count} mung",
+			"no_entries": "ta qel tu'lu'be'.",
+			"col_time": "poH",
+			"col_action": "ta",
+			"col_resource": "Dol",
+			"col_user": "lo'wI'",
+			"col_ip": "De' nab",
+			"page_info": "nav {page} vo' {totalPages}"
+		},
 		"form": {
 			"saving": "Transmitting...",
 			"saved": "Secured",
@@ -324,6 +357,7 @@
 			"analytics": "Intelligence",
 			"integrations": "Alliances",
 			"admin_tags": "Battle Tags",
+			"audit_log": "yIqel ta",
 			"media_library": "Weapons Locker",
 			"share_tokens": "Access Tokens",
 			"about_facet": "About Facet",
