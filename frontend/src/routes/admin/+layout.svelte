@@ -246,6 +246,7 @@
 					if (!needsPasswordChange) {
 						checkSetupWizard();
 					}
+					checkEncryptionKeyStatus();
 				})();
 			} else if (!isAuth && authorized) {
 				// User is no longer authenticated - clear state and redirect
