@@ -22,8 +22,15 @@
 	let backupLoading = $state(true);
 	let backupRunning = $state(false);
 	let lastBackup: BackupEntry | null = $state(null);
+	let allBackups: BackupEntry[] = $state([]);
 	let backupCount = $state(0);
 	let backupDir = $state('');
+	let showBackupList = $state(false);
+
+	// Restore state
+	let restoreTarget: BackupEntry | null = $state(null);
+	let restoreInProgress = $state(false);
+	let restoreError = $state('');
 
 	// Changelog state
 	interface ChangelogEntry {
@@ -59,6 +66,7 @@
 			if (response.ok) {
 				const data = await response.json();
 				lastBackup = data.last_backup;
+				allBackups = data.backups || [];
 				backupCount = data.total_count;
 				backupDir = data.backup_dir;
 			}
@@ -67,6 +75,74 @@
 		} finally {
 			backupLoading = false;
 		}
+	}
+
+	async function performRestore() {
+		if (!restoreTarget) return;
+		restoreInProgress = true;
+		restoreError = '';
+
+		try {
+			const response = await fetch('/api/admin/backup/restore', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+				},
+				body: JSON.stringify({ filename: restoreTarget.filename })
+			});
+
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({ error: 'Unknown error' }));
+				throw new Error(data.error || 'Restore request failed');
+			}
+
+			// Close confirmation modal — show full-screen overlay
+			restoreTarget = null;
+
+			// Wait for the async restore to start (1s delay) + process restart
+			await new Promise((r) => setTimeout(r, 3000));
+
+			// Poll /api/health until the server comes back
+			const recovered = await pollHealth();
+
+			if (recovered) {
+				// Server is back — clear auth and redirect to login
+				pb.authStore.clear();
+				try {
+					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+				} catch {}
+				window.location.href = '/admin/login';
+			} else {
+				restoreError = 'timeout';
+				restoreInProgress = false;
+			}
+		} catch (err) {
+			console.error('Restore failed:', err);
+			restoreError = err instanceof Error ? err.message : 'Unknown error';
+			restoreInProgress = false;
+		}
+	}
+
+	async function pollHealth(): Promise<boolean> {
+		const maxAttempts = 60; // ~2 minutes
+		for (let i = 0; i < maxAttempts; i++) {
+			try {
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 3000);
+				const response = await fetch('/api/health', { signal: controller.signal });
+				clearTimeout(timeout);
+				if (response.ok) {
+					// Give the server a moment to fully initialize
+					await new Promise((r) => setTimeout(r, 500));
+					return true;
+				}
+			} catch {
+				// Expected — server is restarting
+			}
+			await new Promise((r) => setTimeout(r, 2000));
+		}
+		return false;
 	}
 
 	async function triggerBackup() {
@@ -324,6 +400,49 @@
 							{$t('admin.about_page.backup_latest_file')}: {lastBackup.filename} ({formatBytes(lastBackup.size)})
 						</div>
 					{/if}
+
+					<!-- Expandable backup list with restore -->
+					{#if allBackups.length > 0}
+						<div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+							<button
+								type="button"
+								class="flex items-center gap-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+								onclick={() => (showBackupList = !showBackupList)}
+							>
+								<svg
+									class="w-3 h-3 transition-transform {showBackupList ? 'rotate-90' : ''}"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+								</svg>
+								{showBackupList ? $t('admin.about_page.hide_backups') : $t('admin.about_page.show_all_backups')}
+							</button>
+
+							{#if showBackupList}
+								<div class="mt-2 space-y-1">
+									{#each allBackups as backup}
+										<div class="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors">
+											<div class="flex-1 min-w-0">
+												<span class="text-xs font-mono text-gray-700 dark:text-gray-300 truncate block">{backup.filename}</span>
+												<span class="text-xs text-gray-500 dark:text-gray-400">
+													{new Date(backup.created).toLocaleString()} — {formatBytes(backup.size)}
+												</span>
+											</div>
+											<button
+												type="button"
+												class="flex-shrink-0 ml-2 px-2 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded transition-colors"
+												onclick={() => (restoreTarget = backup)}
+											>
+												{$t('admin.about_page.restore_button')}
+											</button>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
 				</div>
 				<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
 					{$t('admin.about_page.backup_schedule_note')}
@@ -417,3 +536,97 @@
 		</div>
 	</div>
 </div>
+
+<!-- Restore Confirmation Modal -->
+{#if restoreTarget && !restoreInProgress}
+	<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+		<div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+			<div class="flex items-center gap-3 mb-4">
+				<div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+					<svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					</svg>
+				</div>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.about_page.restore_confirm_title')}</h3>
+			</div>
+
+			<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+				{$t('admin.about_page.restore_confirm_message')}
+			</p>
+
+			<div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-3 text-xs">
+				<div class="font-mono text-gray-700 dark:text-gray-300">{restoreTarget.filename}</div>
+				<div class="text-gray-500 dark:text-gray-400 mt-1">
+					{new Date(restoreTarget.created).toLocaleString()} — {formatBytes(restoreTarget.size)}
+				</div>
+			</div>
+
+			<p class="text-xs text-red-600 dark:text-red-400 mb-4">
+				{$t('admin.about_page.restore_confirm_warning')}
+			</p>
+
+			<div class="flex justify-end gap-2">
+				<button
+					type="button"
+					class="btn btn-ghost text-sm"
+					onclick={() => (restoreTarget = null)}
+				>
+					{$t('shared.actions.cancel')}
+				</button>
+				<button
+					type="button"
+					class="px-4 py-2 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors"
+					onclick={performRestore}
+				>
+					{$t('admin.about_page.restore_confirm_button')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Restore In-Progress Overlay -->
+{#if restoreInProgress}
+	<div class="fixed inset-0 bg-gray-900/95 z-[100] flex items-center justify-center" role="alert" aria-live="assertive">
+		<div class="text-center max-w-md px-6">
+			<div class="w-16 h-16 mx-auto mb-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+				<svg class="w-8 h-8 text-amber-400 animate-spin" fill="none" viewBox="0 0 24 24">
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				</svg>
+			</div>
+			<h2 class="text-xl font-semibold text-white mb-2">{$t('admin.about_page.restore_overlay_title')}</h2>
+			<p class="text-gray-400 text-sm">{$t('admin.about_page.restore_overlay_message')}</p>
+		</div>
+	</div>
+{/if}
+
+<!-- Restore Error -->
+{#if restoreError && !restoreInProgress}
+	<div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" role="alert">
+		<div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+			<div class="flex items-center gap-3 mb-4">
+				<div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+					<svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</div>
+				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+					{restoreError === 'timeout' ? $t('admin.about_page.restore_timeout') : $t('admin.about_page.restore_failed')}
+				</h3>
+			</div>
+			{#if restoreError !== 'timeout'}
+				<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">{restoreError}</p>
+			{/if}
+			<div class="flex justify-end">
+				<button
+					type="button"
+					class="btn btn-primary text-sm"
+					onclick={() => (restoreError = '')}
+				>
+					{$t('shared.actions.close')}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}

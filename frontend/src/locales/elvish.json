@@ -217,7 +217,18 @@
 			"backup_count": "Ilye tirith",
 			"backup_location": "Sîr i tirith",
 			"backup_latest_file": "I anuir",
-			"backup_schedule_note": "Tirith auta meren ilaurëa. Cano an BACKUP_DIR, BACKUP_MAX_COUNT, ar BACKUP_HOUR."
+			"backup_schedule_note": "Tirith auta meren ilaurëa. Cano an BACKUP_DIR, BACKUP_MAX_COUNT, ar BACKUP_HOUR.",
+			"show_all_backups": "Tana ilye tirith",
+			"hide_backups": "Nurta tirith",
+			"restore_button": "Ennorath",
+			"restore_confirm_title": "Ennorath o tirith",
+			"restore_confirm_message": "I parma sí ná exchannëa le tirith. Le nauva hehtanë ar i osto atanortuva.",
+			"restore_confirm_warning": "Sí lá polë nanca. Tirith i parma sí apa leptal.",
+			"restore_confirm_button": "Ennorath tirith",
+			"restore_overlay_title": "Ennorath tirith...",
+			"restore_overlay_message": "I osto atanortuva tirith parma. Áva hosta i fen sí.",
+			"restore_failed": "Ennorath úcarë",
+			"restore_timeout": "I osto lá quétë apa ennorath. Tira i lómion tëa."
 		},
 		"ai_assistant": {
 			"title": "Wisdom Weaver",

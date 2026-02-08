@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -29,6 +30,17 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 	// "read /data/storage: is a directory". Uploads are backed up
 	// separately via the /uploads volume — they don't belong in the DB backup.
 	app.OnBackupCreate().BindFunc(func(e *core.BackupEvent) error {
+		e.Exclude = append(e.Exclude, "storage")
+		return e.Next()
+	})
+
+	// Also exclude "storage" during restore so the symlink survives
+	// the directory swap. PocketBase's RestoreBackup moves the current
+	// data dir aside and replaces it; excluding "storage" keeps the
+	// /data/storage -> /uploads symlink in place. Without this, the
+	// symlink is lost because start.sh only creates it at container boot,
+	// not after PocketBase's syscall.Exec()-based restart.
+	app.OnBackupRestore().BindFunc(func(e *core.BackupEvent) error {
 		e.Exclude = append(e.Exclude, "storage")
 		return e.Next()
 	})
@@ -64,6 +76,64 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 				"filename": result.Filename,
 				"size":     result.Size,
 				"duration": result.Duration.Milliseconds(),
+			})
+		}).Bind(apis.RequireAuth())
+
+		// POST /api/admin/backup/restore - Restore from a backup
+		//
+		// PocketBase's RestoreBackup swaps the data directory and then
+		// calls syscall.Exec() to replace the process. The HTTP response
+		// must be flushed before that happens, so the actual restore runs
+		// asynchronously after a 1-second delay.
+		//
+		// After the response, the frontend polls /api/health until the
+		// new process is ready, then redirects to login (all sessions are
+		// invalidated by the restore).
+		se.Router.POST("/api/admin/backup/restore", func(e *core.RequestEvent) error {
+			var body struct {
+				Filename string `json:"filename"`
+			}
+			if err := e.BindBody(&body); err != nil || body.Filename == "" {
+				return e.JSON(http.StatusBadRequest, map[string]string{
+					"error": "Missing or invalid filename",
+				})
+			}
+
+			// Verify backup exists
+			backups, err := services.ListBackups(app)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{
+					"error": "Failed to list backups",
+				})
+			}
+			found := false
+			for _, b := range backups {
+				if b.Filename == body.Filename {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return e.JSON(http.StatusNotFound, map[string]string{
+					"error": "Backup not found",
+				})
+			}
+
+			app.Logger().Info("backup: restore initiated", "filename", body.Filename)
+
+			// Fire restore asynchronously — the response must be sent before
+			// syscall.Exec() replaces the process.
+			go func() {
+				time.Sleep(1 * time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+				defer cancel()
+				if err := app.RestoreBackup(ctx, body.Filename); err != nil {
+					app.Logger().Error("backup: restore failed", "error", err)
+				}
+			}()
+
+			return e.JSON(http.StatusOK, map[string]string{
+				"message": "Restore initiated. The server will restart momentarily.",
 			})
 		}).Bind(apis.RequireAuth())
 
