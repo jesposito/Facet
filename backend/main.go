@@ -67,6 +67,7 @@ func main() {
 	hooks.RegisterExperienceHooks(app)
 	hooks.RegisterCustomContentHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
+	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
