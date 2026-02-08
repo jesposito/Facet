@@ -415,7 +415,18 @@
 			if (profile) {
 				await collection('profile').update(profile.id as string, formData);
 			} else {
-				await collection('profile').create(formData);
+				try {
+					await collection('profile').create(formData);
+				} catch (createErr: unknown) {
+					// Profile may already exist (e.g., created by setup wizard after loadProfile ran)
+					const records = await collection('profile').getList(1, 1);
+					if (records.items.length > 0) {
+						profile = records.items[0];
+						await collection('profile').update(profile.id as string, formData);
+					} else {
+						throw createErr;
+					}
+				}
 			}
 
 			// Save section order and section configuration
