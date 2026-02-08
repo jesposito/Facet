@@ -72,7 +72,7 @@ func main() {
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
 	hooks.CheckHTTPS(app)
-	// hooks.RegisterAuditLogging(app)
+	hooks.RegisterAuditLogging(app)
 
 	// Note: Trusted proxy headers are handled by Caddy in the Docker setup.
 	// For standalone deployments, configure your reverse proxy to set
