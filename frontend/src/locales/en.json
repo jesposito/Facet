@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Loading admin...",
-			"close_navigation": "Close navigation menu"
+			"close_navigation": "Close navigation menu",
+			"encryption_warning_title": "Encryption Key Not Configured",
+			"encryption_warning_message": "Your encryption key was auto-generated. If you lose the /data directory, encrypted API tokens will be unrecoverable. Set ENCRYPTION_KEY in your environment for safety.",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Settings",
@@ -205,7 +208,16 @@
 			"new_features": "New Features",
 			"other_changes": "Other Changes",
 			"show_more": "Show more ({count} remaining)",
-			"view_full_changelog": "View full changelog on GitHub"
+			"view_full_changelog": "View full changelog on GitHub",
+			"backup_title": "Database Backup",
+			"backup_now": "Backup Now",
+			"backup_running": "Backing up...",
+			"backup_last": "Last Backup",
+			"backup_never": "Never",
+			"backup_count": "Total Backups",
+			"backup_location": "Backup Location",
+			"backup_latest_file": "Latest",
+			"backup_schedule_note": "Backups run automatically once daily. Configure with BACKUP_DIR, BACKUP_MAX_COUNT, and BACKUP_HOUR environment variables."
 		},
 		"ai_assistant": {
 			"title": "AI Writing Assistant",
@@ -288,6 +300,27 @@
 			"save_failed": "Failed to save tag",
 			"delete_failed": "Failed to delete tag"
 		},
+		"audit": {
+			"title": "Audit Log",
+			"description": "A read-only log of admin actions — logins, content changes, and settings updates.",
+			"filter_action": "Action",
+			"filter_resource": "Resource",
+			"all_actions": "All actions",
+			"all_resources": "All resources",
+			"action_create": "Create",
+			"action_update": "Update",
+			"action_delete": "Delete",
+			"action_login": "Login",
+			"clear_filters": "Clear filters",
+			"total_entries": "{count} entries",
+			"no_entries": "No audit log entries yet.",
+			"col_time": "Time",
+			"col_action": "Action",
+			"col_resource": "Resource",
+			"col_user": "User",
+			"col_ip": "IP Address",
+			"page_info": "Page {page} of {totalPages}"
+		},
 		"form": {
 			"saving": "Saving...",
 			"saved": "Saved",
@@ -324,6 +357,7 @@
 			"analytics": "Analytics",
 			"integrations": "Integrations",
 			"admin_tags": "Admin Tags",
+			"audit_log": "Audit Log",
 			"media_library": "Media Library",
 			"share_tokens": "Share Tokens",
 			"about_facet": "About Facet",

@@ -67,11 +67,13 @@ func main() {
 	hooks.RegisterExperienceHooks(app)
 	hooks.RegisterCustomContentHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
+	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
+	hooks.RegisterBackupHooks(app)  // Automated database backup system
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
 	hooks.CheckHTTPS(app)
-	// hooks.RegisterAuditLogging(app)
+	hooks.RegisterAuditLogging(app)
 
 	// Note: Trusted proxy headers are handled by Caddy in the Docker setup.
 	// For standalone deployments, configure your reverse proxy to set

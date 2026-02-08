@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Loadingz admin... plz wait kthx",
-			"close_navigation": "Cloze teh nav menu"
+			"close_navigation": "Cloze teh nav menu",
+			"encryption_warning_title": "OH NOES! Encrypshun Key Not Set",
+			"encryption_warning_message": "Ur encrypshun key wuz auto-maded. If u loze teh /data folder, ur API tokens iz gone 4evr. Set ENCRYPTION_KEY in ur env kthx.",
+			"encryption_warning_dismiss": "K whatevr"
 		},
 		"settings_page": {
 			"title": "Settingz",
@@ -205,7 +208,16 @@
 			"new_features": "New Featurez",
 			"other_changes": "Othr Chayngez",
 			"show_more": "Show moar ({count} remainin)",
-			"view_full_changelog": "View full changelog on GitHub"
+			"view_full_changelog": "View full changelog on GitHub",
+			"backup_title": "Databais Bakup",
+			"backup_now": "Bakup Nao",
+			"backup_running": "Bakkin up...",
+			"backup_last": "Last Bakup",
+			"backup_never": "Nevr",
+			"backup_count": "Total Bakupz",
+			"backup_location": "Bakup Locashun",
+			"backup_latest_file": "Laitest",
+			"backup_schedule_note": "Bakupz run automagikly wunce a dai. Configur wif BACKUP_DIR, BACKUP_MAX_COUNT, an BACKUP_HOUR env variabulz."
 		},
 		"ai_assistant": {
 			"title": "AI Writin Halper",
@@ -288,6 +300,27 @@
 			"save_failed": "Faild 2 saev tag",
 			"delete_failed": "Faild 2 delet tag"
 		},
+		"audit": {
+			"title": "Audit Logz",
+			"description": "A red-onlee log of admin stuffz — loginz, content changez, an settingz updatez.",
+			"filter_action": "Akshun",
+			"filter_resource": "Resors",
+			"all_actions": "All akshunz",
+			"all_resources": "All resorsez",
+			"action_create": "Maek",
+			"action_update": "Updait",
+			"action_delete": "Deleet",
+			"action_login": "Login",
+			"clear_filters": "Cleer filterz",
+			"total_entries": "{count} entriez",
+			"no_entries": "No audit log entriez yet. Such emptee.",
+			"col_time": "Tiem",
+			"col_action": "Akshun",
+			"col_resource": "Resors",
+			"col_user": "Hooman",
+			"col_ip": "IP Addres",
+			"page_info": "Paeg {page} of {totalPages}"
+		},
 		"form": {
 			"saving": "Saevin...",
 			"saved": "Saevd!",
@@ -324,6 +357,7 @@
 			"analytics": "Analyticz",
 			"integrations": "Integrayshunz",
 			"admin_tags": "Admin Tagz",
+			"audit_log": "Audit Logz",
 			"media_library": "Media Library",
 			"share_tokens": "Share Tokenz",
 			"about_facet": "Abowt Facet",
