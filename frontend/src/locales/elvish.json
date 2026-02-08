@@ -208,7 +208,16 @@
 			"new_features": "New Enchantments",
 			"other_changes": "Other Turnings",
 			"show_more": "Reveal more ({count} remaining)",
-			"view_full_changelog": "Behold full scrolls of change on GitHub"
+			"view_full_changelog": "Behold full scrolls of change on GitHub",
+			"backup_title": "Tirith i Parma",
+			"backup_now": "Tirith si",
+			"backup_running": "Tirith...",
+			"backup_last": "I vedui tirith",
+			"backup_never": "Úner",
+			"backup_count": "Ilye tirith",
+			"backup_location": "Sîr i tirith",
+			"backup_latest_file": "I anuir",
+			"backup_schedule_note": "Tirith auta meren ilaurëa. Cano an BACKUP_DIR, BACKUP_MAX_COUNT, ar BACKUP_HOUR."
 		},
 		"ai_assistant": {
 			"title": "Wisdom Weaver",

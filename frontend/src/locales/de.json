@@ -208,7 +208,16 @@
 			"new_features": "Neue Funktionen",
 			"other_changes": "Andere Änderungen",
 			"show_more": "Mehr anzeigen ({count} verbleibend)",
-			"view_full_changelog": "Vollständiges Änderungsprotokoll auf GitHub ansehen"
+			"view_full_changelog": "Vollständiges Änderungsprotokoll auf GitHub ansehen",
+			"backup_title": "Datenbank-Sicherung",
+			"backup_now": "Jetzt sichern",
+			"backup_running": "Sicherung läuft...",
+			"backup_last": "Letzte Sicherung",
+			"backup_never": "Nie",
+			"backup_count": "Sicherungen gesamt",
+			"backup_location": "Speicherort",
+			"backup_latest_file": "Neueste",
+			"backup_schedule_note": "Sicherungen werden automatisch einmal täglich erstellt. Konfigurieren Sie mit den Umgebungsvariablen BACKUP_DIR, BACKUP_MAX_COUNT und BACKUP_HOUR."
 		},
 		"ai_assistant": {
 			"title": "KI-Schreibassistent",

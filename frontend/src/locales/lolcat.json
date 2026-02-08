@@ -208,7 +208,16 @@
 			"new_features": "New Featurez",
 			"other_changes": "Othr Chayngez",
 			"show_more": "Show moar ({count} remainin)",
-			"view_full_changelog": "View full changelog on GitHub"
+			"view_full_changelog": "View full changelog on GitHub",
+			"backup_title": "Databais Bakup",
+			"backup_now": "Bakup Nao",
+			"backup_running": "Bakkin up...",
+			"backup_last": "Last Bakup",
+			"backup_never": "Nevr",
+			"backup_count": "Total Bakupz",
+			"backup_location": "Bakup Locashun",
+			"backup_latest_file": "Laitest",
+			"backup_schedule_note": "Bakupz run automagikly wunce a dai. Configur wif BACKUP_DIR, BACKUP_MAX_COUNT, an BACKUP_HOUR env variabulz."
 		},
 		"ai_assistant": {
 			"title": "AI Writin Halper",

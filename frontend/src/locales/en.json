@@ -208,7 +208,16 @@
 			"new_features": "New Features",
 			"other_changes": "Other Changes",
 			"show_more": "Show more ({count} remaining)",
-			"view_full_changelog": "View full changelog on GitHub"
+			"view_full_changelog": "View full changelog on GitHub",
+			"backup_title": "Database Backup",
+			"backup_now": "Backup Now",
+			"backup_running": "Backing up...",
+			"backup_last": "Last Backup",
+			"backup_never": "Never",
+			"backup_count": "Total Backups",
+			"backup_location": "Backup Location",
+			"backup_latest_file": "Latest",
+			"backup_schedule_note": "Backups run automatically once daily. Configure with BACKUP_DIR, BACKUP_MAX_COUNT, and BACKUP_HOUR environment variables."
 		},
 		"ai_assistant": {
 			"title": "AI Writing Assistant",
