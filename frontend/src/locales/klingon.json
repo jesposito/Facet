@@ -208,7 +208,16 @@
 			"new_features": "New Weapons",
 			"other_changes": "Other Victories",
 			"show_more": "Show more ({count} remaining)",
-			"view_full_changelog": "View full battle records on GitHub"
+			"view_full_changelog": "View full battle records on GitHub",
+			"backup_title": "De' pol choq",
+			"backup_now": "DaH choq",
+			"backup_running": "choq taH...",
+			"backup_last": "Qav choq",
+			"backup_never": "not",
+			"backup_count": "Hoch choq mI'",
+			"backup_location": "choq Daq",
+			"backup_latest_file": "chu'",
+			"backup_schedule_note": "choq motlh jaj Hoch chenmoH. BACKUP_DIR, BACKUP_MAX_COUNT, BACKUP_HOUR yIlo'."
 		},
 		"ai_assistant": {
 			"title": "Tactical AI",

@@ -68,6 +68,7 @@ func main() {
 	hooks.RegisterCustomContentHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
 	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
+	hooks.RegisterBackupHooks(app)  // Automated database backup system
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
