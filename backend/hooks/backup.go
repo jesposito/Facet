@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,28 +15,34 @@ import (
 )
 
 const (
-	defaultBackupDir    = "/backups"
-	defaultMaxBackups   = 10
-	defaultBackupHour   = 2 // 2 AM UTC
+	defaultMaxBackups = 10
+	defaultBackupHour = 2 // 2 AM UTC
 )
 
 // RegisterBackupHooks sets up the automated backup system.
+// Backups are stored in {dataDir}/backups/ (inside the already-mapped /data volume).
+// No additional volume mapping is required.
 func RegisterBackupHooks(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		config := getBackupConfig(app)
+		maxBackups := getMaxBackups()
 
 		// Start background backup scheduler
-		go runBackupScheduler(app, config)
+		go runBackupScheduler(app, maxBackups)
 
 		// POST /api/admin/backup - Trigger manual backup
 		se.Router.POST("/api/admin/backup", func(e *core.RequestEvent) error {
-			result, err := services.RunBackup(config)
+			name := fmt.Sprintf("facet_manual_%s.zip", time.Now().UTC().Format("20060102_150405"))
+
+			result, err := services.RunBackup(app, name)
 			if err != nil {
 				app.Logger().Error("backup: manual backup failed", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Backup failed: " + err.Error(),
 				})
 			}
+
+			// Enforce retention after manual backup
+			services.EnforceRetention(app, maxBackups)
 
 			app.Logger().Info("backup: manual backup complete",
 				"filename", result.Filename,
@@ -52,7 +59,7 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 
 		// GET /api/admin/backup/status - Get backup status and list
 		se.Router.GET("/api/admin/backup/status", func(e *core.RequestEvent) error {
-			backups, err := services.ListBackups(config.BackupDir)
+			backups, err := services.ListBackups(app)
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Failed to list backups",
@@ -66,8 +73,8 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 
 			return e.JSON(http.StatusOK, map[string]any{
 				"enabled":     true,
-				"backup_dir":  config.BackupDir,
-				"max_backups": config.MaxBackups,
+				"backup_dir":  app.DataDir() + "/backups",
+				"max_backups": maxBackups,
 				"last_backup": lastBackup,
 				"backups":     backups,
 				"total_count": len(backups),
@@ -78,30 +85,17 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 	})
 }
 
-func getBackupConfig(app *pocketbase.PocketBase) services.BackupConfig {
-	backupDir := os.Getenv("BACKUP_DIR")
-	if backupDir == "" {
-		backupDir = defaultBackupDir
-	}
-
+func getMaxBackups() int {
 	maxBackups := defaultMaxBackups
 	if v := os.Getenv("BACKUP_MAX_COUNT"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			maxBackups = n
 		}
 	}
-
-	// Determine data directory from PocketBase's configured dir
-	dataDir := app.DataDir()
-
-	return services.BackupConfig{
-		DataDir:    dataDir,
-		BackupDir:  backupDir,
-		MaxBackups: maxBackups,
-	}
+	return maxBackups
 }
 
-func runBackupScheduler(app *pocketbase.PocketBase, config services.BackupConfig) {
+func runBackupScheduler(app *pocketbase.PocketBase, maxBackups int) {
 	// Wait for startup to complete
 	time.Sleep(60 * time.Second)
 
@@ -128,11 +122,16 @@ func runBackupScheduler(app *pocketbase.PocketBase, config services.BackupConfig
 
 		time.Sleep(sleepDuration)
 
-		result, err := services.RunBackup(config)
+		name := fmt.Sprintf("facet_auto_%s.zip", time.Now().UTC().Format("20060102_150405"))
+
+		result, err := services.RunBackup(app, name)
 		if err != nil {
 			app.Logger().Error("backup: scheduled backup failed", "error", err)
 			continue
 		}
+
+		// Enforce retention after scheduled backup
+		services.EnforceRetention(app, maxBackups)
 
 		app.Logger().Info("backup: scheduled backup complete",
 			"filename", result.Filename,

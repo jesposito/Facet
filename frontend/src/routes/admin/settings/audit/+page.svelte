@@ -137,14 +137,22 @@
 				<option value="profile">profile</option>
 				<option value="experience">experience</option>
 				<option value="education">education</option>
+				<option value="certifications">certifications</option>
+				<option value="awards">awards</option>
 				<option value="skills">skills</option>
 				<option value="projects">projects</option>
 				<option value="posts">posts</option>
-				<option value="views">views</option>
-				<option value="site_settings">site_settings</option>
-				<option value="ai_providers">ai_providers</option>
-				<option value="share_tokens">share_tokens</option>
+				<option value="talks">talks</option>
 				<option value="testimonials">testimonials</option>
+				<option value="contact_methods">contact_methods</option>
+				<option value="custom_content">custom_content</option>
+				<option value="views">views</option>
+				<option value="share_tokens">share_tokens</option>
+				<option value="admin_tags">admin_tags</option>
+				<option value="ai_providers">ai_providers</option>
+				<option value="site_settings">site_settings</option>
+				<option value="uploads">uploads</option>
+				<option value="external_media">external_media</option>
 			</select>
 		</div>
 

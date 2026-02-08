@@ -46,7 +46,7 @@ func cleanupExpiredShareTokens(app *pocketbase.PocketBase) int {
 		"",
 		500,
 		0,
-		map[string]any{"now": time.Now().UTC().Format(time.RFC3339)},
+		map[string]any{"now": time.Now().UTC().Format("2006-01-02 15:04:05.000Z")},
 	)
 	if err != nil {
 		app.Logger().Warn("cleanup: failed to query expired share tokens", "error", err)
@@ -67,7 +67,7 @@ func cleanupExpiredShareTokens(app *pocketbase.PocketBase) int {
 
 // cleanupRevokedShareTokens deletes share tokens that were revoked more than 30 days ago.
 func cleanupRevokedShareTokens(app *pocketbase.PocketBase) int {
-	cutoff := time.Now().UTC().AddDate(0, 0, -30).Format(time.RFC3339)
+	cutoff := time.Now().UTC().AddDate(0, 0, -30).Format("2006-01-02 15:04:05.000Z")
 	records, err := app.FindRecordsByFilter(
 		"share_tokens",
 		"is_active = false && created < {:cutoff}",
@@ -101,7 +101,7 @@ func cleanupExpiredVerificationTokens(app *pocketbase.PocketBase) int {
 		"",
 		500,
 		0,
-		map[string]any{"now": time.Now().UTC().Format(time.RFC3339)},
+		map[string]any{"now": time.Now().UTC().Format("2006-01-02 15:04:05.000Z")},
 	)
 	if err != nil {
 		app.Logger().Warn("cleanup: failed to query expired verification tokens", "error", err)
@@ -123,7 +123,7 @@ func cleanupExpiredVerificationTokens(app *pocketbase.PocketBase) int {
 // cleanupOldVerifiedTokens deletes email verification tokens that were used (verified)
 // more than 7 days ago.
 func cleanupOldVerifiedTokens(app *pocketbase.PocketBase) int {
-	cutoff := time.Now().UTC().AddDate(0, 0, -7).Format(time.RFC3339)
+	cutoff := time.Now().UTC().AddDate(0, 0, -7).Format("2006-01-02 15:04:05.000Z")
 	records, err := app.FindRecordsByFilter(
 		"email_verification_tokens",
 		"verified_at != '' && verified_at < {:cutoff}",
@@ -151,7 +151,7 @@ func cleanupOldVerifiedTokens(app *pocketbase.PocketBase) int {
 
 // cleanupFailedExports deletes view exports that failed more than 7 days ago.
 func cleanupFailedExports(app *pocketbase.PocketBase) int {
-	cutoff := time.Now().UTC().AddDate(0, 0, -7).Format(time.RFC3339)
+	cutoff := time.Now().UTC().AddDate(0, 0, -7).Format("2006-01-02 15:04:05.000Z")
 	records, err := app.FindRecordsByFilter(
 		"view_exports",
 		"status = 'failed' && created < {:cutoff}",
@@ -179,7 +179,7 @@ func cleanupFailedExports(app *pocketbase.PocketBase) int {
 
 // cleanupStuckExports deletes view exports stuck in pending/processing for over 1 hour.
 func cleanupStuckExports(app *pocketbase.PocketBase) int {
-	cutoff := time.Now().UTC().Add(-1 * time.Hour).Format(time.RFC3339)
+	cutoff := time.Now().UTC().Add(-1 * time.Hour).Format("2006-01-02 15:04:05.000Z")
 	records, err := app.FindRecordsByFilter(
 		"view_exports",
 		"(status = 'pending' || status = 'processing') && created < {:cutoff}",
