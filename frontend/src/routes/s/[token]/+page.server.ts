@@ -14,9 +14,9 @@
 
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import { setShareToken } from '$lib/tokens';
+import { setShareToken, isSecureRequest } from '$lib/tokens';
 
-export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
+export const load: PageServerLoad = async ({ params, fetch, cookies, url, request }) => {
 	const { token } = params;
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
 
 		// Store the validated token in a cookie for SSR access
 		// Token is valid for 7 days (same as backend expiry)
-		setShareToken(cookies, token, 7 * 24 * 60 * 60);
+		setShareToken(cookies, token, 7 * 24 * 60 * 60, isSecureRequest(url, request));
 
 		// Redirect to the canonical URL WITHOUT token in URL (clean URLs)
 		throw redirect(302, `/${result.view_slug}`);

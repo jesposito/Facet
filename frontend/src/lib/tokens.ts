@@ -11,21 +11,32 @@ export const TOKEN_COOKIES = {
 	PASSWORD: 'me_password_token'
 } as const;
 
-// Cookie options for tokens
-const COOKIE_OPTIONS = {
-	path: '/',
-	httpOnly: true,
-	sameSite: 'lax' as const,
-	// Secure in production (HTTPS)
-	secure: typeof process !== 'undefined' && process.env.NODE_ENV === 'production'
-};
+/**
+ * Determine if cookies should use the Secure flag based on request context.
+ * Checks X-Forwarded-Proto (set by Caddy/reverse proxies) and the request URL.
+ * NODE_ENV is NOT used because it's always 'production' in Docker regardless of protocol.
+ */
+export function isSecureRequest(url: URL, request?: Request): boolean {
+	const forwardedProto = request?.headers.get('x-forwarded-proto');
+	return forwardedProto === 'https' || url.protocol === 'https:';
+}
+
+// Base cookie options (secure flag added per-request)
+function getCookieOptions(secure: boolean) {
+	return {
+		path: '/',
+		httpOnly: true,
+		sameSite: 'lax' as const,
+		secure
+	};
+}
 
 /**
  * Set a share token cookie
  */
-export function setShareToken(cookies: Cookies, token: string, maxAge = 7 * 24 * 60 * 60) {
+export function setShareToken(cookies: Cookies, token: string, maxAge = 7 * 24 * 60 * 60, secure = false) {
 	cookies.set(TOKEN_COOKIES.SHARE, token, {
-		...COOKIE_OPTIONS,
+		...getCookieOptions(secure),
 		maxAge
 	});
 }
@@ -47,9 +58,9 @@ export function clearShareToken(cookies: Cookies) {
 /**
  * Set a password JWT cookie
  */
-export function setPasswordToken(cookies: Cookies, token: string, maxAge = 60 * 60) {
+export function setPasswordToken(cookies: Cookies, token: string, maxAge = 60 * 60, secure = false) {
 	cookies.set(TOKEN_COOKIES.PASSWORD, token, {
-		...COOKIE_OPTIONS,
+		...getCookieOptions(secure),
 		maxAge
 	});
 }

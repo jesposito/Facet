@@ -500,9 +500,18 @@
 					heroImageUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.hero_image}?${Date.now()}`;
 				}
 			}
-		} catch (err) {
+		} catch (err: unknown) {
 			console.error('Failed to save homepage:', err);
-			toasts.add('error', 'Failed to save homepage');
+			// Show detailed error for PocketBase ClientResponseError
+			const pbErr = err as { status?: number; data?: Record<string, unknown>; message?: string };
+			if (pbErr.status === 400 && pbErr.data && Object.keys(pbErr.data).length > 0) {
+				const details = Object.entries(pbErr.data).map(([k, v]) => `${k}: ${(v as { message?: string })?.message || v}`).join(', ');
+				toasts.add('error', `Failed to save: ${details}`);
+			} else if (pbErr.status === 403 || pbErr.status === 401) {
+				toasts.add('error', 'Session expired. Please refresh the page and try again.');
+			} else {
+				toasts.add('error', pbErr.message || 'Failed to save homepage');
+			}
 		} finally {
 			saving = false;
 		}
