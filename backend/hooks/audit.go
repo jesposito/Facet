@@ -1,9 +1,11 @@
 package hooks
 
 import (
+	"net"
 	"net/http"
 	"strings"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -101,10 +103,12 @@ func registerAuditEndpoint(app *pocketbase.PocketBase) {
 			// Build filter from query params
 			filter := ""
 			filterParams := map[string]any{}
+			var countExprs []dbx.Expression
 
 			if action := e.Request.URL.Query().Get("action"); action != "" {
 				filter = "action = {:action}"
 				filterParams["action"] = action
+				countExprs = append(countExprs, dbx.NewExp("action = {:action}", dbx.Params{"action": action}))
 			}
 			if resourceType := e.Request.URL.Query().Get("resource_type"); resourceType != "" {
 				if filter != "" {
@@ -112,6 +116,7 @@ func registerAuditEndpoint(app *pocketbase.PocketBase) {
 				}
 				filter += "resource_type = {:resource_type}"
 				filterParams["resource_type"] = resourceType
+				countExprs = append(countExprs, dbx.NewExp("resource_type = {:rt}", dbx.Params{"rt": resourceType}))
 			}
 
 			records, err := app.FindRecordsByFilter("audit_logs", filter, "-created", perPage, (page-1)*perPage, filterParams)
@@ -121,8 +126,8 @@ func registerAuditEndpoint(app *pocketbase.PocketBase) {
 				})
 			}
 
-			// Get total count for pagination
-			totalRecords, _ := app.CountRecords("audit_logs")
+			// Get total count for pagination (uses efficient COUNT query)
+			totalRecords, _ := app.CountRecords("audit_logs", countExprs...)
 
 			items := make([]map[string]any, 0, len(records))
 			for _, r := range records {
@@ -194,12 +199,12 @@ func getIP(e *core.RequestEvent) string {
 		parts := strings.SplitN(xff, ",", 2)
 		return strings.TrimSpace(parts[0])
 	}
-	// Fall back to RemoteAddr
-	addr := e.Request.RemoteAddr
-	if idx := strings.LastIndex(addr, ":"); idx != -1 {
-		return addr[:idx]
+	// Fall back to RemoteAddr (handles IPv4 and IPv6 correctly)
+	host, _, err := net.SplitHostPort(e.Request.RemoteAddr)
+	if err != nil {
+		return e.Request.RemoteAddr
 	}
-	return addr
+	return host
 }
 
 func getUserAgent(e *core.RequestEvent) string {

@@ -316,7 +316,7 @@
 						</div>
 						<div>
 							<span class="text-gray-500 dark:text-gray-400">{$t('admin.about_page.backup_location')}</span>
-							<p class="font-medium font-mono text-xs text-gray-900 dark:text-white mt-0.5">{backupDir || '/backups'}</p>
+							<p class="font-medium font-mono text-xs text-gray-900 dark:text-white mt-0.5">{backupDir || '/data/backups'}</p>
 						</div>
 					</div>
 					{#if lastBackup}
