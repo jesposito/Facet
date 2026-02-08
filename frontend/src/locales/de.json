@@ -3,8 +3,8 @@
 		"layout": {
 			"loading": "Admin wird geladen...",
 			"close_navigation": "Navigationsmenü schließen",
-			"encryption_warning_title": "Verschlüsselungsschlüssel nicht konfiguriert",
-			"encryption_warning_message": "Ihr Verschlüsselungsschlüssel wurde automatisch generiert. Wenn Sie das /data-Verzeichnis verlieren, sind verschlüsselte API-Tokens unwiederbringlich. Setzen Sie ENCRYPTION_KEY in Ihrer Umgebung.",
+			"encryption_warning_title": "Verschlüsselungsschlüssel automatisch generiert",
+			"encryption_warning_message": "Ihr Verschlüsselungsschlüssel wurde automatisch generiert und unter /data/.encryption_key gespeichert. Dieser Schlüssel verschlüsselt Ihre API-Tokens — stellen Sie sicher, dass Ihr /data-Verzeichnis in Ihren Backups enthalten ist.",
 			"encryption_warning_dismiss": "Schließen"
 		},
 		"settings_page": {

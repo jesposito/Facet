@@ -3,8 +3,8 @@
 		"layout": {
 			"loading": "Awaiting the light of the Eldar...",
 			"close_navigation": "Close the paths of wandering",
-			"encryption_warning_title": "The Key of Binding is not forged",
-			"encryption_warning_message": "Your key of encryption was woven by chance. Should the halls of /data fall to shadow, the sealed tokens shall be lost beyond recall. Set ENCRYPTION_KEY in your realm's decree.",
+			"encryption_warning_title": "The Key of Binding was woven anew",
+			"encryption_warning_message": "Your key of encryption was woven of its own accord and laid within /data/.encryption_key. This key guards your sealed tokens — ensure the halls of /data are preserved in your chronicles.",
 			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
