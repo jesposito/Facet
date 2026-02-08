@@ -23,6 +23,16 @@ const (
 // Backups are stored in {dataDir}/backups/ (inside the already-mapped /data volume).
 // No additional volume mapping is required.
 func RegisterBackupHooks(app *pocketbase.PocketBase) {
+	// Exclude the "storage" symlink from backups.
+	// Facet symlinks /data/storage -> /uploads (a separate volume).
+	// PocketBase's archive walker follows the symlink and fails with
+	// "read /data/storage: is a directory". Uploads are backed up
+	// separately via the /uploads volume — they don't belong in the DB backup.
+	app.OnBackupCreate().BindFunc(func(e *core.BackupEvent) error {
+		e.Exclude = append(e.Exclude, "storage")
+		return e.Next()
+	})
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		maxBackups := getMaxBackups()
 
