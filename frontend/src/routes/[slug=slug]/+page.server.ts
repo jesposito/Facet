@@ -14,9 +14,9 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getShareToken, getPasswordToken, setPasswordToken, setShareToken } from '$lib/tokens';
+import { getShareToken, getPasswordToken, setPasswordToken, setShareToken, isSecureRequest } from '$lib/tokens';
 
-export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals }) => {
+export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals, request }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 
@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			const result = await validateResponse.json();
 			if (result.valid) {
 				// Store token in cookie and redirect to clean URL
-				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60);
+				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60, isSecureRequest(url, request));
 				throw redirect(302, `/${slug}`);
 			}
 		}
@@ -187,13 +187,13 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 
 // Form action to set password token cookie
 export const actions: Actions = {
-	setPasswordToken: async ({ cookies, request }) => {
+	setPasswordToken: async ({ cookies, request, url }) => {
 		const data = await request.formData();
 		const token = data.get('token') as string;
 		const maxAge = parseInt(data.get('maxAge') as string) || 3600;
 
 		if (token) {
-			setPasswordToken(cookies, token, maxAge);
+			setPasswordToken(cookies, token, maxAge, isSecureRequest(url, request));
 		}
 
 		return { success: true };

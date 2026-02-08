@@ -20,10 +20,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 		response.headers.delete('link');
 	}
 
-	const isProd = process.env.NODE_ENV === 'production';
+	// Determine cookie security from the actual request protocol, not NODE_ENV.
+	// NODE_ENV is always 'production' in Docker, but the connection may be HTTP
+	// (e.g., local access, behind a reverse proxy that terminates TLS upstream).
+	// Check X-Forwarded-Proto (set by Caddy/reverse proxies) and the request URL.
+	const forwardedProto = event.request.headers.get('x-forwarded-proto');
+	const isSecure = forwardedProto === 'https' || event.url.protocol === 'https:';
 	const exportedCookie = event.locals.pb.authStore.exportToCookie({
 		httpOnly: false,
-		secure: isProd,
+		secure: isSecure,
 		sameSite: 'Lax',
 		path: '/'
 	}, PB_COOKIE_NAME);
