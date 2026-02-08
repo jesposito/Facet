@@ -48,15 +48,12 @@ KEY_FILE="$DATA_DIR/.encryption_key"
 STORAGE_PATH="$DATA_DIR/storage"
 
 if [ -n "$ENCRYPTION_KEY" ]; then
-    export ENCRYPTION_KEY_SOURCE="env"
     echo "[Config] Using ENCRYPTION_KEY from environment"
 elif [ -f "$KEY_FILE" ]; then
     export ENCRYPTION_KEY=$(cat "$KEY_FILE")
-    export ENCRYPTION_KEY_SOURCE="file"
     echo "[Config] Loaded ENCRYPTION_KEY from $KEY_FILE"
 else
     export ENCRYPTION_KEY=$(openssl rand -hex 32)
-    export ENCRYPTION_KEY_SOURCE="auto"
     echo "$ENCRYPTION_KEY" > "$KEY_FILE"
     chmod 600 "$KEY_FILE"
     echo ""
