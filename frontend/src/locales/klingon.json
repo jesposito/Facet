@@ -331,7 +331,13 @@
 			"col_description": "QIj",
 			"col_user": "lo'wI'",
 			"col_ip": "De' nab",
-			"page_info": "nav {page} vo' {totalPages}"
+			"page_info": "nav {page} vo' {totalPages}",
+			"clear_all": "QIn Dor",
+			"clear_confirm_title": "QIn ta Dor",
+			"clear_confirm_message": "Hoch QIn ta Dorlu'. vangvam lughoSlaHbe'.",
+			"clear_confirm_button": "Hoch QIn Dor",
+			"cleared_message": "{count} QIn ta Dorlu'.",
+			"clear_error": "QIn ta DorlaHbe'."
 		},
 		"form": {
 			"saving": "Transmitting...",

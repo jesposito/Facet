@@ -331,7 +331,13 @@
 			"col_description": "Quetil",
 			"col_user": "Hîr",
 			"col_ip": "Parf Sír",
-			"page_info": "Parf {page} o {totalPages}"
+			"page_info": "Parf {page} o {totalPages}",
+			"clear_all": "Gosto i Theryn",
+			"clear_confirm_title": "Gosto i Theryn Tirith",
+			"clear_confirm_message": "Sin gwannatha pân theryn tirith an-uir. Le ú-belin edledo.",
+			"clear_confirm_button": "Gosto Pân Theryn",
+			"cleared_message": "{count} theryn tirith gostannen.",
+			"clear_error": "Ú-belin gosto i theryn tirith."
 		},
 		"form": {
 			"saving": "Preserving...",

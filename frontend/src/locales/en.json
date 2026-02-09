@@ -331,7 +331,13 @@
 			"col_description": "Description",
 			"col_user": "User",
 			"col_ip": "IP Address",
-			"page_info": "Page {page} of {totalPages}"
+			"page_info": "Page {page} of {totalPages}",
+			"clear_all": "Clear Log",
+			"clear_confirm_title": "Clear Audit Log",
+			"clear_confirm_message": "This will permanently delete all audit log entries. This action cannot be undone.",
+			"clear_confirm_button": "Clear All Entries",
+			"cleared_message": "Cleared {count} audit log entries.",
+			"clear_error": "Failed to clear audit log."
 		},
 		"form": {
 			"saving": "Saving...",

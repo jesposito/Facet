@@ -331,7 +331,13 @@
 			"col_description": "Beschreibung",
 			"col_user": "Benutzer",
 			"col_ip": "IP-Adresse",
-			"page_info": "Seite {page} von {totalPages}"
+			"page_info": "Seite {page} von {totalPages}",
+			"clear_all": "Protokoll löschen",
+			"clear_confirm_title": "Audit-Protokoll löschen",
+			"clear_confirm_message": "Alle Audit-Protokolleinträge werden dauerhaft gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+			"clear_confirm_button": "Alle Einträge löschen",
+			"cleared_message": "{count} Audit-Protokolleinträge gelöscht.",
+			"clear_error": "Audit-Protokoll konnte nicht gelöscht werden."
 		},
 		"form": {
 			"saving": "Speichern...",

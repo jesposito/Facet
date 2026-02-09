@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { pb } from '$lib/pocketbase';
+	import { confirm, toasts } from '$lib/stores';
 
 	interface AuditLogEntry {
 		id: string;
@@ -105,6 +106,33 @@
 		loadLogs();
 	}
 
+	async function clearAllLogs() {
+		const confirmed = await confirm({
+			title: $t('admin.audit.clear_confirm_title'),
+			message: $t('admin.audit.clear_confirm_message'),
+			confirmText: $t('admin.audit.clear_confirm_button'),
+			danger: true
+		});
+		if (!confirmed) return;
+
+		try {
+			// Delete all records in batches
+			let deleted = 0;
+			while (true) {
+				const batch = await pb.collection('audit_logs').getList(1, 100);
+				if (batch.items.length === 0) break;
+				await Promise.all(batch.items.map(item => pb.collection('audit_logs').delete(item.id)));
+				deleted += batch.items.length;
+			}
+			toasts.add('success', $t('admin.audit.cleared_message', { values: { count: deleted } }));
+			page = 1;
+			await loadLogs();
+		} catch (err) {
+			console.error('Failed to clear audit logs:', err);
+			toasts.add('error', $t('admin.audit.clear_error'));
+		}
+	}
+
 	function formatDate(dateStr: string): string {
 		if (!dateStr) return '';
 		const d = new Date(dateStr);
@@ -201,8 +229,19 @@
 			</button>
 		{/if}
 
-		<div class="ml-auto text-sm text-gray-500 dark:text-gray-400">
-			{$t('admin.audit.total_entries', { values: { count: totalItems } })}
+		<div class="ml-auto flex items-center gap-3">
+			<span class="text-sm text-gray-500 dark:text-gray-400">
+				{$t('admin.audit.total_entries', { values: { count: totalItems } })}
+			</span>
+			{#if totalItems > 0}
+				<button
+					type="button"
+					onclick={clearAllLogs}
+					class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+				>
+					{$t('admin.audit.clear_all')}
+				</button>
+			{/if}
 		</div>
 	</div>
 

@@ -331,7 +331,13 @@
 			"col_description": "Descripshun",
 			"col_user": "Hooman",
 			"col_ip": "IP Addres",
-			"page_info": "Paeg {page} of {totalPages}"
+			"page_info": "Paeg {page} of {totalPages}",
+			"clear_all": "Cleen Lawg",
+			"clear_confirm_title": "Cleen Awdit Lawg",
+			"clear_confirm_message": "Dis will purmanentlee delet all awdit lawg entriez. U cant undo dis!",
+			"clear_confirm_button": "Cleen All Entriez",
+			"cleared_message": "Cleend {count} awdit lawg entriez.",
+			"clear_error": "Faild 2 cleen awdit lawg."
 		},
 		"form": {
 			"saving": "Saevin...",
