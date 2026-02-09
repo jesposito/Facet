@@ -328,6 +328,7 @@
 			"col_time": "Tiem",
 			"col_action": "Akshun",
 			"col_resource": "Resors",
+			"col_description": "Descripshun",
 			"col_user": "Hooman",
 			"col_ip": "IP Addres",
 			"page_info": "Paeg {page} of {totalPages}"

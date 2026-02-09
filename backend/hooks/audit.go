@@ -109,11 +109,78 @@ func logRequestAction(app *pocketbase.PocketBase, action, collectionName string,
 	}
 
 	resourceID := ""
+	var metadata map[string]any
 	if e.Record != nil {
 		resourceID = e.Record.Id
+		if label := extractLabel(collectionName, e.Record); label != "" {
+			metadata = map[string]any{"label": label}
+		}
 	}
 
-	writeAuditLog(app, action, collectionName, resourceID, email, getIP(e.RequestEvent), getUserAgent(e.RequestEvent), nil)
+	writeAuditLog(app, action, collectionName, resourceID, email, getIP(e.RequestEvent), getUserAgent(e.RequestEvent), metadata)
+}
+
+// extractLabel pulls a human-readable label from a record based on its collection.
+func extractLabel(collectionName string, record *core.Record) string {
+	if record == nil {
+		return ""
+	}
+	switch collectionName {
+	case "profile":
+		return record.GetString("name")
+	case "experience":
+		title := record.GetString("title")
+		company := record.GetString("company")
+		if title != "" && company != "" {
+			return title + " at " + company
+		}
+		return title
+	case "education":
+		degree := record.GetString("degree")
+		institution := record.GetString("institution")
+		if degree != "" && institution != "" {
+			return degree + " — " + institution
+		}
+		return institution
+	case "certifications":
+		return record.GetString("name")
+	case "awards":
+		return record.GetString("title")
+	case "skills":
+		name := record.GetString("name")
+		category := record.GetString("category")
+		if name != "" && category != "" {
+			return name + " (" + category + ")"
+		}
+		return name
+	case "projects":
+		return record.GetString("title")
+	case "posts":
+		return record.GetString("title")
+	case "talks":
+		return record.GetString("title")
+	case "testimonials":
+		return record.GetString("author_name")
+	case "contact_methods":
+		label := record.GetString("label")
+		ctype := record.GetString("type")
+		if label != "" {
+			return label
+		}
+		return ctype
+	case "custom_content":
+		return record.GetString("title")
+	case "views":
+		return record.GetString("name")
+	case "share_tokens", "admin_tags", "ai_providers":
+		return record.GetString("name")
+	case "site_settings":
+		return "Site Settings"
+	case "uploads", "external_media":
+		return record.GetString("display_name")
+	default:
+		return ""
+	}
 }
 
 // writeAuditLog creates an audit log entry. Failures are logged but never block the operation.

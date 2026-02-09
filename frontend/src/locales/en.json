@@ -328,6 +328,7 @@
 			"col_time": "Time",
 			"col_action": "Action",
 			"col_resource": "Resource",
+			"col_description": "Description",
 			"col_user": "User",
 			"col_ip": "IP Address",
 			"page_info": "Page {page} of {totalPages}"
