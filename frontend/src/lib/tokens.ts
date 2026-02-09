@@ -13,12 +13,15 @@ export const TOKEN_COOKIES = {
 
 /**
  * Determine if cookies should use the Secure flag based on request context.
- * Checks X-Forwarded-Proto (set by Caddy/reverse proxies) and the request URL.
+ * Priority: X-Forwarded-Proto (set by Caddy/reverse proxies) > URL protocol.
  * NODE_ENV is NOT used because it's always 'production' in Docker regardless of protocol.
+ * Note: url.protocol requires PROTOCOL_HEADER env in adapter-node; without it, defaults to 'https:'.
  */
 export function isSecureRequest(url: URL, request?: Request): boolean {
 	const forwardedProto = request?.headers.get('x-forwarded-proto');
-	return forwardedProto === 'https' || url.protocol === 'https:';
+	return forwardedProto
+		? forwardedProto === 'https'
+		: url.protocol === 'https:';
 }
 
 // Base cookie options (secure flag added per-request)
