@@ -11,6 +11,45 @@
 		user_email: string;
 		ip_address: string;
 		created: string;
+		metadata: { label?: string; method?: string } | null;
+	}
+
+	// Human-readable names for resource types
+	const RESOURCE_LABELS: Record<string, string> = {
+		auth: 'Authentication',
+		profile: 'Profile',
+		experience: 'Experience',
+		education: 'Education',
+		certifications: 'Certifications',
+		awards: 'Awards',
+		skills: 'Skills',
+		projects: 'Projects',
+		posts: 'Posts',
+		talks: 'Talks',
+		testimonials: 'Testimonials',
+		contact_methods: 'Contact Methods',
+		custom_content: 'Custom Content',
+		views: 'Facets',
+		share_tokens: 'Share Tokens',
+		admin_tags: 'Tags',
+		ai_providers: 'AI Providers',
+		site_settings: 'Site Settings',
+		uploads: 'Uploads',
+		external_media: 'External Media'
+	};
+
+	function formatResourceType(type: string): string {
+		return RESOURCE_LABELS[type] || type;
+	}
+
+	function getDescription(log: AuditLogEntry): string {
+		const label = log.metadata?.label;
+		if (log.action === 'login') {
+			const method = log.metadata?.method;
+			return method === 'oauth2' ? 'OAuth2 login' : 'Password login';
+		}
+		if (label) return label;
+		return '';
 	}
 
 	let logs: AuditLogEntry[] = $state([]);
@@ -197,6 +236,9 @@
 							{$t('admin.audit.col_resource')}
 						</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+							{$t('admin.audit.col_description')}
+						</th>
+						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
 							{$t('admin.audit.col_user')}
 						</th>
 						<th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -216,9 +258,13 @@
 								</span>
 							</td>
 							<td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-								<span class="font-medium">{log.resource_type}</span>
-								{#if log.resource_id}
-									<span class="text-gray-400 dark:text-gray-500 ml-1 text-xs">{log.resource_id}</span>
+								<span class="font-medium">{formatResourceType(log.resource_type)}</span>
+							</td>
+							<td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+								{#if getDescription(log)}
+									<span>{getDescription(log)}</span>
+								{:else}
+									<span class="text-gray-400 dark:text-gray-500">—</span>
 								{/if}
 							</td>
 							<td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">

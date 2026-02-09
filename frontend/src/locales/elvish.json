@@ -328,6 +328,7 @@
 			"col_time": "Lúmë",
 			"col_action": "Govannas",
 			"col_resource": "Adab",
+			"col_description": "Quetil",
 			"col_user": "Hîr",
 			"col_ip": "Parf Sír",
 			"page_info": "Parf {page} o {totalPages}"
