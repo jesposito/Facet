@@ -29,23 +29,18 @@
 	async function loadLogs() {
 		loading = true;
 		try {
-			const params = new URLSearchParams({
-				page: String(page),
-				perPage: String(perPage)
-			});
-			if (filterAction) params.set('action', filterAction);
-			if (filterResource) params.set('resource_type', filterResource);
+			const filterParts: string[] = [];
+			if (filterAction) filterParts.push(`action = "${filterAction}"`);
+			if (filterResource) filterParts.push(`resource_type = "${filterResource}"`);
 
-			const response = await fetch(`/api/admin/audit-logs?${params}`, {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			const result = await pb.collection('audit_logs').getList(page, perPage, {
+				sort: '-created',
+				filter: filterParts.join(' && ')
 			});
 
-			if (response.ok) {
-				const data = await response.json();
-				logs = data.items;
-				totalPages = Number(data.totalPages);
-				totalItems = Number(data.totalItems);
-			}
+			logs = result.items as unknown as AuditLogEntry[];
+			totalPages = result.totalPages;
+			totalItems = result.totalItems;
 		} catch (err) {
 			console.error('Failed to load audit logs:', err);
 		} finally {

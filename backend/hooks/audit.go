@@ -1,13 +1,11 @@
 package hooks
 
 import (
+	"log"
 	"net"
-	"net/http"
 	"strings"
 
-	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
-	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -36,15 +34,13 @@ var auditedCollections = []string{
 }
 
 // RegisterAuditLogging registers hooks to log admin actions to the audit_logs collection.
+// The audit_logs collection is read via PocketBase's native API (ListRule requires auth).
 func RegisterAuditLogging(app *pocketbase.PocketBase) {
 	// Log successful authentication events
 	registerAuthAuditHooks(app)
 
 	// Log CRUD operations on audited collections
 	registerCRUDAuditHooks(app)
-
-	// Register admin endpoint to fetch audit logs
-	registerAuditEndpoint(app)
 }
 
 func registerAuthAuditHooks(app *pocketbase.PocketBase) {
@@ -82,99 +78,11 @@ func registerCRUDAuditHooks(app *pocketbase.PocketBase) {
 	}
 }
 
-func registerAuditEndpoint(app *pocketbase.PocketBase) {
-	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		// GET /api/admin/audit-logs - Fetch paginated audit logs
-		se.Router.GET("/api/admin/audit-logs", func(e *core.RequestEvent) error {
-			page := 1
-			perPage := 50
-
-			if p := e.Request.URL.Query().Get("page"); p != "" {
-				if _, err := parsePositiveInt(p); err == nil {
-					page, _ = parsePositiveInt(p)
-				}
-			}
-			if pp := e.Request.URL.Query().Get("perPage"); pp != "" {
-				if v, err := parsePositiveInt(pp); err == nil && v <= 200 {
-					perPage = v
-				}
-			}
-
-			// Build filter from query params
-			var filterParts []string
-			filterParams := dbx.Params{}
-			var countExprs []dbx.Expression
-
-			if action := e.Request.URL.Query().Get("action"); action != "" {
-				filterParts = append(filterParts, "action = {:action}")
-				filterParams["action"] = action
-				countExprs = append(countExprs, dbx.NewExp("action = {:action}", dbx.Params{"action": action}))
-			}
-			if resourceType := e.Request.URL.Query().Get("resource_type"); resourceType != "" {
-				filterParts = append(filterParts, "resource_type = {:resource_type}")
-				filterParams["resource_type"] = resourceType
-				countExprs = append(countExprs, dbx.NewExp("resource_type = {:rt}", dbx.Params{"rt": resourceType}))
-			}
-
-			var records []*core.Record
-			var err error
-			filter := strings.Join(filterParts, " && ")
-			if filter != "" {
-				records, err = app.FindRecordsByFilter("audit_logs", filter, "-created", perPage, (page-1)*perPage, filterParams)
-			} else {
-				records, err = app.FindRecordsByFilter("audit_logs", "", "-created", perPage, (page-1)*perPage)
-			}
-			if err != nil {
-				errMsg := err.Error()
-				if strings.Contains(errMsg, "no rows") {
-					records = nil // treat as empty
-				} else {
-					app.Logger().Error("audit-logs query failed", "error", errMsg, "filter", filter)
-					return e.JSON(http.StatusInternalServerError, map[string]string{
-						"error":  "Failed to fetch audit logs",
-						"detail": errMsg,
-					})
-				}
-			}
-
-			// Get total count for pagination (uses efficient COUNT query)
-			totalRecords, _ := app.CountRecords("audit_logs", countExprs...)
-
-			items := make([]map[string]any, 0, len(records))
-			for _, r := range records {
-				items = append(items, map[string]any{
-					"id":            r.Id,
-					"action":        r.GetString("action"),
-					"resource_type": r.GetString("resource_type"),
-					"resource_id":   r.GetString("resource_id"),
-					"user_id":       r.GetString("user_id"),
-					"user_email":    r.GetString("user_email"),
-					"ip_address":    r.GetString("ip_address"),
-					"user_agent":    r.GetString("user_agent"),
-					"metadata":      r.Get("metadata"),
-					"status":        r.GetString("status"),
-					"created":       r.GetString("created"),
-				})
-			}
-
-			return e.JSON(http.StatusOK, map[string]any{
-				"items":      items,
-				"page":       page,
-				"perPage":    perPage,
-				"totalItems": totalRecords,
-				"totalPages": (totalRecords + int64(perPage) - 1) / int64(perPage),
-			})
-		}).Bind(apis.RequireAuth())
-
-		return se.Next()
-	})
-}
-
 // writeAuditLog creates an audit log entry. Failures are logged but never block the operation.
 func writeAuditLog(app *pocketbase.PocketBase, action, resourceType, resourceID, userEmail, ipAddress, userAgent string, metadata map[string]any) {
 	collection, err := app.FindCollectionByNameOrId("audit_logs")
 	if err != nil {
-		app.Logger().Warn("audit: collection not found", "error", err)
+		log.Printf("[AUDIT] collection not found: %v", err)
 		return
 	}
 
@@ -192,7 +100,9 @@ func writeAuditLog(app *pocketbase.PocketBase, action, resourceType, resourceID,
 	}
 
 	if err := app.Save(record); err != nil {
-		app.Logger().Warn("audit: failed to write log", "error", err, "action", action, "resource_type", resourceType)
+		log.Printf("[AUDIT] failed to write log: %v (action=%s, resource_type=%s, resource_id=%s)", err, action, resourceType, resourceID)
+	} else {
+		log.Printf("[AUDIT] logged: %s %s %s", action, resourceType, resourceID)
 	}
 }
 
@@ -229,16 +139,3 @@ func getUserAgent(e *core.RequestEvent) string {
 	return ua
 }
 
-func parsePositiveInt(s string) (int, error) {
-	var n int
-	for _, c := range s {
-		if c < '0' || c > '9' {
-			return 0, apis.NewBadRequestError("invalid integer", nil)
-		}
-		n = n*10 + int(c-'0')
-	}
-	if n <= 0 {
-		return 1, nil
-	}
-	return n, nil
-}
