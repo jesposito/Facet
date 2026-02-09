@@ -405,7 +405,13 @@
 			"activity_project": "Projekt",
 			"activity_experience": "Erfahrung",
 			"rss_feed": "RSS-Feed",
-			"talks_calendar": "Vortragskalender"
+			"talks_calendar": "Vortragskalender",
+			"stats_total_visitors": "Besucher gesamt",
+			"visitor_stats": "Besucherstatistiken",
+			"visitor_view_name": "Ansicht",
+			"visitor_count": "Besucher",
+			"visitor_last_visited": "Zuletzt besucht",
+			"visitor_never": "Noch nicht besucht"
 		},
 		"login": {
 			"title": "Bei Facet anmelden",

@@ -405,7 +405,13 @@
 			"activity_project": "Work",
 			"activity_experience": "Journey",
 			"rss_feed": "RSS Scroll",
-			"talks_calendar": "Calendar of Orations"
+			"talks_calendar": "Calendar of Orations",
+			"stats_total_visitors": "Wayfarers of All",
+			"visitor_stats": "Wayfarer Tidings",
+			"visitor_view_name": "Vision",
+			"visitor_count": "Wayfarers",
+			"visitor_last_visited": "Last Beheld",
+			"visitor_never": "Not yet beheld"
 		},
 		"login": {
 			"title": "Enter the Realm of Facet",
