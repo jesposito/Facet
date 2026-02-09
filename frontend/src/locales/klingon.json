@@ -360,7 +360,13 @@
 			"activity_project": "Mission",
 			"activity_experience": "Battle",
 			"rss_feed": "RSS Feed",
-			"talks_calendar": "Speech Calendar"
+			"talks_calendar": "Speech Calendar",
+			"stats_total_visitors": "Total Intruders",
+			"visitor_stats": "Intruder Report",
+			"visitor_view_name": "View",
+			"visitor_count": "Intruders",
+			"visitor_last_visited": "Last Scanned",
+			"visitor_never": "No intruders detected"
 		},
 		"login": {
 			"title": "Enter the Domain of Facet",

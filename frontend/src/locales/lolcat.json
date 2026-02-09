@@ -360,7 +360,13 @@
 			"activity_project": "Projekt",
 			"activity_experience": "Eksperienz",
 			"rss_feed": "RSS Feed",
-			"talks_calendar": "Talkz Calendar"
+			"talks_calendar": "Talkz Calendar",
+			"stats_total_visitors": "Total Vizitorz",
+			"visitor_stats": "Vizitor Statz",
+			"visitor_view_name": "View",
+			"visitor_count": "Vizitorz",
+			"visitor_last_visited": "Last Vizited",
+			"visitor_never": "No vizitorz yet"
 		},
 		"login": {
 			"title": "Sign in 2 Facet",
