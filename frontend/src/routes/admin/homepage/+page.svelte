@@ -390,6 +390,18 @@
 	}
 
 	async function handleSubmit() {
+		// Validate required fields before hitting the API
+		if (!name.trim()) {
+			toasts.add('error', 'Name is required. Please enter your name before saving.');
+			// Scroll to and focus the name input
+			const nameInput = document.getElementById('name');
+			if (nameInput) {
+				nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				nameInput.focus();
+			}
+			return;
+		}
+
 		saving = true;
 		try {
 			// Save profile data

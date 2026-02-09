@@ -36,23 +36,36 @@ var auditedCollections = []string{
 // RegisterAuditLogging registers hooks to log admin actions to the audit_logs collection.
 // The audit_logs collection is read via PocketBase's native API (ListRule requires auth).
 func RegisterAuditLogging(app *pocketbase.PocketBase) {
-	// Log successful authentication events
 	registerAuthAuditHooks(app)
-
-	// Log CRUD operations on audited collections
 	registerCRUDAuditHooks(app)
 }
 
 func registerAuthAuditHooks(app *pocketbase.PocketBase) {
-	// Log password-based login
-	app.OnRecordAuthRequest("users").BindFunc(func(e *core.RecordAuthRequestEvent) error {
+	// Only log actual password logins, not token refreshes.
+	// OnRecordAuthWithPasswordRequest fires only on password auth,
+	// whereas OnRecordAuthRequest fires on every auth including refreshes.
+	app.OnRecordAuthWithPasswordRequest("users").BindFunc(func(e *core.RecordAuthWithPasswordRequestEvent) error {
 		if err := e.Next(); err != nil {
 			return err
 		}
 
-		writeAuditLog(app, "login", "auth", e.Record.Id, e.Record.Email(), getIP(e.RequestEvent), getUserAgent(e.RequestEvent), map[string]any{
-			"method": e.Record.Get("oauth2_provider") != nil,
-		})
+		if e.Record != nil {
+			writeAuditLog(app, "login", "auth", e.Record.Id, e.Record.Email(), getIP(e.RequestEvent), getUserAgent(e.RequestEvent), nil)
+		}
+		return nil
+	})
+
+	// Log OAuth2 logins
+	app.OnRecordAuthWithOAuth2Request("users").BindFunc(func(e *core.RecordAuthWithOAuth2RequestEvent) error {
+		if err := e.Next(); err != nil {
+			return err
+		}
+
+		if e.Record != nil {
+			writeAuditLog(app, "login", "auth", e.Record.Id, e.Record.Email(), getIP(e.RequestEvent), getUserAgent(e.RequestEvent), map[string]any{
+				"method": "oauth2",
+			})
+		}
 		return nil
 	})
 }
@@ -61,21 +74,46 @@ func registerCRUDAuditHooks(app *pocketbase.PocketBase) {
 	for _, collection := range auditedCollections {
 		col := collection // capture for closure
 
-		app.OnRecordAfterCreateSuccess(col).BindFunc(func(e *core.RecordEvent) error {
-			logRecordAction(app, "create", col, e.Record)
-			return e.Next()
+		// Use request-level hooks to capture user email and IP address.
+		// These fire after the API request succeeds (after e.Next() completes the operation).
+		app.OnRecordCreateRequest(col).BindFunc(func(e *core.RecordRequestEvent) error {
+			if err := e.Next(); err != nil {
+				return err
+			}
+			logRequestAction(app, "create", col, e)
+			return nil
 		})
 
-		app.OnRecordAfterUpdateSuccess(col).BindFunc(func(e *core.RecordEvent) error {
-			logRecordAction(app, "update", col, e.Record)
-			return e.Next()
+		app.OnRecordUpdateRequest(col).BindFunc(func(e *core.RecordRequestEvent) error {
+			if err := e.Next(); err != nil {
+				return err
+			}
+			logRequestAction(app, "update", col, e)
+			return nil
 		})
 
-		app.OnRecordAfterDeleteSuccess(col).BindFunc(func(e *core.RecordEvent) error {
-			logRecordAction(app, "delete", col, e.Record)
-			return e.Next()
+		app.OnRecordDeleteRequest(col).BindFunc(func(e *core.RecordRequestEvent) error {
+			if err := e.Next(); err != nil {
+				return err
+			}
+			logRequestAction(app, "delete", col, e)
+			return nil
 		})
 	}
+}
+
+func logRequestAction(app *pocketbase.PocketBase, action, collectionName string, e *core.RecordRequestEvent) {
+	email := ""
+	if e.Auth != nil {
+		email = e.Auth.Email()
+	}
+
+	resourceID := ""
+	if e.Record != nil {
+		resourceID = e.Record.Id
+	}
+
+	writeAuditLog(app, action, collectionName, resourceID, email, getIP(e.RequestEvent), getUserAgent(e.RequestEvent), nil)
 }
 
 // writeAuditLog creates an audit log entry. Failures are logged but never block the operation.
@@ -101,14 +139,7 @@ func writeAuditLog(app *pocketbase.PocketBase, action, resourceType, resourceID,
 
 	if err := app.Save(record); err != nil {
 		log.Printf("[AUDIT] failed to write log: %v (action=%s, resource_type=%s, resource_id=%s)", err, action, resourceType, resourceID)
-	} else {
-		log.Printf("[AUDIT] logged: %s %s %s", action, resourceType, resourceID)
 	}
-}
-
-func logRecordAction(app *pocketbase.PocketBase, action, collectionName string, record *core.Record) {
-	// For CRUD events we don't have request context, so IP/UA are empty
-	writeAuditLog(app, action, collectionName, record.Id, "", "", "", nil)
 }
 
 func getIP(e *core.RequestEvent) string {
@@ -138,4 +169,3 @@ func getUserAgent(e *core.RequestEvent) string {
 	}
 	return ua
 }
-
