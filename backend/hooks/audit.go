@@ -124,10 +124,17 @@ func registerAuditEndpoint(app *pocketbase.PocketBase) {
 			} else {
 				records, err = app.FindRecordsByFilter("audit_logs", "", "-created", perPage, (page-1)*perPage)
 			}
-			if err != nil && !strings.Contains(err.Error(), "no rows") {
-				return e.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "Failed to fetch audit logs",
-				})
+			if err != nil {
+				errMsg := err.Error()
+				if strings.Contains(errMsg, "no rows") {
+					records = nil // treat as empty
+				} else {
+					app.Logger().Error("audit-logs query failed", "error", errMsg, "filter", filter)
+					return e.JSON(http.StatusInternalServerError, map[string]string{
+						"error":  "Failed to fetch audit logs",
+						"detail": errMsg,
+					})
+				}
 			}
 
 			// Get total count for pagination (uses efficient COUNT query)
