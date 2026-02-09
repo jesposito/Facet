@@ -405,7 +405,13 @@
 			"activity_project": "Project",
 			"activity_experience": "Experience",
 			"rss_feed": "RSS Feed",
-			"talks_calendar": "Talks Calendar"
+			"talks_calendar": "Talks Calendar",
+			"stats_total_visitors": "Total Visitors",
+			"visitor_stats": "Visitor Stats",
+			"visitor_view_name": "View",
+			"visitor_count": "Visitors",
+			"visitor_last_visited": "Last Visited",
+			"visitor_never": "Not yet visited"
 		},
 		"login": {
 			"title": "Sign in to Facet",
