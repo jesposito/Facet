@@ -101,25 +101,29 @@ func registerAuditEndpoint(app *pocketbase.PocketBase) {
 			}
 
 			// Build filter from query params
-			filter := ""
-			filterParams := map[string]any{}
+			var filterParts []string
+			filterParams := dbx.Params{}
 			var countExprs []dbx.Expression
 
 			if action := e.Request.URL.Query().Get("action"); action != "" {
-				filter = "action = {:action}"
+				filterParts = append(filterParts, "action = {:action}")
 				filterParams["action"] = action
 				countExprs = append(countExprs, dbx.NewExp("action = {:action}", dbx.Params{"action": action}))
 			}
 			if resourceType := e.Request.URL.Query().Get("resource_type"); resourceType != "" {
-				if filter != "" {
-					filter += " && "
-				}
-				filter += "resource_type = {:resource_type}"
+				filterParts = append(filterParts, "resource_type = {:resource_type}")
 				filterParams["resource_type"] = resourceType
 				countExprs = append(countExprs, dbx.NewExp("resource_type = {:rt}", dbx.Params{"rt": resourceType}))
 			}
 
-			records, err := app.FindRecordsByFilter("audit_logs", filter, "-created", perPage, (page-1)*perPage, filterParams)
+			var records []*core.Record
+			var err error
+			filter := strings.Join(filterParts, " && ")
+			if filter != "" {
+				records, err = app.FindRecordsByFilter("audit_logs", filter, "-created", perPage, (page-1)*perPage, filterParams)
+			} else {
+				records, err = app.FindRecordsByFilter("audit_logs", "", "-created", perPage, (page-1)*perPage)
+			}
 			if err != nil && !strings.Contains(err.Error(), "no rows") {
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Failed to fetch audit logs",
