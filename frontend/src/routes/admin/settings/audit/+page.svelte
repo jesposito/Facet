@@ -33,10 +33,11 @@
 			if (filterAction) filterParts.push(`action = "${filterAction}"`);
 			if (filterResource) filterParts.push(`resource_type = "${filterResource}"`);
 
-			const result = await pb.collection('audit_logs').getList(page, perPage, {
-				sort: '-created',
-				filter: filterParts.join(' && ')
-			});
+			const options: Record<string, string> = { sort: '-created' };
+			const filter = filterParts.join(' && ');
+			if (filter) options.filter = filter;
+
+			const result = await pb.collection('audit_logs').getList(page, perPage, options);
 
 			logs = result.items as unknown as AuditLogEntry[];
 			totalPages = result.totalPages;
