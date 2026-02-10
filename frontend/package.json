@@ -26,6 +26,7 @@
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/typography": "^0.5.10",
     "@types/node": "^20.10.0",
+    "@types/qrcode": "^1.5.6",
     "autoprefixer": "^10.4.16",
     "eslint": "^9.0.0",
     "eslint-plugin-svelte": "^2.45.1",
@@ -42,6 +43,7 @@
     "isomorphic-dompurify": "^2.35.0",
     "marked": "^11.0.0",
     "pocketbase": "^0.21.0",
+    "qrcode": "^1.5.4",
     "svelte-dnd-action": "^0.9.69",
     "svelte-i18n": "^4.0.1"
   },
