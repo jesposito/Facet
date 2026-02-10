@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.16.2 - February 10, 2026
+
+**Bugs Fixed:**
+- Fix homepage visitor counter
+- Fix navbar pill timing
+
+**New Features:**
+- Add content visibility hint on homepage
+- Rework encryption banner
+
+**Pull Requests:** [#389](https://github.com/jesposito/Facet/pull/389),
+
+---
+
+
 ## v2.16.1 - February 10, 2026
 
 **Bugs Fixed:**
