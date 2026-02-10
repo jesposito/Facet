@@ -117,6 +117,8 @@
 			navDndLoaded = true;
 		}
 		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems(), loadPublicViews()]);
+		// Reconcile after all data is loaded — sectionOrder (from loadSettings) + customContentItems (from loadCustomContent) are both stable now
+		reconcileCustomContent();
 	});
 
 	async function loadPublicViews() {
@@ -228,30 +230,34 @@
 				filter: 'visibility = "public" && is_draft = false'
 			});
 			customContentItems = records.items as unknown as CustomContent[];
-
-			// Add custom content items to sectionOrder if they exist
-			const existingKeys = new Set(sectionOrder.map(s => s.key));
-			let nextId = sectionOrder.length;
-			for (const item of customContentItems) {
-				const key = `custom:${item.id}`;
-				if (!existingKeys.has(key)) {
-					sectionOrder = [...sectionOrder, { id: `section-${nextId++}`, key }];
-					// Initialize section config for new custom content
-					if (!sections[key]) {
-						sections[key] = {
-							enabled: true,
-							items: [],
-							expanded: false,
-							layout: 'default',
-							width: 'full'
-						};
-					}
-				}
-			}
 		} catch (err) {
 			console.error('Failed to load custom content:', err);
 		} finally {
 			customContentLoading = false;
+		}
+	}
+
+	// Reconcile custom content into sectionOrder AFTER both loadSettings and loadCustomContent complete.
+	// This avoids a race condition where loadSettings overwrites sectionOrder after loadCustomContent
+	// has already added new custom items, or vice versa.
+	function reconcileCustomContent() {
+		const existingKeys = new Set(sectionOrder.map(s => s.key));
+		let nextId = sectionOrder.length;
+		for (const item of customContentItems) {
+			const key = `custom:${item.id}`;
+			if (!existingKeys.has(key)) {
+				sectionOrder = [...sectionOrder, { id: `section-${nextId++}`, key }];
+			}
+			// Ensure section config exists for all custom content (new and saved)
+			if (!sections[key]) {
+				sections[key] = {
+					enabled: true,
+					items: [],
+					expanded: false,
+					layout: 'default',
+					width: 'full'
+				};
+			}
 		}
 	}
 
