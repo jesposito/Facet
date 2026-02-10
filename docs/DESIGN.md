@@ -1048,7 +1048,7 @@ These export features are planned for later phases:
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `ENCRYPTION_KEY` | Yes | — | 32-byte hex key for encryption |
+| `ENCRYPTION_KEY` | No | Auto-generated | 32-byte hex key for encryption. Auto-generated and saved to `/data/.encryption_key` if not set |
 | `PORT` | No | `8080` | Public port |
 | `APP_URL` | No | `http://localhost:8080` | Public URL |
 | `TRUST_PROXY` | No | `false` | Trust proxy headers for IP |

@@ -13,6 +13,7 @@
 	});
 
 	let viewMetrics: Array<{ id: string; name: string; slug: string; view_count: number; last_viewed_at: string }> = $state([]);
+	let homepageMetrics = $state({ view_count: 0, last_viewed_at: '' });
 	let recentActivity: Array<{ type: string; title: string }> = $state([]);
 	let loading = $state(true);
 	let mounted = false;
@@ -31,11 +32,12 @@
 		if (!mounted) return;
 
 		try {
-			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
+			const [projectsRes, experienceRes, viewsRes, proposalsRes, settingsRes] = await Promise.all([
 				collection('projects').getList(1, 1),
 				collection('experience').getList(1, 1),
 				collection('views').getFullList({ sort: '-view_count' }),
-				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
+				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" }),
+				fetch('/api/site-settings').then(r => r.ok ? r.json() : null).catch(() => null)
 			]);
 
 			if (!mounted) return;
@@ -43,10 +45,16 @@
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			const views = viewsRes as any[];
 
+			const hpViewCount = settingsRes?.homepage_view_count || 0;
+			homepageMetrics = {
+				view_count: hpViewCount,
+				last_viewed_at: settingsRes?.homepage_last_viewed_at || ''
+			};
+
 			stats = {
 				projects: projectsRes.totalItems,
 				experience: experienceRes.totalItems,
-				totalVisitors: views.reduce((sum, v) => sum + (v.view_count || 0), 0),
+				totalVisitors: views.reduce((sum, v) => sum + (v.view_count || 0), 0) + hpViewCount,
 				pendingProposals: proposalsRes.totalItems
 			};
 
@@ -352,7 +360,7 @@
 	</div>
 
 	<!-- Visitor stats -->
-	{#if !loading && viewMetrics.length > 0}
+	{#if !loading && (viewMetrics.length > 0 || homepageMetrics.view_count > 0)}
 		<div class="mt-6 card p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.dashboard.visitor_stats')}</h2>
 			<div class="overflow-x-auto">
@@ -365,6 +373,22 @@
 						</tr>
 					</thead>
 					<tbody>
+						<tr class="border-b border-gray-100 dark:border-gray-800">
+							<td class="py-2.5 pr-4">
+								<a href="/admin/homepage" class="text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1.5">
+									<svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+									</svg>
+									{$t('admin.dashboard.visitor_homepage')}
+								</a>
+							</td>
+							<td class="text-right py-2.5 px-4 font-medium text-gray-900 dark:text-white">
+								{homepageMetrics.view_count.toLocaleString()}
+							</td>
+							<td class="text-right py-2.5 pl-4 text-gray-500 dark:text-gray-400">
+								{homepageMetrics.last_viewed_at ? formatRelativeDate(homepageMetrics.last_viewed_at) : $t('admin.dashboard.visitor_never')}
+							</td>
+						</tr>
 						{#each viewMetrics as view}
 							<tr class="border-b border-gray-100 dark:border-gray-800 last:border-0">
 								<td class="py-2.5 pr-4">

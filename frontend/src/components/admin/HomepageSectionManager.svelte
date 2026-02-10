@@ -235,6 +235,15 @@
 		</div>
 	</div>
 
+	{#if customContentItems.length > 0}
+		<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+			<p class="text-sm text-blue-700 dark:text-blue-300">
+				<strong>Note:</strong> Only custom content marked as <strong>public</strong> and <strong>not in draft</strong> appears here.
+				To change visibility, go to <a href="/admin/custom" class="underline hover:no-underline">Custom Content</a>.
+			</p>
+		</div>
+	{/if}
+
 	{#if loading}
 		<div class="animate-pulse text-center py-8">Loading sections...</div>
 	{:else}

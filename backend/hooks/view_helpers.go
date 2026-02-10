@@ -469,8 +469,20 @@ func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedIt
 	return result
 }
 
-// getSectionConfig returns the configuration for a section from homepage_sections.
-// Returns enabled, items, and isConfigured (whether the section has explicit config).
+func incrementHomepageViewCount(app core.App) {
+	go func() {
+		settings, err := services.LoadSiteSettings(app)
+		if err != nil || settings == nil || settings.Record == nil {
+			return
+		}
+		settings.Record.Set("homepage_view_count", settings.Record.GetInt("homepage_view_count")+1)
+		settings.Record.Set("homepage_last_viewed_at", time.Now())
+		if err := app.Save(settings.Record); err != nil {
+			app.Logger().Warn("Failed to update homepage view metrics", "error", err)
+		}
+	}()
+}
+
 func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabled bool, items []string, isConfigured bool) {
 	if settings == nil || settings.HomepageSections == nil {
 		return true, nil, false

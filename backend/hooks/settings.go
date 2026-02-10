@@ -41,7 +41,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"homepage_enabled":         settings.HomepageEnabled,
+				"homepage_enabled":        settings.HomepageEnabled,
 				"landing_page_message":    settings.LandingPageMessage,
 				"custom_css":              settings.CustomCSS,
 				"ga_measurement_id":       settings.GAMeasurementID,
@@ -56,6 +56,8 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
+				"homepage_view_count":     settings.HomepageViewCount,
+				"homepage_last_viewed_at": settings.HomepageLastViewedAt,
 			})
 		})
 
@@ -66,20 +68,20 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			var req struct {
-				HomepageEnabled       *bool                                         `json:"homepage_enabled"`
-				LandingPageMessage    *string                                       `json:"landing_page_message"`
-				CustomCSS             *string                                       `json:"custom_css"`
-				GAMeasurementID       *string                                       `json:"ga_measurement_id"`
-				HideLoginButton       *bool                                         `json:"hide_login_button"`
-				HideDemoToggle        *bool                                         `json:"hide_demo_toggle"`
-				HomepageCustomContent []services.HomepageCustomContentItem          `json:"homepage_custom_content"`
-				HomepageSectionOrder  []string                                      `json:"homepage_section_order"`
-				HomepageSections      map[string]services.HomepageSectionConfig     `json:"homepage_sections"`
-				SiteNavEnabled        *bool                                         `json:"site_nav_enabled"`
-				SiteNavItems          []services.SiteNavItem                        `json:"site_nav_items"`
-				SkillsCategoryOrder   []string                                      `json:"skills_category_order"`
-				SiteCtaEnabled        *bool                                         `json:"site_cta_enabled"`
-				DefaultLocale         *string                                       `json:"default_locale"`
+				HomepageEnabled       *bool                                     `json:"homepage_enabled"`
+				LandingPageMessage    *string                                   `json:"landing_page_message"`
+				CustomCSS             *string                                   `json:"custom_css"`
+				GAMeasurementID       *string                                   `json:"ga_measurement_id"`
+				HideLoginButton       *bool                                     `json:"hide_login_button"`
+				HideDemoToggle        *bool                                     `json:"hide_demo_toggle"`
+				HomepageCustomContent []services.HomepageCustomContentItem      `json:"homepage_custom_content"`
+				HomepageSectionOrder  []string                                  `json:"homepage_section_order"`
+				HomepageSections      map[string]services.HomepageSectionConfig `json:"homepage_sections"`
+				SiteNavEnabled        *bool                                     `json:"site_nav_enabled"`
+				SiteNavItems          []services.SiteNavItem                    `json:"site_nav_items"`
+				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
+				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
+				DefaultLocale         *string                                   `json:"default_locale"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -150,7 +152,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"homepage_enabled":         settings.HomepageEnabled,
+				"homepage_enabled":        settings.HomepageEnabled,
 				"landing_page_message":    settings.LandingPageMessage,
 				"custom_css":              settings.CustomCSS,
 				"ga_measurement_id":       settings.GAMeasurementID,
