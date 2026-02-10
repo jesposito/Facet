@@ -3,6 +3,31 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.16.1 - February 10, 2026
+
+**Bugs Fixed:**
+- Fix HTTP authentication broken for self-hosters
+- Fix crypto.randomUUID crash on HTTP
+- Fix profile create/update race with setup wizard
+- Add homepage validation for required name field
+- Fix audit log autodate fields
+- Fix backup storage method to use PocketBase's CreateBackup API
+- Improve audit count performance with SQL COUNT
+- Fix audit IPv6 parsing issue
+- Fix cleanup date format mismatch
+
+**New Features:**
+- Add automated backup system with daily scheduled backups and manual backup button
+- Add encryption key management with warning banner for auto-generated keys
+- Add security test coverage with real table-driven tests
+- Add audit logging for admin actions with filtering options
+- Add stale data cleanup background job
+
+**Pull Requests:** [#382](https://github.com/jesposito/Facet/pull/382),
+
+---
+
+
 ## v2.16.0 - February 06, 2026
 
 **New Features:**
