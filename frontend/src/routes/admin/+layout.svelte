@@ -12,6 +12,7 @@
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
+	import TwoFactorModal from '$components/admin/TwoFactorModal.svelte';
 	import SetupWizard from '$components/admin/SetupWizard.svelte';
 	import { setupWizard, shouldShowWizard } from '$lib/stores/setupWizard';
 	import type { Profile, View } from '$lib/pocketbase';
@@ -25,6 +26,7 @@
 	let authorized = $state(false);
 	let mounted = $state(false);
 	let showPasswordChangeModal = $state(false);
+	let showTwoFactorModal = $state(false);
 	
 	// Mobile detection for responsive sidebar behavior
 	// Mobile: sidebar is overlay drawer (hidden by default)
@@ -38,6 +40,38 @@
 	let encryptionKeySource = $state('');
 
 
+
+	async function check2FAStatus(): Promise<boolean> {
+		try {
+			const response = await fetch('/api/totp/status', {
+				headers: { Authorization: `Bearer ${pb.authStore.token}` }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				if (data.enabled && !data.verified) {
+					showTwoFactorModal = true;
+					return true;
+				}
+			}
+		} catch (err) {
+			console.error('Failed to check 2FA status:', err);
+		}
+		return false;
+	}
+
+	function handleTwoFactorVerified(_nonce: string) {
+		showTwoFactorModal = false;
+		authorized = true;
+		checkSetupWizard();
+		checkEncryptionKeyStatus();
+	}
+
+	function handleTwoFactorLogout() {
+		showTwoFactorModal = false;
+		pb.authStore.clear();
+		document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+		goto('/admin/login');
+	}
 
 	async function checkEncryptionKeyStatus() {
 		try {
@@ -171,10 +205,13 @@
 				// Token is valid - proceed
 				const needsPasswordChange = await checkDefaultPassword();
 				if (!needsPasswordChange) {
-					checkSetupWizard();
+					const needs2FA = await check2FAStatus();
+					if (!needs2FA) {
+						checkSetupWizard();
+						checkEncryptionKeyStatus();
+						authorized = true;
+					}
 				}
-				checkEncryptionKeyStatus();
-				authorized = true;
 				loading = false;
 			} catch (err) {
 				// Token validation failed - clear stale auth and redirect to login
@@ -238,16 +275,20 @@
 	run(() => {
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
-			if (isAuth && !authorized) {
-				// User just became authenticated - validate and authorize
-				authorized = true;
+			if (isAuth && !authorized && !showTwoFactorModal) {
 				loading = false;
 				(async () => {
 					const needsPasswordChange = await checkDefaultPassword();
 					if (!needsPasswordChange) {
-						checkSetupWizard();
+						const needs2FA = await check2FAStatus();
+						if (!needs2FA) {
+							authorized = true;
+							checkSetupWizard();
+							checkEncryptionKeyStatus();
+						}
+					} else {
+						authorized = true;
 					}
-					checkEncryptionKeyStatus();
 				})();
 			} else if (!isAuth && authorized) {
 				// User is no longer authenticated - clear state and redirect
@@ -335,11 +376,13 @@
 						</div>
 					</div>
 				{/if}
-				{#key $demoMode}
-					{@render children?.()}
-				{/key}
+				{@render children?.()}
 			</main>
 		</div>
+
+		{#if showTwoFactorModal}
+			<TwoFactorModal onVerified={handleTwoFactorVerified} onLogout={handleTwoFactorLogout} />
+		{/if}
 
 		{#if showPasswordChangeModal}
 			<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />

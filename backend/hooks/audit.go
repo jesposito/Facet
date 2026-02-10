@@ -236,3 +236,18 @@ func getUserAgent(e *core.RequestEvent) string {
 	}
 	return ua
 }
+
+// WriteAuditLog exports audit logging for use by other hook files (e.g. TOTP)
+func WriteAuditLog(app *pocketbase.PocketBase, action, resourceType, resourceID, userEmail, ipAddress, userAgent string, metadata map[string]any) {
+	writeAuditLog(app, action, resourceType, resourceID, userEmail, ipAddress, userAgent, metadata)
+}
+
+// GetIP exports IP extraction for use by other hook files
+func GetIP(e *core.RequestEvent) string {
+	return getIP(e)
+}
+
+// GetUserAgent exports user agent extraction for use by other hook files
+func GetUserAgent(e *core.RequestEvent) string {
+	return getUserAgent(e)
+}

@@ -9,6 +9,21 @@
 			"encryption_info_title": "A Gentle Reminder: The Key of Binding",
 			"encryption_info_message": "Thy key of encryption rests within /data/.encryption_key. This key wards thy API tokens and passages of sharing. Ensure the halls of /data are preserved in thy chronicles — should this key be lost, that which was sealed cannot be unsealed."
 		},
+		"two_factor": {
+			"title": "Two-Fold Warding",
+			"description": "Speak the 6-rune code from thy warding stone to continue thy passage.",
+			"recovery_description": "Speak one of thy recovery incantations. Each may be uttered but once.",
+			"code_label": "Warding Code",
+			"recovery_label": "Recovery Incantation",
+			"verify_button": "Verify",
+			"verifying": "Verifying thy identity...",
+			"use_recovery": "Use a recovery incantation",
+			"use_totp": "Use warding stone code",
+			"logout_link": "Depart",
+			"error_code_length": "Speak a 6-rune code, if thou wilt",
+			"error_recovery_format": "Recovery incantations bear the form XXXX-XXXX",
+			"error_invalid": "The warding code was not recognized"
+		},
 		"settings_page": {
 			"title": "Inscriptions",
 			"page_title_suffix": "| Facet",
@@ -41,6 +56,29 @@
 				"error_min_length": "New secret word must bear at least eight runes",
 				"error_mismatch": "Secret words do not align",
 				"error_same_password": "New secret word must differ from the current"
+			},
+			"two_factor": {
+				"title": "Two-Fold Warding",
+				"description": "Add a deeper ward to thy identity using a warding stone of authentication.",
+				"status_enabled": "Awakened",
+				"status_disabled": "Dormant",
+				"enable_button": "Awaken Two-Fold Warding",
+				"scan_qr": "Present this sigil to thy warding stone (Google Authenticator, Authy, or kindred)",
+				"manual_entry": "Or inscribe this key by hand:",
+				"confirm_code_label": "Speak the 6-rune code from thy stone",
+				"confirm_button": "Verify & Awaken",
+				"enabled_toast": "Two-fold warding has been awakened",
+				"disabled_toast": "Two-fold warding has fallen dormant",
+				"disable_2fa": "Still the Warding",
+				"disable_button": "Lay Two-Fold Warding to Rest",
+				"disable_confirm": "Speak thy warding code or a recovery incantation to lay the ward to rest.",
+				"regenerate_codes": "Reforge Recovery Incantations",
+				"regenerate_button": "Forge New Incantations",
+				"regenerate_confirm": "Speak thy warding code to forge new recovery incantations. All existing incantations shall fade.",
+				"codes_regenerated_toast": "Recovery incantations have been reforged",
+				"recovery_warning": "Preserve thy recovery incantations",
+				"recovery_save_hint": "Keep these incantations in a place of safety. Each may be spoken but once. Should thy warding stone be lost, these words shall grant thee passage.",
+				"recovery_dismiss": "I have preserved my recovery incantations"
 			},
 			"appearance": {
 				"section_title": "Raiment",

@@ -9,6 +9,21 @@
 			"encryption_info_title": "Backup Reminder: Encryption Key",
 			"encryption_info_message": "Your encryption key is stored at /data/.encryption_key. This key protects your API tokens and share links. Make sure /data is included in your backups — if this key is lost, encrypted data cannot be recovered."
 		},
+		"two_factor": {
+			"title": "Two-Factor Authentication",
+			"description": "Enter the 6-digit code from your authenticator app to continue.",
+			"recovery_description": "Enter one of your recovery codes. Each code can only be used once.",
+			"code_label": "Authentication Code",
+			"recovery_label": "Recovery Code",
+			"verify_button": "Verify",
+			"verifying": "Verifying...",
+			"use_recovery": "Use a recovery code",
+			"use_totp": "Use authenticator code",
+			"logout_link": "Sign out",
+			"error_code_length": "Please enter a 6-digit code",
+			"error_recovery_format": "Recovery codes are in the format XXXX-XXXX",
+			"error_invalid": "Invalid verification code"
+		},
 		"settings_page": {
 			"title": "Settings",
 			"page_title_suffix": "| Facet",
@@ -41,6 +56,29 @@
 				"error_min_length": "New password must be at least 8 characters",
 				"error_mismatch": "Passwords do not match",
 				"error_same_password": "New password must be different from current password"
+			},
+			"two_factor": {
+				"title": "Two-Factor Authentication",
+				"description": "Add an extra layer of security to your account using an authenticator app.",
+				"status_enabled": "Enabled",
+				"status_disabled": "Disabled",
+				"enable_button": "Enable Two-Factor Authentication",
+				"scan_qr": "Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)",
+				"manual_entry": "Or enter this key manually:",
+				"confirm_code_label": "Enter the 6-digit code from your app",
+				"confirm_button": "Verify & Enable",
+				"enabled_toast": "Two-factor authentication has been enabled",
+				"disabled_toast": "Two-factor authentication has been disabled",
+				"disable_2fa": "Disable 2FA",
+				"disable_button": "Disable Two-Factor Authentication",
+				"disable_confirm": "Enter your authenticator code or a recovery code to disable 2FA.",
+				"regenerate_codes": "Regenerate Recovery Codes",
+				"regenerate_button": "Generate New Codes",
+				"regenerate_confirm": "Enter your authenticator code to generate new recovery codes. This will invalidate all existing codes.",
+				"codes_regenerated_toast": "Recovery codes have been regenerated",
+				"recovery_warning": "Save your recovery codes",
+				"recovery_save_hint": "Store these codes in a safe place. Each code can only be used once. If you lose access to your authenticator app, you can use these to sign in.",
+				"recovery_dismiss": "I've saved my recovery codes"
 			},
 			"appearance": {
 				"section_title": "Appearance",

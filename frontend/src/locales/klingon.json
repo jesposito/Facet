@@ -9,6 +9,21 @@
 			"encryption_info_title": "Tactical Reminder: Encryption Key",
 			"encryption_info_message": "Your encryption key is secured at /data/.encryption_key. This key guards your API tokens and access codes. Ensure /data is included in your backup protocols — if this key is lost, encrypted data cannot be recovered. A warrior always protects their arsenal."
 		},
+		"two_factor": {
+			"title": "Two-Factor Defense Protocol",
+			"description": "Enter the 6-digit battle code from your authenticator weapon to proceed.",
+			"recovery_description": "Enter one of your emergency codes. Each code may be deployed only once.",
+			"code_label": "Battle Code",
+			"recovery_label": "Emergency Code",
+			"verify_button": "Verify",
+			"verifying": "Verifying identity...",
+			"use_recovery": "Deploy emergency code",
+			"use_totp": "Use authenticator weapon",
+			"logout_link": "Disengage",
+			"error_code_length": "Enter a 6-digit battle code, warrior",
+			"error_recovery_format": "Emergency codes follow the format XXXX-XXXX",
+			"error_invalid": "Invalid verification code. Try again!"
+		},
 		"settings_page": {
 			"title": "Battle Configurations",
 			"page_title_suffix": "| Facet",
@@ -41,6 +56,29 @@
 				"error_min_length": "New defense code must have at least 8 characters. Do not be weak!",
 				"error_mismatch": "Defense codes do not match. Focus, warrior!",
 				"error_same_password": "New defense code must differ from the current. Improve yourself!"
+			},
+			"two_factor": {
+				"title": "Two-Factor Defense Protocol",
+				"description": "Add an additional layer of defense to your identity using an authenticator weapon.",
+				"status_enabled": "Armed",
+				"status_disabled": "Disarmed",
+				"enable_button": "Arm Two-Factor Defense",
+				"scan_qr": "Scan this tactical code with your authenticator weapon (Google Authenticator, Authy, etc.)",
+				"manual_entry": "Or enter this key manually into your weapon:",
+				"confirm_code_label": "Enter the 6-digit code from your weapon",
+				"confirm_button": "Verify & Arm",
+				"enabled_toast": "Two-factor defense protocol armed. Qapla'!",
+				"disabled_toast": "Two-factor defense protocol disarmed",
+				"disable_2fa": "Disarm 2FA",
+				"disable_button": "Disarm Two-Factor Defense",
+				"disable_confirm": "Enter your authenticator code or an emergency code to disarm 2FA.",
+				"regenerate_codes": "Regenerate Emergency Codes",
+				"regenerate_button": "Generate New Codes",
+				"regenerate_confirm": "Enter your authenticator code to generate new emergency codes. All existing codes will be destroyed.",
+				"codes_regenerated_toast": "Emergency codes have been regenerated",
+				"recovery_warning": "Secure your emergency codes",
+				"recovery_save_hint": "Store these codes in a fortified location. Each code deploys only once. If you lose your authenticator weapon, these codes are your last line of defense.",
+				"recovery_dismiss": "I have secured my emergency codes"
 			},
 			"appearance": {
 				"section_title": "Battle Dress",

@@ -9,6 +9,21 @@
 			"encryption_info_title": "Remindr: Bak Up Ur Encrypshun Kee",
 			"encryption_info_message": "Ur encrypshun kee iz at /data/.encryption_key. Dis kee protectz ur API tokenz n share linkz. Maek shur /data iz in ur bakupz — if dis kee iz lost, encryptd data cant be recoverd. Srsly."
 		},
+		"two_factor": {
+			"title": "Two-Factr Authenticashun",
+			"description": "Entr teh 6-digit coed frum ur authenticatr app 2 continyu.",
+			"recovery_description": "Entr wun of ur recuvry coedz. Each coed can only be uzd wunce.",
+			"code_label": "Authenticashun Coed",
+			"recovery_label": "Recuvry Coed",
+			"verify_button": "Verify",
+			"verifying": "Verifyin...",
+			"use_recovery": "Use a recuvry coed",
+			"use_totp": "Use authenticatr coed",
+			"logout_link": "Sign owt",
+			"error_code_length": "Plz entr a 6-digit coed",
+			"error_recovery_format": "Recuvry coedz r in teh format XXXX-XXXX",
+			"error_invalid": "Invalid verificashun coed"
+		},
 		"settings_page": {
 			"title": "Settingz",
 			"page_title_suffix": "| Facet",
@@ -41,6 +56,29 @@
 				"error_min_length": "New passwurd must be at leest 8 characterz",
 				"error_mismatch": "Passwurdz do nawt match",
 				"error_same_password": "New passwurd must be diffrent frum current passwurd"
+			},
+			"two_factor": {
+				"title": "Two-Factr Authenticashun",
+				"description": "Add an extra layr of sekurity 2 ur accownt usin an authenticatr app.",
+				"status_enabled": "On! Much sekure!",
+				"status_disabled": "Off",
+				"enable_button": "Enabl Two-Factr Authenticashun",
+				"scan_qr": "Scan dis QR coed wif ur authenticatr app (Googl Authenticatr, Authy, etc.)",
+				"manual_entry": "Or entr dis kee manualy:",
+				"confirm_code_label": "Entr teh 6-digit coed frum ur app",
+				"confirm_button": "Verify & Enabl",
+				"enabled_toast": "Two-factr authenticashun haz been enabld! Much sekure!",
+				"disabled_toast": "Two-factr authenticashun haz been disabld",
+				"disable_2fa": "Disabl 2FA",
+				"disable_button": "Disabl Two-Factr Authenticashun",
+				"disable_confirm": "Entr ur authenticatr coed or a recuvry coed 2 disabl 2FA.",
+				"regenerate_codes": "Regenrat Recuvry Coedz",
+				"regenerate_button": "Maek New Coedz",
+				"regenerate_confirm": "Entr ur authenticatr coed 2 generat new recuvry coedz. Dis will maek all existin coedz useles.",
+				"codes_regenerated_toast": "Recuvry coedz haz been regenratd",
+				"recovery_warning": "Saev ur recuvry coedz",
+				"recovery_save_hint": "Stor thees coedz in a saef plac. Each coed can only be uzd wunce. If u looz akses 2 ur authenticatr app, u can use thees 2 sign in.",
+				"recovery_dismiss": "Iv savd mah recuvry coedz"
 			},
 			"appearance": {
 				"section_title": "Appearanz",
