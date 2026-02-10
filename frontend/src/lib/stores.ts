@@ -44,7 +44,7 @@ function createToastStore() {
 	const { subscribe, update } = writable<Toast[]>([]);
 
 	const add = (type: Toast['type'], message: string, duration = 5000) => {
-		const id = crypto.randomUUID();
+		const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
 		update((toasts) => [...toasts, { id, type, message, duration }]);
 		if (duration > 0) {
 			setTimeout(() => {

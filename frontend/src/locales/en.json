@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Loading admin...",
-			"close_navigation": "Close navigation menu"
+			"close_navigation": "Close navigation menu",
+			"encryption_warning_title": "Encryption Key Auto-Generated",
+			"encryption_warning_message": "Your encryption key was auto-generated and saved to /data/.encryption_key. This key encrypts your API tokens — make sure your /data directory is included in your backups.",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Settings",
@@ -205,7 +208,27 @@
 			"new_features": "New Features",
 			"other_changes": "Other Changes",
 			"show_more": "Show more ({count} remaining)",
-			"view_full_changelog": "View full changelog on GitHub"
+			"view_full_changelog": "View full changelog on GitHub",
+			"backup_title": "Database Backup",
+			"backup_now": "Backup Now",
+			"backup_running": "Backing up...",
+			"backup_last": "Last Backup",
+			"backup_never": "Never",
+			"backup_count": "Total Backups",
+			"backup_location": "Backup Location",
+			"backup_latest_file": "Latest",
+			"backup_schedule_note": "Backups run automatically once daily. Configure with BACKUP_DIR, BACKUP_MAX_COUNT, and BACKUP_HOUR environment variables.",
+			"show_all_backups": "Show all backups",
+			"hide_backups": "Hide backups",
+			"restore_button": "Restore",
+			"restore_confirm_title": "Restore from Backup",
+			"restore_confirm_message": "This will replace your current database with the selected backup. You will be logged out and the server will restart briefly.",
+			"restore_confirm_warning": "This cannot be undone. Make sure you have a current backup before proceeding.",
+			"restore_confirm_button": "Restore Backup",
+			"restore_overlay_title": "Restoring from Backup...",
+			"restore_overlay_message": "The server is restarting with restored data. Do not close this page.",
+			"restore_failed": "Restore Failed",
+			"restore_timeout": "Server did not respond after restore. Check your container logs."
 		},
 		"ai_assistant": {
 			"title": "AI Writing Assistant",
@@ -288,6 +311,34 @@
 			"save_failed": "Failed to save tag",
 			"delete_failed": "Failed to delete tag"
 		},
+		"audit": {
+			"title": "Audit Log",
+			"description": "A read-only log of admin actions — logins, content changes, and settings updates.",
+			"filter_action": "Action",
+			"filter_resource": "Resource",
+			"all_actions": "All actions",
+			"all_resources": "All resources",
+			"action_create": "Create",
+			"action_update": "Update",
+			"action_delete": "Delete",
+			"action_login": "Login",
+			"clear_filters": "Clear filters",
+			"total_entries": "{count} entries",
+			"no_entries": "No audit log entries yet.",
+			"col_time": "Time",
+			"col_action": "Action",
+			"col_resource": "Resource",
+			"col_description": "Description",
+			"col_user": "User",
+			"col_ip": "IP Address",
+			"page_info": "Page {page} of {totalPages}",
+			"clear_all": "Clear Log",
+			"clear_confirm_title": "Clear Audit Log",
+			"clear_confirm_message": "This will permanently delete all audit log entries. This action cannot be undone.",
+			"clear_confirm_button": "Clear All Entries",
+			"cleared_message": "Cleared {count} audit log entries.",
+			"clear_error": "Failed to clear audit log."
+		},
 		"form": {
 			"saving": "Saving...",
 			"saved": "Saved",
@@ -324,6 +375,7 @@
 			"analytics": "Analytics",
 			"integrations": "Integrations",
 			"admin_tags": "Admin Tags",
+			"audit_log": "Audit Log",
 			"media_library": "Media Library",
 			"share_tokens": "Share Tokens",
 			"about_facet": "About Facet",
@@ -360,7 +412,13 @@
 			"activity_project": "Project",
 			"activity_experience": "Experience",
 			"rss_feed": "RSS Feed",
-			"talks_calendar": "Talks Calendar"
+			"talks_calendar": "Talks Calendar",
+			"stats_total_visitors": "Total Visitors",
+			"visitor_stats": "Visitor Stats",
+			"visitor_view_name": "View",
+			"visitor_count": "Visitors",
+			"visitor_last_visited": "Last Visited",
+			"visitor_never": "Not yet visited"
 		},
 		"login": {
 			"title": "Sign in to Facet",

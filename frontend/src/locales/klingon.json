@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Preparing for battle...",
-			"close_navigation": "Seal the tactical display"
+			"close_navigation": "Seal the tactical display",
+			"encryption_warning_title": "Encryption Key Forged Automatically",
+			"encryption_warning_message": "Your encryption key was forged and stored at /data/.encryption_key. This key protects your API tokens — ensure your /data territory is secured in your backups!",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Battle Configurations",
@@ -205,7 +208,27 @@
 			"new_features": "New Weapons",
 			"other_changes": "Other Victories",
 			"show_more": "Show more ({count} remaining)",
-			"view_full_changelog": "View full battle records on GitHub"
+			"view_full_changelog": "View full battle records on GitHub",
+			"backup_title": "De' pol choq",
+			"backup_now": "DaH choq",
+			"backup_running": "choq taH...",
+			"backup_last": "Qav choq",
+			"backup_never": "not",
+			"backup_count": "Hoch choq mI'",
+			"backup_location": "choq Daq",
+			"backup_latest_file": "chu'",
+			"backup_schedule_note": "choq motlh jaj Hoch chenmoH. BACKUP_DIR, BACKUP_MAX_COUNT, BACKUP_HOUR yIlo'.",
+			"show_all_backups": "Hoch choq yI'ang",
+			"hide_backups": "choq yISo'",
+			"restore_button": "chenqa'moH",
+			"restore_confirm_title": "choq'vo' chenqa'moH",
+			"restore_confirm_message": "DaH De'wI' choq lInglu'. bInarghmoH 'ej De'wI' chu'qa'.",
+			"restore_confirm_warning": "vangvam ngoQbe'. choq DaH yIta'.",
+			"restore_confirm_button": "choq chenqa'moH",
+			"restore_overlay_title": "chenqa'moHtaH...",
+			"restore_overlay_message": "De'wI' chu'qa'taH choq lo'. fen yISoQmoHQo'.",
+			"restore_failed": "chenqa'moH luj",
+			"restore_timeout": "De'wI' jangbe' chenqa'moH. container logs yIbuS."
 		},
 		"ai_assistant": {
 			"title": "Tactical AI",
@@ -288,6 +311,34 @@
 			"save_failed": "Tag could not be secured",
 			"delete_failed": "Tag could not be destroyed"
 		},
+		"audit": {
+			"title": "yIqel ta",
+			"description": "ta laH neH — 'el, choH, choHmoH je.",
+			"filter_action": "ta",
+			"filter_resource": "Dol",
+			"all_actions": "Hoch ta",
+			"all_resources": "Hoch Dol",
+			"action_create": "chenmoH",
+			"action_update": "choH",
+			"action_delete": "Qaw'",
+			"action_login": "'el",
+			"clear_filters": "yIteq Soj",
+			"total_entries": "{count} mung",
+			"no_entries": "ta qel tu'lu'be'.",
+			"col_time": "poH",
+			"col_action": "ta",
+			"col_resource": "Dol",
+			"col_description": "QIj",
+			"col_user": "lo'wI'",
+			"col_ip": "De' nab",
+			"page_info": "nav {page} vo' {totalPages}",
+			"clear_all": "QIn Dor",
+			"clear_confirm_title": "QIn ta Dor",
+			"clear_confirm_message": "Hoch QIn ta Dorlu'. vangvam lughoSlaHbe'.",
+			"clear_confirm_button": "Hoch QIn Dor",
+			"cleared_message": "{count} QIn ta Dorlu'.",
+			"clear_error": "QIn ta DorlaHbe'."
+		},
 		"form": {
 			"saving": "Transmitting...",
 			"saved": "Secured",
@@ -324,6 +375,7 @@
 			"analytics": "Intelligence",
 			"integrations": "Alliances",
 			"admin_tags": "Battle Tags",
+			"audit_log": "yIqel ta",
 			"media_library": "Weapons Locker",
 			"share_tokens": "Access Tokens",
 			"about_facet": "About Facet",
@@ -360,7 +412,13 @@
 			"activity_project": "Mission",
 			"activity_experience": "Battle",
 			"rss_feed": "RSS Feed",
-			"talks_calendar": "Speech Calendar"
+			"talks_calendar": "Speech Calendar",
+			"stats_total_visitors": "Total Intruders",
+			"visitor_stats": "Intruder Report",
+			"visitor_view_name": "View",
+			"visitor_count": "Intruders",
+			"visitor_last_visited": "Last Scanned",
+			"visitor_never": "No intruders detected"
 		},
 		"login": {
 			"title": "Enter the Domain of Facet",
