@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Loadingz admin... plz wait kthx",
-			"close_navigation": "Cloze teh nav menu"
+			"close_navigation": "Cloze teh nav menu",
+			"encryption_warning_title": "Encrypshun Key Wuz Auto-Maded",
+			"encryption_warning_message": "Ur encrypshun key wuz auto-maded n savd 2 /data/.encryption_key. Dis key protectz ur API tokens — maek shur ur /data folder iz in ur backupz kthx.",
+			"encryption_warning_dismiss": "K whatevr"
 		},
 		"settings_page": {
 			"title": "Settingz",
@@ -205,7 +208,27 @@
 			"new_features": "New Featurez",
 			"other_changes": "Othr Chayngez",
 			"show_more": "Show moar ({count} remainin)",
-			"view_full_changelog": "View full changelog on GitHub"
+			"view_full_changelog": "View full changelog on GitHub",
+			"backup_title": "Databais Bakup",
+			"backup_now": "Bakup Nao",
+			"backup_running": "Bakkin up...",
+			"backup_last": "Last Bakup",
+			"backup_never": "Nevr",
+			"backup_count": "Total Bakupz",
+			"backup_location": "Bakup Locashun",
+			"backup_latest_file": "Laitest",
+			"backup_schedule_note": "Bakupz run automagikly wunce a dai. Configur wif BACKUP_DIR, BACKUP_MAX_COUNT, an BACKUP_HOUR env variabulz.",
+			"show_all_backups": "Show all bakupz",
+			"hide_backups": "Hied bakupz",
+			"restore_button": "Restor",
+			"restore_confirm_title": "Restor frum Bakup",
+			"restore_confirm_message": "Dis will replaec ur databais wif teh selektd bakup. U will be logd owt an teh servr will restart brieflee.",
+			"restore_confirm_warning": "Dis cant be undun. Maek shur u haz a curnt bakup furst.",
+			"restore_confirm_button": "Restor Bakup",
+			"restore_overlay_title": "Restorin frum Bakup...",
+			"restore_overlay_message": "Teh servr iz restartin wif restord data. DO NOT CLOEZ DIS PAEG.",
+			"restore_failed": "Restor Faild",
+			"restore_timeout": "Servr did not respond aftr restor. Chek ur containr logz."
 		},
 		"ai_assistant": {
 			"title": "AI Writin Halper",
@@ -288,6 +311,34 @@
 			"save_failed": "Faild 2 saev tag",
 			"delete_failed": "Faild 2 delet tag"
 		},
+		"audit": {
+			"title": "Audit Logz",
+			"description": "A red-onlee log of admin stuffz — loginz, content changez, an settingz updatez.",
+			"filter_action": "Akshun",
+			"filter_resource": "Resors",
+			"all_actions": "All akshunz",
+			"all_resources": "All resorsez",
+			"action_create": "Maek",
+			"action_update": "Updait",
+			"action_delete": "Deleet",
+			"action_login": "Login",
+			"clear_filters": "Cleer filterz",
+			"total_entries": "{count} entriez",
+			"no_entries": "No audit log entriez yet. Such emptee.",
+			"col_time": "Tiem",
+			"col_action": "Akshun",
+			"col_resource": "Resors",
+			"col_description": "Descripshun",
+			"col_user": "Hooman",
+			"col_ip": "IP Addres",
+			"page_info": "Paeg {page} of {totalPages}",
+			"clear_all": "Cleen Lawg",
+			"clear_confirm_title": "Cleen Awdit Lawg",
+			"clear_confirm_message": "Dis will purmanentlee delet all awdit lawg entriez. U cant undo dis!",
+			"clear_confirm_button": "Cleen All Entriez",
+			"cleared_message": "Cleend {count} awdit lawg entriez.",
+			"clear_error": "Faild 2 cleen awdit lawg."
+		},
 		"form": {
 			"saving": "Saevin...",
 			"saved": "Saevd!",
@@ -324,6 +375,7 @@
 			"analytics": "Analyticz",
 			"integrations": "Integrayshunz",
 			"admin_tags": "Admin Tagz",
+			"audit_log": "Audit Logz",
 			"media_library": "Media Library",
 			"share_tokens": "Share Tokenz",
 			"about_facet": "Abowt Facet",
@@ -360,7 +412,13 @@
 			"activity_project": "Projekt",
 			"activity_experience": "Eksperienz",
 			"rss_feed": "RSS Feed",
-			"talks_calendar": "Talkz Calendar"
+			"talks_calendar": "Talkz Calendar",
+			"stats_total_visitors": "Total Vizitorz",
+			"visitor_stats": "Vizitor Statz",
+			"visitor_view_name": "View",
+			"visitor_count": "Vizitorz",
+			"visitor_last_visited": "Last Vizited",
+			"visitor_never": "No vizitorz yet"
 		},
 		"login": {
 			"title": "Sign in 2 Facet",

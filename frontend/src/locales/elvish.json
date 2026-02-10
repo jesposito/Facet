@@ -2,7 +2,10 @@
 	"admin": {
 		"layout": {
 			"loading": "Awaiting the light of the Eldar...",
-			"close_navigation": "Close the paths of wandering"
+			"close_navigation": "Close the paths of wandering",
+			"encryption_warning_title": "The Key of Binding was woven anew",
+			"encryption_warning_message": "Your key of encryption was woven of its own accord and laid within /data/.encryption_key. This key guards your sealed tokens — ensure the halls of /data are preserved in your chronicles.",
+			"encryption_warning_dismiss": "Dismiss"
 		},
 		"settings_page": {
 			"title": "Inscriptions",
@@ -205,7 +208,27 @@
 			"new_features": "New Enchantments",
 			"other_changes": "Other Turnings",
 			"show_more": "Reveal more ({count} remaining)",
-			"view_full_changelog": "Behold full scrolls of change on GitHub"
+			"view_full_changelog": "Behold full scrolls of change on GitHub",
+			"backup_title": "Tirith i Parma",
+			"backup_now": "Tirith si",
+			"backup_running": "Tirith...",
+			"backup_last": "I vedui tirith",
+			"backup_never": "Úner",
+			"backup_count": "Ilye tirith",
+			"backup_location": "Sîr i tirith",
+			"backup_latest_file": "I anuir",
+			"backup_schedule_note": "Tirith auta meren ilaurëa. Cano an BACKUP_DIR, BACKUP_MAX_COUNT, ar BACKUP_HOUR.",
+			"show_all_backups": "Tana ilye tirith",
+			"hide_backups": "Nurta tirith",
+			"restore_button": "Ennorath",
+			"restore_confirm_title": "Ennorath o tirith",
+			"restore_confirm_message": "I parma sí ná exchannëa le tirith. Le nauva hehtanë ar i osto atanortuva.",
+			"restore_confirm_warning": "Sí lá polë nanca. Tirith i parma sí apa leptal.",
+			"restore_confirm_button": "Ennorath tirith",
+			"restore_overlay_title": "Ennorath tirith...",
+			"restore_overlay_message": "I osto atanortuva tirith parma. Áva hosta i fen sí.",
+			"restore_failed": "Ennorath úcarë",
+			"restore_timeout": "I osto lá quétë apa ennorath. Tira i lómion tëa."
 		},
 		"ai_assistant": {
 			"title": "Wisdom Weaver",
@@ -288,6 +311,34 @@
 			"save_failed": "Token could not be preserved",
 			"delete_failed": "Token could not be unmade"
 		},
+		"audit": {
+			"title": "Govannas Tirith",
+			"description": "A parf in tirith o admin govannas — tulu, cannad a i estel o i periannath.",
+			"filter_action": "Govannas",
+			"filter_resource": "Adab",
+			"all_actions": "Il govannas",
+			"all_resources": "Il adab",
+			"action_create": "Echad",
+			"action_update": "Prestannen",
+			"action_delete": "Degi",
+			"action_login": "Tulu",
+			"clear_filters": "Glatho tirith",
+			"total_entries": "{count} teithant",
+			"no_entries": "Ú teithant govannas tirith erin.",
+			"col_time": "Lúmë",
+			"col_action": "Govannas",
+			"col_resource": "Adab",
+			"col_description": "Quetil",
+			"col_user": "Hîr",
+			"col_ip": "Parf Sír",
+			"page_info": "Parf {page} o {totalPages}",
+			"clear_all": "Gosto i Theryn",
+			"clear_confirm_title": "Gosto i Theryn Tirith",
+			"clear_confirm_message": "Sin gwannatha pân theryn tirith an-uir. Le ú-belin edledo.",
+			"clear_confirm_button": "Gosto Pân Theryn",
+			"cleared_message": "{count} theryn tirith gostannen.",
+			"clear_error": "Ú-belin gosto i theryn tirith."
+		},
 		"form": {
 			"saving": "Preserving...",
 			"saved": "Preserved",
@@ -324,6 +375,7 @@
 			"analytics": "Chronicles",
 			"integrations": "Alliances",
 			"admin_tags": "Tokens",
+			"audit_log": "Govannas Tirith",
 			"media_library": "Treasury of Images",
 			"share_tokens": "Tokens of Sharing",
 			"about_facet": "Of Facet",
@@ -360,7 +412,13 @@
 			"activity_project": "Work",
 			"activity_experience": "Journey",
 			"rss_feed": "RSS Scroll",
-			"talks_calendar": "Calendar of Orations"
+			"talks_calendar": "Calendar of Orations",
+			"stats_total_visitors": "Wayfarers of All",
+			"visitor_stats": "Wayfarer Tidings",
+			"visitor_view_name": "Vision",
+			"visitor_count": "Wayfarers",
+			"visitor_last_visited": "Last Beheld",
+			"visitor_never": "Not yet beheld"
 		},
 		"login": {
 			"title": "Enter the Realm of Facet",

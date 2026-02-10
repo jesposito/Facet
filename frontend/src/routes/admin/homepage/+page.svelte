@@ -390,6 +390,18 @@
 	}
 
 	async function handleSubmit() {
+		// Validate required fields before hitting the API
+		if (!name.trim()) {
+			toasts.add('error', 'Name is required. Please enter your name before saving.');
+			// Scroll to and focus the name input
+			const nameInput = document.getElementById('name');
+			if (nameInput) {
+				nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				nameInput.focus();
+			}
+			return;
+		}
+
 		saving = true;
 		try {
 			// Save profile data
@@ -415,7 +427,18 @@
 			if (profile) {
 				await collection('profile').update(profile.id as string, formData);
 			} else {
-				await collection('profile').create(formData);
+				try {
+					await collection('profile').create(formData);
+				} catch (createErr: unknown) {
+					// Profile may already exist (e.g., created by setup wizard after loadProfile ran)
+					const records = await collection('profile').getList(1, 1);
+					if (records.items.length > 0) {
+						profile = records.items[0];
+						await collection('profile').update(profile.id as string, formData);
+					} else {
+						throw createErr;
+					}
+				}
 			}
 
 			// Save section order and section configuration
@@ -489,9 +512,18 @@
 					heroImageUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.hero_image}?${Date.now()}`;
 				}
 			}
-		} catch (err) {
+		} catch (err: unknown) {
 			console.error('Failed to save homepage:', err);
-			toasts.add('error', 'Failed to save homepage');
+			// Show detailed error for PocketBase ClientResponseError
+			const pbErr = err as { status?: number; data?: Record<string, unknown>; message?: string };
+			if (pbErr.status === 400 && pbErr.data && Object.keys(pbErr.data).length > 0) {
+				const details = Object.entries(pbErr.data).map(([k, v]) => `${k}: ${(v as { message?: string })?.message || v}`).join(', ');
+				toasts.add('error', `Failed to save: ${details}`);
+			} else if (pbErr.status === 403 || pbErr.status === 401) {
+				toasts.add('error', 'Session expired. Please refresh the page and try again.');
+			} else {
+				toasts.add('error', pbErr.message || 'Failed to save homepage');
+			}
 		} finally {
 			saving = false;
 		}

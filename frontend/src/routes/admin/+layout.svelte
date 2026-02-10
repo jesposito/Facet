@@ -34,9 +34,38 @@
 	
 	let profileData: Profile | null = $state(null);
 	let viewsData: View[] = $state([]);
+	let showEncryptionWarning = $state(false);
 
 
 
+
+	async function checkEncryptionKeyStatus() {
+		try {
+			const dismissed = localStorage.getItem('facet_encryption_warning_dismissed');
+			if (dismissed === 'true') return;
+
+			const response = await fetch('/api/system/encryption-status', {
+				headers: { Authorization: `Bearer ${pb.authStore.token}` }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				if (data.source === 'auto' || data.source === 'file') {
+					showEncryptionWarning = true;
+				}
+			}
+		} catch (err) {
+			// Silently ignore — non-critical check
+		}
+	}
+
+	function dismissEncryptionWarning() {
+		showEncryptionWarning = false;
+		try {
+			localStorage.setItem('facet_encryption_warning_dismissed', 'true');
+		} catch {
+			// localStorage unavailable
+		}
+	}
 
 	async function checkDefaultPassword(): Promise<boolean> {
 		try {
@@ -143,6 +172,7 @@
 				if (!needsPasswordChange) {
 					checkSetupWizard();
 				}
+				checkEncryptionKeyStatus();
 				authorized = true;
 				loading = false;
 			} catch (err) {
@@ -216,6 +246,7 @@
 					if (!needsPasswordChange) {
 						checkSetupWizard();
 					}
+					checkEncryptionKeyStatus();
 				})();
 			} else if (!isAuth && authorized) {
 				// User is no longer authenticated - clear state and redirect
@@ -275,11 +306,34 @@
 				- Mobile: full width (no margin)
 				- Desktop: margin-left based on sidebar state (preserves current behavior)
 			-->
-			<main 
-				id="main-content" 
+			<main
+				id="main-content"
 				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-hidden w-full max-w-full
 					{isMobile ? '' : ($adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16')}"
 			>
+				{#if showEncryptionWarning}
+					<div class="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4" role="alert">
+						<div class="flex items-start gap-3">
+							<svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+							</svg>
+							<div class="flex-1">
+								<h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">{$t('admin.layout.encryption_warning_title')}</h3>
+								<p class="text-sm text-amber-700 dark:text-amber-300 mt-1">{$t('admin.layout.encryption_warning_message')}</p>
+							</div>
+							<button
+								type="button"
+								onclick={dismissEncryptionWarning}
+								class="flex-shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+								aria-label={$t('admin.layout.encryption_warning_dismiss')}
+							>
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								</svg>
+							</button>
+						</div>
+					</div>
+				{/if}
 				{#key $demoMode}
 					{@render children?.()}
 				{/key}

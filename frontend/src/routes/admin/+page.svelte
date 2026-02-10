@@ -8,10 +8,11 @@
 	let stats = $state({
 		projects: 0,
 		experience: 0,
-		views: 0,
+		totalVisitors: 0,
 		pendingProposals: 0
 	});
 
+	let viewMetrics: Array<{ id: string; name: string; slug: string; view_count: number; last_viewed_at: string }> = $state([]);
 	let recentActivity: Array<{ type: string; title: string }> = $state([]);
 	let loading = $state(true);
 	let mounted = false;
@@ -33,18 +34,29 @@
 			const [projectsRes, experienceRes, viewsRes, proposalsRes] = await Promise.all([
 				collection('projects').getList(1, 1),
 				collection('experience').getList(1, 1),
-				collection('views').getList(1, 1),
+				collection('views').getFullList({ sort: '-view_count' }),
 				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" })
 			]);
 
 			if (!mounted) return;
 
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const views = viewsRes as any[];
+
 			stats = {
 				projects: projectsRes.totalItems,
 				experience: experienceRes.totalItems,
-				views: viewsRes.totalItems,
+				totalVisitors: views.reduce((sum, v) => sum + (v.view_count || 0), 0),
 				pendingProposals: proposalsRes.totalItems
 			};
+
+			viewMetrics = views.map((v) => ({
+				id: v.id,
+				name: v.name || '',
+				slug: v.slug || '',
+				view_count: v.view_count || 0,
+				last_viewed_at: v.last_viewed_at || ''
+			}));
 
 			// Get recent projects and experience for activity feed
 			const [recentProjects, recentExperience] = await Promise.all([
@@ -83,7 +95,23 @@
 		}
 	}
 
-	let isEmpty = $derived(!loading && stats.projects === 0 && stats.experience === 0 && stats.views === 0);
+	let isEmpty = $derived(!loading && stats.projects === 0 && stats.experience === 0 && viewMetrics.length === 0);
+
+	function formatRelativeDate(dateStr: string): string {
+		if (!dateStr) return '';
+		const date = new Date(dateStr);
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffMins = Math.floor(diffMs / 60000);
+		const diffHours = Math.floor(diffMs / 3600000);
+		const diffDays = Math.floor(diffMs / 86400000);
+
+		if (diffMins < 1) return 'just now';
+		if (diffMins < 60) return `${diffMins}m ago`;
+		if (diffHours < 24) return `${diffHours}h ago`;
+		if (diffDays < 30) return `${diffDays}d ago`;
+		return date.toLocaleDateString();
+	}
 </script>
 
 <svelte:head>
@@ -205,13 +233,12 @@
 			<div class="card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_views')}</p>
-						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.views}</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_total_visitors')}</p>
+						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalVisitors.toLocaleString()}</p>
 					</div>
 					<div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
 						<svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
 						</svg>
 					</div>
 				</div>
@@ -323,6 +350,41 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- Visitor stats -->
+	{#if !loading && viewMetrics.length > 0}
+		<div class="mt-6 card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.dashboard.visitor_stats')}</h2>
+			<div class="overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="border-b border-gray-200 dark:border-gray-700">
+							<th class="text-left py-2 pr-4 text-gray-500 dark:text-gray-400 font-medium">{$t('admin.dashboard.visitor_view_name')}</th>
+							<th class="text-right py-2 px-4 text-gray-500 dark:text-gray-400 font-medium">{$t('admin.dashboard.visitor_count')}</th>
+							<th class="text-right py-2 pl-4 text-gray-500 dark:text-gray-400 font-medium">{$t('admin.dashboard.visitor_last_visited')}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each viewMetrics as view}
+							<tr class="border-b border-gray-100 dark:border-gray-800 last:border-0">
+								<td class="py-2.5 pr-4">
+									<a href="/admin/views/{view.id}" class="text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
+										{view.name}
+									</a>
+								</td>
+								<td class="text-right py-2.5 px-4 font-medium text-gray-900 dark:text-white">
+									{view.view_count.toLocaleString()}
+								</td>
+								<td class="text-right py-2.5 pl-4 text-gray-500 dark:text-gray-400">
+									{view.last_viewed_at ? formatRelativeDate(view.last_viewed_at) : $t('admin.dashboard.visitor_never')}
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Pending proposals alert -->
 	{#if stats.pendingProposals > 0}
