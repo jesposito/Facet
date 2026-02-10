@@ -14,6 +14,7 @@
 		DEFAULT_ACCENT_COLOR,
 		type AccentColor
 	} from '$lib/colors';
+	import QRCode from 'qrcode';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 
@@ -35,6 +36,7 @@
 	let totpEnabled = $state(false);
 	let totpLoading = $state(false);
 	let totpSetupData: { secret: string; url: string } | null = $state(null);
+	let totpQrDataUrl: string = $state('');
 	let totpSetupCode = $state('');
 	let totpSetupError = $state('');
 	let totpRecoveryCodes: string[] | null = $state(null);
@@ -292,6 +294,12 @@
 			const data = await response.json();
 			if (!response.ok) throw new Error(data.error);
 			totpSetupData = { secret: data.secret, url: data.url };
+			// Generate QR code locally — never send TOTP secret to third-party services
+			try {
+				totpQrDataUrl = await QRCode.toDataURL(data.url, { width: 200, margin: 1 });
+			} catch {
+				totpQrDataUrl = '';
+			}
 		} catch (err: any) {
 			totpSetupError = err.message || 'Failed to begin setup';
 			toasts.add('error', totpSetupError);
@@ -318,6 +326,7 @@
 			totpEnabled = true;
 			totpSetupData = null;
 			totpSetupCode = '';
+			totpQrDataUrl = '';
 			toasts.add('success', $t('admin.settings_page.two_factor.enabled_toast'));
 		} catch (err: any) {
 			totpSetupError = err.message || 'Invalid code';
@@ -384,6 +393,7 @@
 		totpSetupData = null;
 		totpSetupCode = '';
 		totpSetupError = '';
+		totpQrDataUrl = '';
 	}
 
 	async function loadProviders() {
@@ -872,7 +882,13 @@
 						<div class="text-center">
 							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.settings_page.two_factor.scan_qr')}</p>
 							<div class="inline-block p-4 bg-white rounded-lg border border-gray-200 dark:border-gray-600">
-								{@html `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(totpSetupData.url)}" alt="QR Code" width="200" height="200" />`}
+								{#if totpQrDataUrl}
+									<img src={totpQrDataUrl} alt="QR Code" width="200" height="200" />
+								{:else}
+									<div class="w-[200px] h-[200px] flex items-center justify-center text-sm text-gray-500">
+										QR code unavailable — use manual entry below
+									</div>
+								{/if}
 							</div>
 						</div>
 

@@ -162,11 +162,30 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			valid := false
 
 			if isRecoveryCode(req.Code) {
-				encCodes := user.GetString("totp_recovery_codes")
-				matched, newEncCodes, err := checkRecoveryCode(req.Code, encCodes, crypto)
-				if err == nil && matched {
+				// Re-fetch user inside transaction to prevent race condition where
+				// two concurrent requests could both consume the same recovery code
+				err := app.RunInTransaction(func(txApp core.App) error {
+					freshUser, err := txApp.FindRecordById("users", user.Id)
+					if err != nil {
+						return err
+					}
+					encCodes := freshUser.GetString("totp_recovery_codes")
+					matched, newEncCodes, err := checkRecoveryCode(req.Code, encCodes, crypto)
+					if err != nil {
+						return err
+					}
+					if !matched {
+						return fmt.Errorf("no match")
+					}
+					freshUser.Set("totp_recovery_codes", newEncCodes)
+					return txApp.Save(freshUser)
+				})
+				if err == nil {
 					valid = true
-					user.Set("totp_recovery_codes", newEncCodes)
+					// Re-fetch user so subsequent save has fresh data
+					if freshUser, err := app.FindRecordById("users", user.Id); err == nil {
+						user = freshUser
+					}
 				}
 			} else {
 				encSecret := user.GetString("totp_secret")
@@ -198,8 +217,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			WriteAuditLog(app, "totp_verified", "auth", user.Id, user.Email(), GetIP(e), GetUserAgent(e), nil)
 
 			return e.JSON(http.StatusOK, map[string]any{
-				"verified":      true,
-				"session_nonce": nonce,
+				"verified": true,
 			})
 		})).Bind(apis.RequireAuth())
 

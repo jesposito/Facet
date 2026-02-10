@@ -46,15 +46,22 @@
 			const response = await fetch('/api/totp/status', {
 				headers: { Authorization: `Bearer ${pb.authStore.token}` }
 			});
-			if (response.ok) {
-				const data = await response.json();
-				if (data.enabled && !data.verified) {
-					showTwoFactorModal = true;
-					return true;
-				}
+			if (!response.ok) {
+				// Fail closed: if we can't verify 2FA status, block access
+				console.error('2FA status check failed:', response.status);
+				showTwoFactorModal = true;
+				return true;
+			}
+			const data = await response.json();
+			if (data.enabled && !data.verified) {
+				showTwoFactorModal = true;
+				return true;
 			}
 		} catch (err) {
+			// Fail closed: network errors block access rather than bypassing 2FA
 			console.error('Failed to check 2FA status:', err);
+			showTwoFactorModal = true;
+			return true;
 		}
 		return false;
 	}
@@ -244,24 +251,28 @@
 		}
 	});
 
-	function handlePasswordChanged() {
-		// Password was successfully changed - hide modal and reload user data
+	async function handlePasswordChanged() {
+		// Password was successfully changed - hide modal and check 2FA before authorizing
 		showPasswordChangeModal = false;
 
 		// Refresh user data to get updated password_changed_from_default field
 		if ($currentUser) {
-			pb.collection('users')
-				.getOne($currentUser.id)
-				.then((updatedUser) => {
-					// Update the currentUser store
-					currentUser.set(updatedUser);
-					// Check if setup wizard should be shown after password change
-					checkSetupWizard();
-				})
-				.catch((err) => {
-					console.error('Failed to refresh user data:', err);
-				});
+			try {
+				const updatedUser = await pb.collection('users').getOne($currentUser.id);
+				currentUser.set(updatedUser);
+			} catch (err) {
+				console.error('Failed to refresh user data:', err);
+			}
 		}
+
+		// Now check 2FA — password change must NOT bypass the 2FA gate
+		const needs2FA = await check2FAStatus();
+		if (!needs2FA) {
+			authorized = true;
+			checkSetupWizard();
+			checkEncryptionKeyStatus();
+		}
+		// If needs2FA, the modal is now showing and authorized stays false
 	}
 	// Check if we're on the login page (don't require auth there)
 	let isLoginPage = $derived($page.url.pathname === '/admin/login');
@@ -275,7 +286,7 @@
 	run(() => {
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
-			if (isAuth && !authorized && !showTwoFactorModal) {
+			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal) {
 				loading = false;
 				(async () => {
 					const needsPasswordChange = await checkDefaultPassword();
@@ -286,9 +297,9 @@
 							checkSetupWizard();
 							checkEncryptionKeyStatus();
 						}
-					} else {
-						authorized = true;
 					}
+					// If needsPasswordChange: showPasswordChangeModal is now true.
+					// authorized stays false — the modal renders outside the authorized guard.
 				})();
 			} else if (!isAuth && authorized) {
 				// User is no longer authenticated - clear state and redirect
@@ -380,15 +391,11 @@
 			</main>
 		</div>
 
-		{#if showTwoFactorModal}
-			<TwoFactorModal onVerified={handleTwoFactorVerified} onLogout={handleTwoFactorLogout} />
-		{/if}
-
-		{#if showPasswordChangeModal}
-			<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />
-		{/if}
-		
-		<SetupWizard onComplete={() => checkSetupWizard()} />
+			<SetupWizard onComplete={() => checkSetupWizard()} />
+	</div>
+{:else if showPasswordChangeModal || showTwoFactorModal}
+	<!-- Blocking modals that render without admin chrome — user is authenticated but not yet authorized -->
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 	</div>
 {:else}
 	<!-- CRITICAL SECURITY: Fallback for any edge case where user is not authenticated -->
@@ -407,4 +414,13 @@
 			</a>
 		</div>
 	</div>
+{/if}
+
+<!-- Blocking modals render outside ALL layout branches — they overlay everything -->
+{#if showTwoFactorModal}
+	<TwoFactorModal onVerified={handleTwoFactorVerified} onLogout={handleTwoFactorLogout} />
+{/if}
+
+{#if showPasswordChangeModal}
+	<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />
 {/if}
