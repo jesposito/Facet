@@ -5,7 +5,9 @@
 			"close_navigation": "Navigationsmenü schließen",
 			"encryption_warning_title": "Verschlüsselungsschlüssel automatisch generiert",
 			"encryption_warning_message": "Ihr Verschlüsselungsschlüssel wurde automatisch generiert und unter /data/.encryption_key gespeichert. Dieser Schlüssel verschlüsselt Ihre API-Tokens — stellen Sie sicher, dass Ihr /data-Verzeichnis in Ihren Backups enthalten ist.",
-			"encryption_warning_dismiss": "Schließen"
+			"encryption_warning_dismiss": "Schließen",
+			"encryption_info_title": "Erinnerung: Verschlüsselungsschlüssel sichern",
+			"encryption_info_message": "Ihr Verschlüsselungsschlüssel ist unter /data/.encryption_key gespeichert. Dieser Schlüssel schützt Ihre API-Tokens und Freigabelinks. Stellen Sie sicher, dass /data in Ihren Backups enthalten ist — wenn dieser Schlüssel verloren geht, können verschlüsselte Daten nicht wiederhergestellt werden."
 		},
 		"settings_page": {
 			"title": "Einstellungen",
@@ -418,7 +420,8 @@
 			"visitor_view_name": "Ansicht",
 			"visitor_count": "Besucher",
 			"visitor_last_visited": "Zuletzt besucht",
-			"visitor_never": "Noch nicht besucht"
+			"visitor_never": "Noch nicht besucht",
+			"visitor_homepage": "Startseite"
 		},
 		"login": {
 			"title": "Bei Facet anmelden",

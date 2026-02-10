@@ -45,6 +45,17 @@
         reverse_proxy localhost:8090
     }
 
+    # Version files - no caching to ensure updates are seen immediately
+    handle /CHANGELOG.md {
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        reverse_proxy localhost:3000
+    }
+
+    handle /LATEST_VERSION {
+        header Cache-Control "no-cache, no-store, must-revalidate"
+        reverse_proxy localhost:3000
+    }
+
     handle /_/* {
         # PocketBase admin - only allow if ADMIN_ENABLED=true
         @admin_disabled expression `{env.ADMIN_ENABLED} != "true"`

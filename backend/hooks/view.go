@@ -686,6 +686,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				})
 			}
 
+			if settings != nil && settings.HomepageEnabled {
+				incrementHomepageViewCount(app)
+			}
+
 			// Find the default view (is_default = true, is_active = true, visibility = public)
 			records, err := app.FindRecordsByFilter(
 				"views",

@@ -5,7 +5,9 @@
 			"close_navigation": "Seal the tactical display",
 			"encryption_warning_title": "Encryption Key Forged Automatically",
 			"encryption_warning_message": "Your encryption key was forged and stored at /data/.encryption_key. This key protects your API tokens — ensure your /data territory is secured in your backups!",
-			"encryption_warning_dismiss": "Dismiss"
+			"encryption_warning_dismiss": "Dismiss",
+			"encryption_info_title": "Tactical Reminder: Encryption Key",
+			"encryption_info_message": "Your encryption key is secured at /data/.encryption_key. This key guards your API tokens and access codes. Ensure /data is included in your backup protocols — if this key is lost, encrypted data cannot be recovered. A warrior always protects their arsenal."
 		},
 		"settings_page": {
 			"title": "Battle Configurations",
@@ -418,7 +420,8 @@
 			"visitor_view_name": "View",
 			"visitor_count": "Intruders",
 			"visitor_last_visited": "Last Scanned",
-			"visitor_never": "No intruders detected"
+			"visitor_never": "No intruders detected",
+			"visitor_homepage": "Home Base"
 		},
 		"login": {
 			"title": "Enter the Domain of Facet",

@@ -51,9 +51,13 @@
 	let activeSection = $state('');
 
 	onMount(() => {
-		// Set up intersection observer for section highlighting
 		if (typeof IntersectionObserver !== 'undefined') {
 			const sections = document.querySelectorAll('section[id]');
+
+			if (sections.length > 0) {
+				activeSection = sections[0].id;
+			}
+
 			const observer = new IntersectionObserver(
 				(entries) => {
 					for (const entry of entries) {
@@ -63,7 +67,7 @@
 						}
 					}
 				},
-				{ rootMargin: '-20% 0px -60% 0px' }
+				{ rootMargin: '-5% 0px -70% 0px' }
 			);
 
 			sections.forEach((section) => observer.observe(section));
