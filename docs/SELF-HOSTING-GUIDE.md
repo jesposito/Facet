@@ -82,23 +82,19 @@ mkdir ~/facet && cd ~/facet
 
 **Step 3: Create your configuration**
 
-```bash
-# Generate an encryption key (required)
-openssl rand -hex 32
-```
-
-Copy that key, then create a `.env` file:
+Create a `.env` file:
 
 ```bash
 cat > .env << 'EOF'
-# Paste your generated key here
-ENCRYPTION_KEY=paste-your-key-here
-
 # Your email (for admin login)
 ADMIN_EMAILS=you@example.com
 
 # Leave these as-is for now
 TRUST_PROXY=false
+
+# Optional: Set your own encryption key. If not set, one is auto-generated
+# and saved to /data/.encryption_key. Make sure /data is in your backups.
+# ENCRYPTION_KEY=your-key-here
 EOF
 ```
 

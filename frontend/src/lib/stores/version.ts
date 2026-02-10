@@ -85,13 +85,14 @@ export async function checkForNewVersion(force = false): Promise<void> {
 		// Try LATEST_VERSION file first (avoids API rate limits, works without releases)
 		let latest = '';
 
-		const versionFileResponse = await fetch('https://raw.githubusercontent.com/jesposito/Facet/main/LATEST_VERSION');
+		const versionFileResponse = await fetch('https://raw.githubusercontent.com/jesposito/Facet/main/LATEST_VERSION', { cache: 'no-store' });
 		if (versionFileResponse.ok) {
 			latest = (await versionFileResponse.text()).trim();
 		} else {
 			// Fall back to GitHub releases API
 			const releaseResponse = await fetch('https://api.github.com/repos/jesposito/Facet/releases/latest', {
-				headers: { Accept: 'application/vnd.github.v3+json' }
+				headers: { Accept: 'application/vnd.github.v3+json' },
+				cache: 'no-store'
 			});
 
 			if (releaseResponse.ok) {

@@ -700,7 +700,7 @@ Key variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ENCRYPTION_KEY` | (required in prod) | AES-256-GCM key for AI tokens |
+| `ENCRYPTION_KEY` | Auto-generated | AES-256-GCM key for AI tokens. Auto-generated and saved to `/data/.encryption_key` if not set |
 | `SEED_DATA` | — | Seed mode: `dev` for dev profile, unset for no seeding |
 | `DATA_DIR` | `./pb_data` | PocketBase data directory |
 | `LOG_LEVEL` | `info` | Logging verbosity |

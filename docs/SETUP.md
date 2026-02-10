@@ -26,11 +26,11 @@ cp .env.example .env
 Edit `.env` and set at minimum:
 
 ```env
-# Generate this with: openssl rand -hex 32
-ENCRYPTION_KEY=your-32-byte-hex-key-here
-
 # Your admin email (for login)
 ADMIN_EMAILS=you@example.com
+
+# Optional: Set your own encryption key (if not set, one is auto-generated and saved to /data/.encryption_key)
+# ENCRYPTION_KEY=your-32-byte-hex-key-here
 ```
 
 ### 3. Start the Container
@@ -142,7 +142,7 @@ On startup, Facet will automatically enable the providers you configure and the 
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `ENCRYPTION_KEY` | Yes | — | 32-byte hex key (`openssl rand -hex 32`) |
+| `ENCRYPTION_KEY` | No | Auto-generated | 32-byte hex key (`openssl rand -hex 32`). If not set, auto-generated and saved to `/data/.encryption_key` |
 | `PORT` | No | `8080` | Public port |
 | `APP_URL` | No | `http://localhost:8080` | Your public URL |
 | `TRUST_PROXY` | No | `false` | Set `true` behind reverse proxy |
@@ -236,12 +236,8 @@ Facet works great on Unraid! You can install it via Community Applications or ma
 
 2. **Create .env file**
    ```bash
-   # Generate encryption key
-   openssl rand -hex 32
-
-   # Create .env file
+   # Create .env file (encryption key is auto-generated if not set)
    cat > .env << 'EOF'
-   ENCRYPTION_KEY=paste-generated-key-here
    DATA_PATH=/mnt/user/appdata/facet
    APP_URL=http://tower.local:8080
    TRUST_PROXY=false
@@ -249,6 +245,8 @@ Facet works great on Unraid! You can install it via Community Applications or ma
    PORT=8080
    EOF
    ```
+
+   > **Note:** The encryption key is automatically generated on first start and saved to `/data/.encryption_key`. Make sure your `/data` directory (i.e., `/mnt/user/appdata/facet`) is included in your Unraid backups. If you prefer to set it manually, add `ENCRYPTION_KEY=your-key-here` to the `.env` file.
 
 3. **Create docker-compose.yml**
    ```bash
