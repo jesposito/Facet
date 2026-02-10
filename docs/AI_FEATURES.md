@@ -93,7 +93,7 @@ When environment variables are detected, providers are created automatically wit
 
 - API keys are **never stored in plaintext**
 - Keys are encrypted using AES-256-GCM before storage
-- Encryption key is set via the `ENCRYPTION_KEY` environment variable
+- Encryption key is set via the `ENCRYPTION_KEY` environment variable or auto-generated on first start (saved to `/data/.encryption_key`)
 - The `api_key` field is marked as a "hidden" field in PocketBase (not returned in API responses)
 - Only the `api_key_encrypted` field is stored
 
@@ -461,7 +461,7 @@ Deletes a generated export.
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `ENCRYPTION_KEY` | 32-byte key for API key encryption | Yes |
+| `ENCRYPTION_KEY` | 32-byte key for API key encryption (auto-generated if not set) | No |
 | `ANTHROPIC_API_KEY` | Auto-configures Anthropic Claude | No |
 | `OPENAI_API_KEY` | Auto-configures OpenAI | No |
 | `OLLAMA_BASE_URL` | Auto-configures Ollama | No |

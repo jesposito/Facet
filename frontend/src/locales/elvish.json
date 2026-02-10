@@ -5,7 +5,9 @@
 			"close_navigation": "Close the paths of wandering",
 			"encryption_warning_title": "The Key of Binding was woven anew",
 			"encryption_warning_message": "Your key of encryption was woven of its own accord and laid within /data/.encryption_key. This key guards your sealed tokens — ensure the halls of /data are preserved in your chronicles.",
-			"encryption_warning_dismiss": "Dismiss"
+			"encryption_warning_dismiss": "Dismiss",
+			"encryption_info_title": "A Gentle Reminder: The Key of Binding",
+			"encryption_info_message": "Thy key of encryption rests within /data/.encryption_key. This key wards thy API tokens and passages of sharing. Ensure the halls of /data are preserved in thy chronicles — should this key be lost, that which was sealed cannot be unsealed."
 		},
 		"settings_page": {
 			"title": "Inscriptions",
@@ -418,7 +420,8 @@
 			"visitor_view_name": "Vision",
 			"visitor_count": "Wayfarers",
 			"visitor_last_visited": "Last Beheld",
-			"visitor_never": "Not yet beheld"
+			"visitor_never": "Not yet beheld",
+			"visitor_homepage": "The Great Hall"
 		},
 		"login": {
 			"title": "Enter the Realm of Facet",

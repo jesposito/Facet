@@ -5,7 +5,9 @@
 			"close_navigation": "Cloze teh nav menu",
 			"encryption_warning_title": "Encrypshun Key Wuz Auto-Maded",
 			"encryption_warning_message": "Ur encrypshun key wuz auto-maded n savd 2 /data/.encryption_key. Dis key protectz ur API tokens — maek shur ur /data folder iz in ur backupz kthx.",
-			"encryption_warning_dismiss": "K whatevr"
+			"encryption_warning_dismiss": "K whatevr",
+			"encryption_info_title": "Remindr: Bak Up Ur Encrypshun Kee",
+			"encryption_info_message": "Ur encrypshun kee iz at /data/.encryption_key. Dis kee protectz ur API tokenz n share linkz. Maek shur /data iz in ur bakupz — if dis kee iz lost, encryptd data cant be recoverd. Srsly."
 		},
 		"settings_page": {
 			"title": "Settingz",
@@ -418,7 +420,8 @@
 			"visitor_view_name": "View",
 			"visitor_count": "Vizitorz",
 			"visitor_last_visited": "Last Vizited",
-			"visitor_never": "No vizitorz yet"
+			"visitor_never": "No vizitorz yet",
+			"visitor_homepage": "Hoem Paeg"
 		},
 		"login": {
 			"title": "Sign in 2 Facet",

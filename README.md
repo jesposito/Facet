@@ -118,15 +118,12 @@ Facet isn't just private. It's designed to be verifiably secure. Read the full s
 git clone https://github.com/jesposito/Facet.git
 cd Facet
 
-# Generate an encryption key (required for API keys and tokens)
-openssl rand -hex 32
-
 # Copy the example config
 cp .env.example .env
 
 # Edit .env:
-# - Set ENCRYPTION_KEY (required)
 # - Set ADMIN_EMAILS to your email
+# - (Optional) Set ENCRYPTION_KEY — if not set, one is auto-generated and saved to /data/.encryption_key
 # - (Optional) Add OAuth credentials (GOOGLE_CLIENT_ID/SECRET or GITHUB_CLIENT_ID/SECRET)
 
 # Run it
@@ -556,7 +553,7 @@ For detailed architecture: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 | Variable | Required? | Default | What It Does |
 |----------|-----------|---------|--------------|
-| `ENCRYPTION_KEY` | **Yes** | — | 32-byte hex key for encrypting API keys and tokens (`openssl rand -hex 32`) |
+| `ENCRYPTION_KEY` | No | Auto-generated | 32-byte hex key for encrypting API keys and tokens. If not set, one is auto-generated and saved to `/data/.encryption_key`. Generate manually with `openssl rand -hex 32` |
 | `PORT` | No | `8080` | Public port for the app |
 | `APP_URL` | No | `http://localhost:8080` | Your public URL (needed for OAuth callbacks) |
 | `ADMIN_EMAILS` | No | — | Comma-separated email allowlist for OAuth login |

@@ -6,12 +6,17 @@ This document describes security features, authentication flows, and known limit
 
 ### Master Encryption Key
 
-All sensitive data is encrypted using AES-256-GCM. The encryption key is derived from the `ENCRYPTION_KEY` environment variable.
+All sensitive data is encrypted using AES-256-GCM. The encryption key can be set via the `ENCRYPTION_KEY` environment variable or auto-generated on first start.
+
+**Key sources (in priority order):**
+1. `ENCRYPTION_KEY` environment variable (if set)
+2. `/data/.encryption_key` file (if exists)
+3. Auto-generated and saved to `/data/.encryption_key` (first start)
 
 **Requirements:**
 - Minimum 32 characters (256 bits)
-- Generate with: `openssl rand -hex 32`
-- Application **will not start** without a valid key
+- Generate manually with: `openssl rand -hex 32`
+- If auto-generated, ensure `/data` is included in backups — losing the key means encrypted data cannot be recovered
 
 **What's encrypted:**
 - AI provider API keys (`ai_providers.api_key_encrypted`)
@@ -444,7 +449,7 @@ Files are served via PocketBase at `/api/files/{collectionId}/{recordId}/{filena
 
 | Aspect | Development | Production |
 |--------|-------------|------------|
-| Encryption key | Dev-only key in docker-compose.dev.yml | **Required** via `ENCRYPTION_KEY` |
+| Encryption key | Dev-only key in docker-compose.dev.yml | Auto-generated or set via `ENCRYPTION_KEY` |
 | PocketBase Admin | Enabled at `/_/` | Disabled by default (`ADMIN_ENABLED=false`) |
 | Seed data | Created automatically | Not created |
 | Debug logging | Enabled | Disabled |

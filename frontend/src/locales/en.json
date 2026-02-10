@@ -5,7 +5,9 @@
 			"close_navigation": "Close navigation menu",
 			"encryption_warning_title": "Encryption Key Auto-Generated",
 			"encryption_warning_message": "Your encryption key was auto-generated and saved to /data/.encryption_key. This key encrypts your API tokens — make sure your /data directory is included in your backups.",
-			"encryption_warning_dismiss": "Dismiss"
+			"encryption_warning_dismiss": "Dismiss",
+			"encryption_info_title": "Backup Reminder: Encryption Key",
+			"encryption_info_message": "Your encryption key is stored at /data/.encryption_key. This key protects your API tokens and share links. Make sure /data is included in your backups — if this key is lost, encrypted data cannot be recovered."
 		},
 		"settings_page": {
 			"title": "Settings",
@@ -418,7 +420,8 @@
 			"visitor_view_name": "View",
 			"visitor_count": "Visitors",
 			"visitor_last_visited": "Last Visited",
-			"visitor_never": "Not yet visited"
+			"visitor_never": "Not yet visited",
+			"visitor_homepage": "Homepage"
 		},
 		"login": {
 			"title": "Sign in to Facet",

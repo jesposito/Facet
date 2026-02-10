@@ -17,12 +17,12 @@ type HomepageCustomContentItem struct {
 // HomepageSectionConfig represents per-section settings for the homepage
 // Mirrors the structure used in views for consistency
 type HomepageSectionConfig struct {
-	Enabled       bool              `json:"enabled"`
-	Items         []string          `json:"items,omitempty"`          // Selected item IDs (empty = all)
-	Layout        string            `json:"layout,omitempty"`         // Section layout
-	Width         string            `json:"width,omitempty"`          // Section width
-	CategoryOrder []string          `json:"categoryOrder,omitempty"`  // For skills: custom category order
-	ItemConfig    map[string]any    `json:"itemConfig,omitempty"`     // Per-item overrides
+	Enabled       bool           `json:"enabled"`
+	Items         []string       `json:"items,omitempty"`         // Selected item IDs (empty = all)
+	Layout        string         `json:"layout,omitempty"`        // Section layout
+	Width         string         `json:"width,omitempty"`         // Section width
+	CategoryOrder []string       `json:"categoryOrder,omitempty"` // For skills: custom category order
+	ItemConfig    map[string]any `json:"itemConfig,omitempty"`    // Per-item overrides
 }
 
 // SiteNavItem represents a navigation button configuration
@@ -49,6 +49,8 @@ type SiteSettings struct {
 	SiteCtaEnabled        bool
 	Favicon               string
 	DefaultLocale         string
+	HomepageViewCount     int
+	HomepageLastViewedAt  string
 	Record                *core.Record
 }
 
@@ -152,6 +154,8 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		SiteCtaEnabled:        siteCtaEnabled,
 		Favicon:               faviconURL,
 		DefaultLocale:         record.GetString("default_locale"),
+		HomepageViewCount:     record.GetInt("homepage_view_count"),
+		HomepageLastViewedAt:  record.GetString("homepage_last_viewed_at"),
 		Record:                record,
 	}, nil
 }
