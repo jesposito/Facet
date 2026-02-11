@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,41 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const totpCookieName = "facet_totp_session"
+const totpCookieMaxAge = 86400 // 24 hours
+
+func isRequestSecure(e *core.RequestEvent) bool {
+	if e.Request.TLS != nil {
+		return true
+	}
+	return e.Request.Header.Get("X-Forwarded-Proto") == "https"
+}
+
+func setTOTPSessionCookie(e *core.RequestEvent, nonce string) {
+	http.SetCookie(e.Response, &http.Cookie{
+		Name:     totpCookieName,
+		Value:    nonce,
+		Path:     "/",
+		MaxAge:   totpCookieMaxAge,
+		HttpOnly: true,
+		Secure:   isRequestSecure(e),
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func clearTOTPSessionCookie(e *core.RequestEvent) {
+	http.SetCookie(e.Response, &http.Cookie{
+		Name:     totpCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   isRequestSecure(e),
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
 func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
@@ -31,7 +67,6 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			enabled := user.GetBool("totp_enabled")
 
-			// Also check if session is verified
 			verified := false
 			if enabled {
 				nonce := user.GetString("totp_session_nonce")
@@ -39,7 +74,11 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if nonce != "" && expiresStr != "" {
 					expires, err := time.Parse("2006-01-02 15:04:05.000Z", expiresStr)
 					if err == nil && time.Now().Before(expires) {
-						verified = true
+						if c, err := e.Request.Cookie(totpCookieName); err == nil && c.Value != "" {
+							if subtle.ConstantTimeCompare([]byte(c.Value), []byte(nonce)) == 1 {
+								verified = true
+							}
+						}
 					}
 				}
 			}
@@ -228,6 +267,8 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save session"})
 			}
 
+			setTOTPSessionCookie(e, nonce)
+
 			WriteAuditLog(app, "totp_verified", "auth", user.Id, user.Email(), GetIP(e), GetUserAgent(e), nil)
 
 			return e.JSON(http.StatusOK, map[string]any{
@@ -287,6 +328,8 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if err := app.Save(user); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to disable 2FA"})
 			}
+
+			clearTOTPSessionCookie(e)
 
 			WriteAuditLog(app, "totp_disabled", "auth", user.Id, user.Email(), GetIP(e), GetUserAgent(e), nil)
 
@@ -368,6 +411,8 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if err := app.Save(user); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to clear session"})
 			}
+
+			clearTOTPSessionCookie(e)
 
 			return e.JSON(http.StatusOK, map[string]any{"cleared": true})
 		}).Bind(apis.RequireAuth())
