@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.17.0 - February 11, 2026
+
+**Bugs Fixed:**
+- Fix race condition preventing new custom content blocks from appearing
+
+**New Features:**
+- Add optional TOTP-based two-factor authentication
+- Remove demo mode UI toggle
+- Address 8 security findings from self-audit and Oracle review
+
+**Pull Requests:** [#390](https://github.com/jesposito/Facet/pull/390),
+
+---
+
+
 ## v2.16.2 - February 10, 2026
 
 **Bugs Fixed:**
