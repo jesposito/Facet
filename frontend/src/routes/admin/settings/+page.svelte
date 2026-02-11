@@ -181,7 +181,7 @@
 
 	async function loadProfile() {
 		try {
-			const records = await await collection('profile').getList(1, 1);
+			const records = await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
 				profile = records.items[0] as unknown as Profile;
 				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
@@ -196,7 +196,7 @@
 
 		savingAppearance = true;
 		try {
-			await await collection('profile').update(profile.id, {
+			await collection('profile').update(profile.id, {
 				accent_color: color
 			});
 			selectedAccentColor = color;
