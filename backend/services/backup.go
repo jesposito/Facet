@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
@@ -35,7 +36,7 @@ func RunBackup(app *pocketbase.PocketBase, name string) (*BackupResult, error) {
 	start := time.Now()
 
 	if err := app.CreateBackup(context.Background(), name); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CreateBackup(%q): %w", name, err)
 	}
 
 	// Get the size of the created backup
