@@ -174,7 +174,7 @@
 		</div>
 
 		{#if error}
-			<div class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+			<div role="alert" class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
 				{error}
 			</div>
 		{/if}
