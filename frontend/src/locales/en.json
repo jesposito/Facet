@@ -462,7 +462,16 @@
 			"visitor_count": "Visitors",
 			"visitor_last_visited": "Last Visited",
 			"visitor_never": "Not yet visited",
-			"visitor_homepage": "Homepage"
+			"visitor_homepage": "Homepage",
+			"relative_time": {
+				"just_now": "just now",
+				"minutes_ago": "{count}m ago",
+				"hours_ago": "{count}h ago",
+				"days_ago": "{count}d ago"
+			},
+			"stats": {
+				"sr_only_icon": "{label} icon"
+			}
 		},
 		"login": {
 			"title": "Sign in to Facet",
@@ -494,7 +503,35 @@
 			"toggle_theme": "Toggle theme",
 			"demo": "Demo",
 			"demo_on": "ON",
-			"toggle_demo_mode": "Toggle demo mode"
+			"toggle_demo_mode": "Toggle demo mode",
+			"opens_new_tab": "{label} (opens in new tab)"
+		},
+		"password_modal": {
+			"title": "Change Password",
+			"description": "Choose a strong, unique password to keep your account secure.",
+			"current_password_label": "Current Password",
+			"current_password_hint": "Required to verify your identity",
+			"new_password_label": "New Password",
+			"new_password_placeholder": "Enter new password",
+			"strength_weak": "Weak",
+			"strength_medium": "Medium",
+			"strength_strong": "Strong",
+			"min_length_hint": "Minimum 8 characters",
+			"confirm_password_label": "Confirm New Password",
+			"confirm_password_placeholder": "Re-enter new password",
+			"error_current_required": "Current password is required",
+			"error_min_length": "New password must be at least 8 characters",
+			"error_same_password": "New password must be different from current password",
+			"error_mismatch": "Passwords do not match",
+			"changing": "Changing...",
+			"submit_button": "Change Password",
+			"tip": "Use a mix of letters, numbers, and symbols for a strong password."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} of {total} selected",
+			"select_all": "Select all",
+			"clear": "Clear",
+			"change_visibility": "Change Visibility"
 		},
 		"settings": {
 			"favicon": {
@@ -726,7 +763,30 @@
 				"media_toggle_shortcodes": "Toggle shortcode reference",
 				"media_shortcode_help": "Use shortcodes in description: {gallery} for gallery, {video} for video embeds",
 				"is_featured_label": "Feature this project (appears prominently)",
-				"required_error": "Title is required"
+				"required_error": "Title is required",
+				"generate_slug": "Generate",
+				"reorder_button": "Reorder",
+				"technical_details_heading": "Technical Details",
+				"publishing_heading": "Publishing",
+				"no_links_yet": "No links added yet. Add links to your project's repo, demo, or documentation.",
+				"media_attach_help": "Select media from your library to attach to this project",
+				"link_type_website": "Website",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demo",
+				"shortcodes_title": "Media Shortcodes",
+				"shortcodes_description": "Embed media in Markdown using {{provider:url}}. Paste URLs from Media Library (uploads or external) or any supported provider.",
+				"shortcodes_hint": "Use {{provider:url}} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).",
+				"shortcodes_video": "Video",
+				"shortcodes_audio": "Audio",
+				"shortcodes_images": "Images / Docs",
+				"shortcodes_design": "Design / Code",
+				"shortcodes_other": "Immich / Other",
+				"toast_featured": "Project featured",
+				"toast_unfeatured": "Project unfeatured",
+				"toast_order_saved": "Order saved",
+				"toast_order_error": "Failed to save order",
+				"action_feature": "Feature",
+				"action_unfeature": "Unfeature"
 			},
 			"education": {
 				"title": "Education",

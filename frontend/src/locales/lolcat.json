@@ -462,7 +462,16 @@
 			"visitor_count": "Vizitorz",
 			"visitor_last_visited": "Last Vizited",
 			"visitor_never": "No vizitorz yet",
-			"visitor_homepage": "Hoem Paeg"
+			"visitor_homepage": "Hoem Paeg",
+			"relative_time": {
+				"just_now": "rite meow",
+				"minutes_ago": "{count}m ago",
+				"hours_ago": "{count}h ago",
+				"days_ago": "{count}d ago"
+			},
+			"stats": {
+				"sr_only_icon": "{label} ikon"
+			}
 		},
 		"login": {
 			"title": "Sign in 2 Facet",
@@ -494,7 +503,8 @@
 			"toggle_theme": "Toggl theem",
 			"demo": "Demo",
 			"demo_on": "ON",
-			"toggle_demo_mode": "Toggl demo moed"
+			"toggle_demo_mode": "Toggl demo moed",
+			"opens_new_tab": "{label} (openz in noo windoe)"
 		},
 		"settings": {
 			"favicon": {
@@ -726,7 +736,30 @@
 				"media_toggle_shortcodes": "Toggl shortcoed referenz",
 				"media_shortcode_help": "Use shortcoedz in descripshun: {gallery} 4 gallery, {video} 4 video embedz",
 				"is_featured_label": "Featur dis projekt (appearz prominently)",
-				"required_error": "Tietl iz requird"
+				"required_error": "Tietl iz requird",
+				"generate_slug": "Generat",
+				"reorder_button": "Reordr",
+				"technical_details_heading": "Teknikal Detailz",
+				"publishing_heading": "Publishin",
+				"no_links_yet": "No linkz yet. Add linkz 2 ur repo, demo, or docs.",
+				"media_attach_help": "Select media frum ur library 2 attach 2 dis projekt",
+				"link_type_website": "Websiet",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demo",
+				"shortcodes_title": "Media Shortcodez",
+				"shortcodes_description": "Embed media in Markdown usin {{provider:url}}. Paest URLz from Media Library or any supportd providr.",
+				"shortcodes_hint": "Uze {{provider:url}} 4 embedz (YouTube, Vimeo, SoundCloud, imagez, etc.).",
+				"shortcodes_video": "Vidyo",
+				"shortcodes_audio": "Awdio",
+				"shortcodes_images": "Imagez / Docz",
+				"shortcodes_design": "Dezign / Coed",
+				"shortcodes_other": "Immich / Othr",
+				"toast_featured": "Projekt featchured",
+				"toast_unfeatured": "Projekt unfeatchured",
+				"toast_order_saved": "Ordr savd",
+				"toast_order_error": "Faild 2 save ordr",
+				"action_feature": "Featchur",
+				"action_unfeature": "Unfeatchur"
 			},
 			"education": {
 				"title": "Educashun",
@@ -1430,6 +1463,33 @@
 			"yesterday": "Yestrday",
 			"days_ago": "{count} dayz ago",
 			"weeks_ago": "{count} weekz ago"
+		},
+		"password_modal": {
+			"title": "Chang Passwurd",
+			"description": "Chooze a stronk passwurd 2 keep ur accownt safe.",
+			"current_password_label": "Curren Passwurd",
+			"current_password_hint": "Needz 2 proov iz u",
+			"new_password_label": "Noo Passwurd",
+			"new_password_placeholder": "Type noo passwurd",
+			"strength_weak": "Smol",
+			"strength_medium": "Okais",
+			"strength_strong": "STRONK",
+			"min_length_hint": "At leest 8 letterz",
+			"confirm_password_label": "Confirm Noo Passwurd",
+			"confirm_password_placeholder": "Type it agen plz",
+			"error_current_required": "Curren passwurd iz needed",
+			"error_min_length": "Noo passwurd needz at leest 8 letterz",
+			"error_same_password": "Noo passwurd cant be saem as old wun",
+			"error_mismatch": "Passwurdz dun match",
+			"changing": "Changin...",
+			"submit_button": "Chang Passwurd",
+			"tip": "Mix letterz, numberz, n symbolz 4 a stronk passwurd."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} of {total} selectd",
+			"select_all": "Select all teh thingz",
+			"clear": "Cleer",
+			"change_visibility": "Chang Vizibility"
 		}
 	},
 	"public": {

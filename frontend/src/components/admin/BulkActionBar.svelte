@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		selectedCount: number;
@@ -34,21 +35,21 @@
 <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-4 shadow-sm">
 	<div class="flex items-center gap-4">
 		<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-			{selectedCount} of {totalCount} selected
+			{$t('admin.bulk_actions.selected_count', { values: { selected: selectedCount, total: totalCount } })}
 		</span>
 		<button
 			type="button"
 			class="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:underline"
 			onclick={() => dispatch('selectAll')}
 		>
-			Select all
+			{$t('admin.bulk_actions.select_all')}
 		</button>
 		<button
 			type="button"
 			class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 hover:underline"
 			onclick={() => dispatch('clearSelection')}
 		>
-			Clear
+			{$t('admin.bulk_actions.clear')}
 		</button>
 	</div>
 
@@ -62,7 +63,7 @@
 					aria-expanded={showVisibilityMenu}
 					aria-haspopup="true"
 				>
-					Change Visibility
+					{$t('admin.bulk_actions.change_visibility')}
 					<svg
 						class="w-4 h-4 transition-transform duration-200"
 						class:rotate-180={showVisibilityMenu}
@@ -79,7 +80,7 @@
 						type="button"
 						class="fixed inset-0 z-20"
 						onclick={() => showVisibilityMenu = false}
-						aria-label="Close menu"
+						aria-label={$t('shared.aria.close_menu')}
 					></button>
 					<div class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-30 animate-slide-in-down">
 						<button
@@ -88,7 +89,7 @@
 							onclick={() => handleVisibility('public')}
 						>
 							<span class="w-2 h-2 rounded-full bg-green-500"></span>
-							Public
+							{$t('admin.content.common.visibility_public')}
 						</button>
 						<button
 							type="button"
@@ -96,7 +97,7 @@
 							onclick={() => handleVisibility('unlisted')}
 						>
 							<span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-							Unlisted
+							{$t('admin.content.common.visibility_unlisted')}
 						</button>
 						<button
 							type="button"
@@ -104,7 +105,7 @@
 							onclick={() => handleVisibility('private')}
 						>
 							<span class="w-2 h-2 rounded-full bg-red-500"></span>
-							Private
+							{$t('admin.content.common.visibility_private')}
 						</button>
 					</div>
 				{/if}
@@ -117,7 +118,7 @@
 				class="btn text-sm bg-red-600 hover:bg-red-700 text-white"
 				onclick={() => dispatch('delete')}
 			>
-				Delete
+				{$t('shared.actions.delete')}
 			</button>
 		{/if}
 
@@ -126,9 +127,7 @@
 			class="btn btn-ghost text-sm"
 			onclick={() => dispatch('cancel')}
 		>
-			Cancel
+			{$t('shared.actions.cancel')}
 		</button>
 	</div>
 </div>
-
-

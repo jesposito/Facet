@@ -462,7 +462,16 @@
 			"visitor_count": "Intruders",
 			"visitor_last_visited": "Last Scanned",
 			"visitor_never": "No intruders detected",
-			"visitor_homepage": "Home Base"
+			"visitor_homepage": "Home Base",
+			"relative_time": {
+				"just_now": "moments ago",
+				"minutes_ago": "{count}m ago",
+				"hours_ago": "{count}h ago",
+				"days_ago": "{count}d ago"
+			},
+			"stats": {
+				"sr_only_icon": "{label} emblem"
+			}
 		},
 		"login": {
 			"title": "Enter the Domain of Facet",
@@ -494,7 +503,8 @@
 			"toggle_theme": "Toggle lighting",
 			"demo": "Training",
 			"demo_on": "ON",
-			"toggle_demo_mode": "Toggle training mode"
+			"toggle_demo_mode": "Toggle training mode",
+			"opens_new_tab": "{label} (opens in new viewport)"
 		},
 		"settings": {
 			"favicon": {
@@ -726,7 +736,30 @@
 				"media_toggle_shortcodes": "Toggle code reference",
 				"media_shortcode_help": "Use codes in description: {gallery} for gallery, {video} for video embeds",
 				"is_featured_label": "Feature this mission (appears prominently)",
-				"required_error": "Mission title is required"
+				"required_error": "Mission title is required",
+				"generate_slug": "Generate",
+				"reorder_button": "Reorder",
+				"technical_details_heading": "Technical Specifications",
+				"publishing_heading": "Deployment",
+				"no_links_yet": "No links established. Add links to your mission repo, demo, or documentation.",
+				"media_attach_help": "Select media from your arsenal to attach to this mission",
+				"link_type_website": "Website",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demo",
+				"shortcodes_title": "Media Shortcodes",
+				"shortcodes_description": "Embed media in Markdown using {{provider:url}}. Paste URLs from Media Library or any supported provider.",
+				"shortcodes_hint": "Use {{provider:url}} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).",
+				"shortcodes_video": "Video",
+				"shortcodes_audio": "Audio",
+				"shortcodes_images": "Images / Documents",
+				"shortcodes_design": "Design / Code",
+				"shortcodes_other": "Immich / Other",
+				"toast_featured": "Mission featured",
+				"toast_unfeatured": "Mission unfeatured",
+				"toast_order_saved": "Order saved",
+				"toast_order_error": "Failed to save order",
+				"action_feature": "Feature",
+				"action_unfeature": "Unfeature"
 			},
 			"education": {
 				"title": "Training",
@@ -1430,6 +1463,33 @@
 			"yesterday": "Yesterday",
 			"days_ago": "{count} rotations ago",
 			"weeks_ago": "{count} cycles ago"
+		},
+		"password_modal": {
+			"title": "Change Access Code",
+			"description": "Select a powerful code to fortify your defenses.",
+			"current_password_label": "Current Access Code",
+			"current_password_hint": "Required for identity verification",
+			"new_password_label": "New Access Code",
+			"new_password_placeholder": "Enter new access code",
+			"strength_weak": "Weak",
+			"strength_medium": "Acceptable",
+			"strength_strong": "Warrior-grade",
+			"min_length_hint": "Minimum 8 characters",
+			"confirm_password_label": "Confirm New Access Code",
+			"confirm_password_placeholder": "Re-enter new access code",
+			"error_current_required": "Current access code is required",
+			"error_min_length": "New code must be at least 8 characters",
+			"error_same_password": "New code must differ from current code",
+			"error_mismatch": "Access codes do not match",
+			"changing": "Changing...",
+			"submit_button": "Change Access Code",
+			"tip": "Mix letters, numbers, and symbols for warrior-grade security."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} of {total} targeted",
+			"select_all": "Target all",
+			"clear": "Clear targets",
+			"change_visibility": "Change Visibility"
 		}
 	},
 	"public": {
