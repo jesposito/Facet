@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { t } from 'svelte-i18n';
-	import { pb, currentUser } from '$lib/pocketbase';
+	import { pb, currentUser, performLogout } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
@@ -18,7 +18,7 @@
 	}
 
 	async function logout() {
-		pb.authStore.clear();
+		await performLogout();
 		goto('/admin/login');
 	}
 </script>
