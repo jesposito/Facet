@@ -35,6 +35,7 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Version Update Notifications:** Admin panel shows badge when newer version available (checks GitHub releases daily).
 - ✅ **Custom Content Sections:** User-defined content blocks with Markdown support.
 - ✅ **Automated Changelog Generation:** AI-powered changelog from PR descriptions on release.
+- ✅ **TOTP Two-Factor Authentication:** Optional 2FA using any authenticator app. Recovery codes, CLI reset, 24-hour sessions.
 - 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, Phase 19 Developer Platform.
 
 ---
@@ -565,12 +566,14 @@ When clicked:
 
 ## Tracking Upstream Dependencies
 
-### PocketBase TOTP Support
-**Status:** Deferred pending native support
+### TOTP Two-Factor Authentication
+**Status:** ✅ Implemented (application-layer)
 
-- Subscribe to: https://github.com/pocketbase/pocketbase/discussions/1208
-- OAuth users already have provider 2FA
-- Will implement when PocketBase adds native TOTP
+- Implemented as an application-layer gate rather than waiting for native PocketBase TOTP
+- Optional opt-in from admin Settings using any TOTP authenticator app
+- 8 single-use recovery codes (bcrypt hashed, AES-256-GCM encrypted at rest)
+- 24-hour verified sessions, CLI reset for lockouts
+- See [SECURITY.md](SECURITY.md) for full implementation details
 
 ### Import Source Integrations
 - **LinkedIn:** API requires partnership (deferred)
