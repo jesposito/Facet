@@ -462,7 +462,16 @@
 			"visitor_count": "Besucher",
 			"visitor_last_visited": "Zuletzt besucht",
 			"visitor_never": "Noch nicht besucht",
-			"visitor_homepage": "Startseite"
+			"visitor_homepage": "Startseite",
+			"relative_time": {
+				"just_now": "gerade eben",
+				"minutes_ago": "vor {count}m",
+				"hours_ago": "vor {count}h",
+				"days_ago": "vor {count}d"
+			},
+			"stats": {
+				"sr_only_icon": "{label}-Symbol"
+			}
 		},
 		"login": {
 			"title": "Bei Facet anmelden",
@@ -494,7 +503,8 @@
 			"toggle_theme": "Design umschalten",
 			"demo": "Demo",
 			"demo_on": "AN",
-			"toggle_demo_mode": "Demo-Modus umschalten"
+			"toggle_demo_mode": "Demo-Modus umschalten",
+			"opens_new_tab": "{label} (öffnet in neuem Tab)"
 		},
 		"settings": {
 			"favicon": {
@@ -726,7 +736,30 @@
 				"media_toggle_shortcodes": "Shortcode-Referenz umschalten",
 				"media_shortcode_help": "Shortcodes in der Beschreibung verwenden: {gallery} für Galerie, {video} für Video-Einbettungen",
 				"is_featured_label": "Dieses Projekt hervorheben (erscheint prominent)",
-				"required_error": "Titel ist erforderlich"
+				"required_error": "Titel ist erforderlich",
+				"generate_slug": "Generieren",
+				"reorder_button": "Neu ordnen",
+				"technical_details_heading": "Technische Details",
+				"publishing_heading": "Veröffentlichung",
+				"no_links_yet": "Noch keine Links. Fügen Sie Links zu Repo, Demo oder Dokumentation hinzu.",
+				"media_attach_help": "Medien aus Ihrer Bibliothek an dieses Projekt anhängen",
+				"link_type_website": "Webseite",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demo",
+				"shortcodes_title": "Media-Shortcodes",
+				"shortcodes_description": "Medien in Markdown einbetten mit {{provider:url}}. URLs aus der Medienbibliothek oder unterstützten Anbietern einfügen.",
+				"shortcodes_hint": "Verwenden Sie {{provider:url}} für Einbettungen (YouTube, Vimeo, SoundCloud, Bilder usw.).",
+				"shortcodes_video": "Video",
+				"shortcodes_audio": "Audio",
+				"shortcodes_images": "Bilder / Dokumente",
+				"shortcodes_design": "Design / Code",
+				"shortcodes_other": "Immich / Andere",
+				"toast_featured": "Projekt hervorgehoben",
+				"toast_unfeatured": "Projekt nicht mehr hervorgehoben",
+				"toast_order_saved": "Reihenfolge gespeichert",
+				"toast_order_error": "Fehler beim Speichern der Reihenfolge",
+				"action_feature": "Hervorheben",
+				"action_unfeature": "Nicht hervorheben"
 			},
 			"education": {
 				"title": "Ausbildung",
@@ -1430,6 +1463,33 @@
 			"yesterday": "Gestern",
 			"days_ago": "vor {count} Tagen",
 			"weeks_ago": "vor {count} Wochen"
+		},
+		"password_modal": {
+			"title": "Passwort ändern",
+			"description": "Wählen Sie ein starkes, einzigartiges Passwort, um Ihr Konto zu sichern.",
+			"current_password_label": "Aktuelles Passwort",
+			"current_password_hint": "Erforderlich zur Identitätsüberprüfung",
+			"new_password_label": "Neues Passwort",
+			"new_password_placeholder": "Neues Passwort eingeben",
+			"strength_weak": "Schwach",
+			"strength_medium": "Mittel",
+			"strength_strong": "Stark",
+			"min_length_hint": "Mindestens 8 Zeichen",
+			"confirm_password_label": "Neues Passwort bestätigen",
+			"confirm_password_placeholder": "Neues Passwort erneut eingeben",
+			"error_current_required": "Aktuelles Passwort ist erforderlich",
+			"error_min_length": "Neues Passwort muss mindestens 8 Zeichen lang sein",
+			"error_same_password": "Neues Passwort muss sich vom aktuellen Passwort unterscheiden",
+			"error_mismatch": "Passwörter stimmen nicht überein",
+			"changing": "Wird geändert...",
+			"submit_button": "Passwort ändern",
+			"tip": "Verwenden Sie eine Mischung aus Buchstaben, Zahlen und Symbolen für ein starkes Passwort."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} von {total} ausgewählt",
+			"select_all": "Alle auswählen",
+			"clear": "Löschen",
+			"change_visibility": "Sichtbarkeit ändern"
 		}
 	},
 	"public": {

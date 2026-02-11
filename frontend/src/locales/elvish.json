@@ -462,7 +462,16 @@
 			"visitor_count": "Wayfarers",
 			"visitor_last_visited": "Last Beheld",
 			"visitor_never": "Not yet beheld",
-			"visitor_homepage": "The Great Hall"
+			"visitor_homepage": "The Great Hall",
+			"relative_time": {
+				"just_now": "a moment past",
+				"minutes_ago": "{count}m hence",
+				"hours_ago": "{count}h hence",
+				"days_ago": "{count}d hence"
+			},
+			"stats": {
+				"sr_only_icon": "{label} sigil"
+			}
 		},
 		"login": {
 			"title": "Enter the Realm of Facet",
@@ -494,7 +503,8 @@
 			"toggle_theme": "Toggle light",
 			"demo": "Demo",
 			"demo_on": "ON",
-			"toggle_demo_mode": "Toggle demonstration"
+			"toggle_demo_mode": "Toggle demonstration",
+			"opens_new_tab": "{label} (opens in new window)"
 		},
 		"settings": {
 			"favicon": {
@@ -726,7 +736,30 @@
 				"media_toggle_shortcodes": "Toggle binding word reference",
 				"media_shortcode_help": "Use binding words in description: {gallery} for gallery, {video} for moving image embeds",
 				"is_featured_label": "Feature this work (appears prominently)",
-				"required_error": "Title is required"
+				"required_error": "Title is required",
+				"generate_slug": "Generate",
+				"reorder_button": "Reorder",
+				"technical_details_heading": "Technical Lore",
+				"publishing_heading": "Publishing",
+				"no_links_yet": "No links yet forged. Add paths to thy repository, demonstration, or scrolls.",
+				"media_attach_help": "Select works from thy library to bind to this creation",
+				"link_type_website": "Website",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demonstration",
+				"shortcodes_title": "Media Enchantments",
+				"shortcodes_description": "Embed media in Markdown using {{provider:url}}. Paste paths from the Media Library or any supported source.",
+				"shortcodes_hint": "Use {{provider:url}} for embeds (YouTube, Vimeo, SoundCloud, images, and more).",
+				"shortcodes_video": "Moving Images",
+				"shortcodes_audio": "Songs & Sounds",
+				"shortcodes_images": "Images / Scrolls",
+				"shortcodes_design": "Design / Code",
+				"shortcodes_other": "Immich / Other",
+				"toast_featured": "Work is now featured",
+				"toast_unfeatured": "Work is no longer featured",
+				"toast_order_saved": "Order preserved",
+				"toast_order_error": "Failed to preserve the order",
+				"action_feature": "Feature",
+				"action_unfeature": "Unfeature"
 			},
 			"education": {
 				"title": "Learning",
@@ -1430,6 +1463,33 @@
 			"yesterday": "Yestereve",
 			"days_ago": "{count} days hence",
 			"weeks_ago": "{count} weeks hence"
+		},
+		"password_modal": {
+			"title": "Change the Word of Passage",
+			"description": "Choose a word of power, strong and hidden, to guard thy domain.",
+			"current_password_label": "Current Word of Passage",
+			"current_password_hint": "Speak thy name to prove thy identity",
+			"new_password_label": "New Word of Passage",
+			"new_password_placeholder": "Speak a new word",
+			"strength_weak": "Feeble",
+			"strength_medium": "Steadfast",
+			"strength_strong": "Mighty",
+			"min_length_hint": "At least 8 runes",
+			"confirm_password_label": "Confirm the New Word",
+			"confirm_password_placeholder": "Speak the word once more",
+			"error_current_required": "The current word of passage is required",
+			"error_min_length": "The new word must contain at least 8 runes",
+			"error_same_password": "The new word must differ from the old",
+			"error_mismatch": "The words do not align",
+			"changing": "Weaving the change...",
+			"submit_button": "Change the Word",
+			"tip": "Blend letters, numbers, and ancient symbols for a word of true power."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} of {total} chosen",
+			"select_all": "Choose all",
+			"clear": "Release all",
+			"change_visibility": "Change Visibility"
 		}
 	},
 	"public": {
