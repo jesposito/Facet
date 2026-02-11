@@ -685,6 +685,23 @@ export async function fetchCustomContent(): Promise<CustomContent[]> {
 	}
 }
 
+export async function performLogout(): Promise<void> {
+	try {
+		if (pb.authStore.isValid) {
+			await fetch('/api/totp/clear-session', {
+				method: 'POST',
+				headers: { Authorization: `Bearer ${pb.authStore.token}` }
+			});
+		}
+	} catch {
+		// Best-effort — don't block logout if the call fails
+	}
+	pb.authStore.clear();
+	if (browser) {
+		document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+	}
+}
+
 export function getFileUrl(record: { id: string; collectionId?: string; collectionName?: string }, filename: string): string {
 	if (!filename) return '';
 	const collectionId = record.collectionId || record.collectionName;

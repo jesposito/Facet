@@ -69,6 +69,7 @@ func main() {
 	hooks.RegisterMediaCleanupHooks(app)
 	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
 	hooks.RegisterBackupHooks(app)  // Automated database backup system
+	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
@@ -78,6 +79,104 @@ func main() {
 	// Note: Trusted proxy headers are handled by Caddy in the Docker setup.
 	// For standalone deployments, configure your reverse proxy to set
 	// X-Forwarded-For, X-Forwarded-Proto, and X-Forwarded-Host headers.
+
+	// Demo mode CLI commands
+	demoCmd := &cobra.Command{
+		Use:   "demo",
+		Short: "Manage demo mode",
+		Long:  "Enable, disable, or check the status of demo mode.",
+	}
+	demoCmd.AddCommand(&cobra.Command{
+		Use:   "enable",
+		Short: "Enable demo mode (load sample data)",
+		Run: func(cmd *cobra.Command, args []string) {
+			demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", "")
+			if demoProfile != nil {
+				if err := hooks.ClearDemoTables(app); err != nil {
+					log.Fatalf("ERROR: Failed to clear existing demo data: %v", err)
+				}
+			}
+			if err := hooks.LoadDemoDataIntoShadowTables(app); err != nil {
+				log.Fatalf("ERROR: Failed to load demo data: %v", err)
+			}
+			fmt.Println("Demo mode enabled successfully.")
+		},
+	})
+	demoCmd.AddCommand(&cobra.Command{
+		Use:   "disable",
+		Short: "Disable demo mode (remove sample data)",
+		Run: func(cmd *cobra.Command, args []string) {
+			demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", "")
+			if demoProfile == nil {
+				fmt.Println("Demo mode is not active.")
+				return
+			}
+			if err := hooks.ClearDemoTables(app); err != nil {
+				log.Fatalf("ERROR: Failed to clear demo data: %v", err)
+			}
+			fmt.Println("Demo mode disabled successfully.")
+		},
+	})
+	demoCmd.AddCommand(&cobra.Command{
+		Use:   "status",
+		Short: "Check if demo mode is active",
+		Run: func(cmd *cobra.Command, args []string) {
+			demoProfile, _ := app.FindFirstRecordByFilter("demo_profile", "")
+			if demoProfile != nil {
+				fmt.Println("Demo mode: ENABLED")
+			} else {
+				fmt.Println("Demo mode: DISABLED")
+			}
+		},
+	})
+	app.RootCmd.AddCommand(demoCmd)
+
+	// Reset 2FA for a user
+	app.RootCmd.AddCommand(&cobra.Command{
+		Use:   "reset-2fa [email]",
+		Short: "Disable 2FA/TOTP for a user account",
+		Long: `Disables two-factor authentication for the specified user,
+clearing their TOTP secret, recovery codes, and session data.
+
+If no email is provided, resets 2FA for admin@example.com.
+
+Example:
+  ./facet reset-2fa
+  ./facet reset-2fa admin@mydomain.com`,
+		Run: func(cmd *cobra.Command, args []string) {
+			email := "admin@example.com"
+			if len(args) > 0 {
+				email = args[0]
+			}
+
+			user, err := app.FindAuthRecordByEmail("users", email)
+			if err != nil {
+				log.Fatalf("ERROR: User with email '%s' not found: %v", email, err)
+			}
+
+			if !user.GetBool("totp_enabled") {
+				fmt.Printf("2FA is not enabled for %s. Nothing to reset.\n", email)
+				return
+			}
+
+			user.Set("totp_enabled", false)
+			user.Set("totp_secret", "")
+			user.Set("totp_recovery_codes", "")
+			user.Set("totp_session_nonce", "")
+			user.Set("totp_session_expires", "")
+
+			if err := app.Save(user); err != nil {
+				log.Fatalf("ERROR: Failed to reset 2FA: %v", err)
+			}
+
+			fmt.Println("========================================")
+			fmt.Printf("2FA reset successful for: %s\n", email)
+			fmt.Println("========================================")
+			fmt.Println("Two-factor authentication has been disabled.")
+			fmt.Println("The user can re-enable it from Settings.")
+			fmt.Println("========================================")
+		},
+	})
 
 	// Add custom command for resetting admin password
 	app.RootCmd.AddCommand(&cobra.Command{

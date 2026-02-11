@@ -51,7 +51,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 			if demoProfile != nil {
 				app.Logger().Info("Demo data already exists, clearing and reloading...")
 				// Clear existing demo data first
-				if err := clearDemoTables(app); err != nil {
+				if err := ClearDemoTables(app); err != nil {
 					app.Logger().Error("Failed to clear existing demo data", "error", err)
 					return e.JSON(http.StatusInternalServerError, map[string]string{
 						"error": "Failed to clear existing demo data: " + err.Error(),
@@ -60,7 +60,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 			}
 
 			// Load The Doctor's demo data into demo_* tables
-			if err := loadDemoDataIntoShadowTables(app); err != nil {
+			if err := LoadDemoDataIntoShadowTables(app); err != nil {
 				app.Logger().Error("Failed to load demo data", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Failed to load demo data: " + err.Error(),
@@ -93,7 +93,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 			}
 
 			// Delete all demo data from demo_* tables
-			if err := clearDemoTables(app); err != nil {
+			if err := ClearDemoTables(app); err != nil {
 				app.Logger().Error("Failed to clear demo data", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Failed to clear demo data: " + err.Error(),
@@ -111,8 +111,8 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 	})
 }
 
-// clearDemoTables deletes all records from demo_* shadow tables
-func clearDemoTables(app *pocketbase.PocketBase) error {
+// ClearDemoTables deletes all records from demo_* shadow tables
+func ClearDemoTables(app *pocketbase.PocketBase) error {
 	tables := []string{
 		"demo_profile", "demo_experience", "demo_projects", "demo_education",
 		"demo_skills", "demo_certifications", "demo_posts", "demo_talks",
@@ -163,9 +163,9 @@ func loadDemoAsset(assetPath string) (*filesystem.File, error) {
 	return file, nil
 }
 
-// loadDemoDataIntoShadowTables loads The Doctor's demo data into demo_* shadow tables
+// LoadDemoDataIntoShadowTables loads The Doctor's demo data into demo_* shadow tables
 // Adapted from seed.go seedDemoData() function to write to demo_* collections
-func loadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
+func LoadDemoDataIntoShadowTables(app *pocketbase.PocketBase) error {
 	app.Logger().Info("Loading demo data into shadow tables...")
 
 	// Create profile

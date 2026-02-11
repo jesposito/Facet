@@ -1,62 +1,9 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto } from '$app/navigation';
 	import { t } from 'svelte-i18n';
-	import { pb, currentUser } from '$lib/pocketbase';
-	import { adminSidebarOpen, confirm } from '$lib/stores';
-	import { demoMode as demoModeStore, initDemoMode } from '$lib/stores/demo';
-	import { triggerSidebarFacetsReload } from '$lib/stores';
+	import { pb, currentUser, performLogout } from '$lib/pocketbase';
+	import { adminSidebarOpen } from '$lib/stores';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
-	import { page } from '$app/stores';
-
-	let demoMode = $state(false);
-	let toggleLoading = $state(false);
-	let showDemoAnimation = $state(false);
-	let hideDemoToggle = $state(false);
-
-	// Subscribe to demo mode store
-	demoModeStore.subscribe(value => {
-		demoMode = value;
-	});
-
-	async function loadSiteSettings() {
-		try {
-			const response = await fetch('/api/site-settings');
-			if (response.ok) {
-				const data = await response.json();
-				hideDemoToggle = data.hide_demo_toggle || false;
-			}
-		} catch (err) {
-			console.warn('Failed to load site settings for demo toggle visibility:', err);
-		}
-	}
-
-	onMount(async () => {
-		await loadSiteSettings();
-
-		if (!hideDemoToggle) {
-			showDemoAnimation = true;
-			setTimeout(() => {
-				showDemoAnimation = false;
-			}, 10000);
-		}
-	});
-
-	// React to page navigation to reload settings when invalidateAll() is called
-	$effect(() => {
-		// This runs when page store changes (including invalidateAll())
-		$page;
-		loadSiteSettings();
-	});
-
-	function dismissDemoAnimation() {
-		showDemoAnimation = false;
-		try {
-			localStorage.setItem('hasSeenDemoToggle', 'true');
-		} catch (err) {
-			console.warn('Failed to save demo toggle state', err);
-		}
-	}
 
 	function toggleSidebar() {
 		adminSidebarOpen.update((v) => {
@@ -70,57 +17,8 @@
 		});
 	}
 
-	async function toggleDemoMode() {
-		// Dismiss animation when user interacts with toggle
-		dismissDemoAnimation();
-
-		console.log('[TOGGLE] toggleDemoMode() called, current demoMode:', demoMode);
-		if (!demoMode) {
-			// Turning on demo mode
-			const confirmed = await confirm({
-				title: 'Enable Demo Mode',
-				message: 'This will replace your current profile data with sample data. Your original data will be backed up and can be restored when you toggle off demo mode.\n\nNote: If you currently have no profile data, toggling demo OFF later will keep the demo data as your starting profile.',
-				confirmText: 'Enable Demo',
-				cancelText: 'Cancel'
-			});
-			if (!confirmed) {
-				console.log('[TOGGLE] User cancelled');
-				return;
-			}
-		}
-
-		toggleLoading = true;
-		try {
-			const endpoint = demoMode ? '/api/demo/restore' : '/api/demo/enable';
-			console.log('[TOGGLE] Calling endpoint:', endpoint);
-			const response = await fetch(endpoint, {
-				method: 'POST',
-				headers: { Authorization: pb.authStore.token }
-			});
-			console.log('[TOGGLE] Response:', response.status, response.ok);
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to toggle demo mode');
-			}
-
-			console.log('[TOGGLE] Updating store...');
-			
-			// Re-initialize demo mode from server to ensure store is in sync
-			// The {#key $demoMode} block in layout will force child components to remount
-			await initDemoMode();
-			triggerSidebarFacetsReload();
-			console.log('[TOGGLE] Demo mode updated, components will remount');
-		} catch (err) {
-			console.error('[TOGGLE] Failed to toggle demo mode:', err);
-			alert(err instanceof Error ? err.message : 'Failed to toggle demo mode');
-		} finally {
-			toggleLoading = false;
-		}
-	}
-
 	async function logout() {
-		pb.authStore.clear();
+		await performLogout();
 		goto('/admin/login');
 	}
 </script>
@@ -154,44 +52,12 @@
 				class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
 				title={$t('admin.header.view_site_title')}
 			>
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 				</svg>
 				<span class="hidden sm:inline">{$t('admin.header.view_site')}</span>
+				<span class="sr-only">(opens in new tab)</span>
 			</a>
-
-			{#if !hideDemoToggle}
-				<div class="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 {showDemoAnimation ? 'ring-2 ring-primary-500 animate-pulse' : ''}">
-					<span class="text-xs font-medium text-gray-700 dark:text-gray-300 hidden sm:inline">
-						{$t('admin.header.demo')}
-					</span>
-					<button
-						onclick={toggleDemoMode}
-						disabled={toggleLoading}
-						class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-							{demoMode ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-						role="switch"
-						aria-checked={demoMode}
-						aria-label={$t('admin.header.toggle_demo_mode')}
-					>
-						<span
-							class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-								{demoMode ? 'translate-x-5' : 'translate-x-0.5'}"
-						></span>
-					</button>
-					{#if demoMode}
-						<span class="text-xs text-primary-600 dark:text-primary-400 font-medium hidden md:inline">
-							{$t('admin.header.demo_on')}
-						</span>
-					{/if}
-					{#if showDemoAnimation}
-						<span class="absolute -top-2 -right-2 flex h-3 w-3">
-							<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-							<span class="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
-						</span>
-					{/if}
-				</div>
-			{/if}
 
 			<ThemeToggle />
 

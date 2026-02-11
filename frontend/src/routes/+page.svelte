@@ -25,7 +25,7 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
-	import { pb, currentUser } from '$lib/pocketbase';
+	import { pb, currentUser, performLogout } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 	import { goto } from '$app/navigation';
 
@@ -371,10 +371,8 @@
 		showPrintMenu = false;
 	}
 
-	function handleLogout() {
-		// Just log out and go to login page
-		// Demo data stays - user can replace it with their own profile in /admin
-		pb.authStore.clear();
+	async function handleLogout() {
+		await performLogout();
 		window.location.href = '/admin/login';
 	}
 </script>

@@ -9,6 +9,24 @@
 			"encryption_info_title": "Erinnerung: Verschlüsselungsschlüssel sichern",
 			"encryption_info_message": "Ihr Verschlüsselungsschlüssel ist unter /data/.encryption_key gespeichert. Dieser Schlüssel schützt Ihre API-Tokens und Freigabelinks. Stellen Sie sicher, dass /data in Ihren Backups enthalten ist — wenn dieser Schlüssel verloren geht, können verschlüsselte Daten nicht wiederhergestellt werden."
 		},
+		"two_factor": {
+			"title": "Zwei-Faktor-Authentifizierung",
+			"description": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein, um fortzufahren.",
+			"recovery_description": "Geben Sie einen Ihrer Wiederherstellungscodes ein. Jeder Code kann nur einmal verwendet werden.",
+			"code_label": "Authentifizierungscode",
+			"recovery_label": "Wiederherstellungscode",
+			"verify_button": "Bestätigen",
+			"verifying": "Wird bestätigt...",
+			"use_recovery": "Wiederherstellungscode verwenden",
+			"use_totp": "Authenticator-Code verwenden",
+			"logout_link": "Abmelden",
+			"error_code_length": "Bitte geben Sie einen 6-stelligen Code ein",
+			"error_recovery_format": "Wiederherstellungscodes haben das Format XXXX-XXXX",
+			"error_invalid": "Ungültiger Bestätigungscode",
+			"status_check_failed_title": "Sicherheitsprüfung fehlgeschlagen",
+			"status_check_failed_message": "Der Zwei-Faktor-Authentifizierungsstatus konnte nicht überprüft werden. Bitte versuchen Sie es erneut.",
+			"retry_button": "Erneut versuchen"
+		},
 		"settings_page": {
 			"title": "Einstellungen",
 			"page_title_suffix": "| Facet",
@@ -41,6 +59,29 @@
 				"error_min_length": "Das neue Passwort muss mindestens 8 Zeichen haben",
 				"error_mismatch": "Passwörter stimmen nicht überein",
 				"error_same_password": "Das neue Passwort muss sich vom aktuellen unterscheiden"
+			},
+			"two_factor": {
+				"title": "Zwei-Faktor-Authentifizierung",
+				"description": "Fügen Sie Ihrem Konto mit einer Authenticator-App eine zusätzliche Sicherheitsebene hinzu.",
+				"status_enabled": "Aktiviert",
+				"status_disabled": "Deaktiviert",
+				"enable_button": "Zwei-Faktor-Authentifizierung aktivieren",
+				"scan_qr": "Scannen Sie diesen QR-Code mit Ihrer Authenticator-App (Google Authenticator, Authy usw.)",
+				"manual_entry": "Oder geben Sie diesen Schlüssel manuell ein:",
+				"confirm_code_label": "Geben Sie den 6-stelligen Code aus Ihrer App ein",
+				"confirm_button": "Bestätigen & Aktivieren",
+				"enabled_toast": "Zwei-Faktor-Authentifizierung wurde aktiviert",
+				"disabled_toast": "Zwei-Faktor-Authentifizierung wurde deaktiviert",
+				"disable_2fa": "2FA deaktivieren",
+				"disable_button": "Zwei-Faktor-Authentifizierung deaktivieren",
+				"disable_confirm": "Geben Sie Ihren Authenticator-Code oder einen Wiederherstellungscode ein, um 2FA zu deaktivieren.",
+				"regenerate_codes": "Wiederherstellungscodes neu generieren",
+				"regenerate_button": "Neue Codes generieren",
+				"regenerate_confirm": "Geben Sie Ihren Authenticator-Code ein, um neue Wiederherstellungscodes zu generieren. Alle bestehenden Codes werden ungültig.",
+				"codes_regenerated_toast": "Wiederherstellungscodes wurden neu generiert",
+				"recovery_warning": "Speichern Sie Ihre Wiederherstellungscodes",
+				"recovery_save_hint": "Bewahren Sie diese Codes an einem sicheren Ort auf. Jeder Code kann nur einmal verwendet werden. Wenn Sie den Zugriff auf Ihre Authenticator-App verlieren, können Sie sich damit anmelden.",
+				"recovery_dismiss": "Ich habe meine Wiederherstellungscodes gespeichert"
 			},
 			"appearance": {
 				"section_title": "Erscheinungsbild",
@@ -421,7 +462,16 @@
 			"visitor_count": "Besucher",
 			"visitor_last_visited": "Zuletzt besucht",
 			"visitor_never": "Noch nicht besucht",
-			"visitor_homepage": "Startseite"
+			"visitor_homepage": "Startseite",
+			"relative_time": {
+				"just_now": "gerade eben",
+				"minutes_ago": "vor {count}m",
+				"hours_ago": "vor {count}h",
+				"days_ago": "vor {count}d"
+			},
+			"stats": {
+				"sr_only_icon": "{label}-Symbol"
+			}
 		},
 		"login": {
 			"title": "Bei Facet anmelden",
@@ -453,7 +503,8 @@
 			"toggle_theme": "Design umschalten",
 			"demo": "Demo",
 			"demo_on": "AN",
-			"toggle_demo_mode": "Demo-Modus umschalten"
+			"toggle_demo_mode": "Demo-Modus umschalten",
+			"opens_new_tab": "{label} (öffnet in neuem Tab)"
 		},
 		"settings": {
 			"favicon": {
@@ -685,7 +736,30 @@
 				"media_toggle_shortcodes": "Shortcode-Referenz umschalten",
 				"media_shortcode_help": "Shortcodes in der Beschreibung verwenden: {gallery} für Galerie, {video} für Video-Einbettungen",
 				"is_featured_label": "Dieses Projekt hervorheben (erscheint prominent)",
-				"required_error": "Titel ist erforderlich"
+				"required_error": "Titel ist erforderlich",
+				"generate_slug": "Generieren",
+				"reorder_button": "Neu ordnen",
+				"technical_details_heading": "Technische Details",
+				"publishing_heading": "Veröffentlichung",
+				"no_links_yet": "Noch keine Links. Fügen Sie Links zu Repo, Demo oder Dokumentation hinzu.",
+				"media_attach_help": "Medien aus Ihrer Bibliothek an dieses Projekt anhängen",
+				"link_type_website": "Webseite",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demo",
+				"shortcodes_title": "Media-Shortcodes",
+				"shortcodes_description": "Medien in Markdown einbetten mit {{provider:url}}. URLs aus der Medienbibliothek oder unterstützten Anbietern einfügen.",
+				"shortcodes_hint": "Verwenden Sie {{provider:url}} für Einbettungen (YouTube, Vimeo, SoundCloud, Bilder usw.).",
+				"shortcodes_video": "Video",
+				"shortcodes_audio": "Audio",
+				"shortcodes_images": "Bilder / Dokumente",
+				"shortcodes_design": "Design / Code",
+				"shortcodes_other": "Immich / Andere",
+				"toast_featured": "Projekt hervorgehoben",
+				"toast_unfeatured": "Projekt nicht mehr hervorgehoben",
+				"toast_order_saved": "Reihenfolge gespeichert",
+				"toast_order_error": "Fehler beim Speichern der Reihenfolge",
+				"action_feature": "Hervorheben",
+				"action_unfeature": "Nicht hervorheben"
 			},
 			"education": {
 				"title": "Ausbildung",
@@ -1389,6 +1463,33 @@
 			"yesterday": "Gestern",
 			"days_ago": "vor {count} Tagen",
 			"weeks_ago": "vor {count} Wochen"
+		},
+		"password_modal": {
+			"title": "Passwort ändern",
+			"description": "Wählen Sie ein starkes, einzigartiges Passwort, um Ihr Konto zu sichern.",
+			"current_password_label": "Aktuelles Passwort",
+			"current_password_hint": "Erforderlich zur Identitätsüberprüfung",
+			"new_password_label": "Neues Passwort",
+			"new_password_placeholder": "Neues Passwort eingeben",
+			"strength_weak": "Schwach",
+			"strength_medium": "Mittel",
+			"strength_strong": "Stark",
+			"min_length_hint": "Mindestens 8 Zeichen",
+			"confirm_password_label": "Neues Passwort bestätigen",
+			"confirm_password_placeholder": "Neues Passwort erneut eingeben",
+			"error_current_required": "Aktuelles Passwort ist erforderlich",
+			"error_min_length": "Neues Passwort muss mindestens 8 Zeichen lang sein",
+			"error_same_password": "Neues Passwort muss sich vom aktuellen Passwort unterscheiden",
+			"error_mismatch": "Passwörter stimmen nicht überein",
+			"changing": "Wird geändert...",
+			"submit_button": "Passwort ändern",
+			"tip": "Verwenden Sie eine Mischung aus Buchstaben, Zahlen und Symbolen für ein starkes Passwort."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} von {total} ausgewählt",
+			"select_all": "Alle auswählen",
+			"clear": "Löschen",
+			"change_visibility": "Sichtbarkeit ändern"
 		}
 	},
 	"public": {
