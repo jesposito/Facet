@@ -16,6 +16,41 @@
 	let error = $state('');
 	let useRecoveryCode = $state(false);
 	let isMobile = $state(false);
+	let dialogEl: HTMLDivElement | undefined = $state();
+	let previousActiveElement: HTMLElement | null = $state(null);
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			onLogout();
+			return;
+		}
+
+		if (event.key === 'Tab') {
+			const focusableElements = dialogEl?.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+			);
+
+			if (!focusableElements?.length) return;
+
+			const firstElement = focusableElements[0];
+			const lastElement = focusableElements[focusableElements.length - 1];
+
+			if (event.shiftKey && document.activeElement === firstElement) {
+				event.preventDefault();
+				lastElement.focus();
+			} else if (!event.shiftKey && document.activeElement === lastElement) {
+				event.preventDefault();
+				firstElement.focus();
+			}
+		}
+	}
+
+	function handleOverlayClick(event: MouseEvent) {
+		if (event.target === event.currentTarget) {
+			onLogout();
+		}
+	}
 
 	function handleInput(e: Event) {
 		const input = e.target as HTMLInputElement;
@@ -79,6 +114,8 @@
 	}
 
 	onMount(() => {
+		previousActiveElement = document.activeElement as HTMLElement;
+
 		const mq = window.matchMedia('(max-width: 767px)');
 		isMobile = mq.matches;
 		const handler = (e: MediaQueryListEvent) => (isMobile = e.matches);
@@ -88,12 +125,27 @@
 			document.getElementById('totp-code')?.focus();
 		}, 100);
 
-		return () => mq.removeEventListener('change', handler);
+		return () => {
+			mq.removeEventListener('change', handler);
+			if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+				previousActiveElement.focus();
+			}
+		};
 	});
 </script>
 
-<div class="fixed inset-0 bg-black/50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 z-50">
+<svelte:window onkeydown={handleKeydown} />
+
+<div
+	class="fixed inset-0 bg-black/50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 z-50"
+	role="presentation"
+	onclick={handleOverlayClick}
+>
 	<div
+		bind:this={dialogEl}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="two-factor-title"
 		class="card w-full p-6 transform transition-transform {isMobile
 			? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto'
 			: 'max-w-md'}"
@@ -101,11 +153,11 @@
 		<div class="mb-6">
 			<div class="flex items-center gap-3 mb-2">
 				<div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-					<svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
 					</svg>
 				</div>
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+				<h2 id="two-factor-title" class="text-2xl font-bold text-gray-900 dark:text-white">
 					{$t('admin.two_factor.title')}
 				</h2>
 			</div>
