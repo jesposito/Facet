@@ -14,6 +14,7 @@
 		DEFAULT_ACCENT_COLOR,
 		type AccentColor
 	} from '$lib/colors';
+	import QRCode from 'qrcode';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 
@@ -29,8 +30,22 @@
 	let siteSettingsSaving = $state(false);
 	let customCSS = $state('');
 	let gaMeasurementId = $state('');
-	let hideDemoToggle = $state(false);
 	let showCSSHelp = $state(false);
+
+	// Two-Factor Authentication state
+	let totpEnabled = $state(false);
+	let totpLoading = $state(false);
+	let totpSetupData: { secret: string; url: string } | null = $state(null);
+	let totpQrDataUrl: string = $state('');
+	let totpSetupCode = $state('');
+	let totpSetupError = $state('');
+	let totpRecoveryCodes: string[] | null = $state(null);
+	let totpDisableCode = $state('');
+	let totpDisableError = $state('');
+	let showDisable2FA = $state(false);
+	let showRegenerateCodes = $state(false);
+	let totpRegenerateCode = $state('');
+	let totpRegenerateError = $state('');
 
 	// Favicon state
 	let faviconUrl: string | null = $state(null);
@@ -161,12 +176,12 @@
 	});
 
 	onMount(async () => {
-		await Promise.all([loadProviders(), loadProfile(), loadSiteSettings()]);
+		await Promise.all([loadProviders(), loadProfile(), loadSiteSettings(), loadTOTPStatus()]);
 	});
 
 	async function loadProfile() {
 		try {
-			const records = await await collection('profile').getList(1, 1);
+			const records = await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
 				profile = records.items[0] as unknown as Profile;
 				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
@@ -181,7 +196,7 @@
 
 		savingAppearance = true;
 		try {
-			await await collection('profile').update(profile.id, {
+			await collection('profile').update(profile.id, {
 				accent_color: color
 			});
 			selectedAccentColor = color;
@@ -254,6 +269,133 @@
 		}
 	}
 
+	async function loadTOTPStatus() {
+		try {
+			const response = await fetch('/api/totp/status', {
+				headers: { Authorization: `Bearer ${pb.authStore.token}` }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				totpEnabled = data.enabled;
+			}
+		} catch (err) {
+			console.error('Failed to load TOTP status:', err);
+		}
+	}
+
+	async function beginTOTPSetup() {
+		totpLoading = true;
+		totpSetupError = '';
+		try {
+			const response = await fetch('/api/totp/begin-setup', {
+				method: 'POST',
+				headers: { Authorization: `Bearer ${pb.authStore.token}` }
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error);
+			totpSetupData = { secret: data.secret, url: data.url };
+			// Generate QR code locally — never send TOTP secret to third-party services
+			try {
+				totpQrDataUrl = await QRCode.toDataURL(data.url, { width: 200, margin: 1 });
+			} catch {
+				totpQrDataUrl = '';
+			}
+		} catch (err: any) {
+			totpSetupError = err.message || 'Failed to begin setup';
+			toasts.add('error', totpSetupError);
+		} finally {
+			totpLoading = false;
+		}
+	}
+
+	async function confirmTOTPSetup() {
+		totpLoading = true;
+		totpSetupError = '';
+		try {
+			const response = await fetch('/api/totp/confirm-setup', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pb.authStore.token}`
+				},
+				body: JSON.stringify({ code: totpSetupCode })
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error);
+			totpRecoveryCodes = data.recovery_codes;
+			totpEnabled = true;
+			totpSetupData = null;
+			totpSetupCode = '';
+			totpQrDataUrl = '';
+			toasts.add('success', $t('admin.settings_page.two_factor.enabled_toast'));
+		} catch (err: any) {
+			totpSetupError = err.message || 'Invalid code';
+		} finally {
+			totpLoading = false;
+		}
+	}
+
+	async function disableTOTP() {
+		totpLoading = true;
+		totpDisableError = '';
+		try {
+			const response = await fetch('/api/totp/disable', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pb.authStore.token}`
+				},
+				body: JSON.stringify({ code: totpDisableCode })
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error);
+			totpEnabled = false;
+			totpDisableCode = '';
+			showDisable2FA = false;
+			toasts.add('success', $t('admin.settings_page.two_factor.disabled_toast'));
+		} catch (err: any) {
+			totpDisableError = err.message || 'Invalid code';
+		} finally {
+			totpLoading = false;
+		}
+	}
+
+	async function regenerateRecoveryCodes() {
+		totpLoading = true;
+		totpRegenerateError = '';
+		try {
+			const response = await fetch('/api/totp/regenerate-codes', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${pb.authStore.token}`
+				},
+				body: JSON.stringify({ code: totpRegenerateCode })
+			});
+			const data = await response.json();
+			if (!response.ok) throw new Error(data.error);
+			totpRecoveryCodes = data.recovery_codes;
+			totpRegenerateCode = '';
+			showRegenerateCodes = false;
+			toasts.add('success', $t('admin.settings_page.two_factor.codes_regenerated_toast'));
+		} catch (err: any) {
+			totpRegenerateError = err.message || 'Invalid code';
+		} finally {
+			totpLoading = false;
+		}
+	}
+
+	function dismissRecoveryCodes() {
+		totpRecoveryCodes = null;
+	}
+
+	function cancelTOTPSetup() {
+		totpSetupData = null;
+		totpSetupCode = '';
+		totpSetupError = '';
+		totpQrDataUrl = '';
+	}
+
 	async function loadProviders() {
 		try {
 			const result = await pb.collection('ai_providers').getList(1, 50);
@@ -273,7 +415,6 @@
 				const data = await response.json();
 				customCSS = data.custom_css || '';
 				gaMeasurementId = data.ga_measurement_id || '';
-				hideDemoToggle = data.hide_demo_toggle || false;
 				faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
 			}
 		} catch (err) {
@@ -435,39 +576,6 @@
 			toasts.add('error', $t('admin.settings_page.appearance.favicon_remove_error'));
 		} finally {
 			faviconSaving = false;
-		}
-	}
-
-	async function toggleHideDemoToggle() {
-		siteSettingsSaving = true;
-		try {
-			const response = await fetch('/api/site-settings', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify({
-					hide_demo_toggle: !hideDemoToggle
-				})
-			});
-
-			const result = await response.json();
-			if (!response.ok) {
-				toasts.add('error', result.error || $t('admin.settings_page.general.demo_toggle_error'));
-				return;
-			}
-
-			hideDemoToggle = result.hide_demo_toggle || false;
-			toasts.add('success', hideDemoToggle ? $t('admin.settings_page.general.demo_hidden_toast') : $t('admin.settings_page.general.demo_visible_toast'));
-
-			// Invalidate all data to trigger component updates (e.g., AdminHeader)
-			await invalidateAll();
-		} catch (err) {
-			console.error('Failed to toggle demo setting:', err);
-			toasts.add('error', $t('admin.settings_page.general.demo_toggle_error'));
-		} finally {
-			siteSettingsSaving = false;
 		}
 	}
 
@@ -721,6 +829,187 @@
 					{/if}
 				</button>
 			</form>
+		</div>
+
+		<!-- Two-Factor Authentication -->
+		<div class="card p-6">
+			<div class="flex items-center justify-between mb-4">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.two_factor.title')}</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm mt-1">{$t('admin.settings_page.two_factor.description')}</p>
+				</div>
+				{#if totpEnabled}
+					<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+						<span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+						{$t('admin.settings_page.two_factor.status_enabled')}
+					</span>
+				{:else}
+					<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+						{$t('admin.settings_page.two_factor.status_disabled')}
+					</span>
+				{/if}
+			</div>
+
+			{#if totpRecoveryCodes}
+				<!-- Recovery codes display -->
+				<div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg mb-4">
+					<div class="flex items-start gap-3 mb-3">
+						<svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+						</svg>
+						<div>
+							<p class="text-sm font-medium text-amber-800 dark:text-amber-200">{$t('admin.settings_page.two_factor.recovery_warning')}</p>
+							<p class="text-xs text-amber-700 dark:text-amber-300 mt-1">{$t('admin.settings_page.two_factor.recovery_save_hint')}</p>
+						</div>
+					</div>
+					<div class="grid grid-cols-2 gap-2 mb-3">
+						{#each totpRecoveryCodes as code}
+							<div class="font-mono text-sm bg-white dark:bg-gray-800 px-3 py-2 rounded text-center border border-amber-200 dark:border-amber-700">
+								{code}
+							</div>
+						{/each}
+					</div>
+					<button type="button" class="btn btn-secondary btn-sm w-full" onclick={dismissRecoveryCodes}>
+						{$t('admin.settings_page.two_factor.recovery_dismiss')}
+					</button>
+				</div>
+			{/if}
+
+			{#if !totpEnabled}
+				{#if totpSetupData}
+					<!-- Setup flow: QR code + confirm -->
+					<div class="space-y-4">
+						<div class="text-center">
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.settings_page.two_factor.scan_qr')}</p>
+							<div class="inline-block p-4 bg-white rounded-lg border border-gray-200 dark:border-gray-600">
+								{#if totpQrDataUrl}
+									<img src={totpQrDataUrl} alt="QR Code" width="200" height="200" />
+								{:else}
+									<div class="w-[200px] h-[200px] flex items-center justify-center text-sm text-gray-500">
+										QR code unavailable — use manual entry below
+									</div>
+								{/if}
+							</div>
+						</div>
+
+						<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+							<p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{$t('admin.settings_page.two_factor.manual_entry')}</p>
+							<code class="text-sm font-mono text-gray-900 dark:text-white break-all">{totpSetupData.secret}</code>
+						</div>
+
+						{#if totpSetupError}
+							<div class="p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+								{totpSetupError}
+							</div>
+						{/if}
+
+						<div>
+							<label for="totp-setup-code" class="label">{$t('admin.settings_page.two_factor.confirm_code_label')}</label>
+							<input
+								type="text"
+								id="totp-setup-code"
+								bind:value={totpSetupCode}
+								class="input text-center text-xl tracking-widest font-mono"
+								placeholder="000000"
+								maxlength="6"
+								inputmode="numeric"
+								disabled={totpLoading}
+							/>
+						</div>
+
+						<div class="flex gap-3">
+							<button type="button" class="btn btn-secondary flex-1" onclick={cancelTOTPSetup} disabled={totpLoading}>
+								{$t('shared.actions.cancel')}
+							</button>
+							<button type="button" class="btn btn-primary flex-1" onclick={confirmTOTPSetup} disabled={totpLoading || totpSetupCode.length !== 6}>
+								{#if totpLoading}
+									<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									</svg>
+								{/if}
+								{$t('admin.settings_page.two_factor.confirm_button')}
+							</button>
+						</div>
+					</div>
+				{:else}
+					<!-- Enable button -->
+					<button type="button" class="btn btn-primary" onclick={beginTOTPSetup} disabled={totpLoading}>
+						{#if totpLoading}
+							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							</svg>
+						{/if}
+						{$t('admin.settings_page.two_factor.enable_button')}
+					</button>
+				{/if}
+			{:else}
+				<!-- 2FA is enabled — management actions -->
+				<div class="space-y-3">
+					{#if showDisable2FA}
+						<div class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+							<p class="text-sm text-red-700 dark:text-red-300 mb-3">{$t('admin.settings_page.two_factor.disable_confirm')}</p>
+							{#if totpDisableError}
+								<div class="mb-3 p-2 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-sm">
+									{totpDisableError}
+								</div>
+							{/if}
+							<input
+								type="text"
+								bind:value={totpDisableCode}
+								class="input text-center text-xl tracking-widest font-mono mb-3"
+								placeholder="000000"
+								maxlength="9"
+								disabled={totpLoading}
+							/>
+							<div class="flex gap-3">
+								<button type="button" class="btn btn-secondary btn-sm flex-1" onclick={() => { showDisable2FA = false; totpDisableCode = ''; totpDisableError = ''; }}>
+									{$t('shared.actions.cancel')}
+								</button>
+								<button type="button" class="btn btn-sm flex-1 bg-red-600 hover:bg-red-700 text-white" onclick={disableTOTP} disabled={totpLoading || !totpDisableCode.trim()}>
+									{$t('admin.settings_page.two_factor.disable_button')}
+								</button>
+							</div>
+						</div>
+					{:else if showRegenerateCodes}
+						<div class="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+							<p class="text-sm text-gray-700 dark:text-gray-300 mb-3">{$t('admin.settings_page.two_factor.regenerate_confirm')}</p>
+							{#if totpRegenerateError}
+								<div class="mb-3 p-2 rounded bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 text-sm">
+									{totpRegenerateError}
+								</div>
+							{/if}
+							<input
+								type="text"
+								bind:value={totpRegenerateCode}
+								class="input text-center text-xl tracking-widest font-mono mb-3"
+								placeholder="000000"
+								maxlength="6"
+								inputmode="numeric"
+								disabled={totpLoading}
+							/>
+							<div class="flex gap-3">
+								<button type="button" class="btn btn-secondary btn-sm flex-1" onclick={() => { showRegenerateCodes = false; totpRegenerateCode = ''; totpRegenerateError = ''; }}>
+									{$t('shared.actions.cancel')}
+								</button>
+								<button type="button" class="btn btn-primary btn-sm flex-1" onclick={regenerateRecoveryCodes} disabled={totpLoading || totpRegenerateCode.length !== 6}>
+									{$t('admin.settings_page.two_factor.regenerate_button')}
+								</button>
+							</div>
+						</div>
+					{:else}
+						<div class="flex flex-wrap gap-3">
+							<button type="button" class="btn btn-secondary btn-sm" onclick={() => showRegenerateCodes = true}>
+								{$t('admin.settings_page.two_factor.regenerate_codes')}
+							</button>
+							<button type="button" class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick={() => showDisable2FA = true}>
+								{$t('admin.settings_page.two_factor.disable_2fa')}
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</div>
 
@@ -1008,35 +1297,6 @@ body { font-family: 'Inter', sans-serif; }
 			<LanguageSwitcher />
 			<p class="text-xs text-gray-500 dark:text-gray-400 mt-4">
 				{$t('admin.settings_page.language.more_coming')}
-			</p>
-		</div>
-
-		<!-- Demo Toggle -->
-		<div class="card p-6">
-			<div class="flex items-center justify-between gap-4">
-				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.settings_page.general.demo_toggle_title')}</h2>
-					<p class="text-gray-600 dark:text-gray-400 text-sm">
-						{$t('admin.settings_page.general.demo_toggle_description')}
-					</p>
-				</div>
-				<button
-					onclick={toggleHideDemoToggle}
-					disabled={siteSettingsLoading || siteSettingsSaving}
-					class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-						{hideDemoToggle ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-600'}"
-					role="switch"
-					aria-checked={!hideDemoToggle}
-					aria-label="Toggle demo mode visibility"
-				>
-					<span
-						class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-							{hideDemoToggle ? 'translate-x-1' : 'translate-x-6'}"
-					></span>
-				</button>
-			</div>
-			<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-				{hideDemoToggle ? $t('admin.settings_page.general.demo_toggle_hidden') : $t('admin.settings_page.general.demo_toggle_visible')}
 			</p>
 		</div>
 

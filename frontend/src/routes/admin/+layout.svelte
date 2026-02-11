@@ -6,12 +6,13 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { t } from 'svelte-i18n';
-	import { pb, currentUser } from '$lib/pocketbase';
+	import { pb, currentUser, performLogout } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import { demoMode, initDemoMode, collection } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
+	import TwoFactorModal from '$components/admin/TwoFactorModal.svelte';
 	import SetupWizard from '$components/admin/SetupWizard.svelte';
 	import { setupWizard, shouldShowWizard } from '$lib/stores/setupWizard';
 	import type { Profile, View } from '$lib/pocketbase';
@@ -25,6 +26,8 @@
 	let authorized = $state(false);
 	let mounted = $state(false);
 	let showPasswordChangeModal = $state(false);
+	let showTwoFactorModal = $state(false);
+	let twoFactorError = $state(false);
 	
 	// Mobile detection for responsive sidebar behavior
 	// Mobile: sidebar is overlay drawer (hidden by default)
@@ -38,6 +41,47 @@
 	let encryptionKeySource = $state('');
 
 
+
+	async function check2FAStatus(): Promise<boolean> {
+		try {
+			const response = await fetch('/api/totp/status', {
+				headers: { Authorization: `Bearer ${pb.authStore.token}` }
+			});
+			if (!response.ok) {
+				console.error('2FA status check failed:', response.status);
+				showTwoFactorModal = false;
+				twoFactorError = true;
+				return true;
+			}
+			const data = await response.json();
+			if (data.enabled && !data.verified) {
+				twoFactorError = false;
+				showTwoFactorModal = true;
+				return true;
+			}
+		} catch (err) {
+			console.error('Failed to check 2FA status:', err);
+			showTwoFactorModal = false;
+			twoFactorError = true;
+			return true;
+		}
+		return false;
+	}
+
+	function handleTwoFactorVerified() {
+		showTwoFactorModal = false;
+		twoFactorError = false;
+		authorized = true;
+		checkSetupWizard();
+		checkEncryptionKeyStatus();
+	}
+
+	async function handleTwoFactorLogout() {
+		showTwoFactorModal = false;
+		twoFactorError = false;
+		await performLogout();
+		goto('/admin/login');
+	}
 
 	async function checkEncryptionKeyStatus() {
 		try {
@@ -171,10 +215,13 @@
 				// Token is valid - proceed
 				const needsPasswordChange = await checkDefaultPassword();
 				if (!needsPasswordChange) {
-					checkSetupWizard();
+					const needs2FA = await check2FAStatus();
+					if (!needs2FA) {
+						checkSetupWizard();
+						checkEncryptionKeyStatus();
+						authorized = true;
+					}
 				}
-				checkEncryptionKeyStatus();
-				authorized = true;
 				loading = false;
 			} catch (err) {
 				// Token validation failed - clear stale auth and redirect to login
@@ -207,24 +254,28 @@
 		}
 	});
 
-	function handlePasswordChanged() {
-		// Password was successfully changed - hide modal and reload user data
+	async function handlePasswordChanged() {
+		// Password was successfully changed - hide modal and check 2FA before authorizing
 		showPasswordChangeModal = false;
 
 		// Refresh user data to get updated password_changed_from_default field
 		if ($currentUser) {
-			pb.collection('users')
-				.getOne($currentUser.id)
-				.then((updatedUser) => {
-					// Update the currentUser store
-					currentUser.set(updatedUser);
-					// Check if setup wizard should be shown after password change
-					checkSetupWizard();
-				})
-				.catch((err) => {
-					console.error('Failed to refresh user data:', err);
-				});
+			try {
+				const updatedUser = await pb.collection('users').getOne($currentUser.id);
+				currentUser.set(updatedUser);
+			} catch (err) {
+				console.error('Failed to refresh user data:', err);
+			}
 		}
+
+		// Now check 2FA — password change must NOT bypass the 2FA gate
+		const needs2FA = await check2FAStatus();
+		if (!needs2FA) {
+			authorized = true;
+			checkSetupWizard();
+			checkEncryptionKeyStatus();
+		}
+		// If needs2FA, the modal is now showing and authorized stays false
 	}
 	// Check if we're on the login page (don't require auth there)
 	let isLoginPage = $derived($page.url.pathname === '/admin/login');
@@ -238,16 +289,19 @@
 	run(() => {
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
-			if (isAuth && !authorized) {
-				// User just became authenticated - validate and authorize
-				authorized = true;
-				loading = false;
+			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal && !twoFactorError && !loading) {
 				(async () => {
 					const needsPasswordChange = await checkDefaultPassword();
 					if (!needsPasswordChange) {
-						checkSetupWizard();
+						const needs2FA = await check2FAStatus();
+						if (!needs2FA) {
+							authorized = true;
+							checkSetupWizard();
+							checkEncryptionKeyStatus();
+						}
 					}
-					checkEncryptionKeyStatus();
+					// If needsPasswordChange: showPasswordChangeModal is now true.
+					// authorized stays false — the modal renders outside the authorized guard.
 				})();
 			} else if (!isAuth && authorized) {
 				// User is no longer authenticated - clear state and redirect
@@ -335,17 +389,54 @@
 						</div>
 					</div>
 				{/if}
-				{#key $demoMode}
-					{@render children?.()}
-				{/key}
+				{@render children?.()}
 			</main>
 		</div>
 
-		{#if showPasswordChangeModal}
-			<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />
-		{/if}
-		
-		<SetupWizard onComplete={() => checkSetupWizard()} />
+			<SetupWizard onComplete={() => checkSetupWizard()} />
+	</div>
+{:else if twoFactorError}
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+		<div class="text-center max-w-md mx-auto px-4">
+			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+				<svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+				</svg>
+			</div>
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.two_factor.status_check_failed_title')}</h2>
+			<p class="text-gray-600 dark:text-gray-400 mb-6">{$t('admin.two_factor.status_check_failed_message')}</p>
+			<div class="flex gap-3 justify-center">
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={async () => {
+						twoFactorError = false;
+						const needs2FA = await check2FAStatus();
+						if (!needs2FA) {
+							authorized = true;
+							checkSetupWizard();
+							checkEncryptionKeyStatus();
+						}
+					}}
+				>
+					{$t('admin.two_factor.retry_button')}
+				</button>
+				<button
+					type="button"
+					class="btn btn-secondary"
+					onclick={async () => {
+						twoFactorError = false;
+						await performLogout();
+						goto('/admin/login');
+					}}
+				>
+					{$t('admin.two_factor.logout_link')}
+				</button>
+			</div>
+		</div>
+	</div>
+{:else if showPasswordChangeModal || showTwoFactorModal}
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 	</div>
 {:else}
 	<!-- CRITICAL SECURITY: Fallback for any edge case where user is not authenticated -->
@@ -364,4 +455,13 @@
 			</a>
 		</div>
 	</div>
+{/if}
+
+<!-- Blocking modals render outside ALL layout branches — they overlay everything -->
+{#if showTwoFactorModal}
+	<TwoFactorModal onVerified={handleTwoFactorVerified} onLogout={handleTwoFactorLogout} />
+{/if}
+
+{#if showPasswordChangeModal}
+	<PasswordChangeModal onPasswordChanged={handlePasswordChanged} />
 {/if}

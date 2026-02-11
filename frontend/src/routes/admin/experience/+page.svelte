@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Experience } from '$lib/pocketbase';
-	import { t } from 'svelte-i18n';
+	import { t, locale } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -389,9 +389,10 @@
 
 	function formatDateRange(start: string | undefined, end: string | undefined): string {
 		if (!start) return '';
-		const startStr = new Date(start).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-		if (!end) return `${startStr} - Present`;
-		const endStr = new Date(end).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+		const loc = $locale || 'en';
+		const startStr = new Date(start).toLocaleDateString(loc, { month: 'short', year: 'numeric' });
+		if (!end) return `${startStr} - ${$t('shared.time.present')}`;
+		const endStr = new Date(end).toLocaleDateString(loc, { month: 'short', year: 'numeric' });
 		return `${startStr} - ${endStr}`;
 	}
 

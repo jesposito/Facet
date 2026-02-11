@@ -416,7 +416,7 @@ afterNavigate(() => {
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-						{editingEdu ? 'Edit Education' : 'New Education'}
+						{editingEdu ? $t('admin.content.common.form_title_edit', { values: { type: $t('admin.content.education.title') } }) : $t('admin.content.common.form_title_new', { values: { type: $t('admin.content.education.title') } })}
 					</h2>
 					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -426,7 +426,7 @@ afterNavigate(() => {
 				</div>
 
 				<div>
-					<label for="institution" class="label">Institution *</label>
+					<label for="institution" class="label">{$t('admin.content.education.institution_label')} {$t('admin.content.common.required_field')}</label>
 					<input
 						type="text"
 						id="institution"
@@ -470,56 +470,56 @@ afterNavigate(() => {
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="degree" class="label">Degree</label>
+						<label for="degree" class="label">{$t('admin.content.education.degree_label')}</label>
 						<input
 							type="text"
 							id="degree"
 							bind:value={degree}
 							class="input"
-							placeholder="Bachelor of Science"
+							placeholder={$t('admin.content.education.degree_placeholder')}
 						/>
 					</div>
 
 					<div>
-						<label for="field" class="label">Field of Study</label>
+						<label for="field" class="label">{$t('admin.content.education.field_label')}</label>
 						<input
 							type="text"
 							id="field"
 							bind:value={field}
 							class="input"
-							placeholder="Computer Science"
+							placeholder={$t('admin.content.education.field_placeholder')}
 						/>
 					</div>
 				</div>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="start_date" class="label">Start Date</label>
+						<label for="start_date" class="label">{$t('admin.content.education.start_date_label')}</label>
 						<input
 							type="text"
 							id="start_date"
 							bind:value={startDate}
-							placeholder="2018 or 2018-09"
+							placeholder={$t('admin.content.education.start_date_placeholder')}
 							class="input"
 						/>
 					</div>
 
 					<div>
-						<label for="end_date" class="label">End Date</label>
+						<label for="end_date" class="label">{$t('admin.content.education.end_date_label')}</label>
 						<input
 							type="text"
 							id="end_date"
 							bind:value={endDate}
-							placeholder="2022 or 2022-05"
+							placeholder={$t('admin.content.education.end_date_placeholder')}
 							class="input"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Leave blank if still attending</p>
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.education.end_date_help')}</p>
 					</div>
 				</div>
 
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label for="description" class="label mb-0">Description</label>
+						<label for="description" class="label mb-0">{$t('admin.content.common.description_label')}</label>
 						<AIContentHelper
 							fieldType="description"
 							content={description}
@@ -531,27 +531,27 @@ afterNavigate(() => {
 						id="description"
 						bind:value={description}
 						class="input min-h-[100px]"
-						placeholder="Activities, honors, relevant coursework..."
+						placeholder={$t('admin.content.education.description_placeholder')}
 					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Markdown supported</p>
+					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.markdown_supported')}</p>
 				</div>
 			</div>
 
 			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.common.settings_section')}</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="visibility" class="label">Visibility</label>
+						<label for="visibility" class="label">{$t('admin.content.common.visibility_label')}</label>
 						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">Public</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="private">Private</option>
+							<option value="public">{$t('admin.content.common.visibility_public')}</option>
+							<option value="unlisted">{$t('admin.content.common.visibility_unlisted')}</option>
+							<option value="private">{$t('admin.content.common.visibility_private')}</option>
 						</select>
 					</div>
 
 					<div>
-						<label for="sort_order" class="label">Sort Order</label>
+						<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
 						<input
 							type="number"
 							id="sort_order"
@@ -559,7 +559,7 @@ afterNavigate(() => {
 							class="input"
 							min="0"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.sort_order_help')}</p>
 					</div>
 				</div>
 
@@ -571,13 +571,13 @@ afterNavigate(() => {
 						class="w-4 h-4 text-primary-600 rounded border-gray-300"
 					/>
 					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
-						Save as draft (won't be visible publicly)
+						{$t('admin.content.common.is_draft_label')}
 					</label>
 				</div>
 			</div>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}>{$t('shared.actions.cancel')}</button>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -585,7 +585,7 @@ afterNavigate(() => {
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
 					{/if}
-					{editingEdu ? 'Update Education' : 'Create Education'}
+					{editingEdu ? $t('admin.content.common.update_button', { values: { type: $t('admin.content.education.title') } }) : $t('admin.content.common.create_button', { values: { type: $t('admin.content.education.title') } })}
 				</button>
 			</div>
 		</form>

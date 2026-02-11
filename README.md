@@ -600,7 +600,7 @@ For upgrade procedures: [docs/UPGRADE.md](docs/UPGRADE.md)
 - Email allowlist (`ADMIN_EMAILS`)
 - Session tokens in httpOnly cookies
 - First-time password change enforcement for default credentials
-- 2FA/TOTP: Awaiting native PocketBase support (OAuth providers handle their own 2FA)
+- Optional TOTP-based two-factor authentication (any authenticator app, with recovery codes)
 
 **Encryption:**
 - AES-256-GCM for API keys and sensitive tokens (encrypted at rest)
@@ -817,11 +817,11 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Custom content sections for user-defined content
 - ✅ Version update notifications (checks GitHub for new releases)
 - ✅ Automated changelog generation from PR descriptions
+- ✅ Optional TOTP two-factor authentication with recovery codes
 
 **Coming Soon:**
 - CAPTCHA contact protection (Cloudflare Turnstile integration)
 - Scheduled GitHub sync (auto-refresh projects)
-- 2FA/TOTP support (awaiting native PocketBase support)
 
 **Planned (Lower Priority):**
 - Content Security Policy headers

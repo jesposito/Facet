@@ -9,6 +9,24 @@
 			"encryption_info_title": "Remindr: Bak Up Ur Encrypshun Kee",
 			"encryption_info_message": "Ur encrypshun kee iz at /data/.encryption_key. Dis kee protectz ur API tokenz n share linkz. Maek shur /data iz in ur bakupz — if dis kee iz lost, encryptd data cant be recoverd. Srsly."
 		},
+		"two_factor": {
+			"title": "Two-Factr Authenticashun",
+			"description": "Entr teh 6-digit coed frum ur authenticatr app 2 continyu.",
+			"recovery_description": "Entr wun of ur recuvry coedz. Each coed can only be uzd wunce.",
+			"code_label": "Authenticashun Coed",
+			"recovery_label": "Recuvry Coed",
+			"verify_button": "Verify",
+			"verifying": "Verifyin...",
+			"use_recovery": "Use a recuvry coed",
+			"use_totp": "Use authenticatr coed",
+			"logout_link": "Sign owt",
+			"error_code_length": "Plz entr a 6-digit coed",
+			"error_recovery_format": "Recuvry coedz r in teh format XXXX-XXXX",
+			"error_invalid": "Invalid verificashun coed",
+			"status_check_failed_title": "Securitee Check Faild",
+			"status_check_failed_message": "Cant check ur 2FA status rite nao. Plz try agen!",
+			"retry_button": "Try Agen"
+		},
 		"settings_page": {
 			"title": "Settingz",
 			"page_title_suffix": "| Facet",
@@ -41,6 +59,29 @@
 				"error_min_length": "New passwurd must be at leest 8 characterz",
 				"error_mismatch": "Passwurdz do nawt match",
 				"error_same_password": "New passwurd must be diffrent frum current passwurd"
+			},
+			"two_factor": {
+				"title": "Two-Factr Authenticashun",
+				"description": "Add an extra layr of sekurity 2 ur accownt usin an authenticatr app.",
+				"status_enabled": "On! Much sekure!",
+				"status_disabled": "Off",
+				"enable_button": "Enabl Two-Factr Authenticashun",
+				"scan_qr": "Scan dis QR coed wif ur authenticatr app (Googl Authenticatr, Authy, etc.)",
+				"manual_entry": "Or entr dis kee manualy:",
+				"confirm_code_label": "Entr teh 6-digit coed frum ur app",
+				"confirm_button": "Verify & Enabl",
+				"enabled_toast": "Two-factr authenticashun haz been enabld! Much sekure!",
+				"disabled_toast": "Two-factr authenticashun haz been disabld",
+				"disable_2fa": "Disabl 2FA",
+				"disable_button": "Disabl Two-Factr Authenticashun",
+				"disable_confirm": "Entr ur authenticatr coed or a recuvry coed 2 disabl 2FA.",
+				"regenerate_codes": "Regenrat Recuvry Coedz",
+				"regenerate_button": "Maek New Coedz",
+				"regenerate_confirm": "Entr ur authenticatr coed 2 generat new recuvry coedz. Dis will maek all existin coedz useles.",
+				"codes_regenerated_toast": "Recuvry coedz haz been regenratd",
+				"recovery_warning": "Saev ur recuvry coedz",
+				"recovery_save_hint": "Stor thees coedz in a saef plac. Each coed can only be uzd wunce. If u looz akses 2 ur authenticatr app, u can use thees 2 sign in.",
+				"recovery_dismiss": "Iv savd mah recuvry coedz"
 			},
 			"appearance": {
 				"section_title": "Appearanz",
@@ -421,7 +462,16 @@
 			"visitor_count": "Vizitorz",
 			"visitor_last_visited": "Last Vizited",
 			"visitor_never": "No vizitorz yet",
-			"visitor_homepage": "Hoem Paeg"
+			"visitor_homepage": "Hoem Paeg",
+			"relative_time": {
+				"just_now": "rite meow",
+				"minutes_ago": "{count}m ago",
+				"hours_ago": "{count}h ago",
+				"days_ago": "{count}d ago"
+			},
+			"stats": {
+				"sr_only_icon": "{label} ikon"
+			}
 		},
 		"login": {
 			"title": "Sign in 2 Facet",
@@ -453,7 +503,8 @@
 			"toggle_theme": "Toggl theem",
 			"demo": "Demo",
 			"demo_on": "ON",
-			"toggle_demo_mode": "Toggl demo moed"
+			"toggle_demo_mode": "Toggl demo moed",
+			"opens_new_tab": "{label} (openz in noo windoe)"
 		},
 		"settings": {
 			"favicon": {
@@ -685,7 +736,30 @@
 				"media_toggle_shortcodes": "Toggl shortcoed referenz",
 				"media_shortcode_help": "Use shortcoedz in descripshun: {gallery} 4 gallery, {video} 4 video embedz",
 				"is_featured_label": "Featur dis projekt (appearz prominently)",
-				"required_error": "Tietl iz requird"
+				"required_error": "Tietl iz requird",
+				"generate_slug": "Generat",
+				"reorder_button": "Reordr",
+				"technical_details_heading": "Teknikal Detailz",
+				"publishing_heading": "Publishin",
+				"no_links_yet": "No linkz yet. Add linkz 2 ur repo, demo, or docs.",
+				"media_attach_help": "Select media frum ur library 2 attach 2 dis projekt",
+				"link_type_website": "Websiet",
+				"link_type_npm": "NPM",
+				"link_type_demo": "Demo",
+				"shortcodes_title": "Media Shortcodez",
+				"shortcodes_description": "Embed media in Markdown usin {{provider:url}}. Paest URLz from Media Library or any supportd providr.",
+				"shortcodes_hint": "Uze {{provider:url}} 4 embedz (YouTube, Vimeo, SoundCloud, imagez, etc.).",
+				"shortcodes_video": "Vidyo",
+				"shortcodes_audio": "Awdio",
+				"shortcodes_images": "Imagez / Docz",
+				"shortcodes_design": "Dezign / Coed",
+				"shortcodes_other": "Immich / Othr",
+				"toast_featured": "Projekt featchured",
+				"toast_unfeatured": "Projekt unfeatchured",
+				"toast_order_saved": "Ordr savd",
+				"toast_order_error": "Faild 2 save ordr",
+				"action_feature": "Featchur",
+				"action_unfeature": "Unfeatchur"
 			},
 			"education": {
 				"title": "Educashun",
@@ -1389,6 +1463,33 @@
 			"yesterday": "Yestrday",
 			"days_ago": "{count} dayz ago",
 			"weeks_ago": "{count} weekz ago"
+		},
+		"password_modal": {
+			"title": "Chang Passwurd",
+			"description": "Chooze a stronk passwurd 2 keep ur accownt safe.",
+			"current_password_label": "Curren Passwurd",
+			"current_password_hint": "Needz 2 proov iz u",
+			"new_password_label": "Noo Passwurd",
+			"new_password_placeholder": "Type noo passwurd",
+			"strength_weak": "Smol",
+			"strength_medium": "Okais",
+			"strength_strong": "STRONK",
+			"min_length_hint": "At leest 8 letterz",
+			"confirm_password_label": "Confirm Noo Passwurd",
+			"confirm_password_placeholder": "Type it agen plz",
+			"error_current_required": "Curren passwurd iz needed",
+			"error_min_length": "Noo passwurd needz at leest 8 letterz",
+			"error_same_password": "Noo passwurd cant be saem as old wun",
+			"error_mismatch": "Passwurdz dun match",
+			"changing": "Changin...",
+			"submit_button": "Chang Passwurd",
+			"tip": "Mix letterz, numberz, n symbolz 4 a stronk passwurd."
+		},
+		"bulk_actions": {
+			"selected_count": "{selected} of {total} selectd",
+			"select_all": "Select all teh thingz",
+			"clear": "Cleer",
+			"change_visibility": "Chang Vizibility"
 		}
 	},
 	"public": {

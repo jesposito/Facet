@@ -21,6 +21,8 @@ All sensitive data is encrypted using AES-256-GCM. The encryption key can be set
 **What's encrypted:**
 - AI provider API keys (`ai_providers.api_key_encrypted`)
 - GitHub tokens (`settings.github_token`)
+- TOTP secrets (`users.totp_secret`)
+- TOTP recovery code hashes (`users.totp_recovery_codes`)
 
 **Key derivation:**
 The master key is stretched into separate keys for different purposes:
@@ -37,6 +39,73 @@ Admin users authenticate via:
 2. **Password** - fallback
 
 Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated list).
+
+### Two-Factor Authentication (TOTP)
+
+Facet supports optional TOTP-based two-factor authentication. When enabled, users must enter a 6-digit code from their authenticator app after logging in.
+
+**Implementation:** Application-layer gate (not native PocketBase MFA, which only supports email OTP). The existing PocketBase auth flow is completely unchanged; the TOTP check happens after successful PocketBase authentication in the admin layout.
+
+**Auth flow with 2FA enabled:**
+```
+Login → PocketBase auth → authRefresh → checkDefaultPassword →
+  → check2FAStatus() →
+    if API error → retry/logout screen (fail-closed)
+    if 2FA enabled && session not verified → TwoFactorModal (blocks access)
+    if 2FA not enabled or already verified → normal admin flow
+```
+
+#### Cryptographic Details
+
+| Aspect | Implementation |
+|--------|---------------|
+| TOTP algorithm | SHA1, 6 digits, 30-second period (RFC 6238) |
+| Clock drift tolerance | ±1 step (±30 seconds) via `ValidateCustom(Skew: 1)` |
+| TOTP secrets | AES-256-GCM encrypted at rest using app encryption key |
+| Recovery codes | 8 codes, `XXXX-XXXX` format (hex), bcrypt hashed (cost 10), stored encrypted |
+| Recovery code comparison | Lowercased before bcrypt compare (case-insensitive input) |
+| Session duration | 24 hours after successful TOTP verification |
+| Session storage | `totp_session_nonce` + `totp_session_expires` on user record |
+| QR code generation | Client-side only (`qrcode` npm library) — secret never sent to third-party services |
+| Rate limiting | Strict tier on all 6 TOTP endpoints |
+| Library | `github.com/pquerna/otp` v1.5.0 |
+
+#### API Endpoints
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/api/totp/status` | Check if 2FA is enabled + session verified |
+| `POST` | `/api/totp/begin-setup` | Generate TOTP secret and otpauth URL |
+| `POST` | `/api/totp/confirm-setup` | Validate code, enable 2FA, return recovery codes |
+| `POST` | `/api/totp/verify` | Validate TOTP/recovery code, create session |
+| `POST` | `/api/totp/disable` | Disable 2FA (requires valid code) |
+| `POST` | `/api/totp/regenerate-codes` | Generate new recovery codes (requires valid code) |
+
+All endpoints require PocketBase authentication (`apis.RequireAuth()`).
+
+#### Recovery
+
+If a user is locked out (lost authenticator + no recovery codes), an admin can reset 2FA via CLI:
+
+```bash
+./facet reset-2fa user@example.com
+```
+
+This clears all TOTP fields and disables 2FA for that user.
+
+#### Security Properties
+
+- **Fail-closed:** If the 2FA status API is unreachable, access is blocked (retry/logout screen shown, not the TOTP modal)
+- **No bypass via password change:** Password change modal does not skip the 2FA gate
+- **Recovery code race protection:** Recovery code verification runs inside `app.RunInTransaction()` with a fresh user fetch to prevent double-consumption
+- **No secret leakage:** QR codes generated client-side; `session_nonce` not returned in API responses
+- **Mutual exclusivity:** Frontend enforces that the error screen and TOTP modal cannot display simultaneously
+
+#### Limitations
+
+- **Single-device sessions:** TOTP session is stored on the user record, so verifying on one device/browser updates the nonce for all sessions
+- **No re-auth on sensitive actions:** Enabling 2FA or changing settings does not require re-entering the TOTP code (protected by rate limiting)
+- **24-hour fixed window:** Session duration is not configurable
 
 ### View Access Levels
 
@@ -288,7 +357,7 @@ Facet implements per-IP rate limiting using the [token bucket algorithm](https:/
 
 | Tier | Limit | Burst | Endpoints |
 |------|-------|-------|-----------|
-| Strict | 5/min | 3 | `POST /api/password/check` |
+| Strict | 5/min | 3 | `POST /api/password/check`, all `/api/totp/*` endpoints |
 | Moderate | 10/min | 5 | `POST /api/share/validate` |
 | Normal | 60/min | 10 | `GET /api/view/{slug}/access`, `GET /api/view/{slug}/data` |
 
