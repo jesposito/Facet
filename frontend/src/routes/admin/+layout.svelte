@@ -6,7 +6,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { t } from 'svelte-i18n';
-	import { pb, currentUser } from '$lib/pocketbase';
+	import { pb, currentUser, performLogout } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import { demoMode, initDemoMode, collection } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
@@ -76,11 +76,10 @@
 		checkEncryptionKeyStatus();
 	}
 
-	function handleTwoFactorLogout() {
+	async function handleTwoFactorLogout() {
 		showTwoFactorModal = false;
 		twoFactorError = false;
-		pb.authStore.clear();
-		document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+		await performLogout();
 		goto('/admin/login');
 	}
 
@@ -425,10 +424,9 @@
 				<button
 					type="button"
 					class="btn btn-secondary"
-					onclick={() => {
+					onclick={async () => {
 						twoFactorError = false;
-						pb.authStore.clear();
-						document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+						await performLogout();
 						goto('/admin/login');
 					}}
 				>

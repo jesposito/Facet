@@ -356,6 +356,22 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			})
 		})).Bind(apis.RequireAuth())
 
+		// POST /api/totp/clear-session — invalidate TOTP session (called on logout)
+		se.Router.POST("/api/totp/clear-session", func(e *core.RequestEvent) error {
+			user := e.Auth
+			if user == nil {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "Authentication required"})
+			}
+
+			user.Set("totp_session_nonce", "")
+			user.Set("totp_session_expires", "")
+			if err := app.Save(user); err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to clear session"})
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{"cleared": true})
+		}).Bind(apis.RequireAuth())
+
 		return se.Next()
 	})
 }
