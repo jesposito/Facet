@@ -53,11 +53,25 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 
 		// POST /api/admin/backup - Trigger manual backup
 		se.Router.POST("/api/admin/backup", func(e *core.RequestEvent) error {
+			// Guard against concurrent backup/restore operations.
+			// PocketBase sets this store key during CreateBackup/RestoreBackup;
+			// without this check, the nested CreateBackup call returns an error
+			// that surfaces as a 500 instead of a clear "try again" message.
+			if app.Store().Has(core.StoreKeyActiveBackup) {
+				return e.JSON(http.StatusConflict, map[string]string{
+					"error": "Another backup or restore operation is already in progress. Try again later.",
+				})
+			}
+
 			name := fmt.Sprintf("facet_manual_%s.zip", time.Now().UTC().Format("20060102_150405"))
 
 			result, err := services.RunBackup(app, name)
 			if err != nil {
-				app.Logger().Error("backup: manual backup failed", "error", err)
+				app.Logger().Error("backup: manual backup failed",
+					"error", err,
+					"name", name,
+					"dataDir", app.DataDir(),
+				)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Backup failed: " + err.Error(),
 				})
@@ -90,6 +104,12 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 		// new process is ready, then redirects to login (all sessions are
 		// invalidated by the restore).
 		se.Router.POST("/api/admin/backup/restore", func(e *core.RequestEvent) error {
+			if app.Store().Has(core.StoreKeyActiveBackup) {
+				return e.JSON(http.StatusConflict, map[string]string{
+					"error": "Another backup or restore operation is already in progress. Try again later.",
+				})
+			}
+
 			var body struct {
 				Filename string `json:"filename"`
 			}
