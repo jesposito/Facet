@@ -22,7 +22,10 @@
 			"logout_link": "Sign out",
 			"error_code_length": "Please enter a 6-digit code",
 			"error_recovery_format": "Recovery codes are in the format XXXX-XXXX",
-			"error_invalid": "Invalid verification code"
+			"error_invalid": "Invalid verification code",
+			"status_check_failed_title": "Security Check Failed",
+			"status_check_failed_message": "Unable to verify your two-factor authentication status. This may be a temporary issue — please try again.",
+			"retry_button": "Try Again"
 		},
 		"settings_page": {
 			"title": "Settings",

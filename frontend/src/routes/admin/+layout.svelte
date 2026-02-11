@@ -27,6 +27,7 @@
 	let mounted = $state(false);
 	let showPasswordChangeModal = $state(false);
 	let showTwoFactorModal = $state(false);
+	let twoFactorError = $state(false);
 	
 	// Mobile detection for responsive sidebar behavior
 	// Mobile: sidebar is overlay drawer (hidden by default)
@@ -47,27 +48,29 @@
 				headers: { Authorization: `Bearer ${pb.authStore.token}` }
 			});
 			if (!response.ok) {
-				// Fail closed: if we can't verify 2FA status, block access
 				console.error('2FA status check failed:', response.status);
-				showTwoFactorModal = true;
+				showTwoFactorModal = false;
+				twoFactorError = true;
 				return true;
 			}
 			const data = await response.json();
 			if (data.enabled && !data.verified) {
+				twoFactorError = false;
 				showTwoFactorModal = true;
 				return true;
 			}
 		} catch (err) {
-			// Fail closed: network errors block access rather than bypassing 2FA
 			console.error('Failed to check 2FA status:', err);
-			showTwoFactorModal = true;
+			showTwoFactorModal = false;
+			twoFactorError = true;
 			return true;
 		}
 		return false;
 	}
 
-	function handleTwoFactorVerified(_nonce: string) {
+	function handleTwoFactorVerified() {
 		showTwoFactorModal = false;
+		twoFactorError = false;
 		authorized = true;
 		checkSetupWizard();
 		checkEncryptionKeyStatus();
@@ -75,6 +78,7 @@
 
 	function handleTwoFactorLogout() {
 		showTwoFactorModal = false;
+		twoFactorError = false;
 		pb.authStore.clear();
 		document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 		goto('/admin/login');
@@ -286,8 +290,7 @@
 	run(() => {
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
-			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal) {
-				loading = false;
+			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal && !twoFactorError && !loading) {
 				(async () => {
 					const needsPasswordChange = await checkDefaultPassword();
 					if (!needsPasswordChange) {
@@ -393,8 +396,48 @@
 
 			<SetupWizard onComplete={() => checkSetupWizard()} />
 	</div>
+{:else if twoFactorError}
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+		<div class="text-center max-w-md mx-auto px-4">
+			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
+				<svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+				</svg>
+			</div>
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.two_factor.status_check_failed_title')}</h2>
+			<p class="text-gray-600 dark:text-gray-400 mb-6">{$t('admin.two_factor.status_check_failed_message')}</p>
+			<div class="flex gap-3 justify-center">
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={async () => {
+						twoFactorError = false;
+						const needs2FA = await check2FAStatus();
+						if (!needs2FA) {
+							authorized = true;
+							checkSetupWizard();
+							checkEncryptionKeyStatus();
+						}
+					}}
+				>
+					{$t('admin.two_factor.retry_button')}
+				</button>
+				<button
+					type="button"
+					class="btn btn-secondary"
+					onclick={() => {
+						twoFactorError = false;
+						pb.authStore.clear();
+						document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+						goto('/admin/login');
+					}}
+				>
+					{$t('admin.two_factor.logout_link')}
+				</button>
+			</div>
+		</div>
+	</div>
 {:else if showPasswordChangeModal || showTwoFactorModal}
-	<!-- Blocking modals that render without admin chrome — user is authenticated but not yet authorized -->
 	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 	</div>
 {:else}

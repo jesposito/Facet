@@ -5,7 +5,7 @@
 	import { t } from 'svelte-i18n';
 
 	interface Props {
-		onVerified: (nonce: string) => void;
+		onVerified: () => void;
 		onLogout: () => void;
 	}
 
@@ -65,7 +65,7 @@
 				throw new Error(data.error || $t('admin.two_factor.error_invalid'));
 			}
 
-			onVerified(data.session_nonce);
+			onVerified();
 		} catch (err: any) {
 			error = err.message || $t('admin.two_factor.error_invalid');
 			loading = false;

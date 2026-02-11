@@ -22,7 +22,10 @@
 			"logout_link": "Abmelden",
 			"error_code_length": "Bitte geben Sie einen 6-stelligen Code ein",
 			"error_recovery_format": "Wiederherstellungscodes haben das Format XXXX-XXXX",
-			"error_invalid": "Ungültiger Bestätigungscode"
+			"error_invalid": "Ungültiger Bestätigungscode",
+			"status_check_failed_title": "Sicherheitsprüfung fehlgeschlagen",
+			"status_check_failed_message": "Der Zwei-Faktor-Authentifizierungsstatus konnte nicht überprüft werden. Bitte versuchen Sie es erneut.",
+			"retry_button": "Erneut versuchen"
 		},
 		"settings_page": {
 			"title": "Einstellungen",

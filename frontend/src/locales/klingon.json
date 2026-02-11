@@ -22,7 +22,10 @@
 			"logout_link": "Disengage",
 			"error_code_length": "Enter a 6-digit battle code, warrior",
 			"error_recovery_format": "Emergency codes follow the format XXXX-XXXX",
-			"error_invalid": "Invalid verification code. Try again!"
+			"error_invalid": "Invalid verification code. Try again!",
+			"status_check_failed_title": "Security Scan Failed!",
+			"status_check_failed_message": "Unable to verify defense grid status. Retry or retreat!",
+			"retry_button": "Retry!"
 		},
 		"settings_page": {
 			"title": "Battle Configurations",
