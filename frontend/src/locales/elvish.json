@@ -22,7 +22,10 @@
 			"logout_link": "Depart",
 			"error_code_length": "Speak a 6-rune code, if thou wilt",
 			"error_recovery_format": "Recovery incantations bear the form XXXX-XXXX",
-			"error_invalid": "The warding code was not recognized"
+			"error_invalid": "The warding code was not recognized",
+			"status_check_failed_title": "The Warding Inquiry Has Faltered",
+			"status_check_failed_message": "The state of thy second ward could not be discerned. Pray, attempt once more.",
+			"retry_button": "Attempt Anew"
 		},
 		"settings_page": {
 			"title": "Inscriptions",

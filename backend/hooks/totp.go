@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"facet/services"
@@ -113,7 +114,12 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to decrypt secret"})
 			}
 
-			if !totp.Validate(req.Code, secret) {
+			if valid, _ := totp.ValidateCustom(req.Code, secret, time.Now(), totp.ValidateOpts{
+				Period:    30,
+				Skew:      1,
+				Digits:    otp.DigitsSix,
+				Algorithm: otp.AlgorithmSHA1,
+			}); !valid {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid verification code"})
 			}
 
@@ -122,7 +128,10 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate recovery codes"})
 			}
 
-			hashesJSON, _ := json.Marshal(hashedCodes)
+			hashesJSON, err := json.Marshal(hashedCodes)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to encode recovery codes"})
+			}
 			encCodes, err := crypto.Encrypt(string(hashesJSON))
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to encrypt recovery codes"})
@@ -192,7 +201,12 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if encSecret != "" {
 					secret, err := crypto.Decrypt(encSecret)
 					if err == nil {
-						valid = totp.Validate(req.Code, secret)
+						valid, _ = totp.ValidateCustom(req.Code, secret, time.Now(), totp.ValidateOpts{
+							Period:    30,
+							Skew:      1,
+							Digits:    otp.DigitsSix,
+							Algorithm: otp.AlgorithmSHA1,
+						})
 					}
 				}
 			}
@@ -251,7 +265,12 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if encSecret != "" {
 					secret, err := crypto.Decrypt(encSecret)
 					if err == nil {
-						valid = totp.Validate(req.Code, secret)
+						valid, _ = totp.ValidateCustom(req.Code, secret, time.Now(), totp.ValidateOpts{
+							Period:    30,
+							Skew:      1,
+							Digits:    otp.DigitsSix,
+							Algorithm: otp.AlgorithmSHA1,
+						})
 					}
 				}
 			}
@@ -302,7 +321,12 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to decrypt secret"})
 			}
 
-			if !totp.Validate(req.Code, secret) {
+			if valid, _ := totp.ValidateCustom(req.Code, secret, time.Now(), totp.ValidateOpts{
+				Period:    30,
+				Skew:      1,
+				Digits:    otp.DigitsSix,
+				Algorithm: otp.AlgorithmSHA1,
+			}); !valid {
 				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "Invalid verification code"})
 			}
 
@@ -311,7 +335,10 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to generate recovery codes"})
 			}
 
-			hashesJSON, _ := json.Marshal(hashedCodes)
+			hashesJSON, err := json.Marshal(hashedCodes)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to encode recovery codes"})
+			}
 			encCodes, err := crypto.Encrypt(string(hashesJSON))
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to encrypt recovery codes"})
@@ -364,10 +391,15 @@ func checkRecoveryCode(code string, encryptedCodes string, crypto *services.Cryp
 	if err := json.Unmarshal([]byte(decrypted), &hashes); err != nil {
 		return false, "", err
 	}
+	// Normalize to lowercase — recovery codes are hex, users may type uppercase
+	normalizedCode := strings.ToLower(code)
 	for i, hash := range hashes {
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(code)) == nil {
+		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(normalizedCode)) == nil {
 			hashes = append(hashes[:i], hashes[i+1:]...)
-			newJSON, _ := json.Marshal(hashes)
+			newJSON, err := json.Marshal(hashes)
+			if err != nil {
+				return false, "", err
+			}
 			newEncrypted, err := crypto.Encrypt(string(newJSON))
 			if err != nil {
 				return false, "", err

@@ -22,7 +22,10 @@
 			"logout_link": "Sign owt",
 			"error_code_length": "Plz entr a 6-digit coed",
 			"error_recovery_format": "Recuvry coedz r in teh format XXXX-XXXX",
-			"error_invalid": "Invalid verificashun coed"
+			"error_invalid": "Invalid verificashun coed",
+			"status_check_failed_title": "Securitee Check Faild",
+			"status_check_failed_message": "Cant check ur 2FA status rite nao. Plz try agen!",
+			"retry_button": "Try Agen"
 		},
 		"settings_page": {
 			"title": "Settingz",
