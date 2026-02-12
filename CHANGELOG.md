@@ -3,6 +3,20 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.17.2 - February 12, 2026
+
+**Bugs Fixed:**
+- Fix custom content rendering by adding parseMarkdown() sanitization to all layout variants
+- Fix cover images missing on homepage by adding data.sections fallback for default view data path
+- Fix gallery layout for attached images by refactoring mediaRefCard snippet
+- Fix login/logout error flash by setting loading state before running async checks
+- Fix setup wizard race condition by adding in-flight guard to prevent duplicate API calls
+
+**Pull Requests:** [#397](https://github.com/jesposito/Facet/pull/397),
+
+---
+
+
 ## v2.17.1 - February 12, 2026
 
 **Bugs Fixed:**
