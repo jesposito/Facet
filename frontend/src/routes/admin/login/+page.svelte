@@ -35,10 +35,7 @@
 	run(() => {
 		if ($currentUser && !redirecting) {
 			redirecting = true;
-			// Small delay to ensure auth state is fully propagated
-			setTimeout(() => {
-				goto('/admin', { replaceState: true });
-			}, 100);
+			goto('/admin', { replaceState: true });
 		}
 	});
 
