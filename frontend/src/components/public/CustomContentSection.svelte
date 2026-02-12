@@ -104,9 +104,9 @@
 			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden">
 				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
 			</button>
-			{#if media.title}
+			{#if media.description}
 				<div class="px-3 py-2">
-					<p class="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">{media.title}</p>
+					<p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{media.description}</p>
 				</div>
 			{/if}
 		</div>

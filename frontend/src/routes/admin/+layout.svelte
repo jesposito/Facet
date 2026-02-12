@@ -296,21 +296,32 @@
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
 			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal && !twoFactorError && !loading) {
+				// Show loading spinner during auth checks to prevent "Unauthorized" flash
+				loading = true;
 				(async () => {
-					const needsPasswordChange = await checkDefaultPassword();
-					if (!needsPasswordChange) {
-						const needs2FA = await check2FAStatus();
-						if (!needs2FA) {
-							authorized = true;
-							checkSetupWizard();
-							checkEncryptionKeyStatus();
+					try {
+						// Initialize demo mode if not done yet (skipped when entering from login page)
+						await initDemoMode();
+
+						const needsPasswordChange = await checkDefaultPassword();
+						if (!needsPasswordChange) {
+							const needs2FA = await check2FAStatus();
+							if (!needs2FA) {
+								authorized = true;
+								checkSetupWizard();
+								checkEncryptionKeyStatus();
+							}
 						}
+						// If needsPasswordChange: showPasswordChangeModal is now true.
+						// authorized stays false — the modal renders outside the authorized guard.
+					} finally {
+						loading = false;
 					}
-					// If needsPasswordChange: showPasswordChangeModal is now true.
-					// authorized stays false — the modal renders outside the authorized guard.
 				})();
 			} else if (!isAuth && authorized) {
-				// User is no longer authenticated (passive token expiry or external clear)
+				// User is no longer authenticated (passive token expiry or active logout)
+				// Set loading=true BEFORE clearing authorized to prevent "Unauthorized" flash
+				loading = true;
 				authorized = false;
 				if (pb.authStore.isValid) {
 					pb.authStore.clear();
