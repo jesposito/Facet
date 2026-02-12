@@ -39,6 +39,7 @@
 	let viewsData: View[] = $state([]);
 	let showEncryptionWarning = $state(false);
 	let encryptionKeySource = $state('');
+	let checkingSetupWizard = $state(false);
 
 
 
@@ -134,20 +135,25 @@
 	}
 	
 	async function checkSetupWizard() {
+		if (checkingSetupWizard) return;
+		checkingSetupWizard = true;
 		try {
 			const [profileRes, viewsRes] = await Promise.all([
 				collection('profile').getList(1, 1),
 				collection('views').getList(1, 100)
 			]);
-			
+
 			profileData = profileRes.items[0] as unknown as Profile || null;
 			viewsData = viewsRes.items as unknown as View[];
-			
+
 			if (shouldShowWizard(profileData, viewsData, $demoMode)) {
 				setupWizard.open();
 			}
 		} catch (err) {
 			console.error('Failed to check setup wizard:', err);
+			// On API failure, do NOT show wizard (fail safe)
+		} finally {
+			checkingSetupWizard = false;
 		}
 	}
 
@@ -304,14 +310,13 @@
 					// authorized stays false — the modal renders outside the authorized guard.
 				})();
 			} else if (!isAuth && authorized) {
-				// User is no longer authenticated - clear state and redirect
+				// User is no longer authenticated - clear state
+				// Navigation is handled by the logout handler (AdminHeader/login page)
 				authorized = false;
-				// Clear any stale auth to prevent redirect loops
 				if (pb.authStore.isValid) {
 					pb.authStore.clear();
 					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 				}
-				goto('/admin/login');
 			}
 		}
 	});
@@ -393,7 +398,7 @@
 			</main>
 		</div>
 
-			<SetupWizard onComplete={() => checkSetupWizard()} />
+			<SetupWizard />
 	</div>
 {:else if twoFactorError}
 	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
