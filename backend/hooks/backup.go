@@ -24,24 +24,35 @@ const (
 // Backups are stored in {dataDir}/backups/ (inside the already-mapped /data volume).
 // No additional volume mapping is required.
 func RegisterBackupHooks(app *pocketbase.PocketBase) {
-	// Exclude the "storage" symlink from backups.
-	// Facet symlinks /data/storage -> /uploads (a separate volume).
-	// PocketBase's archive walker follows the symlink and fails with
-	// "read /data/storage: is a directory". Uploads are backed up
-	// separately via the /uploads volume — they don't belong in the DB backup.
+	// Exclude directories that contain symlinks pointing to /uploads.
+	//
+	// PocketBase's archive walker (zipAddFS) treats symlinks as regular files:
+	// d.IsDir() returns false for symlinks, so the walker tries to Open+Read
+	// the symlink target. When the target is a directory (/uploads), this fails
+	// with "read <path>/storage: is a directory".
+	//
+	// The Exclude list matches by path prefix relative to the data dir root.
+	// "storage" only matches the root-level symlink /data/storage, but NOT
+	// nested symlinks like /data/pb_data/storage or /data/data/pb_data/storage.
+	//
+	// Excluded entries:
+	//   - "storage"  : /data/storage -> /uploads (root-level symlink)
+	//   - "pb_data"  : remnant from older PocketBase versions; contains storage -> /uploads
+	//   - "data"     : remnant nested data dir from misconfigured installs; also contains symlinks
+	//
+	// Uploads are backed up separately via the /uploads volume.
 	app.OnBackupCreate().BindFunc(func(e *core.BackupEvent) error {
-		e.Exclude = append(e.Exclude, "storage")
+		e.Exclude = append(e.Exclude, "storage", "pb_data", "data")
 		return e.Next()
 	})
 
-	// Also exclude "storage" during restore so the symlink survives
-	// the directory swap. PocketBase's RestoreBackup moves the current
-	// data dir aside and replaces it; excluding "storage" keeps the
-	// /data/storage -> /uploads symlink in place. Without this, the
-	// symlink is lost because start.sh only creates it at container boot,
-	// not after PocketBase's syscall.Exec()-based restart.
+	// Exclude the same entries during restore so the /data/storage -> /uploads
+	// symlink survives the directory swap. PocketBase's RestoreBackup moves the
+	// current data dir aside and replaces it; excluding "storage" keeps the
+	// symlink in place (start.sh only creates it at container boot, not after
+	// PocketBase's syscall.Exec()-based restart).
 	app.OnBackupRestore().BindFunc(func(e *core.BackupEvent) error {
-		e.Exclude = append(e.Exclude, "storage")
+		e.Exclude = append(e.Exclude, "storage", "pb_data", "data")
 		return e.Next()
 	})
 
@@ -53,11 +64,25 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 
 		// POST /api/admin/backup - Trigger manual backup
 		se.Router.POST("/api/admin/backup", func(e *core.RequestEvent) error {
+			// Guard against concurrent backup/restore operations.
+			// PocketBase sets this store key during CreateBackup/RestoreBackup;
+			// without this check, the nested CreateBackup call returns an error
+			// that surfaces as a 500 instead of a clear "try again" message.
+			if app.Store().Has(core.StoreKeyActiveBackup) {
+				return e.JSON(http.StatusConflict, map[string]string{
+					"error": "Another backup or restore operation is already in progress. Try again later.",
+				})
+			}
+
 			name := fmt.Sprintf("facet_manual_%s.zip", time.Now().UTC().Format("20060102_150405"))
 
 			result, err := services.RunBackup(app, name)
 			if err != nil {
-				app.Logger().Error("backup: manual backup failed", "error", err)
+				app.Logger().Error("backup: manual backup failed",
+					"error", err,
+					"name", name,
+					"dataDir", app.DataDir(),
+				)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
 					"error": "Backup failed: " + err.Error(),
 				})
@@ -90,6 +115,12 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 		// new process is ready, then redirects to login (all sessions are
 		// invalidated by the restore).
 		se.Router.POST("/api/admin/backup/restore", func(e *core.RequestEvent) error {
+			if app.Store().Has(core.StoreKeyActiveBackup) {
+				return e.JSON(http.StatusConflict, map[string]string{
+					"error": "Another backup or restore operation is already in progress. Try again later.",
+				})
+			}
+
 			var body struct {
 				Filename string `json:"filename"`
 			}
