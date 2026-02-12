@@ -101,8 +101,8 @@
 	{#if isImage(media.url)}
 		<!-- Image: clean gallery card without decoration -->
 		<div class="card overflow-hidden">
-			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in">
-				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-48 object-cover" loading="lazy" />
+			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden">
+				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
 			</button>
 			{#if media.title}
 				<div class="px-3 py-2">

@@ -310,13 +310,13 @@
 					// authorized stays false — the modal renders outside the authorized guard.
 				})();
 			} else if (!isAuth && authorized) {
-				// User is no longer authenticated - clear state
-				// Navigation is handled by the logout handler (AdminHeader/login page)
+				// User is no longer authenticated (passive token expiry or external clear)
 				authorized = false;
 				if (pb.authStore.isValid) {
 					pb.authStore.clear();
 					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 				}
+				goto('/admin/login', { replaceState: true });
 			}
 		}
 	});
