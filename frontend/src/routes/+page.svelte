@@ -544,7 +544,7 @@
 			<!-- Dynamic section rendering based on homepage_section_order -->
 			{#each effectiveSectionOrder as sectionKey}
 				{#if isCustomSection(sectionKey)}
-					{@const customItem = customContentMap.get(getCustomContentId(sectionKey))}
+					{@const customItem = data.sections?.[sectionKey]?.[0] || customContentMap.get(getCustomContentId(sectionKey))}
 					{#if customItem}
 						<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
 						<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
