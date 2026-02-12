@@ -104,9 +104,14 @@
 			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden">
 				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
 			</button>
-			{#if media.description}
-				<div class="px-3 py-2">
-					<p class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{media.description}</p>
+			{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+				<div class="p-3 space-y-1">
+					{#if media.title}
+						<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+					{/if}
+					{#if media.description}
+						<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
+					{/if}
 				</div>
 			{/if}
 		</div>
@@ -326,10 +331,13 @@
 			oncontextmenu={(e) => e.preventDefault()}
 		/>
 
-		<!-- Image counter and title -->
+		<!-- Image counter and caption -->
 		<div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
 			{#if imageMedia[lightboxIndex].title}
 				<p class="text-lg font-medium mb-1">{imageMedia[lightboxIndex].title}</p>
+			{/if}
+			{#if imageMedia[lightboxIndex].description}
+				<p class="text-sm text-white/80 mb-1">{imageMedia[lightboxIndex].description}</p>
 			{/if}
 			{#if imageMedia.length > 1}
 				<p class="text-sm text-white/70">{lightboxIndex + 1} / {imageMedia.length}</p>

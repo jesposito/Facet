@@ -91,17 +91,12 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 	out := make([]map[string]interface{}, 0, len(records))
 	for _, r := range records {
 		item := map[string]interface{}{
-			"id":       r.Id,
-			"title":    r.GetString("title"),
-			"url":      r.GetString("url"),
-			"provider": r.GetString("provider"),
-		}
-		// Include description and alt_text if present
-		if desc := r.GetString("description"); desc != "" {
-			item["description"] = desc
-		}
-		if alt := r.GetString("alt_text"); alt != "" {
-			item["alt_text"] = alt
+			"id":          r.Id,
+			"title":       r.GetString("title"),
+			"url":         r.GetString("url"),
+			"provider":    r.GetString("provider"),
+			"description": r.GetString("description"),
+			"alt_text":    r.GetString("alt_text"),
 		}
 		out = append(out, item)
 	}
