@@ -39,6 +39,7 @@
 	let viewsData: View[] = $state([]);
 	let showEncryptionWarning = $state(false);
 	let encryptionKeySource = $state('');
+	let checkingSetupWizard = $state(false);
 
 
 
@@ -134,20 +135,25 @@
 	}
 	
 	async function checkSetupWizard() {
+		if (checkingSetupWizard) return;
+		checkingSetupWizard = true;
 		try {
 			const [profileRes, viewsRes] = await Promise.all([
 				collection('profile').getList(1, 1),
 				collection('views').getList(1, 100)
 			]);
-			
+
 			profileData = profileRes.items[0] as unknown as Profile || null;
 			viewsData = viewsRes.items as unknown as View[];
-			
+
 			if (shouldShowWizard(profileData, viewsData, $demoMode)) {
 				setupWizard.open();
 			}
 		} catch (err) {
 			console.error('Failed to check setup wizard:', err);
+			// On API failure, do NOT show wizard (fail safe)
+		} finally {
+			checkingSetupWizard = false;
 		}
 	}
 
@@ -290,28 +296,38 @@
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
 			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal && !twoFactorError && !loading) {
+				// Show loading spinner during auth checks to prevent "Unauthorized" flash
+				loading = true;
 				(async () => {
-					const needsPasswordChange = await checkDefaultPassword();
-					if (!needsPasswordChange) {
-						const needs2FA = await check2FAStatus();
-						if (!needs2FA) {
-							authorized = true;
-							checkSetupWizard();
-							checkEncryptionKeyStatus();
+					try {
+						// Initialize demo mode if not done yet (skipped when entering from login page)
+						await initDemoMode();
+
+						const needsPasswordChange = await checkDefaultPassword();
+						if (!needsPasswordChange) {
+							const needs2FA = await check2FAStatus();
+							if (!needs2FA) {
+								authorized = true;
+								checkSetupWizard();
+								checkEncryptionKeyStatus();
+							}
 						}
+						// If needsPasswordChange: showPasswordChangeModal is now true.
+						// authorized stays false — the modal renders outside the authorized guard.
+					} finally {
+						loading = false;
 					}
-					// If needsPasswordChange: showPasswordChangeModal is now true.
-					// authorized stays false — the modal renders outside the authorized guard.
 				})();
 			} else if (!isAuth && authorized) {
-				// User is no longer authenticated - clear state and redirect
+				// User is no longer authenticated (passive token expiry or active logout)
+				// Set loading=true BEFORE clearing authorized to prevent "Unauthorized" flash
+				loading = true;
 				authorized = false;
-				// Clear any stale auth to prevent redirect loops
 				if (pb.authStore.isValid) {
 					pb.authStore.clear();
 					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 				}
-				goto('/admin/login');
+				goto('/admin/login', { replaceState: true });
 			}
 		}
 	});
@@ -393,7 +409,7 @@
 			</main>
 		</div>
 
-			<SetupWizard onComplete={() => checkSetupWizard()} />
+			<SetupWizard />
 	</div>
 {:else if twoFactorError}
 	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
