@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.17.1 - February 12, 2026
+
+**Bugs Fixed:**
+- Fix 500 error on POST /api/admin/backup caused by symlinks to directories
+- Add StoreKeyActiveBackup check returning 409 Conflict when another backup/restore is running
+- Expand OnBackupCreate and OnBackupRestore exclude lists to skip pb_data and data directories
+
+**Pull Requests:** [#392](https://github.com/jesposito/Facet/pull/392),
+
+---
+
+
 ## v2.17.0 - February 11, 2026
 
 **Bugs Fixed:**
