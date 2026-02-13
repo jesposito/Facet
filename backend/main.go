@@ -57,6 +57,7 @@ func main() {
 	hooks.RegisterMediaHooks(app, os.Getenv("UPLOADS_DIR"))
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)
+	hooks.RegisterSMTPEnvConfig(app)
 	hooks.RegisterExportHooks(app)
 	hooks.RegisterResumeHooks(app, cryptoService)
 	hooks.RegisterResumeUploadHooks(app, cryptoService) // Resume upload & parsing

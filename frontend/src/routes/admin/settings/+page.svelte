@@ -53,6 +53,24 @@
 	let faviconBlobUrl: string | null = $state(null);
 	let faviconSaving = $state(false);
 
+	// SMTP/Email state
+	let smtpLoading = $state(true);
+	let smtpSaving = $state(false);
+	let smtpTesting = $state(false);
+	let smtpSettings = $state({
+		enabled: false,
+		host: '',
+		port: 587,
+		username: '',
+		password: '',
+		password_set: false,
+		auth_method: 'PLAIN',
+		tls: true,
+		sender_name: '',
+		sender_address: ''
+	});
+	let smtpTestRecipient = $state('');
+
 	// Export state
 	let exporting: string | null = $state(null);
 
@@ -176,7 +194,7 @@
 	});
 
 	onMount(async () => {
-		await Promise.all([loadProviders(), loadProfile(), loadSiteSettings(), loadTOTPStatus()]);
+		await Promise.all([loadProviders(), loadProfile(), loadSiteSettings(), loadTOTPStatus(), loadSMTPSettings()]);
 	});
 
 	async function loadProfile() {
@@ -576,6 +594,103 @@
 			toasts.add('error', $t('admin.settings_page.appearance.favicon_remove_error'));
 		} finally {
 			faviconSaving = false;
+		}
+	}
+
+	async function loadSMTPSettings() {
+		try {
+			const response = await fetch('/api/smtp-settings', {
+				headers: { Authorization: pb.authStore.token }
+			});
+			if (response.ok) {
+				const data = await response.json();
+				smtpSettings = {
+					enabled: data.enabled || false,
+					host: data.host || '',
+					port: data.port || 587,
+					username: data.username || '',
+					password: '',
+					password_set: data.password_set || false,
+					auth_method: data.auth_method || 'PLAIN',
+					tls: data.tls !== undefined ? data.tls : true,
+					sender_name: data.sender_name || '',
+					sender_address: data.sender_address || ''
+				};
+			}
+		} catch (err) {
+			console.error('Failed to load SMTP settings:', err);
+		} finally {
+			smtpLoading = false;
+		}
+	}
+
+	async function saveSMTPSettings() {
+		smtpSaving = true;
+		try {
+			const payload: Record<string, unknown> = {
+				enabled: smtpSettings.enabled,
+				host: smtpSettings.host,
+				port: smtpSettings.port,
+				username: smtpSettings.username,
+				auth_method: smtpSettings.auth_method,
+				tls: smtpSettings.tls,
+				sender_name: smtpSettings.sender_name,
+				sender_address: smtpSettings.sender_address
+			};
+			// Only send password if the user typed something
+			if (smtpSettings.password) {
+				payload.password = smtpSettings.password;
+			}
+
+			const response = await fetch('/api/smtp-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token
+				},
+				body: JSON.stringify(payload)
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				toasts.add('error', result.error || $t('admin.settings_page.email.save_error_toast'));
+				return;
+			}
+
+			smtpSettings.password = '';
+			smtpSettings.password_set = result.password_set;
+			toasts.add('success', $t('admin.settings_page.email.saved_toast'));
+		} catch (err) {
+			console.error('Failed to save SMTP settings:', err);
+			toasts.add('error', $t('admin.settings_page.email.save_error_toast'));
+		} finally {
+			smtpSaving = false;
+		}
+	}
+
+	async function sendTestEmail() {
+		smtpTesting = true;
+		try {
+			const response = await fetch('/api/smtp-settings/test', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token
+				},
+				body: JSON.stringify({ recipient: smtpTestRecipient })
+			});
+
+			const result = await response.json();
+			if (result.success) {
+				toasts.add('success', $t('admin.settings_page.email.test_success_toast'));
+			} else {
+				toasts.add('error', $t('admin.settings_page.email.test_error_toast', { values: { error: result.error } }));
+			}
+		} catch (err) {
+			console.error('Failed to send test email:', err);
+			toasts.add('error', $t('admin.settings_page.email.test_error_toast', { values: { error: 'Network error' } }));
+		} finally {
+			smtpTesting = false;
 		}
 	}
 
@@ -1606,6 +1721,164 @@ body { font-family: 'Inter', sans-serif; }
 				{/each}
 			</div>
 		{/if}
+		</div>
+	</div>
+
+	<!-- Email / SMTP section -->
+	<div id="email" class="space-y-4 mb-8">
+		<div>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.email.section_title')}</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.email.section_description')}</p>
+		</div>
+
+		<div class="card p-6">
+			{#if smtpLoading}
+				<div class="animate-pulse text-center py-4 text-gray-500 dark:text-gray-400">Loading...</div>
+			{:else}
+				<div class="space-y-4">
+					<!-- Enable toggle -->
+					<label class="flex items-center gap-3">
+						<input type="checkbox" bind:checked={smtpSettings.enabled} class="w-4 h-4" disabled={smtpSaving} />
+						<span class="font-medium text-gray-900 dark:text-white">{$t('admin.settings_page.email.enable_label')}</span>
+					</label>
+
+					{#if smtpSettings.enabled}
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="smtp-host" class="label">{$t('admin.settings_page.email.host_label')}</label>
+								<input
+									type="text"
+									id="smtp-host"
+									bind:value={smtpSettings.host}
+									class="input"
+									placeholder={$t('admin.settings_page.email.host_placeholder')}
+									disabled={smtpSaving}
+								/>
+							</div>
+							<div>
+								<label for="smtp-port" class="label">{$t('admin.settings_page.email.port_label')}</label>
+								<input
+									type="number"
+									id="smtp-port"
+									bind:value={smtpSettings.port}
+									class="input"
+									placeholder="587"
+									disabled={smtpSaving}
+								/>
+							</div>
+						</div>
+
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="smtp-username" class="label">{$t('admin.settings_page.email.username_label')}</label>
+								<input
+									type="text"
+									id="smtp-username"
+									bind:value={smtpSettings.username}
+									class="input"
+									placeholder={$t('admin.settings_page.email.username_placeholder')}
+									disabled={smtpSaving}
+								/>
+							</div>
+							<div>
+								<label for="smtp-password" class="label">{$t('admin.settings_page.email.password_label')}</label>
+								<input
+									type="password"
+									id="smtp-password"
+									bind:value={smtpSettings.password}
+									class="input"
+									placeholder={smtpSettings.password_set ? $t('admin.settings_page.email.password_placeholder_set') : $t('admin.settings_page.email.password_placeholder')}
+									disabled={smtpSaving}
+								/>
+							</div>
+						</div>
+
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="smtp-auth" class="label">{$t('admin.settings_page.email.auth_method_label')}</label>
+								<select id="smtp-auth" bind:value={smtpSettings.auth_method} class="input" disabled={smtpSaving}>
+									<option value="PLAIN">PLAIN</option>
+									<option value="LOGIN">LOGIN</option>
+								</select>
+							</div>
+							<div class="flex items-end pb-1">
+								<label class="flex items-center gap-2">
+									<input type="checkbox" bind:checked={smtpSettings.tls} class="w-4 h-4" disabled={smtpSaving} />
+									<span>{$t('admin.settings_page.email.tls_label')}</span>
+								</label>
+							</div>
+						</div>
+
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="smtp-sender-name" class="label">{$t('admin.settings_page.email.sender_name_label')}</label>
+								<input
+									type="text"
+									id="smtp-sender-name"
+									bind:value={smtpSettings.sender_name}
+									class="input"
+									placeholder={$t('admin.settings_page.email.sender_name_placeholder')}
+									disabled={smtpSaving}
+								/>
+							</div>
+							<div>
+								<label for="smtp-sender-address" class="label">{$t('admin.settings_page.email.sender_address_label')}</label>
+								<input
+									type="email"
+									id="smtp-sender-address"
+									bind:value={smtpSettings.sender_address}
+									class="input"
+									placeholder={$t('admin.settings_page.email.sender_address_placeholder')}
+									disabled={smtpSaving}
+								/>
+							</div>
+						</div>
+
+						<!-- Save + Test -->
+						<div class="flex flex-wrap items-end gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+							<button class="btn btn-primary" onclick={saveSMTPSettings} disabled={smtpSaving}>
+								{smtpSaving ? $t('admin.settings_page.email.saving_button') : $t('admin.settings_page.email.save_button')}
+							</button>
+
+							<div class="flex items-end gap-2">
+								<div>
+									<label for="smtp-test-recipient" class="label text-xs">{$t('admin.settings_page.email.test_recipient_label')}</label>
+									<input
+										type="email"
+										id="smtp-test-recipient"
+										bind:value={smtpTestRecipient}
+										class="input text-sm"
+										placeholder={$t('admin.settings_page.email.test_recipient_placeholder')}
+										disabled={smtpTesting}
+									/>
+								</div>
+								<button
+									class="btn btn-secondary"
+									onclick={sendTestEmail}
+									disabled={smtpTesting || !smtpSettings.enabled}
+								>
+									{#if smtpTesting}
+										<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+										{$t('admin.settings_page.email.testing_button')}
+									{:else}
+										{$t('admin.settings_page.email.test_button')}
+									{/if}
+								</button>
+							</div>
+						</div>
+					{:else}
+						<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+							{$t('admin.settings_page.email.not_configured_warning')}
+						</p>
+						<button class="btn btn-primary mt-2" onclick={saveSMTPSettings} disabled={smtpSaving}>
+							{smtpSaving ? $t('admin.settings_page.email.saving_button') : $t('admin.settings_page.email.save_button')}
+						</button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</div>
 

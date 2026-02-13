@@ -149,6 +149,7 @@ const navSections = [
 			{ href: '/admin/settings#general', labelKey: 'admin.sidebar.general', icon: 'cog' },
 			{ href: '/admin/settings#analytics', labelKey: 'admin.sidebar.analytics', icon: 'eye' },
 			{ href: '/admin/settings#integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
+			{ href: '/admin/settings#email', labelKey: 'admin.sidebar.email', icon: 'mail' },
 			{ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' },
 			{ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' },
 			{ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' }
