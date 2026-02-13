@@ -205,6 +205,7 @@
 				"ai_add_error": "Failed to add provider"
 			},
 			"email": {
+				"loading": "Loading SMTP settings...",
 				"section_title": "Email Notifications",
 				"section_description": "Configure SMTP to receive email notifications when testimonials are submitted.",
 				"enable_label": "Enable SMTP",

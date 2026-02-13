@@ -205,6 +205,7 @@
 				"ai_add_error": "Faild 2 add providr"
 			},
 			"email": {
+				"loading": "Loadin SMTP settingz...",
 				"section_title": "Emale Noteficashuns",
 				"section_description": "Set up SMTP so u can haz emails wen new testimonialz r submitded.",
 				"enable_label": "Turn on SMTP",
