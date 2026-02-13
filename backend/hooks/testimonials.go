@@ -310,6 +310,9 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save testimonial"})
 			}
 
+			// Send email notification to admins (non-blocking, best-effort)
+			go services.SendTestimonialNotification(app, record, requestRecord)
+
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"id":     record.Id,
 				"status": "pending",
