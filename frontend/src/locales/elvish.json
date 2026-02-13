@@ -205,6 +205,7 @@
 				"ai_add_error": "Artificer could not be summoned"
 			},
 			"email": {
+				"loading": "Lastathar i SMTP govannas...",
 				"section_title": "Tegol Linnathon",
 				"section_description": "Aphado SMTP an tegol linnathon ir gwaeth prestannen.",
 				"enable_label": "Edro SMTP",

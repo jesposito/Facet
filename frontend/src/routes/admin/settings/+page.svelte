@@ -1733,7 +1733,7 @@ body { font-family: 'Inter', sans-serif; }
 
 		<div class="card p-6">
 			{#if smtpLoading}
-				<div class="animate-pulse text-center py-4 text-gray-500 dark:text-gray-400">Loading...</div>
+				<div class="animate-pulse text-center py-4 text-gray-500 dark:text-gray-400">{$t('admin.settings_page.email.loading')}</div>
 			{:else}
 				<div class="space-y-4">
 					<!-- Enable toggle -->

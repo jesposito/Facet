@@ -205,6 +205,7 @@
 				"ai_add_error": "Warrior could not be recruited"
 			},
 			"email": {
+				"loading": "SMTP DuSaQ lInglu'...",
 				"section_title": "QIn ngeD",
 				"section_description": "SMTP yIqel QIn ngeD chavlu'DI' QIn ghItlhlu'.",
 				"enable_label": "SMTP yIchu'",
