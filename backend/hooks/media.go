@@ -55,6 +55,14 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 		registerThumbnailHook(app, collName, uploadsDir)
 	}
 
+	// Sync uploads metadata to external_media mirror records.
+	// When a user edits an upload's title/alt_text/description in the media library,
+	// propagate those changes to any external_media mirrors that reference the upload.
+	app.OnRecordAfterUpdateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
+		go syncUploadMetadataToMirrors(app, e.Record)
+		return e.Next()
+	})
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Create StorageService with app's data directory now that it's available
 		storage := services.NewStorageService(services.StorageConfig{
@@ -977,6 +985,61 @@ func parseIntDefault(raw string, def int) int {
 		return def
 	}
 	return v
+}
+
+// syncUploadMetadataToMirrors propagates title, alt_text, and description from an uploads record
+// to any external_media mirror records that reference it. Mirror records are created by the
+// MultiMediaPicker when attaching uploads to content via media_refs, and their metadata can
+// become stale when the user edits the upload in the media library.
+func syncUploadMetadataToMirrors(app *pocketbase.PocketBase, record *core.Record) {
+	title := record.GetString("title")
+	altText := record.GetString("alt_text")
+	description := record.GetString("description")
+
+	// Build the file URL pattern to find mirrors
+	// Mirrors store URLs like "/api/files/{collectionId}/{recordId}/{filename}"
+	files := record.GetStringSlice("file")
+	if len(files) == 0 {
+		return
+	}
+
+	extCollection, err := app.FindCollectionByNameOrId("external_media")
+	if err != nil {
+		return
+	}
+
+	for _, filename := range files {
+		fileURL := fmt.Sprintf("/api/files/%s/%s/%s", record.Collection().Id, record.Id, filename)
+		filter := fmt.Sprintf("url ~ '%s'", fileURL)
+		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, nil)
+		if err != nil {
+			continue
+		}
+		for _, mirror := range mirrors {
+			changed := false
+			if title != "" && mirror.GetString("title") != title {
+				mirror.Set("title", title)
+				changed = true
+			}
+			if altText != "" && mirror.GetString("alt_text") != altText {
+				mirror.Set("alt_text", altText)
+				changed = true
+			}
+			if description != "" && mirror.GetString("description") != description {
+				mirror.Set("description", description)
+				changed = true
+			}
+			if changed {
+				if err := app.Save(mirror); err != nil {
+					app.Logger().Warn("syncUploadMetadataToMirrors: failed to update mirror",
+						"mirror_id", mirror.Id, "upload_id", record.Id, "error", err)
+				} else {
+					app.Logger().Debug("syncUploadMetadataToMirrors: synced metadata",
+						"mirror_id", mirror.Id, "upload_id", record.Id)
+				}
+			}
+		}
+	}
 }
 
 // cleanupMirrorEntries removes external_media records that are mirrors pointing to internal files.
