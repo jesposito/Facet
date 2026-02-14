@@ -690,36 +690,24 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 	// Create skills records with cross-session deduplication
 	// Strategy: A skill is a skill - "Python" is "Python" regardless of which resume it appears on
-	// Always dedupe across all imports (case-insensitive match)
-	// NOTE: PocketBase doesn't support :lower modifier in filters, so we fetch all and compare in-memory
+	// Always dedupe across all imports (case-insensitive match using LOWER())
 	if len(parsed.Skills) > 0 {
 		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
 		if err != nil {
 			return nil, 0, fmt.Errorf("skills collection not found: %w", err)
 		}
 
-		// Fetch ALL existing skills for case-insensitive comparison
-		// Note: FindRecordsByFilter(collection, filter, sort, limit, offset)
-		// limit=500 (max records to return), offset=0 (start from beginning)
-		allSkills, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", 500, 0, dbx.Params{})
-		if err != nil {
-			log.Printf("[RESUME-UPLOAD] [WARNING] Failed to fetch existing skills: %v", err)
-			allSkills = []*core.Record{} // Continue with empty list
-		}
-
 		for _, skill := range parsed.Skills {
-			// Check for duplicate by comparing lowercase names
-			isDuplicate := false
-			for _, existing := range allSkills {
-				existingName := existing.GetString("name")
-				if strings.EqualFold(existingName, skill.Name) {
-					duplicateCount++
-					isDuplicate = true
-					break
-				}
-			}
-
-			if isDuplicate {
+			// Case-insensitive duplicate check using parameterized filter with LOWER()
+			// This avoids O(n²) complexity and the 500-record limit
+			existing, err := app.FindRecordsByFilter(
+				skillsCollection.Name,
+				"LOWER(name) = {:name}",
+				"", 1, 0,
+				dbx.Params{"name": strings.ToLower(strings.TrimSpace(skill.Name))},
+			)
+			if err == nil && len(existing) > 0 {
+				duplicateCount++
 				continue
 			}
 
@@ -737,8 +725,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				continue
 			}
 			imported["skills"] = append(imported["skills"], record.Id)
-			// Add to our in-memory list for subsequent checks in this import
-			allSkills = append(allSkills, record)
 		}
 	}
 
