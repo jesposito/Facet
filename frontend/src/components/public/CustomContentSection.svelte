@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
 	import type { CustomContent } from '$lib/pocketbase';
-	import { parseMarkdown } from '$lib/utils';
+	import { parseMarkdown, isFilename } from '$lib/utils';
 
 	interface Props {
 		item: CustomContent;
@@ -82,9 +82,6 @@
 
 	const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
 	const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
-	// Check if a title is just a filename (e.g. "IMG_1234.jpg") rather than a meaningful caption
-	const isFilename = (title?: string) =>
-		!!title && /\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(title) && !title.includes(' ');
 
 	// Type for media ref items
 	type MediaRef = {

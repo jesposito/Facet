@@ -2,7 +2,7 @@
 	import { run, preventDefault } from 'svelte/legacy';
 
 import type { PageData } from './$types';
-import { parseMarkdown } from '$lib/utils';
+import { parseMarkdown, isFilename } from '$lib/utils';
 import { browser } from '$app/environment';
 import { onMount } from 'svelte';
 import { goto } from '$app/navigation';
@@ -131,9 +131,6 @@ function isVimeo(url?: string): string | null {
 
 const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
 const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
-// Check if a title is just a filename (e.g. "IMG_1234.jpg") rather than a meaningful caption
-const isFilename = (title?: string) =>
-	!!title && /\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(title) && !title.includes(' ');
 const getHost = (url?: string) => {
 	if (!url) return '';
 	try {

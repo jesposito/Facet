@@ -375,6 +375,11 @@ export function truncate(text: string, maxLength: number): string {
 	return text.slice(0, maxLength).trim() + '...';
 }
 
+/** Check if a string looks like a filename (has a known file extension and no spaces) */
+export function isFilename(title?: string): boolean {
+	return !!title && /\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(title) && !title.includes(' ');
+}
+
 // Class helper
 export function cn(...classes: (string | undefined | false)[]): string {
 	return classes.filter(Boolean).join(' ');
