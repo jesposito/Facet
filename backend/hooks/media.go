@@ -1066,10 +1066,16 @@ func cleanupMirrorEntries(app *pocketbase.PocketBase, fileURL string) {
 	}
 
 	for _, record := range mirrors {
+		// Verify the URL actually ends with our file path to prevent false positives
+		// from PocketBase's case-insensitive substring matching
+		recordURL := record.GetString("url")
+		if !strings.HasSuffix(recordURL, fileURL) {
+			continue
+		}
 		if err := app.Delete(record); err != nil {
 			app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
 		} else {
-			app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", record.GetString("url"))
+			app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", recordURL)
 		}
 	}
 }
