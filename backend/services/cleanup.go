@@ -1,8 +1,10 @@
 package services
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 )
 
@@ -14,17 +16,18 @@ type CleanupResult struct {
 	VerifiedTokens           int
 	FailedExports            int
 	StuckExports             int
+	OrphanedUploads          int
 }
 
 // Total returns the total number of records cleaned up.
 func (r CleanupResult) Total() int {
 	return r.ExpiredShareTokens + r.RevokedShareTokens +
 		r.ExpiredVerificationTokens + r.VerifiedTokens +
-		r.FailedExports + r.StuckExports
+		r.FailedExports + r.StuckExports + r.OrphanedUploads
 }
 
 // RunCleanup deletes stale records from share_tokens, email_verification_tokens,
-// and view_exports collections. It returns a summary of what was cleaned.
+// view_exports, and orphaned uploads collections. It returns a summary of what was cleaned.
 func RunCleanup(app *pocketbase.PocketBase) CleanupResult {
 	result := CleanupResult{}
 
@@ -34,6 +37,7 @@ func RunCleanup(app *pocketbase.PocketBase) CleanupResult {
 	result.VerifiedTokens = cleanupOldVerifiedTokens(app)
 	result.FailedExports = cleanupFailedExports(app)
 	result.StuckExports = cleanupStuckExports(app)
+	result.OrphanedUploads = cleanupOrphanedUploads(app)
 
 	return result
 }
@@ -202,5 +206,123 @@ func cleanupStuckExports(app *pocketbase.PocketBase) int {
 			deleted++
 		}
 	}
+	return deleted
+}
+
+// cleanupOrphanedUploads deletes upload records that are not referenced by any content.
+// An upload is orphaned if:
+// 1. Created more than 24 hours ago (grace period for in-progress editing)
+// 2. Not referenced by any *_library_url field in any collection
+// 3. Not referenced via external_media mirror
+func cleanupOrphanedUploads(app *pocketbase.PocketBase) int {
+	cutoff := time.Now().UTC().Add(-24 * time.Hour).Format("2006-01-02 15:04:05.000Z")
+
+	deleted := 0
+	page := 1
+	perPage := 50
+
+	// Collections and their library_url fields to check
+	collectionsToCheck := map[string][]string{
+		"profile":        {"hero_image_library_url", "avatar_library_url"},
+		"experience":     {"company_logo_library_url"},
+		"education":      {"institution_logo_library_url"},
+		"projects":       {"cover_image_library_url"},
+		"posts":          {"cover_image_library_url"},
+		"talks":          {"cover_image_library_url"},
+		"views":          {"hero_image_library_url"},
+		"site_settings":  {"favicon_library_url"},
+		"custom_content": {"cover_image_library_url"},
+		"testimonials":   {"author_photo_library_url"},
+	}
+
+	for {
+		// Query uploads in batches
+		records, err := app.FindRecordsByFilter(
+			"uploads",
+			"created < {:cutoff}",
+			"",
+			perPage,
+			(page-1)*perPage,
+			dbx.Params{"cutoff": cutoff},
+		)
+		if err != nil {
+			app.Logger().Warn("cleanup: failed to query orphaned uploads", "error", err)
+			return deleted
+		}
+
+		// No more records to process
+		if len(records) == 0 {
+			break
+		}
+
+		for _, record := range records {
+			// Get the file URL
+			files := record.GetStringSlice("file")
+			if len(files) == 0 {
+				continue
+			}
+			filename := files[0]
+			fileURL := fmt.Sprintf("/api/files/%s/%s/%s", record.Collection().Id, record.Id, filename)
+
+			// Check if this upload is referenced anywhere
+			isReferenced := false
+
+			// Check all collections for library_url references
+			for collName, fields := range collectionsToCheck {
+				for _, fieldName := range fields {
+					matches, err := app.FindRecordsByFilter(
+						collName,
+						fmt.Sprintf("%s = {:url}", fieldName),
+						"",
+						1,
+						0,
+						dbx.Params{"url": fileURL},
+					)
+					if err != nil {
+						// Collection might not exist yet (e.g., testimonials), skip silently
+						continue
+					}
+					if len(matches) > 0 {
+						isReferenced = true
+						break
+					}
+				}
+				if isReferenced {
+					break
+				}
+			}
+
+			// Also check external_media for mirrors
+			if !isReferenced {
+				mirrors, err := app.FindRecordsByFilter(
+					"external_media",
+					"url ~ {:url}",
+					"",
+					1,
+					0,
+					dbx.Params{"url": fileURL},
+				)
+				if err == nil && len(mirrors) > 0 {
+					isReferenced = true
+				}
+			}
+
+			// If not referenced anywhere, delete it
+			if !isReferenced {
+				if err := app.Delete(record); err != nil {
+					app.Logger().Warn("cleanup: failed to delete orphaned upload",
+						"record_id", record.Id, "file", filename, "error", err)
+				} else {
+					app.Logger().Debug("cleanup: deleted orphaned upload",
+						"record_id", record.Id, "file", filename)
+					deleted++
+				}
+			}
+		}
+
+		// Move to next page
+		page++
+	}
+
 	return deleted
 }
