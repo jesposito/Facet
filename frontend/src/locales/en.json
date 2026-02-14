@@ -1232,7 +1232,8 @@
 			}
 		},
 		"tags": {
-			"remove_tag": "Remove tag {name}"
+			"remove_tag": "Remove tag {name}",
+			"add_tag": "Add tag"
 		},
 		"views": {
 			"back_to_views": "Back to facets"

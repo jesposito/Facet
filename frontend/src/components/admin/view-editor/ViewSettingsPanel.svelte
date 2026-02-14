@@ -374,6 +374,8 @@
 					class="relative group"
 					onclick={() => accentColor = color}
 					title="{colorInfo.label} - {colorInfo.description}"
+					aria-label="{colorInfo.label}: {colorInfo.description}"
+					aria-pressed={accentColor === color}
 				>
 					<div
 						class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
@@ -384,7 +386,7 @@
 					>
 						{#if accentColor === color}
 							<div class="absolute inset-0 flex items-center justify-center">
-								<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+								<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 								</svg>
 							</div>

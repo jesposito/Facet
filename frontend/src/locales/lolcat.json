@@ -1205,7 +1205,8 @@
 			}
 		},
 		"tags": {
-			"remove_tag": "Removez tag {name}"
+			"remove_tag": "Removez tag {name}",
+			"add_tag": "Add tag"
 		},
 		"views": {
 			"back_to_views": "Bak 2 da fasets"
