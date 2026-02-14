@@ -2,7 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import type { PageData } from './$types';
-	import { parseMarkdown, formatDate } from '$lib/utils';
+	import { parseMarkdown, formatDate, isFilename } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
@@ -53,8 +53,6 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 	const isVimeo = (url?: string) => !!url && getVimeoId(url) !== null;
 	const isImage = (url?: string) => !!url && /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(url);
 	const isVideoFile = (url?: string) => !!url && /\.(mp4|mov|webm|mkv|avi)$/i.test(url);
-	const isFilename = (title?: string) =>
-		!!title && /\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(title) && !title.includes(' ');
 	const getFileName = (url?: string) => {
 		if (!url) return 'Media';
 		try {
