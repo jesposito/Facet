@@ -1054,21 +1054,22 @@ func cleanupMirrorEntries(app *pocketbase.PocketBase, fileURL string) {
 		return
 	}
 
-	// Find mirror entries that contain this file URL (could be relative or absolute)
-	records, err := app.FindAllRecords(collection.Name)
+	// Find mirror entries that contain this file URL
+	mirrors, err := app.FindRecordsByFilter(
+		collection.Name,
+		"url ~ {:fileURL}",
+		"", 100, 0,
+		dbx.Params{"fileURL": fileURL},
+	)
 	if err != nil {
 		return
 	}
 
-	for _, record := range records {
-		recordURL := record.GetString("url")
-		// Check if this external_media points to the deleted file
-		if strings.Contains(recordURL, fileURL) {
-			if err := app.Delete(record); err != nil {
-				app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
-			} else {
-				app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", recordURL)
-			}
+	for _, record := range mirrors {
+		if err := app.Delete(record); err != nil {
+			app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
+		} else {
+			app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", record.GetString("url"))
 		}
 	}
 }
@@ -1343,22 +1344,27 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 		return []services.MediaItem{}, nil
 	}
 
-	// Get all records from external_media collection
-	records, err := app.FindAllRecords(collection.Name)
-	if err != nil {
-		return []services.MediaItem{}, err
+	// Get external media records, excluding internal mirror entries (uploads attached via media_refs)
+	var records []*core.Record
+	const pageSize = 200
+	for offset := 0; ; offset += pageSize {
+		page, err := app.FindRecordsByFilter(
+			collection.Name,
+			"url !~ '/api/files/'",
+			"", pageSize, offset, nil,
+		)
+		if err != nil {
+			break
+		}
+		records = append(records, page...)
+		if len(page) < pageSize {
+			break
+		}
 	}
 
 	items := make([]services.MediaItem, 0, len(records))
 	for _, record := range records {
 		recordURL := record.GetString("url")
-
-		// Skip "mirror" entries that point to internal PocketBase files
-		// These are created when attaching uploads to posts/projects/talks via media_refs
-		// and appear as duplicates in the media library
-		if strings.Contains(recordURL, "/api/files/") {
-			continue
-		}
 
 		created := record.GetDateTime("created").Time()
 		title := record.GetString("title")

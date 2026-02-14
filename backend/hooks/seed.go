@@ -88,13 +88,16 @@ func ClearAllData(app *pocketbase.PocketBase) error {
 	}
 
 	for _, collName := range collections {
-		records, err := app.FindRecordsByFilter(collName, "1=1", "", 1000, 0, nil)
-		if err != nil {
-			continue // Collection might not exist
-		}
-		for _, record := range records {
-			if err := app.Delete(record); err != nil {
-				log.Printf("Warning: failed to delete %s record: %v", collName, err)
+		// Delete in batches until no records remain (offset stays 0 since we're deleting)
+		for {
+			records, err := app.FindRecordsByFilter(collName, "1=1", "", 200, 0, nil)
+			if err != nil || len(records) == 0 {
+				break
+			}
+			for _, record := range records {
+				if err := app.Delete(record); err != nil {
+					log.Printf("Warning: failed to delete %s record: %v", collName, err)
+				}
 			}
 		}
 	}
