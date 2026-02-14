@@ -528,6 +528,10 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 		})
 
 		se.Router.POST("/api/testimonials/verify/email", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
+			if !app.Settings().SMTP.Enabled {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "email verification is not available"})
+			}
+
 			var req struct {
 				TestimonialID string `json:"testimonial_id"`
 				Email         string `json:"email"`
@@ -572,9 +576,17 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save verification token"})
 			}
 
+			// Build verify URL and send email
+			appURL := strings.TrimRight(app.Settings().Meta.AppURL, "/")
+			verifyURL := appURL + "/testimonial/verify/" + rawToken
+
+			if err := services.SendVerificationEmail(app, req.Email, testimonialRecord.GetString("author_name"), verifyURL); err != nil {
+				app.Logger().Error("Failed to send verification email", "error", err, "email", req.Email)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to send verification email"})
+			}
+
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"status":             "verification_sent",
-				"verification_token": rawToken,
+				"status": "verification_sent",
 			})
 		}))
 
