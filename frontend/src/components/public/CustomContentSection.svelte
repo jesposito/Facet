@@ -82,6 +82,8 @@
 
 	const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
 	const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
+	// Check if a title is just a filename (e.g. "IMG_1234.jpg") rather than a meaningful caption
+	const isFilename = (title?: string) => !!title && /\.\w{2,5}$/.test(title) && !title.includes(' ');
 
 	// Type for media ref items
 	type MediaRef = {
@@ -92,6 +94,7 @@
 		thumbnail_url?: string;
 		description?: string;
 		alt_text?: string;
+		provider?: string;
 	};
 </script>
 
@@ -99,15 +102,16 @@
 
 {#snippet mediaRefCard(media: MediaRef)}
 	{#if isImage(media.url)}
+		{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
 		<!-- Image: clean gallery card without decoration -->
 		<div class="card overflow-hidden">
 			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden">
 				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
 			</button>
-			{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+			{#if displayTitle || media.description}
 				<div class="p-3 space-y-1">
-					{#if media.title}
-						<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+					{#if displayTitle}
+						<p class="text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
 					{/if}
 					{#if media.description}
 						<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>

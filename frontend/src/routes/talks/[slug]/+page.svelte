@@ -53,6 +53,7 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 	const isVimeo = (url?: string) => !!url && getVimeoId(url) !== null;
 	const isImage = (url?: string) => !!url && /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(url);
 	const isVideoFile = (url?: string) => !!url && /\.(mp4|mov|webm|mkv|avi)$/i.test(url);
+	const isFilename = (title?: string) => !!title && /\.\w{2,5}$/.test(title) && !title.includes(' ');
 	const getFileName = (url?: string) => {
 		if (!url) return 'Media';
 		try {
@@ -321,6 +322,7 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h3>
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each data.media_refs as media}
+						{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
 						<div class="card overflow-hidden">
 							{#if isYouTube(media.url)}
 								<div class="aspect-video bg-black/10">
@@ -361,11 +363,10 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 									</a>
 								</div>
 							{/if}
-
-							{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+							{#if displayTitle || media.description || (media.provider && media.provider !== 'upload')}
 								<div class="p-3 space-y-1">
-									{#if media.title}
-										<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+									{#if displayTitle}
+										<p class="text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
 									{/if}
 									{#if media.description}
 										<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>

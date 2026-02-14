@@ -131,6 +131,8 @@ function isVimeo(url?: string): string | null {
 
 const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
 const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
+// Check if a title is just a filename (e.g. "IMG_1234.jpg") rather than a meaningful caption
+const isFilename = (title?: string) => !!title && /\.\w{2,5}$/.test(title) && !title.includes(' ');
 const getHost = (url?: string) => {
 	if (!url) return '';
 	try {
@@ -339,6 +341,7 @@ const getFileName = (url?: string) => {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h2>
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs as media}
+						{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
 						<div class="card overflow-hidden">
 							{#if isYouTube(media.url)}
 								<div class="aspect-video bg-black/10">
@@ -380,10 +383,10 @@ const getFileName = (url?: string) => {
 									</a>
 								</div>
 							{/if}
-							{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+							{#if displayTitle || media.description || (media.provider && media.provider !== 'upload')}
 								<div class="p-3 space-y-1">
-									{#if media.title}
-										<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+									{#if displayTitle}
+										<p class="text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
 									{/if}
 									{#if media.description}
 										<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
