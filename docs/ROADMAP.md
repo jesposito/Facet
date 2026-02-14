@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-02-15
 
 This roadmap reflects current implementation status and planned work, ordered chronologically by phase. Completed items remain for context; upcoming items are listed under each phase.
 
@@ -36,6 +36,8 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **Custom Content Sections:** User-defined content blocks with Markdown support.
 - ✅ **Automated Changelog Generation:** AI-powered changelog from PR descriptions on release.
 - ✅ **TOTP Two-Factor Authentication:** Optional 2FA using any authenticator app. Recovery codes, CLI reset, 24-hour sessions.
+- ✅ **Email Notification System:** SMTP-based admin notifications on testimonial submissions with i18n support (5 locales). Email verification for testimonial submitters.
+- ✅ **Admin Settings Refactor:** Settings page split into Account, Site Settings (with SMTP config), and Integrations sub-pages.
 - 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, Phase 19 Developer Platform.
 
 ---
@@ -439,13 +441,17 @@ Collect and display social proof from clients, colleagues, and collaborators.
 4. Owner approves/rejects in admin dashboard
 5. Approved testimonials appear on designated views
 6. Optional email verification for added credibility
+7. Admin notification email sent when new testimonials are submitted (SMTP required)
 
 **Implementation:**
 
 **Backend:**
 - Collections: `testimonials`, `testimonial_requests`, `email_verification_tokens`
 - Service: `services/testimonial.go` - Token generation, HMAC validation
-- Hooks: `hooks/testimonials.go` - 14 API endpoints (543 lines)
+- Service: `services/email.go` - Admin notification & verification email templates
+- Service: `services/email_i18n.go` - Email translations (en, de, elvish, klingon, lolcat)
+- Hooks: `hooks/testimonials.go` - 14 API endpoints (700+ lines)
+- Hooks: `hooks/smtp.go` - SMTP settings API (GET/PUT/test)
 - Migrations: Schema creation + access rules
 
 **API Endpoints:**
@@ -480,6 +486,8 @@ Collect and display social proof from clients, colleagues, and collaborators.
 - Email verification tokens expire after 15 minutes
 - Request links support expiration dates and max uses
 - No account required for testimonial submitters
+- Admin notifications sent via SafeGo (goroutine with panic recovery)
+- Verification emails use resolveBaseURL() for correct link generation behind reverse proxies
 
 ### 20.2 "Apply with Facet" Button
 **Priority:** Medium | **Effort:** Very High
@@ -583,6 +591,17 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-02-15 (Email Notifications & Bug Fixes - v2.18.0)
+- Added SMTP-based email notifications to admins when testimonials are submitted
+- Added email verification flow for testimonial submitters (15-minute tokens)
+- Added SMTP settings management page in admin UI with test email functionality
+- Added email i18n system (5 locales: en, de, elvish, klingon, lolcat)
+- Refactored admin settings into 3 sub-pages: Account, Site Settings, Integrations
+- Fixed notification email link bug (was using AppURL instead of request headers)
+- Fixed skill deduplication and mirror cleanup matching bugs
+- Added client-side file size validation on upload pickers
+- Added SafeGo utility for panic-safe background goroutines
 
 ### 2026-01-26 (Documentation & Polish - v2.8.17+)
 - Added version update notifications in admin sidebar and About page

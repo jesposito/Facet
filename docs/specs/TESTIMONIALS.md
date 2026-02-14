@@ -129,10 +129,16 @@ Ephemeral tokens for the magic link flow.
 ### 1. Verification Flows
 
 #### Email Magic Link
-1. User submits testimonial.
-2. System creates `email_verification_tokens` record.
-3. Sends email via `services/email.go` with link: `/testimonial/verify/[token]`.
-4. User clicks → Backend validates hash → Updates `testimonials.verified_at`.
+1. User submits testimonial and clicks "Verify with Email" on the thank-you page.
+2. User enters their email address and clicks "Send Verification".
+3. Backend creates `email_verification_tokens` record with HMAC-SHA256 hashed token (15-minute expiry).
+4. Sends styled HTML email via `services/email.go` with verification link.
+5. User clicks link → `/testimonial/verify/[token]` page loads.
+6. Backend validates token hash and expiry → Updates `testimonials.verified_at` and `verification_method`.
+7. Verification page shows success state.
+
+**Prerequisites:** SMTP must be configured (via env vars or admin UI at /admin/settings/site).
+**i18n:** Email subject, body, and footer are translated based on the site's configured default locale.
 
 #### OAuth (GitHub/Twitter)
 1. User clicks "Verify with GitHub".
@@ -152,6 +158,24 @@ interface ViewTestimonialConfig {
 ```
 In `ViewPreview.svelte`, render the testimonials based on this config, defaulting to "all approved" if `testimonial_ids` is empty.
 
+### 3. Admin Email Notifications
+
+When a new testimonial is submitted, all admin users receive an email notification.
+
+**Flow:**
+1. Testimonial submitted via `POST /api/testimonials/submit`.
+2. Backend resolves the public base URL from the request headers (not AppURL setting).
+3. `SafeGo` launches a background goroutine to send the notification (non-blocking).
+4. Styled HTML email sent to all admin email addresses with:
+   - Author name, title, company, and relationship
+   - Content preview (first 300 characters, rune-safe truncation)
+   - Request label (if submitted via a request link)
+   - "Review Testimonial" button linking to `/admin/testimonials`
+5. Plain-text fallback included for email clients that don't render HTML.
+
+**Prerequisites:** SMTP must be configured. If not enabled, notification is silently skipped (logged).
+**Admin discovery:** Admin emails are resolved from `ADMIN_EMAILS` env var, falling back to querying `users` collection.
+
 ---
 
 ## Security Implementation
@@ -165,9 +189,12 @@ In `ViewPreview.svelte`, render the testimonials based on this config, defaultin
 ## File Structure
 
 ### Backend
-- `backend/collections/testimonials.go`: Schema definition.
-- `backend/hooks/testimonials.go`: Route registration and logic.
-- `backend/services/testimonial_verify.go`: Verification logic (Magic link, OAuth).
+- `backend/migrations/1737100000_create_testimonials.go`: Schema definition.
+- `backend/hooks/testimonials.go`: Route registration and API logic (700+ lines, 14 endpoints).
+- `backend/hooks/smtp.go`: SMTP settings management API.
+- `backend/services/testimonial.go`: Token generation, HMAC validation, email verification.
+- `backend/services/email.go`: Admin notification and verification email templates.
+- `backend/services/email_i18n.go`: Email translations (en, de, elvish, klingon, lolcat).
 
 ### Frontend
 - `frontend/src/routes/admin/testimonials/`: Admin management.
@@ -180,27 +207,27 @@ In `ViewPreview.svelte`, render the testimonials based on this config, defaultin
 ## Implementation Checklist
 
 ### Phase 1: Backend
-- [ ] Migration for `testimonials`, `testimonial_requests`, `email_verification_tokens`.
-- [ ] Implement token generation utility.
-- [ ] CRUD hooks for admin management.
-- [ ] Public submission hook with validation.
+- [x] Migration for `testimonials`, `testimonial_requests`, `email_verification_tokens`.
+- [x] Implement token generation utility.
+- [x] CRUD hooks for admin management.
+- [x] Public submission hook with validation.
 
 ### Phase 2: Admin UI
-- [ ] Sidebar integration with pending badge.
-- [ ] Testimonial list page with status filters.
-- [ ] Approve/Reject/Edit actions.
-- [ ] Request link generator.
+- [x] Sidebar integration with pending badge.
+- [x] Testimonial list page with status filters.
+- [x] Approve/Reject/Edit actions.
+- [x] Request link generator.
 
 ### Phase 3: Public Flow
-- [ ] Submission form with Svelte 5 `$state`.
-- [ ] Email magic link flow.
-- [ ] GitHub OAuth integration.
-- [ ] Success/Verification landing pages.
+- [x] Submission form with Svelte 5 `$state`.
+- [x] Email magic link flow.
+- [ ] GitHub OAuth integration (deferred).
+- [x] Success/Verification landing pages.
 
 ### Phase 4: Public Display & Views
-- [ ] `TestimonialsSection.svelte` with layout options.
-- [ ] Curation logic in View Editor.
-- [ ] Mobile-responsive Wall and Carousel.
+- [x] `TestimonialsSection.svelte` with layout options.
+- [x] Curation logic in View Editor.
+- [x] Mobile-responsive Wall and Carousel.
 
 ---
 
