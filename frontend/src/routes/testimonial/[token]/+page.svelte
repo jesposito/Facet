@@ -193,16 +193,16 @@
 			</div>
 		{:else if error && !requestData}
 			<div class="text-center py-24">
-				<svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 				</svg>
 				<h1 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{$t('public.testimonials.submit.link_invalid_title')}</h1>
 				<p class="text-gray-600 dark:text-gray-400">{error}</p>
 			</div>
 		{:else if submitted}
-			<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center">
+			<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center" role="status" aria-live="polite">
 				<div class="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
-					<svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 					</svg>
 				</div>
@@ -223,7 +223,7 @@
 								onclick={() => showEmailVerification = true}
 								class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
 							>
-								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 								</svg>
 								{$t('public.testimonials.submit.verify_email_button')}
@@ -248,7 +248,7 @@
 						{/if}
 					</div>
 				{:else}
-					<div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+					<div role="status" class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
 						<p class="text-green-800 dark:text-green-200">
 							{$t('public.testimonials.submit.verification_sent')}
 						</p>
@@ -261,7 +261,7 @@
 					{#if requestData.profile_avatar}
 						<img
 							src={requestData.profile_avatar}
-							alt=""
+							alt={requestData.profile_name || ''}
 							class="w-20 h-20 rounded-full mx-auto mb-4 object-cover"
 						/>
 					{:else}
@@ -349,7 +349,7 @@
 						{:else}
 							<label class="flex items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 transition-colors">
 								<div class="flex flex-col items-center gap-1">
-									<svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
 									</svg>
 									<span class="text-sm text-gray-500 dark:text-gray-400">{$t('public.testimonials.submit.click_to_upload')}</span>
@@ -359,6 +359,7 @@
 									accept="image/jpeg,image/png,image/webp"
 									class="hidden"
 									onchange={handlePhotoChange}
+									aria-label={$t('public.testimonials.submit.profile_photo_label')}
 								/>
 							</label>
 						{/if}
@@ -400,7 +401,7 @@
 					</div>
 
 					{#if error}
-						<div class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+						<div role="alert" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
 							{error}
 						</div>
 					{/if}
@@ -408,6 +409,7 @@
 					<button
 						type="submit"
 						disabled={submitting || !authorName.trim() || !content.trim()}
+						aria-busy={submitting}
 						class="w-full py-3 px-4 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 					>
 						{submitting ? $t('public.testimonials.submit.submitting') : $t('public.testimonials.submit.submit_button')}

@@ -84,7 +84,8 @@
 				type="button"
 				class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
 				onclick={() => showDropdown = !showDropdown}
-				aria-labelledby={labelledBy}
+				aria-label={labelledBy ? undefined : $t('admin.tags.add_tag')}
+				aria-labelledby={labelledBy || undefined}
 				aria-expanded={showDropdown}
 			>
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

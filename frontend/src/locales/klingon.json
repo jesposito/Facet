@@ -1205,7 +1205,8 @@
 			}
 		},
 		"tags": {
-			"remove_tag": "Remove classification {name}"
+			"remove_tag": "Remove classification {name}",
+			"add_tag": "Add classification"
 		},
 		"views": {
 			"back_to_views": "Return to tactical displays"

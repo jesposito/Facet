@@ -1205,7 +1205,8 @@
 			}
 		},
 		"tags": {
-			"remove_tag": "Tag {name} entfernen"
+			"remove_tag": "Tag {name} entfernen",
+			"add_tag": "Tag hinzufügen"
 		},
 		"views": {
 			"back_to_views": "Zurück zu Facetten"

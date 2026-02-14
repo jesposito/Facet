@@ -1205,7 +1205,8 @@
 			}
 		},
 		"tags": {
-			"remove_tag": "Remove mark {name}"
+			"remove_tag": "Remove mark {name}",
+			"add_tag": "Add mark"
 		},
 		"views": {
 			"back_to_views": "Return to facets"
