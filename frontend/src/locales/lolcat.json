@@ -1313,6 +1313,7 @@
 			"toast_delete_failed": "Faild 2 delete file",
 			"toast_upload_success": "File uploadd",
 			"toast_upload_failed": "Upload faild",
+			"toast_file_too_large": "{name} iz 2 big 4 {limit} limit",
 			"toast_external_added": "Outsid media addd",
 			"toast_external_failed": "Faild 2 add outsid media",
 			"toast_url_required": "URL iz requird",

@@ -36,6 +36,8 @@
 		onchange
 	}: Props = $props();
 
+	const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+
 	let mediaOptions: MediaOption[] = $state([]);
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
@@ -337,6 +339,14 @@
 
 		for (const file of files) {
 			uploadingFileName = file.name;
+
+			// Validate file size
+			if (file.size > MAX_UPLOAD_SIZE) {
+				console.warn(`File ${file.name} exceeds 20MB limit`);
+				failedFiles.push(file.name);
+				continue;
+			}
+
 			try {
 				const form = new FormData();
 				form.append('file', file);

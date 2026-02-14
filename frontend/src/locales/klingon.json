@@ -1313,6 +1313,7 @@
 			"toast_delete_failed": "Destruction failed",
 			"toast_upload_success": "Asset deployed",
 			"toast_upload_failed": "Transport failed",
+			"toast_file_too_large": "{name} exceeds {limit} payload capacity",
 			"toast_external_added": "External link established",
 			"toast_external_failed": "Link establishment failed",
 			"toast_url_required": "Coordinates required",
