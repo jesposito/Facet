@@ -16,6 +16,7 @@ import (
 	"facet/services"
 	"facet/services/mediaembed"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -59,7 +60,14 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 	// When a user edits an upload's title/alt_text/description in the media library,
 	// propagate those changes to any external_media mirrors that reference the upload.
 	app.OnRecordAfterUpdateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
-		go syncUploadMetadataToMirrors(app, e.Record)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					app.Logger().Error("syncUploadMetadataToMirrors panic", "error", r)
+				}
+			}()
+			syncUploadMetadataToMirrors(app, e.Record)
+		}()
 		return e.Next()
 	})
 
@@ -992,10 +1000,6 @@ func parseIntDefault(raw string, def int) int {
 // MultiMediaPicker when attaching uploads to content via media_refs, and their metadata can
 // become stale when the user edits the upload in the media library.
 func syncUploadMetadataToMirrors(app *pocketbase.PocketBase, record *core.Record) {
-	title := record.GetString("title")
-	altText := record.GetString("alt_text")
-	description := record.GetString("description")
-
 	// Build the file URL pattern to find mirrors
 	// Mirrors store URLs like "/api/files/{collectionId}/{recordId}/{filename}"
 	files := record.GetStringSlice("file")
@@ -1010,23 +1014,27 @@ func syncUploadMetadataToMirrors(app *pocketbase.PocketBase, record *core.Record
 
 	for _, filename := range files {
 		fileURL := fmt.Sprintf("/api/files/%s/%s/%s", record.Collection().Id, record.Id, filename)
-		filter := fmt.Sprintf("url ~ '%s'", fileURL)
-		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, nil)
+		mirrors, err := app.FindRecordsByFilter(
+			extCollection.Name,
+			"url ~ {:fileURL}",
+			"", 100, 0,
+			dbx.Params{"fileURL": fileURL},
+		)
 		if err != nil {
 			continue
 		}
 		for _, mirror := range mirrors {
 			changed := false
-			if title != "" && mirror.GetString("title") != title {
-				mirror.Set("title", title)
+			if record.GetString("title") != record.Original().GetString("title") {
+				mirror.Set("title", record.GetString("title"))
 				changed = true
 			}
-			if altText != "" && mirror.GetString("alt_text") != altText {
-				mirror.Set("alt_text", altText)
+			if record.GetString("alt_text") != record.Original().GetString("alt_text") {
+				mirror.Set("alt_text", record.GetString("alt_text"))
 				changed = true
 			}
-			if description != "" && mirror.GetString("description") != description {
-				mirror.Set("description", description)
+			if record.GetString("description") != record.Original().GetString("description") {
+				mirror.Set("description", record.GetString("description"))
 				changed = true
 			}
 			if changed {

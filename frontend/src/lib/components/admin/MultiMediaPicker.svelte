@@ -332,9 +332,12 @@
 		target.value = '';
 
 		uploading = true;
-		try {
-			for (const file of files) {
-				uploadingFileName = file.name;
+		let successCount = 0;
+		const failedFiles: string[] = [];
+
+		for (const file of files) {
+			uploadingFileName = file.name;
+			try {
 				const form = new FormData();
 				form.append('file', file);
 				form.append('title', file.name);
@@ -371,16 +374,23 @@
 				mediaOptions = [newOption, ...mediaOptions];
 				value = [...value, record.id];
 				markAsUsed(record.id, 'uploads');
+				successCount++;
+			} catch (err) {
+				console.error(`Failed to upload ${file.name}:`, err);
+				failedFiles.push(file.name);
 			}
+		}
+
+		if (successCount > 0) {
 			toasts.add('success', $t('admin.media.toast_upload_success'));
 			onchange?.();
-		} catch (err) {
-			console.error('Failed to upload file:', err);
-			toasts.add('error', $t('admin.media.toast_upload_failed'));
-		} finally {
-			uploading = false;
-			uploadingFileName = '';
 		}
+		if (failedFiles.length > 0) {
+			toasts.add('error', $t('admin.media.toast_upload_failed'));
+		}
+
+		uploading = false;
+		uploadingFileName = '';
 	}
 
 	function isImage(option: MediaOption): boolean {
