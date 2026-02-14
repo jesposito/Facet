@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { icon } from '$lib/icons';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import { t } from 'svelte-i18n';
 
 	// Resume upload state
 	let resumeFile: File | null = $state(null);
@@ -321,7 +322,7 @@
 					? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
 					: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
 				role="region"
-				aria-label="Resume file drop zone"
+				aria-label={$t('admin.import.resume_dropzone_label')}
 				ondrop={handleResumeFileDrop}
 				ondragover={(e) => {
 					e.preventDefault();
