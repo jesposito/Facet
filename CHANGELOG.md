@@ -3,6 +3,14 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.0 - February 14, 2026
+
+**Other Changes:**
+- Internal improvements and maintenance
+
+---
+
+
 ## v2.18.0 - February 15, 2026
 
 **New Features:**
