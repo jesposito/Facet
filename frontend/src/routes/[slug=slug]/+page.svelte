@@ -487,11 +487,43 @@
 						</div>
 					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
 						<div class={getWidthClass(getSectionWidth('posts'))}>
-							<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} viewSlug={data.view?.slug || ''} />
+							{#if (data.postsTotalCount ?? 0) > data.sections.posts.length}
+								<div class="flex items-center justify-between gap-3 mb-4">
+									<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
+									<a
+										href="/posts"
+										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+									>
+										{$t('public.homepage.browse_all')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								</div>
+								<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} viewSlug={data.view?.slug || ''} showHeader={false} />
+							{:else}
+								<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} viewSlug={data.view?.slug || ''} />
+							{/if}
 						</div>
 					{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
 						<div class={getWidthClass(getSectionWidth('talks'))}>
-							<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} />
+							{#if (data.talksTotalCount ?? 0) > data.sections.talks.length}
+								<div class="flex items-center justify-between gap-3 mb-4">
+									<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
+									<a
+										href="/talks"
+										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+									>
+										{$t('public.homepage.browse_all')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								</div>
+								<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} showHeader={false} />
+							{:else}
+								<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} />
+							{/if}
 						</div>
 					{:else if sectionKey === 'testimonials' && data.sections?.testimonials?.length > 0}
 						<div class={getWidthClass(getSectionWidth('testimonials'))}>

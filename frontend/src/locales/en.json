@@ -1662,7 +1662,8 @@
 			"video": "Video",
 			"slides": "Slides",
 			"watch_video": "Watch Video",
-			"view_slides": "View Slides"
+			"view_slides": "View Slides",
+			"view_details": "View details"
 		},
 		"posts": {
 			"read_more": "Read more"

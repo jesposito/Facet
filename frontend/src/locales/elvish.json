@@ -1662,7 +1662,8 @@
 			"video": "Vision",
 			"slides": "Scrolls",
 			"watch_video": "Behold Vision",
-			"view_slides": "View Scrolls"
+			"view_slides": "View Scrolls",
+			"view_details": "View tale"
 		},
 		"posts": {
 			"read_more": "Read further"

@@ -1662,7 +1662,8 @@
 			"video": "Video",
 			"slides": "Folien",
 			"watch_video": "Video ansehen",
-			"view_slides": "Folien ansehen"
+			"view_slides": "Folien ansehen",
+			"view_details": "Details ansehen"
 		},
 		"posts": {
 			"read_more": "Weiterlesen"

@@ -1662,7 +1662,8 @@
 			"video": "Recording",
 			"slides": "Data Slides",
 			"watch_video": "View Recording",
-			"view_slides": "View Data Slides"
+			"view_slides": "View Data Slides",
+			"view_details": "Examine data"
 		},
 		"posts": {
 			"read_more": "Continue reading"

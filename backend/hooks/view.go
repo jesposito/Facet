@@ -12,6 +12,7 @@ import (
 
 	"facet/services"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -613,6 +614,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["section_category_display_modes"] = sectionCategoryDisplayModes
 			response["section_featured_ids"] = sectionFeaturedIds
 
+			// Add total counts for posts and talks (for "Browse all" link visibility)
+			postsTableName := getTableName(app, "posts")
+			if postsTotalCount, err := app.CountRecords(postsTableName, dbx.NewExp("visibility = 'public' AND is_draft = false")); err == nil {
+				response["posts_total_count"] = postsTotalCount
+			}
+			talksTableName := getTableName(app, "talks")
+			if talksTotalCount, err := app.CountRecords(talksTableName, dbx.NewExp("visibility = 'public' AND is_draft = false")); err == nil {
+				response["talks_total_count"] = talksTotalCount
+			}
+
 			// Fetch profile data for the view
 			profileTableName := "profile"
 			if isDemoMode {
@@ -978,6 +989,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
+					response["posts_total_count"] = len(postRecords)
 					if len(postRecords) > 0 {
 						posts := serializeRecords(postRecords)
 						postCollectionID := postRecords[0].Collection().Id
@@ -1012,6 +1024,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
+					response["talks_total_count"] = len(talkRecords)
 					talks := serializeRecords(talkRecords)
 					response["talks"] = filterBySelectedItemsWithDefault(talks, talksSelectedItems, talksConfigured)
 				}
