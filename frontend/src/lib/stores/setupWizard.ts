@@ -71,10 +71,19 @@ function createSetupWizardStore() {
 
 	return {
 		subscribe,
-		
-		open: () => update(s => ({ ...s, isOpen: true })),
-		
-		close: () => update(s => ({ ...s, isOpen: false })),
+
+		open: () => update(s => {
+			// Never reopen if already dismissed or completed
+			if (s.dismissedPermanently || s.completedWizard) return s;
+			return { ...s, isOpen: true };
+		}),
+
+		close: () => update(s => {
+			// Any close is a permanent dismiss — prevent the wizard from nagging
+			const newState = { ...s, isOpen: false, dismissedPermanently: true };
+			persistFlags(newState);
+			return newState;
+		}),
 		
 		nextStep: () => update(s => ({ 
 			...s, 
