@@ -1387,7 +1387,9 @@
 			"multi_picker_count": "{count} pikked",
 			"multi_picker_modal_title": "Pik sum medias",
 			"multi_picker_selected_count": "{count} pikked",
-			"multi_picker_confirm": "Okai ({count})"
+			"multi_picker_confirm": "Okai ({count})",
+			"multi_picker_or": "or",
+			"multi_picker_upload_new": "Uplodz Noo"
 		},
 		"tokens": {
 			"page_title": "Shaer Tokenz | Facet",

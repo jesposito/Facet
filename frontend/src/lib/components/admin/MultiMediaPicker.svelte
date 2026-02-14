@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { toasts } from '$lib/stores';
 
 	export type MediaOption = {
 		id: string;
@@ -39,6 +40,8 @@
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
 	let showPicker = $state(false);
+	let uploading = $state(false);
+	let uploadingFileName = $state('');
 	// Working selection while modal is open
 	let workingSelection: string[] = $state([]);
 
@@ -322,6 +325,64 @@
 		onchange?.();
 	}
 
+	async function handleFileUpload(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const files = target.files;
+		if (!files || files.length === 0) return;
+		target.value = '';
+
+		uploading = true;
+		try {
+			for (const file of files) {
+				uploadingFileName = file.name;
+				const form = new FormData();
+				form.append('file', file);
+				form.append('title', file.name);
+				if (file.type) form.append('mime', file.type);
+
+				const headers: Record<string, string> = pb.authStore.isValid
+					? { Authorization: `Bearer ${pb.authStore.token}` }
+					: {};
+
+				const res = await fetch('/api/collections/uploads/records', {
+					method: 'POST',
+					headers,
+					body: form
+				});
+
+				if (!res.ok) {
+					const body = await res.json().catch(() => ({}));
+					throw new Error(body.message || 'Upload failed');
+				}
+
+				const record = await res.json();
+				const collectionId = record.collectionId || 'uploads';
+				const uploadUrl = `/api/files/${collectionId}/${record.id}/${record.file}`;
+
+				const newOption: MediaOption = {
+					id: record.id,
+					title: file.name,
+					provider: 'upload',
+					url: uploadUrl,
+					mime: file.type,
+					collection: 'uploads'
+				};
+
+				mediaOptions = [newOption, ...mediaOptions];
+				value = [...value, record.id];
+				markAsUsed(record.id, 'uploads');
+			}
+			toasts.add('success', $t('admin.media.toast_upload_success'));
+			onchange?.();
+		} catch (err) {
+			console.error('Failed to upload file:', err);
+			toasts.add('error', $t('admin.media.toast_upload_failed'));
+		} finally {
+			uploading = false;
+			uploadingFileName = '';
+		}
+	}
+
 	function isImage(option: MediaOption): boolean {
 		return option.mime?.startsWith('image/') || false;
 	}
@@ -401,16 +462,33 @@
 		{/if}
 
 		<!-- Action button -->
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			<button
 				type="button"
 				class="btn btn-secondary btn-sm"
 				onclick={handleOpenPicker}
+				disabled={uploading}
 			>
 				{value.length > 0
 					? $t('admin.media.multi_picker_modify_selection')
 					: $t('admin.media.multi_picker_select_from_library')}
 			</button>
+			<span class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.multi_picker_or')}</span>
+			<label class="btn btn-secondary btn-sm cursor-pointer {uploading ? 'opacity-50 pointer-events-none' : ''}">
+				{#if uploading}
+					{$t('admin.media.uploading')}
+				{:else}
+					{$t('admin.media.multi_picker_upload_new')}
+				{/if}
+				<input
+					type="file"
+					accept={imagesOnly ? 'image/*' : 'image/*,video/*,audio/*,.pdf'}
+					multiple
+					class="hidden"
+					onchange={handleFileUpload}
+					disabled={uploading}
+				/>
+			</label>
 			{#if value.length > 0}
 				<span class="text-sm text-gray-500 dark:text-gray-400">
 					{$t('admin.media.multi_picker_count', { values: { count: value.length } })}
