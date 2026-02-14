@@ -1199,7 +1199,16 @@
 				"no_profile": "No profile data",
 				"no_sections": "No sectors enabled",
 				"enable_hint": "Enable sectors in the editor"
+			},
+			"aria": {
+				"accent_color_label": "Select tactical color"
 			}
+		},
+		"tags": {
+			"remove_tag": "Remove classification {name}"
+		},
+		"views": {
+			"back_to_views": "Return to tactical displays"
 		},
 		"media": {
 			"page_title": "War Archive | Facet Command",
@@ -1248,6 +1257,7 @@
 			"filter_usage_not_in_use": "Reserve",
 			"edit_tags_label": "Classifications",
 			"edit_tags_help": "Organize assets with classifications for tactical retrieval",
+			"remove_item": "Remove",
 			"selected_items": "{count} assets targeted",
 			"select_visible": "Target visible",
 			"bulk_tag_button": "Mass classify",
@@ -1333,6 +1343,7 @@
 			"toast_delete_failed": "Destruction failed",
 			"toast_upload_success": "Asset deployed",
 			"toast_upload_failed": "Transport failed",
+			"toast_file_too_large": "{name} exceeds {limit} payload capacity",
 			"toast_external_added": "External link established",
 			"toast_external_failed": "Link establishment failed",
 			"toast_url_required": "Coordinates required",
@@ -1417,7 +1428,9 @@
 			"multi_picker_count": "{count} acquired",
 			"multi_picker_modal_title": "Select Assets",
 			"multi_picker_selected_count": "{count} acquired",
-			"multi_picker_confirm": "Confirm ({count})"
+			"multi_picker_confirm": "Confirm ({count})",
+			"multi_picker_or": "joq",
+			"multi_picker_upload_new": "ngoH chu'"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",
@@ -1520,6 +1533,17 @@
 			"select_all": "Target all",
 			"clear": "Clear targets",
 			"change_visibility": "Change Visibility"
+		},
+		"homepage": {
+			"collapse_section": "Collapse {section} sector",
+			"expand_section": "Deploy {section} sector",
+			"toggle_section": "Toggle {section} sector"
+		},
+		"import": {
+			"resume_dropzone_label": "Battle record upload zone"
+		},
+		"testimonials": {
+			"delete_request": "Destroy request"
 		}
 	},
 	"public": {
@@ -1601,6 +1625,16 @@
 			"log_in_account": "Access your command post",
 			"profile_setup": "This battle record is being prepared.",
 			"browse_all": "View all"
+		},
+		"aria": {
+			"go_to_admin": "Access Command Center",
+			"print_options": "Print options",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Close viewscreen",
+			"next_image": "Next display",
+			"previous_image": "Previous display"
 		},
 		"experience": {
 			"at": "serving"
@@ -1785,13 +1819,19 @@
 			"unsaved_changes": "You have unsecured changes. Are you certain you wish to leave?"
 		},
 		"aria": {
-			"close_menu": "Close menu",
-			"open_menu": "Open menu",
-			"notifications": "Alerts",
-			"skip_to_content": "Skip to main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Command navigation",
-			"main_menu": "Main menu"
+			"close": "Close",
+			"close_banner": "Dismiss banner",
+			"close_form": "Close form",
+			"close_menu": "Close viewport",
+			"close_modal": "Close modal",
+			"copy_contact": "Copy {label} to buffer",
+			"copy_to_clipboard": "Copy to buffer",
+			"dismiss": "Dismiss",
+			"main_menu": "Main menu",
+			"notifications": "Alerts",
+			"open_menu": "Open menu",
+			"skip_to_content": "Skip to main content"
 		},
 		"pagination": {
 			"previous": "Previous",

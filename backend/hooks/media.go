@@ -16,6 +16,7 @@ import (
 	"facet/services"
 	"facet/services/mediaembed"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -54,6 +55,17 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 	for _, collName := range collectionsWithImageFields {
 		registerThumbnailHook(app, collName, uploadsDir)
 	}
+
+	// Sync uploads metadata to external_media mirror records.
+	// When a user edits an upload's title/alt_text/description in the media library,
+	// propagate those changes to any external_media mirrors that reference the upload.
+	app.OnRecordAfterUpdateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
+		record := e.Record
+		services.SafeGo(app, "sync-upload-metadata", func() {
+			syncUploadMetadataToMirrors(app, record)
+		})
+		return e.Next()
+	})
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Create StorageService with app's data directory now that it's available
@@ -979,6 +991,66 @@ func parseIntDefault(raw string, def int) int {
 	return v
 }
 
+// syncUploadMetadataToMirrors propagates title, alt_text, and description from an uploads record
+// to any external_media mirror records that reference it. Mirror records are created by the
+// MultiMediaPicker when attaching uploads to content via media_refs, and their metadata can
+// become stale when the user edits the upload in the media library.
+func syncUploadMetadataToMirrors(app *pocketbase.PocketBase, record *core.Record) {
+	// Build the file URL pattern to find mirrors
+	// Mirrors store URLs like "/api/files/{collectionId}/{recordId}/{filename}"
+	files := record.GetStringSlice("file")
+	if len(files) == 0 {
+		return
+	}
+
+	extCollection, err := app.FindCollectionByNameOrId("external_media")
+	if err != nil {
+		return
+	}
+
+	for _, filename := range files {
+		fileURL := fmt.Sprintf("/api/files/%s/%s/%s", record.Collection().Id, record.Id, filename)
+		mirrors, err := app.FindRecordsByFilter(
+			extCollection.Name,
+			"url ~ {:fileURL}",
+			"", 100, 0,
+			dbx.Params{"fileURL": fileURL},
+		)
+		if err != nil {
+			continue
+		}
+		for _, mirror := range mirrors {
+			// Verify the URL actually ends with our file path to prevent false positives
+			// from PocketBase's case-insensitive substring matching
+			if !strings.HasSuffix(mirror.GetString("url"), fileURL) {
+				continue
+			}
+			changed := false
+			if record.GetString("title") != record.Original().GetString("title") {
+				mirror.Set("title", record.GetString("title"))
+				changed = true
+			}
+			if record.GetString("alt_text") != record.Original().GetString("alt_text") {
+				mirror.Set("alt_text", record.GetString("alt_text"))
+				changed = true
+			}
+			if record.GetString("description") != record.Original().GetString("description") {
+				mirror.Set("description", record.GetString("description"))
+				changed = true
+			}
+			if changed {
+				if err := app.Save(mirror); err != nil {
+					app.Logger().Warn("syncUploadMetadataToMirrors: failed to update mirror",
+						"mirror_id", mirror.Id, "upload_id", record.Id, "error", err)
+				} else {
+					app.Logger().Debug("syncUploadMetadataToMirrors: synced metadata",
+						"mirror_id", mirror.Id, "upload_id", record.Id)
+				}
+			}
+		}
+	}
+}
+
 // cleanupMirrorEntries removes external_media records that are mirrors pointing to internal files.
 // This is called when an upload is deleted to clean up orphaned mirror entries.
 func cleanupMirrorEntries(app *pocketbase.PocketBase, fileURL string) {
@@ -987,21 +1059,28 @@ func cleanupMirrorEntries(app *pocketbase.PocketBase, fileURL string) {
 		return
 	}
 
-	// Find mirror entries that contain this file URL (could be relative or absolute)
-	records, err := app.FindAllRecords(collection.Name)
+	// Find mirror entries that contain this file URL
+	mirrors, err := app.FindRecordsByFilter(
+		collection.Name,
+		"url ~ {:fileURL}",
+		"", 100, 0,
+		dbx.Params{"fileURL": fileURL},
+	)
 	if err != nil {
 		return
 	}
 
-	for _, record := range records {
+	for _, record := range mirrors {
+		// Verify the URL actually ends with our file path to prevent false positives
+		// from PocketBase's case-insensitive substring matching
 		recordURL := record.GetString("url")
-		// Check if this external_media points to the deleted file
-		if strings.Contains(recordURL, fileURL) {
-			if err := app.Delete(record); err != nil {
-				app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
-			} else {
-				app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", recordURL)
-			}
+		if !strings.HasSuffix(recordURL, fileURL) {
+			continue
+		}
+		if err := app.Delete(record); err != nil {
+			app.Logger().Warn("cleanupMirrorEntries: failed to delete mirror", "id", record.Id, "error", err)
+		} else {
+			app.Logger().Debug("cleanupMirrorEntries: deleted mirror", "id", record.Id, "url", recordURL)
 		}
 	}
 }
@@ -1067,8 +1146,8 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 			}
 
 			// Find records where this field matches our URL
-			filter := fmt.Sprintf("%s = '%s'", fieldName, fileURL)
-			records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+			filter := fmt.Sprintf("%s = {:url}", fieldName)
+			records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, dbx.Params{"url": fileURL})
 			if err != nil {
 				continue
 			}
@@ -1110,8 +1189,8 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 	extCollection, err := app.FindCollectionByNameOrId("external_media")
 	if err == nil {
 		// Find mirrors that point to this upload URL
-		filter := fmt.Sprintf("url ~ '%s'", fileURL)
-		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, nil)
+		filter := "url ~ {:fileURL}"
+		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, dbx.Params{"fileURL": fileURL})
 		if err == nil {
 			for _, mirror := range mirrors {
 				// For each mirror, find content that references it via media_refs
@@ -1276,22 +1355,27 @@ func collectExternalMediaItems(app *pocketbase.PocketBase) ([]services.MediaItem
 		return []services.MediaItem{}, nil
 	}
 
-	// Get all records from external_media collection
-	records, err := app.FindAllRecords(collection.Name)
-	if err != nil {
-		return []services.MediaItem{}, err
+	// Get external media records, excluding internal mirror entries (uploads attached via media_refs)
+	var records []*core.Record
+	const pageSize = 200
+	for offset := 0; ; offset += pageSize {
+		page, err := app.FindRecordsByFilter(
+			collection.Name,
+			"url !~ '/api/files/'",
+			"", pageSize, offset, nil,
+		)
+		if err != nil {
+			break
+		}
+		records = append(records, page...)
+		if len(page) < pageSize {
+			break
+		}
 	}
 
 	items := make([]services.MediaItem, 0, len(records))
 	for _, record := range records {
 		recordURL := record.GetString("url")
-
-		// Skip "mirror" entries that point to internal PocketBase files
-		// These are created when attaching uploads to posts/projects/talks via media_refs
-		// and appear as duplicates in the media library
-		if strings.Contains(recordURL, "/api/files/") {
-			continue
-		}
 
 		created := record.GetDateTime("created").Time()
 		title := record.GetString("title")
@@ -1593,14 +1677,20 @@ func detectMimeType(fullPath, filename string) string {
 func registerThumbnailHook(app *pocketbase.PocketBase, collectionName string, uploadsDir string) {
 	// Hook for new records
 	app.OnRecordAfterCreateSuccess(collectionName).BindFunc(func(e *core.RecordEvent) error {
-		go generateThumbnailsForRecord(app, e.Record, uploadsDir)
+		record := e.Record
+		services.SafeGo(app, "thumbnail-generate-create", func() {
+			generateThumbnailsForRecord(app, record, uploadsDir)
+		})
 		return e.Next()
 	})
 
 	// Hook for updated records (new files added)
 	app.OnRecordAfterUpdateSuccess(collectionName).BindFunc(func(e *core.RecordEvent) error {
 		// Only generate thumbnails for newly added files
-		go generateThumbnailsForNewFiles(app, e.Record, uploadsDir)
+		record := e.Record
+		services.SafeGo(app, "thumbnail-generate-update", func() {
+			generateThumbnailsForNewFiles(app, record, uploadsDir)
+		})
 		return e.Next()
 	})
 }

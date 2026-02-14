@@ -165,11 +165,19 @@ func cleanupOrphanedMediaMetadata(app *pocketbase.PocketBase) []string {
 		return cleaned
 	}
 
-	// Get all media_display_names records
-	records, err := app.FindAllRecords(mdnCollection.Name)
-	if err != nil {
-		app.Logger().Warn("media_cleanup: failed to load media_display_names", "error", err)
-		return cleaned
+	// Get all media_display_names records with pagination
+	var records []*core.Record
+	const pageSize = 200
+	for offset := 0; ; offset += pageSize {
+		page, err := app.FindRecordsByFilter(mdnCollection.Name, "", "", pageSize, offset, nil)
+		if err != nil {
+			app.Logger().Warn("media_cleanup: failed to load media_display_names", "error", err)
+			break
+		}
+		records = append(records, page...)
+		if len(page) < pageSize {
+			break
+		}
 	}
 
 	for _, mdn := range records {

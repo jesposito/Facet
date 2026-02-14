@@ -1199,7 +1199,16 @@
 				"no_profile": "No presence inscribed",
 				"no_sections": "No realms awakened",
 				"enable_hint": "Awaken realms in the shaper"
+			},
+			"aria": {
+				"accent_color_label": "Choose hue of emphasis"
 			}
+		},
+		"tags": {
+			"remove_tag": "Remove mark {name}"
+		},
+		"views": {
+			"back_to_views": "Return to facets"
 		},
 		"media": {
 			"page_title": "Archives of Memory | Facet Admin",
@@ -1248,6 +1257,7 @@
 			"filter_usage_not_in_use": "Unbound",
 			"edit_tags_label": "Marks",
 			"edit_tags_help": "Arrange treasures by marks for easier seeking",
+			"remove_item": "Remove",
 			"selected_items": "{count} treasures chosen",
 			"select_visible": "Choose visible",
 			"bulk_tag_button": "Mark many",
@@ -1333,6 +1343,7 @@
 			"toast_delete_failed": "Could not release the scroll",
 			"toast_upload_success": "Scroll preserved",
 			"toast_upload_failed": "Preservation failed",
+			"toast_file_too_large": "{name} surpasses the {limit} bound",
 			"toast_external_added": "Distant vision bound",
 			"toast_external_failed": "Could not bind distant vision",
 			"toast_url_required": "A path is required",
@@ -1417,7 +1428,9 @@
 			"multi_picker_count": "{count} chosen",
 			"multi_picker_modal_title": "Choose Visions",
 			"multi_picker_selected_count": "{count} chosen",
-			"multi_picker_confirm": "Affirm ({count})"
+			"multi_picker_confirm": "Affirm ({count})",
+			"multi_picker_or": "egor",
+			"multi_picker_upload_new": "Onlod Celair"
 		},
 		"tokens": {
 			"page_title": "Tokens of Passage | Facet",
@@ -1520,6 +1533,17 @@
 			"select_all": "Choose all",
 			"clear": "Release all",
 			"change_visibility": "Change Visibility"
+		},
+		"homepage": {
+			"collapse_section": "Fold {section} realm",
+			"expand_section": "Unfold {section} realm",
+			"toggle_section": "Toggle {section} realm"
+		},
+		"import": {
+			"resume_dropzone_label": "Chronicle scroll waypoint"
+		},
+		"testimonials": {
+			"delete_request": "Remove petition"
 		}
 	},
 	"public": {
@@ -1601,6 +1625,16 @@
 			"log_in_account": "Enter your sanctum",
 			"profile_setup": "This chronicle is being prepared.",
 			"browse_all": "View all"
+		},
+		"aria": {
+			"go_to_admin": "Journey to Admin",
+			"print_options": "Scribe options",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Close vision",
+			"next_image": "Next vision",
+			"previous_image": "Previous vision"
 		},
 		"experience": {
 			"at": "with"
@@ -1785,13 +1819,19 @@
 			"unsaved_changes": "Thou hast unpreserved changes. Art thou certain to depart?"
 		},
 		"aria": {
-			"close_menu": "Close paths",
-			"open_menu": "Open paths",
-			"notifications": "Tidings",
-			"skip_to_content": "Journey to main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Administration pathways",
-			"main_menu": "Main paths"
+			"close": "Close",
+			"close_banner": "Close banner",
+			"close_form": "Close form",
+			"close_menu": "Close waypoint",
+			"close_modal": "Close modal",
+			"copy_contact": "Copy {label} to scroll",
+			"copy_to_clipboard": "Copy to scroll",
+			"dismiss": "Dismiss",
+			"main_menu": "Main paths",
+			"notifications": "Tidings",
+			"open_menu": "Open paths",
+			"skip_to_content": "Journey to main content"
 		},
 		"pagination": {
 			"previous": "Previous",

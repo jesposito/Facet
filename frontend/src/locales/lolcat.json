@@ -1199,7 +1199,16 @@
 				"no_profile": "No profile data",
 				"no_sections": "No sekshunz enabld",
 				"enable_hint": "Enabl sekshunz in teh editr"
+			},
+			"aria": {
+				"accent_color_label": "Pick ur color"
 			}
+		},
+		"tags": {
+			"remove_tag": "Removez tag {name}"
+		},
+		"views": {
+			"back_to_views": "Bak 2 da fasets"
 		},
 		"media": {
 			"page_title": "Pikchur Box | Facet Admin",
@@ -1248,6 +1257,7 @@
 			"filter_usage_not_in_use": "Not uzed",
 			"edit_tags_label": "Tagz",
 			"edit_tags_help": "Put tagz on ur stuffz so u can find dem",
+			"remove_item": "Removez",
 			"selected_items": "{count} thingz picked",
 			"select_visible": "Pick da visible wunz",
 			"bulk_tag_button": "Tagz all da thingz",
@@ -1333,6 +1343,7 @@
 			"toast_delete_failed": "Faild 2 delete file",
 			"toast_upload_success": "File uploadd",
 			"toast_upload_failed": "Upload faild",
+			"toast_file_too_large": "{name} iz 2 big 4 {limit} limit",
 			"toast_external_added": "Outsid media addd",
 			"toast_external_failed": "Faild 2 add outsid media",
 			"toast_url_required": "URL iz requird",
@@ -1417,7 +1428,9 @@
 			"multi_picker_count": "{count} pikked",
 			"multi_picker_modal_title": "Pik sum medias",
 			"multi_picker_selected_count": "{count} pikked",
-			"multi_picker_confirm": "Okai ({count})"
+			"multi_picker_confirm": "Okai ({count})",
+			"multi_picker_or": "or",
+			"multi_picker_upload_new": "Uplodz Noo"
 		},
 		"tokens": {
 			"page_title": "Shaer Tokenz | Facet",
@@ -1520,6 +1533,17 @@
 			"select_all": "Select all teh thingz",
 			"clear": "Cleer",
 			"change_visibility": "Chang Vizibility"
+		},
+		"homepage": {
+			"collapse_section": "Collaps {section} sekshun",
+			"expand_section": "Expand {section} sekshun",
+			"toggle_section": "Toggl {section} sekshun"
+		},
+		"import": {
+			"resume_dropzone_label": "Rezume file drop zone"
+		},
+		"testimonials": {
+			"delete_request": "Deleet request"
 		}
 	},
 	"public": {
@@ -1601,6 +1625,16 @@
 			"log_in_account": "Log in 2 ur akount",
 			"profile_setup": "Dis profil iz bein set up.",
 			"browse_all": "C all"
+		},
+		"aria": {
+			"go_to_admin": "Go 2 Admin",
+			"print_options": "Print opshunz",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Cloze litebox",
+			"next_image": "Nekst pictur",
+			"previous_image": "Previus pictur"
 		},
 		"experience": {
 			"at": "at"
@@ -1785,13 +1819,19 @@
 			"unsaved_changes": "U haz unsavd chayngez. U sure u wanna leev?"
 		},
 		"aria": {
-			"close_menu": "Cloze menu",
-			"open_menu": "Open menu",
-			"notifications": "Notificashunz",
-			"skip_to_content": "Skip 2 main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Admin navigashun",
-			"main_menu": "Main menu"
+			"close": "Cloze",
+			"close_banner": "Cloze banr",
+			"close_form": "Cloze form",
+			"close_menu": "Cloze droppy",
+			"close_modal": "Cloze modalz",
+			"copy_contact": "Copy {label} 2 clipbored",
+			"copy_to_clipboard": "Copy 2 clipbored",
+			"dismiss": "Dismiss",
+			"main_menu": "Main menu",
+			"notifications": "Notificashunz",
+			"open_menu": "Open menu",
+			"skip_to_content": "Skip 2 main content"
 		},
 		"pagination": {
 			"previous": "Previus",

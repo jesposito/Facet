@@ -2,6 +2,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { onMount } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		onSuccess: (imported: Record<string, string[]>) => void;
@@ -113,7 +114,7 @@
 >
 	<button
 		class="absolute inset-0 w-full h-full cursor-default border-0 p-0 m-0 bg-transparent"
-		aria-label="Close modal"
+		aria-label={$t('shared.aria.close_modal')}
 		onclick={onClose}
 		type="button"
 	></button>
@@ -133,7 +134,7 @@
 			<button
 				class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 transition-colors p-1"
 				onclick={onClose}
-				aria-label="Close modal"
+				aria-label={$t('shared.aria.close_modal')}
 			>
 				<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path
@@ -174,7 +175,7 @@
 					? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
 					: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
 				role="region"
-				aria-label="Resume file drop zone"
+				aria-label={$t('admin.import.resume_dropzone_label')}
 				ondrop={handleFileDrop}
 				ondragover={(e) => {
 					e.preventDefault();
