@@ -311,8 +311,9 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			// Send email notification to admins (non-blocking, best-effort)
+			notifyBaseURL := resolveBaseURL(e)
 			services.SafeGo(app, "email-notification", func() {
-				services.SendTestimonialNotification(app, record, requestRecord)
+				services.SendTestimonialNotification(app, record, requestRecord, notifyBaseURL)
 			})
 
 			return e.JSON(http.StatusOK, map[string]interface{}{

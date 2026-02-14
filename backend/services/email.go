@@ -64,7 +64,7 @@ func FindAdminEmails(app core.App) []string {
 // SendTestimonialNotification sends an email notification to admins about a new testimonial.
 // This is designed to be called in a goroutine — it logs errors but never returns them
 // to avoid blocking the testimonial submission.
-func SendTestimonialNotification(app core.App, record *core.Record, requestRecord *core.Record) {
+func SendTestimonialNotification(app core.App, record *core.Record, requestRecord *core.Record, baseURL string) {
 	if !app.Settings().SMTP.Enabled {
 		app.Logger().Info("Email notification: SMTP not configured, skipping testimonial notification")
 		return
@@ -91,10 +91,9 @@ func SendTestimonialNotification(app core.App, record *core.Record, requestRecor
 		data.RequestLabel = requestRecord.GetString("label")
 	}
 
-	// Build review URL from APP_URL
-	appURL := strings.TrimRight(app.Settings().Meta.AppURL, "/")
-	if appURL != "" {
-		data.ReviewURL = appURL + "/admin/testimonials"
+	// Build review URL from the resolved base URL (from request headers)
+	if baseURL != "" {
+		data.ReviewURL = strings.TrimRight(baseURL, "/") + "/admin/testimonials"
 	}
 
 	// Render HTML
