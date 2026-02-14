@@ -14,6 +14,7 @@ import (
 	"facet/services"
 
 	"github.com/google/uuid"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -154,7 +155,8 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			if err == nil {
 				existingImport, err := app.FindFirstRecordByFilter(
 					resumeImportsCollection.Name,
-					fmt.Sprintf("hash = '%s'", fileHash),
+					"hash = {:hash}",
+					dbx.Params{"hash": fileHash},
 				)
 				if err == nil && existingImport != nil {
 					// This file was already imported - check if it was recent (within 5 minutes)
@@ -253,7 +255,8 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				var resumeImportRecord *core.Record
 				existingRecord, err := app.FindFirstRecordByFilter(
 					resumeImportsCollection.Name,
-					fmt.Sprintf("hash = '%s'", fileHash),
+					"hash = {:hash}",
+					dbx.Params{"hash": fileHash},
 				)
 				if err == nil && existingRecord != nil {
 					// Update existing record
@@ -576,12 +579,16 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// Check for duplicate within same resume (by filename)
 			// This allows same role from DIFFERENT resumes (faceted views)
 			// but prevents duplicates from same resume imported multiple times
-			filter := fmt.Sprintf("company = '%s' && title = '%s' && start_date = '%s' && import_filename = '%s'",
-				escapeFilter(exp.Company), escapeFilter(exp.Title), exp.StartDate, escapeFilter(filename))
-			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 1, 0)
+			filter := "company = {:company} && title = {:title} && start_date = {:startDate} && import_filename = {:filename}"
+			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 1, 0,
+				dbx.Params{
+					"company":   exp.Company,
+					"title":     exp.Title,
+					"startDate": normalizeDate(exp.StartDate),
+					"filename":  filename,
+				})
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for experience '%s at %s': %v", exp.Title, exp.Company, err)
-				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
 			}
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
@@ -632,15 +639,25 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// Check for duplicate across ALL imports (not session-specific)
 			// A degree from MIT is the same degree regardless of which resume lists it
 			var filter string
+			var params dbx.Params
 			if edu.EndDate != "" && edu.EndDate != "null" {
-				filter = fmt.Sprintf("institution = '%s' && degree = '%s' && field = '%s' && end_date = '%s'",
-					escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field), edu.EndDate)
+				filter = "institution = {:institution} && degree = {:degree} && field = {:field} && end_date = {:endDate}"
+				params = dbx.Params{
+					"institution": edu.Institution,
+					"degree":      edu.Degree,
+					"field":       edu.Field,
+					"endDate":     normalizeDate(edu.EndDate),
+				}
 			} else {
-				filter = fmt.Sprintf("institution = '%s' && degree = '%s' && field = '%s'",
-					escapeFilter(edu.Institution), escapeFilter(edu.Degree), escapeFilter(edu.Field))
+				filter = "institution = {:institution} && degree = {:degree} && field = {:field}"
+				params = dbx.Params{
+					"institution": edu.Institution,
+					"degree":      edu.Degree,
+					"field":       edu.Field,
+				}
 			}
 
-			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 1, 0)
+			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 1, 0, params)
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
 				continue
@@ -684,7 +701,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		// Fetch ALL existing skills for case-insensitive comparison
 		// Note: FindRecordsByFilter(collection, filter, sort, limit, offset)
 		// limit=500 (max records to return), offset=0 (start from beginning)
-		allSkills, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", 500, 0)
+		allSkills, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", 500, 0, dbx.Params{})
 		if err != nil {
 			log.Printf("[RESUME-UPLOAD] [WARNING] Failed to fetch existing skills: %v", err)
 			allSkills = []*core.Record{} // Continue with empty list
@@ -734,9 +751,12 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 		for _, cert := range parsed.Certifications {
 			// Check for duplicate: same name + issuer
-			filter := fmt.Sprintf("name = '%s' && issuer = '%s'",
-				escapeFilter(cert.Name), escapeFilter(cert.Issuer))
-			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 1, 0)
+			filter := "name = {:name} && issuer = {:issuer}"
+			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 1, 0,
+				dbx.Params{
+					"name":   cert.Name,
+					"issuer": cert.Issuer,
+				})
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
 				continue
@@ -780,11 +800,14 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			// Check for duplicate within same resume (by filename)
 			// This allows same project from DIFFERENT resumes (faceted views)
 			// but prevents duplicates from same resume imported multiple times
-			filter := fmt.Sprintf("title = '%s' && import_filename = '%s'", escapeFilter(proj.Title), escapeFilter(filename))
-			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 1, 0)
+			filter := "title = {:title} && import_filename = {:filename}"
+			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 1, 0,
+				dbx.Params{
+					"title":    proj.Title,
+					"filename": filename,
+				})
 			if err != nil {
 				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for project '%s': %v", proj.Title, err)
-				log.Printf("[RESUME-UPLOAD] [ERROR] Filter was: %s", filter)
 			}
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
@@ -831,15 +854,23 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				// Check for duplicate across ALL imports (not session-specific)
 				// Match on title + issuer + date for uniqueness
 				var filter string
+				var params dbx.Params
 				if award.AwardedAt != "" && award.AwardedAt != "null" {
-					filter = fmt.Sprintf("title = '%s' && issuer = '%s' && awarded_at = '%s'",
-						escapeFilter(award.Title), escapeFilter(award.Issuer), award.AwardedAt)
+					filter = "title = {:title} && issuer = {:issuer} && awarded_at = {:awardedAt}"
+					params = dbx.Params{
+						"title":     award.Title,
+						"issuer":    award.Issuer,
+						"awardedAt": normalizeDate(award.AwardedAt),
+					}
 				} else {
-					filter = fmt.Sprintf("title = '%s' && issuer = '%s'",
-						escapeFilter(award.Title), escapeFilter(award.Issuer))
+					filter = "title = {:title} && issuer = {:issuer}"
+					params = dbx.Params{
+						"title":  award.Title,
+						"issuer": award.Issuer,
+					}
 				}
 
-				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 1, 0)
+				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 1, 0, params)
 				if err == nil && len(existing) > 0 {
 					duplicateCount++
 					continue
@@ -875,9 +906,12 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		} else {
 			for _, talk := range parsed.Talks {
 				// Check for duplicate: same title + event
-				filter := fmt.Sprintf("title = '%s' && event = '%s'",
-					escapeFilter(talk.Title), escapeFilter(talk.Event))
-				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 1, 0)
+				filter := "title = {:title} && event = {:event}"
+				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 1, 0,
+					dbx.Params{
+						"title": talk.Title,
+						"event": talk.Event,
+					})
 				if err == nil && len(existing) > 0 {
 					duplicateCount++
 					continue
@@ -909,11 +943,6 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 	}
 
 	return imported, duplicateCount, nil
-}
-
-// escapeFilter escapes single quotes for SQL filter strings
-func escapeFilter(s string) string {
-	return strings.ReplaceAll(s, "'", "''")
 }
 
 // sanitizeFilename removes special characters from filename
