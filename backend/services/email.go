@@ -24,6 +24,8 @@ type TestimonialEmailData struct {
 	SubmittedAt    string
 	ReviewURL      string
 	RequestLabel   string
+	// Translated strings
+	T EmailStrings
 }
 
 // FindAdminEmails returns the list of admin email addresses.
@@ -76,6 +78,9 @@ func SendTestimonialNotification(app core.App, record *core.Record, requestRecor
 		return
 	}
 
+	locale := GetSiteLocale(app)
+	t := GetEmailStrings(locale)
+
 	// Build template data
 	data := TestimonialEmailData{
 		SiteName:       app.Settings().Meta.SenderName,
@@ -85,6 +90,7 @@ func SendTestimonialNotification(app core.App, record *core.Record, requestRecor
 		Relationship:   record.GetString("relationship"),
 		ContentPreview: truncate(record.GetString("content"), 300),
 		SubmittedAt:    time.Now().Format("Jan 2, 2006 at 3:04 PM"),
+		T:              t,
 	}
 
 	if requestRecord != nil {
@@ -109,9 +115,9 @@ func SendTestimonialNotification(app core.App, record *core.Record, requestRecor
 		toAddresses = append(toAddresses, mail.Address{Address: email})
 	}
 
-	subject := "New testimonial from " + data.AuthorName
+	subject := t.NotifSubjectFrom + data.AuthorName
 	if data.AuthorName == "" {
-		subject = "New testimonial submitted"
+		subject = t.NotifSubjectFallback
 	}
 
 	message := &mailer.Message{
@@ -137,6 +143,7 @@ func SendTestimonialNotification(app core.App, record *core.Record, requestRecor
 	app.Logger().Info("Email notification: testimonial notification sent",
 		"author", data.AuthorName,
 		"recipients", adminEmails,
+		"locale", locale,
 	)
 }
 
@@ -149,36 +156,37 @@ func truncate(s string, maxLen int) string {
 }
 
 func renderTestimonialPlainText(data TestimonialEmailData) string {
+	t := data.T
 	var b strings.Builder
-	b.WriteString("New Testimonial Submitted\n")
-	b.WriteString("========================\n\n")
+	b.WriteString(t.NotifPlainHeader + "\n")
+	b.WriteString(strings.Repeat("=", len([]rune(t.NotifPlainHeader))) + "\n\n")
 
 	if data.AuthorName != "" {
-		b.WriteString("From: " + data.AuthorName + "\n")
+		b.WriteString(t.NotifPlainFrom + " " + data.AuthorName + "\n")
 	}
 	if data.AuthorTitle != "" || data.AuthorCompany != "" {
 		title := data.AuthorTitle
 		if data.AuthorCompany != "" {
 			if title != "" {
-				title += " at "
+				title += t.NotifAt
 			}
 			title += data.AuthorCompany
 		}
-		b.WriteString("Title: " + title + "\n")
+		b.WriteString(t.NotifPlainTitle + " " + title + "\n")
 	}
 	if data.Relationship != "" {
-		b.WriteString("Relationship: " + data.Relationship + "\n")
+		b.WriteString(t.NotifPlainRelation + " " + data.Relationship + "\n")
 	}
 	if data.RequestLabel != "" {
-		b.WriteString("Request: " + data.RequestLabel + "\n")
+		b.WriteString(t.NotifPlainRequest + " " + data.RequestLabel + "\n")
 	}
-	b.WriteString("Submitted: " + data.SubmittedAt + "\n\n")
+	b.WriteString(t.NotifPlainSubmitted + " " + data.SubmittedAt + "\n\n")
 
-	b.WriteString("Content:\n")
+	b.WriteString(t.NotifPlainContent + "\n")
 	b.WriteString(data.ContentPreview + "\n\n")
 
 	if data.ReviewURL != "" {
-		b.WriteString("Review: " + data.ReviewURL + "\n")
+		b.WriteString(t.NotifPlainReview + " " + data.ReviewURL + "\n")
 	}
 
 	return b.String()
@@ -197,7 +205,7 @@ var testimonialEmailTemplate = template.Must(template.New("testimonial").Parse(`
 
 <!-- Header -->
 <tr><td style="background-color:#18181b;padding:24px 32px;">
-<h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:600;">New Testimonial</h1>
+<h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:600;">{{.T.NotifHeader}}</h1>
 </td></tr>
 
 <!-- Body -->
@@ -208,7 +216,7 @@ var testimonialEmailTemplate = template.Must(template.New("testimonial").Parse(`
 <tr><td>
 <h2 style="margin:0 0 4px;color:#18181b;font-size:16px;font-weight:600;">{{.AuthorName}}</h2>
 {{if or .AuthorTitle .AuthorCompany}}
-<p style="margin:0 0 4px;color:#52525b;font-size:14px;">{{.AuthorTitle}}{{if and .AuthorTitle .AuthorCompany}} at {{end}}{{.AuthorCompany}}</p>
+<p style="margin:0 0 4px;color:#52525b;font-size:14px;">{{.AuthorTitle}}{{if and .AuthorTitle .AuthorCompany}}{{.T.NotifAt}}{{end}}{{.AuthorCompany}}</p>
 {{end}}
 {{if .Relationship}}
 <p style="margin:0;color:#71717a;font-size:13px;">{{.Relationship}}</p>
@@ -224,16 +232,16 @@ var testimonialEmailTemplate = template.Must(template.New("testimonial").Parse(`
 <!-- Metadata -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;font-size:13px;color:#6b7280;">
 {{if .RequestLabel}}
-<tr><td style="padding:4px 0;"><strong>Request:</strong> {{.RequestLabel}}</td></tr>
+<tr><td style="padding:4px 0;"><strong>{{.T.NotifRequestLabel}}</strong> {{.RequestLabel}}</td></tr>
 {{end}}
-<tr><td style="padding:4px 0;"><strong>Submitted:</strong> {{.SubmittedAt}}</td></tr>
+<tr><td style="padding:4px 0;"><strong>{{.T.NotifSubmittedLabel}}</strong> {{.SubmittedAt}}</td></tr>
 </table>
 
 <!-- CTA button -->
 {{if .ReviewURL}}
 <table role="presentation" cellpadding="0" cellspacing="0">
 <tr><td style="border-radius:6px;background-color:#3b82f6;">
-<a href="{{.ReviewURL}}" target="_blank" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">Review Testimonial</a>
+<a href="{{.ReviewURL}}" target="_blank" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">{{.T.NotifReviewButton}}</a>
 </td></tr>
 </table>
 {{end}}
@@ -242,7 +250,7 @@ var testimonialEmailTemplate = template.Must(template.New("testimonial").Parse(`
 
 <!-- Footer -->
 <tr><td style="padding:16px 32px;background-color:#fafafa;border-top:1px solid #e5e7eb;">
-<p style="margin:0;color:#9ca3af;font-size:12px;">This notification was sent by {{.SiteName}}. You received this because you are an admin.</p>
+<p style="margin:0;color:#9ca3af;font-size:12px;">{{printf .T.NotifFooter .SiteName}}</p>
 </td></tr>
 
 </table>
@@ -265,6 +273,8 @@ type VerificationEmailData struct {
 	AuthorName string
 	VerifyURL  string
 	ExpiresIn  string
+	// Translated strings
+	T EmailStrings
 }
 
 // SendVerificationEmail sends a verification email to a testimonial submitter.
@@ -275,11 +285,15 @@ func SendVerificationEmail(app core.App, email string, authorName string, verify
 		return fmt.Errorf("SMTP is not configured")
 	}
 
+	locale := GetSiteLocale(app)
+	t := GetEmailStrings(locale)
+
 	data := VerificationEmailData{
 		SiteName:   app.Settings().Meta.SenderName,
 		AuthorName: authorName,
 		VerifyURL:  verifyURL,
-		ExpiresIn:  "15 minutes",
+		ExpiresIn:  t.VerifyExpiresIn,
+		T:          t,
 	}
 
 	html, err := renderVerificationEmail(data)
@@ -293,7 +307,7 @@ func SendVerificationEmail(app core.App, email string, authorName string, verify
 			Address: app.Settings().Meta.SenderAddress,
 		},
 		To:      []mail.Address{{Address: email}},
-		Subject: "Verify your testimonial",
+		Subject: t.VerifySubject,
 		HTML:    html,
 		Text:    renderVerificationPlainText(data),
 	}
@@ -302,18 +316,19 @@ func SendVerificationEmail(app core.App, email string, authorName string, verify
 }
 
 func renderVerificationPlainText(data VerificationEmailData) string {
+	t := data.T
 	var b strings.Builder
-	b.WriteString("Verify Your Email\n")
-	b.WriteString("=================\n\n")
+	b.WriteString(t.VerifyPlainHeader + "\n")
+	b.WriteString(strings.Repeat("=", len([]rune(t.VerifyPlainHeader))) + "\n\n")
 
 	if data.AuthorName != "" {
-		b.WriteString("Hi " + data.AuthorName + ",\n\n")
+		b.WriteString(fmt.Sprintf(t.VerifyGreeting, data.AuthorName) + "\n\n")
 	}
 
-	b.WriteString("Please verify your email to add credibility to your testimonial.\n\n")
-	b.WriteString("Click the link below to verify:\n")
+	b.WriteString(t.VerifyPlainBody + "\n\n")
+	b.WriteString(t.VerifyPlainLink + "\n")
 	b.WriteString(data.VerifyURL + "\n\n")
-	b.WriteString("This link expires in " + data.ExpiresIn + ".\n\n")
+	b.WriteString(fmt.Sprintf(t.VerifyExpiry, data.ExpiresIn) + "\n\n")
 
 	if data.SiteName != "" {
 		b.WriteString("— " + data.SiteName + "\n")
@@ -335,37 +350,37 @@ var verificationEmailTemplate = template.Must(template.New("verification").Parse
 
 <!-- Header -->
 <tr><td style="background-color:#18181b;padding:24px 32px;">
-<h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:600;">Verify Your Email</h1>
+<h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:600;">{{.T.VerifyHeader}}</h1>
 </td></tr>
 
 <!-- Body -->
 <tr><td style="padding:32px;">
 
 {{if .AuthorName}}
-<p style="margin:0 0 16px;color:#374151;font-size:15px;">Hi {{.AuthorName}},</p>
+<p style="margin:0 0 16px;color:#374151;font-size:15px;">{{printf .T.VerifyGreeting .AuthorName}}</p>
 {{end}}
 
 <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">
-Please verify your email address to add credibility to your testimonial. Click the button below to confirm.
+{{.T.VerifyBody}}
 </p>
 
 <!-- CTA button -->
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
 <tr><td style="border-radius:6px;background-color:#3b82f6;">
-<a href="{{.VerifyURL}}" target="_blank" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">Verify Email</a>
+<a href="{{.VerifyURL}}" target="_blank" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">{{.T.VerifyButton}}</a>
 </td></tr>
 </table>
 
-<p style="margin:0 0 8px;color:#6b7280;font-size:13px;">Or copy and paste this link into your browser:</p>
+<p style="margin:0 0 8px;color:#6b7280;font-size:13px;">{{.T.VerifyAltInstructions}}</p>
 <p style="margin:0 0 24px;color:#3b82f6;font-size:13px;word-break:break-all;">{{.VerifyURL}}</p>
 
-<p style="margin:0;color:#9ca3af;font-size:12px;">This link expires in {{.ExpiresIn}}.</p>
+<p style="margin:0;color:#9ca3af;font-size:12px;">{{printf .T.VerifyExpiry .ExpiresIn}}</p>
 
 </td></tr>
 
 <!-- Footer -->
 <tr><td style="padding:16px 32px;background-color:#fafafa;border-top:1px solid #e5e7eb;">
-<p style="margin:0;color:#9ca3af;font-size:12px;">This email was sent by {{.SiteName}}. If you did not submit a testimonial, you can safely ignore this email.</p>
+<p style="margin:0;color:#9ca3af;font-size:12px;">{{printf .T.VerifyFooter .SiteName}}</p>
 </td></tr>
 
 </table>
