@@ -456,7 +456,7 @@ function openEditForm(post: Post) {
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingPost ? 'Edit Post' : 'New Post'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label="Close form">
+					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('shared.aria.close_form')}>
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
@@ -613,7 +613,7 @@ function openEditForm(post: Post) {
 						{#each tags as tag}
 							<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">
 								{tag}
-								<button type="button" class="text-gray-500 hover:text-red-500" onclick={() => removeTag(tag)} aria-label="Remove tag {tag}">
+								<button type="button" class="text-gray-500 hover:text-red-500" onclick={() => removeTag(tag)} aria-label={$t('admin.tags.remove_tag', { values: { name: tag } })}>
 									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 									</svg>

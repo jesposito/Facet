@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
 	import type { CustomContent } from '$lib/pocketbase';
-	import { parseMarkdown } from '$lib/utils';
+	import { parseMarkdown, isFilename } from '$lib/utils';
 
 	interface Props {
 		item: CustomContent;
@@ -92,6 +92,7 @@
 		thumbnail_url?: string;
 		description?: string;
 		alt_text?: string;
+		provider?: string;
 	};
 </script>
 
@@ -99,15 +100,16 @@
 
 {#snippet mediaRefCard(media: MediaRef)}
 	{#if isImage(media.url)}
+		{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
 		<!-- Image: clean gallery card without decoration -->
 		<div class="card overflow-hidden">
 			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden">
 				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
 			</button>
-			{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+			{#if displayTitle || media.description}
 				<div class="p-3 space-y-1">
-					{#if media.title}
-						<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+					{#if displayTitle}
+						<p class="text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
 					{/if}
 					{#if media.description}
 						<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
@@ -288,7 +290,7 @@
 			type="button"
 			onclick={closeLightbox}
 			class="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
-			aria-label="Close lightbox"
+			aria-label={$t('public.lightbox.close')}
 		>
 			<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -301,7 +303,7 @@
 				type="button"
 				onclick={(e) => { e.stopPropagation(); prevImage(); }}
 				class="absolute left-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label="Previous image"
+				aria-label={$t('public.lightbox.previous_image')}
 			>
 				<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -313,7 +315,7 @@
 				type="button"
 				onclick={(e) => { e.stopPropagation(); nextImage(); }}
 				class="absolute right-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label="Next image"
+				aria-label={$t('public.lightbox.next_image')}
 			>
 				<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -333,7 +335,7 @@
 
 		<!-- Image counter and caption -->
 		<div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
-			{#if imageMedia[lightboxIndex].title}
+			{#if imageMedia[lightboxIndex].title && !isFilename(imageMedia[lightboxIndex].title)}
 				<p class="text-lg font-medium mb-1">{imageMedia[lightboxIndex].title}</p>
 			{/if}
 			{#if imageMedia[lightboxIndex].description}

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -237,7 +238,16 @@ func (s *RateLimitService) cleanupLoop() {
 	defer ticker.Stop()
 
 	for range ticker.C {
-		s.cleanup()
+		// Per-iteration panic recovery
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// No app logger available, just prevent crash
+					fmt.Fprintf(os.Stderr, "ratelimit cleanup panic: %v\n", r)
+				}
+			}()
+			s.cleanup()
+		}()
 	}
 }
 

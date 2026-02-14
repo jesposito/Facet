@@ -1226,7 +1226,16 @@
 				"no_profile": "No profile data",
 				"no_sections": "No sections enabled",
 				"enable_hint": "Enable sections in the editor"
+			},
+			"aria": {
+				"accent_color_label": "Select accent color"
 			}
+		},
+		"tags": {
+			"remove_tag": "Remove tag {name}"
+		},
+		"views": {
+			"back_to_views": "Back to facets"
 		},
 		"media": {
 			"page_title": "Media Library | Facet Admin",
@@ -1275,6 +1284,7 @@
 			"filter_collection_resume_imports": "Resume Imports",
 			"edit_tags_label": "Tags",
 			"edit_tags_help": "Organize media with tags for easier filtering",
+			"remove_item": "Remove",
 			"selected_items": "{count} items selected",
 			"select_visible": "Select visible",
 			"bulk_tag_button": "Bulk tag",
@@ -1360,6 +1370,7 @@
 			"toast_delete_failed": "Failed to delete file",
 			"toast_upload_success": "File uploaded",
 			"toast_upload_failed": "Upload failed",
+			"toast_file_too_large": "{name} exceeds the {limit} size limit",
 			"toast_external_added": "External media added",
 			"toast_external_failed": "Failed to add external media",
 			"toast_url_required": "URL is required",
@@ -1444,7 +1455,9 @@
 			"multi_picker_count": "{count} selected",
 			"multi_picker_modal_title": "Select Media",
 			"multi_picker_selected_count": "{count} selected",
-			"multi_picker_confirm": "Confirm ({count})"
+			"multi_picker_confirm": "Confirm ({count})",
+			"multi_picker_or": "or",
+			"multi_picker_upload_new": "Upload New"
 		},
 		"tokens": {
 			"page_title": "Share Tokens | Facet",
@@ -1520,6 +1533,17 @@
 			"yesterday": "Yesterday",
 			"days_ago": "{count} days ago",
 			"weeks_ago": "{count} weeks ago"
+		},
+		"homepage": {
+			"collapse_section": "Collapse {section} section",
+			"expand_section": "Expand {section} section",
+			"toggle_section": "Toggle {section} section"
+		},
+		"import": {
+			"resume_dropzone_label": "Resume file drop zone"
+		},
+		"testimonials": {
+			"delete_request": "Delete request"
 		}
 	},
 	"public": {
@@ -1601,6 +1625,16 @@
 			"log_in_account": "Log in to your account",
 			"profile_setup": "This profile is being set up.",
 			"browse_all": "Browse all"
+		},
+		"aria": {
+			"go_to_admin": "Go to Admin",
+			"print_options": "Print options",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Close lightbox",
+			"next_image": "Next image",
+			"previous_image": "Previous image"
 		},
 		"experience": {
 			"at": "at"
@@ -1785,13 +1819,19 @@
 			"unsaved_changes": "You have unsaved changes. Are you sure you want to leave?"
 		},
 		"aria": {
-			"close_menu": "Close menu",
-			"open_menu": "Open menu",
-			"notifications": "Notifications",
-			"skip_to_content": "Skip to main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Admin navigation",
-			"main_menu": "Main menu"
+			"close": "Close",
+			"close_banner": "Close banner",
+			"close_form": "Close form",
+			"close_menu": "Close dropdown",
+			"close_modal": "Close modal",
+			"copy_contact": "Copy {label} to clipboard",
+			"copy_to_clipboard": "Copy to clipboard",
+			"dismiss": "Dismiss",
+			"main_menu": "Main menu",
+			"notifications": "Notifications",
+			"open_menu": "Open menu",
+			"skip_to_content": "Skip to main content"
 		},
 		"pagination": {
 			"previous": "Previous",

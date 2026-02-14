@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		savedAt: number;
@@ -70,7 +71,7 @@
 					type="button"
 					class="text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
 					onclick={() => dispatch('dismiss')}
-					aria-label="Close banner"
+					aria-label={$t('shared.aria.close_banner')}
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

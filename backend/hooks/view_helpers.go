@@ -470,7 +470,11 @@ func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedIt
 }
 
 func incrementHomepageViewCount(app core.App) {
-	go func() {
+	pb, ok := app.(*pocketbase.PocketBase)
+	if !ok {
+		return
+	}
+	services.SafeGo(pb, "homepage-view-count", func() {
 		settings, err := services.LoadSiteSettings(app)
 		if err != nil || settings == nil || settings.Record == nil {
 			return
@@ -480,7 +484,7 @@ func incrementHomepageViewCount(app core.App) {
 		if err := app.Save(settings.Record); err != nil {
 			app.Logger().Warn("Failed to update homepage view metrics", "error", err)
 		}
-	}()
+	})
 }
 
 func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabled bool, items []string, isConfigured bool) {
