@@ -576,9 +576,9 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save verification token"})
 			}
 
-			// Build verify URL and send email
-			appURL := strings.TrimRight(app.Settings().Meta.AppURL, "/")
-			verifyURL := appURL + "/testimonial/verify/" + rawToken
+			// Build verify URL from the incoming request (resolves public URL correctly)
+			baseURL := resolveBaseURL(e)
+			verifyURL := baseURL + "/testimonial/verify/" + rawToken
 
 			if err := services.SendVerificationEmail(app, req.Email, testimonialRecord.GetString("author_name"), verifyURL); err != nil {
 				app.Logger().Error("Failed to send verification email", "error", err, "email", req.Email)
