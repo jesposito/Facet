@@ -2,7 +2,6 @@ package hooks
 
 import (
 	"net/http"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -312,17 +311,9 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			// Send email notification to admins (non-blocking, best-effort)
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						app.Logger().Error("Panic in email notification goroutine",
-							"error", r,
-							"stack", string(debug.Stack()),
-						)
-					}
-				}()
+			services.SafeGo(app, "email-notification", func() {
 				services.SendTestimonialNotification(app, record, requestRecord)
-			}()
+			})
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"id":     record.Id,

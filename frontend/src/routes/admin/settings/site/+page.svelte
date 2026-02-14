@@ -813,6 +813,8 @@ body { font-family: 'Inter', sans-serif; }
 									bind:value={smtpSettings.port}
 									class="input"
 									placeholder="587"
+									min="1"
+									max="65535"
 									disabled={smtpSaving}
 								/>
 							</div>
