@@ -395,7 +395,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			if shouldCountView {
 				// Increment view count and last_viewed_at in the background
-				go func(viewID string, collection string) {
+				viewID := view.Id
+				collection := viewsCollection
+				services.SafeGo(app, "view-count-increment", func() {
 					record, err := app.FindRecordById(collection, viewID)
 					if err != nil {
 						return
@@ -405,7 +407,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					if err := app.Save(record); err != nil {
 						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
 					}
-				}(view.Id, viewsCollection)
+				})
 			}
 
 			// Build view response

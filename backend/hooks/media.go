@@ -60,14 +60,10 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 	// When a user edits an upload's title/alt_text/description in the media library,
 	// propagate those changes to any external_media mirrors that reference the upload.
 	app.OnRecordAfterUpdateSuccess("uploads").BindFunc(func(e *core.RecordEvent) error {
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					app.Logger().Error("syncUploadMetadataToMirrors panic", "error", r)
-				}
-			}()
-			syncUploadMetadataToMirrors(app, e.Record)
-		}()
+		record := e.Record
+		services.SafeGo(app, "sync-upload-metadata", func() {
+			syncUploadMetadataToMirrors(app, record)
+		})
 		return e.Next()
 	})
 
@@ -1664,14 +1660,20 @@ func detectMimeType(fullPath, filename string) string {
 func registerThumbnailHook(app *pocketbase.PocketBase, collectionName string, uploadsDir string) {
 	// Hook for new records
 	app.OnRecordAfterCreateSuccess(collectionName).BindFunc(func(e *core.RecordEvent) error {
-		go generateThumbnailsForRecord(app, e.Record, uploadsDir)
+		record := e.Record
+		services.SafeGo(app, "thumbnail-generate-create", func() {
+			generateThumbnailsForRecord(app, record, uploadsDir)
+		})
 		return e.Next()
 	})
 
 	// Hook for updated records (new files added)
 	app.OnRecordAfterUpdateSuccess(collectionName).BindFunc(func(e *core.RecordEvent) error {
 		// Only generate thumbnails for newly added files
-		go generateThumbnailsForNewFiles(app, e.Record, uploadsDir)
+		record := e.Record
+		services.SafeGo(app, "thumbnail-generate-update", func() {
+			generateThumbnailsForNewFiles(app, record, uploadsDir)
+		})
 		return e.Next()
 	})
 }
