@@ -134,7 +134,7 @@
 			class="copy-button"
 			class:copied={copying}
 			onclick={copyToClipboard}
-			aria-label="Copy to clipboard"
+			aria-label={$t('shared.aria.copy_to_clipboard')}
 			disabled={copying}
 		>
 			{#if copying}

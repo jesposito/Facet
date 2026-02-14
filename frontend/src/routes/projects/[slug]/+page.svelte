@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { run, preventDefault } from 'svelte/legacy';
+	import { t } from 'svelte-i18n';
 
 import type { PageData } from './$types';
 import { parseMarkdown, isFilename } from '$lib/utils';
@@ -420,7 +421,7 @@ const getFileName = (url?: string) => {
 			type="button"
 			onclick={closeLightbox}
 			class="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
-			aria-label="Close lightbox"
+			aria-label={$t('public.lightbox.close')}
 		>
 			<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -433,7 +434,7 @@ const getFileName = (url?: string) => {
 				type="button"
 				onclick={(e) => { e.stopPropagation(); prevImage(); }}
 				class="absolute left-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label="Previous image"
+				aria-label={$t('public.lightbox.previous_image')}
 			>
 				<svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -445,7 +446,7 @@ const getFileName = (url?: string) => {
 				type="button"
 				onclick={(e) => { e.stopPropagation(); nextImage(); }}
 				class="absolute right-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label="Next image"
+				aria-label={$t('public.lightbox.next_image')}
 			>
 				<svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />

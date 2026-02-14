@@ -1169,7 +1169,16 @@
 				"no_profile": "Keine Profildaten",
 				"no_sections": "Keine Bereiche aktiviert",
 				"enable_hint": "Aktivieren Sie Bereiche im Editor"
+			},
+			"aria": {
+				"accent_color_label": "Akzentfarbe auswählen"
 			}
+		},
+		"tags": {
+			"remove_tag": "Tag {name} entfernen"
+		},
+		"views": {
+			"back_to_views": "Zurück zu Facetten"
 		},
 		"media": {
 			"page_title": "Medienbibliothek | Facet Admin",
@@ -1218,6 +1227,7 @@
 			"filter_usage_not_in_use": "Nicht in Verwendung",
 			"edit_tags_label": "Tags",
 			"edit_tags_help": "Medien mit Tags für einfacheres Filtern organisieren",
+			"remove_item": "Entfernen",
 			"selected_items": "{count} Elemente ausgewählt",
 			"select_visible": "Sichtbare auswählen",
 			"bulk_tag_button": "Mehrfach taggen",
@@ -1492,6 +1502,17 @@
 			"select_all": "Alle auswählen",
 			"clear": "Löschen",
 			"change_visibility": "Sichtbarkeit ändern"
+		},
+		"homepage": {
+			"collapse_section": "{section}-Abschnitt einklappen",
+			"expand_section": "{section}-Abschnitt erweitern",
+			"toggle_section": "{section}-Abschnitt umschalten"
+		},
+		"import": {
+			"resume_dropzone_label": "Lebenslauf-Datei-Ablagebereich"
+		},
+		"testimonials": {
+			"delete_request": "Anfrage löschen"
 		}
 	},
 	"public": {
@@ -1573,6 +1594,16 @@
 			"log_in_account": "Bei Ihrem Konto anmelden",
 			"profile_setup": "Dieses Profil wird eingerichtet.",
 			"browse_all": "Alle durchsuchen"
+		},
+		"aria": {
+			"go_to_admin": "Zu Admin gehen",
+			"print_options": "Druckoptionen",
+			"read_post": "{title} lesen"
+		},
+		"lightbox": {
+			"close": "Lightbox schließen",
+			"next_image": "Nächstes Bild",
+			"previous_image": "Vorheriges Bild"
 		},
 		"experience": {
 			"at": "bei"
@@ -1757,13 +1788,19 @@
 			"unsaved_changes": "Sie haben ungespeicherte Änderungen. Möchten Sie wirklich verlassen?"
 		},
 		"aria": {
-			"close_menu": "Menü schließen",
-			"open_menu": "Menü öffnen",
-			"notifications": "Benachrichtigungen",
-			"skip_to_content": "Zum Hauptinhalt springen",
-			"dismiss": "Schließen",
 			"admin_navigation": "Admin-Navigation",
-			"main_menu": "Hauptmenü"
+			"close": "Schließen",
+			"close_banner": "Banner schließen",
+			"close_form": "Formular schließen",
+			"close_menu": "Dropdown schließen",
+			"close_modal": "Modal schließen",
+			"copy_contact": "{label} in Zwischenablage kopieren",
+			"copy_to_clipboard": "In Zwischenablage kopieren",
+			"dismiss": "Schließen",
+			"main_menu": "Hauptmenü",
+			"notifications": "Benachrichtigungen",
+			"open_menu": "Menü öffnen",
+			"skip_to_content": "Zum Hauptinhalt springen"
 		},
 		"pagination": {
 			"previous": "Zurück",

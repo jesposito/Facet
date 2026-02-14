@@ -135,7 +135,7 @@
 									type="button"
 									class="copy-button"
 									onclick={() => copyToClipboard(contact.value, contact.id)}
-									aria-label="Copy {getLabel(contact)} to clipboard"
+									aria-label={$t('shared.aria.copy_contact', { values: { label: getLabel(contact) } })}
 									disabled={copyingId === contact.id}
 								>
 									{#if copyingId === contact.id}
