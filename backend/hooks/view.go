@@ -1076,9 +1076,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						"is_draft":   record.GetBool("is_draft"),
 					}
 
-					// Add cover image URL if present
-					if coverImage := record.GetString("cover_image"); coverImage != "" {
+					// Add cover image URL - prefer library URL over file upload
+					if libraryURL := record.GetString("cover_image_library_url"); libraryURL != "" {
+						contentItem["cover_image_url"] = libraryURL
+						contentItem["cover_image_large_url"] = libraryURL
+						contentItem["cover_image_thumb_url"] = libraryURL
+					} else if coverImage := record.GetString("cover_image"); coverImage != "" {
 						contentItem["cover_image_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "")
+						contentItem["cover_image_large_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "thumb=1600x0")
+						contentItem["cover_image_thumb_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "thumb=480x0")
 					}
 
 					// Add media URLs if present
