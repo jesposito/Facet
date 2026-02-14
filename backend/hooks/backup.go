@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -154,14 +155,14 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 
 			// Fire restore asynchronously — the response must be sent before
 			// syscall.Exec() replaces the process.
-			go func() {
+			services.SafeGo(app, "backup-restore", func() {
 				time.Sleep(1 * time.Second)
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 				defer cancel()
 				if err := app.RestoreBackup(ctx, body.Filename); err != nil {
 					app.Logger().Error("backup: restore failed", "error", err)
 				}
-			}()
+			})
 
 			return e.JSON(http.StatusOK, map[string]string{
 				"message": "Restore initiated. The server will restart momentarily.",
@@ -233,21 +234,34 @@ func runBackupScheduler(app *pocketbase.PocketBase, maxBackups int) {
 
 		time.Sleep(sleepDuration)
 
-		name := fmt.Sprintf("facet_auto_%s.zip", time.Now().UTC().Format("20060102_150405"))
+		// Per-iteration panic recovery - wrap the backup execution
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					app.Logger().Error("goroutine panic recovered",
+						"goroutine", "backup-scheduler",
+						"error", fmt.Sprint(r),
+						"stack", string(debug.Stack()),
+					)
+				}
+			}()
 
-		result, err := services.RunBackup(app, name)
-		if err != nil {
-			app.Logger().Error("backup: scheduled backup failed", "error", err)
-			continue
-		}
+			name := fmt.Sprintf("facet_auto_%s.zip", time.Now().UTC().Format("20060102_150405"))
 
-		// Enforce retention after scheduled backup
-		services.EnforceRetention(app, maxBackups)
+			result, err := services.RunBackup(app, name)
+			if err != nil {
+				app.Logger().Error("backup: scheduled backup failed", "error", err)
+				return
+			}
 
-		app.Logger().Info("backup: scheduled backup complete",
-			"filename", result.Filename,
-			"size", result.Size,
-			"duration", result.Duration.String(),
-		)
+			// Enforce retention after scheduled backup
+			services.EnforceRetention(app, maxBackups)
+
+			app.Logger().Info("backup: scheduled backup complete",
+				"filename", result.Filename,
+				"size", result.Size,
+				"duration", result.Duration.String(),
+			)
+		}()
 	}
 }
