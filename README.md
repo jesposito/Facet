@@ -400,6 +400,7 @@ Collect and display testimonials from clients, colleagues, and collaborators to 
 - **Display options** - Wall layout, carousel, or featured testimonials
 - **Privacy controls** - Show testimonials on specific views only
 - **Security** - HMAC-SHA256 tokens, rate limiting, no raw tokens stored
+- **Email notifications** - Admins receive styled HTML email when testimonials are submitted
 
 Perfect for consultants, freelancers, job seekers, speakers, or anyone building professional credibility.
 
@@ -564,6 +565,15 @@ For detailed architecture: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 | `GOOGLE_CLIENT_SECRET` | No | — | OAuth via Google |
 | `GITHUB_CLIENT_ID` | No | — | OAuth via GitHub |
 | `GITHUB_CLIENT_SECRET` | No | — | OAuth via GitHub |
+| `SMTP_HOST` | No | — | SMTP server hostname (e.g., `smtp.gmail.com`) |
+| `SMTP_PORT` | No | `587` | SMTP server port |
+| `SMTP_USERNAME` | No | — | SMTP authentication username |
+| `SMTP_PASSWORD` | No | — | SMTP authentication password |
+| `SMTP_SENDER_NAME` | No | `Facet` | Display name for outgoing emails |
+| `SMTP_SENDER_ADDRESS` | No | — | From address for outgoing emails |
+| `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin UI at `/_/` (debugging only) |
+| `UPLOADS_PATH` | No | `./uploads` | Where to store uploaded files |
+| `SEED_DATA` | No | — | Seed mode: `dev` for development profile |
 
 Full setup guide (OAuth, reverse proxy, Unraid, etc.): [docs/SETUP.md](docs/SETUP.md)
 
@@ -679,11 +689,17 @@ Facet/
 │   │   ├── view.go          # Views, RSS, iCal (1,883 lines)
 │   │   ├── ai.go            # AI enrichment (688 lines)
 │   │   ├── media.go         # Media management (612 lines)
-│   │   └── resume.go        # Resume generation (518 lines)
+│   │   ├── resume.go        # Resume generation (518 lines)
+│   │   ├── testimonials.go # Testimonial endpoints (700+ lines)
+│   │   ├── smtp.go         # SMTP settings management
+│   │   └── ...
 │   ├── services/            # Reusable business logic (6K+ lines)
 │   │   ├── ai.go            # AI provider integration
 │   │   ├── crypto.go        # AES encryption
-│   │   └── github.go        # GitHub API
+│   │   ├── github.go        # GitHub API
+│   │   ├── email.go        # Email notifications & verification
+│   │   ├── email_i18n.go   # Email translations (5 locales)
+│   │   ├── testimonial.go  # Token generation & HMAC
 │   ├── migrations/          # Database schema (20+ migrations)
 │   └── main.go              # Entry point
 │
@@ -761,7 +777,9 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - `GET /admin/views` → Manage views
 - `GET /admin/import` → GitHub import
 - `GET /admin/media` → Media library
-- `GET /admin/settings` → AI providers, settings
+- `GET /admin/settings/account` → Account & security (password, 2FA)
+- `GET /admin/settings/site` → Site settings, SMTP/email configuration
+- `GET /admin/settings/integrations` → AI providers & integrations
 - (Plus routes for education, certifications, skills, posts, talks, awards, contacts, tokens)
 
 **API routes** (via PocketBase hooks):
@@ -814,6 +832,8 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Security review and XSS/path traversal protection
 - ✅ Demo mode with comprehensive example content
 - ✅ Testimonials system with request links, approval workflow, email verification
+- ✅ Email notification system for testimonial submissions (SMTP, i18n, admin alerts)
+- ✅ Admin settings split into Account, Site Settings, and Integrations pages
 - ✅ Custom content sections for user-defined content
 - ✅ Version update notifications (checks GitHub for new releases)
 - ✅ Automated changelog generation from PR descriptions
@@ -825,7 +845,6 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 
 **Planned (Lower Priority):**
 - Content Security Policy headers
-- Audit logging for admin actions
 - Webhooks and integrations
 - Theme system with pre-built themes
 
