@@ -1138,8 +1138,8 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 			}
 
 			// Find records where this field matches our URL
-			filter := fmt.Sprintf("%s = '%s'", fieldName, fileURL)
-			records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+			filter := fmt.Sprintf("%s = {:url}", fieldName)
+			records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, dbx.Params{"url": fileURL})
 			if err != nil {
 				continue
 			}
@@ -1181,8 +1181,8 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 	extCollection, err := app.FindCollectionByNameOrId("external_media")
 	if err == nil {
 		// Find mirrors that point to this upload URL
-		filter := fmt.Sprintf("url ~ '%s'", fileURL)
-		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, nil)
+		filter := "url ~ {:fileURL}"
+		mirrors, err := app.FindRecordsByFilter(extCollection.Name, filter, "", 100, 0, dbx.Params{"fileURL": fileURL})
 		if err == nil {
 			for _, mirror := range mirrors {
 				// For each mirror, find content that references it via media_refs
