@@ -55,6 +55,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 						"verified_tokens", result.VerifiedTokens,
 						"failed_exports", result.FailedExports,
 						"stuck_exports", result.StuckExports,
+						"orphaned_uploads", result.OrphanedUploads,
 						"total", result.Total(),
 					)
 				}
@@ -86,6 +87,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 								"verified_tokens", result.VerifiedTokens,
 								"failed_exports", result.FailedExports,
 								"stuck_exports", result.StuckExports,
+								"orphaned_uploads", result.OrphanedUploads,
 								"total", result.Total(),
 							)
 						}
@@ -107,6 +109,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 				"verified_tokens":             result.VerifiedTokens,
 				"failed_exports":              result.FailedExports,
 				"stuck_exports":               result.StuckExports,
+				"orphaned_uploads":            result.OrphanedUploads,
 				"total":                        result.Total(),
 			})
 		}).Bind(apis.RequireAuth())
