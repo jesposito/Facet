@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"net/mail"
 	"os"
@@ -254,6 +255,129 @@ var testimonialEmailTemplate = template.Must(template.New("testimonial").Parse(`
 func renderTestimonialEmail(data TestimonialEmailData) (string, error) {
 	var buf bytes.Buffer
 	if err := testimonialEmailTemplate.Execute(&buf, data); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// VerificationEmailData holds template data for the verification email.
+type VerificationEmailData struct {
+	SiteName   string
+	AuthorName string
+	VerifyURL  string
+	ExpiresIn  string
+}
+
+// SendVerificationEmail sends a verification email to a testimonial submitter.
+// Unlike SendTestimonialNotification, this returns an error because the caller
+// needs to inform the user if the email failed to send.
+func SendVerificationEmail(app core.App, email string, authorName string, verifyURL string) error {
+	if !app.Settings().SMTP.Enabled {
+		return fmt.Errorf("SMTP is not configured")
+	}
+
+	data := VerificationEmailData{
+		SiteName:   app.Settings().Meta.SenderName,
+		AuthorName: authorName,
+		VerifyURL:  verifyURL,
+		ExpiresIn:  "15 minutes",
+	}
+
+	html, err := renderVerificationEmail(data)
+	if err != nil {
+		return fmt.Errorf("failed to render verification email: %w", err)
+	}
+
+	message := &mailer.Message{
+		From: mail.Address{
+			Name:    app.Settings().Meta.SenderName,
+			Address: app.Settings().Meta.SenderAddress,
+		},
+		To:      []mail.Address{{Address: email}},
+		Subject: "Verify your testimonial",
+		HTML:    html,
+		Text:    renderVerificationPlainText(data),
+	}
+
+	return app.NewMailClient().Send(message)
+}
+
+func renderVerificationPlainText(data VerificationEmailData) string {
+	var b strings.Builder
+	b.WriteString("Verify Your Email\n")
+	b.WriteString("=================\n\n")
+
+	if data.AuthorName != "" {
+		b.WriteString("Hi " + data.AuthorName + ",\n\n")
+	}
+
+	b.WriteString("Please verify your email to add credibility to your testimonial.\n\n")
+	b.WriteString("Click the link below to verify:\n")
+	b.WriteString(data.VerifyURL + "\n\n")
+	b.WriteString("This link expires in " + data.ExpiresIn + ".\n\n")
+
+	if data.SiteName != "" {
+		b.WriteString("— " + data.SiteName + "\n")
+	}
+
+	return b.String()
+}
+
+var verificationEmailTemplate = template.Must(template.New("verification").Parse(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:32px 16px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+
+<!-- Header -->
+<tr><td style="background-color:#18181b;padding:24px 32px;">
+<h1 style="margin:0;color:#ffffff;font-size:18px;font-weight:600;">Verify Your Email</h1>
+</td></tr>
+
+<!-- Body -->
+<tr><td style="padding:32px;">
+
+{{if .AuthorName}}
+<p style="margin:0 0 16px;color:#374151;font-size:15px;">Hi {{.AuthorName}},</p>
+{{end}}
+
+<p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">
+Please verify your email address to add credibility to your testimonial. Click the button below to confirm.
+</p>
+
+<!-- CTA button -->
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+<tr><td style="border-radius:6px;background-color:#3b82f6;">
+<a href="{{.VerifyURL}}" target="_blank" style="display:inline-block;padding:12px 24px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;">Verify Email</a>
+</td></tr>
+</table>
+
+<p style="margin:0 0 8px;color:#6b7280;font-size:13px;">Or copy and paste this link into your browser:</p>
+<p style="margin:0 0 24px;color:#3b82f6;font-size:13px;word-break:break-all;">{{.VerifyURL}}</p>
+
+<p style="margin:0;color:#9ca3af;font-size:12px;">This link expires in {{.ExpiresIn}}.</p>
+
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:16px 32px;background-color:#fafafa;border-top:1px solid #e5e7eb;">
+<p style="margin:0;color:#9ca3af;font-size:12px;">This email was sent by {{.SiteName}}. If you did not submit a testimonial, you can safely ignore this email.</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`))
+
+func renderVerificationEmail(data VerificationEmailData) (string, error) {
+	var buf bytes.Buffer
+	if err := verificationEmailTemplate.Execute(&buf, data); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
