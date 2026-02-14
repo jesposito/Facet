@@ -53,7 +53,8 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 	const isVimeo = (url?: string) => !!url && getVimeoId(url) !== null;
 	const isImage = (url?: string) => !!url && /\.(png|jpe?g|gif|webp|avif|svg)$/i.test(url);
 	const isVideoFile = (url?: string) => !!url && /\.(mp4|mov|webm|mkv|avi)$/i.test(url);
-	const isFilename = (title?: string) => !!title && /\.\w{2,5}$/.test(title) && !title.includes(' ');
+	const isFilename = (title?: string) =>
+		!!title && /\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(title) && !title.includes(' ');
 	const getFileName = (url?: string) => {
 		if (!url) return 'Media';
 		try {
@@ -490,7 +491,7 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 
 		<!-- Image counter and title -->
 		<div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
-			{#if imageMedia[lightboxIndex].title}
+			{#if imageMedia[lightboxIndex].title && !isFilename(imageMedia[lightboxIndex].title)}
 				<p class="text-lg font-medium mb-1">{imageMedia[lightboxIndex].title}</p>
 			{/if}
 			{#if imageMedia.length > 1}
