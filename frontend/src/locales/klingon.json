@@ -1387,7 +1387,9 @@
 			"multi_picker_count": "{count} acquired",
 			"multi_picker_modal_title": "Select Assets",
 			"multi_picker_selected_count": "{count} acquired",
-			"multi_picker_confirm": "Confirm ({count})"
+			"multi_picker_confirm": "Confirm ({count})",
+			"multi_picker_or": "joq",
+			"multi_picker_upload_new": "ngoH chu'"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",

@@ -1387,7 +1387,9 @@
 			"multi_picker_count": "{count} chosen",
 			"multi_picker_modal_title": "Choose Visions",
 			"multi_picker_selected_count": "{count} chosen",
-			"multi_picker_confirm": "Affirm ({count})"
+			"multi_picker_confirm": "Affirm ({count})",
+			"multi_picker_or": "egor",
+			"multi_picker_upload_new": "Onlod Celair"
 		},
 		"tokens": {
 			"page_title": "Tokens of Passage | Facet",

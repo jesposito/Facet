@@ -1387,7 +1387,9 @@
 			"multi_picker_count": "{count} ausgewählt",
 			"multi_picker_modal_title": "Medien auswählen",
 			"multi_picker_selected_count": "{count} ausgewählt",
-			"multi_picker_confirm": "Bestätigen ({count})"
+			"multi_picker_confirm": "Bestätigen ({count})",
+			"multi_picker_or": "oder",
+			"multi_picker_upload_new": "Neue Datei hochladen"
 		},
 		"tokens": {
 			"page_title": "Freigabe-Token | Facet",

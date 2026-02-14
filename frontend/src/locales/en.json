@@ -1414,7 +1414,9 @@
 			"multi_picker_count": "{count} selected",
 			"multi_picker_modal_title": "Select Media",
 			"multi_picker_selected_count": "{count} selected",
-			"multi_picker_confirm": "Confirm ({count})"
+			"multi_picker_confirm": "Confirm ({count})",
+			"multi_picker_or": "or",
+			"multi_picker_upload_new": "Upload New"
 		},
 		"tokens": {
 			"page_title": "Share Tokens | Facet",
