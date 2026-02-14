@@ -343,7 +343,7 @@
 			// Validate file size
 			if (file.size > MAX_UPLOAD_SIZE) {
 				console.warn(`File ${file.name} exceeds 20MB limit`);
-				failedFiles.push(file.name);
+				toasts.add('error', $t('admin.media.toast_file_too_large', { values: { name: file.name, limit: '20MB' } }));
 				continue;
 			}
 

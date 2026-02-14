@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pocketbase/dbx"
@@ -221,7 +222,8 @@ func cleanupOrphanedUploads(app *pocketbase.PocketBase) int {
 	page := 1
 	perPage := 50
 
-	// Collections and their library_url fields to check
+	// Collections and their library_url fields to check.
+	// MAINTENANCE: Update this map when adding new collections with *_library_url fields.
 	collectionsToCheck := map[string][]string{
 		"profile":        {"hero_image_library_url", "avatar_library_url"},
 		"experience":     {"company_logo_library_url"},
@@ -298,12 +300,19 @@ func cleanupOrphanedUploads(app *pocketbase.PocketBase) int {
 					"external_media",
 					"url ~ {:url}",
 					"",
-					1,
+					10,
 					0,
 					dbx.Params{"url": fileURL},
 				)
-				if err == nil && len(mirrors) > 0 {
-					isReferenced = true
+				if err == nil {
+					for _, mirror := range mirrors {
+						// Verify suffix match to prevent false positives from
+						// PocketBase's case-insensitive substring matching
+						if strings.HasSuffix(mirror.GetString("url"), fileURL) {
+							isReferenced = true
+							break
+						}
+					}
 				}
 			}
 
