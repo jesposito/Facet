@@ -470,7 +470,11 @@ func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedIt
 }
 
 func incrementHomepageViewCount(app core.App) {
-	services.SafeGo(app.(*pocketbase.PocketBase), "homepage-view-count", func() {
+	pb, ok := app.(*pocketbase.PocketBase)
+	if !ok {
+		return
+	}
+	services.SafeGo(pb, "homepage-view-count", func() {
 		settings, err := services.LoadSiteSettings(app)
 		if err != nil || settings == nil || settings.Record == nil {
 			return

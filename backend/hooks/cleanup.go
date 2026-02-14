@@ -27,7 +27,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 
 		// Run cleanup once on startup (after a short delay to let migrations finish),
 		// then periodically every 24 hours.
-		go func() {
+		services.SafeGo(app, "cleanup-scheduler", func() {
 			select {
 			case <-time.After(30 * time.Second):
 			case <-done:
@@ -96,7 +96,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 					return
 				}
 			}
-		}()
+		})
 
 		// Admin endpoint for on-demand cleanup
 		se.Router.POST("/api/admin/cleanup-stale-data", func(e *core.RequestEvent) error {

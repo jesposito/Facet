@@ -1020,6 +1020,11 @@ func syncUploadMetadataToMirrors(app *pocketbase.PocketBase, record *core.Record
 			continue
 		}
 		for _, mirror := range mirrors {
+			// Verify the URL actually ends with our file path to prevent false positives
+			// from PocketBase's case-insensitive substring matching
+			if !strings.HasSuffix(mirror.GetString("url"), fileURL) {
+				continue
+			}
 			changed := false
 			if record.GetString("title") != record.Original().GetString("title") {
 				mirror.Set("title", record.GetString("title"))

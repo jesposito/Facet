@@ -61,7 +61,9 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 		maxBackups := getMaxBackups()
 
 		// Start background backup scheduler
-		go runBackupScheduler(app, maxBackups)
+		services.SafeGo(app, "backup-scheduler", func() {
+			runBackupScheduler(app, maxBackups)
+		})
 
 		// POST /api/admin/backup - Trigger manual backup
 		se.Router.POST("/api/admin/backup", func(e *core.RequestEvent) error {

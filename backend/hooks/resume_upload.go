@@ -690,23 +690,32 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 	// Create skills records with cross-session deduplication
 	// Strategy: A skill is a skill - "Python" is "Python" regardless of which resume it appears on
-	// Always dedupe across all imports (case-insensitive match using LOWER())
+	// Always dedupe across all imports (case-insensitive match)
 	if len(parsed.Skills) > 0 {
 		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
 		if err != nil {
 			return nil, 0, fmt.Errorf("skills collection not found: %w", err)
 		}
 
+		// Pre-load existing skills into a case-insensitive map for O(n+m) dedup
+		existingSkills := make(map[string]struct{})
+		const skillPageSize = 200
+		for skillOffset := 0; ; skillOffset += skillPageSize {
+			page, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", skillPageSize, skillOffset, nil)
+			if err != nil {
+				break
+			}
+			for _, s := range page {
+				existingSkills[strings.ToLower(strings.TrimSpace(s.GetString("name")))] = struct{}{}
+			}
+			if len(page) < skillPageSize {
+				break
+			}
+		}
+
 		for _, skill := range parsed.Skills {
-			// Case-insensitive duplicate check using parameterized filter with LOWER()
-			// This avoids O(n²) complexity and the 500-record limit
-			existing, err := app.FindRecordsByFilter(
-				skillsCollection.Name,
-				"LOWER(name) = {:name}",
-				"", 1, 0,
-				dbx.Params{"name": strings.ToLower(strings.TrimSpace(skill.Name))},
-			)
-			if err == nil && len(existing) > 0 {
+			normalizedName := strings.ToLower(strings.TrimSpace(skill.Name))
+			if _, exists := existingSkills[normalizedName]; exists {
 				duplicateCount++
 				continue
 			}
@@ -725,6 +734,8 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				continue
 			}
 			imported["skills"] = append(imported["skills"], record.Id)
+			// Track newly created skill to dedupe within this import batch
+			existingSkills[normalizedName] = struct{}{}
 		}
 	}
 
