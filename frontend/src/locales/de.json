@@ -1313,6 +1313,7 @@
 			"toast_delete_failed": "Datei konnte nicht gelöscht werden",
 			"toast_upload_success": "Datei hochgeladen",
 			"toast_upload_failed": "Hochladen fehlgeschlagen",
+			"toast_file_too_large": "{name} überschreitet die Größenbeschränkung von {limit}",
 			"toast_external_added": "Externe Medien hinzugefügt",
 			"toast_external_failed": "Externe Medien konnten nicht hinzugefügt werden",
 			"toast_url_required": "URL ist erforderlich",

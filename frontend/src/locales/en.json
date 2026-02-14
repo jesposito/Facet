@@ -1340,6 +1340,7 @@
 			"toast_delete_failed": "Failed to delete file",
 			"toast_upload_success": "File uploaded",
 			"toast_upload_failed": "Upload failed",
+			"toast_file_too_large": "{name} exceeds the {limit} size limit",
 			"toast_external_added": "External media added",
 			"toast_external_failed": "Failed to add external media",
 			"toast_url_required": "URL is required",

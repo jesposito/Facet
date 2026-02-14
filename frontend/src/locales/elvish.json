@@ -1313,6 +1313,7 @@
 			"toast_delete_failed": "Could not release the scroll",
 			"toast_upload_success": "Scroll preserved",
 			"toast_upload_failed": "Preservation failed",
+			"toast_file_too_large": "{name} surpasses the {limit} bound",
 			"toast_external_added": "Distant vision bound",
 			"toast_external_failed": "Could not bind distant vision",
 			"toast_url_required": "A path is required",

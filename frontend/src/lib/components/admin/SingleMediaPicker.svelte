@@ -54,6 +54,8 @@
 		contextHint = ''
 	}: Props = $props();
 
+	const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+
 	let mediaOptions: MediaOption[] = $state([]);
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
@@ -219,6 +221,12 @@
 
 		// Clear the input so the same file can be selected again if needed
 		target.value = '';
+
+		// Validate file size
+		if (file.size > MAX_UPLOAD_SIZE) {
+			toasts.add('error', $t('admin.media.toast_file_too_large', { values: { name: file.name, limit: '20MB' } }));
+			return;
+		}
 
 		uploading = true;
 		uploadingFileName = file.name;
