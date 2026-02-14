@@ -15,6 +15,7 @@
 	import TwoFactorModal from '$components/admin/TwoFactorModal.svelte';
 	import SetupWizard from '$components/admin/SetupWizard.svelte';
 	import { setupWizard, shouldShowWizard } from '$lib/stores/setupWizard';
+	import { get } from 'svelte/store';
 	import type { Profile, View } from '$lib/pocketbase';
 	interface Props {
 		children?: import('svelte').Snippet;
@@ -40,6 +41,7 @@
 	let showEncryptionWarning = $state(false);
 	let encryptionKeySource = $state('');
 	let checkingSetupWizard = $state(false);
+	let wizardCheckedThisSession = false;
 
 
 
@@ -135,6 +137,16 @@
 	}
 	
 	async function checkSetupWizard() {
+		// Only check wizard once per page load — prevents nagging on every auth state change
+		if (wizardCheckedThisSession) return;
+
+		// Early exit: check persisted flags before making any API calls
+		const state = get(setupWizard);
+		if (state.dismissedPermanently || state.completedWizard) {
+			wizardCheckedThisSession = true;
+			return;
+		}
+
 		if (checkingSetupWizard) return;
 		checkingSetupWizard = true;
 		try {
@@ -154,6 +166,7 @@
 			// On API failure, do NOT show wizard (fail safe)
 		} finally {
 			checkingSetupWizard = false;
+			wizardCheckedThisSession = true;
 		}
 	}
 

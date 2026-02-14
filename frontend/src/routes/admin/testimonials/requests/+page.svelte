@@ -3,6 +3,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
+	import { t } from 'svelte-i18n';
 
 	interface TestimonialRequest {
 		id: string;
@@ -234,7 +235,7 @@
 					type="button"
 					onclick={() => newToken = null}
 					class="text-green-600 dark:text-green-400 hover:text-green-800"
-					aria-label="Dismiss"
+					aria-label={$t('shared.aria.dismiss')}
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -384,7 +385,7 @@
 								type="button"
 								onclick={() => deleteRequest(request.id)}
 								class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg"
-								aria-label="Delete request"
+								aria-label={$t('admin.testimonials.delete_request')}
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

@@ -144,11 +144,9 @@ const navSections = [
 		id: 'settings',
 		titleKey: 'admin.sidebar.settings',
 		items: [
-			{ href: '/admin/settings#account', labelKey: 'admin.sidebar.account_security', icon: 'badge' },
-			{ href: '/admin/settings#appearance', labelKey: 'admin.sidebar.appearance', icon: 'star' },
-			{ href: '/admin/settings#general', labelKey: 'admin.sidebar.general', icon: 'cog' },
-			{ href: '/admin/settings#analytics', labelKey: 'admin.sidebar.analytics', icon: 'eye' },
-			{ href: '/admin/settings#integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
+			{ href: '/admin/settings/account', labelKey: 'admin.sidebar.account_security', icon: 'badge' },
+			{ href: '/admin/settings/site', labelKey: 'admin.sidebar.site_settings', icon: 'star' },
+			{ href: '/admin/settings/integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
 			{ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' },
 			{ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' },
 			{ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' }
@@ -643,6 +641,10 @@ let isActive = $derived((href: string): boolean => {
 							{:else if item.icon === 'sparkle'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8l2 2-2 2-2-2 2-2zm12-5l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3zm-4 9l1.5 4.5L19 18l-4.5 1.5L13 24l-1.5-4.5L7 18l4.5-1.5L13 12z" />
+								</svg>
+							{:else if item.icon === 'mail'}
+								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 								</svg>
 							{:else if item.icon === 'chip'}
 								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

@@ -148,6 +148,55 @@ On startup, Facet will automatically enable the providers you configure and the 
 | `TRUST_PROXY` | No | `false` | Set `true` behind reverse proxy |
 | `ADMIN_EMAILS` | No | — | Comma-separated email allowlist |
 | `DATA_PATH` | No | `./data` | Database and uploads directory |
+| `UPLOADS_PATH` | No | `./uploads` | Upload file storage directory |
+| `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin UI at `/_/` |
+| `SEED_DATA` | No | — | Seed mode: `dev` for development profile |
+| `SMTP_HOST` | No | — | SMTP server for email notifications |
+| `SMTP_PORT` | No | `587` | SMTP server port |
+| `SMTP_USERNAME` | No | — | SMTP authentication username |
+| `SMTP_PASSWORD` | No | — | SMTP authentication password |
+| `SMTP_TLS` | No | `true` | Enable TLS for SMTP |
+| `SMTP_SENDER_NAME` | No | `Facet` | Display name for outgoing emails |
+| `SMTP_SENDER_ADDRESS` | No | — | From address for outgoing emails |
+
+---
+
+## Email Notifications (SMTP)
+
+Facet can send email notifications when testimonials are submitted and verification emails to testimonial submitters. Configure SMTP either via environment variables or in the admin UI at `/admin/settings/site`.
+
+### Option 1: Environment Variables
+
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=you@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_TLS=true
+SMTP_SENDER_NAME=Facet
+SMTP_SENDER_ADDRESS=noreply@yourdomain.com
+```
+
+### Option 2: Admin UI
+
+1. Go to Admin → Settings → Site Settings
+2. Scroll to the SMTP Configuration section
+3. Enter your SMTP server details
+4. Click "Send Test Email" to verify the configuration
+5. Save
+
+### Gmail Setup
+
+1. Enable 2-Step Verification on your Google account
+2. Generate an App Password: https://myaccount.google.com/apppasswords
+3. Use the app password (not your regular password) as `SMTP_PASSWORD`
+
+### What Gets Sent
+
+- **Admin notifications**: Styled HTML email when a new testimonial is submitted (sent to all admin emails)
+- **Verification emails**: When a testimonial submitter opts to verify their email address (15-minute expiry link)
+
+Emails support i18n — the language matches your site's configured locale (Settings → Site Settings → Default Locale).
 
 ---
 
@@ -350,6 +399,7 @@ docker exec facet env | grep ENCRYPTION_KEY
 3. **Import projects**: Admin → Import → Enter GitHub repo
 4. **Create views**: Admin → Views → Create view for specific audiences
 5. **Generate share links**: Admin → Views → (select view) → Share Tokens
+6. **Configure email** (optional): Admin → Settings → Site Settings → SMTP Configuration
 
 ---
 

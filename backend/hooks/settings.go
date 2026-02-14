@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"net/http"
+	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/filesystem"
+	"github.com/pocketbase/pocketbase/tools/mailer"
 )
 
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
@@ -308,6 +310,146 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 
 			return e.Blob(http.StatusOK, contentType, content)
 		})
+
+		// ── SMTP Settings API ──────────────────────────────────────
+
+		// GET /api/smtp-settings — read current SMTP config (password masked)
+		se.Router.GET("/api/smtp-settings", func(e *core.RequestEvent) error {
+			smtp := app.Settings().SMTP
+			meta := app.Settings().Meta
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"enabled":        smtp.Enabled,
+				"host":           smtp.Host,
+				"port":           smtp.Port,
+				"username":       smtp.Username,
+				"password_set":   smtp.Password != "",
+				"auth_method":    smtp.AuthMethod,
+				"tls":            smtp.TLS,
+				"sender_name":    meta.SenderName,
+				"sender_address": meta.SenderAddress,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// PUT /api/smtp-settings — save SMTP config
+		se.Router.PUT("/api/smtp-settings", func(e *core.RequestEvent) error {
+			var req struct {
+				Enabled       *bool   `json:"enabled"`
+				Host          *string `json:"host"`
+				Port          *int    `json:"port"`
+				Username      *string `json:"username"`
+				Password      *string `json:"password"`
+				AuthMethod    *string `json:"auth_method"`
+				TLS           *bool   `json:"tls"`
+				SenderName    *string `json:"sender_name"`
+				SenderAddress *string `json:"sender_address"`
+			}
+
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			settings := app.Settings()
+
+			if req.Enabled != nil {
+				settings.SMTP.Enabled = *req.Enabled
+			}
+			if req.Host != nil {
+				settings.SMTP.Host = strings.TrimSpace(*req.Host)
+			}
+			if req.Port != nil {
+				settings.SMTP.Port = *req.Port
+			}
+			if req.Username != nil {
+				settings.SMTP.Username = strings.TrimSpace(*req.Username)
+			}
+			// Only update password if explicitly provided (non-nil and non-empty)
+			if req.Password != nil && *req.Password != "" {
+				settings.SMTP.Password = *req.Password
+			}
+			if req.AuthMethod != nil {
+				settings.SMTP.AuthMethod = strings.ToUpper(strings.TrimSpace(*req.AuthMethod))
+			}
+			if req.TLS != nil {
+				settings.SMTP.TLS = *req.TLS
+			}
+			if req.SenderName != nil {
+				settings.Meta.SenderName = strings.TrimSpace(*req.SenderName)
+			}
+			if req.SenderAddress != nil {
+				settings.Meta.SenderAddress = strings.TrimSpace(*req.SenderAddress)
+			}
+
+			if err := app.Save(settings); err != nil {
+				app.Logger().Error("Failed to save SMTP settings", "error", err)
+				return apis.NewBadRequestError("failed to save SMTP settings", err)
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"enabled":        settings.SMTP.Enabled,
+				"host":           settings.SMTP.Host,
+				"port":           settings.SMTP.Port,
+				"username":       settings.SMTP.Username,
+				"password_set":   settings.SMTP.Password != "",
+				"auth_method":    settings.SMTP.AuthMethod,
+				"tls":            settings.SMTP.TLS,
+				"sender_name":    settings.Meta.SenderName,
+				"sender_address": settings.Meta.SenderAddress,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// POST /api/smtp-settings/test — send a test email
+		se.Router.POST("/api/smtp-settings/test", func(e *core.RequestEvent) error {
+			var req struct {
+				Recipient string `json:"recipient"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			recipient := strings.TrimSpace(req.Recipient)
+			if recipient == "" {
+				// Default to the authenticated user's email
+				if e.Auth != nil {
+					recipient = e.Auth.Email()
+				}
+			}
+			if recipient == "" {
+				return apis.NewBadRequestError("recipient email is required", nil)
+			}
+
+			if !app.Settings().SMTP.Enabled {
+				return e.JSON(http.StatusBadRequest, map[string]any{
+					"success": false,
+					"error":   "SMTP is not enabled. Save your SMTP settings first.",
+				})
+			}
+
+			message := &mailer.Message{
+				From: mail.Address{
+					Name:    app.Settings().Meta.SenderName,
+					Address: app.Settings().Meta.SenderAddress,
+				},
+				To:      []mail.Address{{Address: recipient}},
+				Subject: "Facet — Test Email",
+				HTML:    "<h2>SMTP Configuration Test</h2><p>If you're reading this, your SMTP settings are working correctly!</p><p>Sent from your Facet instance.</p>",
+				Text:    "SMTP Configuration Test\n\nIf you're reading this, your SMTP settings are working correctly!\n\nSent from your Facet instance.",
+			}
+
+			client := app.NewMailClient()
+			if err := client.Send(message); err != nil {
+				app.Logger().Error("SMTP test email failed", "error", err, "recipient", recipient)
+				return e.JSON(http.StatusOK, map[string]any{
+					"success": false,
+					"error":   err.Error(),
+				})
+			}
+
+			app.Logger().Info("SMTP test email sent", "recipient", recipient)
+			return e.JSON(http.StatusOK, map[string]any{
+				"success": true,
+			})
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})

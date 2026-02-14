@@ -54,6 +54,8 @@
 		contextHint = ''
 	}: Props = $props();
 
+	const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+
 	let mediaOptions: MediaOption[] = $state([]);
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
@@ -219,6 +221,12 @@
 
 		// Clear the input so the same file can be selected again if needed
 		target.value = '';
+
+		// Validate file size
+		if (file.size > MAX_UPLOAD_SIZE) {
+			toasts.add('error', $t('admin.media.toast_file_too_large', { values: { name: file.name, limit: '20MB' } }));
+			return;
+		}
 
 		uploading = true;
 		uploadingFileName = file.name;
@@ -390,7 +398,7 @@
 						type="button"
 						class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 						onclick={handleClosePicker}
-						aria-label="Close"
+						aria-label={$t('shared.aria.close')}
 					>
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

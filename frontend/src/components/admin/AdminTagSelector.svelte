@@ -3,6 +3,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { getTagColor, TAG_COLOR_LIST, type TagColor } from '$lib/colors';
 	import AdminTagBadge from './AdminTagBadge.svelte';
+	import { t } from 'svelte-i18n';
 
 	interface AdminTag {
 		id: string;
@@ -83,7 +84,8 @@
 				type="button"
 				class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
 				onclick={() => showDropdown = !showDropdown}
-				aria-labelledby={labelledBy}
+				aria-label={labelledBy ? undefined : $t('admin.tags.add_tag')}
+				aria-labelledby={labelledBy || undefined}
 				aria-expanded={showDropdown}
 			>
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -164,7 +166,7 @@
 				type="button"
 				class="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
 				onclick={() => showDropdown = false}
-				aria-label="Close"
+				aria-label={$t('shared.aria.close')}
 			>
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -179,6 +181,6 @@
 		type="button"
 		class="fixed inset-0 z-40"
 		onclick={() => showDropdown = false}
-		aria-label="Close dropdown"
+		aria-label={$t('shared.aria.close_menu')}
 	></button>
 {/if}

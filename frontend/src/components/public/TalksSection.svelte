@@ -7,9 +7,10 @@
 		items: Talk[];
 		layout?: string;
 		viewSlug?: string;
+		showHeader?: boolean;
 	}
 
-	let { items, layout = 'default', viewSlug = '' }: Props = $props();
+	let { items, layout = 'default', viewSlug = '', showHeader = true }: Props = $props();
 
 	function getTalkUrl(slug: string): string {
 		if (viewSlug) {
@@ -45,7 +46,9 @@
 </script>
 
 <section id="talks" class="mb-16">
-	<h2 class="section-title">{$t('public.sections.talks')}</h2>
+	{#if showHeader}
+		<h2 class="section-title">{$t('public.sections.talks')}</h2>
+	{/if}
 
 	{#if layout === 'list'}
 		<div class="space-y-4">
@@ -81,6 +84,12 @@
 									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
 										{$t('public.talks.slides')}
+									</a>
+								{/if}
+								{#if talk.slug}
+									<a href={getTalkUrl(talk.slug)} class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline">
+										{$t('public.talks.view_details')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
 									</a>
 								{/if}
 							</div>
@@ -129,6 +138,9 @@
 							{/if}
 							{#if talk.slides_url}
 								<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{$t('public.talks.slides')}</a>
+							{/if}
+							{#if talk.slug}
+								<a href={getTalkUrl(talk.slug)} class="text-sm text-primary-600 dark:text-primary-400 hover:underline">{$t('public.talks.view_details')}</a>
 							{/if}
 						</div>
 					</div>
@@ -207,6 +219,12 @@
 									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
 										{$t('public.talks.view_slides')}
+									</a>
+								{/if}
+								{#if talk.slug}
+									<a href={getTalkUrl(talk.slug)} class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300">
+										{$t('public.talks.view_details')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
 									</a>
 								{/if}
 							</div>

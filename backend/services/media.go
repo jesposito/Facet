@@ -16,6 +16,7 @@ import (
 
 	_ "golang.org/x/image/webp"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -61,8 +62,8 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 
 		// Find records that reference this external_media ID
 		// PocketBase multi-relation: use ~ operator to check if relation contains the ID
-		filter := fmt.Sprintf("media_refs ~ '%s'", externalMediaID)
-		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+		filter := "media_refs ~ {:id}"
+		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, dbx.Params{"id": externalMediaID})
 		if err != nil {
 			continue
 		}
@@ -126,8 +127,8 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 					}
 
 					// Find records where this field matches our URL
-					filter := fmt.Sprintf("%s = '%s'", fieldName, mediaURL)
-					records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, nil)
+					filter := fmt.Sprintf("%s = {:url}", fieldName)
+					records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, dbx.Params{"url": mediaURL})
 					if err != nil {
 						continue
 					}
@@ -451,8 +452,8 @@ func GetMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, fil
 		return ""
 	}
 
-	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
-	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	filter := "collection_id = {:collId} && record_id = {:recId} && filename = {:fname}"
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, dbx.Params{"collId": collectionID, "recId": recordID, "fname": filename})
 	if err != nil || len(records) == 0 {
 		return ""
 	}
@@ -469,8 +470,8 @@ func SetMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, fil
 	}
 
 	// Check if record already exists
-	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
-	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	filter := "collection_id = {:collId} && record_id = {:recId} && filename = {:fname}"
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, dbx.Params{"collId": collectionID, "recId": recordID, "fname": filename})
 
 	var record *core.Record
 	if err == nil && len(records) > 0 {
@@ -495,8 +496,8 @@ func DeleteMediaDisplayName(app *pocketbase.PocketBase, collectionID, recordID, 
 		return nil // Collection doesn't exist, nothing to delete
 	}
 
-	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
-	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	filter := "collection_id = {:collId} && record_id = {:recId} && filename = {:fname}"
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, dbx.Params{"collId": collectionID, "recId": recordID, "fname": filename})
 	if err != nil || len(records) == 0 {
 		return nil // No record to delete
 	}
@@ -519,8 +520,8 @@ func GetMediaMetadata(app *pocketbase.PocketBase, collectionID, recordID, filena
 		return nil
 	}
 
-	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
-	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	filter := "collection_id = {:collId} && record_id = {:recId} && filename = {:fname}"
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, dbx.Params{"collId": collectionID, "recId": recordID, "fname": filename})
 	if err != nil || len(records) == 0 {
 		return nil
 	}
@@ -543,8 +544,8 @@ func SetMediaMetadata(app *pocketbase.PocketBase, collectionID, recordID, filena
 	}
 
 	// Check if record already exists
-	filter := fmt.Sprintf("collection_id = '%s' && record_id = '%s' && filename = '%s'", collectionID, recordID, filename)
-	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, nil)
+	filter := "collection_id = {:collId} && record_id = {:recId} && filename = {:fname}"
+	records, err := app.FindRecordsByFilter(collection.Name, filter, "", 1, 0, dbx.Params{"collId": collectionID, "recId": recordID, "fname": filename})
 
 	// If all fields are empty and record exists, delete it
 	isEmpty := metadata.DisplayName == "" && metadata.AltText == "" && metadata.Description == "" && len(metadata.TagIDs) == 0

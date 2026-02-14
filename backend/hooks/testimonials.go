@@ -310,6 +310,12 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save testimonial"})
 			}
 
+			// Send email notification to admins (non-blocking, best-effort)
+			notifyBaseURL := resolveBaseURL(e)
+			services.SafeGo(app, "email-notification", func() {
+				services.SendTestimonialNotification(app, record, requestRecord, notifyBaseURL)
+			})
+
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"id":     record.Id,
 				"status": "pending",
@@ -523,6 +529,10 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 		})
 
 		se.Router.POST("/api/testimonials/verify/email", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
+			if !app.Settings().SMTP.Enabled {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "email verification is not available"})
+			}
+
 			var req struct {
 				TestimonialID string `json:"testimonial_id"`
 				Email         string `json:"email"`
@@ -567,9 +577,17 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save verification token"})
 			}
 
+			// Build verify URL from the incoming request (resolves public URL correctly)
+			baseURL := resolveBaseURL(e)
+			verifyURL := baseURL + "/testimonial/verify/" + rawToken
+
+			if err := services.SendVerificationEmail(app, req.Email, testimonialRecord.GetString("author_name"), verifyURL); err != nil {
+				app.Logger().Error("Failed to send verification email", "error", err, "email", req.Email)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to send verification email"})
+			}
+
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"status":             "verification_sent",
-				"verification_token": rawToken,
+				"status": "verification_sent",
 			})
 		}))
 

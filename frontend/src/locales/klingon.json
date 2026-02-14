@@ -204,6 +204,38 @@
 				"ai_delete_confirm": "Dismiss",
 				"ai_add_error": "Warrior could not be recruited"
 			},
+			"email": {
+				"loading": "SMTP DuSaQ lInglu'...",
+				"section_title": "QIn ngeD",
+				"section_description": "SMTP yIqel QIn ngeD chavlu'DI' QIn ghItlhlu'.",
+				"enable_label": "SMTP yIchu'",
+				"host_label": "SMTP De'wI'",
+				"host_placeholder": "smtp.gmail.com",
+				"port_label": "lojmIt",
+				"username_label": "pong lo'wI'",
+				"username_placeholder": "SoH@che'ron.tlh",
+				"password_label": "pegh mu'",
+				"password_placeholder": "pegh mu' yIngaS",
+				"password_placeholder_set": "pegh mu' qellu'pu' — chIm yImej choH pagh",
+				"tls_label": "TLS poQ",
+				"auth_method_label": "toblu' mIw",
+				"sender_name_label": "ngeHwI' pong",
+				"sender_name_placeholder": "HoS De'wI'wIj",
+				"sender_address_label": "ngeHwI' navDaq",
+				"sender_address_placeholder": "noreply@che'ron.tlh",
+				"save_button": "yIqaw",
+				"saving_button": "qawlu'...",
+				"saved_toast": "SMTP qellu'pu'",
+				"save_error_toast": "SMTP qaw luj",
+				"test_button": "QIn ngeD yIngeH",
+				"testing_button": "ngeHlu'...",
+				"test_recipient_label": "QIn ngeD HevwI'",
+				"test_recipient_placeholder": "SoH@che'ron.tlh",
+				"test_success_toast": "QIn ngeD ngeHlu'pu'! yIbuS.",
+				"test_error_toast": "QIn ngeD luj: {error}",
+				"not_configured_warning": "SMTP qellu'be'. QIn ngeD Qotlh.",
+				"env_configured_note": "nab 'op yugh mIwmey choHlu'."
+			},
 			"about": {
 				"section_title": "About Facet",
 				"description": "Facet is an open-source platform for professional presences. Report malfunctions or request enhancements on GitHub.",
@@ -413,9 +445,7 @@
 			"talks": "Speeches",
 			"testimonial_requests": "Requests",
 			"account_security": "Identity & Defense",
-			"appearance": "Battle Dress",
-			"general": "General Operations",
-			"analytics": "Intelligence",
+			"site_settings": "yaH SeHlaw",
 			"integrations": "Alliances",
 			"admin_tags": "Battle Tags",
 			"audit_log": "yIqel ta",
@@ -1169,7 +1199,17 @@
 				"no_profile": "No profile data",
 				"no_sections": "No sectors enabled",
 				"enable_hint": "Enable sectors in the editor"
+			},
+			"aria": {
+				"accent_color_label": "Select tactical color"
 			}
+		},
+		"tags": {
+			"remove_tag": "Remove classification {name}",
+			"add_tag": "Add classification"
+		},
+		"views": {
+			"back_to_views": "Return to tactical displays"
 		},
 		"media": {
 			"page_title": "War Archive | Facet Command",
@@ -1218,6 +1258,7 @@
 			"filter_usage_not_in_use": "Reserve",
 			"edit_tags_label": "Classifications",
 			"edit_tags_help": "Organize assets with classifications for tactical retrieval",
+			"remove_item": "Remove",
 			"selected_items": "{count} assets targeted",
 			"select_visible": "Target visible",
 			"bulk_tag_button": "Mass classify",
@@ -1303,6 +1344,7 @@
 			"toast_delete_failed": "Destruction failed",
 			"toast_upload_success": "Asset deployed",
 			"toast_upload_failed": "Transport failed",
+			"toast_file_too_large": "{name} exceeds {limit} payload capacity",
 			"toast_external_added": "External link established",
 			"toast_external_failed": "Link establishment failed",
 			"toast_url_required": "Coordinates required",
@@ -1387,7 +1429,9 @@
 			"multi_picker_count": "{count} acquired",
 			"multi_picker_modal_title": "Select Assets",
 			"multi_picker_selected_count": "{count} acquired",
-			"multi_picker_confirm": "Confirm ({count})"
+			"multi_picker_confirm": "Confirm ({count})",
+			"multi_picker_or": "joq",
+			"multi_picker_upload_new": "ngoH chu'"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",
@@ -1490,6 +1534,17 @@
 			"select_all": "Target all",
 			"clear": "Clear targets",
 			"change_visibility": "Change Visibility"
+		},
+		"homepage": {
+			"collapse_section": "Collapse {section} sector",
+			"expand_section": "Deploy {section} sector",
+			"toggle_section": "Toggle {section} sector"
+		},
+		"import": {
+			"resume_dropzone_label": "Battle record upload zone"
+		},
+		"testimonials": {
+			"delete_request": "Destroy request"
 		}
 	},
 	"public": {
@@ -1572,6 +1627,16 @@
 			"profile_setup": "This battle record is being prepared.",
 			"browse_all": "View all"
 		},
+		"aria": {
+			"go_to_admin": "Access Command Center",
+			"print_options": "Print options",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Close viewscreen",
+			"next_image": "Next display",
+			"previous_image": "Previous display"
+		},
 		"experience": {
 			"at": "serving"
 		},
@@ -1598,7 +1663,8 @@
 			"video": "Recording",
 			"slides": "Data Slides",
 			"watch_video": "View Recording",
-			"view_slides": "View Data Slides"
+			"view_slides": "View Data Slides",
+			"view_details": "Examine data"
 		},
 		"posts": {
 			"read_more": "Continue reading"
@@ -1619,7 +1685,7 @@
 				"thank_you_title": "Qapla'!",
 				"submitted_pending": "pongwI' quvmoH lIn DanneSta' 'ej loS.",
 				"verify_prompt": "pongwI' quvmoH lIn Dachup'a'? batlh patlh 'ej HoS'a' tlhegh.",
-				"verify_email_button": "QIn Dachup (veb)",
+				"verify_email_button": "QIn Dachup",
 				"verification_sent": "QIn Dachup DanneSta'! yIbuS 'ej HoS'a' yIwIv.",
 				"your_name_label": "ponglIj",
 				"title_label": "patlh",
@@ -1755,13 +1821,19 @@
 			"unsaved_changes": "You have unsecured changes. Are you certain you wish to leave?"
 		},
 		"aria": {
-			"close_menu": "Close menu",
-			"open_menu": "Open menu",
-			"notifications": "Alerts",
-			"skip_to_content": "Skip to main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Command navigation",
-			"main_menu": "Main menu"
+			"close": "Close",
+			"close_banner": "Dismiss banner",
+			"close_form": "Close form",
+			"close_menu": "Close viewport",
+			"close_modal": "Close modal",
+			"copy_contact": "Copy {label} to buffer",
+			"copy_to_clipboard": "Copy to buffer",
+			"dismiss": "Dismiss",
+			"main_menu": "Main menu",
+			"notifications": "Alerts",
+			"open_menu": "Open menu",
+			"skip_to_content": "Skip to main content"
 		},
 		"pagination": {
 			"previous": "Previous",

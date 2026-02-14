@@ -28,7 +28,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 					homepageDisabled: true,
 					landingPageMessage: defaultViewInfo.landing_page_message || '',
 					hideLoginButton: defaultViewInfo.hide_login_button || false,
-					sectionFeaturedIds: {}
+					sectionFeaturedIds: {},
+					postsTotalCount: 0,
+					talksTotalCount: 0
 				};
 			}
 
@@ -105,6 +107,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 						skills: viewData.sections?.skills || [],
 						posts,
 						talks,
+						postsTotalCount: viewData.posts_total_count ?? 0,
+						talksTotalCount: viewData.talks_total_count ?? 0,
 						testimonials: viewData.sections?.testimonials || [],
 						contacts: viewData.sections?.contacts || [],
 						isDefaultView: true,
@@ -140,6 +144,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				sectionLayouts: {},
 				sectionWidths: {},
 				sectionFeaturedIds: {},
+				postsTotalCount: 0,
+				talksTotalCount: 0,
 				error: 'Failed to load profile',
 				isDefaultView: false,
 				homepageDisabled: false,
@@ -167,7 +173,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				talks: [],
 				view: null,
 				isDefaultView: false,
-				sectionFeaturedIds: {}
+				sectionFeaturedIds: {},
+				postsTotalCount: 0,
+				talksTotalCount: 0
 			};
 		}
 
@@ -187,7 +195,9 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				isDefaultView: false,
 				hideLoginButton: data.hide_login_button || false,
 				siteCtaEnabled: data.site_cta_enabled !== false,
-				sectionFeaturedIds: {}
+				sectionFeaturedIds: {},
+				postsTotalCount: 0,
+				talksTotalCount: 0
 			};
 		}
 
@@ -219,6 +229,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			skills: data.skills || [],
 			posts,
 			talks: data.talks || [],
+			postsTotalCount: data.posts_total_count ?? 0,
+			talksTotalCount: data.talks_total_count ?? 0,
 			testimonials: data.testimonials || [],
 			contacts: data.contacts || [],
 			customContent: data.custom_content || [],
@@ -248,6 +260,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			contacts: [],
 			view: null,
 			sectionFeaturedIds: {},
+			postsTotalCount: 0,
+			talksTotalCount: 0,
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,
