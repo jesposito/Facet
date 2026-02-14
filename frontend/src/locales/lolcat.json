@@ -204,6 +204,38 @@
 				"ai_delete_confirm": "Delet",
 				"ai_add_error": "Faild 2 add providr"
 			},
+			"email": {
+				"loading": "Loadin SMTP settingz...",
+				"section_title": "Emale Noteficashuns",
+				"section_description": "Set up SMTP so u can haz emails wen new testimonialz r submitded.",
+				"enable_label": "Turn on SMTP",
+				"host_label": "SMTP Host",
+				"host_placeholder": "smtp.gmail.com",
+				"port_label": "Port",
+				"username_label": "Usernaem",
+				"username_placeholder": "u@egzampul.com",
+				"password_label": "Seekrit",
+				"password_placeholder": "Enter seekrit",
+				"password_placeholder_set": "Seekrit iz set — leev empty 2 keep it",
+				"tls_label": "Require TLS",
+				"auth_method_label": "Auth Methud",
+				"sender_name_label": "Sendr Naem",
+				"sender_name_placeholder": "Mai Portfoleeo",
+				"sender_address_label": "Sendr Addres",
+				"sender_address_placeholder": "noreply@egzampul.com",
+				"save_button": "Saev",
+				"saving_button": "Saevin...",
+				"saved_toast": "SMTP settingz saevd! Kthx.",
+				"save_error_toast": "SMTP settingz no saev. Oh noes!",
+				"test_button": "Send Test Emale",
+				"testing_button": "Sendin...",
+				"test_recipient_label": "Test reseepient",
+				"test_recipient_placeholder": "u@egzampul.com",
+				"test_success_toast": "Test emale sent! Chek ur inbox kthx.",
+				"test_error_toast": "Test emale faild: {error}",
+				"not_configured_warning": "SMTP iz not configurd. No emails 4 u. Sry.",
+				"env_configured_note": "Sum settingz r managed by envyroment variablez."
+			},
 			"about": {
 				"section_title": "Abowt Facet",
 				"description": "Facet iz an open-sorce profeshunal portfolio platform. Report bugz or request featurez on GitHub.",
@@ -413,9 +445,7 @@
 			"talks": "Talkz",
 			"testimonial_requests": "Requests",
 			"account_security": "Accownt & Sekurity",
-			"appearance": "Appearanz",
-			"general": "Jeneral",
-			"analytics": "Analyticz",
+			"site_settings": "Site Settingz",
 			"integrations": "Integrayshunz",
 			"admin_tags": "Admin Tagz",
 			"audit_log": "Audit Logz",
@@ -1169,7 +1199,17 @@
 				"no_profile": "No profile data",
 				"no_sections": "No sekshunz enabld",
 				"enable_hint": "Enabl sekshunz in teh editr"
+			},
+			"aria": {
+				"accent_color_label": "Pick ur color"
 			}
+		},
+		"tags": {
+			"remove_tag": "Removez tag {name}",
+			"add_tag": "Add tag"
+		},
+		"views": {
+			"back_to_views": "Bak 2 da fasets"
 		},
 		"media": {
 			"page_title": "Pikchur Box | Facet Admin",
@@ -1218,6 +1258,7 @@
 			"filter_usage_not_in_use": "Not uzed",
 			"edit_tags_label": "Tagz",
 			"edit_tags_help": "Put tagz on ur stuffz so u can find dem",
+			"remove_item": "Removez",
 			"selected_items": "{count} thingz picked",
 			"select_visible": "Pick da visible wunz",
 			"bulk_tag_button": "Tagz all da thingz",
@@ -1303,6 +1344,7 @@
 			"toast_delete_failed": "Faild 2 delete file",
 			"toast_upload_success": "File uploadd",
 			"toast_upload_failed": "Upload faild",
+			"toast_file_too_large": "{name} iz 2 big 4 {limit} limit",
 			"toast_external_added": "Outsid media addd",
 			"toast_external_failed": "Faild 2 add outsid media",
 			"toast_url_required": "URL iz requird",
@@ -1387,7 +1429,9 @@
 			"multi_picker_count": "{count} pikked",
 			"multi_picker_modal_title": "Pik sum medias",
 			"multi_picker_selected_count": "{count} pikked",
-			"multi_picker_confirm": "Okai ({count})"
+			"multi_picker_confirm": "Okai ({count})",
+			"multi_picker_or": "or",
+			"multi_picker_upload_new": "Uplodz Noo"
 		},
 		"tokens": {
 			"page_title": "Shaer Tokenz | Facet",
@@ -1490,6 +1534,17 @@
 			"select_all": "Select all teh thingz",
 			"clear": "Cleer",
 			"change_visibility": "Chang Vizibility"
+		},
+		"homepage": {
+			"collapse_section": "Collaps {section} sekshun",
+			"expand_section": "Expand {section} sekshun",
+			"toggle_section": "Toggl {section} sekshun"
+		},
+		"import": {
+			"resume_dropzone_label": "Rezume file drop zone"
+		},
+		"testimonials": {
+			"delete_request": "Deleet request"
 		}
 	},
 	"public": {
@@ -1572,6 +1627,16 @@
 			"profile_setup": "Dis profil iz bein set up.",
 			"browse_all": "C all"
 		},
+		"aria": {
+			"go_to_admin": "Go 2 Admin",
+			"print_options": "Print opshunz",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Cloze litebox",
+			"next_image": "Nekst pictur",
+			"previous_image": "Previus pictur"
+		},
 		"experience": {
 			"at": "at"
 		},
@@ -1598,7 +1663,8 @@
 			"video": "Vidyo",
 			"slides": "Slidez",
 			"watch_video": "Watch Vidyo",
-			"view_slides": "C Slidez"
+			"view_slides": "C Slidez",
+			"view_details": "C moar"
 		},
 		"posts": {
 			"read_more": "Moar plz"
@@ -1619,7 +1685,7 @@
 				"thank_you_title": "Fanks!",
 				"submitted_pending": "Ur testimoni haz been sent n iz waitin 4 review.",
 				"verify_prompt": "Want 2 verify ur testimoni? Dis makez it moar legit n linkz 2 ur profil.",
-				"verify_email_button": "Verify wif Email (Comin Soon)",
+				"verify_email_button": "Verify wif Email",
 				"verification_sent": "Verificashun email sent! Check ur inbox n clik teh link.",
 				"your_name_label": "Ur Name",
 				"title_label": "Title",
@@ -1755,13 +1821,19 @@
 			"unsaved_changes": "U haz unsavd chayngez. U sure u wanna leev?"
 		},
 		"aria": {
-			"close_menu": "Cloze menu",
-			"open_menu": "Open menu",
-			"notifications": "Notificashunz",
-			"skip_to_content": "Skip 2 main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Admin navigashun",
-			"main_menu": "Main menu"
+			"close": "Cloze",
+			"close_banner": "Cloze banr",
+			"close_form": "Cloze form",
+			"close_menu": "Cloze droppy",
+			"close_modal": "Cloze modalz",
+			"copy_contact": "Copy {label} 2 clipbored",
+			"copy_to_clipboard": "Copy 2 clipbored",
+			"dismiss": "Dismiss",
+			"main_menu": "Main menu",
+			"notifications": "Notificashunz",
+			"open_menu": "Open menu",
+			"skip_to_content": "Skip 2 main content"
 		},
 		"pagination": {
 			"previous": "Previus",

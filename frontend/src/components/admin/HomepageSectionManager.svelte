@@ -15,6 +15,7 @@
 	import { VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
+	import { t } from 'svelte-i18n';
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -283,7 +284,7 @@
 								class="w-10 h-6 rounded-full transition-colors relative
 									{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
 								onclick={() => toggleSection(sectionKey)}
-								aria-label="Toggle {sectionLabel} section"
+								aria-label={$t('admin.homepage.toggle_section', { values: { section: sectionLabel } })}
 							>
 								<span
 									class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
@@ -346,7 +347,7 @@
 									type="button"
 									class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
 									onclick={() => toggleSectionExpand(sectionKey)}
-									aria-label="{sectionConfig.expanded ? 'Collapse' : 'Expand'} {sectionLabel} section"
+									aria-label={$t(sectionConfig.expanded ? 'admin.homepage.collapse_section' : 'admin.homepage.expand_section', { values: { section: sectionLabel } })}
 								>
 									<svg
 										class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"

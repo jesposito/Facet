@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { toasts } from '$lib/stores';
 
 	export type MediaOption = {
 		id: string;
@@ -35,10 +36,14 @@
 		onchange
 	}: Props = $props();
 
+	const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+
 	let mediaOptions: MediaOption[] = $state([]);
 	let mediaSearch = $state('');
 	let loadingMedia = $state(false);
 	let showPicker = $state(false);
+	let uploading = $state(false);
+	let uploadingFileName = $state('');
 	// Working selection while modal is open
 	let workingSelection: string[] = $state([]);
 
@@ -322,6 +327,82 @@
 		onchange?.();
 	}
 
+	async function handleFileUpload(event: Event) {
+		const target = event.target as HTMLInputElement;
+		const files = target.files;
+		if (!files || files.length === 0) return;
+		target.value = '';
+
+		uploading = true;
+		let successCount = 0;
+		const failedFiles: string[] = [];
+
+		for (const file of files) {
+			uploadingFileName = file.name;
+
+			// Validate file size
+			if (file.size > MAX_UPLOAD_SIZE) {
+				console.warn(`File ${file.name} exceeds 20MB limit`);
+				toasts.add('error', $t('admin.media.toast_file_too_large', { values: { name: file.name, limit: '20MB' } }));
+				continue;
+			}
+
+			try {
+				const form = new FormData();
+				form.append('file', file);
+				form.append('title', file.name);
+				if (file.type) form.append('mime', file.type);
+
+				const headers: Record<string, string> = pb.authStore.isValid
+					? { Authorization: `Bearer ${pb.authStore.token}` }
+					: {};
+
+				const res = await fetch('/api/collections/uploads/records', {
+					method: 'POST',
+					headers,
+					body: form
+				});
+
+				if (!res.ok) {
+					const body = await res.json().catch(() => ({}));
+					throw new Error(body.message || 'Upload failed');
+				}
+
+				const record = await res.json();
+				const collectionId = record.collectionId || 'uploads';
+				const uploadUrl = `/api/files/${collectionId}/${record.id}/${record.file}`;
+
+				const newOption: MediaOption = {
+					id: record.id,
+					title: file.name,
+					provider: 'upload',
+					url: uploadUrl,
+					mime: file.type,
+					collection: 'uploads'
+				};
+
+				mediaOptions = [newOption, ...mediaOptions];
+				value = [...value, record.id];
+				markAsUsed(record.id, 'uploads');
+				successCount++;
+			} catch (err) {
+				console.error(`Failed to upload ${file.name}:`, err);
+				failedFiles.push(file.name);
+			}
+		}
+
+		if (successCount > 0) {
+			toasts.add('success', $t('admin.media.toast_upload_success'));
+			onchange?.();
+		}
+		if (failedFiles.length > 0) {
+			toasts.add('error', $t('admin.media.toast_upload_failed'));
+		}
+
+		uploading = false;
+		uploadingFileName = '';
+	}
+
 	function isImage(option: MediaOption): boolean {
 		return option.mime?.startsWith('image/') || false;
 	}
@@ -382,7 +463,7 @@
 							type="button"
 							class="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
 							onclick={() => handleRemoveItem(item.id)}
-							aria-label="Remove"
+							aria-label={$t('admin.media.remove_item')}
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -401,16 +482,33 @@
 		{/if}
 
 		<!-- Action button -->
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			<button
 				type="button"
 				class="btn btn-secondary btn-sm"
 				onclick={handleOpenPicker}
+				disabled={uploading}
 			>
 				{value.length > 0
 					? $t('admin.media.multi_picker_modify_selection')
 					: $t('admin.media.multi_picker_select_from_library')}
 			</button>
+			<span class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.multi_picker_or')}</span>
+			<label class="btn btn-secondary btn-sm cursor-pointer {uploading ? 'opacity-50 pointer-events-none' : ''}">
+				{#if uploading}
+					{$t('admin.media.uploading')}
+				{:else}
+					{$t('admin.media.multi_picker_upload_new')}
+				{/if}
+				<input
+					type="file"
+					accept={imagesOnly ? 'image/*' : 'image/*,video/*,audio/*,.pdf'}
+					multiple
+					class="hidden"
+					onchange={handleFileUpload}
+					disabled={uploading}
+				/>
+			</label>
 			{#if value.length > 0}
 				<span class="text-sm text-gray-500 dark:text-gray-400">
 					{$t('admin.media.multi_picker_count', { values: { count: value.length } })}
@@ -448,7 +546,7 @@
 						type="button"
 						class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
 						onclick={handleClosePicker}
-						aria-label="Close"
+						aria-label={$t('shared.aria.close')}
 					>
 						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

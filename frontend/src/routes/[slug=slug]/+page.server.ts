@@ -93,6 +93,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				profile: null,
 				sections: {},
 				sectionFeaturedIds: {},
+				postsTotalCount: 0,
+				talksTotalCount: 0,
 				requiresPassword: true
 			};
 		}
@@ -129,6 +131,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 						profile: null,
 						sections: {},
 						sectionFeaturedIds: {},
+						postsTotalCount: 0,
+						talksTotalCount: 0,
 						requiresPassword: true
 					};
 				}
@@ -171,6 +175,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			sectionDisabledCategories: viewData.section_disabled_categories || {},
 			sectionCategoryDisplayModes: viewData.section_category_display_modes || {},
 			sectionFeaturedIds: viewData.section_featured_ids || {},
+			postsTotalCount: viewData.posts_total_count ?? 0,
+			talksTotalCount: viewData.talks_total_count ?? 0,
 			requiresPassword: false,
 			shareToken: effectiveShareToken || null,
 			isPublicView: accessInfo.visibility === 'public',

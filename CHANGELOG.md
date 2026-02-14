@@ -3,6 +3,29 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.0 - February 15, 2026
+
+**New Features:**
+- Add email notifications to admins when new testimonials are submitted
+- Add email verification flow for testimonial submitters (15-minute expiry tokens)
+- Add SMTP settings management in admin UI (/admin/settings/site) with test email button
+- Add email i18n support for notification and verification emails (en, de, elvish, klingon, lolcat)
+- Add admin settings page split: Account, Site Settings, and Integrations sub-pages
+- Add client-side file size validation on upload pickers (shows toast before upload attempt)
+- Add SafeGo utility for background goroutines with panic recovery
+
+**Bugs Fixed:**
+- Fix notification email link pointing to localhost instead of public URL (use request headers instead of AppURL)
+- Fix skill deduplication on resume import creating duplicates
+- Fix mirror cleanup matching causing incorrect media deletions
+- Fix UTF-8 truncation in email content preview (use rune-safe truncation)
+- Fix SMTP port validation (reject invalid port numbers)
+
+**Pull Requests:** [#398](https://github.com/jesposito/Facet/pull/398)
+
+---
+
+
 ## v2.17.2 - February 12, 2026
 
 **Bugs Fixed:**

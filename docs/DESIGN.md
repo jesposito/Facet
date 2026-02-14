@@ -2,7 +2,7 @@
 
 **Version:** 1.1
 **Status:** Active
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-02-15
 
 ---
 
@@ -67,7 +67,7 @@ This is something a thoughtful adult would host for themselves, not a SaaS produ
 Facet will **never** include:
 
 - Social features (feeds, likes, comments, follows)
-- Messaging or notifications
+- Messaging (email notifications for testimonials are functional, not social)
 - Multi-tenant SaaS features
 - Analytics dashboards or engagement metrics
 - Advertising or growth loops
@@ -254,6 +254,28 @@ import_proposals
 settings (key-value)
 ├── key (unique)
 └── value (JSON)
+
+testimonials
+├── author_name, author_title, author_company
+├── content (text), relationship
+├── verification_method, verification_identifier
+├── verified_at
+├── status (pending|approved|rejected)
+├── request_id (FK→testimonial_requests)
+├── featured, sort_order
+└── visibility, is_draft
+
+testimonial_requests
+├── token_hash (HMAC-SHA256)
+├── token_prefix (12 chars, indexed)
+├── label, custom_message
+├── expires_at, max_uses, use_count
+└── is_active
+
+email_verification_tokens
+├── testimonial_id (FK→testimonials)
+├── email, token_hash
+├── expires_at, verified_at
 ```
 
 ### 3.2 Proposed Schema Extensions
@@ -903,6 +925,7 @@ Based on codebase analysis, these features are incomplete or missing:
 | ~~**Theme customization**~~ | ~~Not implemented~~ | ✅ Partial: Accent colors, custom CSS, dark mode |
 | ~~**Demo mode**~~ | ~~Not implemented~~ | ✅ Complete: "The Doctor" profile with one-click toggle |
 | **Audit logging** | Minimal | Cannot review full access history |
+| ~~**Email notifications**~~ | ~~Not implemented~~ | ✅ Complete: SMTP-based admin notifications on testimonial submission |
 | ~~**Testimonials**~~ | ~~Not implemented~~ | ✅ Complete: Full system with request links, verification |
 | ~~**Custom content**~~ | ~~Not implemented~~ | ✅ Complete: User-defined content sections |
 | ~~**Contact protection**~~ | ~~Not implemented~~ | ✅ Complete: 4-tier protection, per-view visibility |
@@ -1026,6 +1049,10 @@ These export features are planned for later phases:
 | GET | `/api/homepage` | Normal | Legacy aggregated content |
 | POST | `/api/share/validate` | Moderate | Validate share token |
 | POST | `/api/password/check` | Strict | Validate view password |
+| POST | `/api/testimonials/submit` | Strict | Submit a testimonial |
+| POST | `/api/testimonials/verify/email` | Strict | Send verification email |
+| GET | `/api/testimonials/verify/email/{token}` | Moderate | Complete email verification |
+| GET | `/api/public/testimonials` | Normal | List approved testimonials |
 
 ### Authenticated Endpoints
 
@@ -1041,6 +1068,15 @@ These export features are planned for later phases:
 | POST | `/api/proposals/{id}/apply` | Apply import proposal |
 | POST | `/api/proposals/{id}/reject` | Reject import proposal |
 | POST | `/api/password/set` | Set view password |
+| GET | `/api/smtp-settings` | Get SMTP configuration |
+| PUT | `/api/smtp-settings` | Update SMTP configuration |
+| POST | `/api/smtp-settings/test` | Send test email |
+| POST | `/api/testimonials/requests` | Create testimonial request link |
+| GET | `/api/testimonials/requests` | List request links |
+| GET | `/api/testimonials` | List all testimonials |
+| POST | `/api/testimonials/{id}/approve` | Approve testimonial |
+| POST | `/api/testimonials/{id}/reject` | Reject testimonial |
+| GET | `/api/testimonials/pending-count` | Get pending testimonial count |
 
 ---
 
@@ -1057,6 +1093,14 @@ These export features are planned for later phases:
 | `DATA_PATH` | No | `./data` | Database and uploads path |
 | `SEED_DATA` | No | — | Seed mode: `dev` for dev profile, unset for none |
 | `LOG_LEVEL` | No | `info` | Logging verbosity |
+| `UPLOADS_PATH` | No | `./uploads` | Upload file storage path |
+| `SMTP_HOST` | No | — | SMTP server for email notifications |
+| `SMTP_PORT` | No | `587` | SMTP server port |
+| `SMTP_USERNAME` | No | — | SMTP authentication username |
+| `SMTP_PASSWORD` | No | — | SMTP authentication password |
+| `SMTP_TLS` | No | `true` | Enable TLS for SMTP connections |
+| `SMTP_SENDER_NAME` | No | `Facet` | Display name on outgoing emails |
+| `SMTP_SENDER_ADDRESS` | No | — | From address on outgoing emails |
 
 ---
 

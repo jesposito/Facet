@@ -10,7 +10,7 @@
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
-	import { isLoading as i18nLoading } from 'svelte-i18n';
+	import { isLoading as i18nLoading, t } from 'svelte-i18n';
 	interface Props {
 		children?: import('svelte').Snippet;
 		data: { faviconUrl: string | null };
@@ -303,7 +303,7 @@ run(() => {
 <div
 	class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2"
 	role="region"
-	aria-label="Notifications"
+	aria-label={$t('shared.aria.notifications')}
 	aria-live="polite"
 >
 	{#each $toasts as toast (toast.id)}

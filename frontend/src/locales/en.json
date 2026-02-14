@@ -204,6 +204,38 @@
 				"ai_delete_confirm": "Delete",
 				"ai_add_error": "Failed to add provider"
 			},
+			"email": {
+				"loading": "Loading SMTP settings...",
+				"section_title": "Email Notifications",
+				"section_description": "Configure SMTP to receive email notifications when testimonials are submitted.",
+				"enable_label": "Enable SMTP",
+				"host_label": "SMTP Host",
+				"host_placeholder": "smtp.gmail.com",
+				"port_label": "Port",
+				"username_label": "Username",
+				"username_placeholder": "you@example.com",
+				"password_label": "Password",
+				"password_placeholder": "Enter password",
+				"password_placeholder_set": "Password configured — leave blank to keep",
+				"tls_label": "Require TLS",
+				"auth_method_label": "Auth Method",
+				"sender_name_label": "Sender Name",
+				"sender_name_placeholder": "My Portfolio",
+				"sender_address_label": "Sender Address",
+				"sender_address_placeholder": "noreply@example.com",
+				"save_button": "Save",
+				"saving_button": "Saving...",
+				"saved_toast": "SMTP settings saved",
+				"save_error_toast": "Failed to save SMTP settings",
+				"test_button": "Send Test Email",
+				"testing_button": "Sending...",
+				"test_recipient_label": "Test recipient",
+				"test_recipient_placeholder": "you@example.com",
+				"test_success_toast": "Test email sent! Check your inbox.",
+				"test_error_toast": "Test email failed: {error}",
+				"not_configured_warning": "SMTP is not configured. Email notifications are disabled.",
+				"env_configured_note": "Some settings may be managed via environment variables."
+			},
 			"about": {
 				"section_title": "About Facet",
 				"description": "Facet is an open-source professional portfolio platform. Report bugs or request features on GitHub.",
@@ -413,9 +445,7 @@
 			"talks": "Talks",
 			"testimonial_requests": "Requests",
 			"account_security": "Account & Security",
-			"appearance": "Appearance",
-			"general": "General",
-			"analytics": "Analytics",
+			"site_settings": "Site Settings",
 			"integrations": "Integrations",
 			"admin_tags": "Admin Tags",
 			"audit_log": "Audit Log",
@@ -1196,7 +1226,17 @@
 				"no_profile": "No profile data",
 				"no_sections": "No sections enabled",
 				"enable_hint": "Enable sections in the editor"
+			},
+			"aria": {
+				"accent_color_label": "Select accent color"
 			}
+		},
+		"tags": {
+			"remove_tag": "Remove tag {name}",
+			"add_tag": "Add tag"
+		},
+		"views": {
+			"back_to_views": "Back to facets"
 		},
 		"media": {
 			"page_title": "Media Library | Facet Admin",
@@ -1245,6 +1285,7 @@
 			"filter_collection_resume_imports": "Resume Imports",
 			"edit_tags_label": "Tags",
 			"edit_tags_help": "Organize media with tags for easier filtering",
+			"remove_item": "Remove",
 			"selected_items": "{count} items selected",
 			"select_visible": "Select visible",
 			"bulk_tag_button": "Bulk tag",
@@ -1330,6 +1371,7 @@
 			"toast_delete_failed": "Failed to delete file",
 			"toast_upload_success": "File uploaded",
 			"toast_upload_failed": "Upload failed",
+			"toast_file_too_large": "{name} exceeds the {limit} size limit",
 			"toast_external_added": "External media added",
 			"toast_external_failed": "Failed to add external media",
 			"toast_url_required": "URL is required",
@@ -1414,7 +1456,9 @@
 			"multi_picker_count": "{count} selected",
 			"multi_picker_modal_title": "Select Media",
 			"multi_picker_selected_count": "{count} selected",
-			"multi_picker_confirm": "Confirm ({count})"
+			"multi_picker_confirm": "Confirm ({count})",
+			"multi_picker_or": "or",
+			"multi_picker_upload_new": "Upload New"
 		},
 		"tokens": {
 			"page_title": "Share Tokens | Facet",
@@ -1490,6 +1534,17 @@
 			"yesterday": "Yesterday",
 			"days_ago": "{count} days ago",
 			"weeks_ago": "{count} weeks ago"
+		},
+		"homepage": {
+			"collapse_section": "Collapse {section} section",
+			"expand_section": "Expand {section} section",
+			"toggle_section": "Toggle {section} section"
+		},
+		"import": {
+			"resume_dropzone_label": "Resume file drop zone"
+		},
+		"testimonials": {
+			"delete_request": "Delete request"
 		}
 	},
 	"public": {
@@ -1572,6 +1627,16 @@
 			"profile_setup": "This profile is being set up.",
 			"browse_all": "Browse all"
 		},
+		"aria": {
+			"go_to_admin": "Go to Admin",
+			"print_options": "Print options",
+			"read_post": "Read {title}"
+		},
+		"lightbox": {
+			"close": "Close lightbox",
+			"next_image": "Next image",
+			"previous_image": "Previous image"
+		},
 		"experience": {
 			"at": "at"
 		},
@@ -1598,7 +1663,8 @@
 			"video": "Video",
 			"slides": "Slides",
 			"watch_video": "Watch Video",
-			"view_slides": "View Slides"
+			"view_slides": "View Slides",
+			"view_details": "View details"
 		},
 		"posts": {
 			"read_more": "Read more"
@@ -1619,7 +1685,7 @@
 				"thank_you_title": "Thank You!",
 				"submitted_pending": "Your testimonial has been submitted and is pending review.",
 				"verify_prompt": "Want to verify your testimonial? This adds credibility and links to your profile.",
-				"verify_email_button": "Verify with Email (Coming Soon)",
+				"verify_email_button": "Verify with Email",
 				"verification_sent": "Verification email sent! Check your inbox and click the link to verify.",
 				"your_name_label": "Your Name",
 				"title_label": "Title",
@@ -1755,13 +1821,19 @@
 			"unsaved_changes": "You have unsaved changes. Are you sure you want to leave?"
 		},
 		"aria": {
-			"close_menu": "Close menu",
-			"open_menu": "Open menu",
-			"notifications": "Notifications",
-			"skip_to_content": "Skip to main content",
-			"dismiss": "Dismiss",
 			"admin_navigation": "Admin navigation",
-			"main_menu": "Main menu"
+			"close": "Close",
+			"close_banner": "Close banner",
+			"close_form": "Close form",
+			"close_menu": "Close dropdown",
+			"close_modal": "Close modal",
+			"copy_contact": "Copy {label} to clipboard",
+			"copy_to_clipboard": "Copy to clipboard",
+			"dismiss": "Dismiss",
+			"main_menu": "Main menu",
+			"notifications": "Notifications",
+			"open_menu": "Open menu",
+			"skip_to_content": "Skip to main content"
 		},
 		"pagination": {
 			"previous": "Previous",

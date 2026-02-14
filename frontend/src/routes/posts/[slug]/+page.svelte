@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
+	import { t } from 'svelte-i18n';
 
 	import type { PageData } from './$types';
-	import { parseMarkdown, formatDate } from '$lib/utils';
+	import { parseMarkdown, formatDate, isFilename } from '$lib/utils';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
@@ -278,6 +279,7 @@ const getHost = (url?: string) => {
 				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h3>
 				<div class="grid gap-4 md:grid-cols-2">
 					{#each mediaRefs as media}
+						{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
 						<div class="card overflow-hidden">
 							{#if isYouTube(media.url)}
 								<div class="aspect-video bg-black/10">
@@ -319,10 +321,10 @@ const getHost = (url?: string) => {
 									</a>
 								</div>
 							{/if}
-							{#if media.title || media.description || (media.provider && media.provider !== 'upload')}
+							{#if displayTitle || media.description || (media.provider && media.provider !== 'upload')}
 								<div class="p-3 space-y-1">
-									{#if media.title}
-										<p class="text-sm font-medium text-gray-900 dark:text-white">{media.title}</p>
+									{#if displayTitle}
+										<p class="text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
 									{/if}
 									{#if media.description}
 										<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
@@ -401,7 +403,7 @@ const getHost = (url?: string) => {
 			type="button"
 			onclick={closeLightbox}
 			class="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
-			aria-label="Close lightbox"
+			aria-label={$t('public.lightbox.close')}
 		>
 			<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -414,7 +416,7 @@ const getHost = (url?: string) => {
 				type="button"
 				onclick={(e) => { e.stopPropagation(); prevImage(); }}
 				class="absolute left-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label="Previous image"
+				aria-label={$t('public.lightbox.previous_image')}
 			>
 				<svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -426,7 +428,7 @@ const getHost = (url?: string) => {
 				type="button"
 				onclick={(e) => { e.stopPropagation(); nextImage(); }}
 				class="absolute right-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label="Next image"
+				aria-label={$t('public.lightbox.next_image')}
 			>
 				<svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
@@ -446,7 +448,7 @@ const getHost = (url?: string) => {
 
 		<!-- Image counter and title -->
 		<div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
-			{#if imageMedia[lightboxIndex].title}
+			{#if imageMedia[lightboxIndex].title && !isFilename(imageMedia[lightboxIndex].title)}
 				<p class="text-lg font-medium mb-1">{imageMedia[lightboxIndex].title}</p>
 			{/if}
 			{#if imageMedia.length > 1}

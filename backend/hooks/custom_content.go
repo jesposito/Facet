@@ -55,9 +55,18 @@ func cleanupViewReferences(app *pocketbase.PocketBase, sectionKey string) error 
 		return nil // Collection doesn't exist, nothing to clean
 	}
 
-	views, err := app.FindAllRecords(viewsCollection.Name)
-	if err != nil {
-		return err
+	// Paginate through views to prevent OOM on large collections
+	var views []*core.Record
+	const pageSize = 200
+	for offset := 0; ; offset += pageSize {
+		page, err := app.FindRecordsByFilter(viewsCollection.Name, "", "", pageSize, offset, nil)
+		if err != nil {
+			return err
+		}
+		views = append(views, page...)
+		if len(page) < pageSize {
+			break
+		}
 	}
 
 	for _, view := range views {
@@ -110,7 +119,8 @@ func cleanupSiteSettingsReferences(app *pocketbase.PocketBase, sectionKey string
 		return nil // Collection doesn't exist, nothing to clean
 	}
 
-	settings, err := app.FindAllRecords(settingsCollection.Name)
+	// Site settings is typically a singleton, use small limit instead of pagination
+	settings, err := app.FindRecordsByFilter(settingsCollection.Name, "", "", 10, 0, nil)
 	if err != nil {
 		return err
 	}
@@ -198,23 +208,34 @@ func cleanupSiteSettingsReferences(app *pocketbase.PocketBase, sectionKey string
 func cleanupOrphanedCustomContentRefs(app *pocketbase.PocketBase) []string {
 	var cleaned []string
 
-	// Get all valid custom content IDs
+	// Get all valid custom content IDs with pagination
 	validIds := make(map[string]struct{})
 	customContentCollection, err := app.FindCollectionByNameOrId("custom_content")
 	if err == nil {
-		records, err := app.FindAllRecords(customContentCollection.Name)
-		if err == nil {
-			for _, record := range records {
+		const pageSize = 200
+		for offset := 0; ; offset += pageSize {
+			page, err := app.FindRecordsByFilter(customContentCollection.Name, "", "", pageSize, offset, nil)
+			if err != nil {
+				break
+			}
+			for _, record := range page {
 				validIds[record.Id] = struct{}{}
+			}
+			if len(page) < pageSize {
+				break
 			}
 		}
 	}
 
-	// Clean up views
+	// Clean up views with pagination
 	viewsCollection, err := app.FindCollectionByNameOrId("views")
 	if err == nil {
-		views, err := app.FindAllRecords(viewsCollection.Name)
-		if err == nil {
+		const pageSize = 200
+		for offset := 0; ; offset += pageSize {
+			views, err := app.FindRecordsByFilter(viewsCollection.Name, "", "", pageSize, offset, nil)
+			if err != nil {
+				break
+			}
 			for _, view := range views {
 				sectionsRaw := view.Get("sections")
 				if sectionsRaw == nil {
@@ -258,13 +279,16 @@ func cleanupOrphanedCustomContentRefs(app *pocketbase.PocketBase) []string {
 					}
 				}
 			}
+			if len(views) < pageSize {
+				break
+			}
 		}
 	}
 
-	// Clean up site_settings
+	// Clean up site_settings (singleton table, use small limit)
 	settingsCollection, err := app.FindCollectionByNameOrId("site_settings")
 	if err == nil {
-		settings, err := app.FindAllRecords(settingsCollection.Name)
+		settings, err := app.FindRecordsByFilter(settingsCollection.Name, "", "", 10, 0, nil)
 		if err == nil {
 			for _, setting := range settings {
 				modified := false

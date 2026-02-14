@@ -562,23 +562,45 @@
 				{:else if sectionKey === 'skills' && data.skills.length > 0}
 					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
 				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
-					<div class="flex items-center justify-between gap-3 mb-4">
-						<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
-						<a
-							href="/posts"
-							class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-						>
-							{$t('public.homepage.browse_all')}
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-							</svg>
-						</a>
-					</div>
-					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-					<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
+					{#if (data.postsTotalCount ?? 0) > data.posts.length}
+						<div class="flex items-center justify-between gap-3 mb-4">
+							<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
+							<a
+								href="/posts"
+								class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+							>
+								{$t('public.homepage.browse_all')}
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+								</svg>
+							</a>
+						</div>
+						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+						<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
+					{:else}
+						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+						<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
+					{/if}
 				{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
-					<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-					<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
+					{#if (data.talksTotalCount ?? 0) > data.talks.length}
+						<div class="flex items-center justify-between gap-3 mb-4">
+							<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
+							<a
+								href="/talks"
+								class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+							>
+								{$t('public.homepage.browse_all')}
+								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+								</svg>
+							</a>
+						</div>
+						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" showHeader={false} />
+					{:else}
+						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
+					{/if}
 				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
 					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
 				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}

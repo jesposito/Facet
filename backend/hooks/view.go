@@ -12,6 +12,7 @@ import (
 
 	"facet/services"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -91,12 +92,14 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 	out := make([]map[string]interface{}, 0, len(records))
 	for _, r := range records {
 		item := map[string]interface{}{
-			"id":          r.Id,
-			"title":       r.GetString("title"),
-			"url":         r.GetString("url"),
-			"provider":    r.GetString("provider"),
-			"description": r.GetString("description"),
-			"alt_text":    r.GetString("alt_text"),
+			"id":            r.Id,
+			"title":         r.GetString("title"),
+			"url":           r.GetString("url"),
+			"provider":      r.GetString("provider"),
+			"description":   r.GetString("description"),
+			"alt_text":      r.GetString("alt_text"),
+			"mime":          r.GetString("mime"),
+			"thumbnail_url": r.GetString("thumbnail_url"),
 		}
 		out = append(out, item)
 	}
@@ -393,7 +396,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			if shouldCountView {
 				// Increment view count and last_viewed_at in the background
-				go func(viewID string, collection string) {
+				viewID := view.Id
+				collection := viewsCollection
+				services.SafeGo(app, "view-count-increment", func() {
 					record, err := app.FindRecordById(collection, viewID)
 					if err != nil {
 						return
@@ -403,7 +408,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					if err := app.Save(record); err != nil {
 						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
 					}
-				}(view.Id, viewsCollection)
+				})
 			}
 
 			// Build view response
@@ -608,6 +613,16 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response["section_disabled_categories"] = sectionDisabledCategories
 			response["section_category_display_modes"] = sectionCategoryDisplayModes
 			response["section_featured_ids"] = sectionFeaturedIds
+
+			// Add total counts for posts and talks (for "Browse all" link visibility)
+			postsTableName := getTableName(app, "posts")
+			if postsTotalCount, err := app.CountRecords(postsTableName, dbx.NewExp("visibility = 'public' AND is_draft = false")); err == nil {
+				response["posts_total_count"] = postsTotalCount
+			}
+			talksTableName := getTableName(app, "talks")
+			if talksTotalCount, err := app.CountRecords(talksTableName, dbx.NewExp("visibility = 'public' AND is_draft = false")); err == nil {
+				response["talks_total_count"] = talksTotalCount
+			}
 
 			// Fetch profile data for the view
 			profileTableName := "profile"
@@ -974,6 +989,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
+					response["posts_total_count"] = len(postRecords)
 					if len(postRecords) > 0 {
 						posts := serializeRecords(postRecords)
 						postCollectionID := postRecords[0].Collection().Id
@@ -1008,6 +1024,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
+					response["talks_total_count"] = len(talkRecords)
 					talks := serializeRecords(talkRecords)
 					response["talks"] = filterBySelectedItemsWithDefault(talks, talksSelectedItems, talksConfigured)
 				}
@@ -1076,9 +1093,15 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						"is_draft":   record.GetBool("is_draft"),
 					}
 
-					// Add cover image URL if present
-					if coverImage := record.GetString("cover_image"); coverImage != "" {
+					// Add cover image URL - prefer library URL over file upload
+					if libraryURL := record.GetString("cover_image_library_url"); libraryURL != "" {
+						contentItem["cover_image_url"] = libraryURL
+						contentItem["cover_image_large_url"] = libraryURL
+						contentItem["cover_image_thumb_url"] = libraryURL
+					} else if coverImage := record.GetString("cover_image"); coverImage != "" {
 						contentItem["cover_image_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "")
+						contentItem["cover_image_large_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "thumb=1600x0")
+						contentItem["cover_image_thumb_url"] = fileURL(record.Collection().Id, record.Id, coverImage, "thumb=480x0")
 					}
 
 					// Add media URLs if present

@@ -9,6 +9,7 @@
 	 *
 	 * Protection level: Medium (blocks simple scrapers, readable by screen readers)
 	 */
+	import { t } from 'svelte-i18n';
 
 	interface Props {
 		type?: 'email' | 'phone' | 'url' | 'copy';
@@ -105,7 +106,7 @@
 			type="button"
 			class="copy-button"
 			onclick={copyToClipboard}
-			aria-label="Copy to clipboard"
+			aria-label={$t('shared.aria.copy_to_clipboard')}
 			disabled={copying}
 		>
 			{#if copying}
