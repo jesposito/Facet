@@ -849,7 +849,7 @@
 				<!-- Accent Color Override -->
 				<div class="pt-2">
 					<span class="label mb-3 block">Accent Color</span>
-					<div class="flex flex-wrap items-center gap-3" role="group" aria-label={$t('admin.view_editor.accent_color_label')}>
+					<div class="flex flex-wrap items-center gap-3" role="group" aria-label={$t('admin.view_editor.aria.accent_color_label')}>
 						<!-- Use Global Option -->
 						<button
 							type="button"
