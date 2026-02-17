@@ -14,6 +14,7 @@
 	import ResumeImportModal from '$components/admin/ResumeImportModal.svelte';
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
 	import { t } from 'svelte-i18n';
+	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -638,16 +639,7 @@
 					<p class="text-xs text-gray-500 mt-1">Private notes (not shown publicly)</p>
 				</div>
 
-				<div>
-					<label for="visibility" class="label">Visibility *</label>
-					<select id="visibility" bind:value={visibility} class="input">
-						<option value="public">Public - Anyone can access</option>
-						<option value="unlisted">Unlisted - Only with share token</option>
-						<option value="password">Password - Requires password</option>
-						<option value="private">Private - Admin only</option>
-					</select>
-					<p class="text-xs text-gray-500 mt-1">Controls who can access this view</p>
-				</div>
+				<VisibilitySelector bind:value={visibility} includePassword />
 
 				{#if visibility === 'password'}
 					<div>
