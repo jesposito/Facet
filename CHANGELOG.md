@@ -3,6 +3,20 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.1 - February 17, 2026
+
+**New Features:**
+- Add Contact Methods as a top-level sidebar link
+
+**Other Changes:**
+- Restructure navSections, SECTION_IDS, and primarySections in AdminSidebar.svelte
+- Update all 5 locale files with new section names (portfolio/content)
+
+**Pull Requests:** [#408](https://github.com/jesposito/Facet/pull/408),
+
+---
+
+
 ## v2.18.0 - February 14, 2026
 
 **Other Changes:**
