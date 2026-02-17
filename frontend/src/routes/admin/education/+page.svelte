@@ -16,6 +16,7 @@
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
+	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	let educations: Education[] = $state([]);
 	let loading = $state(true);
@@ -541,14 +542,7 @@ afterNavigate(() => {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.common.settings_section')}</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="visibility" class="label">{$t('admin.content.common.visibility_label')}</label>
-						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">{$t('admin.content.common.visibility_public')}</option>
-							<option value="unlisted">{$t('admin.content.common.visibility_unlisted')}</option>
-							<option value="private">{$t('admin.content.common.visibility_private')}</option>
-						</select>
-					</div>
+					<VisibilitySelector bind:value={visibility} />
 
 					<div>
 						<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
