@@ -74,33 +74,40 @@ func init() {
 			}
 
 			// Backfill existing records that have empty created timestamps.
-			// Use the record's updated timestamp if available, otherwise use now.
-			records, err := app.FindAllRecords(name)
+			// Use raw SQL to bypass AutodateField interceptors which prevent
+			// setting "created" on update operations.
+			nowStr := time.Now().UTC().Format("2006-01-02 15:04:05.000Z")
+
+			// Set created = updated where created is empty but updated exists
+			res1, err := app.DB().NewQuery(
+				"UPDATE " + collection.Name +
+					" SET created = updated" +
+					" WHERE (created IS NULL OR created = '')" +
+					" AND updated IS NOT NULL AND updated != ''",
+			).Execute()
 			if err != nil {
-				continue
+				log.Printf("Failed to backfill %s (from updated): %v", name, err)
 			}
-			now := time.Now()
-			backfilled := 0
-			for _, record := range records {
-				created := record.GetDateTime("created")
-				if !created.IsZero() {
-					continue
-				}
-				// Use updated if available, otherwise fall back to current time
-				updated := record.GetDateTime("updated")
-				if !updated.IsZero() {
-					record.Set("created", updated)
-				} else {
-					record.Set("created", now)
-				}
-				if err := app.Save(record); err != nil {
-					log.Printf("Failed to backfill %s/%s: %v", name, record.Id, err)
-				} else {
-					backfilled++
-				}
+
+			// Set created = now where both created and updated are empty
+			res2, err := app.DB().NewQuery(
+				"UPDATE " + collection.Name +
+					" SET created = {:now}" +
+					" WHERE (created IS NULL OR created = '')",
+			).Bind(map[string]any{"now": nowStr}).Execute()
+			if err != nil {
+				log.Printf("Failed to backfill %s (from now): %v", name, err)
 			}
-			if backfilled > 0 {
-				log.Printf("Backfilled %d records in %s with missing created timestamp", backfilled, name)
+
+			var count1, count2 int64
+			if res1 != nil {
+				count1, _ = res1.RowsAffected()
+			}
+			if res2 != nil {
+				count2, _ = res2.RowsAffected()
+			}
+			if count1+count2 > 0 {
+				log.Printf("Backfilled %d records in %s with missing created timestamp", count1+count2, name)
 			}
 		}
 
