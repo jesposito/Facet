@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.4 - February 17, 2026
+
+**Bugs Fixed:**
+- Fix PocketBase 'Acme' branding in built-in auth emails
+
+**Pull Requests:** [#411](https://github.com/jesposito/Facet/pull/411),
+
+---
+
+
 ## v2.18.3 - February 17, 2026
 
 **Bugs Fixed:**
