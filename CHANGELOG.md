@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.3 - February 17, 2026
+
+**Bugs Fixed:**
+- Fix autodate fields on all collections
+- Add migration to fix autodate fields on all 27 base collections and backfill existing records with empty created timestamps
+- Add defensive guard in formatRelativeDate on the tokens page to handle empty/invalid date strings gracefully
+
+**Pull Requests:** [#410](https://github.com/jesposito/Facet/pull/410),
+
+---
+
+
 ## v2.18.2 - February 17, 2026
 
 **New Features:**
