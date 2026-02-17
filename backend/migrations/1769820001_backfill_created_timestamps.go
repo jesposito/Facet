@@ -9,12 +9,12 @@ import (
 )
 
 func init() {
-	// PocketBase v0.23's NewBaseCollection() does not add created/updated
-	// autodate fields automatically. This was previously fixed for audit_logs
-	// (1769780000) but all other base collections have the same issue.
+	// Follow-up to 1769820000: the original backfill used app.Save(record)
+	// which goes through PocketBase's AutodateField interceptors. The
+	// AutodateField with OnCreate:true does not set "created" during update
+	// operations, so the backfill silently failed to persist.
 	//
-	// Without these fields, records get created with empty created/updated
-	// timestamps, causing "Created Never" display bugs in the frontend.
+	// This migration uses raw SQL to bypass the interceptors.
 	m.Register(func(app core.App) error {
 		collections := []string{
 			"profile",
@@ -46,37 +46,14 @@ func init() {
 			"awards",
 		}
 
+		nowStr := time.Now().UTC().Format("2006-01-02 15:04:05.000Z")
+
 		for _, name := range collections {
 			collection, err := app.FindCollectionByNameOrId(name)
 			if err != nil {
 				log.Printf("Skipping %s: %v", name, err)
 				continue
 			}
-
-			// Only add if not already present
-			if collection.Fields.GetByName("created") == nil {
-				collection.Fields.Add(&core.AutodateField{
-					Name:     "created",
-					OnCreate: true,
-				})
-			}
-			if collection.Fields.GetByName("updated") == nil {
-				collection.Fields.Add(&core.AutodateField{
-					Name:     "updated",
-					OnCreate: true,
-					OnUpdate: true,
-				})
-			}
-
-			if err := app.Save(collection); err != nil {
-				log.Printf("Failed to fix autodate for %s: %v", name, err)
-				continue
-			}
-
-			// Backfill existing records that have empty created timestamps.
-			// Use raw SQL to bypass AutodateField interceptors which prevent
-			// setting "created" on update operations.
-			nowStr := time.Now().UTC().Format("2006-01-02 15:04:05.000Z")
 
 			// Set created = updated where created is empty but updated exists
 			res1, err := app.DB().NewQuery(
@@ -113,7 +90,6 @@ func init() {
 
 		return nil
 	}, func(app core.App) error {
-		// No rollback — autodate fields are expected on all collections
 		return nil
 	})
 }
