@@ -428,8 +428,6 @@
 			"loading": "Loadin...",
 			"retry": "Retry",
 			"unable_to_load_facets": "Unabl 2 loed facets. Oh noes!",
-			"your_information": "Ur Informashun",
-			"your_voice": "Ur Voic",
 			"testimonials": "Testimonialz",
 			"settings": "Settingz",
 			"contact_methods": "Contact Methodz",
@@ -460,7 +458,9 @@
 			"manage": "Manaj",
 			"request_links": "Request Linkz",
 			"update_available": "Updat availabl",
-			"check_for_updates": "Chek 4 updaetz"
+			"check_for_updates": "Chek 4 updaetz",
+			"portfolio": "MAH STUFFZ",
+			"content": "MAH CREASHUNS"
 		},
 		"dashboard": {
 			"title": "Dashbord",

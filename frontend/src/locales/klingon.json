@@ -428,8 +428,6 @@
 			"loading": "Initializing...",
 			"retry": "Retry",
 			"unable_to_load_facets": "Facets could not be loaded. Unacceptable!",
-			"your_information": "Your Dossier",
-			"your_voice": "Your Voice",
 			"testimonials": "Testimonials of Honor",
 			"settings": "Configurations",
 			"contact_methods": "Communication Channels",
@@ -460,7 +458,9 @@
 			"manage": "Command",
 			"request_links": "Request Links",
 			"update_available": "Update ready",
-			"check_for_updates": "Scan for updates"
+			"check_for_updates": "Scan for updates",
+			"portfolio": "ta'mey",
+			"content": "ghItlh"
 		},
 		"dashboard": {
 			"title": "Command Center",
