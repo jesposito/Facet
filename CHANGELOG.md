@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.2 - February 17, 2026
+
+**New Features:**
+- Add shared VisibilitySelector component with descriptions
+- Replace duplicated <select> blocks across 11 admin pages
+- Add 5 new i18n keys for visibility descriptions across all locale files
+
+**Pull Requests:** [#409](https://github.com/jesposito/Facet/pull/409),
+
+---
+
+
 ## v2.18.1 - February 17, 2026
 
 **New Features:**
