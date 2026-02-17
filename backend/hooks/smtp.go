@@ -11,16 +11,38 @@ import (
 
 // RegisterSMTPEnvConfig applies SMTP settings from environment variables
 // into PocketBase's built-in SMTP configuration on startup.
-// Only activates when SMTP_HOST is set.
+// Always sets Meta.AppName (used in PocketBase's built-in auth emails).
+// SMTP settings only activate when SMTP_HOST is set.
 func RegisterSMTPEnvConfig(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
-		if host == "" {
-			app.Logger().Info("SMTP env config: SMTP_HOST not set; leaving existing settings unchanged")
-			return se.Next()
+		settings := app.Settings()
+
+		// Always ensure AppName is set for PocketBase's built-in auth emails
+		// (login notifications, password resets, etc.). PocketBase defaults
+		// this to "Acme" which is not useful for anyone.
+		needsSave := false
+		if appName := strings.TrimSpace(os.Getenv("APP_NAME")); appName != "" {
+			if settings.Meta.AppName != appName {
+				settings.Meta.AppName = appName
+				needsSave = true
+			}
+		} else if settings.Meta.AppName == "" || settings.Meta.AppName == "Acme" {
+			settings.Meta.AppName = "Facet"
+			needsSave = true
 		}
 
-		settings := app.Settings()
+		host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
+		if host == "" {
+			if needsSave {
+				if err := app.Save(settings); err != nil {
+					app.Logger().Error("Failed to update Meta.AppName", "error", err)
+				} else {
+					app.Logger().Info("Meta.AppName updated", "appName", settings.Meta.AppName)
+				}
+			}
+			app.Logger().Info("SMTP env config: SMTP_HOST not set; leaving SMTP settings unchanged")
+			return se.Next()
+		}
 
 		settings.SMTP.Enabled = true
 		settings.SMTP.Host = host
