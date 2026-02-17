@@ -428,8 +428,6 @@
 			"loading": "Wird geladen...",
 			"retry": "Erneut versuchen",
 			"unable_to_load_facets": "Facetten konnten nicht geladen werden.",
-			"your_information": "Ihre Informationen",
-			"your_voice": "Ihre Stimme",
 			"testimonials": "Referenzen",
 			"settings": "Einstellungen",
 			"contact_methods": "Kontaktmethoden",
@@ -460,7 +458,9 @@
 			"manage": "Verwalten",
 			"request_links": "Anfrage-Links",
 			"update_available": "Update verfügbar",
-			"check_for_updates": "Nach Updates suchen"
+			"check_for_updates": "Nach Updates suchen",
+			"portfolio": "Portfolio",
+			"content": "Inhalte"
 		},
 		"dashboard": {
 			"title": "Dashboard",

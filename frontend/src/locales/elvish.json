@@ -428,8 +428,6 @@
 			"loading": "Awakening...",
 			"retry": "Try again",
 			"unable_to_load_facets": "Facets could not be summoned.",
-			"your_information": "Thy Chronicle",
-			"your_voice": "Thy Voice",
 			"testimonials": "Testimonies",
 			"settings": "Inscriptions",
 			"contact_methods": "Ways of Reaching",
@@ -460,7 +458,9 @@
 			"manage": "Govern",
 			"request_links": "Request Bindings",
 			"update_available": "Renewal awaits",
-			"check_for_updates": "Seek renewals"
+			"check_for_updates": "Seek renewals",
+			"portfolio": "Panthael",
+			"content": "Quettar"
 		},
 		"dashboard": {
 			"title": "Great Hall",
