@@ -17,6 +17,7 @@ import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
 import PageHelp from '$components/admin/PageHelp.svelte';
 import AdminFilters from '$components/admin/AdminFilters.svelte';
 import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
+import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 let posts: Post[] = $state([]);
 let loading = $state(true);
@@ -562,14 +563,7 @@ function openEditForm(post: Post) {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Publishing</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="visibility" class="label">Visibility</label>
-						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">Public</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="private">Private</option>
-						</select>
-					</div>
+					<VisibilitySelector bind:value={visibility} />
 
 					<div>
 						<label for="published_at" class="label">Publish Date</label>

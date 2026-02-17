@@ -5,6 +5,7 @@
 	 * Handles name, slug, description, visibility, and password fields.
 	 */
 	import { t } from 'svelte-i18n';
+	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	// Props
 	let {
@@ -89,16 +90,7 @@
 		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.description_help')}</p>
 	</div>
 
-	<div>
-		<label for="visibility" class="label">{$t('admin.view_editor.basic_info.visibility_label')} *</label>
-		<select id="visibility" bind:value={visibility} class="input">
-			<option value="public">{$t('admin.view_editor.basic_info.visibility_public')}</option>
-			<option value="unlisted">{$t('admin.view_editor.basic_info.visibility_unlisted')}</option>
-			<option value="password">{$t('admin.view_editor.basic_info.visibility_password')}</option>
-			<option value="private">{$t('admin.view_editor.basic_info.visibility_private')}</option>
-		</select>
-		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.visibility_help')}</p>
-	</div>
+	<VisibilitySelector bind:value={visibility} includePassword />
 
 	{#if visibility === 'password'}
 		<div>

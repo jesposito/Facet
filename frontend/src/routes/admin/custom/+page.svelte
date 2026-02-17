@@ -19,6 +19,7 @@
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	let items: CustomContent[] = $state([]);
 	let loading = $state(true);
@@ -598,14 +599,7 @@
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Publishing</h2>
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="visibility" class="label">Visibility</label>
-						<select id="visibility" bind:value={visibility} class="input">
-							<option value="public">Public</option>
-							<option value="unlisted">Unlisted</option>
-							<option value="private">Private</option>
-						</select>
-					</div>
+					<VisibilitySelector bind:value={visibility} />
 
 					<div>
 						<label for="sort_order" class="label">Sort Order</label>
