@@ -269,8 +269,10 @@
 		});
 	}
 
-	function formatRelativeDate(dateStr: string): string {
+	function formatRelativeDate(dateStr: string | undefined): string {
+		if (!dateStr) return $t('admin.tokens.never');
 		const date = new Date(dateStr);
+		if (isNaN(date.getTime())) return $t('admin.tokens.never');
 		const now = new Date();
 		const diffMs = now.getTime() - date.getTime();
 		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
