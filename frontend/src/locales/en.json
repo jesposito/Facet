@@ -428,8 +428,6 @@
 			"loading": "Loading...",
 			"retry": "Retry",
 			"unable_to_load_facets": "Unable to load facets.",
-			"your_information": "Your Information",
-			"your_voice": "Your Voice",
 			"testimonials": "Testimonials",
 			"settings": "Settings",
 			"contact_methods": "Contact Methods",
@@ -460,7 +458,9 @@
 			"manage": "Manage",
 			"request_links": "Request Links",
 			"update_available": "Update available",
-			"check_for_updates": "Check for updates"
+			"check_for_updates": "Check for updates",
+			"portfolio": "Portfolio",
+			"content": "Content"
 		},
 		"dashboard": {
 			"title": "Dashboard",

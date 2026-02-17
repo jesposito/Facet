@@ -35,8 +35,8 @@
 	// Section IDs for collapsible sections (only these are in the accordion)
 	const SECTION_IDS = {
 		facets: 'sidebar-facets',
-		information: 'sidebar-information',
-		voice: 'sidebar-voice',
+		portfolio: 'sidebar-portfolio',
+		content: 'sidebar-content',
 		testimonials: 'sidebar-testimonials',
 		settings: 'sidebar-settings'
 	};
@@ -118,26 +118,25 @@ const navSections = [
 		items: [{ href: '/admin', labelKey: 'admin.sidebar.dashboard', icon: 'home' }]
 	},
 	{
-		id: 'information',
-		titleKey: 'admin.sidebar.your_information',
+		id: 'portfolio',
+		titleKey: 'admin.sidebar.portfolio',
 		items: [
-			{ href: '/admin/contacts', labelKey: 'admin.sidebar.contact_methods', icon: 'mail' },
 			{ href: '/admin/experience', labelKey: 'admin.sidebar.experience', icon: 'briefcase' },
 			{ href: '/admin/projects', labelKey: 'admin.sidebar.projects', icon: 'folder' },
 			{ href: '/admin/education', labelKey: 'admin.sidebar.education', icon: 'academic' },
 			{ href: '/admin/certifications', labelKey: 'admin.sidebar.certifications', icon: 'badge' },
 			{ href: '/admin/awards', labelKey: 'admin.sidebar.awards', icon: 'star' },
-			{ href: '/admin/skills', labelKey: 'admin.sidebar.skills', icon: 'chip' },
-			{ href: '/admin/custom', labelKey: 'admin.sidebar.custom_content', icon: 'puzzle' },
-			{ href: '/admin/import', labelKey: 'admin.sidebar.import_ai', icon: 'sparkle' }
+			{ href: '/admin/skills', labelKey: 'admin.sidebar.skills', icon: 'chip' }
 		]
 	},
 	{
-		id: 'voice',
-		titleKey: 'admin.sidebar.your_voice',
+		id: 'content',
+		titleKey: 'admin.sidebar.content',
 		items: [
 			{ href: '/admin/posts', labelKey: 'admin.sidebar.posts', icon: 'document' },
-			{ href: '/admin/talks', labelKey: 'admin.sidebar.talks', icon: 'presentation' }
+			{ href: '/admin/talks', labelKey: 'admin.sidebar.talks', icon: 'presentation' },
+			{ href: '/admin/custom', labelKey: 'admin.sidebar.custom_content', icon: 'puzzle' },
+			{ href: '/admin/import', labelKey: 'admin.sidebar.import_ai', icon: 'sparkle' }
 		]
 	},
 	{
@@ -154,7 +153,7 @@ const navSections = [
 	}
 ];
 
-const primarySections = navSections.filter(s => s.id === 'information' || s.id === 'voice');
+const primarySections = navSections.filter(s => s.id === 'portfolio' || s.id === 'content');
 const settingsSections = navSections.filter(s => s.id === 'settings');
 
 // Reactive function that updates when $page changes
@@ -243,6 +242,19 @@ let isActive = $derived((href: string): boolean => {
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 15-4-4a3 3 0 0 0-4.24 0L3 21" />
 				</svg>
 				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.media_library')}</span>
+			</a>
+			<a
+				href="/admin/contacts"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/contacts')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.contact_methods') : undefined}
+				aria-current={isActive('/admin/contacts') ? 'page' : undefined}
+			>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+				</svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.contact_methods')}</span>
 			</a>
 			<a
 				href="/admin/tokens"
@@ -364,7 +376,7 @@ let isActive = $derived((href: string): boolean => {
 			{/if}
 		</div>
 
-		<!-- Your Information and Your Voice Sections -->
+		<!-- Portfolio and Content Sections -->
 		{#each primarySections as section (section.id)}
 			{@const sectionId = SECTION_IDS[section.id as keyof typeof SECTION_IDS] || `sidebar-${section.id}`}
 			<div class="space-y-2">
@@ -376,13 +388,13 @@ let isActive = $derived((href: string): boolean => {
 					aria-controls="{sectionId}-items"
 				>
 					<span class="flex items-center gap-1.5">
-						{#if section.id === 'information'}
-							<!-- Clipboard icon for Your Information -->
+						{#if section.id === 'portfolio'}
+							<!-- Briefcase icon for Portfolio -->
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 							</svg>
-						{:else if section.id === 'voice'}
-							<!-- Microphone icon for Your Voice -->
+						{:else if section.id === 'content'}
+							<!-- Microphone icon for Content -->
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
 							</svg>
