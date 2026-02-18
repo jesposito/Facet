@@ -23,18 +23,10 @@
 	async function loadViews() {
 		loading = true;
 		try {
-			// Sort by id only - is_default field may not exist in older schemas
 			const result = await collection('views').getList(1, 50, {
 				sort: '-id'
 			});
-			// Reorder to put the default view first
-			const items = result.items;
-			const defaultIndex = items.findIndex((v) => v.is_default);
-			if (defaultIndex > 0) {
-				const [defaultView] = items.splice(defaultIndex, 1);
-				items.unshift(defaultView);
-			}
-			views = items;
+			views = result.items;
 		} catch (err) {
 			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
 				return;
@@ -121,11 +113,6 @@
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2 flex-wrap">
 								<h3 class="font-medium text-gray-900 dark:text-white">{view.name}</h3>
-								{#if view.is_default}
-									<span class="px-2 py-0.5 text-xs bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 rounded font-medium">
-										Default
-									</span>
-								{/if}
 								{#if !view.is_active}
 									<span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
 										Inactive
