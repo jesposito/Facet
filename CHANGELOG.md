@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.5 - February 18, 2026
+
+**Bugs Fixed:**
+- Fix homepage route to use dedicated admin configuration page
+- Remove 'Default' badge from facets admin list
+- Remove sort-to-top logic from facets admin list
+
+**Pull Requests:** [#412](https://github.com/jesposito/Facet/pull/412),
+
+---
+
+
 ## v2.18.4 - February 17, 2026
 
 **Bugs Fixed:**
