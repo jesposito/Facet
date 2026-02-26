@@ -3,6 +3,22 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.6 - February 26, 2026
+
+**Bugs Fixed:**
+- Patch Go stdlib CVEs and npm vulnerabilities
+- Resolve 21 stdlib CVEs in Go backend
+- Fix rollup path traversal vulnerability
+- Fix minimatch ReDoS vulnerability
+- Fix svelte SSR XSS vulnerabilities
+- Fix @sveltejs/kit form DoS vulnerabilities
+- Fix cookie/devalue vulnerability
+
+**Pull Requests:** [#413](https://github.com/jesposito/Facet/pull/413),
+
+---
+
+
 ## v2.18.5 - February 18, 2026
 
 **Bugs Fixed:**
