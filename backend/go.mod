@@ -2,7 +2,7 @@ module facet
 
 go 1.24.0
 
-toolchain go1.24.4
+toolchain go1.24.13
 
 require (
 	github.com/disintegration/imaging v1.6.2
