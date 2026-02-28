@@ -25,7 +25,7 @@ Think LinkedIn meets personal portfolio, except you hold all the cards: the data
 
 ## Try It Out
 
-**Live Demo:** [facet-demo.theansible.co](https://facet-demo.theansible.co)
+**Live Demo:** [demo.facetcloud.io](https://demo.facetcloud.io)
 - Login: `demo@example.com` / `demo123`
 - Data resets daily at midnight UTC
 - Explore all features without installing anything
