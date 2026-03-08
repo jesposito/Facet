@@ -29,6 +29,15 @@ if (browser && import.meta.env.DEV) {
 // Auth store (SDK 0.21.x uses 'model')
 export const currentUser = writable(pb.authStore.model);
 
+// Flag to skip redundant authRefresh after a fresh login.
+// authWithPassword issues a valid token — re-validating it immediately via
+// authRefresh is redundant and causes a 401 race condition in some browsers
+// (the Svelte effect batch can fire authRefresh before the SDK's in-memory
+// token is fully wired into the fetch pipeline).
+export let freshLogin = false;
+export function markFreshLogin() { freshLogin = true; }
+export function clearFreshLogin() { freshLogin = false; }
+
 pb.authStore.onChange((token, model) => {
 	currentUser.set(model);
 	
