@@ -2,7 +2,7 @@
 	import { run, preventDefault } from 'svelte/legacy';
 
 	import { goto } from '$app/navigation';
-	import { pb, currentUser } from '$lib/pocketbase';
+	import { pb, currentUser, markFreshLogin } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { t } from 'svelte-i18n';
@@ -102,6 +102,7 @@
 				provider: 'google',
 				redirectUrl: redirectUrl || undefined
 			});
+			markFreshLogin();
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = tr('admin.login.error_google');
@@ -118,6 +119,7 @@
 				provider: 'github',
 				redirectUrl: redirectUrl || undefined
 			});
+			markFreshLogin();
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = tr('admin.login.error_github');
@@ -150,6 +152,8 @@
 		error = '';
 		try {
 			await pb.collection('users').authWithPassword(email, password);
+			// Signal the layout that this is a fresh login — skip redundant authRefresh
+			markFreshLogin();
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = tr('admin.login.error_invalid_credentials');
