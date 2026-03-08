@@ -6,7 +6,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { t } from 'svelte-i18n';
-	import { pb, currentUser, performLogout } from '$lib/pocketbase';
+	import { pb, currentUser, performLogout, freshLogin, clearFreshLogin } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
 	import { demoMode, initDemoMode, collection } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
@@ -229,8 +229,12 @@
 		// Use authRefresh to validate token server-side and prevent redirect loops
 		if (pb.authStore.isValid) {
 			try {
-				// Validate token with server - this catches stale/invalid tokens
-				await pb.collection('users').authRefresh();
+				// Skip authRefresh if we just logged in — the token is already valid
+				// and re-validating immediately can cause a 401 race condition
+				if (!freshLogin) {
+					await pb.collection('users').authRefresh();
+				}
+				clearFreshLogin();
 				// Token is valid - proceed
 				const needsPasswordChange = await checkDefaultPassword();
 				if (!needsPasswordChange) {
@@ -242,14 +246,21 @@
 					}
 				}
 				loading = false;
-			} catch (err) {
-				// Token validation failed - clear stale auth and redirect to login
-				console.log('[LAYOUT] Auth validation failed, clearing stale auth state');
-				pb.authStore.clear();
-				// Clear the cookie to prevent redirect loops
-				document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+			} catch (err: any) {
+				const status = err?.status || err?.response?.status || 0;
+				if (status >= 500) {
+					// Server error — don't log the user out, proceed with local token
+					console.warn('[LAYOUT] Server error during auth check, proceeding with local token');
+					authorized = true;
+				} else {
+					// Token validation failed (401/403) - clear stale auth and redirect to login
+					console.log('[LAYOUT] Auth validation failed (status:', status, '), clearing stale auth state');
+					pb.authStore.clear();
+					// Clear the cookie to prevent redirect loops
+					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+					goto('/admin/login');
+				}
 				loading = false;
-				goto('/admin/login');
 			}
 		} else {
 			// Not authenticated at all - redirect to login immediately
