@@ -3,6 +3,20 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.7 - March 08, 2026
+
+**Bugs Fixed:**
+- Fix login loop caused by redundant authRefresh
+
+**New Features:**
+- Add freshLogin flag to skip redundant authRefresh() call after successful auth
+- Discriminate 401 vs 500 errors in the layout auth catch block
+
+**Pull Requests:** [#414](https://github.com/jesposito/Facet/pull/414),
+
+---
+
+
 ## v2.18.6 - February 26, 2026
 
 **Bugs Fixed:**
