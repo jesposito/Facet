@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.8 - March 08, 2026
+
+**Bugs Fixed:**
+- Fix login redirect loop caused by stale auth cookies
+
+**Pull Requests:** [#415](https://github.com/jesposito/Facet/pull/415),
+
+---
+
+
 ## v2.18.7 - March 08, 2026
 
 **Bugs Fixed:**
