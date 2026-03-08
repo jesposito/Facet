@@ -31,9 +31,15 @@
 	let passwordAuthEnabled = $derived(data?.passwordAuthEnabled ?? true);
 	let redirectUrl = '';
 
-	// Reactively redirect when user becomes authenticated
+	// Gate: only allow reactive redirect after auth has been validated server-side
+	// or freshly obtained via login. Without this, a stale cookie causes an
+	// infinite loop: the effect sees $currentUser as truthy (from the stale JWT)
+	// and redirects to /admin before onMount can validate and clear it.
+	let authVerified = $state(false);
+
+	// Reactively redirect when user becomes authenticated AND auth is verified
 	run(() => {
-		if ($currentUser && !redirecting) {
+		if ($currentUser && !redirecting && authVerified) {
 			redirecting = true;
 			goto('/admin', { replaceState: true });
 		}
@@ -46,9 +52,8 @@
 			try {
 				// Try to refresh/validate the token with the server
 				await pb.collection('users').authRefresh();
-				// Token is valid - redirect to admin
-				redirecting = true;
-				goto('/admin', { replaceState: true });
+				// Token is valid - allow reactive redirect to /admin
+				authVerified = true;
 				return; // Don't load auth methods if we're redirecting
 			} catch (err) {
 				// Token is invalid - clear the stale auth state
@@ -103,6 +108,7 @@
 				redirectUrl: redirectUrl || undefined
 			});
 			markFreshLogin();
+			authVerified = true;
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = tr('admin.login.error_google');
@@ -120,6 +126,7 @@
 				redirectUrl: redirectUrl || undefined
 			});
 			markFreshLogin();
+			authVerified = true;
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = tr('admin.login.error_github');
@@ -154,6 +161,7 @@
 			await pb.collection('users').authWithPassword(email, password);
 			// Signal the layout that this is a fresh login — skip redundant authRefresh
 			markFreshLogin();
+			authVerified = true;
 			// Redirect is handled reactively by the $currentUser watcher
 		} catch (err) {
 			error = tr('admin.login.error_invalid_credentials');
