@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.9 - March 19, 2026
+
+**Bugs Fixed:**
+- Upgrade google.golang.org/grpc v1.68.0 → v1.79.3 (critical authorization bypass #33)
+- Upgrade dompurify 3.3.1 → 3.3.3 (medium XSS vulnerability #29)
+- Upgrade devalue 5.6.3 → 5.6.4 (moderate prototype pollution #30, low __proto__ #31)
+
+**Other Changes:**
+- Upgrade flatted 3.3.3 → 3.4.2 (transitive dev dep)
+
+**Pull Requests:** [#416](https://github.com/jesposito/Facet/pull/416),
+
+---
+
+
 ## v2.18.8 - March 08, 2026
 
 **Bugs Fixed:**
