@@ -1643,7 +1643,8 @@
 			"previous_image": "Vorheriges Bild"
 		},
 		"experience": {
-			"at": "bei"
+			"at": "bei",
+			"positions_count": "{count} Positionen"
 		},
 		"projects": {
 			"featured": "Empfohlen"

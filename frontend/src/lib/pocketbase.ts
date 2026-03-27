@@ -99,6 +99,7 @@ export interface Experience {
 	company_logo_url?: string;
 	company_logo_library_url?: string;
 	logo_background?: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent';
+	company_group_id?: string;
 	visibility: 'public' | 'unlisted' | 'private' | 'password';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;

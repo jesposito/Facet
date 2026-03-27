@@ -1643,7 +1643,8 @@
 			"previous_image": "Previous image"
 		},
 		"experience": {
-			"at": "at"
+			"at": "at",
+			"positions_count": "{count} positions"
 		},
 		"projects": {
 			"featured": "Featured"

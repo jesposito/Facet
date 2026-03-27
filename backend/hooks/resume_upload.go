@@ -338,6 +338,7 @@ func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResu
 		for _, exp := range parsed.Experience {
 			record := core.NewRecord(expCollection)
 			record.Set("company", exp.Company)
+			record.Set("company_group_id", NormalizeCompanyName(exp.Company))
 			record.Set("title", exp.Title)
 			record.Set("location", exp.Location)
 			if normalized := normalizeDate(exp.StartDate); normalized != "" {
@@ -597,6 +598,7 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 
 			record := core.NewRecord(expCollection)
 			record.Set("company", exp.Company)
+			record.Set("company_group_id", NormalizeCompanyName(exp.Company))
 			record.Set("title", exp.Title)
 			record.Set("location", exp.Location)
 			if normalized := normalizeDate(exp.StartDate); normalized != "" {
