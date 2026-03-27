@@ -1643,7 +1643,8 @@
 			"previous_image": "Previous vision"
 		},
 		"experience": {
-			"at": "with"
+			"at": "with",
+			"positions_count": "{count} positions"
 		},
 		"projects": {
 			"featured": "Honored"

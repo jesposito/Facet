@@ -80,8 +80,7 @@
 									</span>
 									<div class="text-sm text-gray-500 dark:text-gray-400">
 										{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
-										<!-- TODO: i18n - "X positions" label -->
-										&nbsp;· {entry.positions.length} positions
+										&nbsp;· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}
 									</div>
 								</div>
 							</div>
@@ -227,8 +226,7 @@
 								<span class="font-bold text-gray-900 dark:text-white" itemprop="name">
 									{entry.company}
 								</span>
-								<!-- TODO: i18n - "X positions" label -->
-								<span class="text-xs text-gray-400 dark:text-gray-500">· {entry.positions.length} positions</span>
+								<span class="text-xs text-gray-400 dark:text-gray-500">· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}</span>
 							</div>
 							<span class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
 								{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
@@ -327,8 +325,7 @@
 								</h3>
 								<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 									<span>{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}</span>
-									<!-- TODO: i18n - "X positions" label -->
-									<span>· {entry.positions.length} positions</span>
+									<span>· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}</span>
 								</div>
 							</div>
 						</div>

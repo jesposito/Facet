@@ -21,8 +21,8 @@ func NormalizeCompanyName(name string) string {
 		"ltd", "corp", "co", "plc",
 	}
 	for _, suffix := range suffixes {
-		if strings.HasSuffix(s, " "+suffix) {
-			s = strings.TrimSuffix(s, " "+suffix)
+		if cut, found := strings.CutSuffix(s, " "+suffix); found {
+			s = cut
 			break
 		}
 	}
