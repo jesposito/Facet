@@ -2,13 +2,64 @@ package hooks
 
 import (
 	"facet/services"
+	"strings"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// NormalizeCompanyName returns a normalized group ID from a company name.
+// It lowercases, trims whitespace, strips common suffixes and trailing punctuation.
+func NormalizeCompanyName(name string) string {
+	s := strings.ToLower(strings.TrimSpace(name))
+	if s == "" {
+		return ""
+	}
+
+	suffixes := []string{
+		"s.a.", "inc.", "ltd.", "corp.", "co.", "gmbh", "ag", "sa", "inc", "llc",
+		"ltd", "corp", "co", "plc",
+	}
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, " "+suffix) {
+			s = strings.TrimSuffix(s, " "+suffix)
+			break
+		}
+	}
+
+	s = strings.TrimRight(s, ".,;:!? ")
+	s = strings.TrimSpace(s)
+
+	return s
+}
+
 // RegisterExperienceHooks sets up hooks for the experience and education collections.
 func RegisterExperienceHooks(app *pocketbase.PocketBase) {
+	// Before experience is created, auto-populate company_group_id if empty
+	app.OnRecordCreate("experience").BindFunc(func(e *core.RecordEvent) error {
+		if e.Record.GetString("company_group_id") == "" {
+			company := e.Record.GetString("company")
+			if company != "" {
+				e.Record.Set("company_group_id", NormalizeCompanyName(company))
+			}
+		}
+		return e.Next()
+	})
+
+	// Before experience is updated, auto-populate company_group_id if empty or company changed
+	app.OnRecordUpdate("experience").BindFunc(func(e *core.RecordEvent) error {
+		currentGroupID := e.Record.GetString("company_group_id")
+		company := e.Record.GetString("company")
+		originalCompany := e.Record.Original().GetString("company")
+
+		if currentGroupID == "" || company != originalCompany {
+			if company != "" {
+				e.Record.Set("company_group_id", NormalizeCompanyName(company))
+			}
+		}
+		return e.Next()
+	})
+
 	// After experience is created/updated, set the company logo display name to company name
 	app.OnRecordAfterCreateSuccess("experience").BindFunc(func(e *core.RecordEvent) error {
 		return setCompanyLogoDisplayName(app, e.Record)

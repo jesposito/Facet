@@ -67,6 +67,8 @@ func RegisterDuplicateHooks(app *pocketbase.PocketBase) {
 				duplicate.Set("company", company+" (Copy)")
 			}
 
+			duplicate.Set("company_group_id", original.GetString("company_group_id"))
+
 			if slug := original.GetString("slug"); slug != "" {
 				duplicate.Set("slug", slug+"-copy")
 			}
