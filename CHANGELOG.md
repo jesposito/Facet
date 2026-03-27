@@ -3,6 +3,22 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.18.10 - March 27, 2026
+
+**New Features:**
+- Add company_group_id field to experience collection with auto-population from normalized company name
+- Group multiple positions at the same company under a shared company header in all 3 public layouts
+- Support manual grouping via company_group_id for edge cases
+- Add positions_count key to all locale files
+- Implement experienceGrouping.ts grouping utility
+- Update ExperienceSection.svelte for grouped rendering
+- Update Experience type
+
+**Pull Requests:** [#417](https://github.com/jesposito/Facet/pull/417),
+
+---
+
+
 ## v2.18.9 - March 19, 2026
 
 **Bugs Fixed:**
