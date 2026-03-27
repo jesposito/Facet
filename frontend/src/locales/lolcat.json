@@ -1643,7 +1643,8 @@
 			"previous_image": "Previus pictur"
 		},
 		"experience": {
-			"at": "at"
+			"at": "at",
+			"positions_count": "{count} pozishuns"
 		},
 		"projects": {
 			"featured": "Feechurd"

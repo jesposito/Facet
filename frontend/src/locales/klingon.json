@@ -1643,7 +1643,8 @@
 			"previous_image": "Previous display"
 		},
 		"experience": {
-			"at": "serving"
+			"at": "serving",
+			"positions_count": "{count} positions"
 		},
 		"projects": {
 			"featured": "Honored"
