@@ -87,7 +87,8 @@
 		posts: { labelKey: 'admin.view_editor.sections.posts', collection: 'posts' },
 		talks: { labelKey: 'admin.view_editor.sections.talks', collection: 'talks' },
 		contacts: { labelKey: 'admin.view_editor.sections.contacts', collection: 'contact_methods' },
-		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' }
+		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' },
+		courses: { labelKey: 'admin.view_editor.sections.courses', collection: 'courses' }
 	};
 
 	// Helper to check if a section key is for custom content
