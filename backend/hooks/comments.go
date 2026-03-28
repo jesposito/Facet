@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"crypto/md5"
 	"crypto/sha256"
 	"fmt"
 	"net"
@@ -53,10 +54,7 @@ func gravatarURL(email string) string {
 		return ""
 	}
 	email = strings.ToLower(strings.TrimSpace(email))
-	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(email)))
-	// Gravatar uses MD5 but we use SHA256 of the trimmed lowercase email
-	// per the Gravatar spec: https://docs.gravatar.com/api/avatars/hash/
-	// Actually Gravatar supports SHA256 hashes as well.
+	hash := fmt.Sprintf("%x", md5.Sum([]byte(email)))
 	return fmt.Sprintf("https://www.gravatar.com/avatar/%s?d=mp&s=40", hash)
 }
 
@@ -196,15 +194,6 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
 			}
 
-			// Honeypot check - if the hidden field is filled, it's a bot
-			if honeypot := e.Request.FormValue("website_url"); honeypot != "" {
-				// Silently accept but don't save (bot doesn't know it was caught)
-				return respondJSON(e, http.StatusOK, map[string]any{
-					"id":     "fake-" + time.Now().Format("20060102150405"),
-					"status": "pending",
-				})
-			}
-
 			// Verify content exists
 			contentRecord, err := app.FindRecordById(contentType, contentID)
 			if err != nil {
@@ -236,9 +225,19 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 				AuthorEmail string `json:"author_email"`
 				Body        string `json:"body"`
 				ParentID    string `json:"parent_id"`
+				WebsiteURL  string `json:"website_url"` // honeypot field
 			}
 			if err := e.BindBody(&req); err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+			}
+
+			// Honeypot check - if the hidden field is filled, it's a bot
+			if req.WebsiteURL != "" {
+				// Silently accept but don't save (bot doesn't know it was caught)
+				return respondJSON(e, http.StatusOK, map[string]any{
+					"id":     "fake-" + time.Now().Format("20060102150405"),
+					"status": "pending",
+				})
 			}
 
 			// Validate required fields
@@ -424,7 +423,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			}
 
 			report := core.NewRecord(collection)
-			report.Set("comment_id", commentID)
+			report.Set("comment", commentID)
 			report.Set("reason", req.Reason)
 			report.Set("detail", req.Detail)
 			report.Set("status", "open")
@@ -490,7 +489,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			for _, r := range records {
 				// Count open reports for this comment
 				reportCount64, _ := app.CountRecords("comment_reports",
-					dbx.NewExp("comment_id = {:cid}", dbx.Params{"cid": r.Id}),
+					dbx.NewExp("comment = {:cid}", dbx.Params{"cid": r.Id}),
 					dbx.NewExp("status = 'open'"),
 				)
 
@@ -601,7 +600,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 				// Delete reports for the reply
 				replyReports, _ := app.FindRecordsByFilter(
 					"comment_reports",
-					"comment_id = {:cid}",
+					"comment = {:cid}",
 					"",
 					0,
 					0,
@@ -620,7 +619,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			// Delete reports for the comment itself
 			reports, _ := app.FindRecordsByFilter(
 				"comment_reports",
-				"comment_id = {:cid}",
+				"comment = {:cid}",
 				"",
 				0,
 				0,
@@ -773,7 +772,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			for _, r := range records {
 				report := map[string]interface{}{
 					"id":         r.Id,
-					"comment_id": r.GetString("comment_id"),
+					"comment_id": r.GetString("comment"),
 					"reason":     r.GetString("reason"),
 					"detail":     r.GetString("detail"),
 					"status":     r.GetString("status"),
@@ -781,7 +780,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 				}
 
 				// Include comment details if available
-				commentID := r.GetString("comment_id")
+				commentID := r.GetString("comment")
 				if comment, err := app.FindRecordById("comments", commentID); err == nil {
 					report["comment"] = map[string]interface{}{
 						"author_name":  comment.GetString("author_name"),
@@ -890,7 +889,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 					// Delete reports
 					reports, _ := app.FindRecordsByFilter(
 						"comment_reports",
-						"comment_id = {:cid}",
+						"comment = {:cid}",
 						"",
 						0,
 						0,

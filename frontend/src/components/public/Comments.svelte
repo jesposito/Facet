@@ -335,16 +335,13 @@
 							<!-- Reply form -->
 							{#if replyToId === comment.id}
 								<div class="mt-3">
-									<ReplyForm
-										onSubmit={() => submitComment(comment.id)}
-										onCancel={cancelReply}
-										bind:authorName
-										bind:authorEmail
-										bind:body
-										{submitting}
-										{submitError}
-										{maxBodyLength}
-									/>
+									{@render ReplyForm({
+										onSubmit: () => submitComment(comment.id),
+										onCancel: cancelReply,
+										submitting,
+										submitError,
+										maxBodyLength
+									})}
 								</div>
 							{/if}
 
@@ -501,7 +498,7 @@
 {/if}
 
 <!-- Inline reply form snippet (used for replies) -->
-{#snippet ReplyForm({ onSubmit, onCancel, bind:authorName, bind:authorEmail, bind:body, submitting, submitError, maxBodyLength }: any)}
+{#snippet ReplyForm({ onSubmit, onCancel, submitting, submitError, maxBodyLength }: { onSubmit: () => void; onCancel: () => void; submitting: boolean; submitError: string; maxBodyLength: number })}
 	<form onsubmit={(e) => { e.preventDefault(); onSubmit(); }} class="space-y-3" novalidate>
 		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 			<input

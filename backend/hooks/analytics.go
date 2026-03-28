@@ -341,36 +341,17 @@ func LogViewAccess(app *pocketbase.PocketBase, e *core.RequestEvent, viewID, vie
 	}()
 }
 
-// pruneAccessLogs deletes access_logs entries older than 90 days.
+// pruneAccessLogs deletes access_logs entries older than 90 days using bulk SQL DELETE.
 func pruneAccessLogs(app *pocketbase.PocketBase) {
 	cutoff := time.Now().UTC().AddDate(0, 0, -90).Format("2006-01-02 15:04:05.000Z")
-	totalPruned := 0
-
-	for {
-		records, err := app.FindRecordsByFilter(
-			"access_logs",
-			"created < {:cutoff}",
-			"", 500, 0,
-			map[string]any{"cutoff": cutoff},
-		)
-		if err != nil || len(records) == 0 {
-			break
-		}
-
-		for _, record := range records {
-			if err := app.Delete(record); err != nil {
-				app.Logger().Warn("analytics: failed to prune record", "id", record.Id, "error", err)
-			} else {
-				totalPruned++
-			}
-		}
-
-		if len(records) < 500 {
-			break
-		}
+	res, err := app.DB().NewQuery(
+		"DELETE FROM access_logs WHERE created < {:cutoff}",
+	).Bind(map[string]any{"cutoff": cutoff}).Execute()
+	if err != nil {
+		app.Logger().Warn("analytics: failed to prune access logs", "error", err)
+		return
 	}
-
-	if totalPruned > 0 {
-		app.Logger().Info("Pruned access logs", "count", totalPruned)
+	if n, _ := res.RowsAffected(); n > 0 {
+		app.Logger().Info("Pruned access logs", "count", n)
 	}
 }

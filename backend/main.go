@@ -75,6 +75,7 @@ func main() {
 	hooks.RegisterBackupHooks(app)  // Automated database backup system
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCommentHooks(app, planConfig)
+	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
