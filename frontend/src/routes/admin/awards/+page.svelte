@@ -14,6 +14,7 @@
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	let awards: Award[] = $state([]);
@@ -400,12 +401,7 @@ onMount(loadAwards);
 
 				<div>
 					<label for="description" class="label">Description</label>
-					<textarea
-						id="description"
-						bind:value={description}
-						class="input h-28"
-						placeholder="Optional summary or citation"
-					></textarea>
+					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="80px" placeholder="Optional summary or citation" />
 				</div>
 
 				<div>

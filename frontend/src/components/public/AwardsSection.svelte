@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
 	import type { Award } from '$lib/pocketbase';
-	import { formatDate, truncate } from '$lib/utils';
+	import { formatDate, truncate, parseMarkdown } from '$lib/utils';
 
 	interface Props {
 		items: Award[];
@@ -43,7 +43,7 @@
 							<p class="text-sm text-gray-600 dark:text-gray-400">{award.issuer}</p>
 						{/if}
 						{#if award.description}
-							<p class="text-gray-700 dark:text-gray-300 text-sm">{truncate(award.description, 220)}</p>
+							<div class="prose-custom text-gray-700 dark:text-gray-300 text-sm">{@html parseMarkdown(award.description)}</div>
 						{/if}
 						{#if award.url}
 							<a
@@ -78,7 +78,7 @@
 						<p class="text-sm text-gray-600 dark:text-gray-400">{award.issuer}</p>
 					{/if}
 					{#if award.description}
-						<p class="text-gray-700 dark:text-gray-300 text-sm line-clamp-3">{award.description}</p>
+						<div class="prose-custom text-gray-700 dark:text-gray-300 text-sm line-clamp-3">{@html parseMarkdown(award.description)}</div>
 					{/if}
 					{#if award.url}
 						<a
@@ -118,9 +118,9 @@
 									{/if}
 								</div>
 								{#if award.description}
-									<p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-										{award.description}
-									</p>
+									<div class="prose-custom text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+										{@html parseMarkdown(award.description)}
+									</div>
 								{/if}
 								{#if award.url}
 									<a

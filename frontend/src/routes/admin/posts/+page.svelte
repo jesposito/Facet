@@ -18,6 +18,7 @@ import PageHelp from '$components/admin/PageHelp.svelte';
 import AdminFilters from '$components/admin/AdminFilters.svelte';
 import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
 let posts: Post[] = $state([]);
 let loading = $state(true);
@@ -530,12 +531,7 @@ function openEditForm(post: Post) {
 							size="sm"
 						/>
 					</div>
-					<textarea
-						id="content"
-						bind:value={content}
-						class="input min-h-[300px] font-mono text-sm"
-						placeholder="Write your post content here... (Markdown + media shortcodes)"
-					></textarea>
+					<MarkdownEditor bind:value={content} toolbar="full" minHeight="300px" placeholder="Write your post content here... (Markdown + media shortcodes)" />
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
 						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Media shortcodes</button>
 						<span>Use {'{{provider:url}}'} (youtube, vimeo, soundcloud, spotify, image, video, pdf, figma, codepen)</span>

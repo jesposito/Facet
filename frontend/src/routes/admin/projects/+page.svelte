@@ -21,6 +21,7 @@
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
 	let projects: Project[] = $state([]);
 	let loading = $state(true);
@@ -668,13 +669,7 @@ let filteredProjects = $derived(
 							on:apply={(e) => (summary = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="summary"
-						bind:value={summary}
-						class="input mt-1"
-						rows="2"
-						placeholder={$t('admin.content.projects.summary_placeholder')}
-					></textarea>
+					<MarkdownEditor bind:value={summary} toolbar="compact" minHeight="150px" placeholder={$t('admin.content.projects.summary_placeholder')} />
 				</div>
 
 				<div>
@@ -687,12 +682,7 @@ let filteredProjects = $derived(
 							on:apply={(e) => (description = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="description"
-						bind:value={description}
-						class="input min-h-[150px] mt-1"
-						placeholder={$t('admin.content.projects.description_placeholder')}
-					></textarea>
+					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="150px" placeholder={$t('admin.content.projects.description_placeholder')} />
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
 						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>{$t('admin.content.projects.media_toggle_shortcodes')}</button>
 						<span>{$t('admin.content.projects.shortcodes_hint')}</span>
