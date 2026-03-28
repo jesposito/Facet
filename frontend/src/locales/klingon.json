@@ -256,6 +256,32 @@
 				"view_full_changelog": "View full battle records on GitHub →",
 				"new_version_available": "{version} ready for deployment"
 			},
+			"payments": {
+				"title": "Huch Configurations",
+				"description": "Configure Stripe to collect tribute through your domain.",
+				"status": "Status",
+				"not_configured": "Not Configured",
+				"configured": "Configured",
+				"configured_via_env": "Configured via Environment Orders",
+				"secret_key": "Stripe Secret Key",
+				"secret_key_placeholder": "sk_live_... or sk_test_...",
+				"secret_key_set": "Secret key is secured",
+				"webhook_secret": "Webhook Secret",
+				"webhook_secret_placeholder": "whsec_...",
+				"webhook_secret_set": "Webhook secret is secured",
+				"save": "Secure",
+				"clear": "Destroy",
+				"change": "Change",
+				"test_connection": "Test the Connection",
+				"test_success": "Stripe connection successful! Qapla'!",
+				"test_failed": "Connection failed: {error}",
+				"save_success": "Stripe configurations secured",
+				"save_error": "Configurations could not be secured",
+				"clear_success": "Stripe configurations destroyed",
+				"clear_error": "Configurations could not be destroyed",
+				"env_fallback_info": "Environment orders (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are used as fallback when no keys are secured here.",
+				"feature_disabled": "Tribute systems are not operational. Activate them in Systems configurations."
+			},
 			"settings_saved": "Configurations secured",
 			"settings_error": "Configurations could not be secured. Dishonorable!"
 		},
@@ -492,7 +518,8 @@
 			"commerce": "mech",
 			"new_post": "chu' QIn",
 			"new_talk": "chu' jatlh",
-			"new_course": "chu' ghojmeH"
+			"new_course": "chu' ghojmeH",
+			"payments": "Huch"
 		},
 		"courses": {
 			"page_title": "ghojmeH HoD",

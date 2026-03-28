@@ -256,6 +256,32 @@
 				"view_full_changelog": "Behold full scrolls of change on GitHub →",
 				"new_version_available": "{version} awaits"
 			},
+			"payments": {
+				"title": "Mancale Inscriptions",
+				"description": "Inscribe the Stripe runes to receive tribute upon your realm.",
+				"status": "Tirith",
+				"not_configured": "Unconfigured",
+				"configured": "Configured",
+				"configured_via_env": "Configured via Ancient Runes",
+				"secret_key": "Stripe Secret Rune",
+				"secret_key_placeholder": "sk_live_... or sk_test_...",
+				"secret_key_set": "Secret rune is inscribed",
+				"webhook_secret": "Webhook Secret Rune",
+				"webhook_secret_placeholder": "whsec_...",
+				"webhook_secret_set": "Webhook rune is inscribed",
+				"save": "Preserve",
+				"clear": "Erase",
+				"change": "Alter",
+				"test_connection": "Test the Binding",
+				"test_success": "The Stripe binding holds!",
+				"test_failed": "The binding failed: {error}",
+				"save_success": "Stripe runes preserved",
+				"save_error": "Runes could not be preserved",
+				"clear_success": "Stripe runes erased",
+				"clear_error": "Runes could not be erased",
+				"env_fallback_info": "Ancient runes (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are invoked as fallback when no runes are inscribed here.",
+				"feature_disabled": "The tribute gifts are not awakened. Awaken them in the Gifts inscriptions."
+			},
 			"settings_saved": "Inscriptions preserved",
 			"settings_error": "Inscriptions could not be preserved"
 		},
@@ -492,7 +518,8 @@
 			"commerce": "Mancale",
 			"new_post": "Nowe Tirne",
 			"new_talk": "Nowe Oration",
-			"new_course": "Nowe Tirelya"
+			"new_course": "Nowe Tirelya",
+			"payments": "Mancale"
 		},
 		"courses": {
 			"page_title": "Tirelyar",

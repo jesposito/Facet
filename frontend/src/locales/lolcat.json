@@ -256,6 +256,32 @@
 				"view_full_changelog": "View full changelog on GitHub →",
 				"new_version_available": "{version} availabl"
 			},
+			"payments": {
+				"title": "Moniez Settingz",
+				"description": "Setup Stripe so u can haz moniez on ur site.",
+				"status": "Status",
+				"not_configured": "Not Setup Yet",
+				"configured": "All Setup!",
+				"configured_via_env": "Setup Via Env Variabelz",
+				"secret_key": "Stripe Sekret Key",
+				"secret_key_placeholder": "sk_live_... or sk_test_...",
+				"secret_key_set": "Sekret key iz configurd",
+				"webhook_secret": "Webhook Sekret",
+				"webhook_secret_placeholder": "whsec_...",
+				"webhook_secret_set": "Webhook sekret iz configurd",
+				"save": "Saev",
+				"clear": "Klear",
+				"change": "Chanj",
+				"test_connection": "Test Connection",
+				"test_success": "Stripe connection werks! Can haz moniez!",
+				"test_failed": "Connection faild: {error}",
+				"save_success": "Stripe settingz savd!",
+				"save_error": "Faild 2 saev settingz",
+				"clear_success": "Stripe settingz kleard",
+				"clear_error": "Faild 2 klear settingz",
+				"env_fallback_info": "Env variabelz (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) iz used as fallback wen no keyz iz savd heer.",
+				"feature_disabled": "Moniez featurez iz not enablez. Enable dem in Featurez settingz."
+			},
 			"settings_saved": "Settingz savd!",
 			"settings_error": "Faild 2 saev settingz"
 		},
@@ -492,7 +518,8 @@
 			"commerce": "Moniez",
 			"new_post": "Noo Post",
 			"new_talk": "Noo Tawk",
-			"new_course": "Noo Lernin"
+			"new_course": "Noo Lernin",
+			"payments": "Moniez"
 		},
 		"courses": {
 			"page_title": "Lernin Stuffz",

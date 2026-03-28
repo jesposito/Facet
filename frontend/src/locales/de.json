@@ -256,6 +256,32 @@
 				"view_full_changelog": "Vollständiges Änderungsprotokoll auf GitHub ansehen →",
 				"new_version_available": "{version} verfügbar"
 			},
+			"payments": {
+				"title": "Zahlungseinstellungen",
+				"description": "Konfigurieren Sie Stripe, um Zahlungen auf Ihrer Website zu akzeptieren.",
+				"status": "Status",
+				"not_configured": "Nicht konfiguriert",
+				"configured": "Konfiguriert",
+				"configured_via_env": "Konfiguriert über Umgebungsvariablen",
+				"secret_key": "Stripe-Geheimschlüssel",
+				"secret_key_placeholder": "sk_live_... oder sk_test_...",
+				"secret_key_set": "Geheimschlüssel ist konfiguriert",
+				"webhook_secret": "Webhook-Geheimnis",
+				"webhook_secret_placeholder": "whsec_...",
+				"webhook_secret_set": "Webhook-Geheimnis ist konfiguriert",
+				"save": "Speichern",
+				"clear": "Löschen",
+				"change": "Ändern",
+				"test_connection": "Verbindung testen",
+				"test_success": "Stripe-Verbindung erfolgreich!",
+				"test_failed": "Verbindung fehlgeschlagen: {error}",
+				"save_success": "Stripe-Einstellungen erfolgreich gespeichert",
+				"save_error": "Einstellungen konnten nicht gespeichert werden",
+				"clear_success": "Stripe-Einstellungen gelöscht",
+				"clear_error": "Einstellungen konnten nicht gelöscht werden",
+				"env_fallback_info": "Umgebungsvariablen (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) werden als Fallback verwendet, wenn hier keine Schlüssel gespeichert sind.",
+				"feature_disabled": "Zahlungsfunktionen sind nicht aktiviert. Aktivieren Sie sie in den Funktionseinstellungen."
+			},
 			"settings_saved": "Einstellungen gespeichert",
 			"settings_error": "Einstellungen konnten nicht gespeichert werden"
 		},
@@ -492,7 +518,8 @@
 			"commerce": "Handel",
 			"new_post": "Neuer Beitrag",
 			"new_talk": "Neuer Vortrag",
-			"new_course": "Neuer Kurs"
+			"new_course": "Neuer Kurs",
+			"payments": "Zahlungen"
 		},
 		"courses": {
 			"page_title": "Kurse",

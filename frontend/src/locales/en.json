@@ -256,6 +256,32 @@
 				"view_full_changelog": "View full changelog on GitHub →",
 				"new_version_available": "{version} available"
 			},
+			"payments": {
+				"title": "Payment Settings",
+				"description": "Configure Stripe for accepting payments on your site.",
+				"status": "Status",
+				"not_configured": "Not Configured",
+				"configured": "Configured",
+				"configured_via_env": "Configured via Environment Variables",
+				"secret_key": "Stripe Secret Key",
+				"secret_key_placeholder": "sk_live_... or sk_test_...",
+				"secret_key_set": "Secret key is configured",
+				"webhook_secret": "Webhook Secret",
+				"webhook_secret_placeholder": "whsec_...",
+				"webhook_secret_set": "Webhook secret is configured",
+				"save": "Save",
+				"clear": "Clear",
+				"change": "Change",
+				"test_connection": "Test Connection",
+				"test_success": "Stripe connection successful!",
+				"test_failed": "Connection failed: {error}",
+				"save_success": "Stripe settings saved successfully",
+				"save_error": "Failed to save settings",
+				"clear_success": "Stripe settings cleared",
+				"clear_error": "Failed to clear settings",
+				"env_fallback_info": "Environment variables (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) are used as fallback when no keys are stored here.",
+				"feature_disabled": "Payment features are not enabled. Enable them in Features settings."
+			},
 			"settings_saved": "Settings saved",
 			"settings_error": "Failed to save settings"
 		},
@@ -492,7 +518,8 @@
 			"commerce": "Commerce",
 			"new_post": "New Post",
 			"new_talk": "New Talk",
-			"new_course": "New Course"
+			"new_course": "New Course",
+			"payments": "Payments"
 		},
 		"courses": {
 			"page_title": "Courses",
