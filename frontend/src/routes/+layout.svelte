@@ -8,32 +8,62 @@
 	import { theme, toasts } from '$lib/stores';
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
-	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
+	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex } from '$lib/colors';
+	import { initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
 	interface Props {
 		children?: import('svelte').Snippet;
-		data: { faviconUrl: string | null };
+		data: {
+			faviconUrl: string | null;
+			planConfig: PlanConfig | null;
+			siteNav: { enabled: boolean; items: Array<{ viewId: string; slug: string; label: string; name: string }> };
+			accentColor: string | null;
+			customHexColor: string | null;
+			customCSS: string | null;
+			defaultLocale: string | null;
+		};
 	}
 
 	let { children, data }: Props = $props();
 
+	// Initialize plan config from SSR data immediately (before onMount)
+	$effect(() => {
+		if (data.planConfig) {
+			initPlanFromSSR(data.planConfig);
+		}
+	});
+
+	// Apply accent color from SSR data immediately via $effect (before onMount)
+	$effect(() => {
+		if (!browser) return;
+		if (data.customHexColor) {
+			applyFlatAccent(data.customHexColor);
+		} else if (data.accentColor) {
+			applyAccentColor(data.accentColor as AccentColor);
+		}
+	});
+
 	// Debug navigation in development
 	beforeNavigate((navigation) => {
-		console.log('[NAVIGATION] Before navigate:', {
-			from: navigation.from?.url?.pathname,
-			to: navigation.to?.url?.pathname,
-			type: navigation.type,
-			willUnload: navigation.willUnload
-		});
+		if (import.meta.env.DEV) {
+			console.log('[NAVIGATION] Before navigate:', {
+				from: navigation.from?.url?.pathname,
+				to: navigation.to?.url?.pathname,
+				type: navigation.type,
+				willUnload: navigation.willUnload
+			});
+		}
 	});
 
 	afterNavigate((navigation) => {
-		console.log('[NAVIGATION] After navigate:', {
-			from: navigation.from?.url?.pathname,
-			to: navigation.to?.url?.pathname,
-			type: navigation.type
-		});
+		if (import.meta.env.DEV) {
+			console.log('[NAVIGATION] After navigate:', {
+				from: navigation.from?.url?.pathname,
+				to: navigation.to?.url?.pathname,
+				type: navigation.type
+			});
+		}
 	});
 
 	let themeColor = $state('#0ea5e9'); // Default sky-500
@@ -44,8 +74,11 @@ let gaMeasurementId = $state('');
 let gaInitialized = $state(false);
 let accentStyleEl: HTMLStyleElement | null = $state(null);
 let customPaletteLocked = false;
-// Initialize from server-loaded data for correct SSR
-let faviconUrl = $state<string | null>(data.faviconUrl);
+let faviconUrl = $state<string | null>(null);
+
+$effect(() => {
+	faviconUrl = data.faviconUrl;
+});
 
 function applyPaletteFromCSS(css: string) {
 	if (!browser || !css) return;
@@ -59,14 +92,14 @@ function applyPaletteFromCSS(css: string) {
 
 	if (Object.keys(palette).length === 0) return;
 
-	// If only 500 is provided, fan it out to all tokens
+	// If only 500 is provided, generate a proper palette from that hex color
 	if (Object.keys(palette).length === 1 && palette['500']) {
-		const color = palette['500'];
-		for (const step of ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950']) {
-			palette[step] = color;
+		const scale = generatePaletteFromHex(palette['500']);
+		for (const step of ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const) {
+			palette[step] = scale[step];
 		}
 		customPaletteLocked = true;
-		applyFlatAccent(color);
+		applyFlatAccent(palette['500']);
 	} else {
 		customPaletteLocked = true;
 	}
@@ -80,29 +113,31 @@ function applyPaletteFromCSS(css: string) {
 function applyFlatAccent(color: string) {
 	if (!browser || !color) return;
 
+	const scale = generatePaletteFromHex(color);
+
 	if (!accentStyleEl) {
 		accentStyleEl = document.createElement('style');
-			accentStyleEl.id = 'accent-colors';
-			document.head.appendChild(accentStyleEl);
-		}
-
-		accentStyleEl.textContent = `
-:root {
-  --color-primary-50: ${color};
-  --color-primary-100: ${color};
-  --color-primary-200: ${color};
-  --color-primary-300: ${color};
-  --color-primary-400: ${color};
-  --color-primary-500: ${color};
-  --color-primary-600: ${color};
-  --color-primary-700: ${color};
-  --color-primary-800: ${color};
-  --color-primary-900: ${color};
-  --color-primary-950: ${color};
-}
-		`.trim();
-		themeColor = color;
+		accentStyleEl.id = 'accent-colors';
+		document.head.appendChild(accentStyleEl);
 	}
+
+	accentStyleEl.textContent = `
+:root {
+  --color-primary-50: ${scale[50]};
+  --color-primary-100: ${scale[100]};
+  --color-primary-200: ${scale[200]};
+  --color-primary-300: ${scale[300]};
+  --color-primary-400: ${scale[400]};
+  --color-primary-500: ${scale[500]};
+  --color-primary-600: ${scale[600]};
+  --color-primary-700: ${scale[700]};
+  --color-primary-800: ${scale[800]};
+  --color-primary-900: ${scale[900]};
+  --color-primary-950: ${scale[950]};
+}
+	`.trim();
+	themeColor = scale[500];
+}
 
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
