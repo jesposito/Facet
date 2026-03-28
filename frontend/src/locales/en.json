@@ -460,7 +460,8 @@
 			"update_available": "Update available",
 			"check_for_updates": "Check for updates",
 			"portfolio": "Portfolio",
-			"content": "Content"
+			"content": "Content",
+			"features": "Features"
 		},
 		"dashboard": {
 			"title": "Dashboard",
@@ -590,6 +591,21 @@
 				"label": "Cover Image",
 				"current": "Current image",
 				"help": "Displayed in post grids and as the header image"
+			},
+			"features": {
+				"title": "Features",
+				"description": "Enable or disable optional features for your site.",
+				"analytics": "Analytics",
+				"analytics_description": "Track visitor counts, page views, referrers, and UTM campaigns.",
+				"courses": "Courses",
+				"courses_description": "Create and manage online courses with lessons and quizzes.",
+				"newsletter": "Newsletter",
+				"newsletter_description": "Send newsletters to subscribers. Requires SMTP configuration.",
+				"discussions": "Discussions",
+				"discussions_description": "Allow visitors to leave comments and start discussions on your content.",
+				"saved": "Feature settings saved successfully.",
+				"save_error": "Failed to save feature settings.",
+				"all_enabled_note": "All features are enabled by default. Disable features you don't need to simplify your admin panel."
 			}
 		},
 		"contacts": {

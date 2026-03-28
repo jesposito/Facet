@@ -460,7 +460,8 @@
 			"update_available": "Update verfügbar",
 			"check_for_updates": "Nach Updates suchen",
 			"portfolio": "Portfolio",
-			"content": "Inhalte"
+			"content": "Inhalte",
+			"features": "Funktionen"
 		},
 		"dashboard": {
 			"title": "Dashboard",
@@ -563,6 +564,21 @@
 				"label": "Titelbild",
 				"current": "Aktuelles Bild",
 				"help": "Wird in Beitragsrastern und als Kopfbild angezeigt"
+			},
+			"features": {
+				"title": "Funktionen",
+				"description": "Aktivieren oder deaktivieren Sie optionale Funktionen für Ihre Website.",
+				"analytics": "Analysen",
+				"analytics_description": "Besucherzahlen, Seitenaufrufe, Referrer und UTM-Kampagnen verfolgen.",
+				"courses": "Kurse",
+				"courses_description": "Online-Kurse mit Lektionen und Quizzen erstellen und verwalten.",
+				"newsletter": "Newsletter",
+				"newsletter_description": "Newsletter an Abonnenten senden. Erfordert SMTP-Konfiguration.",
+				"discussions": "Diskussionen",
+				"discussions_description": "Besuchern ermöglichen, Kommentare zu hinterlassen und Diskussionen zu Ihren Inhalten zu starten.",
+				"saved": "Funktionseinstellungen erfolgreich gespeichert.",
+				"save_error": "Funktionseinstellungen konnten nicht gespeichert werden.",
+				"all_enabled_note": "Alle Funktionen sind standardmäßig aktiviert. Deaktivieren Sie Funktionen, die Sie nicht benötigen, um Ihr Admin-Panel zu vereinfachen."
 			}
 		},
 		"contacts": {

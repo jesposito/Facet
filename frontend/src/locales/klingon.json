@@ -460,7 +460,8 @@
 			"update_available": "Update ready",
 			"check_for_updates": "Scan for updates",
 			"portfolio": "ta'mey",
-			"content": "ghItlh"
+			"content": "ghItlh",
+			"features": "Systems"
 		},
 		"dashboard": {
 			"title": "Command Center",
@@ -563,6 +564,21 @@
 				"label": "Banner Image",
 				"current": "Current image",
 				"help": "Displayed in post grids and as the header image"
+			},
+			"features": {
+				"title": "Combat Systems",
+				"description": "Engage or stand down optional combat systems for your stronghold.",
+				"analytics": "Sensor Array",
+				"analytics_description": "Track intruder counts, patrol routes, approach vectors, and tactical campaigns.",
+				"courses": "War Academy",
+				"courses_description": "Train warriors with battle lessons and honor trials.",
+				"newsletter": "War Drums",
+				"newsletter_description": "Dispatch battle cries to your warriors. Requires SMTP armaments.",
+				"discussions": "War Council",
+				"discussions_description": "Allow warriors to challenge and debate the lore of your stronghold.",
+				"saved": "Combat systems secured.",
+				"save_error": "Combat systems could not be secured. Dishonorable failure.",
+				"all_enabled_note": "All combat systems are engaged by default. Stand down systems your stronghold does not require."
 			}
 		},
 		"contacts": {

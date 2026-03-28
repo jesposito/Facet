@@ -460,7 +460,8 @@
 			"update_available": "Renewal awaits",
 			"check_for_updates": "Seek renewals",
 			"portfolio": "Panthael",
-			"content": "Quettar"
+			"content": "Quettar",
+			"features": "Gifts"
 		},
 		"dashboard": {
 			"title": "Great Hall",
@@ -563,6 +564,21 @@
 				"label": "Banner Image",
 				"current": "Current image",
 				"help": "Displayed in writing grids and as the crown image"
+			},
+			"features": {
+				"title": "Lore & Gifts",
+				"description": "Kindle or quench the ancient gifts bestowed upon thy realm.",
+				"analytics": "Farsight",
+				"analytics_description": "Behold the count of wanderers, their paths, and whence they journeyed.",
+				"courses": "Teachings",
+				"courses_description": "Craft and tend scrolls of learning, with lessons and trials of knowledge.",
+				"newsletter": "Heralds",
+				"newsletter_description": "Send tidings unto thy followers. Requires the SMTP runes to be inscribed.",
+				"discussions": "Counsel",
+				"discussions_description": "Permit wanderers to speak their thoughts and engage in discourse upon thy lore.",
+				"saved": "The gifts have been duly preserved.",
+				"save_error": "The gifts could not be preserved.",
+				"all_enabled_note": "All gifts are kindled by default. Quench those thy realm doth not require to bring order to thy great hall."
 			}
 		},
 		"contacts": {

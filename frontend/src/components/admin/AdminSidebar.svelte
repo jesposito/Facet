@@ -145,6 +145,7 @@ const navSections = [
 		items: [
 			{ href: '/admin/settings/account', labelKey: 'admin.sidebar.account_security', icon: 'badge' },
 			{ href: '/admin/settings/site', labelKey: 'admin.sidebar.site_settings', icon: 'star' },
+			{ href: '/admin/settings/features', labelKey: 'admin.sidebar.features', icon: 'puzzle' },
 			{ href: '/admin/settings/integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' },
 			{ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' },
 			{ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' },

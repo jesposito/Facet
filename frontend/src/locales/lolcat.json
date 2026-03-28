@@ -460,7 +460,8 @@
 			"update_available": "Updat availabl",
 			"check_for_updates": "Chek 4 updaetz",
 			"portfolio": "MAH STUFFZ",
-			"content": "MAH CREASHUNS"
+			"content": "MAH CREASHUNS",
+			"features": "Featurez"
 		},
 		"dashboard": {
 			"title": "Dashbord",
@@ -563,6 +564,21 @@
 				"label": "Covr Imaj",
 				"current": "Current imaj",
 				"help": "Displayd in post gridz n as teh hedr imaj"
+			},
+			"features": {
+				"title": "Featurez",
+				"description": "Turnz on or off teh optionul featurez 4 ur site. So many choichez!",
+				"analytics": "Analyticz",
+				"analytics_description": "Count visitrz, pagez viewd, wher dey comz from, n UTM campainz. Iz data!",
+				"courses": "Coursez",
+				"courses_description": "Maek n manaj onlien coursez wit lessunz n quizzez. Teech all teh thingz!",
+				"newsletter": "Newslettr",
+				"newsletter_description": "Send newslettrz 2 subscribrz. Needz SMTP konfig first kthxbai.",
+				"discussions": "Discusshunz",
+				"discussions_description": "Let visitrz leev commentz n start discusshunz on ur contntz. So many wordz!",
+				"saved": "Featurez settingz savd! Grat sukses!!",
+				"save_error": "Oh noes! Featurez settingz not savd. Iz sad.",
+				"all_enabled_note": "All featurez r on by defolt. Turn off wat u dnt need 2 maek admin simpler. Moch simpl!"
 			}
 		},
 		"contacts": {
