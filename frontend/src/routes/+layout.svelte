@@ -178,7 +178,9 @@ function applyFlatAccent(color: string) {
 			const response = await fetch('/api/homepage');
 			if (response.ok) {
 				const data = await response.json();
-				if (data.profile?.accent_color) {
+				if (data.profile?.custom_hex_color) {
+					applyFlatAccent(data.profile.custom_hex_color);
+				} else if (data.profile?.accent_color) {
 					applyAccentColor(data.profile.accent_color as AccentColor);
 				}
 			}
