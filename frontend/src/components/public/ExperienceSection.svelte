@@ -50,9 +50,9 @@
 			<div class="space-y-8 pl-12">
 				{#each groupedItems as entry (isGroup(entry) ? entry.groupId : entry.id)}
 					{#if isGroup(entry)}
-						<!-- Company group: header node + nested sub-items -->
+						<!-- Company group: header on main timeline + positions on main timeline -->
 						<div class="relative animate-fade-in" itemscope itemtype="https://schema.org/Organization">
-							<!-- Larger timeline node for company group -->
+							<!-- Company header: large dot on main timeline -->
 							<div class="absolute -left-12 w-8 h-8 bg-primary-700 rounded-full ring-4 ring-white dark:ring-gray-900 z-10 flex items-center justify-center">
 								{#if entry.companyLogoUrl || entry.companyLogo}
 									<img
@@ -63,7 +63,7 @@
 								{/if}
 							</div>
 
-							<!-- Company header -->
+							<!-- Company header content -->
 							<div class="flex gap-4 items-start">
 								{#if entry.companyLogoUrl || entry.companyLogo}
 									<div class="shrink-0 w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center {getLogoBgClass(entry.logoBackground) || 'bg-gray-100 dark:bg-gray-800'}">
@@ -85,57 +85,53 @@
 								</div>
 							</div>
 
-							<!-- Nested sub-timeline for positions -->
-							<div class="mt-4 ml-6 relative">
-								<!-- Sub-timeline line -->
-								<div class="absolute left-2 top-0 bottom-0 w-0.5 bg-primary-100 dark:bg-primary-900"></div>
-								<div class="space-y-5 pl-8">
-									{#each entry.positions as pos (pos.id)}
-										<article class="relative" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
-											<!-- Sub-timeline dot -->
-											<div class="absolute -left-8 top-1.5 w-3 h-3 bg-primary-400 dark:bg-primary-600 rounded-full ring-2 ring-white dark:ring-gray-900 z-10"></div>
+							<!-- Positions: each with a small dot on the MAIN timeline -->
+							<div class="mt-5 space-y-5">
+								{#each entry.positions as pos (pos.id)}
+									<article class="relative" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
+										<!-- Small dot centered on the main timeline line -->
+										<div class="absolute -left-[2.375rem] top-1 w-3 h-3 bg-primary-400 dark:bg-primary-600 rounded-full ring-2 ring-white dark:ring-gray-900 z-10"></div>
 
-											<div>
-												<h3 class="text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
-													{pos.title}
-												</h3>
-												<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-													<span class="font-medium">{formatDateRange(pos.start_date, pos.end_date, presentText)}</span>
-													{#if pos.location}
-														<span>• {pos.location}</span>
-													{/if}
-												</div>
-
-												{#if pos.description}
-													<div class="mt-2 prose-custom text-gray-600 dark:text-gray-300 text-sm" itemprop="description">
-														{@html parseMarkdown(pos.description)}
-													</div>
-												{/if}
-
-												{#if pos.bullets && pos.bullets.length > 0}
-													<ul class="mt-1.5 space-y-1">
-														{#each pos.bullets as bullet}
-															<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
-																<span class="text-primary-500 mt-0.5">•</span>
-																<span>{stripBulletPrefix(bullet)}</span>
-															</li>
-														{/each}
-													</ul>
-												{/if}
-
-												{#if pos.skills && pos.skills.length > 0}
-													<div class="mt-2 flex flex-wrap gap-1.5">
-														{#each pos.skills as skill}
-															<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
-																{skill}
-															</span>
-														{/each}
-													</div>
+										<div>
+											<h3 class="text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
+												{pos.title}
+											</h3>
+											<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+												<span class="font-medium">{formatDateRange(pos.start_date, pos.end_date, presentText)}</span>
+												{#if pos.location}
+													<span>• {pos.location}</span>
 												{/if}
 											</div>
-										</article>
-									{/each}
-								</div>
+
+											{#if pos.description}
+												<div class="mt-2 prose-custom text-gray-600 dark:text-gray-300 text-sm" itemprop="description">
+													{@html parseMarkdown(pos.description)}
+												</div>
+											{/if}
+
+											{#if pos.bullets && pos.bullets.length > 0}
+												<ul class="mt-1.5 space-y-1">
+													{#each pos.bullets as bullet}
+														<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300 text-sm">
+															<span class="text-primary-500 mt-0.5">•</span>
+															<span>{stripBulletPrefix(bullet)}</span>
+														</li>
+													{/each}
+												</ul>
+											{/if}
+
+											{#if pos.skills && pos.skills.length > 0}
+												<div class="mt-2 flex flex-wrap gap-1.5">
+													{#each pos.skills as skill}
+														<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+															{skill}
+														</span>
+													{/each}
+												</div>
+											{/if}
+										</div>
+									</article>
+								{/each}
 							</div>
 						</div>
 
@@ -233,10 +229,12 @@
 							</span>
 						</div>
 
-						<!-- Indented position list -->
-						<div class="mt-2 ml-4 space-y-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
+						<!-- Indented position list with accent border -->
+						<div class="mt-2 ml-4 space-y-3 border-l-2 border-primary-200 dark:border-primary-800 pl-4">
 							{#each entry.positions as pos (pos.id)}
-								<article itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
+								<article class="relative" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
+									<!-- Dot on the left border -->
+									<div class="absolute -left-[1.3125rem] top-1.5 w-2 h-2 bg-primary-400 dark:bg-primary-600 rounded-full"></div>
 									<div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-3">
 										<div class="flex-1">
 											<h3 class="font-semibold text-gray-900 dark:text-white text-sm" itemprop="name">
@@ -330,13 +328,15 @@
 							</div>
 						</div>
 
-						<!-- Positions as sub-entries with thin dividers -->
-						<div class="mt-4 space-y-0">
+						<!-- Positions with accent border and dot indicators -->
+						<div class="mt-4 ml-2 border-l-2 border-primary-200 dark:border-primary-800">
 							{#each entry.positions as pos, posIdx (pos.id)}
 								{#if posIdx > 0}
-									<div class="border-t border-gray-100 dark:border-gray-800"></div>
+									<div class="border-t border-gray-100 dark:border-gray-800 ml-4"></div>
 								{/if}
-								<div class="py-4" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
+								<div class="relative py-4 pl-5" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
+									<!-- Position dot on the accent border -->
+									<div class="absolute -left-[0.3125rem] top-[1.375rem] w-2 h-2 bg-primary-400 dark:bg-primary-600 rounded-full"></div>
 									<h4 class="text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
 										{pos.title}
 									</h4>
