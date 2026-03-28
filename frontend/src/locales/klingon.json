@@ -419,7 +419,25 @@
 			"saved": "Secured",
 			"error_saving": "Transmission failed"
 		},
+		"analytics_page": {
+			"title": "Battle Intelligence",
+			"description": "Monitor enemy movements and visitor combat data",
+			"period_7d": "7 days",
+			"period_30d": "30 days",
+			"period_90d": "90 days",
+			"total_views": "Total Incursions",
+			"views_over_time": "Invasion Timeline",
+			"popular_views": "Most Contested Positions",
+			"top_referrers": "Enemy Supply Lines",
+			"top_countries": "Conquered Territories",
+			"no_view_data": "No incursions detected in this period",
+			"no_referrer_data": "No supply lines detected in this period",
+			"error_loading": "Intelligence report failed. Unacceptable!",
+			"retry": "Retry",
+			"loading": "Compiling battle intelligence..."
+		},
 		"sidebar": {
+			"analytics": "Intelligence",
 			"dashboard": "Command Center",
 			"homepage": "Home Base",
 			"facets": "Facets",
@@ -461,7 +479,17 @@
 			"check_for_updates": "Scan for updates",
 			"portfolio": "ta'mey",
 			"content": "ghItlh",
-			"features": "Systems"
+			"features": "Systems",
+			"audience": "QaS",
+			"analytics": "HISlaH mIw",
+			"comments": "Battle Reports",
+			"subscribers": "loDnI'pu'",
+			"new_content": "chu' ghItlh",
+			"quick_create": "nom chenmoH",
+			"courses": "ghojmeH HoD",
+			"new_post": "chu' QIn",
+			"new_talk": "chu' jatlh",
+			"new_course": "chu' ghojmeH"
 		},
 		"dashboard": {
 			"title": "Command Center",
@@ -1566,6 +1594,31 @@
 		},
 		"testimonials": {
 			"delete_request": "Destroy request"
+		},
+		"comments": {
+			"title": "Battle Reports",
+			"pending": "Awaiting Review",
+			"approved": "Cleared for Combat",
+			"spam": "Dishonorable Noise",
+			"reported": "Flagged by Warriors",
+			"rejected": "Dishonored",
+			"approve": "Clear for Battle",
+			"reject": "Dishonor",
+			"mark_spam": "Mark as Dishonorable",
+			"delete": "Destroy",
+			"pin": "Pin to Battle Board",
+			"unpin": "Remove from Board",
+			"bulk_approve": "Clear Selected Warriors",
+			"bulk_reject": "Dishonor Selected",
+			"bulk_spam": "Mark Selected as Dishonorable",
+			"bulk_delete": "Destroy Selected",
+			"selected_count": "{count} warriors selected",
+			"no_pending": "No reports await judgment",
+			"no_comments": "No battle reports yet",
+			"no_spam": "No dishonorable noise detected",
+			"no_reported": "No warriors have been flagged",
+			"content_link": "View the mission",
+			"reports": "Flags"
 		}
 	},
 	"public": {
@@ -1902,5 +1955,32 @@
 			"debug_none": "None",
 			"signature": "— Today is a good day to debug"
 		}
+	},
+	"comments": {
+		"title": "Battle Reports",
+		"write": "File a battle report",
+		"reply": "Counter-attack",
+		"report": "Flag for tribunal",
+		"submit": "Send to Command",
+		"cancel": "Stand down",
+		"name": "Your warrior name",
+		"email": "Comm frequency (optional)",
+		"email_hint": "For dispatches only — never revealed",
+		"body": "Your battle report",
+		"submitted": "Report received by Command",
+		"awaiting": "Report received — awaiting Command review",
+		"load_more": "Summon more reports",
+		"no_comments": "No warriors have reported yet. Be first into battle!",
+		"pinned": "Priority Dispatch",
+		"author_badge": "Commander",
+		"report_title": "Flag This Report",
+		"report_reason": "Reason for tribunal",
+		"report_spam": "Dishonorable noise",
+		"report_harassment": "Attacks on fellow warriors",
+		"report_off_topic": "Strays from the mission",
+		"report_other": "Other dishonor",
+		"report_detail": "Additional intelligence (optional)",
+		"report_submitted": "Tribunal flag received — Qapla'",
+		"chars_remaining": "{count} characters remain"
 	}
 }

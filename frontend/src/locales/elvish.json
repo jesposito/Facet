@@ -419,7 +419,25 @@
 			"saved": "Preserved",
 			"error_saving": "Preservation failed"
 		},
+		"analytics_page": {
+			"title": "Tidings of Visitors",
+			"description": "Behold the patterns of those who wander thy realm",
+			"period_7d": "7 suns",
+			"period_30d": "30 suns",
+			"period_90d": "90 suns",
+			"total_views": "Total Wayfarers",
+			"views_over_time": "Journeys Through Time",
+			"popular_views": "Most Visited Halls",
+			"top_referrers": "Paths of Arrival",
+			"top_countries": "Distant Lands",
+			"no_view_data": "No wayfarers have passed in this age",
+			"no_referrer_data": "No paths of arrival in this age",
+			"error_loading": "The tidings could not be summoned",
+			"retry": "Try again",
+			"loading": "Summoning tidings..."
+		},
 		"sidebar": {
+			"analytics": "Tidings",
 			"dashboard": "Great Hall",
 			"homepage": "Home Realm",
 			"facets": "Facets",
@@ -461,7 +479,17 @@
 			"check_for_updates": "Seek renewals",
 			"portfolio": "Panthael",
 			"content": "Quettar",
-			"features": "Gifts"
+			"features": "Gifts",
+			"audience": "Seler",
+			"analytics": "Miryatir",
+			"comments": "Quettar Formen",
+			"subscribers": "Palthaneri",
+			"new_content": "Nowe Quetta",
+			"quick_create": "Curu Sana",
+			"courses": "Tirelyar",
+			"new_post": "Nowe Tirne",
+			"new_talk": "Nowe Oration",
+			"new_course": "Nowe Tirelya"
 		},
 		"dashboard": {
 			"title": "Great Hall",
@@ -1566,6 +1594,31 @@
 		},
 		"testimonials": {
 			"delete_request": "Remove petition"
+		},
+		"comments": {
+			"title": "Quettar Formen",
+			"pending": "Awaiting",
+			"approved": "Welcomed",
+			"spam": "Unwanted Shadows",
+			"reported": "Flagged",
+			"rejected": "Turned Away",
+			"approve": "Welcome",
+			"reject": "Turn Away",
+			"mark_spam": "Mark as Shadow",
+			"delete": "Unmake",
+			"pin": "Bind Above",
+			"unpin": "Release",
+			"bulk_approve": "Welcome the Chosen",
+			"bulk_reject": "Turn Away the Chosen",
+			"bulk_spam": "Mark Chosen as Shadows",
+			"bulk_delete": "Unmake the Chosen",
+			"selected_count": "{count} chosen",
+			"no_pending": "No words await judgment",
+			"no_comments": "The scroll is empty",
+			"no_spam": "No shadows linger here",
+			"no_reported": "No words have been flagged",
+			"content_link": "View the writing",
+			"reports": "Flagged Words"
 		}
 	},
 	"public": {
@@ -1902,5 +1955,32 @@
 			"debug_none": "None",
 			"signature": "— Crafted in the twilight of Valinor"
 		}
+	},
+	"comments": {
+		"title": "Words of the Travellers",
+		"write": "Set down thy words",
+		"reply": "Answer",
+		"report": "Flag this word",
+		"submit": "Send forth",
+		"cancel": "Turn back",
+		"name": "Thy name",
+		"email": "Thy herald's address (optional)",
+		"email_hint": "For tidings only — never revealed to others",
+		"body": "Thy words",
+		"submitted": "Thy words have been received",
+		"awaiting": "Thy words await the judgment of the Keeper",
+		"load_more": "Summon more words",
+		"no_comments": "No traveller has yet spoken here. Be the first.",
+		"pinned": "Bound Above",
+		"author_badge": "The Author",
+		"report_title": "Flag These Words",
+		"report_reason": "Wherefore",
+		"report_spam": "Unwanted shadow",
+		"report_harassment": "Ill words against another",
+		"report_off_topic": "Strays from the path",
+		"report_other": "Other cause",
+		"report_detail": "Further tidings (optional)",
+		"report_submitted": "Thy flag has been received — namarie",
+		"chars_remaining": "{count} letters remain"
 	}
 }

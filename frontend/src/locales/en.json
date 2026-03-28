@@ -419,7 +419,25 @@
 			"saved": "Saved",
 			"error_saving": "Failed to save"
 		},
+		"analytics_page": {
+			"title": "Analytics",
+			"description": "View visitor analytics and traffic data",
+			"period_7d": "7 days",
+			"period_30d": "30 days",
+			"period_90d": "90 days",
+			"total_views": "Total Views",
+			"views_over_time": "Views Over Time",
+			"popular_views": "Popular Views",
+			"top_referrers": "Top Referrers",
+			"top_countries": "Top Countries",
+			"no_view_data": "No view data for this period",
+			"no_referrer_data": "No referrer data for this period",
+			"error_loading": "Failed to load analytics",
+			"retry": "Retry",
+			"loading": "Loading analytics..."
+		},
 		"sidebar": {
+			"analytics": "Analytics",
 			"dashboard": "Dashboard",
 			"homepage": "Homepage",
 			"facets": "Facets",
@@ -461,7 +479,17 @@
 			"check_for_updates": "Check for updates",
 			"portfolio": "Portfolio",
 			"content": "Content",
-			"features": "Features"
+			"features": "Features",
+			"audience": "Audience",
+			"analytics": "Analytics",
+			"comments": "Comments",
+			"subscribers": "Subscribers",
+			"new_content": "New Content",
+			"quick_create": "Quick Create",
+			"courses": "Courses",
+			"new_post": "New Post",
+			"new_talk": "New Talk",
+			"new_course": "New Course"
 		},
 		"dashboard": {
 			"title": "Dashboard",
@@ -1566,6 +1594,31 @@
 		},
 		"testimonials": {
 			"delete_request": "Delete request"
+		},
+		"comments": {
+			"title": "Comments",
+			"pending": "Pending",
+			"approved": "Approved",
+			"spam": "Spam",
+			"reported": "Reported",
+			"rejected": "Rejected",
+			"approve": "Approve",
+			"reject": "Reject",
+			"mark_spam": "Mark as Spam",
+			"delete": "Delete",
+			"pin": "Pin",
+			"unpin": "Unpin",
+			"bulk_approve": "Approve Selected",
+			"bulk_reject": "Reject Selected",
+			"bulk_spam": "Mark Selected as Spam",
+			"bulk_delete": "Delete Selected",
+			"selected_count": "{count} selected",
+			"no_pending": "No pending comments",
+			"no_comments": "No comments yet",
+			"no_spam": "No spam comments",
+			"no_reported": "No reported comments",
+			"content_link": "View content",
+			"reports": "Reports"
 		}
 	},
 	"public": {
@@ -1902,5 +1955,32 @@
 			"debug_none": "None",
 			"signature": "— Error pages crafted with self-awareness"
 		}
+	},
+	"comments": {
+		"title": "Discussion",
+		"write": "Write a comment",
+		"reply": "Reply",
+		"report": "Report",
+		"submit": "Submit",
+		"cancel": "Cancel",
+		"name": "Your name",
+		"email": "Email (optional)",
+		"email_hint": "For notifications only — never displayed",
+		"body": "Your comment",
+		"submitted": "Comment submitted",
+		"awaiting": "Comment submitted — awaiting moderation",
+		"load_more": "Load more comments",
+		"no_comments": "No comments yet. Be the first!",
+		"pinned": "Pinned",
+		"author_badge": "Author",
+		"report_title": "Report Comment",
+		"report_reason": "Reason",
+		"report_spam": "Spam",
+		"report_harassment": "Harassment",
+		"report_off_topic": "Off topic",
+		"report_other": "Other",
+		"report_detail": "Additional details (optional)",
+		"report_submitted": "Report submitted — thank you",
+		"chars_remaining": "{count} characters remaining"
 	}
 }

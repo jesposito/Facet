@@ -49,6 +49,7 @@ func main() {
 	// Note: PocketBase v0.23+ has a built-in /api/health endpoint
 	hooks.RegisterCollectionRules(app) // Ensure proper access rules on all collections
 	hooks.RegisterPlanHooks(app, planConfig)
+	hooks.RegisterAnalyticsHooks(app, planConfig)
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterPasswordChangeEndpoint(app, rateLimitService) // Password change endpoint for first-time setup
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
@@ -73,6 +74,7 @@ func main() {
 	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
 	hooks.RegisterBackupHooks(app)  // Automated database backup system
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterCommentHooks(app, planConfig)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
