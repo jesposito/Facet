@@ -88,7 +88,9 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 					cta_url: undefined,
 					cta_button_text: undefined,
 					accent_color: undefined,
-					hero_image_url: undefined
+					hero_image_url: undefined,
+					font_pack: undefined,
+					hero_layout: undefined
 				},
 				profile: null,
 				sections: {},
@@ -126,7 +128,9 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 							cta_url: undefined,
 							cta_button_text: undefined,
 							accent_color: undefined,
-							hero_image_url: undefined
+							hero_image_url: undefined,
+							font_pack: undefined,
+							hero_layout: undefined
 						},
 						profile: null,
 						sections: {},
@@ -160,7 +164,9 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				cta_button_text: viewData.cta_button_text,
 				accent_color: viewData.accent_color || null,
 				hero_image_url: viewData.hero_image_url || null,
-				cta_enabled: viewData.cta_enabled !== false
+				cta_enabled: viewData.cta_enabled !== false,
+				font_pack: viewData.font_pack || null,
+				hero_layout: viewData.hero_layout || null
 			},
 			profile: profile ? {
 				...profile,

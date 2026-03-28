@@ -13,6 +13,12 @@
 		DEFAULT_ACCENT_COLOR,
 		type AccentColor
 	} from '$lib/colors';
+	import {
+		FONT_PACKS,
+		FONT_PACK_LIST,
+		DEFAULT_FONT_PACK,
+		type FontPack
+	} from '$lib/fonts';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 
@@ -54,6 +60,18 @@
 	let profile: Profile | null = $state(null);
 	let selectedAccentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
 	let savingAppearance = $state(false);
+	let selectedFontPack: FontPack = $state(DEFAULT_FONT_PACK);
+	let savingFontPack = $state(false);
+	let selectedHeroLayout = $state('standard');
+	let savingHeroLayout = $state(false);
+
+	const HERO_LAYOUTS = [
+		{ id: 'standard', label: 'Image & Gradient', description: 'Background image with gradient overlay' },
+		{ id: 'centered', label: 'Centered', description: 'Bold headline centered, no image needed' },
+		{ id: 'split', label: 'Split', description: 'Text left, image right' },
+		{ id: 'minimal', label: 'Minimal', description: 'Large typography, maximum whitespace' },
+		{ id: 'stacked', label: 'Stacked', description: 'Headline above, full-width image below' }
+	];
 
 	onMount(async () => {
 		await Promise.all([loadProfile(), loadSiteSettings(), loadSMTPSettings()]);
@@ -65,6 +83,8 @@
 			if (records.items.length > 0) {
 				profile = records.items[0] as unknown as Profile;
 				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
+				selectedFontPack = (profile.font_pack as FontPack) || DEFAULT_FONT_PACK;
+				selectedHeroLayout = (profile as any).hero_layout || 'standard';
 			}
 		} catch (err) {
 			console.error('Failed to load profile:', err);
@@ -90,6 +110,47 @@
 			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
 		} finally {
 			savingAppearance = false;
+		}
+	}
+
+	async function saveFontPack(pack: FontPack) {
+		if (!profile) return;
+		if (pack === selectedFontPack) return;
+
+		savingFontPack = true;
+		try {
+			await collection('profile').update(profile.id, {
+				font_pack: pack
+			});
+			selectedFontPack = pack;
+			profile.font_pack = pack;
+			toasts.add('success', 'Typography updated');
+			window.dispatchEvent(new CustomEvent('font-pack-changed', { detail: pack }));
+		} catch (err) {
+			console.error('Failed to save font pack:', err);
+			toasts.add('error', 'Failed to update typography');
+		} finally {
+			savingFontPack = false;
+		}
+	}
+
+	async function saveHeroLayout(layout: string) {
+		if (!profile) return;
+		if (layout === selectedHeroLayout) return;
+
+		savingHeroLayout = true;
+		try {
+			await collection('profile').update(profile.id, {
+				hero_layout: layout
+			});
+			selectedHeroLayout = layout;
+			(profile as any).hero_layout = layout;
+			toasts.add('success', 'Hero layout updated');
+		} catch (err) {
+			console.error('Failed to save hero layout:', err);
+			toasts.add('error', 'Failed to update hero layout');
+		} finally {
+			savingHeroLayout = false;
 		}
 	}
 
@@ -405,6 +466,11 @@
 
 <svelte:head>
 	<title>{$t('admin.settings_page.title')} - {$t('admin.settings_page.page_title_suffix')}</title>
+	<!-- Load all font pack fonts for typography preview -->
+	{#each FONT_PACK_LIST as pack}
+		{@const packInfo = FONT_PACKS[pack]}
+		<link href={packInfo.googleFontsUrl} rel="stylesheet" />
+	{/each}
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
@@ -502,6 +568,115 @@
 				<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
 					{$t('admin.settings_page.appearance.go_to_homepage')}
 				</a>
+			</div>
+		{/if}
+		</div>
+
+		<!-- Typography -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Typography</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				Choose a font combination for your profile. Each pack includes fonts for headings, body text, and code blocks.
+			</p>
+
+		{#if profile}
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				{#each FONT_PACK_LIST as pack}
+					{@const packInfo = FONT_PACKS[pack]}
+					{@const isSelected = selectedFontPack === pack}
+					<button
+						type="button"
+						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200
+							{isSelected
+							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
+							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+						onclick={() => saveFontPack(pack)}
+						disabled={savingFontPack}
+					>
+						{#if isSelected}
+							<div class="absolute top-3 right-3">
+								<svg class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							</div>
+						{/if}
+						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+							{packInfo.label}
+						</span>
+						<span class="block text-xs text-gray-500 dark:text-gray-400 mb-3">
+							{packInfo.description}
+						</span>
+						<div class="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-3">
+							<p class="text-base font-semibold text-gray-800 dark:text-gray-200" style="font-family: '{packInfo.heading}', serif">
+								Heading Text
+							</p>
+							<p class="text-sm text-gray-600 dark:text-gray-400" style="font-family: '{packInfo.body}', sans-serif">
+								Body text looks like this sentence.
+							</p>
+							<p class="text-xs text-gray-500 dark:text-gray-500" style="font-family: '{packInfo.code}', monospace">
+								const code = "example";
+							</p>
+						</div>
+					</button>
+				{/each}
+			</div>
+
+			{#if selectedFontPack !== DEFAULT_FONT_PACK}
+				<button
+					type="button"
+					class="mt-3 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+					onclick={() => saveFontPack(DEFAULT_FONT_PACK)}
+					disabled={savingFontPack}
+				>
+					Reset to default
+				</button>
+			{/if}
+		{:else}
+			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
+				<p>Set up your profile first to customize typography.</p>
+			</div>
+		{/if}
+		</div>
+
+		<!-- Hero Layout -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Hero Layout</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				Choose the default hero section layout for your profile. Views can override this with their own layout.
+			</p>
+
+		{#if profile}
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+				{#each HERO_LAYOUTS as layout}
+					{@const isSelected = selectedHeroLayout === layout.id}
+					<button
+						type="button"
+						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200
+							{isSelected
+							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
+							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+						onclick={() => saveHeroLayout(layout.id)}
+						disabled={savingHeroLayout}
+					>
+						{#if isSelected}
+							<div class="absolute top-3 right-3">
+								<svg class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							</div>
+						{/if}
+						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+							{layout.label}
+						</span>
+						<span class="block text-xs text-gray-500 dark:text-gray-400">
+							{layout.description}
+						</span>
+					</button>
+				{/each}
+			</div>
+		{:else}
+			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
+				<p>Set up your profile first to customize the hero layout.</p>
 			</div>
 		{/if}
 		</div>

@@ -50,9 +50,10 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		logger.debug('[LAYOUT SSR] Failed to load site nav:', error);
 	}
 
-	// Fetch profile accent color server-side to eliminate color flash
+	// Fetch profile accent color and font pack server-side to eliminate flash on page load
 	let accentColor: string | null = null;
 	let customHexColor: string | null = null;
+	let fontPack: string | null = null;
 	try {
 		const homepageResponse = await fetch(`${pbUrl}/api/homepage`, {
 			headers: { 'X-Internal': 'true' }
@@ -61,6 +62,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 			const homepage = await homepageResponse.json();
 			accentColor = homepage.profile?.accent_color || null;
 			customHexColor = homepage.profile?.custom_hex_color || null;
+			fontPack = homepage.profile?.font_pack || null;
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load accent color:', error);
@@ -72,6 +74,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		siteNav,
 		accentColor,
 		customHexColor,
+		fontPack,
 		customCSS,
 		defaultLocale
 	};

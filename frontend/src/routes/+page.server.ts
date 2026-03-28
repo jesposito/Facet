@@ -21,6 +21,8 @@ type ViewData = {
 	cta_button_text?: string;
 	cta_text?: string;
 	cta_enabled?: boolean;
+	font_pack?: string | null;
+	hero_layout?: string | null;
 } | null;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

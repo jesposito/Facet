@@ -22,9 +22,9 @@ export default {
 				}
 			},
 			fontFamily: {
-				sans: ['Inter', 'system-ui', 'sans-serif'],
-				serif: ['Lora', 'Georgia', 'Times New Roman', 'serif'],
-				mono: ['JetBrains Mono', 'monospace']
+				sans: ['var(--font-body)'],
+				serif: ['var(--font-heading)'],
+				mono: ['var(--font-code)']
 			},
 			fontSize: {
 				'display-sm': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],

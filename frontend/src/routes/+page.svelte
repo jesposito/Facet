@@ -499,6 +499,7 @@
 			summary,
 			location
 		}}
+		layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
 	/>
 
 	<!-- Site Navigation / CTA Banner -->

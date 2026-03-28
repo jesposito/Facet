@@ -19,6 +19,10 @@
 		--color-primary-800: #075985;
 		--color-primary-900: #0c4a6e;
 		--color-primary-950: #082f49;
+		/* Typography CSS Custom Properties - default to editorial pack */
+		--font-heading: 'Lora', Georgia, 'Times New Roman', serif;
+		--font-body: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+		--font-code: 'JetBrains Mono', monospace;
 	}
 
 	body {
@@ -38,6 +42,14 @@
 
 	body {
 		@apply antialiased;
+	}
+
+	/* ==========================================================================
+	   Typography: Editorial Design System
+	   Lora for headings, Plus Jakarta Sans for body
+	   ========================================================================== */
+	h1, h2, h3 {
+		font-family: var(--font-heading);
 	}
 
 	/* Focus styles for accessibility */

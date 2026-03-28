@@ -404,6 +404,7 @@
 				location: data.view?.hero_location || data.profile?.location,
 				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
 			}}
+			layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
 		/>
 
 		<!-- Site Navigation / CTA banner (only on public views) -->

@@ -7,9 +7,11 @@
 	 * for the initial Phase 2 extraction to avoid prop drilling.
 	 */
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
+	import { FONT_PACKS, FONT_PACK_LIST, type FontPack } from '$lib/fonts';
 	import { icon } from '$lib/icons';
 	import type { Profile } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
 	// Props - comprehensive form state for Phase 2
 	let {
@@ -33,6 +35,8 @@
 
 		// Settings
 		accentColor = $bindable(),
+		fontPack = $bindable(),
+		heroLayout = $bindable(),
 		isActive = $bindable(),
 		
 		// Additional props
@@ -60,6 +64,8 @@
 
 		// Settings
 		accentColor: AccentColor | null;
+		fontPack: FontPack | null;
+		heroLayout: string | null;
 		isActive: boolean;
 		
 		// Additional props
@@ -127,12 +133,7 @@
 
 	<div>
 		<label for="description" class="label">{$t('admin.view_editor.basic_info.description_label')}</label>
-		<textarea
-			id="description"
-			bind:value={description}
-			class="input min-h-[80px]"
-			placeholder={$t('admin.view_editor.basic_info.description_placeholder')}
-		></textarea>
+		<MarkdownEditor bind:value={description} toolbar="compact" minHeight="80px" placeholder={$t('admin.view_editor.basic_info.description_placeholder')} />
 		<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.description_help')}</p>
 	</div>
 
@@ -252,12 +253,7 @@
 				</button>
 			{/if}
 		</div>
-		<textarea
-			id="hero_summary"
-			bind:value={heroSummary}
-			class="input min-h-[120px]"
-			placeholder={$t('admin.view_editor.hero.summary_placeholder')}
-		></textarea>
+		<MarkdownEditor bind:value={heroSummary} toolbar="compact" minHeight="80px" placeholder={$t('admin.view_editor.hero.summary_placeholder')} />
 	{#if profile?.summary}
 		<p class="text-xs text-gray-500 mt-1">
 			{$t('admin.view_editor.hero.profile_value')} <span class="text-gray-700 dark:text-gray-300">{profile.summary.length > 100 ? profile.summary.substring(0, 100) + '...' : profile.summary}</span>
@@ -400,6 +396,101 @@
 				{@html $t('admin.view_editor.settings.accent_color_using', { values: { color: `<strong>${ACCENT_COLORS[accentColor].label}</strong>` } })}
 			{:else}
 				{$t('admin.view_editor.settings.accent_color_inherits')}
+			{/if}
+		</p>
+	</div>
+
+	<!-- Font Pack Override -->
+	<div class="pt-2">
+		<span class="label mb-3 block">Typography</span>
+		<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Font pack selection">
+			<!-- Use Global Option -->
+			<button
+				type="button"
+				class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+					{fontPack === null
+					? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+					: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+				onclick={() => fontPack = null}
+			>
+				<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+				{#if fontPack === null}
+					<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+					</svg>
+				{/if}
+			</button>
+
+			{#each FONT_PACK_LIST as pack}
+				{@const packInfo = FONT_PACKS[pack]}
+				<button
+					type="button"
+					class="px-3 py-2 rounded-lg border transition-all text-sm
+						{fontPack === pack
+						? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+						: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+					onclick={() => fontPack = pack}
+					title={packInfo.description}
+					aria-pressed={fontPack === pack}
+				>
+					{packInfo.label}
+				</button>
+			{/each}
+		</div>
+		<p class="text-xs text-gray-500 mt-2">
+			{#if fontPack}
+				Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
+			{:else}
+				Inherits typography from global profile settings
+			{/if}
+		</p>
+	</div>
+
+	<!-- Hero Layout -->
+	<div class="pt-2">
+		<span class="label mb-3 block">Hero Layout</span>
+		<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Hero layout selection">
+			<button
+				type="button"
+				class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+					{heroLayout === null
+					? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+					: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+				onclick={() => heroLayout = null}
+			>
+				<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+				{#if heroLayout === null}
+					<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+					</svg>
+				{/if}
+			</button>
+
+			{#each [
+				{ id: 'standard', label: 'Image & Gradient' },
+				{ id: 'centered', label: 'Centered' },
+				{ id: 'split', label: 'Split' },
+				{ id: 'minimal', label: 'Minimal' },
+				{ id: 'stacked', label: 'Stacked' }
+			] as layoutOption}
+				<button
+					type="button"
+					class="px-3 py-2 rounded-lg border transition-all text-sm
+						{heroLayout === layoutOption.id
+						? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+						: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+					onclick={() => heroLayout = layoutOption.id}
+					aria-pressed={heroLayout === layoutOption.id}
+				>
+					{layoutOption.label}
+				</button>
+			{/each}
+		</div>
+		<p class="text-xs text-gray-500 mt-2">
+			{#if heroLayout}
+				Using <strong>{heroLayout}</strong> layout for this view
+			{:else}
+				Inherits hero layout from global profile settings
 			{/if}
 		</p>
 	</div>

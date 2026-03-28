@@ -2,10 +2,11 @@ import type { Handle } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 import { PB_COOKIE_NAME } from '$lib/pocketbase';
 import { generateAccentCSSVars } from '$lib/colors';
+import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
-	
+
 	event.locals.pb = new PocketBase(pbUrl);
 
 	const cookie = event.request.headers.get('cookie') || '';
@@ -14,8 +15,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Snapshot the token so we can detect if auth changed during request handling
 	const initialToken = event.locals.pb.authStore.token;
 
-	// Fetch accent color for SSR injection (eliminates color flash on first paint)
+	// Fetch accent color and font pack for SSR injection (eliminates flash on first paint)
 	let accentCSSVars = '';
+	let fontCSSVars = '';
+	let fontPack = '';
 	try {
 		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
 			headers: { 'X-Internal': 'true' }
@@ -26,21 +29,51 @@ export const handle: Handle = async ({ event, resolve }) => {
 				homepage.profile?.accent_color,
 				homepage.profile?.custom_hex_color
 			);
+			fontCSSVars = generateFontCSSVars(homepage.profile?.font_pack);
+			fontPack = homepage.profile?.font_pack || '';
 		}
 	} catch { /* silent - fallback to client-side application */ }
 
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => {
+			// Combine accent and font CSS vars into a single inline style on <html>
+			const varParts: string[] = [];
 			if (accentCSSVars) {
-				// Inject accent CSS vars into <html> style attribute
-				const vars = accentCSSVars
-					.replace(/^:root\s*\{/, '')
-					.replace(/\}\s*$/, '')
-					.trim()
-					.replace(/\s+/g, ' ');
-				return html.replace('<html lang="en"', `<html lang="en" style="${vars}"`);
+				varParts.push(
+					accentCSSVars
+						.replace(/^:root\s*\{/, '')
+						.replace(/\}\s*$/, '')
+						.trim()
+						.replace(/\s+/g, ' ')
+				);
 			}
-			return html;
+			if (fontCSSVars) {
+				varParts.push(
+					fontCSSVars
+						.replace(/^:root\s*\{/, '')
+						.replace(/\}\s*$/, '')
+						.trim()
+						.replace(/\s+/g, ' ')
+				);
+			}
+
+			let result = html;
+
+			if (varParts.length > 0) {
+				const combinedVars = varParts.join(' ');
+				result = result.replace('<html lang="en">', `<html lang="en" style="${combinedVars}">`);
+			}
+
+			// Inject Google Fonts link for non-default font packs
+			if (fontPack && fontPack !== DEFAULT_FONT_PACK) {
+				const fontsUrl = getGoogleFontsUrl(fontPack);
+				result = result.replace(
+					'</head>',
+					`<link rel="stylesheet" href="${fontsUrl}">\n</head>`
+				);
+			}
+
+			return result;
 		}
 	});
 

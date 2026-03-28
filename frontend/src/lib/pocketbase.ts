@@ -66,6 +66,9 @@ export interface Profile {
 	contact_links?: ContactLink[];
 	visibility: 'public' | 'unlisted' | 'private';
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
+	custom_hex_color?: string;
+	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric';
+	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
 	cta_text?: string;
 	cta_url?: string;
 	cta_button_text?: string;
@@ -409,6 +412,8 @@ export interface View {
 	is_active: boolean;
 	is_default?: boolean;
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
+	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | null;
+	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | null;
 }
 
 export interface ItemConfig {
