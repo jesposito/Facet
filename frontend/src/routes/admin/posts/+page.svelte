@@ -55,7 +55,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, excerpt, content, tags, visibility, isDraft, featured, publishedAt, mediaRefs, coverImageLibraryUrl };
+	return { title, slug, excerpt, content, tags, visibility, isDraft, featured, publishedAt, mediaRefs, coverImageLibraryUrl, commentsEnabled };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -70,6 +70,7 @@ function restoreFromDraft(data: Record<string, any>) {
 	publishedAt = data.publishedAt || '';
 	mediaRefs = data.mediaRefs || [];
 	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
+	commentsEnabled = data.commentsEnabled === true;
 }
 
 function handleFormChange() {
@@ -109,6 +110,7 @@ afterNavigate(() => {
 	let coverImageFile: FileList | null = $state(null);
 	let coverImageLibraryUrl = $state('');
 	let clearCoverImage = $state(false);
+	let commentsEnabled = $state(false);
 
 	// Simple pattern - admin layout handles auth
 onMount(loadPosts);
@@ -150,6 +152,7 @@ function resetForm() {
 	coverImageFile = null;
 	coverImageLibraryUrl = '';
 	clearCoverImage = false;
+	commentsEnabled = false;
 		editingPost = null;
 	}
 
@@ -193,6 +196,7 @@ function openEditForm(post: Post) {
 	coverImageFile = null;
 	coverImageLibraryUrl = (post as any).cover_image_library_url || '';
 	clearCoverImage = false;
+	commentsEnabled = (post as any).comments_enabled ?? false;
 	showForm = true;
 	}
 
@@ -269,6 +273,7 @@ function openEditForm(post: Post) {
 			formData.append('visibility', visibility);
 			formData.append('is_draft', String(isDraft));
 			formData.append('featured', String(featured));
+			formData.append('comments_enabled', String(commentsEnabled));
 			if (publishedAt) {
 				formData.append('published_at', new Date(publishedAt).toISOString());
 			}
@@ -598,6 +603,18 @@ function openEditForm(post: Post) {
 					/>
 					<label for="featured" class="text-sm text-gray-700 dark:text-gray-300">
 						Featured post (highlight in featured layout)
+					</label>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						id="comments_enabled"
+						bind:checked={commentsEnabled}
+						class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+					/>
+					<label for="comments_enabled" class="text-sm text-gray-700 dark:text-gray-300">
+						{$t('admin.content.posts.enable_comments')}
 					</label>
 				</div>
 

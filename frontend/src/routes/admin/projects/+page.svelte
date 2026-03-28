@@ -46,6 +46,7 @@ let mediaRefs: string[] = $state([]);
 let mediaPickerRef: MultiMediaPicker | undefined = $state();
 let showShortcodes = $state(false);
 let saving = $state(false);
+let commentsEnabled = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 let adminTagIds: string[] = $state([]);
 
@@ -75,7 +76,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl };
+	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl, commentsEnabled };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -92,6 +93,7 @@ function restoreFromDraft(data: Record<string, any>) {
 	sortOrder = data.sortOrder || 0;
 	mediaRefs = data.mediaRefs || [];
 	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
+	commentsEnabled = data.commentsEnabled === true;
 }
 
 function handleFormChange() {
@@ -191,6 +193,7 @@ let filteredProjects = $derived(
 	editingProject = null;
 	mediaRefs = [];
 	adminTagIds = [];
+	commentsEnabled = false;
 }
 
 	function openNewForm() {
@@ -239,6 +242,7 @@ let filteredProjects = $derived(
 	adminTagIds = project.admin_tags || [];
 	coverImageLibraryUrl = (project as any).cover_image_library_url || '';
 	clearCoverImage = false;
+	commentsEnabled = (project as any).comments_enabled ?? false;
 	showForm = true;
 	}
 
@@ -301,6 +305,7 @@ let filteredProjects = $derived(
 			formData.append('is_featured', String(isFeatured));
 			formData.append('sort_order', String(sortOrder));
 			formData.append('admin_tags', JSON.stringify(adminTagIds));
+			formData.append('comments_enabled', String(commentsEnabled));
 
 			if (coverImageFile && coverImageFile.length > 0) {
 				formData.append('cover_image', coverImageFile[0]);
@@ -830,6 +835,18 @@ let filteredProjects = $derived(
 							{$t('admin.content.projects.is_featured_label')}
 						</label>
 					</div>
+				</div>
+
+				<div class="flex items-center gap-2">
+					<input
+						type="checkbox"
+						id="comments_enabled"
+						bind:checked={commentsEnabled}
+						class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+					/>
+					<label for="comments_enabled" class="text-sm text-gray-700 dark:text-gray-300">
+						{$t('admin.content.projects.enable_comments')}
+					</label>
 				</div>
 
 				<div>

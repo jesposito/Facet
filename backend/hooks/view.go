@@ -409,6 +409,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
 					}
 				})
+				LogViewAccess(app, e, view.Id, slug, "")
 			}
 
 			// Build view response
@@ -817,6 +818,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min) to prevent scraping
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			response := make(map[string]interface{})
+
+			// Track analytics for unauthenticated users (skip SSR internal requests)
+			if e.Auth == nil && e.Request.Header.Get("X-Internal") != "true" {
+				LogViewAccess(app, e, "homepage", "homepage", "")
+			}
 
 			settings, err := services.LoadSiteSettings(app)
 			if err != nil {

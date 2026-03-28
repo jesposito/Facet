@@ -117,7 +117,7 @@ function createSidebarSectionStatesStore() {
 
 	return {
 		subscribe,
-		initialize: (allSectionIds?: string[], defaultExpandedSection?: string) => {
+		initialize: (allSectionIds?: string[], defaultExpanded?: string | string[]) => {
 			if (typeof window === 'undefined') return;
 			try {
 				const saved = localStorage.getItem(STORAGE_KEY);
@@ -131,11 +131,12 @@ function createSidebarSectionStatesStore() {
 			} catch {
 				// Invalid JSON, ignore and use defaults
 			}
-			// No saved state - set default with only one section open
-			if (allSectionIds && defaultExpandedSection) {
+			// No saved state - set defaults with specified sections open
+			if (allSectionIds && defaultExpanded) {
+				const expandedIds = Array.isArray(defaultExpanded) ? defaultExpanded : [defaultExpanded];
 				const defaultState: SidebarSectionStates = {};
 				for (const id of allSectionIds) {
-					defaultState[id] = id === defaultExpandedSection;
+					defaultState[id] = expandedIds.includes(id);
 				}
 				set(defaultState);
 				localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));

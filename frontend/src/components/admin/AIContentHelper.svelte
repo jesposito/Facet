@@ -20,7 +20,7 @@
 
 	interface Props {
 		content?: string;
-		fieldType?: 'headline' | 'summary' | 'description' | 'bullets' | 'content';
+		fieldType?: string;
 		context?: Record<string, string>;
 		disabled?: boolean;
 		size?: 'sm' | 'md';

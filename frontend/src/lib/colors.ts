@@ -323,3 +323,77 @@ export function generateAccentCssVariables(color: AccentColor): string {
 export function isValidAccentColor(value: unknown): value is AccentColor {
 	return typeof value === 'string' && value in ACCENT_COLORS;
 }
+
+/**
+ * Validate a hex color string (#RRGGBB format)
+ */
+export function isValidHexColor(value: string): boolean {
+	return /^#[0-9a-fA-F]{6}$/.test(value);
+}
+
+/**
+ * Generate a full color scale from a single hex color.
+ * Produces light-to-dark shades by mixing with white (for lighter steps)
+ * and black (for darker steps), preserving the hue of the input color.
+ * The input color is used as the 500 step.
+ */
+export function generatePaletteFromHex(hex: string): ColorScale {
+	if (!isValidHexColor(hex)) {
+		return ACCENT_COLORS[DEFAULT_ACCENT_COLOR].scale;
+	}
+	const r = parseInt(hex.slice(1, 3), 16);
+	const g = parseInt(hex.slice(3, 5), 16);
+	const b = parseInt(hex.slice(5, 7), 16);
+
+	function mix(base: number, target: number, amount: number): number {
+		return Math.round(base + (target - base) * amount);
+	}
+
+	function toHex(red: number, green: number, blue: number): string {
+		return '#' + [red, green, blue].map(c => c.toString(16).padStart(2, '0')).join('');
+	}
+
+	return {
+		50:  toHex(mix(r, 255, 0.95), mix(g, 255, 0.95), mix(b, 255, 0.95)),
+		100: toHex(mix(r, 255, 0.88), mix(g, 255, 0.88), mix(b, 255, 0.88)),
+		200: toHex(mix(r, 255, 0.73), mix(g, 255, 0.73), mix(b, 255, 0.73)),
+		300: toHex(mix(r, 255, 0.55), mix(g, 255, 0.55), mix(b, 255, 0.55)),
+		400: toHex(mix(r, 255, 0.30), mix(g, 255, 0.30), mix(b, 255, 0.30)),
+		500: hex,
+		600: toHex(mix(r, 0, 0.15), mix(g, 0, 0.15), mix(b, 0, 0.15)),
+		700: toHex(mix(r, 0, 0.30), mix(g, 0, 0.30), mix(b, 0, 0.30)),
+		800: toHex(mix(r, 0, 0.45), mix(g, 0, 0.45), mix(b, 0, 0.45)),
+		900: toHex(mix(r, 0, 0.60), mix(g, 0, 0.60), mix(b, 0, 0.60)),
+		950: toHex(mix(r, 0, 0.80), mix(g, 0, 0.80), mix(b, 0, 0.80)),
+	};
+}
+
+/**
+ * Generate CSS custom properties for accent color (works server-side, no DOM needed).
+ * Returns a CSS string that can be injected into <style> tags for SSR.
+ */
+export function generateAccentCSSVars(colorName?: string | null, customHex?: string | null): string {
+	let scale: ColorScale | null = null;
+
+	if (customHex) {
+		scale = generatePaletteFromHex(customHex);
+	} else if (colorName && colorName in ACCENT_COLORS) {
+		scale = ACCENT_COLORS[colorName as AccentColor].scale;
+	}
+
+	if (!scale) return '';
+
+	return `:root {
+		--color-primary-50: ${scale[50]};
+		--color-primary-100: ${scale[100]};
+		--color-primary-200: ${scale[200]};
+		--color-primary-300: ${scale[300]};
+		--color-primary-400: ${scale[400]};
+		--color-primary-500: ${scale[500]};
+		--color-primary-600: ${scale[600]};
+		--color-primary-700: ${scale[700]};
+		--color-primary-800: ${scale[800]};
+		--color-primary-900: ${scale[900]};
+		--color-primary-950: ${scale[950]};
+	}`;
+}

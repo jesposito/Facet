@@ -1,6 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 import { PB_COOKIE_NAME } from '$lib/pocketbase';
+import { generateAccentCSSVars } from '$lib/colors';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
@@ -13,7 +14,35 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Snapshot the token so we can detect if auth changed during request handling
 	const initialToken = event.locals.pb.authStore.token;
 
-	const response = await resolve(event);
+	// Fetch accent color for SSR injection (eliminates color flash on first paint)
+	let accentCSSVars = '';
+	try {
+		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
+			headers: { 'X-Internal': 'true' }
+		});
+		if (homepageRes.ok) {
+			const homepage = await homepageRes.json();
+			accentCSSVars = generateAccentCSSVars(
+				homepage.profile?.accent_color,
+				homepage.profile?.custom_hex_color
+			);
+		}
+	} catch { /* silent - fallback to client-side application */ }
+
+	const response = await resolve(event, {
+		transformPageChunk: ({ html }) => {
+			if (accentCSSVars) {
+				// Inject accent CSS vars into <html> style attribute
+				const vars = accentCSSVars
+					.replace(/^:root\s*\{/, '')
+					.replace(/\}\s*$/, '')
+					.trim()
+					.replace(/\s+/g, ' ');
+				return html.replace('<html lang="en"', `<html lang="en" style="${vars}"`);
+			}
+			return html;
+		}
+	});
 
 	// Strip oversized Link headers from HTML responses to prevent proxy failures.
 	// Only for HTML - API endpoints may use Link for pagination (rel="next").
