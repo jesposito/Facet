@@ -1129,6 +1129,8 @@
 				"media_shortcode_help": "Use shortcoedz in descripshun: {gallery} 4 gallery, {video} 4 video embedz",
 				"is_featured_label": "Featur dis projekt (appearz prominently)",
 				"required_error": "Tietl iz requird",
+				"enable_comments": "Enable Commentz",
+				"comments_enabled_help": "Let visiturz leev commentz on dis projekt",
 				"generate_slug": "Generat",
 				"reorder_button": "Reordr",
 				"technical_details_heading": "Teknikal Detailz",
@@ -1287,7 +1289,9 @@
 				"tags_help": "Comma-separatd list",
 				"published_at_label": "Publish Daet",
 				"published_at_help": "Schedul 4 futur publicashun",
-				"required_error": "Tietl iz requird"
+				"required_error": "Tietl iz requird",
+				"enable_comments": "Enable Commentz",
+				"comments_enabled_help": "Let visiturz leev commentz on dis"
 			},
 			"contacts": {
 				"title": "Contact Methodz",

@@ -8,6 +8,7 @@ import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
+import Comments from '$components/public/Comments.svelte';
 import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { onMount } from 'svelte';
@@ -381,6 +382,12 @@ const getHost = (url?: string) => {
 					{/if}
 				</div>
 			</nav>
+		{/if}
+
+		{#if data.post.comments_enabled}
+			<div class="max-w-4xl mx-auto px-4 sm:px-6 mt-12 mb-8">
+				<Comments contentType="posts" contentId={data.post.id} />
+			</div>
 		{/if}
 	</main>
 

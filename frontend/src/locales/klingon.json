@@ -1129,6 +1129,8 @@
 				"media_shortcode_help": "Use codes in description: {gallery} for gallery, {video} for video embeds",
 				"is_featured_label": "Feature this mission (appears prominently)",
 				"required_error": "Mission title is required",
+				"enable_comments": "Enable Battle Reports",
+				"comments_enabled_help": "Allow warriors to share their assessments",
 				"generate_slug": "Generate",
 				"reorder_button": "Reorder",
 				"technical_details_heading": "Technical Specifications",
@@ -1287,7 +1289,9 @@
 				"tags_help": "Comma-separated list",
 				"published_at_label": "Publish Date",
 				"published_at_help": "Schedule for future publication",
-				"required_error": "Title is required"
+				"required_error": "Title is required",
+				"enable_comments": "Enable Battle Reports",
+				"comments_enabled_help": "Allow warriors to share their assessments"
 			},
 			"contacts": {
 				"title": "Communication Channels",

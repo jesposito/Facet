@@ -1156,6 +1156,8 @@
 				"media_shortcode_help": "Use shortcodes in description: {gallery} for gallery, {video} for video embeds",
 				"is_featured_label": "Feature this project (appears prominently)",
 				"required_error": "Title is required",
+				"enable_comments": "Enable Comments",
+				"comments_enabled_help": "Allow visitors to leave comments on this project",
 				"generate_slug": "Generate",
 				"reorder_button": "Reorder",
 				"technical_details_heading": "Technical Details",
@@ -1314,7 +1316,9 @@
 				"tags_help": "Comma-separated list",
 				"published_at_label": "Publish Date",
 				"published_at_help": "Schedule for future publication",
-				"required_error": "Title is required"
+				"required_error": "Title is required",
+				"enable_comments": "Enable Comments",
+				"comments_enabled_help": "Allow visitors to leave comments on this post"
 			},
 			"contacts": {
 				"title": "Contact Methods",

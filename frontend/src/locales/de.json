@@ -1129,6 +1129,8 @@
 				"media_shortcode_help": "Shortcodes in der Beschreibung verwenden: {gallery} für Galerie, {video} für Video-Einbettungen",
 				"is_featured_label": "Dieses Projekt hervorheben (erscheint prominent)",
 				"required_error": "Titel ist erforderlich",
+				"enable_comments": "Kommentare aktivieren",
+				"comments_enabled_help": "Besuchern erlauben, Kommentare zu diesem Projekt zu hinterlassen",
 				"generate_slug": "Generieren",
 				"reorder_button": "Neu ordnen",
 				"technical_details_heading": "Technische Details",
@@ -1287,7 +1289,9 @@
 				"tags_help": "Kommagetrennte Liste",
 				"published_at_label": "Veröffentlichungsdatum",
 				"published_at_help": "Für zukünftige Veröffentlichung planen",
-				"required_error": "Titel ist erforderlich"
+				"required_error": "Titel ist erforderlich",
+				"enable_comments": "Kommentare aktivieren",
+				"comments_enabled_help": "Besuchern erlauben, Kommentare zu hinterlassen"
 			},
 			"contacts": {
 				"title": "Kontaktmethoden",

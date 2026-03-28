@@ -1129,6 +1129,8 @@
 				"media_shortcode_help": "Use binding words in description: {gallery} for gallery, {video} for moving image embeds",
 				"is_featured_label": "Feature this work (appears prominently)",
 				"required_error": "Title is required",
+				"enable_comments": "Enable Voices",
+				"comments_enabled_help": "Allow travelers to leave their words",
 				"generate_slug": "Generate",
 				"reorder_button": "Reorder",
 				"technical_details_heading": "Technical Lore",
@@ -1287,7 +1289,9 @@
 				"tags_help": "Comma-separated list",
 				"published_at_label": "Reveal Date",
 				"published_at_help": "Schedule for future revealing",
-				"required_error": "Title is required"
+				"required_error": "Title is required",
+				"enable_comments": "Enable Voices",
+				"comments_enabled_help": "Allow travelers to leave their words"
 			},
 			"contacts": {
 				"title": "Ways of Reaching",
