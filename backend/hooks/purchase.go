@@ -18,6 +18,26 @@ import (
 	"github.com/stripe/stripe-go/v82/webhook"
 )
 
+// getStripeKey resolves the Stripe secret key.
+// It checks the database first (via CryptoService), then falls back to the env var.
+func getStripeKey(app *pocketbase.PocketBase, crypto *services.CryptoService) string {
+	key := services.GetStripeSecretKey(app, crypto)
+	if key != "" {
+		return key
+	}
+	return os.Getenv("STRIPE_SECRET_KEY")
+}
+
+// getStripeWebhookSecret resolves the Stripe webhook secret.
+// It checks the database first (via CryptoService), then falls back to the env var.
+func getStripeWebhookSecret(app *pocketbase.PocketBase, crypto *services.CryptoService) string {
+	secret := services.GetStripeWebhookSecret(app, crypto)
+	if secret != "" {
+		return secret
+	}
+	return os.Getenv("STRIPE_WEBHOOK_SECRET")
+}
+
 // validateRedirectURL ensures the URL has a valid scheme, host, and matches
 // the request origin to prevent open redirect attacks.
 func validateRedirectURL(redirectURL string, requestHost string) bool {
@@ -48,7 +68,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 		// Check if Stripe is configured and ready for content purchases.
 		// Used by admin UI to determine whether "paid" access tier should be available.
 		se.Router.GET("/api/stripe/ready", func(e *core.RequestEvent) error {
-			stripeKey := os.Getenv("STRIPE_SECRET_KEY")
+			stripeKey := getStripeKey(app, crypto)
 			if stripeKey == "" {
 				return e.JSON(http.StatusOK, map[string]any{
 					"ready":   false,
@@ -185,7 +205,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				})
 			}
 
-			stripeKey := os.Getenv("STRIPE_SECRET_KEY")
+			stripeKey := getStripeKey(app, crypto)
 			if stripeKey == "" {
 				return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "Stripe not configured"})
 			}
@@ -240,7 +260,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 		// Stripe webhook endpoint
 		// Rate limited: normal tier (60/min) to prevent abuse
 		se.Router.POST("/api/content/webhook", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+			webhookSecret := getStripeWebhookSecret(app, crypto)
 
 			if webhookSecret == "" {
 				return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "Stripe not configured"})
@@ -505,23 +525,23 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 	gatedCollections := []string{"posts", "projects", "custom_content", "courses", "talks"}
 	for _, coll := range gatedCollections {
 		app.OnRecordCreateRequest(coll).BindFunc(func(e *core.RecordRequestEvent) error {
-			return validatePaidContent(e)
+			return validatePaidContent(app, crypto, e)
 		})
 		app.OnRecordUpdateRequest(coll).BindFunc(func(e *core.RecordRequestEvent) error {
-			return validatePaidContent(e)
+			return validatePaidContent(app, crypto, e)
 		})
 	}
 }
 
 // validatePaidContent checks that Stripe is configured when access_tier=paid, and price meets minimum.
-func validatePaidContent(e *core.RecordRequestEvent) error {
+func validatePaidContent(app *pocketbase.PocketBase, crypto *services.CryptoService, e *core.RecordRequestEvent) error {
 	accessTier := e.Record.GetString("access_tier")
 	if accessTier != "paid" {
 		return e.Next()
 	}
 
-	// Check Stripe key
-	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
+	// Check Stripe key: DB first, then env var
+	stripeKey := getStripeKey(app, crypto)
 	if stripeKey == "" {
 		return e.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Cannot set access tier to \"paid\" - Stripe is not configured. Set up Stripe in Settings first.",

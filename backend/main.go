@@ -56,7 +56,7 @@ func main() {
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
-	hooks.RegisterSiteSettingsHooks(app)
+	hooks.RegisterSiteSettingsHooks(app, cryptoService)
 	hooks.RegisterMediaHooks(app, os.Getenv("UPLOADS_DIR"))
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)

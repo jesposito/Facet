@@ -8,6 +8,124 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// StripeConfig holds decrypted Stripe credentials and metadata about their source.
+type StripeConfig struct {
+	SecretKey     string
+	WebhookSecret string
+	// Source indicates where the keys came from: "database", "environment", or "none"
+	Source string
+}
+
+// GetStripeConfig returns the active Stripe configuration.
+// It checks the database first (decrypted via crypto), then falls back to env vars.
+// Pass nil for crypto to skip DB lookup (env-only path).
+func GetStripeConfig(app core.App, crypto *CryptoService) *StripeConfig {
+	if app != nil && crypto != nil {
+		records, err := app.FindRecordsByFilter("site_settings", "", "", 1, 0, nil)
+		if err == nil && len(records) > 0 {
+			record := records[0]
+			encKey := record.GetString("stripe_secret_key")
+			encWebhook := record.GetString("stripe_webhook_secret")
+
+			if encKey != "" || encWebhook != "" {
+				secretKey := ""
+				webhookSecret := ""
+
+				if encKey != "" {
+					if decrypted, decErr := crypto.Decrypt(encKey); decErr == nil {
+						secretKey = decrypted
+					}
+				}
+				if encWebhook != "" {
+					if decrypted, decErr := crypto.Decrypt(encWebhook); decErr == nil {
+						webhookSecret = decrypted
+					}
+				}
+
+				if secretKey != "" || webhookSecret != "" {
+					return &StripeConfig{
+						SecretKey:     secretKey,
+						WebhookSecret: webhookSecret,
+						Source:        "database",
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// GetStripeSecretKey returns the Stripe secret key from the database (decrypted).
+// Returns empty string if not set in DB.
+func GetStripeSecretKey(app core.App, crypto *CryptoService) string {
+	cfg := GetStripeConfig(app, crypto)
+	if cfg != nil {
+		return cfg.SecretKey
+	}
+	return ""
+}
+
+// GetStripeWebhookSecret returns the Stripe webhook secret from the database (decrypted).
+// Returns empty string if not set in DB.
+func GetStripeWebhookSecret(app core.App, crypto *CryptoService) string {
+	cfg := GetStripeConfig(app, crypto)
+	if cfg != nil {
+		return cfg.WebhookSecret
+	}
+	return ""
+}
+
+// SaveStripeConfig encrypts and persists Stripe credentials to site_settings.
+// Pass empty string for a key to leave the existing value unchanged.
+func SaveStripeConfig(app core.App, crypto *CryptoService, secretKey, webhookSecret string) error {
+	records, err := app.FindRecordsByFilter("site_settings", "", "", 1, 0, nil)
+	if err != nil {
+		return errors.New("failed to load site settings")
+	}
+	if len(records) == 0 {
+		return errors.New("site settings record not found")
+	}
+
+	record := records[0]
+
+	if secretKey != "" {
+		encrypted, encErr := crypto.Encrypt(secretKey)
+		if encErr != nil {
+			return encErr
+		}
+		record.Set("stripe_secret_key", encrypted)
+	}
+
+	if webhookSecret != "" {
+		encrypted, encErr := crypto.Encrypt(webhookSecret)
+		if encErr != nil {
+			return encErr
+		}
+		record.Set("stripe_webhook_secret", encrypted)
+	}
+
+	return app.Save(record)
+}
+
+// ClearStripeConfig removes stored Stripe credentials from site_settings,
+// reverting to environment variable fallback.
+func ClearStripeConfig(app core.App) error {
+	records, err := app.FindRecordsByFilter("site_settings", "", "", 1, 0, nil)
+	if err != nil {
+		return errors.New("failed to load site settings")
+	}
+	if len(records) == 0 {
+		return errors.New("site settings record not found")
+	}
+
+	record := records[0]
+	record.Set("stripe_secret_key", "")
+	record.Set("stripe_webhook_secret", "")
+
+	return app.Save(record)
+}
+
 // HomepageCustomContentItem represents a custom content block on the homepage
 type HomepageCustomContentItem struct {
 	ID      string `json:"id"`
