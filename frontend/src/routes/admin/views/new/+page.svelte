@@ -13,6 +13,7 @@
 	import ViewPreview from '$components/admin/ViewPreview.svelte';
 	import ResumeImportModal from '$components/admin/ResumeImportModal.svelte';
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
+	import { FONT_PACKS, FONT_PACK_LIST, type FontPack } from '$lib/fonts';
 	import { t } from 'svelte-i18n';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
@@ -90,6 +91,8 @@
 	let ctaEnabled = $state(true); // Per-view CTA toggle (defaults to true)
 	let isActive = $state(true);
 	let accentColor: AccentColor | null = $state(null); // null = use global profile setting
+	let fontPack: FontPack | null = $state(null); // null = use global profile setting
+	let heroLayout: string | null = $state(null); // null = use global profile setting
 
 	// Share token generation state (for after view creation)
 	let generateTokenAfterCreate = $state(false);
@@ -496,6 +499,8 @@
 				is_active: isActive,
 				is_default: false, // New views are never default - only the system-created Default view is
 				accent_color: accentColor || null,
+				font_pack: fontPack || null,
+				hero_layout: heroLayout || null,
 				sections: sectionsData
 			};
 
@@ -892,6 +897,100 @@
 							Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
 						{:else}
 							Inherits from global profile setting
+						{/if}
+					</p>
+				</div>
+
+				<!-- Font Pack Override -->
+				<div class="pt-4">
+					<span class="label mb-3 block">Typography</span>
+					<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Font pack selection">
+						<button
+							type="button"
+							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+								{fontPack === null
+								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							onclick={() => fontPack = null}
+						>
+							<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+							{#if fontPack === null}
+								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							{/if}
+						</button>
+
+						{#each FONT_PACK_LIST as pack}
+							{@const packInfo = FONT_PACKS[pack]}
+							<button
+								type="button"
+								class="px-3 py-2 rounded-lg border transition-all text-sm
+									{fontPack === pack
+									? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+									: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+								onclick={() => fontPack = pack}
+								title={packInfo.description}
+								aria-pressed={fontPack === pack}
+							>
+								{packInfo.label}
+							</button>
+						{/each}
+					</div>
+					<p class="text-xs text-gray-500 mt-2">
+						{#if fontPack}
+							Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
+						{:else}
+							Inherits typography from global profile settings
+						{/if}
+					</p>
+				</div>
+
+				<!-- Hero Layout Override -->
+				<div class="pt-4">
+					<span class="label mb-3 block">Hero Layout</span>
+					<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Hero layout selection">
+						<button
+							type="button"
+							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+								{heroLayout === null
+								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							onclick={() => heroLayout = null}
+						>
+							<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+							{#if heroLayout === null}
+								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							{/if}
+						</button>
+
+						{#each [
+							{ id: 'standard', label: 'Image & Gradient' },
+							{ id: 'centered', label: 'Centered' },
+							{ id: 'split', label: 'Split' },
+							{ id: 'minimal', label: 'Minimal' },
+							{ id: 'stacked', label: 'Stacked' }
+						] as layoutOption}
+							<button
+								type="button"
+								class="px-3 py-2 rounded-lg border transition-all text-sm
+									{heroLayout === layoutOption.id
+									? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+									: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+								onclick={() => heroLayout = layoutOption.id}
+								aria-pressed={heroLayout === layoutOption.id}
+							>
+								{layoutOption.label}
+							</button>
+						{/each}
+					</div>
+					<p class="text-xs text-gray-500 mt-2">
+						{#if heroLayout}
+							Using <strong>{heroLayout}</strong> layout for this view
+						{:else}
+							Inherits hero layout from global profile settings
 						{/if}
 					</p>
 				</div>

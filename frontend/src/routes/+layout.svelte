@@ -9,6 +9,7 @@
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex } from '$lib/colors';
+	import { getFontPack, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
 	import { initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
@@ -20,6 +21,7 @@
 			siteNav: { enabled: boolean; items: Array<{ viewId: string; slug: string; label: string; name: string }> };
 			accentColor: string | null;
 			customHexColor: string | null;
+			fontPack: string | null;
 			customCSS: string | null;
 			defaultLocale: string | null;
 		};
@@ -41,6 +43,14 @@
 			applyFlatAccent(data.customHexColor);
 		} else if (data.accentColor) {
 			applyAccentColor(data.accentColor as AccentColor);
+		}
+	});
+
+	// Apply font pack from SSR data (eliminates font flash on first paint)
+	$effect(() => {
+		if (!browser) return;
+		if (data.fontPack) {
+			applyFontPack(data.fontPack);
 		}
 	});
 
@@ -73,6 +83,8 @@
 let gaMeasurementId = $state('');
 let gaInitialized = $state(false);
 let accentStyleEl: HTMLStyleElement | null = $state(null);
+let fontStyleEl: HTMLStyleElement | null = $state(null);
+let fontLinkEl: HTMLLinkElement | null = $state(null);
 let customPaletteLocked = false;
 let faviconUrl = $state<string | null>(null);
 
@@ -170,6 +182,38 @@ function applyFlatAccent(color: string) {
 
 		// Update theme-color meta tag for browser chrome
 		themeColor = color.scale[500];
+	}
+
+	function applyFontPack(packName: string) {
+		if (!browser) return;
+
+		const pack = getFontPack(packName);
+
+		if (!fontStyleEl) {
+			fontStyleEl = document.createElement('style');
+			fontStyleEl.id = 'font-pack';
+			document.head.appendChild(fontStyleEl);
+		}
+
+		fontStyleEl.textContent = `:root {
+  --font-heading: '${pack.heading}', ${pack.headingFallback};
+  --font-body: '${pack.body}', ${pack.bodyFallback};
+  --font-code: '${pack.code}', ${pack.codeFallback};
+}`;
+
+		// Load Google Fonts for non-default packs
+		if (packName !== DEFAULT_FONT_PACK) {
+			if (!fontLinkEl) {
+				fontLinkEl = document.createElement('link');
+				fontLinkEl.id = 'dynamic-google-fonts';
+				fontLinkEl.rel = 'stylesheet';
+				document.head.appendChild(fontLinkEl);
+			}
+			fontLinkEl.href = pack.googleFontsUrl;
+		} else if (fontLinkEl) {
+			fontLinkEl.remove();
+			fontLinkEl = null;
+		}
 	}
 
 	async function loadAccentColor() {
@@ -271,9 +315,16 @@ onMount(() => {
 	};
 	window.addEventListener('favicon-changed', handleFaviconChange as EventListener);
 
+	// Listen for font pack changes from settings page
+	const handleFontPackChange = (event: CustomEvent<string>) => {
+		applyFontPack(event.detail);
+	};
+	window.addEventListener('font-pack-changed', handleFontPackChange as EventListener);
+
 	return () => {
 		window.removeEventListener('accent-color-changed', handleColorChange as EventListener);
 		window.removeEventListener('favicon-changed', handleFaviconChange as EventListener);
+		window.removeEventListener('font-pack-changed', handleFontPackChange as EventListener);
 	};
 });
 

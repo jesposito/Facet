@@ -40,6 +40,18 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
+    "@tiptap/core": "^3.21.0",
+    "@tiptap/extension-code-block-lowlight": "^3.21.0",
+    "@tiptap/extension-image": "^3.21.0",
+    "@tiptap/extension-link": "^3.21.0",
+    "@tiptap/extension-placeholder": "^3.21.0",
+    "@tiptap/extension-table": "^3.21.0",
+    "@tiptap/extension-table-cell": "^3.21.0",
+    "@tiptap/extension-table-header": "^3.21.0",
+    "@tiptap/extension-table-row": "^3.21.0",
+    "@tiptap/markdown": "^3.21.0",
+    "@tiptap/pm": "^3.21.0",
+    "@tiptap/starter-kit": "^3.21.0",
     "isomorphic-dompurify": "^2.35.0",
     "marked": "^11.0.0",
     "pocketbase": "^0.21.0",
