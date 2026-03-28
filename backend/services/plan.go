@@ -22,6 +22,7 @@ type PlanFeatures struct {
 	CustomDomain   bool `json:"custom_domain"`
 	Newsletter     bool `json:"newsletter"`
 	Discussions    bool `json:"discussions"`
+	Pricing        bool `json:"pricing"`
 }
 
 // PlanConfig holds the managed mode configuration derived from environment variables.
@@ -51,6 +52,7 @@ func LoadPlanConfig() *PlanConfig {
 				CustomDomain:   true,
 				Newsletter:     true,
 				Discussions:    true,
+				Pricing:        true,
 			},
 		}
 	}
@@ -68,6 +70,7 @@ func LoadPlanConfig() *PlanConfig {
 			API:            true,
 			Newsletter:     true,
 			Discussions:    true,
+			Pricing:        true,
 		},
 	}
 }
@@ -95,6 +98,8 @@ func (c *PlanConfig) HasFeature(feature string) bool {
 		return c.Features.Newsletter
 	case "discussions":
 		return c.Features.Discussions
+	case "pricing":
+		return c.Features.Pricing
 	default:
 		// Self-hosted gets everything; managed defaults to false for unknown features
 		return !c.Managed
@@ -118,4 +123,3 @@ func envBool(key string, fallback bool) bool {
 	}
 	return b
 }
-

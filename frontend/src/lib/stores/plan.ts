@@ -10,6 +10,7 @@ export interface PlanFeatures {
 	custom_domain: boolean;
 	newsletter: boolean;
 	discussions: boolean;
+	pricing: boolean;
 }
 
 export interface PlanConfig {
@@ -32,7 +33,8 @@ const defaultConfig: PlanConfig = {
 		api: true,
 		custom_domain: true,
 		newsletter: true,
-		discussions: true
+		discussions: true,
+		pricing: true
 	}
 };
 

@@ -18,6 +18,7 @@
 
 	const hasAnalytics = hasFeature('basic_analytics');
 	const hasCourses = hasFeature('courses');
+	const hasPricing = hasFeature('pricing');
 	const hasNewsletter = hasFeature('newsletter');
 	const hasDiscussions = hasFeature('discussions');
 
@@ -258,6 +259,14 @@
 		items.push({ href: '/admin/settings/site', labelKey: 'admin.sidebar.site_settings', icon: 'cog' });
 		items.push({ href: '/admin/settings/features', labelKey: 'admin.sidebar.features', icon: 'puzzle' });
 		items.push({ href: '/admin/settings/integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' });
+
+		// Commerce subgroup
+		if ($hasPricing) {
+			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.commerce' });
+			items.push({ href: '/admin/pricing', labelKey: 'admin.sidebar.pricing', icon: 'currency' });
+			items.push({ href: '/admin/coupons', labelKey: 'admin.sidebar.coupons', icon: 'tag' });
+		}
+
 		items.push({ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' });
 		items.push({ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' });
 

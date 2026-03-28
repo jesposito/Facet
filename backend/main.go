@@ -76,6 +76,11 @@ func main() {
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCommentHooks(app, planConfig)
 	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
+	hooks.RegisterPurchaseHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterCouponHooks(app, rateLimitService)
+	hooks.RegisterDownloadHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterCourseHooks(app, planConfig, cryptoService, rateLimitService)
+	hooks.RegisterQuizHooks(app, planConfig, cryptoService, rateLimitService)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
