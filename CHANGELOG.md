@@ -3,6 +3,28 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.20.0 - March 28, 2026
+
+**New Features:**
+- Add font packs with 7 curated font combinations
+- Add 5 hero section layout variants
+- Add TipTap-based WYSIWYG MarkdownEditor component
+- Add 2 new migrations for font pack and hero layout
+- Expose new fields in view API and homepage API responses
+- Add font pack registry with 7 packs and CSS variable generation
+- Add expanded hero layout support in ProfileHero component
+- Add typography and hero layout picker sections in ViewSettingsPanel
+- Implement SSR injection of font CSS variables and Google Fonts link
+- Add client-side font pack application and dynamic loading
+- Add font and layout selection UI in admin settings/views pages
+- Add i18n keys for typography and layout features in locale files
+- Add TipTap dependencies in package.json
+
+**Pull Requests:** [#419](https://github.com/jesposito/Facet/pull/419),
+
+---
+
+
 ## v2.19.0 - March 28, 2026
 
 **New Features:**
