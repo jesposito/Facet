@@ -3,6 +3,55 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.19.0 - March 28, 2026
+
+**New Features:**
+- Backport production-proven features from the Facet Cloud fork to self-hosted Facet
+- Add plan system with feature gating for all new capabilities
+- Add feature toggles admin page for per-feature enable/disable
+- Implement SSR accent color injection to eliminate FOUC
+- Add custom hex color support for users
+- Implement bot detection for analytics accuracy
+- Sanitize production error messages to prevent internal detail leakage
+- Add shared helpers to reduce boilerplate across hook files
+- Implement privacy-respecting access logging with IP hashing
+- Add analytics dashboard with views over time and popular pages
+- Introduce basic vs advanced analytics tiers
+- Add full comment system with threaded replies and markdown support
+- Implement comment moderation dashboard with workflows
+- Add per-item toggle for admin to enable/disable comments
+- Display comments on post detail pages when enabled
+- Implement backend hooks for comments with rate limiting
+- Add subscriber management for newsletters with import/export
+- Implement newsletter composer with WYSIWYG email editor
+- Add public subscribe widget for newsletters
+- Create email layout system with reusable HTML templates
+- Implement backend hooks for newsletters with subscriber CRUD
+- Add full course system with modules, lessons, and progress tracking
+- Implement content pricing for paid content tiers with Stripe integration
+- Add coupon system with discounts and usage limits
+- Implement digital downloads with secure file delivery
+- Add quiz system with auto-grading and certificates
+- Implement purchase flow for Stripe checkout sessions
+- Add admin payments page for configuring Stripe keys
+- Implement encrypted storage for Stripe keys
+- Add connection test for Stripe API verification
+- Design admin GUI to not require environment variables
+- Reorganize admin sidebar with collapsible sections
+- Implement progressive disclosure search/filter for homepage section editors
+- Ensure 'Select All' correctly scopes to filtered results when search is active
+- Add 17 new database migrations for various features
+- Add 540+ new translation keys across all locales
+
+**Other Changes:**
+- Make architecture decisions for self-hosted version
+- Verify build and test processes for new features
+
+**Pull Requests:** [#418](https://github.com/jesposito/Facet/pull/418),
+
+---
+
+
 ## v2.18.10 - March 27, 2026
 
 **New Features:**
