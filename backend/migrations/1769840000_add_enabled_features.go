@@ -27,7 +27,7 @@ func init() {
 		}
 		if f := collection.Fields.GetByName("enabled_features"); f != nil {
 			collection.Fields.RemoveById(f.GetId())
-			app.Save(collection)
+			return app.Save(collection)
 		}
 		return nil
 	})

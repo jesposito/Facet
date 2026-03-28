@@ -60,6 +60,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"default_locale":          settings.DefaultLocale,
 				"homepage_view_count":     settings.HomepageViewCount,
 				"homepage_last_viewed_at": settings.HomepageLastViewedAt,
+				"enabled_features":        settings.EnabledFeatures,
 			})
 		})
 
@@ -84,6 +85,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
 				DefaultLocale         *string                                   `json:"default_locale"`
+				EnabledFeatures       map[string]bool                           `json:"enabled_features"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -147,6 +149,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				locale := strings.TrimSpace(*req.DefaultLocale)
 				updates["default_locale"] = locale
 			}
+			if req.EnabledFeatures != nil {
+				updates["enabled_features"] = req.EnabledFeatures
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -169,6 +174,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
+				"enabled_features":        settings.EnabledFeatures,
 			})
 		})
 

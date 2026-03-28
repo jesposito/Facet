@@ -8,7 +8,6 @@
 	let saving = $state(false);
 
 	let features = $state({
-		basic_analytics: true,
 		analytics: true,
 		courses: true,
 		newsletter: true,
@@ -26,9 +25,7 @@
 			if (response.ok) {
 				const data = await response.json();
 				const enabled = data.enabled_features ?? {};
-				// Apply loaded values, defaulting to true for each feature
 				features = {
-					basic_analytics: enabled.basic_analytics !== false,
 					analytics: enabled.analytics !== false,
 					courses: enabled.courses !== false,
 					newsletter: enabled.newsletter !== false,
@@ -45,23 +42,10 @@
 	async function saveFeatures() {
 		saving = true;
 		try {
-			const response = await fetch('/api/site-settings', {
+			await pb.send('/api/site-settings', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify({
-					enabled_features: { ...features }
-				})
+				body: { enabled_features: { ...features } }
 			});
-
-			if (!response.ok) {
-				const result = await response.json();
-				toasts.add('error', result.error || $t('admin.settings.features.save_error'));
-				return;
-			}
-
 			toasts.add('success', $t('admin.settings.features.saved'));
 		} catch (err) {
 			console.error('Failed to save feature settings:', err);

@@ -19,6 +19,7 @@ type PlanFeatures struct {
 	BadgeForced    bool `json:"badge_forced"`
 	Courses        bool `json:"courses"`
 	API            bool `json:"api"`
+	CustomDomain   bool `json:"custom_domain"`
 	Newsletter     bool `json:"newsletter"`
 	Discussions    bool `json:"discussions"`
 }
@@ -47,6 +48,7 @@ func LoadPlanConfig() *PlanConfig {
 				BadgeForced:    false,
 				Courses:        true,
 				API:            true,
+				CustomDomain:   true,
 				Newsletter:     true,
 				Discussions:    true,
 			},
@@ -87,6 +89,8 @@ func (c *PlanConfig) HasFeature(feature string) bool {
 		return c.Features.Courses
 	case "api":
 		return c.Features.API
+	case "custom_domain":
+		return c.Features.CustomDomain
 	case "newsletter":
 		return c.Features.Newsletter
 	case "discussions":
@@ -115,14 +119,3 @@ func envBool(key string, fallback bool) bool {
 	return b
 }
 
-func envInt(key string, fallback int) int {
-	v := os.Getenv(key)
-	if v == "" {
-		return fallback
-	}
-	i, err := strconv.Atoi(v)
-	if err != nil {
-		return fallback
-	}
-	return i
-}

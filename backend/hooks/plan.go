@@ -27,7 +27,7 @@ func RegisterPlanHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 				"demo_mode": demoMode == "readonly",
 			}
 
-			return e.JSON(http.StatusOK, response)
+			return respondJSON(e, http.StatusOK, response)
 		})
 
 		return se.Next()
