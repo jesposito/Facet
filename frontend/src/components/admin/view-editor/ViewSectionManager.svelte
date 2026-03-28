@@ -87,7 +87,8 @@
 		posts: { labelKey: 'admin.view_editor.sections.posts', collection: 'posts' },
 		talks: { labelKey: 'admin.view_editor.sections.talks', collection: 'talks' },
 		contacts: { labelKey: 'admin.view_editor.sections.contacts', collection: 'contact_methods' },
-		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' }
+		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' },
+		courses: { labelKey: 'admin.view_editor.sections.courses', collection: 'courses' }
 	};
 
 	// Helper to check if a section key is for custom content
@@ -109,6 +110,124 @@
 		const title = customContentTitleMap.get(customId);
 		return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
 	}
+
+	// Build a disambiguating subtitle for items in the selection list.
+	function getItemSubtitle(sectionKey: string, item: { data: Record<string, unknown> }): string {
+		const d = item.data;
+		const parts: string[] = [];
+
+		// Date range (experience, education)
+		const startDate = d.start_date as string | undefined;
+		const endDate = d.end_date as string | undefined;
+		if (startDate) {
+			const start = formatShortDate(startDate);
+			const end = endDate ? formatShortDate(endDate) : $t('admin.view_editor.sections.subtitle_present');
+			parts.push(`${start} – ${end}`);
+		}
+
+		// Description preview (projects, posts, testimonials)
+		if (!startDate) {
+			const desc = (d.description || d.summary || d.text || d.content) as string | undefined;
+			if (desc) {
+				const plain = desc.replace(/[#*_`\[\]]/g, '').trim();
+				if (plain.length > 0) {
+					parts.push(plain.length > 55 ? plain.slice(0, 55) + '…' : plain);
+				}
+			}
+		}
+
+		// Field of study (education)
+		if (sectionKey === 'education') {
+			const field = d.field_of_study as string | undefined;
+			if (field) parts.push(field);
+		}
+
+		return parts.join(' · ');
+	}
+
+	function getImportSource(item: { data: Record<string, unknown> }): string | null {
+		const importFile = item.data.import_filename as string | undefined;
+		if (!importFile) return null;
+		return importFile.replace(/\.[^.]+$/, '');
+	}
+
+	function formatShortDate(dateStr: string): string {
+		try {
+			const date = new Date(dateStr);
+			if (isNaN(date.getTime())) return dateStr;
+			return new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(date);
+		} catch {
+			return dateStr;
+		}
+	}
+
+	// --- Search & Tag Filter ---
+	let searchQueries: Record<string, string> = $state({});
+	let activeTagFilters: Record<string, string | null> = $state({});
+
+	function getSearchQuery(sectionKey: string): string {
+		return searchQueries[sectionKey] || '';
+	}
+
+	function setSearchQuery(sectionKey: string, value: string) {
+		searchQueries[sectionKey] = value;
+		searchQueries = { ...searchQueries };
+	}
+
+	function getActiveTagFilter(sectionKey: string): string | null {
+		return activeTagFilters[sectionKey] || null;
+	}
+
+	function setActiveTagFilter(sectionKey: string, tagId: string | null) {
+		activeTagFilters[sectionKey] = tagId;
+		activeTagFilters = { ...activeTagFilters };
+	}
+
+	function clearFilters(sectionKey: string) {
+		searchQueries[sectionKey] = '';
+		activeTagFilters[sectionKey] = null;
+		searchQueries = { ...searchQueries };
+		activeTagFilters = { ...activeTagFilters };
+	}
+
+	function getSectionTags(sectionKey: string): Array<{ id: string; name: string; color: string }> {
+		const items = sectionItems[sectionKey] || [];
+		const tagMap = new Map<string, { id: string; name: string; color: string }>();
+		for (const item of items) {
+			for (const tag of item.expand?.admin_tags || []) {
+				if (!tagMap.has(tag.id)) tagMap.set(tag.id, tag);
+			}
+		}
+		return Array.from(tagMap.values());
+	}
+
+	function filterItems(
+		sectionKey: string,
+		items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown>; expand?: { admin_tags?: Array<{ id: string; name: string; color: string }> } }>
+	) {
+		const query = getSearchQuery(sectionKey).toLowerCase().trim();
+		const tagFilter = getActiveTagFilter(sectionKey);
+
+		if (!query && !tagFilter) return items;
+
+		return items.filter(item => {
+			if (query) {
+				const label = item.label.toLowerCase();
+				const subtitle = getItemSubtitle(sectionKey, item).toLowerCase();
+				const importSource = (getImportSource(item) || '').toLowerCase();
+				if (!label.includes(query) && !subtitle.includes(query) && !importSource.includes(query)) {
+					return false;
+				}
+			}
+			if (tagFilter) {
+				const itemTags = item.expand?.admin_tags || [];
+				if (!itemTags.some(t => t.id === tagFilter)) return false;
+			}
+			return true;
+		});
+	}
+
+	const SEARCH_THRESHOLD = 5;
 
 	const flipDurationMs = 200;
 
@@ -185,8 +304,9 @@
 		updateSections();
 	}
 
-	function selectAllItems(sectionKey: string) {
-		sections[sectionKey].items = sectionItems[sectionKey]?.map((i) => i.id) || [];
+	function selectAllItems(sectionKey: string, filteredOnly?: { id: string }[]) {
+		const source = filteredOnly ?? sectionItems[sectionKey] ?? [];
+		sections[sectionKey].items = source.map((i) => i.id);
 		updateSections();
 	}
 
@@ -473,17 +593,79 @@
 							/>
 						{:else}
 							<!-- Standard items list for other sections -->
+							{@const filteredItems = filterItems(sectionKey, items)}
+							{@const isFiltering = !!(getSearchQuery(sectionKey) || getActiveTagFilter(sectionKey))}
+							{@const sectionTags = getSectionTags(sectionKey)}
+
+							<!-- Search & Tag Filter (progressive disclosure: only for 5+ items) -->
+							{#if items.length >= SEARCH_THRESHOLD}
+								<div class="mb-3 space-y-2">
+									<div class="flex items-center gap-2">
+										<div class="relative flex-1">
+											<input
+												type="text"
+												placeholder={$t('admin.view_editor.sections.search_placeholder')}
+												value={getSearchQuery(sectionKey)}
+												oninput={(e) => setSearchQuery(sectionKey, e.currentTarget.value)}
+												onkeydown={(e) => { if (e.key === 'Escape') clearFilters(sectionKey); }}
+												class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg pl-8 pr-8 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder:text-gray-400"
+											/>
+											<svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+											</svg>
+											{#if getSearchQuery(sectionKey)}
+												<button
+													type="button"
+													class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+													onclick={() => setSearchQuery(sectionKey, '')}
+													aria-label={$t('admin.view_editor.sections.clear_search')}
+												>
+													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+													</svg>
+												</button>
+											{/if}
+										</div>
+										{#if sectionTags.length > 0}
+											<select
+												class="text-xs border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+												value={getActiveTagFilter(sectionKey) || ''}
+												onchange={(e) => setActiveTagFilter(sectionKey, e.currentTarget.value || null)}
+											>
+												<option value="">{$t('admin.view_editor.sections.all_tags')}</option>
+												{#each sectionTags as tag (tag.id)}
+													<option value={tag.id}>{tag.name}</option>
+												{/each}
+											</select>
+										{/if}
+									</div>
+								</div>
+							{/if}
+
 							<div class="flex items-center justify-between mb-2">
 								<p class="text-xs text-gray-500">
-									{selectedPublicCount === 0
-										? $t('admin.view_editor.sections.select_all_hint')
-										: $t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
+									{#if isFiltering}
+										{$t('admin.view_editor.sections.showing_filtered', { values: { shown: filteredItems.length, total: items.length } })}
+									{:else if selectedPublicCount === 0}
+										{$t('admin.view_editor.sections.select_all_hint')}
+									{:else}
+										{$t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
+									{/if}
 								</p>
 								<div class="flex gap-2">
+									{#if isFiltering}
+										<button
+											type="button"
+											class="text-xs text-gray-500 hover:underline"
+											onclick={() => clearFilters(sectionKey)}
+										>
+											{$t('admin.view_editor.sections.clear_filters')}
+										</button>
+									{/if}
 									<button
 										type="button"
 										class="text-xs text-primary-600 hover:underline"
-										onclick={() => selectAllItems(sectionKey)}
+										onclick={() => selectAllItems(sectionKey, isFiltering ? filteredItems : undefined)}
 									>
 										{$t('admin.view_editor.sections.select_all')}
 									</button>
@@ -497,30 +679,44 @@
 								</div>
 							</div>
 
+							{#if isFiltering && filteredItems.length === 0}
+								<div class="py-6 text-center">
+									<p class="text-sm text-gray-500">{$t('admin.view_editor.sections.no_results')}</p>
+									<button
+										type="button"
+										class="mt-2 text-xs text-primary-600 hover:underline"
+										onclick={() => clearFilters(sectionKey)}
+									>
+										{$t('admin.view_editor.sections.clear_filters')}
+									</button>
+								</div>
+							{:else}
 							<div
 								class="space-y-1 max-h-64 overflow-y-auto"
 								use:dndzone={{
-									items: sectionItems[sectionKey] || [],
+									items: isFiltering ? filteredItems : (sectionItems[sectionKey] || []),
 									flipDurationMs,
 									type: `items-${sectionKey}`,
-									dragDisabled: false,
+									dragDisabled: isFiltering,
 									dropFromOthersDisabled: true
 								}}
-								onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
-								onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
+								onconsider={(e: any) => { if (!isFiltering) handleItemDndConsider(sectionKey, e); }}
+								onfinalize={(e: any) => { if (!isFiltering) handleItemDndFinalize(sectionKey, e); }}
 							>
-								{#each items as item (item.id)}
+								{#each isFiltering ? filteredItems : items as item (item.id)}
 									{@const isSelected = sectionConfig.items.includes(item.id)}
 									{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
 									{@const overrideCount = getOverrideCount(sectionKey, item.id)}
 									{@const canOverride = OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
+									{@const subtitle = getItemSubtitle(sectionKey, item)}
+									{@const importSource = getImportSource(item)}
 									<div
 										class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
 										animate:flip={{ duration: flipDurationMs }}
 									>
 										<div
-											class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-											title={$t('admin.view_editor.sections.drag_to_reorder')}
+											class="p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded {isFiltering ? 'opacity-30 pointer-events-none' : 'cursor-grab active:cursor-grabbing hover:bg-gray-200 dark:hover:bg-gray-700'}"
+											title={isFiltering ? '' : $t('admin.view_editor.sections.drag_to_reorder')}
 											role="presentation"
 										>
 											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -545,6 +741,20 @@
 												<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
 													{item.label}
 												</span>
+												{#if subtitle || importSource}
+													<span class="flex items-center gap-1.5 mt-0.5">
+														{#if subtitle}
+															<span class="text-xs text-gray-500 dark:text-gray-400 truncate" title={subtitle}>
+																{subtitle}
+															</span>
+														{/if}
+														{#if importSource}
+															<span class="inline-flex items-center shrink-0 text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title={$t('admin.view_editor.sections.subtitle_from_import', { values: { filename: importSource } })}>
+																{importSource}
+															</span>
+														{/if}
+													</span>
+												{/if}
 												{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
 													<div class="flex gap-1 mt-1 flex-wrap">
 														{#each item.expand.admin_tags as tag (tag.id)}
@@ -587,6 +797,7 @@
 									</div>
 								{/each}
 							</div>
+							{/if}
 
 							{#if sectionKey === 'testimonials' && (sectionConfig.layout === 'featured' || sectionConfig.layout === 'carousel')}
 								{@const selectedTestimonials = (sectionItems['testimonials'] || []).filter(t => sectionConfig.items.includes(t.id))}

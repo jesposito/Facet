@@ -54,7 +54,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 				if err := ClearDemoTables(app); err != nil {
 					app.Logger().Error("Failed to clear existing demo data", "error", err)
 					return e.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "Failed to clear existing demo data: " + err.Error(),
+						"error": "Failed to manage demo data",
 					})
 				}
 			}
@@ -63,7 +63,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 			if err := LoadDemoDataIntoShadowTables(app); err != nil {
 				app.Logger().Error("Failed to load demo data", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "Failed to load demo data: " + err.Error(),
+					"error": "Failed to manage demo data",
 				})
 			}
 
@@ -96,7 +96,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 			if err := ClearDemoTables(app); err != nil {
 				app.Logger().Error("Failed to clear demo data", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "Failed to clear demo data: " + err.Error(),
+					"error": "Failed to manage demo data",
 				})
 			}
 

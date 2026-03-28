@@ -43,7 +43,8 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				updated: post.updated,
 				cover_image_url: post.cover_image_url || null,
 				visibility: post.visibility || 'public',
-				is_draft: post.is_draft || false
+				is_draft: post.is_draft || false,
+				comments_enabled: post.comments_enabled ?? false
 			},
 			media_refs: mediaRefs,
 			profile: post.profile || null,

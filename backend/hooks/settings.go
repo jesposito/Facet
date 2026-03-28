@@ -14,10 +14,11 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 	"github.com/pocketbase/pocketbase/tools/mailer"
+	"github.com/stripe/stripe-go/v82/client"
 )
 
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
-func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
+func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Authenticated: check encryption key source
 		se.Router.GET("/api/system/encryption-status", func(e *core.RequestEvent) error {
@@ -60,6 +61,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"default_locale":          settings.DefaultLocale,
 				"homepage_view_count":     settings.HomepageViewCount,
 				"homepage_last_viewed_at": settings.HomepageLastViewedAt,
+				"enabled_features":        settings.EnabledFeatures,
 			})
 		})
 
@@ -84,6 +86,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
 				DefaultLocale         *string                                   `json:"default_locale"`
+				EnabledFeatures       map[string]bool                           `json:"enabled_features"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -147,6 +150,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				locale := strings.TrimSpace(*req.DefaultLocale)
 				updates["default_locale"] = locale
 			}
+			if req.EnabledFeatures != nil {
+				updates["enabled_features"] = req.EnabledFeatures
+			}
 
 			settings, err := services.UpdateSiteSettings(app, updates, app.Logger())
 			if err != nil {
@@ -169,6 +175,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
+				"enabled_features":        settings.EnabledFeatures,
 			})
 		})
 
@@ -395,6 +402,135 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase) {
 				"tls":            settings.SMTP.TLS,
 				"sender_name":    settings.Meta.SenderName,
 				"sender_address": settings.Meta.SenderAddress,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// ── Stripe Settings API ─────────────────────────────────────
+
+		// GET /api/stripe-settings — returns status (never returns actual keys)
+		se.Router.GET("/api/stripe-settings", func(e *core.RequestEvent) error {
+			// Check DB first
+			dbCfg := services.GetStripeConfig(app, crypto)
+			if dbCfg != nil {
+				return e.JSON(http.StatusOK, map[string]any{
+					"configured":         dbCfg.SecretKey != "" || dbCfg.WebhookSecret != "",
+					"secret_key_set":     dbCfg.SecretKey != "",
+					"webhook_secret_set": dbCfg.WebhookSecret != "",
+					"source":             "database",
+				})
+			}
+
+			// Fall back to env vars
+			envKey := os.Getenv("STRIPE_SECRET_KEY")
+			envWebhook := os.Getenv("STRIPE_WEBHOOK_SECRET")
+			if envKey != "" || envWebhook != "" {
+				return e.JSON(http.StatusOK, map[string]any{
+					"configured":         true,
+					"secret_key_set":     envKey != "",
+					"webhook_secret_set": envWebhook != "",
+					"source":             "environment",
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"configured":         false,
+				"secret_key_set":     false,
+				"webhook_secret_set": false,
+				"source":             "none",
+			})
+		}).Bind(apis.RequireAuth())
+
+		// PUT /api/stripe-settings — encrypt and store Stripe keys
+		se.Router.PUT("/api/stripe-settings", func(e *core.RequestEvent) error {
+			var req struct {
+				SecretKey     *string `json:"secret_key"`
+				WebhookSecret *string `json:"webhook_secret"`
+			}
+
+			if err := e.BindBody(&req); err != nil {
+				return apis.NewBadRequestError("invalid request body", err)
+			}
+
+			secretKey := ""
+			webhookSecret := ""
+			if req.SecretKey != nil {
+				secretKey = strings.TrimSpace(*req.SecretKey)
+			}
+			if req.WebhookSecret != nil {
+				webhookSecret = strings.TrimSpace(*req.WebhookSecret)
+			}
+
+			if secretKey == "" && webhookSecret == "" {
+				return apis.NewBadRequestError("at least one of secret_key or webhook_secret is required", nil)
+			}
+
+			if err := services.SaveStripeConfig(app, crypto, secretKey, webhookSecret); err != nil {
+				app.Logger().Error("Failed to save Stripe config", "error", err)
+				return apis.NewBadRequestError("failed to save Stripe settings", err)
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"success":            true,
+				"secret_key_set":     secretKey != "",
+				"webhook_secret_set": webhookSecret != "",
+				"source":             "database",
+			})
+		}).Bind(apis.RequireAuth())
+
+		// DELETE /api/stripe-settings — clear stored keys (reverts to env var fallback)
+		se.Router.DELETE("/api/stripe-settings", func(e *core.RequestEvent) error {
+			if err := services.ClearStripeConfig(app); err != nil {
+				app.Logger().Error("Failed to clear Stripe config", "error", err)
+				return apis.NewBadRequestError("failed to clear Stripe settings", err)
+			}
+
+			// Report what's available after clearing
+			envKey := os.Getenv("STRIPE_SECRET_KEY")
+			envWebhook := os.Getenv("STRIPE_WEBHOOK_SECRET")
+			source := "none"
+			if envKey != "" || envWebhook != "" {
+				source = "environment"
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"success":            true,
+				"configured":         envKey != "" || envWebhook != "",
+				"secret_key_set":     envKey != "",
+				"webhook_secret_set": envWebhook != "",
+				"source":             source,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// POST /api/stripe-settings/test — test the configured Stripe key
+		se.Router.POST("/api/stripe-settings/test", func(e *core.RequestEvent) error {
+			// Resolve key: DB first, then env
+			stripeKey := services.GetStripeSecretKey(app, crypto)
+			if stripeKey == "" {
+				stripeKey = os.Getenv("STRIPE_SECRET_KEY")
+			}
+
+			if stripeKey == "" {
+				return e.JSON(http.StatusOK, map[string]any{
+					"success": false,
+					"error":   "Stripe secret key is not configured.",
+				})
+			}
+
+			// Test the key by calling stripe.Account.Get()
+			sc := &client.API{}
+			sc.Init(stripeKey, nil)
+
+			_, err := sc.Accounts.Get()
+			if err != nil {
+				app.Logger().Error("Stripe key test failed", "error", err)
+				return e.JSON(http.StatusOK, map[string]any{
+					"success": false,
+					"error":   err.Error(),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"success": true,
 			})
 		}).Bind(apis.RequireAuth())
 

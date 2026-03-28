@@ -279,6 +279,85 @@ export interface CustomContent {
 	};
 }
 
+export interface Course {
+	id: string;
+	title: string;
+	slug?: string;
+	description?: string;
+	cover_image?: string;
+	instructor_name?: string;
+	instructor_bio?: string;
+	access_tier: 'free' | 'paid';
+	price: number;
+	difficulty?: 'beginner' | 'intermediate' | 'advanced';
+	estimated_hours?: number;
+	tags?: string[];
+	learning_outcomes?: string[];
+	visibility: 'public' | 'unlisted' | 'private';
+	is_draft: boolean;
+	sequential_access: boolean;
+	track_progress: boolean;
+	show_progress_bar: boolean;
+	require_enrollment: boolean;
+	issue_certificates: boolean;
+	created: string;
+	updated: string;
+}
+
+export interface CourseModule {
+	id: string;
+	course_id: string;
+	title: string;
+	description?: string;
+	sort_order: number;
+	drip_days?: number;
+	drip_date?: string;
+	created: string;
+	updated: string;
+}
+
+export interface CourseLesson {
+	id: string;
+	module_id: string;
+	title: string;
+	content_type: 'video' | 'text' | 'mixed' | 'quiz';
+	video_url?: string;
+	content?: string;
+	estimated_minutes?: number;
+	is_preview: boolean;
+	sort_order: number;
+	attachments?: string[];
+	created: string;
+	updated: string;
+}
+
+export interface QuizQuestion {
+	id: string;
+	lesson_id: string;
+	question_type: 'multiple_choice' | 'true_false';
+	question_text: string;
+	options?: string[];
+	correct_answer: string;
+	explanation?: string;
+	points: number;
+	sort_order: number;
+}
+
+export interface Coupon {
+	id: string;
+	code: string;
+	discount_type: 'percentage' | 'fixed';
+	discount_value: number;
+	applicable_type: 'all' | 'courses' | 'posts' | 'projects';
+	applicable_ids: string[];
+	max_uses: number;
+	current_uses: number;
+	expires_at: string;
+	active: boolean;
+	created: string;
+	updated: string;
+}
+
 export type ContactMethodType =
 	| 'email'
 	| 'phone'

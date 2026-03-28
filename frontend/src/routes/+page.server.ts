@@ -11,6 +11,21 @@
 import type { PageServerLoad } from './$types';
 import { logger } from '$lib/logger';
 
+type ViewData = {
+	hero_headline?: string;
+	hero_summary?: string;
+	hero_location?: string;
+	slug?: string;
+	accent_color?: string;
+	cta_url?: string;
+	cta_button_text?: string;
+	cta_text?: string;
+	cta_enabled?: boolean;
+} | null;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type SectionsData = Record<string, any[]>;
+
 export const load: PageServerLoad = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
@@ -32,12 +47,16 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				talks: [],
 				testimonials: [],
 				contacts: [],
-				view: null,
-				sections: {},
+				view: null as ViewData,
+				sections: {} as SectionsData,
 				sectionOrder: [],
-				sectionLayouts: {},
-				sectionWidths: {},
-				sectionFeaturedIds: {},
+				sectionLayouts: {} as Record<string, string>,
+				sectionWidths: {} as Record<string, string>,
+				sectionFeaturedIds: {} as Record<string, string>,
+				sectionCategoryOrders: {} as Record<string, string[]>,
+				sectionDisabledCategories: {} as Record<string, string[]>,
+				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
+				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
 				talksTotalCount: 0,
 				error: 'Failed to load profile',
@@ -65,9 +84,13 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				skills: [],
 				posts: [],
 				talks: [],
-				view: null,
+				view: null as ViewData,
 				isDefaultView: false,
-				sectionFeaturedIds: {},
+				sectionFeaturedIds: {} as Record<string, string>,
+				sectionCategoryOrders: {} as Record<string, string[]>,
+				sectionDisabledCategories: {} as Record<string, string[]>,
+				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
+				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
 				talksTotalCount: 0
 			};
@@ -84,12 +107,16 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				skills: [],
 				posts: [],
 				talks: [],
-				view: null,
+				view: null as ViewData,
 				error: 'Profile is private',
 				isDefaultView: false,
 				hideLoginButton: data.hide_login_button || false,
 				siteCtaEnabled: data.site_cta_enabled !== false,
-				sectionFeaturedIds: {},
+				sectionFeaturedIds: {} as Record<string, string>,
+				sectionCategoryOrders: {} as Record<string, string[]>,
+				sectionDisabledCategories: {} as Record<string, string[]>,
+				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
+				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
 				talksTotalCount: 0
 			};
@@ -130,10 +157,15 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			customContent: data.custom_content || [],
 			homepageCustomContentConfig: data.homepage_custom_content || [],
 			homepageSectionOrder: data.homepage_section_order || [],
-			homepageSections: data.homepage_sections || {},
+			homepageSections: data.homepage_sections || {} as Record<string, Record<string, unknown>>,
 			skillsCategoryOrder: data.skills_category_order || [],
-			sectionFeaturedIds: {},
-			view: null,
+			sectionFeaturedIds: {} as Record<string, string>,
+			sectionLayouts: {} as Record<string, string>,
+			sectionWidths: {} as Record<string, string>,
+			sectionCategoryOrders: {} as Record<string, string[]>,
+			sectionDisabledCategories: {} as Record<string, string[]>,
+			sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
+			view: null as ViewData,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
 			siteCtaEnabled: data.site_cta_enabled !== false
@@ -152,8 +184,12 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			talks: [],
 			testimonials: [],
 			contacts: [],
-			view: null,
-			sectionFeaturedIds: {},
+			view: null as ViewData,
+			sectionFeaturedIds: {} as Record<string, string>,
+			sectionCategoryOrders: {} as Record<string, string[]>,
+			sectionDisabledCategories: {} as Record<string, string[]>,
+			sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
+			homepageSections: {} as Record<string, Record<string, unknown>>,
 			postsTotalCount: 0,
 			talksTotalCount: 0,
 			error: 'Failed to load profile',

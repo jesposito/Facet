@@ -38,6 +38,7 @@ func main() {
 	shareService := services.NewShareService(cryptoService)
 	testimonialService := services.NewTestimonialService(cryptoService)
 	rateLimitService := services.NewRateLimitService()
+	planConfig := services.LoadPlanConfig()
 
 	// Register migrations
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
@@ -47,13 +48,15 @@ func main() {
 	// Register custom hooks
 	// Note: PocketBase v0.23+ has a built-in /api/health endpoint
 	hooks.RegisterCollectionRules(app) // Ensure proper access rules on all collections
+	hooks.RegisterPlanHooks(app, planConfig)
+	hooks.RegisterAnalyticsHooks(app, planConfig)
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterPasswordChangeEndpoint(app, rateLimitService) // Password change endpoint for first-time setup
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
-	hooks.RegisterSiteSettingsHooks(app)
+	hooks.RegisterSiteSettingsHooks(app, cryptoService)
 	hooks.RegisterMediaHooks(app, os.Getenv("UPLOADS_DIR"))
 	hooks.RegisterViewHooks(app, cryptoService, shareService, rateLimitService)
 	hooks.RegisterOAuthEnvConfig(app)
@@ -71,6 +74,13 @@ func main() {
 	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
 	hooks.RegisterBackupHooks(app)  // Automated database backup system
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterCommentHooks(app, planConfig)
+	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
+	hooks.RegisterPurchaseHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterCouponHooks(app, rateLimitService)
+	hooks.RegisterDownloadHooks(app, cryptoService, rateLimitService)
+	hooks.RegisterCourseHooks(app, planConfig, cryptoService, rateLimitService)
+	hooks.RegisterQuizHooks(app, planConfig, cryptoService, rateLimitService)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
