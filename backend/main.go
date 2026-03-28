@@ -38,6 +38,7 @@ func main() {
 	shareService := services.NewShareService(cryptoService)
 	testimonialService := services.NewTestimonialService(cryptoService)
 	rateLimitService := services.NewRateLimitService()
+	planConfig := services.LoadPlanConfig()
 
 	// Register migrations
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
@@ -47,6 +48,7 @@ func main() {
 	// Register custom hooks
 	// Note: PocketBase v0.23+ has a built-in /api/health endpoint
 	hooks.RegisterCollectionRules(app) // Ensure proper access rules on all collections
+	hooks.RegisterPlanHooks(app, planConfig)
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterPasswordChangeEndpoint(app, rateLimitService) // Password change endpoint for first-time setup
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)

@@ -51,6 +51,7 @@ type SiteSettings struct {
 	DefaultLocale         string
 	HomepageViewCount     int
 	HomepageLastViewedAt  string
+	EnabledFeatures       map[string]bool
 	Record                *core.Record
 }
 
@@ -121,6 +122,12 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		_ = json.Unmarshal([]byte(rawJSON), &skillsCategoryOrder)
 	}
 
+	// Parse enabled features JSON (per-feature overrides for self-hosted instances)
+	var enabledFeatures map[string]bool
+	if rawJSON := record.GetString("enabled_features"); rawJSON != "" {
+		_ = json.Unmarshal([]byte(rawJSON), &enabledFeatures)
+	}
+
 	// For site_cta_enabled, default to true if field doesn't exist or is not explicitly set
 	// This preserves existing behavior where CTA shows if URL is configured
 	siteCtaEnabled := true
@@ -156,6 +163,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		DefaultLocale:         record.GetString("default_locale"),
 		HomepageViewCount:     record.GetInt("homepage_view_count"),
 		HomepageLastViewedAt:  record.GetString("homepage_last_viewed_at"),
+		EnabledFeatures:       enabledFeatures,
 		Record:                record,
 	}, nil
 }
@@ -259,6 +267,11 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("default_locale", locale)
 		} else if logger != nil {
 			logger.Warn("default_locale field missing on site_settings, skipping update")
+		}
+	}
+	if features, ok := updates["enabled_features"]; ok {
+		if settings.Record.Collection().Fields.GetByName("enabled_features") != nil {
+			settings.Record.Set("enabled_features", features)
 		}
 	}
 
