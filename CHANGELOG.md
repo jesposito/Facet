@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.5 - March 29, 2026
+
+**Bugs Fixed:**
+- Handle AbortError in load functions to prevent 404 flash on rapid navigation
+
+**Pull Requests:** [#426](https://github.com/jesposito/Facet/pull/426),
+
+---
+
+
 ## v2.21.4 - March 29, 2026
 
 **Bugs Fixed:**
