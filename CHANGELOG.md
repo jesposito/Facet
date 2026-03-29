@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.3 - March 29, 2026
+
+**Bugs Fixed:**
+- Fix siteNav rendering issue during SSR by passing siteNav via await parent()
+
+**Pull Requests:** [#424](https://github.com/jesposito/Facet/pull/424),
+
+---
+
+
 ## v2.21.2 - March 29, 2026
 
 **Bugs Fixed:**
