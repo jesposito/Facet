@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.2 - March 29, 2026
+
+**Bugs Fixed:**
+- Eliminate site nav pop-in with SSR data
+
+**Pull Requests:** [#423](https://github.com/jesposito/Facet/pull/423),
+
+---
+
+
 ## v2.21.1 - March 29, 2026
 
 **Bugs Fixed:**
