@@ -33,6 +33,7 @@
 	import ShareButton from '$components/shared/ShareButton.svelte';
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import { getFontPack, DEFAULT_FONT_PACK } from '$lib/fonts';
 	import { pb } from '$lib/pocketbase';
 	import { generatePersonJsonLd, serializeJsonLd } from '$lib/seo';
 
@@ -95,6 +96,25 @@
 		const accentColor = data.view?.accent_color || data.profile?.accent_color;
 		if (accentColor) {
 			applyAccentColor(accentColor as AccentColor);
+		}
+
+		// Apply font pack with same resolution: view override > profile default
+		const fontPackName = (data.siteNavEnabled && !data.view?.font_pack)
+			? data.profile?.font_pack
+			: (data.view?.font_pack || data.profile?.font_pack);
+		if (fontPackName && fontPackName !== DEFAULT_FONT_PACK) {
+			const pack = getFontPack(fontPackName);
+			const root = document.documentElement;
+			root.style.setProperty('--font-heading', `'${pack.heading}', ${pack.headingFallback}`);
+			root.style.setProperty('--font-body', `'${pack.body}', ${pack.bodyFallback}`);
+			root.style.setProperty('--font-code', `'${pack.code}', ${pack.codeFallback}`);
+			const existing = document.getElementById('view-google-fonts');
+			if (existing) existing.remove();
+			const link = document.createElement('link');
+			link.id = 'view-google-fonts';
+			link.rel = 'stylesheet';
+			link.href = pack.googleFontsUrl;
+			document.head.appendChild(link);
 		}
 
 		// Check AI Print availability (always check - API handles auth)
