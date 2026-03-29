@@ -841,6 +841,26 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["landing_page_message"] = settings.LandingPageMessage
 				response["hide_login_button"] = settings.HideLoginButton
 				response["site_cta_enabled"] = settings.SiteCtaEnabled
+
+				// Always include styling data for SSR (font pack, accent color)
+				// even when homepage content is disabled
+				styleRecords, styleErr := app.FindRecordsByFilter(
+					getTableName(app, "profile"),
+					"",
+					"",
+					1,
+					0,
+					nil,
+				)
+				if styleErr == nil && len(styleRecords) > 0 {
+					p := styleRecords[0]
+					response["profile"] = map[string]interface{}{
+						"accent_color":    p.GetString("accent_color"),
+						"custom_hex_color": p.GetString("custom_hex_color"),
+						"font_pack":       p.GetString("font_pack"),
+					}
+				}
+
 				return e.JSON(http.StatusOK, response)
 			}
 
