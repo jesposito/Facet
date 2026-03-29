@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 	import { t } from 'svelte-i18n';
 
 	interface NavItem {
@@ -19,31 +19,28 @@
 		ssrNavItems?: NavItem[];
 	}
 
-	let { ctaUrl = '', ctaButtonText = 'Learn More', ctaText = '', ctaEnabled = true, ssrNavEnabled, ssrNavItems }: Props = $props();
+	let {
+		ctaUrl = '',
+		ctaButtonText = 'Learn More',
+		ctaText = '',
+		ctaEnabled = true,
+		ssrNavEnabled = false,
+		ssrNavItems = []
+	}: Props = $props();
 
-	let navEnabled = $state(ssrNavEnabled ?? false);
-	let navItems: NavItem[] = $state(ssrNavItems ?? []);
+	// $derived (NOT $state) — stays reactive to prop updates during SPA navigation.
+	// $state() only captures the initial value; props change on nav but $state doesn't follow.
+	let navEnabled = $derived(ssrNavEnabled);
+	let navItems: NavItem[] = $derived(ssrNavItems);
 	let mobileMenuOpen = $state(false);
-	let loading = $state(ssrNavEnabled === undefined); // Only loading if SSR didn't provide data
+
+	// Close mobile menu on navigation
+	afterNavigate(() => {
+		mobileMenuOpen = false;
+	});
 
 	// Get current path to highlight active nav item
 	let currentPath = $derived($page.url.pathname);
-
-	onMount(async () => {
-		if (ssrNavEnabled !== undefined) return; // SSR already provided data
-		try {
-			const response = await fetch('/api/site-nav');
-			if (response.ok) {
-				const data = await response.json();
-				navEnabled = data.enabled;
-				navItems = data.items || [];
-			}
-		} catch (err) {
-			console.error('Failed to load site navigation:', err);
-		} finally {
-			loading = false;
-		}
-	});
 
 	function isActive(slug: string): boolean {
 		return currentPath === `/${slug}`;
@@ -62,7 +59,7 @@
 	}
 </script>
 
-{#if !loading && navEnabled && navItems.length > 0}
+{#if navEnabled && navItems.length > 0}
 	<nav class="bg-primary-600 text-white">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 			<!-- Desktop Navigation -->
@@ -177,7 +174,7 @@
 			</div>
 		{/if}
 	</nav>
-{:else if !loading && ctaUrl && ctaText && ctaEnabled}
+{:else if !navEnabled && ctaUrl && ctaText && ctaEnabled}
 	<!-- Fallback to traditional CTA banner when nav is disabled -->
 	<div class="bg-primary-600 text-white py-4">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
