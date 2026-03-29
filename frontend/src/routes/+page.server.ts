@@ -28,8 +28,7 @@ type ViewData = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SectionsData = Record<string, any[]>;
 
-export const load: PageServerLoad = async ({ fetch, parent }) => {
-	const parentData = await parent();
+export const load: PageServerLoad = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
 	try {
@@ -67,8 +66,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				homepageDisabled: false,
 				landingPageMessage: '',
 				hideLoginButton: false,
-				siteCtaEnabled: true,
-				siteNav: parentData.siteNav
+				siteCtaEnabled: true
 			};
 		}
 
@@ -96,8 +94,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
 				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
-				talksTotalCount: 0,
-				siteNav: parentData.siteNav
+				talksTotalCount: 0
 			};
 		}
 
@@ -123,8 +120,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
 				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
-				talksTotalCount: 0,
-				siteNav: parentData.siteNav
+				talksTotalCount: 0
 			};
 		}
 
@@ -174,8 +170,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			view: null as ViewData,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
-			siteCtaEnabled: data.site_cta_enabled !== false,
-				siteNav: parentData.siteNav
+			siteCtaEnabled: data.site_cta_enabled !== false
 		};
 	} catch (error) {
 		logger.error('[ROOT PAGE] Exception:', error);
@@ -202,8 +197,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,
-			siteCtaEnabled: true,
-				siteNav: parentData.siteNav
+			siteCtaEnabled: true
 		};
 	}
 };
