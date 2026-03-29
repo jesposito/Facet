@@ -15,19 +15,22 @@
 		ctaButtonText?: string;
 		ctaText?: string;
 		ctaEnabled?: boolean;
+		ssrNavEnabled?: boolean;
+		ssrNavItems?: NavItem[];
 	}
 
-	let { ctaUrl = '', ctaButtonText = 'Learn More', ctaText = '', ctaEnabled = true }: Props = $props();
+	let { ctaUrl = '', ctaButtonText = 'Learn More', ctaText = '', ctaEnabled = true, ssrNavEnabled, ssrNavItems }: Props = $props();
 
-	let navEnabled = $state(false);
-	let navItems: NavItem[] = $state([]);
+	let navEnabled = $state(ssrNavEnabled ?? false);
+	let navItems: NavItem[] = $state(ssrNavItems ?? []);
 	let mobileMenuOpen = $state(false);
-	let loading = $state(true);
+	let loading = $state(ssrNavEnabled === undefined); // Only loading if SSR didn't provide data
 
 	// Get current path to highlight active nav item
 	let currentPath = $derived($page.url.pathname);
 
 	onMount(async () => {
+		if (ssrNavEnabled !== undefined) return; // SSR already provided data
 		try {
 			const response = await fetch('/api/site-nav');
 			if (response.ok) {
