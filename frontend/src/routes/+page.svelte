@@ -508,6 +508,8 @@
 		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
 		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+		ssrNavEnabled={data.siteNav?.enabled}
+		ssrNavItems={data.siteNav?.items}
 	/>
 
 	<div
