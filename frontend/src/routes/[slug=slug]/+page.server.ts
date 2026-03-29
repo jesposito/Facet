@@ -190,6 +190,10 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			siteNav: (await parent()).siteNav
 		};
 	} catch (err) {
+		// If navigation was cancelled (user clicked another link), let SvelteKit handle it
+		if (err instanceof Error && err.name === 'AbortError') {
+			throw err;
+		}
 		if ((err as { status?: number }).status === 404) {
 			throw err;
 		}

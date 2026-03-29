@@ -178,6 +178,10 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				siteNav: parentData.siteNav
 		};
 	} catch (error) {
+		// If navigation was cancelled (user clicked another link), let SvelteKit handle it
+		if (error instanceof Error && error.name === 'AbortError') {
+			throw error;
+		}
 		logger.error('[ROOT PAGE] Exception:', error);
 		return {
 			profile: null,
