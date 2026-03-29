@@ -33,6 +33,11 @@
 	// Track navigation to prevent showing WelcomePage during transitions
 	let isNavigating = $derived($navigating !== null);
 
+	// Track whether data has been loaded at least once to prevent WelcomePage flash.
+	// During SPA navigation, $navigating becomes null BEFORE new data propagates,
+	// causing a brief frame where !data.profile && !isNavigating is true.
+	let hasHydratedData = $state(false);
+
 	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
 
 	interface Props {
@@ -40,6 +45,13 @@
 	}
 
 	let { data }: Props = $props();
+
+	// Mark data as hydrated once we have real data (profile or content)
+	$effect(() => {
+		if (data.profile || data.experience?.length || data.projects?.length) {
+			hasHydratedData = true;
+		}
+	});
 
 	// Get headline, summary, and location - use view overrides if this is a default view
 	let headline = $derived(data.view?.hero_headline || data.profile?.headline);
@@ -430,7 +442,7 @@
 			</p>
 		</div>
 	</div>
-{:else if !data.profile && !data.experience?.length && !data.projects?.length && !isNavigating}
+{:else if !data.profile && !data.experience?.length && !data.projects?.length && !isNavigating && !hasHydratedData}
 	<!-- First-time visitor: no profile exists yet (don't show during navigation transitions) -->
 	<WelcomePage />
 {:else}
