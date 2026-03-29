@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.0 - March 29, 2026
+
+**Bugs Fixed:**
+- Fix public display components to properly render markdown output
+
+**New Features:**
+- Replace plain textarea elements with TipTap-based WYSIWYG MarkdownEditor across all admin content pages
+
+**Pull Requests:** [#420](https://github.com/jesposito/Facet/pull/420),
+
+---
+
+
 ## v2.20.0 - March 28, 2026
 
 **New Features:**
