@@ -93,7 +93,7 @@
 										<div class="absolute -left-[2.375rem] top-1 w-3 h-3 bg-primary-400 dark:bg-primary-600 rounded-full ring-2 ring-white dark:ring-gray-900 z-10"></div>
 
 										<div>
-											<h3 class="text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
+											<h3 class="experience-group-title text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
 												{pos.title}
 											</h3>
 											<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
@@ -305,11 +305,11 @@
 			{#each groupedItems as entry (isGroup(entry) ? entry.groupId : entry.id)}
 				{#if isGroup(entry)}
 					<!-- Company group card: header + position sub-entries -->
-					<article class="card p-6 animate-fade-in" itemscope itemtype="https://schema.org/Organization">
+					<article class="experience-group-card card p-6 animate-fade-in" itemscope itemtype="https://schema.org/Organization">
 						<!-- Company header -->
-						<div class="flex flex-col sm:flex-row sm:items-start gap-4">
+						<div class="experience-group-header flex flex-col sm:flex-row sm:items-start gap-4">
 							{#if entry.companyLogoUrl || entry.companyLogo}
-								<div class="flex-shrink-0">
+								<div class="experience-group-logo flex-shrink-0">
 									<img
 										src={entry.companyLogoUrl}
 										alt="{entry.company} logo"
@@ -318,10 +318,10 @@
 								</div>
 							{/if}
 							<div class="flex-1">
-								<h3 class="text-xl font-bold text-gray-900 dark:text-white" itemprop="name">
+								<h3 class="experience-group-company text-xl font-bold text-gray-900 dark:text-white" itemprop="name">
 									{entry.company}
 								</h3>
-								<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+								<div class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 									<span>{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}</span>
 									<span>· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}</span>
 								</div>
@@ -329,18 +329,18 @@
 						</div>
 
 						<!-- Positions with accent border and dot indicators -->
-						<div class="mt-4 ml-2 border-l-2 border-primary-200 dark:border-primary-800">
+						<div class="experience-group-timeline mt-4 ml-[1.35rem] border-l-[3px] border-primary-200 dark:border-primary-800">
 							{#each entry.positions as pos, posIdx (pos.id)}
 								{#if posIdx > 0}
 									<div class="border-t border-gray-100 dark:border-gray-800 ml-4"></div>
 								{/if}
-								<div class="relative py-4 pl-5" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
+								<div class="experience-group-position relative py-4 pl-5" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
 									<!-- Position dot on the accent border -->
-									<div class="absolute -left-[0.3125rem] top-[1.375rem] w-2 h-2 bg-primary-400 dark:bg-primary-600 rounded-full"></div>
-									<h4 class="text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
+									<div class="experience-group-dot absolute -left-[0.55rem] top-[1.375rem] w-4 h-4 bg-primary-400 dark:bg-primary-600 rounded-full"></div>
+									<h4 class="experience-group-title text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
 										{pos.title}
 									</h4>
-									<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+									<div class="experience-group-date flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5 text-sm text-gray-500 dark:text-gray-400">
 										<span>
 											<meta itemprop="startDate" content={pos.start_date || ''} />
 											<meta itemprop="endDate" content={pos.end_date || ''} />
@@ -363,7 +363,7 @@
 									{/if}
 
 									{#if pos.bullets && pos.bullets.length > 0}
-										<ul class="mt-3 space-y-2" itemprop="responsibilities">
+										<ul class="experience-group-bullets mt-2 space-y-0" itemprop="responsibilities">
 											{#each pos.bullets as bullet}
 												<li class="flex items-start gap-2 text-gray-600 dark:text-gray-300">
 													<span class="text-primary-500 mt-1">•</span>
@@ -374,9 +374,9 @@
 									{/if}
 
 									{#if pos.skills && pos.skills.length > 0}
-										<div class="mt-3 flex flex-wrap gap-2">
+										<div class="experience-group-skills mt-3 flex flex-wrap gap-2">
 											{#each pos.skills as skill}
-												<span class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full" itemprop="skills">
+												<span class="experience-group-skill px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full" itemprop="skills">
 													{skill}
 												</span>
 											{/each}
@@ -390,9 +390,9 @@
 				{:else}
 					<!-- Ungrouped item: render exactly as before -->
 					<article class="card p-6 animate-fade-in" itemprop="hasOccupation" itemscope itemtype="https://schema.org/Occupation">
-						<div class="flex flex-col sm:flex-row sm:items-start gap-4">
+						<div class="experience-group-header flex flex-col sm:flex-row sm:items-start gap-4">
 							{#if entry.company_logo_url || entry.company_logo}
-								<div class="flex-shrink-0">
+								<div class="experience-group-logo flex-shrink-0">
 									<img
 										src={entry.company_logo_url || pb.files.getUrl(entry, entry.company_logo!, { thumb: '48x48' })}
 										alt="{entry.company} logo"
@@ -407,7 +407,7 @@
 								<p class="text-lg text-primary-600 dark:text-primary-400 font-medium" itemprop="occupationLocation" itemscope itemtype="https://schema.org/Organization">
 									<span itemprop="name">{entry.company}</span>
 								</p>
-								<div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+								<div class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
 									<span>
 										<meta itemprop="startDate" content={entry.start_date || ''} />
 										<meta itemprop="endDate" content={entry.end_date || ''} />
@@ -445,7 +445,7 @@
 						{#if entry.skills && entry.skills.length > 0}
 							<div class="mt-4 flex flex-wrap gap-2">
 								{#each entry.skills as skill}
-									<span class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full" itemprop="skills">
+									<span class="experience-group-skill px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full" itemprop="skills">
 										{skill}
 									</span>
 								{/each}
