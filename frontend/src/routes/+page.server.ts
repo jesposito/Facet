@@ -28,7 +28,8 @@ type ViewData = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SectionsData = Record<string, any[]>;
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, parent }) => {
+	const parentData = await parent();
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
 	try {
@@ -66,7 +67,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				homepageDisabled: false,
 				landingPageMessage: '',
 				hideLoginButton: false,
-				siteCtaEnabled: true
+				siteCtaEnabled: true,
+				siteNav: parentData.siteNav
 			};
 		}
 
@@ -94,7 +96,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
 				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
-				talksTotalCount: 0
+				talksTotalCount: 0,
+				siteNav: parentData.siteNav
 			};
 		}
 
@@ -120,7 +123,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
 				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
-				talksTotalCount: 0
+				talksTotalCount: 0,
+				siteNav: parentData.siteNav
 			};
 		}
 
@@ -170,7 +174,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			view: null as ViewData,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
-			siteCtaEnabled: data.site_cta_enabled !== false
+			siteCtaEnabled: data.site_cta_enabled !== false,
+				siteNav: parentData.siteNav
 		};
 	} catch (error) {
 		logger.error('[ROOT PAGE] Exception:', error);
@@ -197,7 +202,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,
-			siteCtaEnabled: true
+			siteCtaEnabled: true,
+				siteNav: parentData.siteNav
 		};
 	}
 };
