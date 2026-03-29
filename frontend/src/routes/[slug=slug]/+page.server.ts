@@ -16,7 +16,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
 import { getShareToken, getPasswordToken, setPasswordToken, setShareToken, isSecureRequest } from '$lib/tokens';
 
-export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals, request }) => {
+export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals, request, parent }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 
@@ -186,7 +186,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			requiresPassword: false,
 			shareToken: effectiveShareToken || null,
 			isPublicView: accessInfo.visibility === 'public',
-			siteCtaEnabled: viewData.site_cta_enabled !== false
+			siteCtaEnabled: viewData.site_cta_enabled !== false,
+			siteNav: (await parent()).siteNav
 		};
 	} catch (err) {
 		if ((err as { status?: number }).status === 404) {
