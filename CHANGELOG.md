@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.4 - March 29, 2026
+
+**Bugs Fixed:**
+- Fix font settings to affect public frontend pages
+
+**Pull Requests:** [#425](https://github.com/jesposito/Facet/pull/425),
+
+---
+
+
 ## v2.21.3 - March 29, 2026
 
 **Bugs Fixed:**
