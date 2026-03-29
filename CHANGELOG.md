@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.1 - March 29, 2026
+
+**Bugs Fixed:**
+- Fix experience timeline border alignment
+
+**New Features:**
+- Add larger position dots to experience timeline
+- Add tighter bullet spacing in experience timeline
+- Add CSS class hooks for experience timeline
+
+**Pull Requests:** [#422](https://github.com/jesposito/Facet/pull/422),
+
+---
+
+
 ## v2.21.0 - March 29, 2026
 
 **Bugs Fixed:**
