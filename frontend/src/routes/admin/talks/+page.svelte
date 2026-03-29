@@ -16,6 +16,7 @@
 	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	let talks: Talk[] = $state([]);
@@ -512,12 +513,7 @@ afterNavigate(() => {
 							on:apply={(e) => (description = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="description"
-						bind:value={description}
-						class="input min-h-[150px]"
-						placeholder="A brief description of your talk... (Markdown + media shortcodes)"
-					></textarea>
+					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="150px" placeholder="A brief description of your talk... (Markdown + media shortcodes)" />
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
 						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Media shortcodes</button>
 						<span>Use {'{{provider:url}}'} for embeds (YouTube, Vimeo, SoundCloud, images, etc.).</span>

@@ -19,6 +19,7 @@
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
 	let experiences: Experience[] = $state([]);
 	let loading = $state(true);
@@ -639,12 +640,7 @@
 							on:apply={(e) => (description = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="description"
-						bind:value={description}
-						class="input min-h-[100px]"
-						placeholder={$t('admin.content.experience.description_placeholder')}
-					></textarea>
+					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="100px" placeholder={$t('admin.content.experience.description_placeholder')} />
 					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.markdown_supported')}</p>
 				</div>
 
@@ -658,12 +654,7 @@
 							on:apply={(e) => (bulletsText = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="bullets"
-						bind:value={bulletsText}
-						class="input min-h-[120px]"
-						placeholder={$t('admin.content.experience.key_achievements_placeholder')}
-					></textarea>
+					<MarkdownEditor bind:value={bulletsText} toolbar="compact" minHeight="120px" placeholder={$t('admin.content.experience.key_achievements_placeholder')} />
 					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.experience.key_achievements_help')}</p>
 				</div>
 

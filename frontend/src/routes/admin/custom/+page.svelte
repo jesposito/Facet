@@ -19,6 +19,7 @@
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	let items: CustomContent[] = $state([]);
@@ -565,12 +566,7 @@
 							size="sm"
 						/>
 					</div>
-					<textarea
-						id="content"
-						bind:value={content}
-						class="input min-h-[200px] font-mono text-sm"
-						placeholder="Write your content here... (Markdown supported)"
-					></textarea>
+					<MarkdownEditor bind:value={content} toolbar="full" minHeight="200px" placeholder="Write your content here... (Markdown supported)" />
 				</div>
 
 				<div>

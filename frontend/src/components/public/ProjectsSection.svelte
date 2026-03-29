@@ -109,9 +109,9 @@ const projectHref = (project: Project) => {
 					</div>
 
 						{#if featuredItem.summary}
-							<p class="mt-3 text-gray-600 dark:text-gray-400">
-								{featuredItem.summary}
-							</p>
+							<div class="mt-3 prose-custom text-gray-600 dark:text-gray-400">
+								{@html parseMarkdown(featuredItem.summary)}
+							</div>
 						{/if}
 
 						{#if featuredItem.tech_stack && featuredItem.tech_stack.length > 0}
@@ -190,9 +190,9 @@ const projectHref = (project: Project) => {
 							</h3>
 
 							{#if project.summary}
-								<p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-									{truncate(project.summary, 100)}
-								</p>
+								<div class="mt-2 prose-custom text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
+									{@html parseMarkdown(project.summary)}
+								</div>
 							{/if}
 
 							{#if project.tech_stack && project.tech_stack.length > 0}
@@ -265,9 +265,9 @@ const projectHref = (project: Project) => {
 							</div>
 
 							{#if project.summary}
-								<p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-									{project.summary}
-								</p>
+								<div class="mt-2 prose-custom text-gray-600 dark:text-gray-400 text-sm">
+									{@html parseMarkdown(project.summary)}
+								</div>
 							{/if}
 
 							<div class="mt-3 flex flex-wrap items-center gap-4">
@@ -362,9 +362,9 @@ const projectHref = (project: Project) => {
 						</div>
 
 						{#if project.summary}
-							<p class="mt-2 text-gray-600 dark:text-gray-400">
-								{truncate(project.summary, 150)}
-							</p>
+							<div class="mt-2 prose-custom text-gray-600 dark:text-gray-400 line-clamp-4">
+								{@html parseMarkdown(project.summary)}
+							</div>
 						{/if}
 
 						{#if project.tech_stack && project.tech_stack.length > 0}
@@ -456,9 +456,9 @@ const projectHref = (project: Project) => {
 						</div>
 
 						{#if project.summary}
-							<p class="mt-2 text-gray-600 dark:text-gray-400 text-sm">
-								{truncate(project.summary, 120)}
-							</p>
+							<div class="mt-2 prose-custom text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
+								{@html parseMarkdown(project.summary)}
+							</div>
 						{/if}
 
 						{#if project.tech_stack && project.tech_stack.length > 0}

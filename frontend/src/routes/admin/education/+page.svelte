@@ -17,6 +17,7 @@
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
 	let educations: Education[] = $state([]);
 	let loading = $state(true);
@@ -528,12 +529,7 @@ afterNavigate(() => {
 							on:apply={(e) => (description = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="description"
-						bind:value={description}
-						class="input min-h-[100px]"
-						placeholder={$t('admin.content.education.description_placeholder')}
-					></textarea>
+					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="100px" placeholder={$t('admin.content.education.description_placeholder')} />
 					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.markdown_supported')}</p>
 				</div>
 			</div>

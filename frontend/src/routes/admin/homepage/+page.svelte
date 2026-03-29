@@ -10,6 +10,7 @@
 	import { icon } from '$lib/icons';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
 
 	// Import DnD safely - only in browser (for site navigation reordering)
@@ -1009,12 +1010,7 @@
 							on:apply={(e) => (summary = e.detail.content)}
 						/>
 					</div>
-					<textarea
-						id="summary"
-						bind:value={summary}
-						class="input min-h-[150px] mt-1"
-						placeholder="Tell your story... (Markdown supported)"
-					></textarea>
+					<MarkdownEditor bind:value={summary} toolbar="compact" minHeight="150px" placeholder="Tell your story... (Markdown supported)" />
 					<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
 					{#if viewsOverridingSummary.length > 0}
 						<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
