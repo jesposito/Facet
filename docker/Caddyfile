@@ -21,18 +21,108 @@
         # Disable browser features not used by Facet
         Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
 
+        # HSTS - safe because all traffic goes through Cloudflare (TLS-terminated at edge)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
         # Remove server identification
         -Server
 
+        # Content Security Policy (enforcing)
+        # Restricts script/style/frame sources to mitigate XSS.
+        # 'unsafe-inline' kept for scripts/styles due to Svelte's inline injection pattern.
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://w.soundcloud.com https://open.spotify.com https://codepen.io https://www.figma.com; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+
         # INTENTIONALLY OMITTED:
         # - X-XSS-Protection: Deprecated since 2023, can cause vulnerabilities
-        # - HSTS: TLS terminates at edge proxy (Cloudflare), not here
         # - COOP/COEP/CORP: Phase 5B - requires testing with frontend
-        # - CSP: Phase 5B - requires report-only rollout first
+        # - CSP nonce-based: Would allow removing 'unsafe-inline'; requires SSR nonce injection
     }
 
-    # API and PocketBase routes go to backend
+    # =========================================================================
+    # Maintenance mode: serve a branded 503 page for all requests except /api/health
+    # Activated by setting FACET_MAINTENANCE_MODE=true
+    # =========================================================================
+    @maintenance expression `{env.FACET_MAINTENANCE_MODE} == "true"`
+    @not_health not path /api/health
+
+    handle @maintenance {
+        handle @not_health {
+            header Content-Type "text/html; charset=utf-8"
+            respond 503 <<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maintenance — Facet</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f6f6f6;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      text-align: center;
+      max-width: 480px;
+      padding: 48px 24px;
+    }
+    .logo {
+      display: inline-block;
+      background-color: #2563eb;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 10px 24px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #1a1a1a;
+    }
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">Facet</div>
+    <h1>We'll be right back</h1>
+    <p>We're performing scheduled maintenance. Your data is safe and we'll be back shortly.</p>
+  </div>
+</body>
+</html>
+HTML
+        }
+    }
+
+    # Request body size limit
+    request_body {
+        max_size 25MB
+    }
+
+    # Uploaded files (images, etc.) — cacheable, served by PocketBase
+    handle /api/files/* {
+        header Cache-Control "public, max-age=86400"
+        reverse_proxy localhost:8090
+    }
+
+    # API and PocketBase routes go to backend (no caching)
     handle /api/* {
+        header Cache-Control "no-store, no-cache"
+        # Strip X-Internal header from external requests to prevent spoofing.
+        # SSR bypasses Caddy (goes direct to :8090), so legitimate internal requests are unaffected.
+        request_header -X-Internal
         reverse_proxy localhost:8090
     }
 
@@ -62,6 +152,12 @@
         respond @admin_disabled "Not Found" 404
 
         reverse_proxy localhost:8090
+    }
+
+    # SvelteKit immutable assets (content-hashed filenames, safe to cache forever)
+    handle /_app/immutable/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        reverse_proxy localhost:3000
     }
 
     # Everything else goes to SvelteKit frontend
