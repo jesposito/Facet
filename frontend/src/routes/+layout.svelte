@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { run } from 'svelte/legacy';
-
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -10,15 +8,16 @@
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
-	import { initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
-	import { siteNavStore } from '$lib/stores/siteNav';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
+	import { initPlan, initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
+	import { siteNavStore } from '$lib/stores/siteNav';
 	interface Props {
 		children?: import('svelte').Snippet;
 		data: {
 			faviconUrl: string | null;
 			planConfig: PlanConfig | null;
+			appUrl: string;
 			siteNav: { enabled: boolean; items: Array<{ viewId: string; slug: string; label: string; name: string }> };
 			accentColor: string | null;
 			customHexColor: string | null;
@@ -31,13 +30,15 @@
 	let { children, data }: Props = $props();
 
 	// Initialize plan config from SSR data immediately (before onMount)
+	// This eliminates FOUC on Pro/Creator plans where badge should be hidden
 	$effect(() => {
 		if (data.planConfig) {
 			initPlanFromSSR(data.planConfig);
 		}
 	});
 
-	// Initialize site nav store from SSR data
+	// Initialize site nav store from SSR data — updates on every navigation
+	// so the store always reflects the latest server data.
 	$effect(() => {
 		if (data.siteNav) {
 			siteNavStore.initFromSSR(data.siteNav);
@@ -45,6 +46,7 @@
 	});
 
 	// Apply accent color from SSR data immediately via $effect (before onMount)
+	// This runs during hydration, before paint, eliminating the color flash
 	$effect(() => {
 		if (!browser) return;
 		if (data.customHexColor) {
@@ -62,7 +64,7 @@
 		}
 	});
 
-	// Debug navigation in development
+	// Debug navigation (only log in dev mode)
 	beforeNavigate((navigation) => {
 		if (import.meta.env.DEV) {
 			console.log('[NAVIGATION] Before navigate:', {
@@ -94,8 +96,10 @@ let accentStyleEl: HTMLStyleElement | null = $state(null);
 let fontStyleEl: HTMLStyleElement | null = $state(null);
 let fontLinkEl: HTMLLinkElement | null = $state(null);
 let customPaletteLocked = false;
+// Initialize from server-loaded data for correct SSR
 let faviconUrl = $state<string | null>(null);
 
+// Update faviconUrl when data changes (SSR or client-side navigation)
 $effect(() => {
 	faviconUrl = data.faviconUrl;
 });
@@ -112,7 +116,7 @@ function applyPaletteFromCSS(css: string) {
 
 	if (Object.keys(palette).length === 0) return;
 
-	// If only 500 is provided, generate a proper palette from that hex color
+	// If only 500 is provided, generate a full palette from it
 	if (Object.keys(palette).length === 1 && palette['500']) {
 		const scale = generatePaletteFromHex(palette['500']);
 		for (const step of ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const) {
@@ -156,7 +160,7 @@ function applyFlatAccent(color: string) {
   --color-primary-950: ${scale[950]};
 }
 	`.trim();
-	themeColor = scale[500];
+	themeColor = color;
 }
 
 	function applyAccentColor(colorName: AccentColor) {
@@ -230,6 +234,7 @@ function applyFlatAccent(color: string) {
 			const response = await fetch('/api/homepage');
 			if (response.ok) {
 				const data = await response.json();
+				// Custom hex color takes precedence over named palette
 				if (data.profile?.custom_hex_color) {
 					applyFlatAccent(data.profile.custom_hex_color);
 				} else if (data.profile?.accent_color) {
@@ -297,24 +302,53 @@ onMount(() => {
 	mounted = true;
 	theme.initialize();
 	(async () => {
-		// Load site settings first to get server locale
-		const serverLocale = await loadSiteSettings();
-		initI18n(serverLocale);
+		// Load plan config only if SSR didn't provide it (fallback for client-side navigation)
+		if (!data.planConfig) {
+			try {
+				await initPlan();
+			} catch {
+				// Continue - plan fetch failure shouldn't block rendering
+			}
+		}
+		// SSR provides locale and custom CSS from +layout.server.ts.
+		// Fall back to client-side loadSiteSettings() if SSR didn't provide them.
+		if (data.defaultLocale || data.customCSS) {
+			initI18n(data.defaultLocale || undefined);
+			if (data.customCSS) {
+				applyCustomCSS(data.customCSS);
+			}
+		} else {
+			const serverLocale = await loadSiteSettings();
+			initI18n(serverLocale);
+			if (lastCustomCSS) {
+				applyCustomCSS(lastCustomCSS);
+			}
+		}
 		await waitLocale();
-		await loadAccentColor();
-		if (lastCustomCSS) {
-			applyCustomCSS(lastCustomCSS);
+		// Skip client-side accent fetch if SSR already provided it
+		if (!data.accentColor && !data.customHexColor) {
+			await loadAccentColor();
 		}
 	})();
 
 	// Listen for accent color changes from settings page
 	const handleColorChange = (event: CustomEvent<AccentColor>) => {
+		customPaletteLocked = false;
 		applyAccentColor(event.detail);
 		if (lastCustomCSS) {
 			applyCustomCSS(lastCustomCSS);
 		}
 	};
 	window.addEventListener('accent-color-changed', handleColorChange as EventListener);
+
+	// Listen for custom hex color changes from settings page
+	const handleHexColorChange = (event: CustomEvent<string>) => {
+		applyFlatAccent(event.detail);
+		if (lastCustomCSS) {
+			applyCustomCSS(lastCustomCSS);
+		}
+	};
+	window.addEventListener('custom-hex-color-changed', handleHexColorChange as EventListener);
 
 	// Listen for favicon changes from settings page
 	// The {#key faviconUrl} block in <svelte:head> handles DOM updates via Svelte reactivity
@@ -331,6 +365,7 @@ onMount(() => {
 
 	return () => {
 		window.removeEventListener('accent-color-changed', handleColorChange as EventListener);
+		window.removeEventListener('custom-hex-color-changed', handleHexColorChange as EventListener);
 		window.removeEventListener('favicon-changed', handleFaviconChange as EventListener);
 		window.removeEventListener('font-pack-changed', handleFontPackChange as EventListener);
 	};
@@ -354,11 +389,11 @@ onMount(() => {
 		  window.dataLayer = window.dataLayer || [];
 		  function gtag(){dataLayer.push(arguments);}
 		  gtag('js', new Date());
-		  gtag('config', '${id}');
+		  gtag('config', '${id.replace(/[^A-Za-z0-9-]/g, '')}');
 		`;
 		document.head.appendChild(inline);
 	}
-run(() => {
+$effect(() => {
 		if (mounted) {
 		applyCustomCSS(customCSS);
 		if (!gaInitialized && gaMeasurementId) {
@@ -368,7 +403,7 @@ run(() => {
 	}
 	});
 // Ensure custom CSS stays last after accent updates
-run(() => {
+$effect(() => {
 		if (mounted && lastCustomCSS && accentStyleEl) {
 		// Re-append custom CSS to the end of head so it wins cascade against accent variables
 		applyCustomCSS(lastCustomCSS);
@@ -378,6 +413,7 @@ run(() => {
 
 <svelte:head>
 	<meta name="theme-color" content={themeColor} />
+	<link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
 	<!-- Use {#key} to force browser to fetch new favicon when URL changes -->
 	{#key faviconUrl}
 		{#if faviconUrl}
@@ -400,7 +436,6 @@ run(() => {
 	class="fixed bottom-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2"
 	role="region"
 	aria-label={$t('shared.aria.notifications')}
-	aria-live="polite"
 >
 	{#each $toasts as toast (toast.id)}
 		<Toast {toast} on:dismiss={() => toasts.remove(toast.id)} />

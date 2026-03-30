@@ -28,6 +28,7 @@ const RESERVED_SLUGS = new Set([
 	'projects',
 	'posts',
 	'talks',
+	'courses',
 	// SvelteKit internal
 	'_app',
 	'_',
@@ -48,11 +49,17 @@ const RESERVED_SLUGS = new Set([
 	'auth',
 	'oauth',
 	'callback',
+	// Public pages
+	'unsubscribe',
+	'testimonial',
 	// Prevent confusion
 	'home',
 	'index',
 	'default',
-	'profile'
+	'profile',
+	// Product terminology
+	'facet',
+	'facets'
 ]);
 
 export const match: ParamMatcher = (param) => {

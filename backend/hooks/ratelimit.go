@@ -20,6 +20,11 @@ import (
 func RateLimitMiddleware(rl *services.RateLimitService, tier string) func(func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 	return func(handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 		return func(e *core.RequestEvent) error {
+			// Bypass rate limiting for SSR internal requests (same-container fetch)
+			if e.Request.Header.Get("X-Internal") == "true" {
+				return handler(e)
+			}
+
 			info := rl.AllowWithInfo(e.Request, tier)
 
 			// Always set rate limit headers (allows clients to monitor quota)

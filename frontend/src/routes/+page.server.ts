@@ -11,26 +11,24 @@
 import type { PageServerLoad } from './$types';
 import { logger } from '$lib/logger';
 
-type ViewData = {
-	hero_headline?: string;
-	hero_summary?: string;
-	hero_location?: string;
-	slug?: string;
-	accent_color?: string;
-	cta_url?: string;
-	cta_button_text?: string;
-	cta_text?: string;
-	cta_enabled?: boolean;
-	font_pack?: string | null;
-	hero_layout?: string | null;
-} | null;
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SectionsData = Record<string, any[]>;
-
 export const load: PageServerLoad = async ({ fetch, parent }) => {
-	const parentData = await parent();
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
+	const parentData = await parent();
+
+	// Common empty shape so TypeScript knows view can have properties (not just null)
+	const emptyView = null as {
+		slug: string;
+		hero_headline: string;
+		hero_summary: string;
+		hero_location: string;
+		accent_color: string | null;
+		cta_text: string;
+		cta_url: string;
+		cta_button_text: string;
+		cta_enabled: boolean;
+		font_pack: string | null;
+		hero_layout: string | null;
+	} | null;
 
 	try {
 		const response = await fetch(`${pbUrl}/api/homepage`, {
@@ -50,18 +48,18 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				skills: [],
 				posts: [],
 				talks: [],
+				courses: [],
 				testimonials: [],
 				contacts: [],
-				view: null as ViewData,
-				sections: {} as SectionsData,
+				view: emptyView,
+				sections: {} as Record<string, any[]>,
 				sectionOrder: [],
 				sectionLayouts: {} as Record<string, string>,
 				sectionWidths: {} as Record<string, string>,
-				sectionFeaturedIds: {} as Record<string, string>,
 				sectionCategoryOrders: {} as Record<string, string[]>,
 				sectionDisabledCategories: {} as Record<string, string[]>,
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
-				homepageSections: {} as Record<string, Record<string, unknown>>,
+				sectionFeaturedIds: {} as Record<string, string>,
 				postsTotalCount: 0,
 				talksTotalCount: 0,
 				error: 'Failed to load profile',
@@ -69,8 +67,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				homepageDisabled: false,
 				landingPageMessage: '',
 				hideLoginButton: false,
-				siteCtaEnabled: true,
-				siteNav: parentData.siteNav
+				siteCtaEnabled: true
 			};
 		}
 
@@ -90,16 +87,15 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				skills: [],
 				posts: [],
 				talks: [],
-				view: null as ViewData,
+				courses: [],
+				view: emptyView,
 				isDefaultView: false,
 				sectionFeaturedIds: {} as Record<string, string>,
 				sectionCategoryOrders: {} as Record<string, string[]>,
 				sectionDisabledCategories: {} as Record<string, string[]>,
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
-				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
-				talksTotalCount: 0,
-				siteNav: parentData.siteNav
+				talksTotalCount: 0
 			};
 		}
 
@@ -114,7 +110,8 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				skills: [],
 				posts: [],
 				talks: [],
-				view: null as ViewData,
+				courses: [],
+				view: emptyView,
 				error: 'Profile is private',
 				isDefaultView: false,
 				hideLoginButton: data.hide_login_button || false,
@@ -123,10 +120,8 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				sectionCategoryOrders: {} as Record<string, string[]>,
 				sectionDisabledCategories: {} as Record<string, string[]>,
 				sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
-				homepageSections: {} as Record<string, Record<string, unknown>>,
 				postsTotalCount: 0,
-				talksTotalCount: 0,
-				siteNav: parentData.siteNav
+				talksTotalCount: 0
 			};
 		}
 
@@ -148,6 +143,8 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			cover_image: p.cover_image_url || null
 		}));
 
+		const courses = data.courses || [];
+
 		return {
 			profile,
 			experience: data.experience || [],
@@ -158,6 +155,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			skills: data.skills || [],
 			posts,
 			talks: data.talks || [],
+			courses,
 			postsTotalCount: data.posts_total_count ?? 0,
 			talksTotalCount: data.talks_total_count ?? 0,
 			testimonials: data.testimonials || [],
@@ -165,25 +163,19 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			customContent: data.custom_content || [],
 			homepageCustomContentConfig: data.homepage_custom_content || [],
 			homepageSectionOrder: data.homepage_section_order || [],
-			homepageSections: data.homepage_sections || {} as Record<string, Record<string, unknown>>,
+			homepageSections: data.homepage_sections || {},
 			skillsCategoryOrder: data.skills_category_order || [],
 			sectionFeaturedIds: {} as Record<string, string>,
-			sectionLayouts: {} as Record<string, string>,
-			sectionWidths: {} as Record<string, string>,
 			sectionCategoryOrders: {} as Record<string, string[]>,
 			sectionDisabledCategories: {} as Record<string, string[]>,
 			sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
-			view: null as ViewData,
+			view: emptyView,
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
 			siteCtaEnabled: data.site_cta_enabled !== false,
-				siteNav: parentData.siteNav
+			siteNav: parentData.siteNav
 		};
 	} catch (error) {
-		// If navigation was cancelled (user clicked another link), let SvelteKit handle it
-		if (error instanceof Error && error.name === 'AbortError') {
-			throw error;
-		}
 		logger.error('[ROOT PAGE] Exception:', error);
 		return {
 			profile: null,
@@ -195,21 +187,20 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			skills: [],
 			posts: [],
 			talks: [],
+			courses: [],
 			testimonials: [],
 			contacts: [],
-			view: null as ViewData,
+			view: emptyView,
 			sectionFeaturedIds: {} as Record<string, string>,
 			sectionCategoryOrders: {} as Record<string, string[]>,
 			sectionDisabledCategories: {} as Record<string, string[]>,
 			sectionCategoryDisplayModes: {} as Record<string, Record<string, string>>,
-			homepageSections: {} as Record<string, Record<string, unknown>>,
 			postsTotalCount: 0,
 			talksTotalCount: 0,
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,
-			siteCtaEnabled: true,
-				siteNav: parentData.siteNav
+			siteCtaEnabled: true
 		};
 	}
 };

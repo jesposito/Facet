@@ -84,7 +84,7 @@
 			<p>Location: {profile.location}</p>
 		{/if}
 		{#if emailContact}
-			<p>Email: {emailContact.value}</p>
+			<p><!--email_off-->Email: {emailContact.value}<!--/email_off--></p>
 		{/if}
 		{#if phoneContact}
 			<p>Phone: {phoneContact.value}</p>
@@ -99,7 +99,7 @@
 			<p>Website: {websiteContact.value}</p>
 		{/if}
 		{#if !hasAnyContact && profile?.contact_email}
-			<p>Email: {profile.contact_email}</p>
+			<p><!--email_off-->Email: {profile.contact_email}<!--/email_off--></p>
 		{/if}
 	</section>
 
