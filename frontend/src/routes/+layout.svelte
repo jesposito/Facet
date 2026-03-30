@@ -11,6 +11,7 @@
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
 	import { initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
+	import { siteNavStore } from '$lib/stores/siteNav';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
 	interface Props {
@@ -33,6 +34,13 @@
 	$effect(() => {
 		if (data.planConfig) {
 			initPlanFromSSR(data.planConfig);
+		}
+	});
+
+	// Initialize site nav store from SSR data
+	$effect(() => {
+		if (data.siteNav) {
+			siteNavStore.initFromSSR(data.siteNav);
 		}
 	});
 

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { afterNavigate } from '$app/navigation';
 	import { t } from 'svelte-i18n';
+	import { siteNavStore } from '$lib/stores/siteNav';
 
 	interface NavItem {
 		viewId: string;
@@ -19,31 +20,28 @@
 		ssrNavItems?: NavItem[];
 	}
 
-	let { ctaUrl = '', ctaButtonText = 'Learn More', ctaText = '', ctaEnabled = true, ssrNavEnabled, ssrNavItems }: Props = $props();
+	let {
+		ctaUrl = '',
+		ctaButtonText = 'Learn More',
+		ctaText = '',
+		ctaEnabled = true,
+		ssrNavEnabled = false,
+		ssrNavItems = []
+	}: Props = $props();
 
-	let navEnabled = $state(ssrNavEnabled ?? false);
-	let navItems: NavItem[] = $state(ssrNavItems ?? []);
-	let mobileMenuOpen = $state(false);
-	let loading = $state(ssrNavEnabled === undefined); // Only loading if SSR didn't provide data
+	// Use SSR props directly for initial render (no store delay).
+	// Store syncs later for client-side navigation updates.
+	let navEnabled = $derived(ssrNavEnabled || $siteNavStore.enabled);
+	let navItems = $derived(ssrNavEnabled ? ssrNavItems : $siteNavStore.items);
+	let mobileMenuOpen = $derived($siteNavStore.mobileMenuOpen);
+
+	// Close mobile menu on navigation
+	afterNavigate(() => {
+		siteNavStore.closeMobileMenu();
+	});
 
 	// Get current path to highlight active nav item
 	let currentPath = $derived($page.url.pathname);
-
-	onMount(async () => {
-		if (ssrNavEnabled !== undefined) return; // SSR already provided data
-		try {
-			const response = await fetch('/api/site-nav');
-			if (response.ok) {
-				const data = await response.json();
-				navEnabled = data.enabled;
-				navItems = data.items || [];
-			}
-		} catch (err) {
-			console.error('Failed to load site navigation:', err);
-		} finally {
-			loading = false;
-		}
-	});
 
 	function isActive(slug: string): boolean {
 		return currentPath === `/${slug}`;
@@ -54,16 +52,16 @@
 	}
 
 	function toggleMobileMenu() {
-		mobileMenuOpen = !mobileMenuOpen;
+		siteNavStore.toggleMobileMenu();
 	}
 
 	function closeMobileMenu() {
-		mobileMenuOpen = false;
+		siteNavStore.closeMobileMenu();
 	}
 </script>
 
-{#if !loading && navEnabled && navItems.length > 0}
-	<nav class="bg-primary-600 text-white">
+{#if navEnabled && navItems.length > 0}
+	<nav aria-label="Site navigation" class="bg-primary-600 text-white">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 			<!-- Desktop Navigation -->
 			<div class="hidden md:flex items-center justify-between py-3">
@@ -99,7 +97,7 @@
 						href={ctaUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="btn bg-white text-primary-600 hover:bg-gray-100 text-sm"
+						class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm"
 					>
 						{ctaButtonText}
 					</a>
@@ -136,7 +134,7 @@
 						href={ctaUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="btn bg-white text-primary-600 hover:bg-gray-100 text-sm"
+						class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm"
 					>
 						{ctaButtonText}
 					</a>
@@ -177,7 +175,7 @@
 			</div>
 		{/if}
 	</nav>
-{:else if !loading && ctaUrl && ctaText && ctaEnabled}
+{:else if ($siteNavStore.loaded || ssrNavEnabled === false) && ctaUrl && ctaText && ctaEnabled}
 	<!-- Fallback to traditional CTA banner when nav is disabled -->
 	<div class="bg-primary-600 text-white py-4">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -186,7 +184,7 @@
 				href={ctaUrl}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="btn bg-white text-primary-600 hover:bg-gray-100"
+				class="btn bg-white text-primary-600 hover:bg-stone-100"
 			>
 				{ctaButtonText}
 			</a>
