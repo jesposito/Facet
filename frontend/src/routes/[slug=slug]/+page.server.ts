@@ -56,7 +56,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 		}
 		
 		const response = await fetch(`${pbUrl}/api/view/${slug}/access`, {
-			headers: accessHeaders
+			headers: { ...accessHeaders, 'X-Internal': 'true' }
 		});
 		
 		if (!response.ok) {
@@ -111,7 +111,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			dataHeaders['Authorization'] = `Bearer ${passwordToken}`;
 		}
 
-		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: dataHeaders });
+		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: { ...dataHeaders, 'X-Internal': 'true' } });
 
 		if (!dataResponse.ok) {
 			if (dataResponse.status === 401 || dataResponse.status === 403) {
