@@ -4,8 +4,9 @@
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import { navigating } from '$app/stores';
+	import { navigating, page } from '$app/stores';
 	import { t } from 'svelte-i18n';
+	import { brandName, isDemoMode } from '$lib/stores/plan';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
@@ -16,6 +17,7 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import CoursesSection from '$components/public/CoursesSection.svelte';
 	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
 	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
@@ -26,7 +28,7 @@
 	import WelcomePage from '$components/public/WelcomePage.svelte';
 	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK } from '$lib/fonts';
-	import { pb, currentUser, performLogout } from '$lib/pocketbase';
+	import { pb, currentUser, performLogout, getSectionLayout as getDefaultSectionLayout } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 	import { goto } from '$app/navigation';
 
@@ -38,7 +40,7 @@
 	// causing a brief frame where !data.profile && !isNavigating is true.
 	let hasHydratedData = $state(false);
 
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'courses', 'testimonials', 'contacts'];
 
 	interface Props {
 		data: PageData;
@@ -59,7 +61,8 @@
 	let location = $derived(data.view?.hero_location || data.profile?.location);
 
 	// Generate JSON-LD and Open Graph for SEO
-	let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
+	// Use APP_URL from server for correct https:// canonical URLs behind reverse proxy
+	let baseUrl = $derived($page.data.appUrl || $page.url.origin);
 	let personJsonLd = $derived(data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null);
 	let websiteJsonLd = $derived(data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null);
 	let canonicalUrl = $derived(getCanonicalUrl(baseUrl, ''));
@@ -95,6 +98,7 @@
 					case 'skills': return data.skills?.length > 0;
 					case 'posts': return data.posts?.length > 0;
 					case 'talks': return data.talks?.length > 0;
+					case 'courses': return data.courses?.length > 0;
 					case 'testimonials': return data.testimonials?.length > 0;
 					case 'contacts': return data.contacts?.length > 0;
 					default: return false;
@@ -151,7 +155,8 @@
 		if (data.homepageSections?.[sectionKey]?.layout) {
 			return data.homepageSections[sectionKey].layout;
 		}
-		return 'default';
+		// Use the section-specific default (e.g. 'wall' for testimonials, 'grouped' for certifications)
+		return getDefaultSectionLayout(sectionKey);
 	}
 
 	type ContactLayoutType = 'vertical' | 'horizontal' | 'grid';
@@ -209,7 +214,8 @@
 	}
 
 	function getFeaturedId(sectionKey: string): string | undefined {
-		return data.sectionFeaturedIds?.[sectionKey];
+		const val = data.sectionFeaturedIds?.[sectionKey];
+		return typeof val === 'string' ? val : undefined;
 	}
 
 	function getWidthClass(width: string): string {
@@ -224,6 +230,9 @@
 	let showPrintMenu = $state(false);
 	let showGenerateModal = $state(false);
 	let generating = $state(false);
+	let modalEl: HTMLDivElement | undefined = $state();
+	let printMenuTriggerEl: HTMLButtonElement | undefined = $state();
+	let previousActiveElement: HTMLElement | null = $state(null);
 	let aiPrintStatus = $state({
 		available: false,
 		ai_configured: false,
@@ -240,7 +249,7 @@
 
 	// Floating buttons visibility - hide when nav is pinned (sticky)
 	let navPinned = $state(false);
-	let sentinelEl: HTMLDivElement | null = null;
+	let sentinelEl: HTMLDivElement | null = $state(null);
 
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
@@ -401,6 +410,72 @@
 		showPrintMenu = false;
 	}
 
+	function closeGenerateModal() {
+		showGenerateModal = false;
+		generatedUrl = null;
+		// Restore focus to the element that triggered the modal
+		if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+			previousActiveElement.focus();
+		}
+	}
+
+	// Modal focus trap, Escape key, and body scroll lock
+	function handleModalKeydown(event: KeyboardEvent) {
+		if (!showGenerateModal) return;
+
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			closeGenerateModal();
+			return;
+		}
+
+		if (event.key === 'Tab') {
+			const focusableElements = modalEl?.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+			);
+			if (!focusableElements?.length) return;
+
+			const firstElement = focusableElements[0];
+			const lastElement = focusableElements[focusableElements.length - 1];
+
+			if (event.shiftKey && document.activeElement === firstElement) {
+				event.preventDefault();
+				lastElement.focus();
+			} else if (!event.shiftKey && document.activeElement === lastElement) {
+				event.preventDefault();
+				firstElement.focus();
+			}
+		}
+	}
+
+	// Lock body scroll and manage focus when modal opens/closes
+	$effect(() => {
+		if (typeof document === 'undefined') return;
+		if (showGenerateModal) {
+			previousActiveElement = document.activeElement as HTMLElement;
+			document.body.style.overflow = 'hidden';
+			// Focus the first focusable element in the modal after render
+			requestAnimationFrame(() => {
+				const firstFocusable = modalEl?.querySelector<HTMLElement>(
+					'select, button:not([disabled]), [href], input:not([disabled])'
+				);
+				firstFocusable?.focus();
+			});
+		} else {
+			document.body.style.overflow = '';
+		}
+	});
+
+	// Print menu keyboard handler
+	function handlePrintMenuKeydown(event: KeyboardEvent) {
+		if (!showPrintMenu) return;
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			closePrintMenu();
+			printMenuTriggerEl?.focus();
+		}
+	}
+
 	async function handleLogout() {
 		await performLogout();
 		window.location.href = '/admin/login';
@@ -408,7 +483,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.profile?.name || 'Profile'} | Facet</title>
+	<title>{data.profile?.name || 'Profile'} | {$brandName}</title>
 	<meta name="description" content={headline || 'Personal profile and portfolio'} />
 
 	<!-- Canonical URL -->
@@ -430,20 +505,20 @@
 
 {#if data.homepageDisabled}
 	<!-- Profile exists but homepage is disabled - show landing message -->
-	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+	<div class="min-h-screen bg-stone-50 dark:bg-stone-900 flex items-center justify-center px-4">
 		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
 			<ThemeToggle />
 		</div>
-		<div class="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center space-y-4">
-			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{$t('public.homepage.profile_private')}</h1>
-			<p class="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
-			<p class="text-sm text-gray-500 dark:text-gray-400">
+		<div class="max-w-2xl w-full bg-white dark:bg-stone-800 rounded-2xl shadow-lg border border-stone-200 dark:border-stone-700 p-8 text-center space-y-4">
+			<h1 class="text-2xl font-semibold text-stone-900 dark:text-white">{$t('public.homepage.profile_private')}</h1>
+			<p class="text-stone-600 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
+			<p class="text-sm text-stone-500 dark:text-stone-400">
 				{$t('public.homepage.views_accessible')}
 			</p>
 		</div>
 	</div>
 {:else if !data.profile && !data.experience?.length && !data.projects?.length && !isNavigating && !hasHydratedData}
-	<!-- First-time visitor: no profile exists yet (don't show during navigation transitions) -->
+	<!-- First-time visitor: no profile exists yet (don't show during navigation transitions or after data was already loaded) -->
 	<WelcomePage />
 {:else}
 <div class="min-h-screen">
@@ -455,26 +530,28 @@
 		<!-- Print Menu -->
 		<div class="relative">
 			<button
+				bind:this={printMenuTriggerEl}
 				onclick={() => showPrintMenu = !showPrintMenu}
-				class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+				class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
 				title={$t('public.homepage.print_options')}
 				aria-label={$t('public.homepage.print_options')}
 				aria-expanded={showPrintMenu}
+				aria-haspopup="menu"
 			>
-				<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+				<svg class="w-5 h-5 text-stone-600 dark:text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 				</svg>
 			</button>
 
 			{#if showPrintMenu}
-				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-				<div class="fixed inset-0" onclick={closePrintMenu}></div>
-				<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+				<div class="fixed inset-0" onclick={closePrintMenu} onkeydown={handlePrintMenuKeydown} role="presentation" tabindex="-1"></div>
+				<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50" role="menu" onkeydown={handlePrintMenuKeydown}>
 					<button
 						onclick={() => { window.print(); closePrintMenu(); }}
-						class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+						class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
+						role="menuitem"
 					>
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 						</svg>
 						{$t('public.homepage.simple_print')}
@@ -482,9 +559,10 @@
 					{#if aiPrintStatus.ai_configured && data.view?.slug}
 						<button
 							onclick={() => { showGenerateModal = true; closePrintMenu(); }}
-							class="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+							class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
+							role="menuitem"
 						>
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 							</svg>
 							{$t('public.homepage.ai_resume')}
@@ -496,11 +574,11 @@
 
 		<!-- Login button - for demo users, auto-logout and go to login page -->
 		<!-- Always show on first-time screen, even if hide setting is enabled -->
-		{#if !data.hideLoginButton || (!data.profile?.name && data.experience.length === 0 && data.projects.length === 0)}
+		{#if !$isDemoMode && (!data.hideLoginButton || (!data.profile?.name && data.experience.length === 0 && data.projects.length === 0))}
 			{#if $currentUser}
 				<button
 					onclick={handleLogout}
-					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
 					title={$t('public.homepage.log_in_account')}
 					aria-label={$t('public.homepage.log_in_account')}
 				>
@@ -509,7 +587,7 @@
 			{:else}
 				<a
 					href="/admin/login"
-					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
 					title={$t('public.homepage.log_in')}
 					aria-label={$t('public.homepage.log_in')}
 				>
@@ -557,6 +635,7 @@
 		hasSkills={data.skills.length > 0}
 		hasPosts={data.posts && data.posts.length > 0}
 		hasTalks={data.talks && data.talks.length > 0}
+		hasCourses={data.courses && data.courses.length > 0}
 		hasTestimonials={data.testimonials && data.testimonials.length > 0}
 		hasContacts={data.contacts && data.contacts.length > 0}
 		viewSlug=""
@@ -569,7 +648,7 @@
 		{#if !data.profile?.name && data.experience.length === 0 && data.projects.length === 0}
 			<!-- Empty profile state -->
 			<div class="text-center py-16">
-				<p class="text-gray-500 dark:text-gray-400 text-lg">
+				<p class="text-stone-500 dark:text-stone-400 text-lg">
 					{$t('public.homepage.profile_setup')}
 				</p>
 			</div>
@@ -634,6 +713,8 @@
 						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
 						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
 					{/if}
+				{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
+					<CoursesSection items={data.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug="" />
 				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
 					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
 				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
@@ -655,22 +736,32 @@
 	<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
 	<ATSContent
 		profile={data.profile}
-		experience={data.sections?.experience}
-		education={data.sections?.education}
-		skills={data.sections?.skills}
-		contacts={data.sections?.contacts}
-		certifications={data.sections?.certifications}
+		experience={data.experience}
+		education={data.education}
+		skills={data.skills}
+		contacts={data.contacts}
+		certifications={data.certifications}
 	/>
 </div>
 
 <!-- AI Resume Generation Modal -->
 {#if showGenerateModal}
-	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden" onclick={self(() => showGenerateModal = false)}>
-		<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
-			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('public.ai_resume.title')}</h2>
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+	<div
+		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden"
+		onclick={self(closeGenerateModal)}
+		onkeydown={handleModalKeydown}
+		role="presentation"
+	>
+		<div
+			bind:this={modalEl}
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="ai-resume-modal-title"
+			class="bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
+		>
+			<div class="p-4 border-b border-stone-200 dark:border-stone-700">
+				<h2 id="ai-resume-modal-title" class="text-lg font-semibold text-stone-900 dark:text-white">{$t('public.ai_resume.title')}</h2>
+				<p class="text-sm text-stone-500 dark:text-stone-400 mt-1">
 					{$t('public.ai_resume.description')}
 				</p>
 			</div>
@@ -689,7 +780,7 @@
 					</div>
 				{:else}
 					<div>
-						<label for="format" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('public.ai_resume.format')}</label>
+						<label for="format" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{$t('public.ai_resume.format')}</label>
 						<select id="format" bind:value={generationConfig.format} class="input">
 							<option value="pdf">{$t('public.ai_resume.format_pdf')}</option>
 							<option value="docx">{$t('public.ai_resume.format_word')}</option>
@@ -697,7 +788,7 @@
 					</div>
 
 					<div>
-						<label for="style" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('public.ai_resume.style')}</label>
+						<label for="style" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{$t('public.ai_resume.style')}</label>
 						<select id="style" bind:value={generationConfig.style} class="input">
 							<option value="chronological">{$t('public.ai_resume.style_chronological')}</option>
 							<option value="functional">{$t('public.ai_resume.style_functional')}</option>
@@ -706,7 +797,7 @@
 					</div>
 
 					<div>
-						<label for="length" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('public.ai_resume.length')}</label>
+						<label for="length" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{$t('public.ai_resume.length')}</label>
 						<select id="length" bind:value={generationConfig.length} class="input">
 							<option value="one-page">{$t('public.ai_resume.length_one')}</option>
 							<option value="two-page">{$t('public.ai_resume.length_two')}</option>
@@ -716,11 +807,11 @@
 				{/if}
 			</div>
 
-			<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+			<div class="p-4 border-t border-stone-200 dark:border-stone-700 flex justify-end gap-2">
 				<button
 					type="button"
 					class="btn btn-ghost"
-					onclick={() => { showGenerateModal = false; generatedUrl = null; }}
+					onclick={closeGenerateModal}
 				>
 					{generatedUrl ? $t('shared.close') : $t('shared.cancel')}
 				</button>
@@ -732,7 +823,7 @@
 						disabled={generating}
 					>
 						{#if generating}
-							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
 								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 							</svg>
