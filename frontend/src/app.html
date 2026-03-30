@@ -1,12 +1,21 @@
 <!doctype html>
-<html lang="en" class="%sveltekit.theme%">
+<html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<!-- favicon is set dynamically in +layout.svelte -->
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+		<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+		<script>
+			// Apply dark mode before paint to prevent FOUC
+			(function() {
+				var t = localStorage.getItem('theme');
+				if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches)) {
+					document.documentElement.classList.add('dark');
+				}
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover" class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100" style="margin: 0; padding: 0; width: 100%; max-width: 100%;">
