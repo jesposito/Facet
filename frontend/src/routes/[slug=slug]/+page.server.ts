@@ -187,13 +187,10 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			shareToken: effectiveShareToken || null,
 			isPublicView: accessInfo.visibility === 'public',
 			siteCtaEnabled: viewData.site_cta_enabled !== false,
+			siteNavEnabled: viewData.site_nav_enabled === true,
 			siteNav: (await parent()).siteNav
 		};
 	} catch (err) {
-		// If navigation was cancelled (user clicked another link), let SvelteKit handle it
-		if (err instanceof Error && err.name === 'AbortError') {
-			throw err;
-		}
 		if ((err as { status?: number }).status === 404) {
 			throw err;
 		}
