@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.7 - March 30, 2026
+
+**Bugs Fixed:**
+- Fix nav vanishing on SPA navigation
+- Fix WelcomePage flash during rapid nav
+
+**New Features:**
+- Implement store-based state management for siteNav
+- Add CTA fallback rendering when nav is disabled
+
+**Pull Requests:** [#428](https://github.com/jesposito/Facet/pull/428),
+
+---
+
+
 ## v2.21.6 - March 29, 2026
 
 **Bugs Fixed:**
