@@ -3,6 +3,23 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.9 - March 30, 2026
+
+**Bugs Fixed:**
+- Fix rapid-click issues in SSR and navigation
+
+**New Features:**
+- Add cloud version of +page.server.ts with X-Internal and proper error handling
+- Add cloud version of [slug]/+page.server.ts with siteNavEnabled
+- Add cloud version of +layout.server.ts with appUrl and debug logging
+- Add cloud version of +layout.svelte with initPlan fallback and proper store init
+- Add cloud version of slug.ts for param matcher
+
+**Pull Requests:** [#430](https://github.com/jesposito/Facet/pull/430),
+
+---
+
+
 ## v2.21.8 - March 30, 2026
 
 **Bugs Fixed:**
