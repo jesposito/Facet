@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.8 - March 30, 2026
+
+**Bugs Fixed:**
+- Fix missing X-Internal header on SSR fetches to prevent rate limit 404s on rapid navigation
+
+**Pull Requests:** [#429](https://github.com/jesposito/Facet/pull/429),
+
+---
+
+
 ## v2.21.7 - March 30, 2026
 
 **Bugs Fixed:**
