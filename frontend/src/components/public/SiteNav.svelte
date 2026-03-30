@@ -171,7 +171,8 @@
 							{item.label}
 						</a>
 					{/each}
-				</div>
+
+					</div>
 			</div>
 		{/if}
 	</nav>

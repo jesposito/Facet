@@ -1,3 +1,12 @@
+/**
+ * Root layout server load: Preload plan config server-side to eliminate FOUC
+ *
+ * Fetches plan configuration from PocketBase before first render, ensuring
+ * the "Powered by Facet" badge visibility state is correct on initial paint.
+ *
+ * Pro/Creator users (managed, !badge_forced) will never see the badge flash.
+ */
+
 import type { LayoutServerLoad } from './$types';
 import type { PlanConfig } from '$lib/stores/plan';
 import { logger } from '$lib/logger';
@@ -23,7 +32,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		logger.debug('[LAYOUT SSR] Failed to load site settings:', error);
 	}
 
-	// Fetch plan config server-side (FOUC fix)
+	// Fetch plan config server-side (new functionality - FOUC fix)
 	let planConfig: PlanConfig | null = null;
 	try {
 		const planResponse = await fetch(`${pbUrl}/api/plan`, {
@@ -31,10 +40,18 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		});
 		if (planResponse.ok) {
 			planConfig = await planResponse.json();
+			logger.debug('[LAYOUT SSR] Loaded plan config:', planConfig?.plan);
+		} else {
+			logger.debug('[LAYOUT SSR] Plan API returned non-OK status:', planResponse.status);
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load plan config:', error);
 	}
+
+	// Pass APP_URL to the client for canonical/OG URLs.
+	// SSR $page.url.origin reflects the internal HTTP origin (behind Caddy proxy),
+	// not the public HTTPS URL. APP_URL is authoritative.
+	const appUrl = process.env.APP_URL || '';
 
 	// Fetch site-nav server-side to eliminate nav pop-in on page load
 	let siteNav = { enabled: false, items: [] as Array<{ viewId: string; slug: string; label: string; name: string }> };
@@ -45,6 +62,9 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		if (navResponse.ok) {
 			const navData = await navResponse.json();
 			siteNav = { enabled: navData.enabled === true, items: navData.items || [] };
+			logger.debug('[LAYOUT SSR] Loaded site nav:', siteNav.enabled, siteNav.items.length, 'items');
+		} else {
+			logger.debug('[LAYOUT SSR] Site nav API returned:', navResponse.status);
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load site nav:', error);
@@ -71,6 +91,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 	return {
 		faviconUrl,
 		planConfig,
+		appUrl,
 		siteNav,
 		accentColor,
 		customHexColor,
