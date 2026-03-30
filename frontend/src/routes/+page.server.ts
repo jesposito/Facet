@@ -33,7 +33,9 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
 	try {
-		const response = await fetch(`${pbUrl}/api/homepage`);
+		const response = await fetch(`${pbUrl}/api/homepage`, {
+			headers: { 'X-Internal': 'true' }
+		});
 
 		if (!response.ok) {
 			const errorText = await response.text();
