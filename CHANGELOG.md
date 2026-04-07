@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.10 - April 07, 2026
+
+**Bugs Fixed:**
+- Patch bump Vite 7.3.1 -> 7.3.2 to fix CVE-2026-39363
+
+**Pull Requests:** [#431](https://github.com/jesposito/Facet/pull/431),
+
+---
+
+
 ## v2.21.9 - March 30, 2026
 
 **Bugs Fixed:**
