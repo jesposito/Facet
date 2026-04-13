@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.11 - April 13, 2026
+
+**Bugs Fixed:**
+- Restore SSR favicon rendering on public pages
+
+**Pull Requests:** [#433](https://github.com/jesposito/Facet/pull/433),
+
+---
+
+
 ## v2.21.10 - April 07, 2026
 
 **Bugs Fixed:**
