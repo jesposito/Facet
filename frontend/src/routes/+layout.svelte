@@ -96,13 +96,12 @@ let accentStyleEl: HTMLStyleElement | null = $state(null);
 let fontStyleEl: HTMLStyleElement | null = $state(null);
 let fontLinkEl: HTMLLinkElement | null = $state(null);
 let customPaletteLocked = false;
-// Initialize from server-loaded data for correct SSR
-let faviconUrl = $state<string | null>(null);
-
-// Update faviconUrl when data changes (SSR or client-side navigation)
-$effect(() => {
-	faviconUrl = data.faviconUrl;
-});
+// Initialize from server-loaded data so SSR renders the correct favicon.
+// A $state(null) + $effect pattern is broken here because $effect never
+// runs during SSR, so the server-rendered HTML would always fall back to
+// /favicon.png even when a custom favicon is configured. $state-with-initial
+// is writable, so onMount/event-handlers below can still reassign it.
+let faviconUrl = $state<string | null>(data.faviconUrl);
 
 function applyPaletteFromCSS(css: string) {
 	if (!browser || !css) return;
