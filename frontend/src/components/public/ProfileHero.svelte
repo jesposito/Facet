@@ -61,13 +61,13 @@
 <header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass} text-center">
 		{#if profile?.name}
-			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 tracking-tight" itemprop="name">
+			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight leading-[1.08]" itemprop="name">
 				{profile.name}
 			</h1>
 		{/if}
 
 		{#if profile?.headline}
-			<p class="text-xl sm:text-2xl text-gray-300 mb-6 max-w-2xl mx-auto" itemprop="jobTitle">
+			<p class="text-xl sm:text-2xl text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed" itemprop="jobTitle">
 				{profile.headline}
 			</p>
 		{/if}
@@ -116,13 +116,13 @@
 		<div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
 			<div class="md:col-span-3">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3" itemprop="name">
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-3 tracking-tight leading-[1.08]" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
 
 				{#if profile?.headline}
-					<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
+					<p class="text-xl sm:text-2xl text-gray-300 mb-4 leading-relaxed" itemprop="jobTitle">
 						{profile.headline}
 					</p>
 				{/if}
@@ -191,13 +191,13 @@
 <header class="relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white" itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		{#if profile?.name}
-			<h1 class="text-display-lg sm:text-display-xl font-bold mb-6 tracking-tight" itemprop="name">
+			<h1 class="text-display-lg sm:text-display-xl font-semibold mb-6 tracking-tight leading-[1.06]" itemprop="name">
 				{profile.name}
 			</h1>
 		{/if}
 
 		{#if profile?.headline}
-			<p class="text-2xl sm:text-3xl text-gray-500 dark:text-gray-400 mb-6" itemprop="jobTitle">
+			<p class="text-2xl sm:text-3xl text-gray-500 dark:text-gray-400 mb-6 leading-relaxed" itemprop="jobTitle">
 				{profile.headline}
 			</p>
 		{/if}
@@ -259,13 +259,13 @@
 
 				<div class="text-center sm:text-left flex-1">
 					{#if profile?.name}
-						<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" itemprop="name">
+						<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.06]" itemprop="name">
 							{profile.name}
 						</h1>
 					{/if}
 
 					{#if profile?.headline}
-						<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
+						<p class="text-xl sm:text-2xl text-gray-300 mb-4 leading-relaxed" itemprop="jobTitle">
 							{profile.headline}
 						</p>
 					{/if}
@@ -350,13 +350,13 @@
 
 			<div class="text-center sm:text-left flex-1">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" itemprop="name">
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.08]" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
 
 				{#if profile?.headline}
-					<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
+					<p class="text-xl sm:text-2xl text-gray-300 mb-4 leading-relaxed" itemprop="jobTitle">
 						{profile.headline}
 					</p>
 				{/if}
