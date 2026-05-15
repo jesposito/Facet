@@ -16,6 +16,7 @@
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let awards: Award[] = $state([]);
 	let loading = $state(true);
@@ -417,37 +418,37 @@ onMount(loadAwards);
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+			<AccordionSection title="Settings" open={false}>
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<VisibilitySelector bind:value={visibility} />
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<VisibilitySelector bind:value={visibility} />
+						<div>
+							<label for="sort_order" class="label">Sort Order</label>
+							<input
+								type="number"
+								id="sort_order"
+								bind:value={sortOrder}
+								class="input"
+								min="0"
+							/>
+							<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+						</div>
+					</div>
 
-					<div>
-						<label for="sort_order" class="label">Sort Order</label>
+					<div class="flex items-center gap-2">
 						<input
-							type="number"
-							id="sort_order"
-							bind:value={sortOrder}
-							class="input"
-							min="0"
+							type="checkbox"
+							id="is_draft"
+							bind:checked={isDraft}
+							class="w-4 h-4 text-primary-600 rounded border-gray-300"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+						<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
+							Save as draft (won't be visible publicly)
+						</label>
 					</div>
 				</div>
-
-				<div class="flex items-center gap-2">
-					<input
-						type="checkbox"
-						id="is_draft"
-						bind:checked={isDraft}
-						class="w-4 h-4 text-primary-600 rounded border-gray-300"
-					/>
-					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
-						Save as draft (won't be visible publicly)
-					</label>
-				</div>
-			</div>
+			</AccordionSection>
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
