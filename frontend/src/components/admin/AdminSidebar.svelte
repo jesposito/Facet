@@ -428,71 +428,28 @@
 			</a>
 		</div>
 
-		<!-- Facets Section - collapsible -->
-		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.facets)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.facets)}
-				aria-controls="sidebar-facets-items"
+		<!-- Facets - single pinned link with count badge (no accordion) -->
+		<div>
+			<a
+				href="/admin/views"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
+				aria-current={isActive('/admin/views') ? 'page' : undefined}
 			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
-					</svg>
-					{$t('admin.sidebar.facets')}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.facets) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
 				</svg>
-			</button>
-			{#if isSectionExpanded(SECTION_IDS.facets)}
-			<div id="sidebar-facets-items" class="space-y-1 animate-slide-in-down">
-					<a
-						href="/admin/views"
-						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views')
-							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-							: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-						title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
-						aria-current={isActive('/admin/views') ? 'page' : undefined}
-					>
-						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
-						</svg>
-						<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
-							<span class="truncate">{$t('admin.sidebar.facets')}</span>
-							{#if facetsTotalCount > 0}
-								<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{facetsTotalCount} facets">
-									{facetsTotalCount}
-								</span>
-							{/if}
+				<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
+					<span class="truncate">{$t('admin.sidebar.facets')}</span>
+					{#if facetsTotalCount > 0}
+						<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{facetsTotalCount} facets">
+							{facetsTotalCount}
 						</span>
-					</a>
-					<!-- New Facet button - always visible -->
-					<a
-						href="/admin/views/new"
-						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views/new')
-							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-							: 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'}"
-						title={!$adminSidebarOpen ? $t('admin.sidebar.new_facet') : undefined}
-						aria-current={isActive('/admin/views/new') ? 'page' : undefined}
-					>
-						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-						</svg>
-						<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.new_facet')}</span>
-					</a>
-			</div>
-			{:else}
-				<div id="sidebar-facets-items" hidden></div>
-			{/if}
+					{/if}
+				</span>
+			</a>
 		</div>
 
 		<!-- Content Section (merged Portfolio + Content) -->
