@@ -90,15 +90,41 @@ if [ -d "$UPLOADS_DIR" ]; then
             ln -s "$UPLOADS_DIR" "$STORAGE_PATH"
             echo "[Storage] Using uploads directory: $UPLOADS_DIR"
         fi
+
+        # Self-healing: a previous migration may have moved files into
+        # $STORAGE_BACKUP without successfully copying them to $UPLOADS_DIR.
+        # Recover them now so the symlink resolves to a populated tree.
+        if [ -d "$STORAGE_BACKUP" ] && [ "$(ls -A "$STORAGE_BACKUP" 2>/dev/null)" ]; then
+            UPLOAD_FILE_COUNT=$(find "$UPLOADS_DIR" -type f 2>/dev/null | wc -l)
+            BACKUP_FILE_COUNT=$(find "$STORAGE_BACKUP" -type f 2>/dev/null | wc -l)
+            if [ "$BACKUP_FILE_COUNT" -gt 0 ] && [ "$UPLOAD_FILE_COUNT" -lt "$BACKUP_FILE_COUNT" ]; then
+                echo "[Storage] Recovering from $STORAGE_BACKUP ($BACKUP_FILE_COUNT files backed up, $UPLOAD_FILE_COUNT in active uploads)"
+                if cp -an "$STORAGE_BACKUP"/* "$UPLOADS_DIR"/ 2>/dev/null; then
+                    NEW_COUNT=$(find "$UPLOADS_DIR" -type f 2>/dev/null | wc -l)
+                    echo "[Storage] Recovered files — /uploads now has $NEW_COUNT files (was $UPLOAD_FILE_COUNT)"
+                else
+                    echo "[Storage] WARNING: copy from $STORAGE_BACKUP failed — check permissions"
+                fi
+            fi
+        fi
     elif [ -d "$STORAGE_PATH" ] && [ "$(ls -A $STORAGE_PATH 2>/dev/null)" ]; then
         # Existing files in old location - migrate gracefully
         OLD_COUNT=$(find "$STORAGE_PATH" -type f ! -name "*.attrs" 2>/dev/null | wc -l)
         echo "[Storage] Found $OLD_COUNT files in legacy location"
         echo "[Storage] Copying to uploads directory (keeping backup)..."
 
-        # Copy files to uploads directory
-        if cp -a "$STORAGE_PATH"/* "$UPLOADS_DIR"/ 2>/dev/null; then
+        # Copy files to uploads directory.
+        # Use -n (no-clobber) so an interrupted previous run can be resumed
+        # safely without overwriting good files in $UPLOADS_DIR.
+        if cp -an "$STORAGE_PATH"/* "$UPLOADS_DIR"/ 2>/dev/null; then
             COPIED_COUNT=$(find "$UPLOADS_DIR" -type f ! -name "*.attrs" 2>/dev/null | wc -l)
+            EXPECTED_COUNT=$(find "$STORAGE_PATH" -type f ! -name "*.attrs" 2>/dev/null | wc -l)
+            if [ "$COPIED_COUNT" -lt "$EXPECTED_COUNT" ]; then
+                echo "[Storage] WARNING: only $COPIED_COUNT of $EXPECTED_COUNT files reached uploads — keeping legacy storage in place, NOT moving to backup"
+                # Bail out before the mv so we never strand files in a backup
+                # the user can't tell is the source of truth.
+                exit 1
+            fi
             echo "[Storage] Copied $COPIED_COUNT files to uploads directory"
 
             # Move old storage to backup (not delete)
