@@ -58,6 +58,7 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 	// Appearance state
 	let profile: Profile | null = $state(null);
 	let selectedAccentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
+	let customHexColor: string = $state('');
 	let savingAppearance = $state(false);
 	let selectedFontPack: FontPack = $state(DEFAULT_FONT_PACK);
 	let savingFontPack = $state(false);
@@ -82,6 +83,7 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 			if (records.items.length > 0) {
 				profile = records.items[0] as unknown as Profile;
 				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
+				customHexColor = (profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
 				selectedFontPack = (profile.font_pack as FontPack) || DEFAULT_FONT_PACK;
 				selectedHeroLayout = (profile as any).hero_layout || 'standard';
 			}
@@ -95,17 +97,41 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 
 		savingAppearance = true;
 		try {
+			// Clearing custom hex when a curated swatch is chosen keeps storage in sync.
 			await collection('profile').update(profile.id, {
-				accent_color: color
+				accent_color: color,
+				custom_hex_color: ''
 			});
 			selectedAccentColor = color;
+			customHexColor = '';
 			profile.accent_color = color;
+			(profile as unknown as { custom_hex_color?: string }).custom_hex_color = '';
 			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
 
 			// Dispatch event to notify layout of color change
 			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: color }));
 		} catch (err) {
 			console.error('Failed to save accent color:', err);
+			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
+		} finally {
+			savingAppearance = false;
+		}
+	}
+
+	async function saveCustomHexColor(hex: string) {
+		if (!profile) return;
+		savingAppearance = true;
+		try {
+			await collection('profile').update(profile.id, {
+				custom_hex_color: hex
+			});
+			customHexColor = hex;
+			(profile as unknown as { custom_hex_color?: string }).custom_hex_color = hex;
+			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
+			// Notify layout to re-apply
+			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: hex }));
+		} catch (err) {
+			console.error('Failed to save custom hex color:', err);
 			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
 		} finally {
 			savingAppearance = false;
@@ -490,7 +516,9 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 		{#if profile}
 			<AccentPicker
 				value={selectedAccentColor}
+				customHex={customHexColor}
 				onchange={(color) => saveAccentColor(color)}
+				onhexchange={(hex) => saveCustomHexColor(hex)}
 			/>
 		{:else}
 			<div class="text-gray-500 dark:text-gray-400 text-center py-4">

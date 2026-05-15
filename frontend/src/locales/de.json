@@ -1359,7 +1359,15 @@
 			}
 		},
 		"accent_picker": {
-			"curated_colors": "Kuratierte Akzentfarben"
+			"curated_colors": "Kuratierte Akzentfarben",
+			"custom_label": "Oder eine benutzerdefinierte Hex-Farbe wählen",
+			"custom_placeholder": "#6366f1",
+			"custom_help": "Sechs hexadezimale Zeichen (0-9, A-F), optional mit führendem #.",
+			"custom_invalid": "Bitte eine gültige Hex-Farbe eingeben (z. B. #6366f1)",
+			"custom_active": "Benutzerdefinierte Farbe: {hex}",
+			"reset": "Auf Standard zurücksetzen",
+			"announced_custom": "Akzentfarbe auf {hex} gesetzt",
+			"announced_curated": "Akzentfarbe auf {name} gesetzt"
 		},
 		"view_editor": {
 			"page": {

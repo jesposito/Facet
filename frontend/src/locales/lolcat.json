@@ -1359,7 +1359,15 @@
 			}
 		},
 		"accent_picker": {
-			"curated_colors": "Curated accent colors"
+			"curated_colors": "CURATED ACCENT COLORZ",
+			"custom_label": "OR PICK UR OWN HEX COLOR",
+			"custom_placeholder": "#6366f1",
+			"custom_help": "SIX HEX CHARZ (0-9, A-F), CAN HAS # PREFIX.",
+			"custom_invalid": "ENTER VALID HEX (e.g. #6366f1)!!!",
+			"custom_active": "USIN CUSTOM COLOR {hex}",
+			"reset": "RESET 2 DEFAULT",
+			"announced_custom": "ACCENT COLOR SET 2 {hex}",
+			"announced_curated": "ACCENT COLOR SET 2 {name}"
 		},
 		"view_editor": {
 			"page": {
