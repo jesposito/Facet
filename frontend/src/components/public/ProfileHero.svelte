@@ -2,6 +2,7 @@
 	import type { Profile } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { parseMarkdown } from '$lib/utils';
+	import { hexLuminance, DARK_TEXT_THRESHOLD, isValidHexColor } from '$lib/colors';
 
 	type HeroLayout = 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
 	type HeroSpacing = 'compact' | 'default' | 'spacious' | '';
@@ -10,13 +11,17 @@
 		profile: Profile | null;
 		layout?: HeroLayout;
 		spacing?: HeroSpacing;
+		heroBgColor?: string;
+		showAvatar?: boolean;
 	}
 
-	let { profile, layout = 'standard', spacing = '' }: Props = $props();
+	let { profile, layout = 'standard', spacing = '', heroBgColor = '', showAvatar = true }: Props = $props();
 
 	let contactLinks = $derived(profile?.contact_links || []);
 	let heroImageUrl = $derived(profile?.hero_image_url || null);
-	let avatarUrl = $derived((profile as unknown as Record<string, string>)?.avatar_url || null);
+	let rawAvatarUrl = $derived((profile as unknown as Record<string, string>)?.avatar_url || null);
+	// Respect site-wide show_avatar toggle (per cloud parity)
+	let avatarUrl = $derived(showAvatar ? rawAvatarUrl : null);
 
 	// Vertical breathing room — cloud parity (ProfileHero.svelte lines 28-34)
 	let heroSpacingClass = $derived(
@@ -26,11 +31,34 @@
 				? 'py-24 sm:py-36'
 				: 'py-16 sm:py-24'
 	);
+
+	// Custom hero background color (cloud parity, hero_bg_color field).
+	// When image is set, image wins — color is irrelevant.
+	let effectiveBgColor = $derived(
+		!heroImageUrl && heroBgColor && isValidHexColor(heroBgColor) ? heroBgColor : ''
+	);
+	// Use dark text when bg is light enough (WCAG 4.5:1 inflection at L≈0.179).
+	let useDarkText = $derived(
+		effectiveBgColor !== '' && hexLuminance(effectiveBgColor) > DARK_TEXT_THRESHOLD
+	);
+	// Per a11y review: stone-700 (not 600) and stone-200 (not 300) to keep AA on
+	// arbitrary user-chosen backgrounds.
+	let textColorClass = $derived(useDarkText ? 'text-stone-900' : 'text-white');
+	let subTextColorClass = $derived(useDarkText ? 'text-stone-700' : 'text-stone-200');
+	let mutedTextColorClass = $derived(useDarkText ? 'text-stone-700' : 'text-stone-200');
+	let contactLinkClass = $derived(
+		useDarkText
+			? 'bg-stone-900/10 hover:bg-stone-900/20 text-stone-900'
+			: 'bg-white/10 hover:bg-white/20'
+	);
+	let headerBgStyle = $derived(effectiveBgColor !== '' ? `background-color: ${effectiveBgColor};` : '');
+	// When custom bg, drop the dark gradient class.
+	let headerBgClass = $derived(effectiveBgColor !== '' ? '' : 'bg-gradient-to-br from-gray-900 to-gray-800');
 </script>
 
 {#if layout === 'centered'}
 <!-- Centered: Bold headline centered, gradient/solid background, no image dependency -->
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
+<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass} text-center">
 		{#if profile?.name}
 			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 tracking-tight" itemprop="name">
@@ -83,7 +111,7 @@
 
 {:else if layout === 'split'}
 <!-- Split: Text left, avatar/image right -->
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
+<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		<div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
 			<div class="md:col-span-3">
@@ -214,7 +242,7 @@
 {:else if layout === 'stacked'}
 <!-- Stacked: Headline at top, full-width image below -->
 <header class="relative" itemscope itemtype="https://schema.org/Person">
-	<div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+	<div class="{headerBgClass} {textColorClass}" style={headerBgStyle}>
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 			<div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
 				{#if avatarUrl}
@@ -294,7 +322,7 @@
 
 {:else}
 <!-- Standard (default): Image with gradient overlay, avatar left, text right -->
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
+<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	{#if heroImageUrl}
 		<div class="absolute inset-0" aria-hidden="true">
 			<img

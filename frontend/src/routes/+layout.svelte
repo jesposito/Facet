@@ -24,6 +24,7 @@
 			fontPack: string | null;
 			customCSS: string | null;
 			defaultLocale: string | null;
+			showAvatar: boolean;
 		};
 	}
 

@@ -462,6 +462,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if heroSpacing := view.GetString("hero_spacing"); heroSpacing != "" {
 				response["hero_spacing"] = heroSpacing
 			}
+			if heroBgColor := view.GetString("hero_bg_color"); heroBgColor != "" {
+				response["hero_bg_color"] = heroBgColor
+			}
 
 			if heroImage := view.GetString("hero_image"); heroImage != "" {
 				response["hero_image_url"] = "/api/files/" + view.Collection().Id + "/" + view.Id + "/" + url.PathEscape(heroImage)
@@ -662,6 +665,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"font_pack":       profile.GetString("font_pack"),
 					"hero_layout":     profile.GetString("hero_layout"),
 					"hero_spacing":    profile.GetString("hero_spacing"),
+					"hero_bg_color":   profile.GetString("hero_bg_color"),
 					"cta_text":        profile.GetString("cta_text"),
 					"cta_url":         profile.GetString("cta_url"),
 					"cta_button_text": profile.GetString("cta_button_text"),
@@ -899,6 +903,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"font_pack":       profile.GetString("font_pack"),
 					"hero_layout":     profile.GetString("hero_layout"),
 					"hero_spacing":    profile.GetString("hero_spacing"),
+					"hero_bg_color":   profile.GetString("hero_bg_color"),
 					"cta_text":        profile.GetString("cta_text"),
 					"cta_url":         profile.GetString("cta_url"),
 					"cta_button_text": profile.GetString("cta_button_text"),

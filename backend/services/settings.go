@@ -165,6 +165,7 @@ type SiteSettings struct {
 	SiteNavMode           string
 	SiteNavPosition       string
 	SiteNavItems          []SiteNavItem
+	ShowAvatar            bool
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
 	Favicon               string
@@ -173,6 +174,19 @@ type SiteSettings struct {
 	HomepageLastViewedAt  string
 	EnabledFeatures       map[string]bool
 	Record                *core.Record
+}
+
+// loadShowAvatar returns the show_avatar field as bool, defaulting to true when
+// the field isn't present (pre-migration records) so existing sites keep their avatars.
+func loadShowAvatar(record *core.Record) bool {
+	if record == nil {
+		return true
+	}
+	if record.Collection() != nil && record.Collection().Fields.GetByName("show_avatar") == nil {
+		return true
+	}
+	// Field exists; honor the saved value. Default DB value is true (set by migration).
+	return record.GetBool("show_avatar")
 }
 
 // LoadSiteSettings returns the current site settings, ensuring a default record exists.
@@ -279,6 +293,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		SiteNavMode:           record.GetString("site_nav_mode"),
 		SiteNavPosition:       record.GetString("site_nav_position"),
 		SiteNavItems:          siteNavItems,
+		ShowAvatar:            loadShowAvatar(record),
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
 		Favicon:               faviconURL,
@@ -375,6 +390,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("site_nav_position", pos)
 		} else if logger != nil {
 			logger.Warn("site_nav_position field missing on site_settings, skipping update")
+		}
+	}
+	if show, ok := updates["show_avatar"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("show_avatar") != nil {
+			settings.Record.Set("show_avatar", show)
+		} else if logger != nil {
+			logger.Warn("show_avatar field missing on site_settings, skipping update")
 		}
 	}
 	if navItems, ok := updates["site_nav_items"]; ok {

@@ -1970,7 +1970,12 @@
 			"brand_title": "Brand",
 			"brand_description": "Accent color and typography for your public site.",
 			"font_pack_title": "Typography",
-			"font_pack_description": "Choose a font combination for your profile. Each pack includes fonts for headings, body text, and code blocks."
+			"font_pack_description": "Choose a font combination for your profile. Each pack includes fonts for headings, body text, and code blocks.",
+			"hero_bg_color_title": "Hero Background Color",
+			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
+			"show_avatar_title": "Show profile photo",
+			"show_avatar_on": "Your profile photo is displayed in the hero section.",
+			"show_avatar_off": "Profile photo is hidden across all public pages."
 		},
 		"import": {
 			"resume_dropzone_label": "Battle record upload zone"

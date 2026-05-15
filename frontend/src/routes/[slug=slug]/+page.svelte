@@ -522,6 +522,8 @@
 			}}
 			layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
 			spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
+			heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
+			showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
 		/>
 
 		<!-- Site Navigation (below hero) / CTA banner - only on public views -->

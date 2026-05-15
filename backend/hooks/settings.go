@@ -55,7 +55,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"homepage_sections":       settings.HomepageSections,
 				"site_nav_enabled":        settings.SiteNavEnabled,
 				"site_nav_mode":           settings.SiteNavMode,
+				"site_nav_position":       settings.SiteNavPosition,
 				"site_nav_items":          settings.SiteNavItems,
+				"show_avatar":             settings.ShowAvatar,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
@@ -86,6 +88,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				SiteNavMode           *string                                   `json:"site_nav_mode"`
 				SiteNavPosition       *string                                   `json:"site_nav_position"`
 				SiteNavItems          []services.SiteNavItem                    `json:"site_nav_items"`
+				ShowAvatar            *bool                                     `json:"show_avatar"`
 				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
 				DefaultLocale         *string                                   `json:"default_locale"`
@@ -163,6 +166,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			if req.SiteCtaEnabled != nil {
 				updates["site_cta_enabled"] = *req.SiteCtaEnabled
 			}
+			if req.ShowAvatar != nil {
+				updates["show_avatar"] = *req.ShowAvatar
+			}
 			if req.DefaultLocale != nil {
 				locale := strings.TrimSpace(*req.DefaultLocale)
 				updates["default_locale"] = locale
@@ -188,7 +194,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"homepage_sections":       settings.HomepageSections,
 				"site_nav_enabled":        settings.SiteNavEnabled,
 				"site_nav_mode":           settings.SiteNavMode,
+				"site_nav_position":       settings.SiteNavPosition,
 				"site_nav_items":          settings.SiteNavItems,
+				"show_avatar":             settings.ShowAvatar,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,

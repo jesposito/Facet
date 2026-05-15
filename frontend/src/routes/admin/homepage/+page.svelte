@@ -46,6 +46,7 @@ import { t } from 'svelte-i18n';
 	let homepageEnabled = $state(true);
 	let landingPageMessage = $state('This profile is being set up.');
 	let hideLoginButton = $state(false);
+	let showAvatar = $state(true);
 
 	// Site navigation settings
 	let siteNavEnabled = $state(false);
@@ -106,6 +107,8 @@ import { t } from 'svelte-i18n';
 	let ctaButtonText = $state('');
 	let heroLayout = $state('');
 	let heroSpacing = $state('');
+	let heroBgColor = $state('');
+	let heroBgError = $state('');
 	let accentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
 	let customHexColor: string = $state('');
 	let fontPack: FontPack = $state(DEFAULT_FONT_PACK);
@@ -170,6 +173,7 @@ import { t } from 'svelte-i18n';
 				homepageEnabled = data.homepage_enabled !== false;
 				landingPageMessage = data.landing_page_message || '';
 				hideLoginButton = data.hide_login_button === true;
+				showAvatar = data.show_avatar !== false;
 
 				// Load site navigation settings
 				siteNavEnabled = data.site_nav_enabled === true;
@@ -359,6 +363,7 @@ import { t } from 'svelte-i18n';
 					homepage_enabled: homepageEnabled,
 					landing_page_message: landingPageMessage,
 					hide_login_button: hideLoginButton,
+					show_avatar: showAvatar,
 					site_nav_enabled: siteNavEnabled,
 					site_nav_mode: siteNavMode,
 					site_nav_position: siteNavPosition,
@@ -376,6 +381,7 @@ import { t } from 'svelte-i18n';
 			homepageEnabled = result.homepage_enabled !== false;
 			landingPageMessage = result.landing_page_message || '';
 			hideLoginButton = result.hide_login_button === true;
+			showAvatar = result.show_avatar !== false;
 			siteNavEnabled = result.site_nav_enabled === true;
 			siteNavMode = result.site_nav_mode || 'bar';
 			siteNavPosition = result.site_nav_position || 'below';
@@ -407,6 +413,7 @@ import { t } from 'svelte-i18n';
 				ctaButtonText = (profile.cta_button_text as string) || '';
 				heroLayout = (profile.hero_layout as string) || '';
 				heroSpacing = (profile.hero_spacing as string) || '';
+				heroBgColor = ((profile as unknown as { hero_bg_color?: string }).hero_bg_color) || '';
 				accentColor = ((profile as unknown as { accent_color?: string }).accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
 				customHexColor = (profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
 				fontPack = ((profile as unknown as { font_pack?: string }).font_pack as FontPack) || DEFAULT_FONT_PACK;
@@ -507,6 +514,11 @@ import { t } from 'svelte-i18n';
 			formData.append('cta_button_text', ctaButtonText);
 			formData.append('hero_layout', heroLayout || 'standard');
 			formData.append('hero_spacing', heroSpacing || 'default');
+			if (heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor)) {
+				formData.append('hero_bg_color', heroBgColor);
+			} else {
+				formData.append('hero_bg_color', '');
+			}
 
 			if (avatarFile) {
 				formData.append('avatar', avatarFile);
@@ -903,6 +915,30 @@ import { t } from 'svelte-i18n';
 			</div>
 		{/if}
 
+		<!-- Show Avatar Setting -->
+		<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+			<div class="flex items-start justify-between gap-4">
+				<div class="flex-1">
+					<h3 class="text-sm font-medium text-gray-900 dark:text-white mb-1">
+						{$t('admin.homepage.show_avatar_title')}
+					</h3>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						{$t(showAvatar ? 'admin.homepage.show_avatar_on' : 'admin.homepage.show_avatar_off')}
+					</p>
+				</div>
+				<label class="relative inline-flex items-center cursor-pointer">
+					<input
+						type="checkbox"
+						class="sr-only peer"
+						bind:checked={showAvatar}
+						disabled={settingsSaving || settingsLoading}
+						aria-label={$t('admin.homepage.show_avatar_title')}
+					/>
+					<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+				</label>
+			</div>
+		</div>
+
 		<!-- Hide Login Button Setting -->
 		<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 			<div class="flex items-start justify-between gap-4">
@@ -1081,6 +1117,58 @@ import { t } from 'svelte-i18n';
 						</button>
 					{/each}
 				</div>
+			</div>
+
+			<!-- Hero Background Color (used when no hero image is set) -->
+			<div class="pt-4">
+				<label for="hero-bg-color" class="label mb-1 block">{$t('admin.homepage.hero_bg_color_title')}</label>
+				<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.hero_bg_color_description')}</p>
+				<div class="flex items-center gap-2">
+					<span
+						class="inline-block w-11 h-11 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0"
+						style="background-color: {heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : '#1f2937'}"
+						aria-hidden="true"
+					></span>
+					<input
+						id="hero-bg-color"
+						type="text"
+						bind:value={heroBgColor}
+						onblur={() => {
+							const trimmed = heroBgColor.trim();
+							if (trimmed && !/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+								heroBgError = $t('admin.accent_picker.custom_invalid');
+							} else {
+								heroBgError = '';
+								if (trimmed && !trimmed.startsWith('#')) heroBgColor = '#' + trimmed;
+							}
+						}}
+						placeholder="#1f2937"
+						maxlength="7"
+						spellcheck="false"
+						autocomplete="off"
+						autocapitalize="off"
+						autocorrect="off"
+						aria-invalid={heroBgError !== ''}
+						aria-describedby="hero-bg-error"
+						class="input flex-1 font-mono"
+					/>
+					{#if heroBgColor}
+						<button
+							type="button"
+							onclick={() => { heroBgColor = ''; heroBgError = ''; }}
+							class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-11"
+						>
+							{$t('admin.accent_picker.reset')}
+						</button>
+					{/if}
+				</div>
+				<p
+					id="hero-bg-error"
+					role="status"
+					aria-live="polite"
+					aria-atomic="true"
+					class="text-sm text-red-600 dark:text-red-400 mt-1 min-h-[1.25rem]"
+				>{heroBgError}</p>
 			</div>
 			</div>
 

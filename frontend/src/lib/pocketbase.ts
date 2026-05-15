@@ -70,6 +70,7 @@ export interface Profile {
 	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric';
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
 	hero_spacing?: 'compact' | 'default' | 'spacious';
+	hero_bg_color?: string;
 	cta_text?: string;
 	cta_url?: string;
 	cta_button_text?: string;
@@ -416,6 +417,7 @@ export interface View {
 	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | null;
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | null;
 	hero_spacing?: 'compact' | 'default' | 'spacious' | null;
+	hero_bg_color?: string | null;
 }
 
 export interface ItemConfig {

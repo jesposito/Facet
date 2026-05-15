@@ -332,6 +332,29 @@ export function isValidHexColor(value: string): boolean {
 }
 
 /**
+ * Relative luminance of a hex color per WCAG 2.x.
+ * Used to decide whether dark or light text is more readable on top.
+ * Returns 0 (black) to 1 (white).
+ */
+export function hexLuminance(hex: string): number {
+	if (!isValidHexColor(hex)) return 0;
+	const r = parseInt(hex.slice(1, 3), 16) / 255;
+	const g = parseInt(hex.slice(3, 5), 16) / 255;
+	const b = parseInt(hex.slice(5, 7), 16) / 255;
+	const [rs, gs, bs] = [r, g, b].map((c) =>
+		c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+	);
+	return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+/**
+ * WCAG luminance crossover (0.179) — backgrounds above this need dark text;
+ * backgrounds at or below need light text. Derived from the 4.5:1 contrast
+ * inflection between white (L=1.0) and black (L=0.0) text.
+ */
+export const DARK_TEXT_THRESHOLD = 0.179;
+
+/**
  * Generate a full color scale from a single hex color.
  * Produces light-to-dark shades by mixing with white (for lighter steps)
  * and black (for darker steps), preserving the hue of the input color.
