@@ -1358,6 +1358,9 @@
 				"required_error": "Titel ist erforderlich"
 			}
 		},
+		"accent_picker": {
+			"curated_colors": "Kuratierte Akzentfarben"
+		},
 		"view_editor": {
 			"page": {
 				"title_edit": "Facette bearbeiten",

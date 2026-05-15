@@ -12,7 +12,7 @@
 
 **Facet Cloud** has diverged significantly with SaaS-specific infrastructure (multi-tenant provisioning, Stripe billing, course bundles, multi-currency, CF Workers). However, a substantial subset of changes are **general improvements** — a11y fixes, UX polish, component refactors, keyboard navigation, and SSR hardening — that can be backported to the self-hosted MIT repo with **zero risk of SaaS leakage**.
 
-**Goal:** Identify the maximum safe backport surface that closes open issues and improves self-hosted Facet without introducing cloud-only dependencies.
+**Goal:** Backport *every* non-SaaS-specific improvement from Cloud to self-hosted — a11y, UX, performance, visual polish, admin productivity — with zero regression. SaaS-only features (Stripe, billing, multi-tenant, courses, CF Workers) are explicitly excluded. Everything else ships.
 
 ---
 
@@ -196,28 +196,36 @@
 
 ## 5. Execution Plan
 
-### Phase 1: P0 Quick Wins (1–2 sessions)
-1. Port `DirtyNavigationNudge.svelte` + i18n keys
-2. Port ConfirmDialog hardening (focus restoration fix)
-3. Port SkillsCategoryManager keyboard reordering + DnD shadow fixes
-4. Port CSS/SSR micro-fixes (semicolon, floating cluster inert, chips collision)
+### Phase 1: P0 Quick Wins ✅ COMPLETE
+1. ✅ Port ConfirmDialog hardening (focus restoration fix)
+2. ✅ Port SkillsCategoryManager keyboard reordering + DnD shadow fixes
+3. ✅ Port CSS/SSR micro-fixes (semicolon, floating cluster inert, chips collision)
+4. ⏳ Port `DirtyNavigationNudge.svelte` — deferred until editor shell refactor
 
-### Phase 2: P1 Admin a11y + UX (2–3 sessions)
-5. Port `createListShortcuts` + `createTableShortcuts` composables
-6. Port `KeyboardShortcutsHelp.svelte`
-7. Adopt keyboard nav on 3–4 highest-traffic admin list pages
-8. Port `ConfirmDiscardDialog.svelte`
-9. Port `MediaEditModal.svelte` + integrate with media library
+### Phase 2: P1 Safe Components (current)
+5. Port `AccentPicker.svelte` a11y + keyboard nav
+6. Port `ConfirmDiscardDialog.svelte`
+7. Port `MediaEditModal.svelte` + integrate with media library (#348)
 
-### Phase 3: P2 Polish (2–3 sessions)
-10. Port AccentPicker a11y improvements
-11. Port AutosaveIndicator / ConflictBanner (if SectionManager is aligned)
-12. Port TalksSection visual refresh
-13. Assess FacetChipStrip for testimonials (#283)
+### Phase 3: P1 Admin a11y + Keyboard Nav
+8. Port `createListShortcuts` + `createTableShortcuts` composables
+9. Port `KeyboardShortcutsHelp.svelte`
+10. Adopt keyboard nav on 3–4 highest-traffic admin list pages
 
-### Phase 4: P3 New Features (future)
-14. Implement dark mode default setting (#434) — new work, not backport
-15. Custom implementation of gallery reordering (#407) — new work
+### Phase 4: P2 Structural UI (explicitly requested)
+11. Port sidebar facet display changes
+12. Port homepage section layout options
+
+### Phase 5: P2-P3 Visual Polish & Features
+13. Port AutosaveIndicator / ConflictBanner (if SectionManager is aligned)
+14. Port TalksSection visual refresh
+15. Assess FacetChipStrip for testimonials (#283)
+16. Visible focus ring on mobile icon switchers
+17. SSR pressure gauge / fast recovery
+
+### Phase 6: P3 New Features (future)
+18. Implement dark mode default setting (#434) — new work, not backport
+19. Custom implementation of gallery reordering (#407) — new work
 
 ---
 

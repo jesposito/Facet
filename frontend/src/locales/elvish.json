@@ -1358,6 +1358,9 @@
 				"required_error": "Title is required"
 			}
 		},
+		"accent_picker": {
+			"curated_colors": "Curated accent colors"
+		},
 		"view_editor": {
 			"page": {
 				"title_edit": "Shape Facet",

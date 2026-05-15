@@ -537,51 +537,51 @@
 
 		<!-- Content Section (merged Portfolio + Content) -->
 		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.content)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.content)}
-				aria-controls="sidebar-content-items"
-			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-					</svg>
-					{$t('admin.sidebar.content')}
-					{#if contentBadge > 0}
-						<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{contentBadge} drafts">
-							{contentBadge}
-						</span>
-					{/if}
-					{#if $adminSidebarOpen}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<span
-							role="button"
-							tabindex="-1"
-							data-quick-create-trigger
-							onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'content'); }}
-							class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
-							aria-label={$t('admin.sidebar.new_content')}
-							aria-expanded={contentMenuOpen}
-							aria-haspopup="menu"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-							</svg>
-						</span>
-					{/if}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.content) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
+			<div class="relative flex items-center">
+				<button
+					type="button"
+					onclick={() => sidebarSectionStates.toggle(SECTION_IDS.content)}
+					class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
+					aria-expanded={isSectionExpanded(SECTION_IDS.content)}
+					aria-controls="sidebar-content-items"
 				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-				</svg>
-			</button>
+					<span class="flex items-center gap-1.5">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+						</svg>
+						{$t('admin.sidebar.content')}
+						{#if contentBadge > 0}
+							<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{contentBadge} drafts">
+								{contentBadge}
+							</span>
+						{/if}
+					</span>
+					<svg
+						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.content) ? 'rotate-0' : '-rotate-90'}"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+				{#if $adminSidebarOpen}
+					<button
+						type="button"
+						data-quick-create-trigger
+						onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'content'); }}
+						class="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
+						aria-label={$t('admin.sidebar.new_content')}
+						aria-expanded={contentMenuOpen}
+						aria-haspopup="menu"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+						</svg>
+					</button>
+				{/if}
+			</div>
 			{#if isSectionExpanded(SECTION_IDS.content)}
 				<div id="sidebar-content-items" class="space-y-0 animate-slide-in-down">
 					{#each contentItems as entry, i}
@@ -612,54 +612,54 @@
 
 		<!-- Audience Section -->
 		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.audience)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.audience)}
-				aria-controls="sidebar-audience-items"
-			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-					</svg>
-					{$t('admin.sidebar.audience')}
-					{#if audienceBadge > 0}
-						<span
-							class="inline-flex items-center justify-center text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 {audienceBadgeAmber ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-gray-700 text-gray-300'}"
-							aria-label={audienceBadgeAmber ? $t('admin.sidebar.testimonials') : $t('admin.sidebar.subscribers')}
-						>
-							{audienceBadge}
-						</span>
-					{/if}
-					{#if $adminSidebarOpen}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<span
-							role="button"
-							tabindex="-1"
-							data-quick-create-trigger
-							onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'audience'); }}
-							class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
-							aria-label={$t('admin.sidebar.quick_create')}
-							aria-expanded={audienceMenuOpen}
-							aria-haspopup="menu"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-							</svg>
-						</span>
-					{/if}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.audience) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
+			<div class="relative flex items-center">
+				<button
+					type="button"
+					onclick={() => sidebarSectionStates.toggle(SECTION_IDS.audience)}
+					class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
+					aria-expanded={isSectionExpanded(SECTION_IDS.audience)}
+					aria-controls="sidebar-audience-items"
 				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-				</svg>
-			</button>
+					<span class="flex items-center gap-1.5">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+						</svg>
+						{$t('admin.sidebar.audience')}
+						{#if audienceBadge > 0}
+							<span
+								class="inline-flex items-center justify-center text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 {audienceBadgeAmber ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-gray-700 text-gray-300'}"
+								aria-label={audienceBadgeAmber ? $t('admin.sidebar.testimonials') : $t('admin.sidebar.subscribers')}
+							>
+								{audienceBadge}
+							</span>
+						{/if}
+					</span>
+					<svg
+						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.audience) ? 'rotate-0' : '-rotate-90'}"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+				{#if $adminSidebarOpen}
+					<button
+						type="button"
+						data-quick-create-trigger
+						onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'audience'); }}
+						class="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
+						aria-label={$t('admin.sidebar.quick_create')}
+						aria-expanded={audienceMenuOpen}
+						aria-haspopup="menu"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+						</svg>
+					</button>
+				{/if}
+			</div>
 			{#if isSectionExpanded(SECTION_IDS.audience)}
 				<div id="sidebar-audience-items" class="space-y-0 animate-slide-in-down">
 					{#each audienceItems as entry, i}

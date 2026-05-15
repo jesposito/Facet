@@ -426,6 +426,7 @@
 			class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
 			class:opacity-0={navPinned}
 			class:pointer-events-none={navPinned}
+			inert={navPinned}
 		>
 			<!-- Print Menu -->
 			<div class="relative">
