@@ -3,6 +3,7 @@
 
 	import { browser } from '$app/environment';
 	import { onMount, onDestroy } from 'svelte';
+import { t } from 'svelte-i18n';
 	import { flip } from 'svelte/animate';
 	import { pb, type View, type CustomContent, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -98,6 +99,15 @@
 	let ctaText = $state('');
 	let ctaUrl = $state('');
 	let ctaButtonText = $state('');
+	let heroLayout = $state('');
+
+	const heroLayoutOptions = [
+		{ id: 'standard', labelKey: 'admin.settings_page.appearance.hero_layout_standard' },
+		{ id: 'centered', labelKey: 'admin.settings_page.appearance.hero_layout_centered' },
+		{ id: 'split', labelKey: 'admin.settings_page.appearance.hero_layout_split' },
+		{ id: 'minimal', labelKey: 'admin.settings_page.appearance.hero_layout_minimal' },
+		{ id: 'stacked', labelKey: 'admin.settings_page.appearance.hero_layout_stacked' }
+	];
 
 	// Image fields
 	let avatarUrl: string | null = $state(null);
@@ -374,6 +384,7 @@
 				ctaText = (profile.cta_text as string) || '';
 				ctaUrl = (profile.cta_url as string) || '';
 				ctaButtonText = (profile.cta_button_text as string) || '';
+				heroLayout = (profile.hero_layout as string) || '';
 
 				if (profile.avatar) {
 					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
@@ -423,6 +434,7 @@
 			formData.append('cta_text', ctaText);
 			formData.append('cta_url', ctaUrl);
 			formData.append('cta_button_text', ctaButtonText);
+			formData.append('hero_layout', heroLayout || 'standard');
 
 			if (avatarFile) {
 				formData.append('avatar', avatarFile);
@@ -950,6 +962,29 @@
 						</div>
 					</div>
 				</div>
+
+			<!-- Hero Layout -->
+			<div class="pt-4">
+				<span class="label mb-3 block">{$t('admin.settings_page.appearance.hero_layout_title')}</span>
+				<div class="flex flex-wrap items-center gap-2" role="group" aria-label={$t('admin.settings_page.appearance.hero_layout_title')}>
+					{#each heroLayoutOptions as layoutOption}
+						<button
+							type="button"
+							class="px-3 py-2 rounded-lg border transition-all text-sm
+								{heroLayout === layoutOption.id
+								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							onclick={() => heroLayout = layoutOption.id}
+							aria-pressed={heroLayout === layoutOption.id}
+						>
+							{$t(layoutOption.labelKey)}
+						</button>
+					{/each}
+				</div>
+				<p class="text-xs text-gray-500 mt-2">
+					{$t('admin.settings_page.appearance.hero_layout_description')}
+				</p>
+			</div>
 			</div>
 
 			<div class="card p-6 space-y-4">

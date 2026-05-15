@@ -655,73 +655,100 @@
 			</div>
 		{:else}
 			<!-- Dynamic section rendering based on homepage_section_order -->
-			{#each effectiveSectionOrder as sectionKey}
-				{#if isCustomSection(sectionKey)}
-					{@const customItem = data.sections?.[sectionKey]?.[0] || customContentMap.get(getCustomContentId(sectionKey))}
-					{#if customItem}
-						<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-						<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
-					{/if}
-				{:else if sectionKey === 'experience' && data.experience.length > 0}
-					<ExperienceSection items={data.experience} layout={getSectionLayout('experience')} />
-				{:else if sectionKey === 'projects' && data.projects.length > 0}
-					<ProjectsSection items={data.projects} layout={getSectionLayout('projects')} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
-				{:else if sectionKey === 'education' && data.education.length > 0}
-					<EducationSection items={data.education} layout={getSectionLayout('education')} />
-				{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
-					<CertificationsSection items={data.certifications} layout={getSectionLayout('certifications')} />
-				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
-					<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
-				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
-				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
-					{#if (data.postsTotalCount ?? 0) > data.posts.length}
-						<div class="flex items-center justify-between gap-3 mb-4">
-							<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
-							<a
-								href="/posts"
-								class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-							>
-								{$t('public.homepage.browse_all')}
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-								</svg>
-							</a>
+			<div class="sections-grid">
+				{#each effectiveSectionOrder as sectionKey}
+					{@const widthClass = getWidthClass(getSectionWidth(sectionKey))}
+					{#if isCustomSection(sectionKey)}
+						{@const customItem = data.sections?.[sectionKey]?.[0] || customContentMap.get(getCustomContentId(sectionKey))}
+						{#if customItem}
+							<div class={widthClass}>
+								<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
+								<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
+							</div>
+						{/if}
+					{:else if sectionKey === 'experience' && data.experience.length > 0}
+						<div class={widthClass}>
+							<ExperienceSection items={data.experience} layout={getSectionLayout('experience')} />
 						</div>
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
-					{:else}
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
-					{/if}
-				{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
-					{#if (data.talksTotalCount ?? 0) > data.talks.length}
-						<div class="flex items-center justify-between gap-3 mb-4">
-							<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
-							<a
-								href="/talks"
-								class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-							>
-								{$t('public.homepage.browse_all')}
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-								</svg>
-							</a>
+					{:else if sectionKey === 'projects' && data.projects.length > 0}
+						<div class={widthClass}>
+							<ProjectsSection items={data.projects} layout={getSectionLayout('projects')} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
 						</div>
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" showHeader={false} />
-					{:else}
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
+					{:else if sectionKey === 'education' && data.education.length > 0}
+						<div class={widthClass}>
+							<EducationSection items={data.education} layout={getSectionLayout('education')} />
+						</div>
+					{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
+						<div class={widthClass}>
+							<CertificationsSection items={data.certifications} layout={getSectionLayout('certifications')} />
+						</div>
+					{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
+						<div class={widthClass}>
+							<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
+						</div>
+					{:else if sectionKey === 'skills' && data.skills.length > 0}
+						<div class={widthClass}>
+							<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
+						</div>
+					{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
+						<div class={widthClass}>
+							{#if (data.postsTotalCount ?? 0) > data.posts.length}
+								<div class="flex items-center justify-between gap-3 mb-4">
+									<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
+									<a
+										href="/posts"
+										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+									>
+										{$t('public.homepage.browse_all')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								</div>
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
+							{:else}
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
+							{/if}
+						</div>
+					{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
+						<div class={widthClass}>
+							{#if (data.talksTotalCount ?? 0) > data.talks.length}
+								<div class="flex items-center justify-between gap-3 mb-4">
+									<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
+									<a
+										href="/talks"
+										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+									>
+										{$t('public.homepage.browse_all')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								</div>
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" showHeader={false} />
+							{:else}
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
+							{/if}
+						</div>
+					{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
+						<div class={widthClass}>
+							<CoursesSection items={data.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug="" />
+						</div>
+					{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
+						<div class={widthClass}>
+							<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
+						</div>
+					{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
+						<div class={widthClass}>
+							<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
+						</div>
 					{/if}
-				{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
-					<CoursesSection items={data.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug="" />
-				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
-					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
-				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
-					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
-				{/if}
-			{/each}
+				{/each}
+			</div>
 
 			<!-- Render any custom content not in the section order (for backwards compatibility) -->
 			{#if data.customContent && data.customContent.length > 0 && (!data.homepageSectionOrder || data.homepageSectionOrder.length === 0)}
@@ -839,3 +866,43 @@
 	</div>
 {/if}
 {/if}
+
+
+<style>
+	/* Section grid layout */
+	.sections-grid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 1.5rem;
+	}
+
+	/* Full width: spans all 6 columns */
+	:global(.section-full) {
+		grid-column: span 6;
+	}
+
+	/* Half width: spans 3 columns (50%) */
+	:global(.section-half) {
+		grid-column: span 3;
+	}
+
+	/* Third width: spans 2 columns (33%) */
+	:global(.section-third) {
+		grid-column: span 2;
+	}
+
+	/* Responsive: collapse to full width on mobile */
+	@media (max-width: 768px) {
+		:global(.section-half),
+		:global(.section-third) {
+			grid-column: span 6;
+		}
+	}
+
+	/* Print: allow side-by-side on wider paper */
+	@media print {
+		.sections-grid {
+			gap: 1rem;
+		}
+	}
+</style>
