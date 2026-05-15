@@ -760,6 +760,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if err != nil {
 				return e.JSON(http.StatusOK, map[string]interface{}{
 					"enabled": false,
+					"mode":    "bar",
 					"items":   []interface{}{},
 				})
 			}
@@ -767,6 +768,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if !settings.SiteNavEnabled || len(settings.SiteNavItems) == 0 {
 				return e.JSON(http.StatusOK, map[string]interface{}{
 					"enabled": false,
+					"mode":    "bar",
 					"items":   []interface{}{},
 				})
 			}
@@ -803,6 +805,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"enabled": true,
+				"mode":    settings.SiteNavMode,
 				"items":   navItems,
 			})
 		}))

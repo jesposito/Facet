@@ -1986,7 +1986,13 @@
 		"homepage": {
 			"collapse_section": "Collapse {section} section",
 			"expand_section": "Expand {section} section",
-			"toggle_section": "Toggle {section} section"
+			"toggle_section": "Toggle {section} section",
+			"nav_mode_title": "Navigation Style",
+			"nav_mode_description": "Choose how the site navigation renders on public pages.",
+			"nav_mode_bar": "Bar",
+			"nav_mode_bar_description": "Full-width colored bar at the top",
+			"nav_mode_chips": "Chips",
+			"nav_mode_chips_description": "Pill-style buttons on a subtle surface"
 		},
 		"import": {
 			"resume_dropzone_label": "Resume file drop zone"

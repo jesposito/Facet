@@ -54,14 +54,14 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 	const appUrl = process.env.APP_URL || '';
 
 	// Fetch site-nav server-side to eliminate nav pop-in on page load
-	let siteNav = { enabled: false, items: [] as Array<{ viewId: string; slug: string; label: string; name: string }> };
+	let siteNav = { enabled: false, mode: 'bar', items: [] as Array<{ viewId: string; slug: string; label: string; name: string }> };
 	try {
 		const navResponse = await fetch(`${pbUrl}/api/site-nav`, {
 			headers: { 'X-Internal': 'true' }
 		});
 		if (navResponse.ok) {
 			const navData = await navResponse.json();
-			siteNav = { enabled: navData.enabled === true, items: navData.items || [] };
+			siteNav = { enabled: navData.enabled === true, mode: navData.mode || 'bar', items: navData.items || [] };
 			logger.debug('[LAYOUT SSR] Loaded site nav:', siteNav.enabled, siteNav.items.length, 'items');
 		} else {
 			logger.debug('[LAYOUT SSR] Site nav API returned:', navResponse.status);

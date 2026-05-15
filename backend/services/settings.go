@@ -162,6 +162,7 @@ type SiteSettings struct {
 	HomepageSectionOrder  []string
 	HomepageSections      map[string]HomepageSectionConfig
 	SiteNavEnabled        bool
+	SiteNavMode           string
 	SiteNavItems          []SiteNavItem
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
@@ -274,6 +275,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HomepageSectionOrder:  homepageSectionOrder,
 		HomepageSections:      homepageSections,
 		SiteNavEnabled:        record.GetBool("site_nav_enabled"),
+		SiteNavMode:           record.GetString("site_nav_mode"),
 		SiteNavItems:          siteNavItems,
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
