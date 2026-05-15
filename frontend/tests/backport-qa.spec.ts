@@ -164,3 +164,30 @@ test.describe('Backport QA - MarkdownEditor inline dialog', () => {
 		}
 	});
 });
+
+test.describe('Phase 3 quick wins', () => {
+	test.beforeEach(async ({ page }) => {
+		await login(page);
+	});
+
+	test('Hero layout picker renders in homepage admin', async ({ page }) => {
+		await page.goto(`${BASE_URL}/admin/homepage`);
+		await page.waitForTimeout(2000);
+		// Check for Quick Setup modal and skip if present
+		const skipSetup = page.locator('text=Skip setup');
+		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
+			await skipSetup.click();
+			await page.waitForTimeout(1000);
+		}
+		// Look for hero layout buttons
+		const layoutButtons = page.locator('[aria-label="Hero Layout"] button, [role="group"] button:has-text("Image & Gradient"), [role="group"] button:has-text("Centered")');
+		expect(await layoutButtons.count()).toBeGreaterThan(0);
+	});
+
+	test('Homepage has sections-grid CSS class', async ({ page }) => {
+		await page.goto(`${BASE_URL}/`);
+		await page.waitForLoadState('networkidle');
+		const grid = page.locator('.sections-grid');
+		await expect(grid).toBeVisible();
+	});
+});
