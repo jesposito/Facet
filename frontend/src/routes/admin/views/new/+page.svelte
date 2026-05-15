@@ -19,12 +19,14 @@
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
+	let SHADOW_PLACEHOLDER_ITEM_ID = '';
 
 	// Load DnD functionality when in browser
 	onMount(async () => {
 		if (browser) {
-			const { dndzone: dnd } = await import('svelte-dnd-action');
+			const { dndzone: dnd, SHADOW_PLACEHOLDER_ITEM_ID: shadowId } = await import('svelte-dnd-action');
 			dndzone = dnd;
+			SHADOW_PLACEHOLDER_ITEM_ID = shadowId;
 		}
 	});
 
@@ -311,12 +313,24 @@
 	}
 
 	// Drag-drop handlers for section reordering
+	function moveSection(sectionId: string, direction: 'up' | 'down') {
+		const idx = sectionOrder.findIndex(s => s.id === sectionId);
+		if (idx === -1) return;
+		if (direction === 'up' && idx === 0) return;
+		if (direction === 'down' && idx === sectionOrder.length - 1) return;
+		const newOrder = [...sectionOrder];
+		const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+		[newOrder[idx], newOrder[targetIdx]] = [newOrder[targetIdx], newOrder[idx]];
+		sectionOrder = newOrder;
+		updateSections();
+	}
+
 	function handleSectionDndConsider(e: CustomEvent<{ items: typeof sectionOrder }>) {
-		sectionOrder = e.detail.items;
+		sectionOrder = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 
 	function handleSectionDndFinalize(e: CustomEvent<{ items: typeof sectionOrder }>) {
-		sectionOrder = e.detail.items;
+		sectionOrder = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 
 	// Drag-drop handlers for item reordering within a section
@@ -1027,6 +1041,7 @@
 					onfinalize={handleSectionDndFinalize}
 				>
 					{#each sectionOrder as sectionItem (sectionItem.id)}
+																{@const sectionIdx = sectionOrder.findIndex(s => s.id === sectionItem.id)}
 						{@const sectionKey = sectionItem.key}
 						{@const isCustom = isCustomSection(sectionKey)}
 						{@const sectionDef = SECTION_DEFS[sectionKey]}
@@ -1045,12 +1060,32 @@
 							<!-- Section Header -->
 							<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
 								<div class="flex items-center gap-3">
-									<!-- Drag Handle -->
-									<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
-										<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-											<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-										</svg>
-									</div>
+																<!-- Drag Handle + Keyboard reorder -->
+																<div class="flex items-center gap-1">
+																	<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+																		<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+																			<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+																		</svg>
+																	</div>
+																	<button
+																		type="button"
+																		disabled={sectionIdx === 0}
+																		onclick={() => moveSection(sectionItem.id, 'up')}
+																		aria-label={$t('admin.view_editor.sections.move_up', { values: { section: sectionLabel } })}
+																		class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+																	>
+																		<svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+																	</button>
+																	<button
+																		type="button"
+																		disabled={sectionIdx === sectionOrder.length - 1}
+																		onclick={() => moveSection(sectionItem.id, 'down')}
+																		aria-label={$t('admin.view_editor.sections.move_down', { values: { section: sectionLabel } })}
+																		class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+																	>
+																		<svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+																	</button>
+																</div>
 								<button
 									type="button"
 									class="w-10 h-6 rounded-full transition-colors relative
