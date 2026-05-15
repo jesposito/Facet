@@ -20,6 +20,7 @@
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 import AccentPicker from '$components/admin/AccentPicker.svelte';
+	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	// Site settings (custom CSS, analytics)
 	let siteSettingsLoading = $state(true);
@@ -506,29 +507,28 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.appearance.section_description')}</p>
 		</div>
 
-		<!-- Accent Color -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.settings_page.appearance.accent_color_title')}</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				{$t('admin.settings_page.appearance.accent_color_description')}
-			</p>
-
-		{#if profile}
-			<AccentPicker
-				value={selectedAccentColor}
-				customHex={customHexColor}
-				onchange={(color) => saveAccentColor(color)}
-				onhexchange={(hex) => saveCustomHexColor(hex)}
-			/>
-		{:else}
-			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
-				<p>{$t('admin.settings_page.appearance.no_profile_message')}</p>
-				<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
-					{$t('admin.settings_page.appearance.go_to_homepage')}
-				</a>
-			</div>
-		{/if}
-		</div>
+		<!-- Accent Color (collapsible) -->
+		<AccordionSection
+			title={$t('admin.settings_page.appearance.accent_color_title')}
+			description={$t('admin.settings_page.appearance.accent_color_description')}
+			iconPath="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+		>
+			{#if profile}
+				<AccentPicker
+					value={selectedAccentColor}
+					customHex={customHexColor}
+					onchange={(color) => saveAccentColor(color)}
+					onhexchange={(hex) => saveCustomHexColor(hex)}
+				/>
+			{:else}
+				<div class="text-gray-500 dark:text-gray-400 text-center py-4">
+					<p>{$t('admin.settings_page.appearance.no_profile_message')}</p>
+					<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
+						{$t('admin.settings_page.appearance.go_to_homepage')}
+					</a>
+				</div>
+			{/if}
+		</AccordionSection>
 
 		<!-- Typography -->
 		<div class="card p-6">
