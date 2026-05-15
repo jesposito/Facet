@@ -571,7 +571,7 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 							<p class="text-sm text-gray-600 dark:text-gray-400" style="font-family: '{packInfo.body}', sans-serif">
 								Body text looks like this sentence.
 							</p>
-							<p class="text-xs text-gray-500 dark:text-gray-500" style="font-family: '{packInfo.code}', monospace">
+							<p class="text-xs text-gray-500 dark:text-gray-300" style="font-family: '{packInfo.code}', monospace">
 								const code = "example";
 							</p>
 						</div>
@@ -866,7 +866,7 @@ body { font-family: 'Inter', sans-serif; }
 					{$t('admin.settings_page.general.export_json')}
 				</button>
 			</div>
-			<p class="text-gray-500 dark:text-gray-500 text-xs mt-3">
+			<p class="text-gray-500 dark:text-gray-300 text-xs mt-3">
 				{$t('admin.settings_page.general.export_yaml_help')}
 			</p>
 		</div>

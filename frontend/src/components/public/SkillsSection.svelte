@@ -65,10 +65,13 @@
 	});
 
 	// Editorial chip palette: primary highlight for expert, stone for proficient/familiar
+	// Text colors derive from stone-* (not accent-*) so contrast stays AA on any
+	// user-chosen accent_hue. Accent is used only in border + bg tint where opacity
+	// keeps it from impacting readability of the text on top.
 	const proficiencyColors: Record<string, string> = {
-		expert: 'bg-primary-50 dark:bg-primary-500/15 text-primary-800 dark:text-primary-300 border border-primary-200/60 dark:border-primary-500/30 font-semibold',
-		proficient: 'bg-stone-100 dark:bg-stone-600/30 text-stone-700 dark:text-stone-300 border border-stone-200/60 dark:border-stone-500/30 font-medium',
-		familiar: 'bg-stone-50 dark:bg-stone-700/30 text-stone-500 dark:text-stone-400 border border-stone-200/40 dark:border-stone-600/25'
+		expert: 'bg-primary-50 dark:bg-primary-500/15 text-stone-900 dark:text-stone-100 border border-primary-300/70 dark:border-primary-400/40 font-semibold',
+		proficient: 'bg-stone-100 dark:bg-stone-700/40 text-stone-800 dark:text-stone-200 border border-stone-200/60 dark:border-stone-500/30 font-medium',
+		familiar: 'bg-stone-50 dark:bg-stone-700/30 text-stone-600 dark:text-stone-300 border border-stone-200/40 dark:border-stone-600/25'
 	};
 
 	const proficiencyBarColors: Record<string, string> = {

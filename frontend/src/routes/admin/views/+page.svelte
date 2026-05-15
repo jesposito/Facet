@@ -103,7 +103,7 @@
 	{:else if views.length === 0}
 		<div class="card p-8 text-center">
 			<p class="text-gray-600 dark:text-gray-400 mb-2">{$t('admin.views.empty_title')}</p>
-			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">{$t('admin.views.empty_description')}</p>
+			<p class="text-gray-500 dark:text-gray-300 text-sm mb-4">{$t('admin.views.empty_description')}</p>
 			<a href="/admin/views/new" class="btn btn-primary">{$t('admin.views.create_facet')}</a>
 		</div>
 	{:else}

@@ -201,7 +201,7 @@
 					}
 				})}
 			</p>
-			<p class="text-gray-500 dark:text-gray-500 text-sm mt-2">
+			<p class="text-gray-500 dark:text-gray-300 text-sm mt-2">
 				{$t('admin.dashboard.no_rush')}
 			</p>
 		</div>
