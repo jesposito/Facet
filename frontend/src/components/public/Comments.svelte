@@ -263,7 +263,7 @@
 										{$t('comments.pinned')}
 									</span>
 								{/if}
-								<span class="text-xs text-gray-400 dark:text-gray-500">{formatDate(comment.created)}</span>
+								<span class="text-xs text-gray-500 dark:text-gray-400">{formatDate(comment.created)}</span>
 							</div>
 
 							<p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{comment.body}</p>
@@ -372,7 +372,7 @@
 															{$t('comments.author_badge')}
 														</span>
 													{/if}
-													<span class="text-xs text-gray-400 dark:text-gray-500">{formatDate(reply.created)}</span>
+													<span class="text-xs text-gray-500 dark:text-gray-400">{formatDate(reply.created)}</span>
 												</div>
 												<p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">{reply.body}</p>
 												<div class="mt-1">
@@ -457,7 +457,7 @@
 								bind:value={authorEmail}
 								class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
 							/>
-							<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{$t('comments.email_hint')}</p>
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('comments.email_hint')}</p>
 						</div>
 					</div>
 
@@ -473,7 +473,7 @@
 							maxlength={maxBodyLength}
 							class="w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-y"
 						></textarea>
-						<p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 							{$t('comments.chars_remaining', { values: { count: maxBodyLength - body.length } })}
 						</p>
 					</div>

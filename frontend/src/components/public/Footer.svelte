@@ -55,7 +55,7 @@
 		</div>
 
 		<div class="mt-6 text-center">
-			<p class="text-xs text-stone-500 dark:text-stone-500">
+			<p class="text-xs text-stone-500 dark:text-stone-300">
 				{@html $t('public.footer.powered_by', { values: { link: '<a href="https://github.com/jesposito/Facet" class="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">Facet</a>' } })}
 			</p>
 		</div>
