@@ -151,7 +151,9 @@
 				"css_help_description": "These selectors target the public site (not command center). Start small and test on mobile devices.",
 				"css_help_base": "Foundation",
 				"css_help_components": "Components",
-				"css_help_tip": "Tactical note: Keep code minimal; do not hide structural elements that power accessibility and layout."
+				"css_help_tip": "Tactical note: Keep code minimal; do not hide structural elements that power accessibility and layout.",
+				"font_pack_updated": "Typography updated",
+				"font_pack_error": "Failed to update typography"
 			},
 			"general": {
 				"section_title": "General Operations",
@@ -1964,7 +1966,11 @@
 		"homepage": {
 			"collapse_section": "Collapse {section} sector",
 			"expand_section": "Deploy {section} sector",
-			"toggle_section": "Toggle {section} sector"
+			"toggle_section": "Toggle {section} sector",
+			"brand_title": "Brand",
+			"brand_description": "Accent color and typography for your public site.",
+			"font_pack_title": "Typography",
+			"font_pack_description": "Choose a font combination for your profile. Each pack includes fonts for headings, body text, and code blocks."
 		},
 		"import": {
 			"resume_dropzone_label": "Battle record upload zone"

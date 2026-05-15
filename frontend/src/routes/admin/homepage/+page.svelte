@@ -13,6 +13,9 @@ import { t } from 'svelte-i18n';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
+	import AccentPicker from '$components/admin/AccentPicker.svelte';
+	import { DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
+	import { FONT_PACKS, FONT_PACK_LIST, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
 
 	// Import DnD safely - only in browser (for site navigation reordering)
 	let navDndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -103,6 +106,9 @@ import { t } from 'svelte-i18n';
 	let ctaButtonText = $state('');
 	let heroLayout = $state('');
 	let heroSpacing = $state('');
+	let accentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
+	let customHexColor: string = $state('');
+	let fontPack: FontPack = $state(DEFAULT_FONT_PACK);
 
 	const heroLayoutOptions = [
 		{ id: 'standard', labelKey: 'admin.settings_page.appearance.hero_layout_standard' },
@@ -401,6 +407,9 @@ import { t } from 'svelte-i18n';
 				ctaButtonText = (profile.cta_button_text as string) || '';
 				heroLayout = (profile.hero_layout as string) || '';
 				heroSpacing = (profile.hero_spacing as string) || '';
+				accentColor = ((profile as unknown as { accent_color?: string }).accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
+				customHexColor = (profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
+				fontPack = ((profile as unknown as { font_pack?: string }).font_pack as FontPack) || DEFAULT_FONT_PACK;
 
 				if (profile.avatar) {
 					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
@@ -420,6 +429,52 @@ import { t } from 'svelte-i18n';
 			console.error('Failed to load profile:', err);
 		} finally {
 			profileLoading = false;
+		}
+	}
+
+	// Brand autosave handlers — accent + font_pack persist immediately (cloud parity)
+	async function saveAccentColor(color: AccentColor) {
+		if (!profile) return;
+		try {
+			await collection('profile').update(profile.id as string, {
+				accent_color: color,
+				custom_hex_color: ''
+			});
+			accentColor = color;
+			customHexColor = '';
+			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
+			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: color }));
+		} catch (err) {
+			console.error('Failed to save accent color:', err);
+			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
+		}
+	}
+
+	async function saveCustomHexColor(hex: string) {
+		if (!profile) return;
+		try {
+			await collection('profile').update(profile.id as string, {
+				custom_hex_color: hex
+			});
+			customHexColor = hex;
+			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
+			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: hex }));
+		} catch (err) {
+			console.error('Failed to save custom hex color:', err);
+			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
+		}
+	}
+
+	async function saveFontPack(pack: FontPack) {
+		if (!profile) return;
+		try {
+			await collection('profile').update(profile.id as string, { font_pack: pack });
+			fontPack = pack;
+			toasts.add('success', $t('admin.settings_page.appearance.font_pack_updated'));
+			window.dispatchEvent(new CustomEvent('font-pack-changed', { detail: pack }));
+		} catch (err) {
+			console.error('Failed to save font pack:', err);
+			toasts.add('error', $t('admin.settings_page.appearance.font_pack_error'));
 		}
 	}
 
@@ -1027,6 +1082,50 @@ import { t } from 'svelte-i18n';
 					{/each}
 				</div>
 			</div>
+			</div>
+
+			<!-- Brand: accent color + typography -->
+			<div id="brand-section" class="card p-6 space-y-6">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.homepage.brand_title')}</h2>
+					<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.homepage.brand_description')}</p>
+				</div>
+				<AccentPicker
+					value={accentColor}
+					customHex={customHexColor}
+					onchange={(color) => saveAccentColor(color)}
+					onhexchange={(hex) => saveCustomHexColor(hex)}
+				/>
+				<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+					<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.homepage.font_pack_title')}</span>
+					<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.font_pack_description')}</p>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label={$t('admin.homepage.font_pack_title')}>
+						{#each FONT_PACK_LIST as packName (packName)}
+							{@const pack = FONT_PACKS[packName]}
+							{@const isChecked = fontPack === packName}
+							<button
+								type="button"
+								role="radio"
+								aria-checked={isChecked}
+								onclick={() => saveFontPack(packName)}
+								class="flex flex-col items-start gap-2 p-4 rounded-lg border-2 text-start transition-colors min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400
+									{isChecked
+										? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+										: 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'}"
+							>
+								<span class="text-base font-semibold" style="font-family: '{pack.heading}', {pack.headingFallback}">
+									{pack.label}
+								</span>
+								<span class="text-xs text-gray-500 dark:text-gray-400" style="font-family: '{pack.body}', {pack.bodyFallback}">
+									{pack.description}
+								</span>
+								<span class="text-xs text-gray-400 dark:text-gray-500" style="font-family: '{pack.code}', {pack.codeFallback}">
+									{pack.heading} · {pack.body} · {pack.code}
+								</span>
+							</button>
+						{/each}
+					</div>
+				</div>
 			</div>
 
 			<div class="card p-6 space-y-4">

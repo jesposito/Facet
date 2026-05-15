@@ -151,7 +151,9 @@
 				"css_help_description": "These bindings match the public realm (not the halls of administration). Begin small and test upon hand-held mirrors.",
 				"css_help_base": "Foundation",
 				"css_help_components": "Elements",
-				"css_help_tip": "Wisdom: Keep weaving spare; avoid hiding structural elements that power accessibility and form."
+				"css_help_tip": "Wisdom: Keep weaving spare; avoid hiding structural elements that power accessibility and form.",
+				"font_pack_updated": "Typography updated",
+				"font_pack_error": "Failed to update typography"
 			},
 			"general": {
 				"section_title": "Common Matters",
@@ -1964,7 +1966,11 @@
 		"homepage": {
 			"collapse_section": "Fold {section} realm",
 			"expand_section": "Unfold {section} realm",
-			"toggle_section": "Toggle {section} realm"
+			"toggle_section": "Toggle {section} realm",
+			"brand_title": "Brand",
+			"brand_description": "Accent color and typography for your public site.",
+			"font_pack_title": "Typography",
+			"font_pack_description": "Choose a font combination for your profile. Each pack includes fonts for headings, body text, and code blocks."
 		},
 		"import": {
 			"resume_dropzone_label": "Chronicle scroll waypoint"
