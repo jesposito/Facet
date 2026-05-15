@@ -2259,7 +2259,8 @@
 			"view_details": "View details"
 		},
 		"posts": {
-			"read_more": "Read more"
+			"read_more": "Read more",
+			"featured": "Featured"
 		},
 		"testimonials": {
 			"photo_alt": "Photo of {name}",

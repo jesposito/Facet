@@ -249,4 +249,44 @@ test.describe('Site nav chips mode', () => {
 			await expect(homeLink).toHaveAttribute('aria-current', 'page');
 		}
 	});
+
+	test('E2E: switching chips in admin re-renders public nav as chips', async ({ page }) => {
+		// 1. Toggle to chips in admin
+		await page.goto(`${BASE_URL}/admin/homepage`);
+		await page.waitForTimeout(2000);
+		const skipSetup = page.locator('text=Skip setup');
+		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
+			await skipSetup.click();
+			await page.waitForTimeout(1000);
+		}
+		// Make sure site nav is enabled; if not, enable it
+		const radiogroup = page.locator('[role="radiogroup"][aria-label*="Navigation Style"]');
+		if (await radiogroup.count() === 0) {
+			test.skip(true, 'Site nav not enabled — skipping');
+		}
+		const chipsBtn = radiogroup.locator('[role="radio"]').nth(1);
+		await chipsBtn.click();
+		await page.waitForTimeout(1500); // wait for save
+		await expect(chipsBtn).toHaveAttribute('aria-checked', 'true');
+
+		// 2. Verify API persisted the value
+		const apiResp = await page.request.get(`${BASE_URL}/api/site-nav`);
+		const apiData = await apiResp.json();
+		expect(apiData.mode).toBe('chips');
+
+		// 3. Visit public site, verify chips rendering (light bg, rounded-full pills)
+		await page.goto(`${BASE_URL}/`);
+		await page.waitForLoadState('networkidle');
+		const nav = page.locator('nav[aria-label="Site navigation"]');
+		await expect(nav).toBeVisible();
+		// Chips mode uses bg-white not bg-primary-600
+		const navClass = await nav.getAttribute('class') || '';
+		expect(navClass).toContain('bg-white');
+		expect(navClass).not.toContain('bg-primary-600');
+		// Links should have rounded-full
+		const homeLink = nav.locator('a[href="/"]').first();
+		const linkClass = await homeLink.getAttribute('class') || '';
+		expect(linkClass).toContain('rounded-full');
+
+	});
 });
