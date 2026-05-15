@@ -254,48 +254,91 @@ interface ConfirmState {
 	open: boolean;
 	options: ConfirmOptions | null;
 	resolve: ((value: boolean) => void) | null;
+	/** Keyed remount counter so pre-empted dialogs re-announce to AT. */
+	contentKey: number;
 }
 
 function createConfirmStore() {
-	const { subscribe, set, update } = writable<ConfirmState>({
+	const initial: ConfirmState = {
 		open: false,
 		options: null,
-		resolve: null
+		resolve: null,
+		contentKey: 0
+	};
+	const { subscribe, set, update } = writable<ConfirmState>(initial);
+
+	// Snapshot of current state for synchronous read inside confirm().
+	// Required so a new confirm() can resolve a prior unresolved promise
+	// as false before setting new state — without this the prior caller
+	// hangs forever (memory leak + silent wrong-row action when user
+	// rapidly fires shortcuts on admin lists).
+	let current: ConfirmState = initial;
+	subscribe((s) => {
+		current = s;
 	});
 
 	return {
 		subscribe,
 		confirm: (options: ConfirmOptions): Promise<boolean> => {
 			return new Promise((resolve) => {
+				// Reject-previous: if a prior confirm is unresolved, resolve it
+				// false first. Caller treats it as "user cancelled by opening a
+				// new prompt". Single source of truth is the new dialog the user
+				// is about to see.
+				const priorResolve = current.resolve;
+				if (priorResolve) {
+					try {
+						priorResolve(false);
+					} catch (err) {
+						console.error('[confirmDialog] prior resolver threw', err);
+					}
+				}
 				set({
 					open: true,
 					options,
-					resolve
+					resolve,
+					contentKey: current.contentKey + 1
 				});
 			});
 		},
 		respond: (value: boolean) => {
 			update((state) => {
-				if (state.resolve) {
-					state.resolve(value);
-				}
-				return {
+				// Dedupe: capture and null the resolver before invoking so a
+				// re-entrant call can't double-resolve the same Promise.
+				const resolver = state.resolve;
+				const next: ConfirmState = {
 					open: false,
 					options: null,
-					resolve: null
+					resolve: null,
+					contentKey: state.contentKey
 				};
+				if (resolver) {
+					try {
+						resolver(value);
+					} catch (err) {
+						console.error('[confirmDialog] resolver threw', err);
+					}
+				}
+				return next;
 			});
 		},
 		close: () => {
 			update((state) => {
-				if (state.resolve) {
-					state.resolve(false);
-				}
-				return {
+				const resolver = state.resolve;
+				const next: ConfirmState = {
 					open: false,
 					options: null,
-					resolve: null
+					resolve: null,
+					contentKey: state.contentKey
 				};
+				if (resolver) {
+					try {
+						resolver(false);
+					} catch (err) {
+						console.error('[confirmDialog] resolver threw on close', err);
+					}
+				}
+				return next;
 			});
 		}
 	};

@@ -1528,6 +1528,8 @@
 				"title": "Content Sections",
 				"description": "Choose which sections to show and drag to reorder.",
 				"drag_to_reorder": "Drag to reorder",
+				"move_up": "Move {section} up",
+				"move_down": "Move {section} down",
 				"toggle_section": "Toggle {section} section",
 				"selected": "selected",
 				"all_items": "all items ({count})",

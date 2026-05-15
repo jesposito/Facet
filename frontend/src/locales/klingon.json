@@ -487,7 +487,7 @@
 			"loading": "Compiling battle intelligence..."
 		},
 		"sidebar": {
-			"analytics": "Intelligence",
+			"analytics": "HISlaH mIw",
 			"dashboard": "Command Center",
 			"homepage": "Home Base",
 			"facets": "Facets",
@@ -531,7 +531,6 @@
 			"content": "ghItlh",
 			"features": "Systems",
 			"audience": "QaS",
-			"analytics": "HISlaH mIw",
 			"comments": "Battle Reports",
 			"subscribers": "loDnI'pu'",
 			"new_content": "chu' ghItlh",
@@ -1501,6 +1500,8 @@
 				"title": "Content Sectors",
 				"description": "Choose which sectors to display and drag to reorder.",
 				"drag_to_reorder": "Drag to reorder",
+				"move_up": "Move {section} up",
+				"move_down": "Move {section} down",
 				"toggle_section": "Toggle {section} sector",
 				"selected": "selected",
 				"all_items": "all items ({count})",

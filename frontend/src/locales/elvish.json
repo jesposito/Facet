@@ -487,7 +487,7 @@
 			"loading": "Summoning tidings..."
 		},
 		"sidebar": {
-			"analytics": "Tidings",
+			"analytics": "Miryatir",
 			"dashboard": "Great Hall",
 			"homepage": "Home Realm",
 			"facets": "Facets",
@@ -531,7 +531,6 @@
 			"content": "Quettar",
 			"features": "Gifts",
 			"audience": "Seler",
-			"analytics": "Miryatir",
 			"comments": "Quettar Formen",
 			"subscribers": "Palthaneri",
 			"new_content": "Nowe Quetta",
@@ -1501,6 +1500,8 @@
 				"title": "Content Realms",
 				"description": "Choose which realms to show and draw to reorder.",
 				"drag_to_reorder": "Draw to reorder",
+				"move_up": "Move {section} up",
+				"move_down": "Move {section} down",
 				"toggle_section": "Toggle {section} realm",
 				"selected": "chosen",
 				"all_items": "all items ({count})",

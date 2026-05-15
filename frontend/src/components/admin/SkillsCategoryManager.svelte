@@ -224,8 +224,9 @@
 	function handleCategoryDndConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
 		// Mark as dragging to prevent effect from resetting items
 		isCategoryDragging = true;
-		// Update categoryItems during drag for visual feedback
-		categoryItems = e.detail.items;
+		// Filter shadow placeholder for visual consistency during drag.
+		// Mirrors handleCategoryDndFinalize.
+		categoryItems = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 
 	function handleCategoryDndFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
@@ -238,11 +239,28 @@
 		onUpdate();
 	}
 
+	// Keyboard-accessible category reordering (complements drag handles)
+	function moveCategory(categoryId: string, direction: 'up' | 'down') {
+		const idx = categoryItems.findIndex(c => c.id === categoryId);
+		if (idx === -1) return;
+		if (direction === 'up' && idx === 0) return;
+		if (direction === 'down' && idx === categoryItems.length - 1) return;
+		const newItems = [...categoryItems];
+		const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+		[newItems[idx], newItems[targetIdx]] = [newItems[targetIdx], newItems[idx]];
+		categoryItems = newItems;
+		categoryOrder = newItems.map(c => c.name);
+		onUpdate();
+	}
+
 	// Handle skill drag-and-drop within a category
 	function handleSkillDndConsider(category: string, e: CustomEvent<{ items: SkillItem[] }>) {
-		// Update the items array during drag for visual feedback
+		// Filter shadow placeholder for visual consistency during drag —
+		// otherwise the placeholder lives in `items` between consider events
+		// and could leak through `otherCategorySkills` if the drag spans
+		// categories.
 		const otherCategorySkills = items.filter(s => (s.data.category || 'Other') !== category);
-		const reorderedSkills = e.detail.items;
+		const reorderedSkills = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		items = [...otherCategorySkills, ...reorderedSkills];
 	}
 
@@ -294,7 +312,7 @@
 			onconsider={handleCategoryDndConsider}
 			onfinalize={handleCategoryDndFinalize}
 		>
-			{#each categoryItems as cat (cat.id)}
+			{#each categoryItems as cat, i (cat.id)}
 				{@const category = cat.name}
 				{@const isDisabled = isCategoryDisabled(category)}
 				{@const isExpanded = isCategoryExpanded(category)}
@@ -316,6 +334,32 @@
 							<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 							</svg>
+						</div>
+
+						<!-- Keyboard reorder buttons -->
+						<div class="flex flex-col -gap-0.5 flex-shrink-0">
+							<button
+								type="button"
+								class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+								disabled={i === 0}
+								onclick={() => moveCategory(cat.id, 'up')}
+								aria-label={$t('admin.view_editor.sections.move_up', { values: { category } })}
+							>
+								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+								</svg>
+							</button>
+							<button
+								type="button"
+								class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
+								disabled={i === categoryItems.length - 1}
+								onclick={() => moveCategory(cat.id, 'down')}
+								aria-label={$t('admin.view_editor.sections.move_down', { values: { category } })}
+							>
+								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+								</svg>
+							</button>
 						</div>
 
 						<!-- Enable/Disable Toggle -->
