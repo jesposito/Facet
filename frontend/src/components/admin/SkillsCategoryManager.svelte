@@ -343,7 +343,7 @@
 								class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
 								disabled={i === 0}
 								onclick={() => moveCategory(cat.id, 'up')}
-								aria-label={$t('admin.view_editor.sections.move_up', { values: { category } })}
+								aria-label={$t('admin.view_editor.sections.move_up', { values: { section: category } })}
 							>
 								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
@@ -354,7 +354,7 @@
 								class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
 								disabled={i === categoryItems.length - 1}
 								onclick={() => moveCategory(cat.id, 'down')}
-								aria-label={$t('admin.view_editor.sections.move_down', { values: { category } })}
+								aria-label={$t('admin.view_editor.sections.move_down', { values: { section: category } })}
 							>
 								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
