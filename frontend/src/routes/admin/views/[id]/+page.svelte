@@ -1023,15 +1023,15 @@
 			<div class="animate-pulse">Loading facet...</div>
 		</div>
 	{:else}
-		<!-- Header -->
-		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-			<div class="flex items-center gap-4">
+		<!-- Sticky save header (cloud parity) -->
+		<div class="sticky top-16 z-10 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 px-4 py-3 -mx-4 -mt-4 lg:-mt-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+			<div class="flex items-center gap-4 min-w-0">
 				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label={$t('admin.views.back_to_views')}>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
 					</svg>
 				</a>
-				<h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Edit Facet</h1>
+				<h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Edit Facet</h1>
 			</div>
 			<div class="flex items-center gap-2 flex-wrap">
 				<!-- Preview Toggle - hidden on mobile since preview is collapsible -->
@@ -1068,9 +1068,9 @@
 						<span class="hidden sm:inline">Generate Resume</span>
 					</button>
 				{/if}
-				<button type="button" class="btn btn-primary text-sm" onclick={handleSubmit} disabled={saving}>
+				<button type="button" class="btn btn-primary text-sm" onclick={handleSubmit} disabled={saving} aria-busy={saving}>
 					{#if saving}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
 						</svg>
