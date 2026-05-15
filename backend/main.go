@@ -53,6 +53,7 @@ func main() {
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterPasswordChangeEndpoint(app, rateLimitService) // Password change endpoint for first-time setup
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
+	hooks.RegisterVersionHooks(app, githubService) // /api/version-check (proxies LATEST_VERSION to avoid CSP issues)
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)

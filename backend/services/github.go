@@ -238,6 +238,60 @@ func (g *GitHubService) fetchREADME(owner, repo, token string) (string, error) {
 	return readmeResp.Content, nil
 }
 
+// FetchLatestVersion fetches the latest Facet version string from the upstream
+// LATEST_VERSION file on GitHub, falling back to the releases API if the file
+// is unavailable. Returns the trimmed version string (e.g. "v2.21.11") or an
+// empty string with an error if both sources fail.
+func (g *GitHubService) FetchLatestVersion(owner, repo string) (string, error) {
+	// Try LATEST_VERSION raw file first (avoids API rate limits)
+	rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/main/LATEST_VERSION", owner, repo)
+	req, err := http.NewRequest("GET", rawURL, nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := g.client.Do(req)
+	if err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			body, err := io.ReadAll(resp.Body)
+			if err == nil {
+				v := strings.TrimSpace(string(body))
+				if v != "" {
+					return v, nil
+				}
+			}
+		}
+	}
+
+	// Fall back to GitHub releases API
+	apiURL := fmt.Sprintf("%s/repos/%s/%s/releases/latest", g.baseURL, owner, repo)
+	apiReq, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return "", err
+	}
+	apiReq.Header.Set("Accept", "application/vnd.github+json")
+	apiReq.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	apiResp, err := g.client.Do(apiReq)
+	if err != nil {
+		return "", err
+	}
+	defer apiResp.Body.Close()
+
+	if apiResp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub releases API error: %d", apiResp.StatusCode)
+	}
+
+	var data struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(apiResp.Body).Decode(&data); err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(data.TagName), nil
+}
+
 // ParseRepoURL parses a GitHub URL or owner/repo string
 func (g *GitHubService) ParseRepoURL(input string) (owner, repo string, err error) {
 	input = strings.TrimSpace(input)
