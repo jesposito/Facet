@@ -107,6 +107,11 @@
 	let accentColor: AccentColor | null = $state(null);
 	let fontPack: FontPack | null = $state(null);
 	let heroLayout: string | null = $state(null);
+	let heroSpacing: string | null = $state(null);
+	let heroBgColor: string = $state('');
+	let heroBgError: string = $state('');
+	let inheritedHeroSpacing = $derived((profile as unknown as { hero_spacing?: string } | null)?.hero_spacing || 'default');
+	let inheritedHeroBgColor = $derived((profile as unknown as { hero_bg_color?: string } | null)?.hero_bg_color || '');
 	let heroImageUrl: string | null = $state(null);
 	let heroImageFile: File | null = null;
 	let heroBlobUrl: string | null = null;
@@ -646,6 +651,8 @@
 			accentColor = (view.accent_color as AccentColor) || null;
 			fontPack = (view.font_pack as FontPack) || null;
 			heroLayout = (view as any).hero_layout || null;
+			heroSpacing = (view as any).hero_spacing || null;
+			heroBgColor = (view as any).hero_bg_color || '';
 
 			if (record.hero_image) {
 				heroImageUrl = `/api/files/${record.collectionId}/${record.id}/${record.hero_image}`;
@@ -887,6 +894,8 @@
 			formData.append('accent_color', accentColor || '');
 			formData.append('font_pack', fontPack || '');
 			formData.append('hero_layout', heroLayout || '');
+		formData.append('hero_spacing', heroSpacing || '');
+		formData.append('hero_bg_color', heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : '');
 
 			if (visibility === 'password' && password.trim()) {
 				formData.append('password', password.trim());
@@ -1614,6 +1623,101 @@
 							Inherits hero layout from global profile settings
 						{/if}
 					</p>
+				</div>
+
+				<!-- Hero Spacing Override -->
+				<div class="pt-4">
+					<span class="label mb-3 block">Hero Spacing</span>
+					<div class="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Hero spacing override">
+						{#each [
+							{ id: null as string | null, label: `Inherit (${inheritedHeroSpacing})` },
+							{ id: 'compact', label: 'Compact' },
+							{ id: 'default', label: 'Default' },
+							{ id: 'spacious', label: 'Spacious' }
+						] as option (option.id ?? 'inherit')}
+							{@const isChecked = heroSpacing === option.id}
+							<button
+								type="button"
+								role="radio"
+								aria-checked={isChecked}
+								tabindex={(heroSpacing === null && option.id === null) || (heroSpacing !== null && heroSpacing === option.id) ? 0 : -1}
+								onclick={() => heroSpacing = option.id}
+								class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600
+									{isChecked
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							>
+								{option.label}
+							</button>
+						{/each}
+					</div>
+					<p class="text-xs text-gray-500 mt-2">
+						{#if heroSpacing}
+							Using <strong>{heroSpacing}</strong> spacing for this view
+						{:else}
+							Inherits hero spacing from global profile settings
+						{/if}
+					</p>
+				</div>
+
+				<!-- Hero Background Color Override -->
+				<div class="pt-4">
+					<label for="view-hero-bg-color" class="label mb-1 block">Hero Background Color</label>
+					<p class="text-xs text-gray-500 mb-3">
+						{#if inheritedHeroBgColor}
+							Leave blank to inherit homepage default: <code>{inheritedHeroBgColor}</code>
+						{:else}
+							Leave blank to use the default gradient.
+						{/if}
+					</p>
+					<div class="flex items-center gap-2">
+						<span
+							class="inline-block w-11 h-11 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0"
+							style="background-color: {heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : (inheritedHeroBgColor || '#1f2937')}"
+							aria-hidden="true"
+						></span>
+						<input
+							id="view-hero-bg-color"
+							type="text"
+							bind:value={heroBgColor}
+							onblur={() => {
+								const trimmed = heroBgColor.trim();
+								if (trimmed && !/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+									heroBgError = 'Enter a valid hex color (e.g. #6366f1)';
+								} else {
+									heroBgError = '';
+									if (trimmed && !trimmed.startsWith('#')) heroBgColor = '#' + trimmed;
+								}
+							}}
+							placeholder={inheritedHeroBgColor || '#1f2937'}
+							maxlength="7"
+							spellcheck="false"
+							autocomplete="off"
+							autocapitalize="off"
+							autocorrect="off"
+							aria-invalid={heroBgError !== ''}
+							aria-describedby="view-hero-bg-help view-hero-bg-error"
+							class="input flex-1 font-mono"
+						/>
+						{#if heroBgColor}
+							<button
+								type="button"
+								onclick={() => { heroBgColor = ''; heroBgError = ''; }}
+								aria-label="Reset hero background color to inherit homepage default"
+								class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-11"
+							>
+								Reset
+							</button>
+						{/if}
+					</div>
+					<p id="view-hero-bg-help" class="sr-only">Six hexadecimal characters (0-9, A-F), with optional leading hash.</p>
+					<p
+						id="view-hero-bg-error"
+						role="status"
+						aria-live="polite"
+						aria-atomic="true"
+						class="text-sm text-red-600 dark:text-red-400 mt-1 min-h-[1.25rem]"
+					>{heroBgError}</p>
 				</div>
 
 				<div class="flex flex-col gap-3 pt-2">
