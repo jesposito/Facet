@@ -210,3 +210,43 @@ test.describe('Phase 3 quick wins', () => {
 		await expect(grid).toBeVisible();
 	});
 });
+
+test.describe('Site nav chips mode', () => {
+	test.beforeEach(async ({ page }) => {
+		await login(page);
+	});
+
+	test('Admin homepage editor shows nav mode selector with radiogroup', async ({ page }) => {
+		await page.goto(`${BASE_URL}/admin/homepage`);
+		await page.waitForTimeout(2000);
+		const skipSetup = page.locator('text=Skip setup');
+		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
+			await skipSetup.click();
+			await page.waitForTimeout(1000);
+		}
+		// Look for nav mode radiogroup
+		const radiogroup = page.locator('[role="radiogroup"][aria-label*="Navigation Style"]');
+		if (await radiogroup.count() === 0) {
+			// May only appear when site nav is enabled
+			test.skip(true, 'Nav mode selector hidden — enable site nav first');
+		}
+		await expect(radiogroup).toBeVisible();
+		const radios = radiogroup.locator('[role="radio"]');
+		expect(await radios.count()).toBe(2); // bar + chips
+	});
+
+	test('Public nav has aria-current="page" on active link', async ({ page }) => {
+		// Visit any public page; nav may or may not be enabled
+		await page.goto(`${BASE_URL}/`);
+		await page.waitForLoadState('networkidle');
+		const nav = page.locator('nav[aria-label="Site navigation"]');
+		if (await nav.count() === 0) {
+			test.skip(true, 'Site nav not enabled');
+		}
+		// Home link on root page should have aria-current="page"
+		const homeLink = nav.locator('a[href="/"]').first();
+		if (await homeLink.count() > 0) {
+			await expect(homeLink).toHaveAttribute('aria-current', 'page');
+		}
+	});
+});

@@ -64,26 +64,34 @@
 		return result;
 	});
 
-	const proficiencyColors = {
-		expert: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-		proficient: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-		familiar: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+	// Editorial chip palette: primary highlight for expert, stone for proficient/familiar
+	const proficiencyColors: Record<string, string> = {
+		expert: 'bg-primary-50 dark:bg-primary-500/15 text-primary-800 dark:text-primary-300 border border-primary-200/60 dark:border-primary-500/30 font-semibold',
+		proficient: 'bg-stone-100 dark:bg-stone-600/30 text-stone-700 dark:text-stone-300 border border-stone-200/60 dark:border-stone-500/30 font-medium',
+		familiar: 'bg-stone-50 dark:bg-stone-700/30 text-stone-500 dark:text-stone-400 border border-stone-200/40 dark:border-stone-600/25'
 	};
 
-	const proficiencyBarColors = {
-		expert: 'bg-green-500 dark:bg-green-400',
-		proficient: 'bg-blue-500 dark:bg-blue-400',
-		familiar: 'bg-gray-400 dark:bg-gray-500'
+	const proficiencyBarColors: Record<string, string> = {
+		expert: 'bg-primary-500 dark:bg-primary-400',
+		proficient: 'bg-stone-400 dark:bg-stone-400',
+		familiar: 'bg-stone-300 dark:bg-stone-500'
 	};
 
-	const proficiencyWidth = {
+	const proficiencyWidth: Record<string, string> = {
 		expert: 'w-full',
 		proficient: 'w-3/4',
 		familiar: 'w-1/2'
 	};
 
+	// Visible proficiency indicator dots (non-color-only signal — WCAG 1.4.1)
+	const proficiencyDots: Record<string, number> = {
+		expert: 3,
+		proficient: 2,
+		familiar: 1
+	};
+
 	// Tag cloud sizing based on proficiency
-	const cloudSizes = {
+	const cloudSizes: Record<string, string> = {
 		expert: 'text-xl font-semibold',
 		proficient: 'text-base font-medium',
 		familiar: 'text-sm'
@@ -96,10 +104,11 @@
 	{#if layout === 'cloud'}
 		<!-- Tag Cloud Layout -->
 		<div class="card p-8 animate-fade-in">
-			<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-3">
-				{#each orderedItems as skill (skill.id)}
+			<div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
+				{#each orderedItems as skill, index (skill.id)}
 					<span
-						class="{cloudSizes[skill.proficiency || 'familiar']} text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default"
+						class="{cloudSizes[skill.proficiency || 'familiar']} text-stone-700 dark:text-stone-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default animate-fade-in opacity-0"
+						style="animation-delay: {index * 20}ms; animation-fill-mode: forwards;"
 						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
 						itemprop="knowsAbout"
 					>
@@ -113,13 +122,21 @@
 		<!-- Flat List Layout -->
 		<div class="card p-6 animate-fade-in">
 			<div class="flex flex-wrap gap-2">
-				{#each orderedItems as skill (skill.id)}
+				{#each orderedItems as skill, index (skill.id)}
 					<span
-						class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
+						class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors duration-150 {proficiencyColors[skill.proficiency || 'familiar']} animate-fade-in opacity-0"
+						style="animation-delay: {index * 20}ms; animation-fill-mode: forwards;"
 						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
 						itemprop="knowsAbout"
 					>
 						{skill.name}
+						{#if skill.proficiency}
+							<span class="inline-flex gap-0.5 ms-0.5" aria-hidden="true">
+								{#each Array(proficiencyDots[skill.proficiency] || 1) as _}
+									<span class="w-1 h-1 rounded-full bg-current opacity-60"></span>
+								{/each}
+							</span>
+						{/if}
 					</span>
 				{/each}
 			</div>
@@ -134,24 +151,25 @@
 
 				{#if categoryLayout === 'bars'}
 					<!-- Bars layout for this category -->
-					<div class="card p-6 animate-fade-in">
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+					<div class="card p-6 animate-fade-in relative overflow-hidden">
+						<div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500/60 via-primary-400/40 to-transparent" aria-hidden="true"></div>
+						<h3 class="text-lg font-semibold text-stone-900 dark:text-white mb-4">
 							{category}
 						</h3>
 						<div class="space-y-4">
-							{#each skills as skill (skill.id)}
-								<div>
+							{#each skills as skill, skillIndex (skill.id)}
+								<div class="animate-fade-in opacity-0" style="animation-delay: {skillIndex * 40}ms; animation-fill-mode: forwards;">
 									<div class="flex items-center justify-between mb-1">
-										<span class="text-sm font-medium text-gray-700 dark:text-gray-300" itemprop="knowsAbout">
+										<span class="text-sm font-medium text-stone-700 dark:text-stone-300" itemprop="knowsAbout">
 											{skill.name}
 										</span>
 										{#if skill.proficiency}
-											<span class="text-xs text-gray-500 dark:text-gray-400 capitalize">
+											<span class="text-xs text-stone-500 dark:text-stone-400 capitalize">
 												{skill.proficiency}
 											</span>
 										{/if}
 									</div>
-									<div class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+									<div class="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
 										<div
 											class="h-full rounded-full transition-all duration-500 {proficiencyBarColors[skill.proficiency || 'familiar']} {proficiencyWidth[skill.proficiency || 'familiar']}"
 										></div>
@@ -162,18 +180,27 @@
 					</div>
 				{:else}
 					<!-- Grouped (badges) layout for this category (default) -->
-					<div class="card p-6 animate-fade-in">
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+					<div class="card p-6 animate-fade-in relative overflow-hidden">
+						<div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500/60 via-primary-400/40 to-transparent" aria-hidden="true"></div>
+						<h3 class="text-lg font-semibold text-stone-900 dark:text-white mb-4">
 							{category}
 						</h3>
 						<div class="flex flex-wrap gap-2">
-							{#each skills as skill (skill.id)}
+							{#each skills as skill, skillIndex (skill.id)}
 								<span
-									class="px-3 py-1.5 text-sm rounded-full {proficiencyColors[skill.proficiency || 'familiar']}"
+									class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors duration-150 {proficiencyColors[skill.proficiency || 'familiar']} animate-fade-in opacity-0"
+									style="animation-delay: {skillIndex * 20}ms; animation-fill-mode: forwards;"
 									title={skill.proficiency ? `Proficiency: ${skill.proficiency}` : undefined}
 									itemprop="knowsAbout"
 								>
 									{skill.name}
+									{#if skill.proficiency}
+										<span class="inline-flex gap-0.5 ms-0.5" aria-hidden="true">
+											{#each Array(proficiencyDots[skill.proficiency] || 1) as _}
+												<span class="w-1 h-1 rounded-full bg-current opacity-60"></span>
+											{/each}
+										</span>
+									{/if}
 								</span>
 							{/each}
 						</div>

@@ -361,6 +361,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			logger.Warn("site_nav_enabled field missing on site_settings, skipping update")
 		}
 	}
+	if mode, ok := updates["site_nav_mode"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav_mode") != nil {
+			settings.Record.Set("site_nav_mode", mode)
+		} else if logger != nil {
+			logger.Warn("site_nav_mode field missing on site_settings, skipping update")
+		}
+	}
 	if navItems, ok := updates["site_nav_items"]; ok {
 		if settings.Record.Collection().Fields.GetByName("site_nav_items") != nil {
 			settings.Record.Set("site_nav_items", navItems)

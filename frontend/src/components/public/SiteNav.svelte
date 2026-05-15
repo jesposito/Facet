@@ -17,6 +17,7 @@
 		ctaText?: string;
 		ctaEnabled?: boolean;
 		ssrNavEnabled?: boolean;
+		ssrNavMode?: string;
 		ssrNavItems?: NavItem[];
 	}
 
@@ -26,13 +27,14 @@
 		ctaText = '',
 		ctaEnabled = true,
 		ssrNavEnabled = false,
+		ssrNavMode = '',
 		ssrNavItems = []
 	}: Props = $props();
 
 	// Use SSR props directly for initial render (no store delay).
 	// Store syncs later for client-side navigation updates.
 	let navEnabled = $derived(ssrNavEnabled || $siteNavStore.enabled);
-	let navMode = $derived($siteNavStore.mode || 'bar');
+	let navMode = $derived(($siteNavStore.loaded ? $siteNavStore.mode : ssrNavMode) || ssrNavMode || 'bar');
 	let navItems = $derived(ssrNavEnabled ? ssrNavItems : $siteNavStore.items);
 	let mobileMenuOpen = $derived($siteNavStore.mobileMenuOpen);
 

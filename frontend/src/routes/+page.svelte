@@ -618,6 +618,7 @@
 		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
 		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 		ssrNavEnabled={data.siteNav?.enabled}
+		ssrNavMode={data.siteNav?.mode}
 		ssrNavItems={data.siteNav?.items}
 	/>
 
