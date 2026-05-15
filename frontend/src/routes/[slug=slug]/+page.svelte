@@ -35,7 +35,7 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import ShareButton from '$components/shared/ShareButton.svelte';
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
-	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import { ACCENT_COLORS, type AccentColor, applyPaletteToRoot } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK } from '$lib/fonts';
 	import { pb, getSectionLayout as getDefaultSectionLayout } from '$lib/pocketbase';
 	import { generatePersonJsonLd, serializeJsonLd } from '$lib/seo';
@@ -83,18 +83,7 @@
 		const color = ACCENT_COLORS[colorName];
 		if (!color) return;
 
-		const root = document.documentElement;
-		root.style.setProperty('--color-primary-50', color.scale[50]);
-		root.style.setProperty('--color-primary-100', color.scale[100]);
-		root.style.setProperty('--color-primary-200', color.scale[200]);
-		root.style.setProperty('--color-primary-300', color.scale[300]);
-		root.style.setProperty('--color-primary-400', color.scale[400]);
-		root.style.setProperty('--color-primary-500', color.scale[500]);
-		root.style.setProperty('--color-primary-600', color.scale[600]);
-		root.style.setProperty('--color-primary-700', color.scale[700]);
-		root.style.setProperty('--color-primary-800', color.scale[800]);
-		root.style.setProperty('--color-primary-900', color.scale[900]);
-		root.style.setProperty('--color-primary-950', color.scale[950]);
+		applyPaletteToRoot(color.scale);
 	}
 
 	onMount(() => {

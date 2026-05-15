@@ -19,6 +19,20 @@
 		--color-primary-800: #075985;
 		--color-primary-900: #0c4a6e;
 		--color-primary-950: #082f49;
+		/* Space-separated RGB channels — required for Tailwind opacity modifiers
+		   like `bg-primary-500/20`. CSS variables holding hex cannot be combined
+		   with `<alpha-value>`, so opacity-modified utilities silently fail. */
+		--color-primary-50-rgb: 240 249 255;
+		--color-primary-100-rgb: 224 242 254;
+		--color-primary-200-rgb: 186 230 253;
+		--color-primary-300-rgb: 125 211 252;
+		--color-primary-400-rgb: 56 189 248;
+		--color-primary-500-rgb: 14 165 233;
+		--color-primary-600-rgb: 2 132 199;
+		--color-primary-700-rgb: 3 105 161;
+		--color-primary-800-rgb: 7 89 133;
+		--color-primary-900-rgb: 12 74 110;
+		--color-primary-950-rgb: 8 47 73;
 		/* Typography CSS Custom Properties - default to editorial pack */
 		--font-heading: 'Lora', Georgia, 'Times New Roman', serif;
 		--font-body: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;

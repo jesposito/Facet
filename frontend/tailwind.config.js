@@ -8,17 +8,21 @@ export default {
 				// Primary colors now use CSS custom properties for dynamic theming
 				// Default values (sky) are defined in app.css :root
 				primary: {
-					50: 'var(--color-primary-50)',
-					100: 'var(--color-primary-100)',
-					200: 'var(--color-primary-200)',
-					300: 'var(--color-primary-300)',
-					400: 'var(--color-primary-400)',
-					500: 'var(--color-primary-500)',
-					600: 'var(--color-primary-600)',
-					700: 'var(--color-primary-700)',
-					800: 'var(--color-primary-800)',
-					900: 'var(--color-primary-900)',
-					950: 'var(--color-primary-950)'
+					// `rgb(var(--*-rgb) / <alpha-value>)` so Tailwind opacity
+					// modifiers like `bg-primary-500/20` work. Hex CSS vars cannot
+					// be combined with <alpha-value>, so the bare var() form
+					// silently breaks every opacity utility.
+					50: 'rgb(var(--color-primary-50-rgb) / <alpha-value>)',
+					100: 'rgb(var(--color-primary-100-rgb) / <alpha-value>)',
+					200: 'rgb(var(--color-primary-200-rgb) / <alpha-value>)',
+					300: 'rgb(var(--color-primary-300-rgb) / <alpha-value>)',
+					400: 'rgb(var(--color-primary-400-rgb) / <alpha-value>)',
+					500: 'rgb(var(--color-primary-500-rgb) / <alpha-value>)',
+					600: 'rgb(var(--color-primary-600-rgb) / <alpha-value>)',
+					700: 'rgb(var(--color-primary-700-rgb) / <alpha-value>)',
+					800: 'rgb(var(--color-primary-800-rgb) / <alpha-value>)',
+					900: 'rgb(var(--color-primary-900-rgb) / <alpha-value>)',
+					950: 'rgb(var(--color-primary-950-rgb) / <alpha-value>)'
 				}
 			},
 			fontFamily: {

@@ -314,7 +314,61 @@ export function generateAccentCssVariables(color: AccentColor): string {
 		--color-primary-800: ${info.scale[800]};
 		--color-primary-900: ${info.scale[900]};
 		--color-primary-950: ${info.scale[950]};
+		--color-primary-50-rgb: ${hexToRgbChannels(info.scale[50])};
+		--color-primary-100-rgb: ${hexToRgbChannels(info.scale[100])};
+		--color-primary-200-rgb: ${hexToRgbChannels(info.scale[200])};
+		--color-primary-300-rgb: ${hexToRgbChannels(info.scale[300])};
+		--color-primary-400-rgb: ${hexToRgbChannels(info.scale[400])};
+		--color-primary-500-rgb: ${hexToRgbChannels(info.scale[500])};
+		--color-primary-600-rgb: ${hexToRgbChannels(info.scale[600])};
+		--color-primary-700-rgb: ${hexToRgbChannels(info.scale[700])};
+		--color-primary-800-rgb: ${hexToRgbChannels(info.scale[800])};
+		--color-primary-900-rgb: ${hexToRgbChannels(info.scale[900])};
+		--color-primary-950-rgb: ${hexToRgbChannels(info.scale[950])};
 	`.trim();
+}
+
+/**
+ * Convert "#rrggbb" → "R G B" channel string (space-separated decimal RGB).
+ * Required for CSS variables consumed by Tailwind opacity modifiers, since
+ * `rgb(var(--x) / <alpha>)` only resolves when the var holds raw channels.
+ */
+export function hexToRgbChannels(hex: string): string {
+	if (!isValidHexColor(hex)) return '0 0 0';
+	const r = parseInt(hex.slice(1, 3), 16);
+	const g = parseInt(hex.slice(3, 5), 16);
+	const b = parseInt(hex.slice(5, 7), 16);
+	return `${r} ${g} ${b}`;
+}
+
+/**
+ * Set both `--color-primary-N` (hex, for direct CSS consumers) and the
+ * companion `--color-primary-N-rgb` (channels, for Tailwind opacity utilities)
+ * on document.documentElement. Caller must run in a browser context.
+ */
+export function applyPaletteToRoot(scale: ColorScale): void {
+	const root = document.documentElement;
+	for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const) {
+		const hex = scale[step];
+		root.style.setProperty(`--color-primary-${step}`, hex);
+		root.style.setProperty(`--color-primary-${step}-rgb`, hexToRgbChannels(hex));
+	}
+}
+
+/**
+ * Build the contents of a `:root { ... }` block setting both hex and RGB
+ * channel forms for every palette step. Used by callers that inject a
+ * `<style>` element instead of writing individual properties.
+ */
+export function buildPaletteRootBlock(scale: ColorScale): string {
+	const lines: string[] = [];
+	for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const) {
+		lines.push(`  --color-primary-${step}: ${scale[step]};`);
+	}
+	for (const step of [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const) {
+		lines.push(`  --color-primary-${step}-rgb: ${hexToRgbChannels(scale[step])};`);
+	}
+	return `:root {\n${lines.join('\n')}\n}`;
 }
 
 /**
@@ -418,5 +472,16 @@ export function generateAccentCSSVars(colorName?: string | null, customHex?: str
 		--color-primary-800: ${scale[800]};
 		--color-primary-900: ${scale[900]};
 		--color-primary-950: ${scale[950]};
+		--color-primary-50-rgb: ${hexToRgbChannels(scale[50])};
+		--color-primary-100-rgb: ${hexToRgbChannels(scale[100])};
+		--color-primary-200-rgb: ${hexToRgbChannels(scale[200])};
+		--color-primary-300-rgb: ${hexToRgbChannels(scale[300])};
+		--color-primary-400-rgb: ${hexToRgbChannels(scale[400])};
+		--color-primary-500-rgb: ${hexToRgbChannels(scale[500])};
+		--color-primary-600-rgb: ${hexToRgbChannels(scale[600])};
+		--color-primary-700-rgb: ${hexToRgbChannels(scale[700])};
+		--color-primary-800-rgb: ${hexToRgbChannels(scale[800])};
+		--color-primary-900-rgb: ${hexToRgbChannels(scale[900])};
+		--color-primary-950-rgb: ${hexToRgbChannels(scale[950])};
 	}`;
 }

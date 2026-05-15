@@ -6,7 +6,7 @@
 	import { theme, toasts } from '$lib/stores';
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
-	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex } from '$lib/colors';
+	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex, hexToRgbChannels, buildPaletteRootBlock } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
@@ -132,6 +132,7 @@ function applyPaletteFromCSS(css: string) {
 	// Apply directly to :root so Tailwind classes pick up overrides immediately
 	for (const [token, value] of Object.entries(palette)) {
 		document.documentElement.style.setProperty(`--color-primary-${token}`, value);
+		document.documentElement.style.setProperty(`--color-primary-${token}-rgb`, hexToRgbChannels(value));
 	}
 }
 
@@ -146,21 +147,7 @@ function applyFlatAccent(color: string) {
 		document.head.appendChild(accentStyleEl);
 	}
 
-	accentStyleEl.textContent = `
-:root {
-  --color-primary-50: ${scale[50]};
-  --color-primary-100: ${scale[100]};
-  --color-primary-200: ${scale[200]};
-  --color-primary-300: ${scale[300]};
-  --color-primary-400: ${scale[400]};
-  --color-primary-500: ${scale[500]};
-  --color-primary-600: ${scale[600]};
-  --color-primary-700: ${scale[700]};
-  --color-primary-800: ${scale[800]};
-  --color-primary-900: ${scale[900]};
-  --color-primary-950: ${scale[950]};
-}
-	`.trim();
+	accentStyleEl.textContent = buildPaletteRootBlock(scale);
 	themeColor = color;
 }
 
@@ -177,21 +164,7 @@ function applyFlatAccent(color: string) {
 			document.head.appendChild(accentStyleEl);
 		}
 
-		accentStyleEl.textContent = `
-:root {
-  --color-primary-50: ${color.scale[50]};
-  --color-primary-100: ${color.scale[100]};
-  --color-primary-200: ${color.scale[200]};
-  --color-primary-300: ${color.scale[300]};
-  --color-primary-400: ${color.scale[400]};
-  --color-primary-500: ${color.scale[500]};
-  --color-primary-600: ${color.scale[600]};
-  --color-primary-700: ${color.scale[700]};
-  --color-primary-800: ${color.scale[800]};
-  --color-primary-900: ${color.scale[900]};
-  --color-primary-950: ${color.scale[950]};
-}
-		`.trim();
+		accentStyleEl.textContent = buildPaletteRootBlock(color.scale);
 
 		// Update theme-color meta tag for browser chrome
 		themeColor = color.scale[500];
