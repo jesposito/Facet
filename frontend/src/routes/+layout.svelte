@@ -18,7 +18,7 @@
 			faviconUrl: string | null;
 			planConfig: PlanConfig | null;
 			appUrl: string;
-			siteNav: { enabled: boolean; mode?: string; items: Array<{ viewId: string; slug: string; label: string; name: string }> };
+			siteNav: { enabled: boolean; mode?: string; position?: string; items: Array<{ viewId: string; slug: string; label: string; name: string }> };
 			accentColor: string | null;
 			customHexColor: string | null;
 			fontPack: string | null;

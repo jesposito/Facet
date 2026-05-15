@@ -47,6 +47,7 @@ import { t } from 'svelte-i18n';
 	// Site navigation settings
 	let siteNavEnabled = $state(false);
 	let siteNavMode = $state('bar');
+	let siteNavPosition = $state('below');
 	let siteCtaEnabled = $state(true); // Global CTA toggle (defaults to true for existing behavior)
 	let siteNavItems: Array<{ viewId: string; enabled: boolean; label: string }> = $state([]);
 	let publicViews: View[] = $state([]);
@@ -160,6 +161,7 @@ import { t } from 'svelte-i18n';
 				// Load site navigation settings
 				siteNavEnabled = data.site_nav_enabled === true;
 				siteNavMode = data.site_nav_mode || 'bar';
+				siteNavPosition = data.site_nav_position || 'below';
 				siteCtaEnabled = data.site_cta_enabled !== false; // Default to true
 				siteNavItems = data.site_nav_items || [];
 
@@ -346,6 +348,7 @@ import { t } from 'svelte-i18n';
 					hide_login_button: hideLoginButton,
 					site_nav_enabled: siteNavEnabled,
 					site_nav_mode: siteNavMode,
+					site_nav_position: siteNavPosition,
 					site_cta_enabled: siteCtaEnabled,
 					site_nav_items: siteNavItems
 				})
@@ -362,6 +365,7 @@ import { t } from 'svelte-i18n';
 			hideLoginButton = result.hide_login_button === true;
 			siteNavEnabled = result.site_nav_enabled === true;
 			siteNavMode = result.site_nav_mode || 'bar';
+			siteNavPosition = result.site_nav_position || 'below';
 			siteCtaEnabled = result.site_cta_enabled !== false;
 			siteNavItems = result.site_nav_items || [];
 			toasts.add('success', 'Homepage settings saved');
@@ -516,6 +520,7 @@ import { t } from 'svelte-i18n';
 					homepage_custom_content: customContentConfig,
 					site_nav_enabled: siteNavEnabled,
 					site_nav_mode: siteNavMode,
+					site_nav_position: siteNavPosition,
 					site_cta_enabled: siteCtaEnabled,
 					site_nav_items: siteNavItems
 				})
@@ -724,6 +729,7 @@ import { t } from 'svelte-i18n';
 				body: JSON.stringify({
 					site_nav_enabled: siteNavEnabled,
 					site_nav_mode: siteNavMode,
+					site_nav_position: siteNavPosition,
 					site_cta_enabled: siteCtaEnabled,
 					site_nav_items: siteNavItems
 				})
@@ -1214,7 +1220,7 @@ import { t } from 'svelte-i18n';
 				{#if siteNavEnabled}
 					<!-- Navigation Style (bar vs chips) -->
 					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-						<div class="mb-4">
+						<div class="mb-6">
 							<span class="block text-sm font-medium text-gray-900 dark:text-white mb-1">{$t('admin.homepage.nav_mode_title')}</span>
 							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.nav_mode_description')}</p>
 							<div class="flex flex-wrap gap-2" role="radiogroup" aria-label={$t('admin.homepage.nav_mode_title')}>
@@ -1231,6 +1237,29 @@ import { t } from 'svelte-i18n';
 									>
 										<span class="block font-medium">{$t(`admin.homepage.nav_mode_${modeOption}`)}</span>
 										<span class="block text-xs opacity-80">{$t(`admin.homepage.nav_mode_${modeOption}_description`)}</span>
+									</button>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Navigation Position (above vs below hero) -->
+						<div class="mb-4">
+							<span class="block text-sm font-medium text-gray-900 dark:text-white mb-1">{$t('admin.homepage.nav_position_title')}</span>
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.nav_position_description')}</p>
+							<div class="flex flex-wrap gap-2" role="radiogroup" aria-label={$t('admin.homepage.nav_position_title')}>
+								{#each ['below', 'above'] as positionOption}
+									<button
+										type="button"
+										role="radio"
+										aria-checked={siteNavPosition === positionOption}
+										onclick={() => { siteNavPosition = positionOption; saveSiteNavSettings(); }}
+										class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-11
+											{siteNavPosition === positionOption
+												? 'bg-primary-600 text-white border-primary-600'
+												: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}"
+									>
+										<span class="block font-medium">{$t(`admin.homepage.nav_position_${positionOption}`)}</span>
+										<span class="block text-xs opacity-80">{$t(`admin.homepage.nav_position_${positionOption}_description`)}</span>
 									</button>
 								{/each}
 							</div>

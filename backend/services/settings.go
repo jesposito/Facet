@@ -163,6 +163,7 @@ type SiteSettings struct {
 	HomepageSections      map[string]HomepageSectionConfig
 	SiteNavEnabled        bool
 	SiteNavMode           string
+	SiteNavPosition       string
 	SiteNavItems          []SiteNavItem
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
@@ -276,6 +277,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HomepageSections:      homepageSections,
 		SiteNavEnabled:        record.GetBool("site_nav_enabled"),
 		SiteNavMode:           record.GetString("site_nav_mode"),
+		SiteNavPosition:       record.GetString("site_nav_position"),
 		SiteNavItems:          siteNavItems,
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
@@ -366,6 +368,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("site_nav_mode", mode)
 		} else if logger != nil {
 			logger.Warn("site_nav_mode field missing on site_settings, skipping update")
+		}
+	}
+	if pos, ok := updates["site_nav_position"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav_position") != nil {
+			settings.Record.Set("site_nav_position", pos)
+		} else if logger != nil {
+			logger.Warn("site_nav_position field missing on site_settings, skipping update")
 		}
 	}
 	if navItems, ok := updates["site_nav_items"]; ok {

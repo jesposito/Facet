@@ -496,6 +496,21 @@
 			<ThemeToggle />
 		</div>
 
+		<!-- Site Navigation (above hero) - only renders when position='above' -->
+		{#if data.isPublicView}
+			<SiteNav
+				slot="above"
+				ctaUrl={data.view?.cta_url || ''}
+				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
+				ctaText={data.view?.cta_text || ''}
+				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+				ssrNavEnabled={data.siteNav?.enabled}
+				ssrNavMode={data.siteNav?.mode}
+				ssrNavPosition={data.siteNav?.position}
+				ssrNavItems={data.siteNav?.items}
+			/>
+		{/if}
+
 		<!-- Modified hero with view overrides -->
 		<ProfileHero
 			profile={{
@@ -508,15 +523,17 @@
 			layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
 		/>
 
-		<!-- Site Navigation / CTA banner (only on public views) -->
+		<!-- Site Navigation (below hero) / CTA banner - only on public views -->
 		{#if data.isPublicView}
 			<SiteNav
+				slot="below"
 				ctaUrl={data.view?.cta_url || ''}
 				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
 				ctaText={data.view?.cta_text || ''}
 				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 				ssrNavEnabled={data.siteNav?.enabled}
 				ssrNavMode={data.siteNav?.mode}
+				ssrNavPosition={data.siteNav?.position}
 				ssrNavItems={data.siteNav?.items}
 			/>
 		{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}

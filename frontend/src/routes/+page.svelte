@@ -600,6 +600,19 @@
 		<ThemeToggle />
 	</div>
 
+	<!-- Site Navigation (above hero) - only renders when position='above' -->
+	<SiteNav
+		slot="above"
+		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+		ssrNavEnabled={data.siteNav?.enabled}
+		ssrNavMode={data.siteNav?.mode}
+		ssrNavPosition={data.siteNav?.position}
+		ssrNavItems={data.siteNav?.items}
+	/>
+
 	<!-- Hero section with possible view overrides -->
 	<ProfileHero
 		profile={{
@@ -611,14 +624,16 @@
 		layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
 	/>
 
-	<!-- Site Navigation / CTA Banner -->
+	<!-- Site Navigation (below hero) / CTA Banner - only renders when position='below' (default) -->
 	<SiteNav
+		slot="below"
 		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
 		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
 		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 		ssrNavEnabled={data.siteNav?.enabled}
 		ssrNavMode={data.siteNav?.mode}
+		ssrNavPosition={data.siteNav?.position}
 		ssrNavItems={data.siteNav?.items}
 	/>
 

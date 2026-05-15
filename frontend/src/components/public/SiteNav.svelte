@@ -18,7 +18,10 @@
 		ctaEnabled?: boolean;
 		ssrNavEnabled?: boolean;
 		ssrNavMode?: string;
+		ssrNavPosition?: string;
 		ssrNavItems?: NavItem[];
+		/** Where this instance is placed in the page. Renders only when slot matches configured position. */
+		slot?: 'above' | 'below';
 	}
 
 	let {
@@ -28,15 +31,22 @@
 		ctaEnabled = true,
 		ssrNavEnabled = false,
 		ssrNavMode = '',
-		ssrNavItems = []
+		ssrNavPosition = '',
+		ssrNavItems = [],
+		slot = 'below'
 	}: Props = $props();
 
 	// Use SSR props directly for initial render (no store delay).
 	// Store syncs later for client-side navigation updates.
 	let navEnabled = $derived(ssrNavEnabled || $siteNavStore.enabled);
 	let navMode = $derived(($siteNavStore.loaded ? $siteNavStore.mode : ssrNavMode) || ssrNavMode || 'bar');
+	let navPosition = $derived<'above' | 'below'>(
+		(($siteNavStore.loaded ? $siteNavStore.position : ssrNavPosition) === 'above' ? 'above' : 'below')
+	);
 	let navItems = $derived(ssrNavEnabled ? ssrNavItems : $siteNavStore.items);
 	let mobileMenuOpen = $derived($siteNavStore.mobileMenuOpen);
+	// Only the slot matching the configured position renders.
+	let slotMatches = $derived(slot === navPosition);
 
 	// Close mobile menu on navigation
 	afterNavigate(() => {
@@ -63,7 +73,7 @@
 	}
 </script>
 
-{#if navEnabled && navItems.length > 0}
+{#if slotMatches && navEnabled && navItems.length > 0}
 	{#if navMode === 'chips'}
 		<!-- Chips mode: light surface with rounded-full pill links -->
 		<nav aria-label="Site navigation" class="bg-white border-b border-stone-200 dark:bg-stone-900 dark:border-stone-700">
@@ -310,8 +320,8 @@
 			{/if}
 		</nav>
 	{/if}
-{:else if ($siteNavStore.loaded || ssrNavEnabled === false) && ctaUrl && ctaText && ctaEnabled}
-	<!-- Fallback to traditional CTA banner when nav is disabled -->
+{:else if slot === 'below' && ($siteNavStore.loaded || ssrNavEnabled === false) && ctaUrl && ctaText && ctaEnabled}
+	<!-- Fallback to traditional CTA banner when nav is disabled. Only render in 'below' slot to avoid double rendering. -->
 	<div class="bg-primary-600 text-white py-4">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 			<span class="font-medium">{ctaText}</span>

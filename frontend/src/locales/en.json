@@ -1992,7 +1992,13 @@
 			"nav_mode_bar": "Bar",
 			"nav_mode_bar_description": "Full-width colored bar at the top",
 			"nav_mode_chips": "Chips",
-			"nav_mode_chips_description": "Pill-style buttons on a subtle surface"
+			"nav_mode_chips_description": "Pill-style buttons on a subtle surface",
+			"nav_position_title": "Navigation Position",
+			"nav_position_description": "Choose where the navigation sits relative to the hero section.",
+			"nav_position_below": "Below hero",
+			"nav_position_below_description": "Primary site nav under the header",
+			"nav_position_above": "Above hero",
+			"nav_position_above_description": "Acts as a 'you are here' facet selector at the top"
 		},
 		"import": {
 			"resume_dropzone_label": "Resume file drop zone"

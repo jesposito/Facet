@@ -84,6 +84,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				HomepageSections      map[string]services.HomepageSectionConfig `json:"homepage_sections"`
 				SiteNavEnabled        *bool                                     `json:"site_nav_enabled"`
 				SiteNavMode           *string                                   `json:"site_nav_mode"`
+				SiteNavPosition       *string                                   `json:"site_nav_position"`
 				SiteNavItems          []services.SiteNavItem                    `json:"site_nav_items"`
 				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
@@ -145,6 +146,13 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					mode = "bar"
 				}
 				updates["site_nav_mode"] = mode
+			}
+			if req.SiteNavPosition != nil {
+				pos := strings.TrimSpace(*req.SiteNavPosition)
+				if pos != "above" && pos != "below" {
+					pos = "below"
+				}
+				updates["site_nav_position"] = pos
 			}
 			if req.SiteNavItems != nil {
 				updates["site_nav_items"] = req.SiteNavItems
