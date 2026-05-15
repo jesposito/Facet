@@ -90,7 +90,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 					accent_color: undefined,
 					hero_image_url: undefined,
 					font_pack: undefined,
-					hero_layout: undefined
+					hero_layout: undefined,
+					hero_spacing: undefined
 				},
 				profile: null,
 				sections: {},
@@ -166,7 +167,8 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				hero_image_url: viewData.hero_image_url || null,
 				cta_enabled: viewData.cta_enabled !== false,
 				font_pack: viewData.font_pack || null,
-				hero_layout: viewData.hero_layout || null
+				hero_layout: viewData.hero_layout || null,
+				hero_spacing: viewData.hero_spacing || null
 			},
 			profile: profile ? {
 				...profile,

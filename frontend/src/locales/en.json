@@ -1998,7 +1998,12 @@
 			"nav_position_below": "Below hero",
 			"nav_position_below_description": "Primary site nav under the header",
 			"nav_position_above": "Above hero",
-			"nav_position_above_description": "Acts as a 'you are here' facet selector at the top"
+			"nav_position_above_description": "Acts as a 'you are here' facet selector at the top",
+			"hero_spacing_title": "Hero Spacing",
+			"hero_spacing_description": "Vertical breathing room around the hero section.",
+			"hero_spacing_compact": "Compact",
+			"hero_spacing_default": "Default",
+			"hero_spacing_spacious": "Spacious"
 		},
 		"import": {
 			"resume_dropzone_label": "Resume file drop zone"

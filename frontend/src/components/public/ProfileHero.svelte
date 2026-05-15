@@ -4,23 +4,34 @@
 	import { parseMarkdown } from '$lib/utils';
 
 	type HeroLayout = 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
+	type HeroSpacing = 'compact' | 'default' | 'spacious' | '';
 
 	interface Props {
 		profile: Profile | null;
 		layout?: HeroLayout;
+		spacing?: HeroSpacing;
 	}
 
-	let { profile, layout = 'standard' }: Props = $props();
+	let { profile, layout = 'standard', spacing = '' }: Props = $props();
 
 	let contactLinks = $derived(profile?.contact_links || []);
 	let heroImageUrl = $derived(profile?.hero_image_url || null);
 	let avatarUrl = $derived((profile as unknown as Record<string, string>)?.avatar_url || null);
+
+	// Vertical breathing room — cloud parity (ProfileHero.svelte lines 28-34)
+	let heroSpacingClass = $derived(
+		spacing === 'compact'
+			? 'py-10 sm:py-14'
+			: spacing === 'spacious'
+				? 'py-24 sm:py-36'
+				: 'py-16 sm:py-24'
+	);
 </script>
 
 {#if layout === 'centered'}
 <!-- Centered: Bold headline centered, gradient/solid background, no image dependency -->
 <header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
-	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32 text-center">
+	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass} text-center">
 		{#if profile?.name}
 			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 tracking-tight" itemprop="name">
 				{profile.name}
@@ -73,7 +84,7 @@
 {:else if layout === 'split'}
 <!-- Split: Text left, avatar/image right -->
 <header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
-	<div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+	<div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		<div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
 			<div class="md:col-span-3">
 				{#if profile?.name}
@@ -150,7 +161,7 @@
 {:else if layout === 'minimal'}
 <!-- Minimal: Large typography, no image, maximum whitespace -->
 <header class="relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white" itemscope itemtype="https://schema.org/Person">
-	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
+	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		{#if profile?.name}
 			<h1 class="text-display-lg sm:text-display-xl font-bold mb-6 tracking-tight" itemprop="name">
 				{profile.name}
@@ -204,7 +215,7 @@
 <!-- Stacked: Headline at top, full-width image below -->
 <header class="relative" itemscope itemtype="https://schema.org/Person">
 	<div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 			<div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
 				{#if avatarUrl}
 					<img
@@ -295,7 +306,7 @@
 		</div>
 	{/if}
 
-	<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+	<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		<div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
 			{#if avatarUrl}
 				<img

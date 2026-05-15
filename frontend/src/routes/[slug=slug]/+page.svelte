@@ -521,6 +521,7 @@
 				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
 			}}
 			layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
+			spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
 		/>
 
 		<!-- Site Navigation (below hero) / CTA banner - only on public views -->

@@ -622,6 +622,7 @@
 			location
 		}}
 		layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
+		spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
 	/>
 
 	<!-- Site Navigation (below hero) / CTA Banner - only renders when position='below' (default) -->

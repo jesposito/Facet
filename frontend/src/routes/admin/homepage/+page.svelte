@@ -102,6 +102,7 @@ import { t } from 'svelte-i18n';
 	let ctaUrl = $state('');
 	let ctaButtonText = $state('');
 	let heroLayout = $state('');
+	let heroSpacing = $state('');
 
 	const heroLayoutOptions = [
 		{ id: 'standard', labelKey: 'admin.settings_page.appearance.hero_layout_standard' },
@@ -109,6 +110,12 @@ import { t } from 'svelte-i18n';
 		{ id: 'split', labelKey: 'admin.settings_page.appearance.hero_layout_split' },
 		{ id: 'minimal', labelKey: 'admin.settings_page.appearance.hero_layout_minimal' },
 		{ id: 'stacked', labelKey: 'admin.settings_page.appearance.hero_layout_stacked' }
+	];
+
+	const heroSpacingOptions = [
+		{ id: 'compact', labelKey: 'admin.homepage.hero_spacing_compact' },
+		{ id: 'default', labelKey: 'admin.homepage.hero_spacing_default' },
+		{ id: 'spacious', labelKey: 'admin.homepage.hero_spacing_spacious' }
 	];
 
 	// Image fields
@@ -393,6 +400,7 @@ import { t } from 'svelte-i18n';
 				ctaUrl = (profile.cta_url as string) || '';
 				ctaButtonText = (profile.cta_button_text as string) || '';
 				heroLayout = (profile.hero_layout as string) || '';
+				heroSpacing = (profile.hero_spacing as string) || '';
 
 				if (profile.avatar) {
 					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
@@ -443,6 +451,7 @@ import { t } from 'svelte-i18n';
 			formData.append('cta_url', ctaUrl);
 			formData.append('cta_button_text', ctaButtonText);
 			formData.append('hero_layout', heroLayout || 'standard');
+			formData.append('hero_spacing', heroSpacing || 'default');
 
 			if (avatarFile) {
 				formData.append('avatar', avatarFile);
@@ -982,7 +991,7 @@ import { t } from 'svelte-i18n';
 					{#each heroLayoutOptions as layoutOption}
 						<button
 							type="button"
-							class="px-3 py-2 rounded-lg border transition-all text-sm
+							class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11
 								{heroLayout === layoutOption.id
 								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
 								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
@@ -996,6 +1005,27 @@ import { t } from 'svelte-i18n';
 				<p class="text-xs text-gray-500 mt-2">
 					{$t('admin.settings_page.appearance.hero_layout_description')}
 				</p>
+			</div>
+
+			<!-- Hero Spacing -->
+			<div class="pt-4">
+				<span class="label mb-1 block">{$t('admin.homepage.hero_spacing_title')}</span>
+				<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.hero_spacing_description')}</p>
+				<div class="flex flex-wrap items-center gap-2" role="group" aria-label={$t('admin.homepage.hero_spacing_title')}>
+					{#each heroSpacingOptions as spacingOption}
+						<button
+							type="button"
+							class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11
+								{(heroSpacing || 'default') === spacingOption.id
+								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+							onclick={() => heroSpacing = spacingOption.id}
+							aria-pressed={(heroSpacing || 'default') === spacingOption.id}
+						>
+							{$t(spacingOption.labelKey)}
+						</button>
+					{/each}
+				</div>
 			</div>
 			</div>
 

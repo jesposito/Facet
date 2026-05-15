@@ -69,6 +69,7 @@ export interface Profile {
 	custom_hex_color?: string;
 	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric';
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
+	hero_spacing?: 'compact' | 'default' | 'spacious';
 	cta_text?: string;
 	cta_url?: string;
 	cta_button_text?: string;
@@ -414,6 +415,7 @@ export interface View {
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
 	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | null;
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | null;
+	hero_spacing?: 'compact' | 'default' | 'spacious' | null;
 }
 
 export interface ItemConfig {
