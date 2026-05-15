@@ -19,15 +19,24 @@ import { t } from 'svelte-i18n';
 	import { FONT_PACKS, FONT_PACK_LIST, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
 
 	let brandOpen = $state(false);
+	let navOpen = $state(false);
 	onMount(() => {
-		// Auto-expand brand section on hash deep-link (cloud parity)
-		if (typeof window !== 'undefined' && window.location.hash === '#brand-section') {
+		// Auto-expand sections on hash deep-link (cloud parity)
+		if (typeof window === 'undefined') return;
+		const hash = window.location.hash;
+		if (hash === '#brand-section') {
 			brandOpen = true;
 			queueMicrotask(() => {
 				document.getElementById('brand-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			});
+		} else if (hash === '#nav-section') {
+			navOpen = true;
+			queueMicrotask(() => {
+				document.getElementById('nav-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			});
 		}
 	});
+
 
 	// Import DnD safely - only in browser (for site navigation reordering)
 	let navDndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -66,6 +75,7 @@ import { t } from 'svelte-i18n';
 	let siteNavPosition = $state('below');
 	let siteCtaEnabled = $state(true); // Global CTA toggle (defaults to true for existing behavior)
 	let siteNavItems: Array<{ viewId: string; enabled: boolean; label: string }> = $state([]);
+	let enabledNavCount = $derived(siteNavItems.filter((i) => i.enabled).length);
 	let publicViews: View[] = $state([]);
 	let publicViewsLoading = $state(true);
 
@@ -1430,13 +1440,28 @@ import { t } from 'svelte-i18n';
 			{/if}
 		</div>
 
-		<!-- Site Navigation -->
-			<div class="card p-6 space-y-4">
+		<!-- Site Navigation (collapsible) -->
+		<div id="nav-section">
+			<AccordionSection
+				title="Site Navigation"
+				description="Turn your Facet into a multi-page website. Navigation buttons appear on your homepage and all public facets."
+				bind:open={navOpen}
+				iconPath="M4 6h16M4 12h16M4 18h7"
+			>
+				{#snippet badge()}
+					<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {siteNavEnabled ? 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300' : 'bg-stone-100 text-stone-700 dark:bg-stone-700 dark:text-stone-300'}">
+						{siteNavEnabled ? `On · ${enabledNavCount}` : 'Off'}
+					</span>
+				{/snippet}
+				<div class="space-y-4">
 				<div class="flex items-start justify-between gap-4">
 					<div class="flex-1">
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Site Navigation</h2>
 						<p class="text-sm text-gray-600 dark:text-gray-400">
-							Turn your Facet into a multi-page website. When enabled, navigation buttons appear on your homepage and all public facets.
+							{#if siteNavEnabled}
+								Navigation is <span class="font-medium text-primary-600 dark:text-primary-400">enabled</span> with {enabledNavCount} facet{enabledNavCount === 1 ? '' : 's'} active.
+							{:else}
+								Navigation is <span class="font-medium text-stone-500 dark:text-stone-400">disabled</span>. Toggle to enable.
+							{/if}
 						</p>
 					</div>
 					<label class="relative inline-flex items-center cursor-pointer">
@@ -1446,6 +1471,7 @@ import { t } from 'svelte-i18n';
 							checked={siteNavEnabled}
 							onchange={toggleSiteNavEnabled}
 							disabled={settingsLoading}
+							aria-label="Enable site navigation"
 						/>
 						<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 					</label>
@@ -1579,6 +1605,8 @@ import { t } from 'svelte-i18n';
 						{/if}
 					</div>
 				{/if}
+				</div>
+				</AccordionSection>
 			</div>
 
 		</form>
