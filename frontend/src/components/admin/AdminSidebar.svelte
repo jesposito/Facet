@@ -290,7 +290,7 @@
 		for (const entry of settingsItems) {
 			if (!isSubGroup(entry)) hrefs.add(entry.href);
 		}
-		for (const facet of facets) hrefs.add(`/admin/views/${facet.id}`);
+		// Individual facet IDs removed — sidebar now shows single link to /admin/views
 		return hrefs;
 	});
 
@@ -455,66 +455,26 @@
 			</button>
 			{#if isSectionExpanded(SECTION_IDS.facets)}
 			<div id="sidebar-facets-items" class="space-y-1 animate-slide-in-down">
-					{#if facetsLoading}
-						<div class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 {$adminSidebarOpen ? '' : 'sr-only'}">
-							{$t('admin.sidebar.loading')}
-						</div>
-					{:else if facetsError}
-						<!-- Error state with retry -->
-						<div class="px-3 py-2 {$adminSidebarOpen ? '' : 'sr-only'}">
-							<p class="text-sm text-red-500 dark:text-red-400 mb-2">{$t('admin.sidebar.unable_to_load_facets')}</p>
-							<button
-								type="button"
-								onclick={() => loadFacets()}
-								class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
-							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-								</svg>
-								{$t('admin.sidebar.retry')}
-							</button>
-						</div>
-					{:else}
-						{#each facets as facet}
-							<a
-								href="/admin/views/{facet.id}"
-								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(`/admin/views/${facet.id}`)
-									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? `${$t('admin.sidebar.facets')}: ${facet.name}` : undefined}
-								aria-current={isActive(`/admin/views/${facet.id}`) ? 'page' : undefined}
-							>
-								<!-- Diamond icon -->
-								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
-								</svg>
-								<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
-									<span class="truncate" title={facet.name as string}>{facet.name}</span>
-									<!-- Visibility indicator -->
-									{#if facet.visibility === 'public'}
-										<span class="w-2 h-2 rounded-full bg-green-500 shrink-0" title={$t('admin.sidebar.public')}></span>
-									{:else if facet.visibility === 'unlisted'}
-										<span class="w-2 h-2 rounded-full bg-yellow-500 shrink-0" title={$t('admin.sidebar.unlisted')}></span>
-									{:else if facet.visibility === 'private' || facet.visibility === 'password'}
-										<span class="w-2 h-2 rounded-full bg-gray-400 shrink-0" title={$t('admin.sidebar.private')}></span>
-									{/if}
+					<a
+						href="/admin/views"
+						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views')
+							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+							: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+						title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
+						aria-current={isActive('/admin/views') ? 'page' : undefined}
+					>
+						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
+						</svg>
+						<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
+							<span class="truncate">{$t('admin.sidebar.facets')}</span>
+							{#if facetsTotalCount > 0}
+								<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{facetsTotalCount} facets">
+									{facetsTotalCount}
 								</span>
-							</a>
-						{/each}
-					{/if}
-					<!-- View more link - only show if there are more than 4 facets -->
-					{#if facetsTotalCount > 4}
-						<a
-							href="/admin/views"
-							class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-							title={!$adminSidebarOpen ? $t('admin.sidebar.view_more') : undefined}
-						>
-							<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-							</svg>
-							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.view_more')}</span>
-						</a>
-					{/if}
+							{/if}
+						</span>
+					</a>
 					<!-- New Facet button - always visible -->
 					<a
 						href="/admin/views/new"
