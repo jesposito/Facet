@@ -14,8 +14,20 @@ import { t } from 'svelte-i18n';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
 	import AccentPicker from '$components/admin/AccentPicker.svelte';
+	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 	import { DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
 	import { FONT_PACKS, FONT_PACK_LIST, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
+
+	let brandOpen = $state(false);
+	onMount(() => {
+		// Auto-expand brand section on hash deep-link (cloud parity)
+		if (typeof window !== 'undefined' && window.location.hash === '#brand-section') {
+			brandOpen = true;
+			queueMicrotask(() => {
+				document.getElementById('brand-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			});
+		}
+	});
 
 	// Import DnD safely - only in browser (for site navigation reordering)
 	let navDndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -1172,12 +1184,15 @@ import { t } from 'svelte-i18n';
 			</div>
 			</div>
 
-			<!-- Brand: accent color + typography -->
-			<div id="brand-section" class="card p-6 space-y-6">
-				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.homepage.brand_title')}</h2>
-					<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.homepage.brand_description')}</p>
-				</div>
+			<!-- Brand: accent color + typography (collapsible) -->
+			<div id="brand-section">
+				<AccordionSection
+					title={$t('admin.homepage.brand_title')}
+					description={$t('admin.homepage.brand_description')}
+					bind:open={brandOpen}
+					iconPath="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+				>
+					<div class="space-y-6">
 				<AccentPicker
 					value={accentColor}
 					customHex={customHexColor}
@@ -1214,6 +1229,8 @@ import { t } from 'svelte-i18n';
 						{/each}
 					</div>
 				</div>
+					</div>
+				</AccordionSection>
 			</div>
 
 			<div class="card p-6 space-y-4">
