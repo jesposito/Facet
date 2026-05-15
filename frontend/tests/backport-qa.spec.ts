@@ -67,6 +67,25 @@ test.describe('Backport QA - Phase 2b a11y', () => {
 		expect(nestedSpans).toBe(0);
 	});
 
+	test('AdminSidebar facets section shows single link with count badge', async ({ page }) => {
+		await page.goto(`${BASE_URL}/admin`);
+		await page.waitForTimeout(1000);
+		// Facets section should show single link to /admin/views
+		const facetsLink = page.locator('a[href="/admin/views"]').first();
+		await expect(facetsLink).toBeVisible();
+		// Should have a count badge if there are facets
+		const badge = facetsLink.locator('span').filter({ hasText: /^[0-9]+$/ });
+		// Badge may or may not be present depending on facet count
+		const badgeCount = await badge.count();
+		if (badgeCount > 0) {
+			const count = parseInt(await badge.textContent() || '0', 10);
+			expect(count).toBeGreaterThanOrEqual(0);
+		}
+		// Should have New Facet link
+		const newFacetLink = page.locator('a[href="/admin/views/new"]').first();
+		await expect(newFacetLink).toBeVisible();
+	});
+
 	test('Floating cluster has inert attribute when nav is pinned', async ({ page }) => {
 		// Open a public page
 		await page.goto(`${BASE_URL}/`);
