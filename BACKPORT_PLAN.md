@@ -45,8 +45,9 @@
 
 ### P0 — High Confidence, High Value, Zero Regression Risk
 
-#### 3.1 Dirty Navigation Nudge (v3.20.0 — `facets-fy56`)
+#### 3.1 Dirty Navigation Nudge (v3.20.0 — `facets-fy56`) ⏳ DEFERRED
 - **What:** Replaces browser `beforeunload` with a custom `<dialog>`-based nudge for in-app navigation when editor has unsaved changes
+- **Status:** Deferred. Self-hosted lacks cloud's unified `ContentEditor.svelte` shell; would need per-page integration into every editor route (views, posts, talks, projects, newsletter, subscribers). Significant scope.
 - **Files to port:**
   - `frontend/src/lib/components/editor/DirtyNavigationNudge.svelte` (new)
   - Integration into editor shell / routes
@@ -54,22 +55,22 @@
 - **Risk:** Near-zero. Pure UI component using native `<dialog>`
 - **Issues affected:** None directly, but prevents data loss
 
-#### 3.2 ConfirmDialog Hardening (v3.0.91+ — `facets-sh-0ou`)
+#### 3.2 ConfirmDialog Hardening (v3.0.91+ — `facets-sh-0ou`) ✅
 - **What:** Fixes focus restoration when one confirm dialog pre-empts another (e.g., admin list `x` shortcut opens new dialog while old one is still showing). Adds `contentKey` for keyed remount, guards `previousActiveElement` with `wasOpen` state, checks `document.contains()` before restoring focus.
 - **Files:** `frontend/src/components/shared/ConfirmDialog.svelte`
 - **Risk:** Very low. Focus-management bugfix.
 - **Issues affected:** #405 (focus trap reliability)
 
-#### 3.3 SkillsCategoryManager Keyboard Reordering (v3.0.63+ related)
+#### 3.3 SkillsCategoryManager Keyboard Reordering (v3.0.63+ related) ✅
 - **What:** Adds `moveCategory()` function with up/down arrow buttons for keyboard-accessible category reordering. Also filters DnD shadow placeholders for visual consistency.
 - **Files:** `frontend/src/components/admin/SkillsCategoryManager.svelte`
 - **Risk:** Low. Enhances existing component, no schema changes.
 - **Issues affected:** #259 (Change order of skill categories), #404 (keyboard DnD support)
 
-#### 3.4 CSS/SSR Fixes
-- **v3.18.6:** Ensure trailing semicolon on inline-style CSS var concat
-- **v3.18.3:** Make floating cluster inert when nav pinned
-- **v3.20.1:** Chips mobile hamburger + CTA collision fix
+#### 3.4 CSS/SSR Fixes ✅
+- **v3.18.6:** Ensure trailing semicolon on inline-style CSS var concat ✅
+- **v3.18.3:** Make floating cluster inert when nav pinned ✅
+- **v3.20.1:** Chips mobile hamburger + CTA collision fix ⏳
 - **Risk:** Near-zero. One-liner or small CSS changes.
 
 ---
@@ -202,26 +203,29 @@
 3. ✅ Port CSS/SSR micro-fixes (semicolon, floating cluster inert, chips collision)
 4. ⏳ Port `DirtyNavigationNudge.svelte` — deferred until editor shell refactor
 
-### Phase 2: P1 Safe Components (current)
-5. Port `AccentPicker.svelte` a11y + keyboard nav
-6. Port `ConfirmDiscardDialog.svelte`
-7. Port `MediaEditModal.svelte` + integrate with media library (#348)
+### Phase 2: P1 Safe Components ✅ COMPLETE
+5. ✅ Port `AccentPicker.svelte` a11y + keyboard nav
+6. ✅ Port MarkdownEditor inline dialog (replaces window.prompt/alert)
+7. ✅ AdminSidebar span→button fix + restructuring
+8. ⏳ Port `ConfirmDiscardDialog.svelte` — deferred until editor shell refactor
+9. ⏳ Port `MediaEditModal.svelte` — self-hosted already has equivalent inline modal
 
-### Phase 3: P1 Admin a11y + Keyboard Nav
-8. Port `createListShortcuts` + `createTableShortcuts` composables
-9. Port `KeyboardShortcutsHelp.svelte`
-10. Adopt keyboard nav on 3–4 highest-traffic admin list pages
+### Phase 3: P1 Admin a11y + Keyboard Nav (current)
+10. Port `createListShortcuts` + `createTableShortcuts` composables
+11. Port `KeyboardShortcutsHelp.svelte`
+12. Adopt keyboard nav on 3–4 highest-traffic admin list pages
 
 ### Phase 4: P2 Structural UI (explicitly requested)
-11. Port sidebar facet display changes
-12. Port homepage section layout options
+13. Port sidebar facet display changes
+14. Port homepage section layout options
 
 ### Phase 5: P2-P3 Visual Polish & Features
-13. Port AutosaveIndicator / ConflictBanner (if SectionManager is aligned)
-14. Port TalksSection visual refresh
-15. Assess FacetChipStrip for testimonials (#283)
-16. Visible focus ring on mobile icon switchers
-17. SSR pressure gauge / fast recovery
+15. Port keyboard move buttons for remaining DnD zones (ViewSectionManager, NewViewSectionBuilder) — HomepageSectionManager ✅
+16. Port AutosaveIndicator / ConflictBanner (if SectionManager is aligned)
+17. Port TalksSection visual refresh
+18. Assess FacetChipStrip for testimonials (#283)
+19. Visible focus ring on mobile icon switchers
+20. SSR pressure gauge / fast recovery
 
 ### Phase 6: P3 New Features (future)
 18. Implement dark mode default setting (#434) — new work, not backport
