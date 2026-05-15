@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { t } from 'svelte-i18n';
 	import { pb } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -33,7 +34,7 @@
 			}
 			console.error('Failed to load facets:', err);
 			if (mounted) {
-				toasts.add('error', 'Failed to load facets');
+				toasts.add('error', $t('admin.views.load_failed'));
 			}
 		} finally {
 			loading = false;
@@ -47,7 +48,7 @@
 			});
 			await loadViews();
 		} catch (err) {
-			toasts.add('error', 'Failed to update facet');
+			toasts.add('error', $t('admin.views.facet_update_failed'));
 		}
 	}
 
@@ -61,10 +62,10 @@
 		if (!confirmed) return;
 		try {
 			await collection('views').delete(id);
-			toasts.add('success', 'Facet deleted');
+			toasts.add('success', $t('admin.views.facet_deleted'));
 			await loadViews();
 		} catch (err) {
-			toasts.add('error', 'Failed to delete facet');
+			toasts.add('error', $t('admin.views.facet_delete_failed'));
 		}
 	}
 
@@ -76,7 +77,7 @@
 </script>
 
 <svelte:head>
-	<title>Facets | Facet</title>
+	<title>{$t('admin.views.title')} | Facet</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
@@ -87,8 +88,8 @@
 	</PageHelp>
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Facets</h1>
-		<a href="/admin/views/new" class="btn btn-primary">+ New Facet</a>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.views.title')}</h1>
+		<a href="/admin/views/new" class="btn btn-primary">+ {$t('admin.views.new_facet')}</a>
 	</div>
 
 	<p class="text-gray-600 dark:text-gray-400 mb-6">
@@ -97,13 +98,13 @@
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">Loading facets...</div>
+			<div class="animate-pulse">{$t('admin.views.loading')}</div>
 		</div>
 	{:else if views.length === 0}
 		<div class="card p-8 text-center">
-			<p class="text-gray-600 dark:text-gray-400 mb-2">You haven't created any facets yet.</p>
-			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">Facets let you show different versions of your profile to different audiences.</p>
-			<a href="/admin/views/new" class="btn btn-primary">Create a Facet</a>
+			<p class="text-gray-600 dark:text-gray-400 mb-2">{$t('admin.views.empty_title')}</p>
+			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">{$t('admin.views.empty_description')}</p>
+			<a href="/admin/views/new" class="btn btn-primary">{$t('admin.views.create_facet')}</a>
 		</div>
 	{:else}
 		<div class="space-y-4">
@@ -115,7 +116,7 @@
 								<h3 class="font-medium text-gray-900 dark:text-white">{view.name}</h3>
 								{#if !view.is_active}
 									<span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
-										Inactive
+										{$t('admin.views.inactive')}
 									</span>
 								{/if}
 								<span class="px-2 py-0.5 text-xs rounded
@@ -154,7 +155,7 @@
 								{@html icon('eye')}
 							</a>
 							<a href="/admin/views/{view.id}" class="btn btn-sm btn-secondary">
-								Edit
+								{$t('admin.views.edit')}
 							</a>
 							<button
 								class="btn btn-sm btn-ghost p-2"
