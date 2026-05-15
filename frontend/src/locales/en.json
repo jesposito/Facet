@@ -2286,7 +2286,10 @@
 			"slides": "Slides",
 			"watch_video": "Watch Video",
 			"view_slides": "View Slides",
-			"view_details": "View details"
+			"view_details": "View details",
+			"watch_video_for": "Watch video for {title}",
+			"view_slides_for": "View slides for {title}",
+			"view_details_for": "View details for {title}"
 		},
 		"posts": {
 			"read_more": "Read more",

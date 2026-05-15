@@ -2239,7 +2239,10 @@
 			"slides": "Slidez",
 			"watch_video": "Watch Vidyo",
 			"view_slides": "C Slidez",
-			"view_details": "C moar"
+			"view_details": "C moar",
+			"watch_video_for": "Watch video for {title}",
+			"view_slides_for": "View slides for {title}",
+			"view_details_for": "View details for {title}"
 		},
 		"posts": {
 			"read_more": "Moar plz"

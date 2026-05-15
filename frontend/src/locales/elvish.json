@@ -2239,7 +2239,10 @@
 			"slides": "Scrolls",
 			"watch_video": "Behold Vision",
 			"view_slides": "View Scrolls",
-			"view_details": "View tale"
+			"view_details": "View tale",
+			"watch_video_for": "Watch video for {title}",
+			"view_slides_for": "View slides for {title}",
+			"view_details_for": "View details for {title}"
 		},
 		"posts": {
 			"read_more": "Read further"
