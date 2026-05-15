@@ -40,7 +40,19 @@ import { t } from 'svelte-i18n';
 		if (expand) {
 			expand();
 			queueMicrotask(() => {
-				document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				const target = document.getElementById(hash.slice(1));
+				target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				// SC 2.4.3 — move keyboard focus to the deep-link target so AT users
+				// don't have to tab from the top of the page after following the hash.
+				// The accordion's disclosure button is the right landing spot; falling
+				// back to a tabindex-injected wrapper preserves focus even on plain divs.
+				const trigger = target?.querySelector<HTMLButtonElement>('button[aria-expanded]');
+				if (trigger) {
+					trigger.focus();
+				} else if (target) {
+					target.setAttribute('tabindex', '-1');
+					target.focus();
+				}
 			});
 		}
 	});

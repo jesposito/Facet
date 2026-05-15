@@ -7,19 +7,8 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
-	import {
-		DEFAULT_ACCENT_COLOR,
-		type AccentColor
-	} from '$lib/colors';
-	import {
-		FONT_PACKS,
-		FONT_PACK_LIST,
-		DEFAULT_FONT_PACK,
-		type FontPack
-	} from '$lib/fonts';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
-import AccentPicker from '$components/admin/AccentPicker.svelte';
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	// Site settings (custom CSS, analytics, default theme mode)
@@ -64,23 +53,9 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 	// Export state
 	let exporting: string | null = $state(null);
 
-	// Appearance state
+	// Profile is only needed to know whether the user has set one up — the
+	// accent/typography/hero controls themselves now live on /admin/homepage.
 	let profile: Profile | null = $state(null);
-	let selectedAccentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
-	let customHexColor: string = $state('');
-	let savingAppearance = $state(false);
-	let selectedFontPack: FontPack = $state(DEFAULT_FONT_PACK);
-	let savingFontPack = $state(false);
-	let selectedHeroLayout = $state('standard');
-	let savingHeroLayout = $state(false);
-
-	const HERO_LAYOUTS = [
-		{ id: 'standard', label: 'Image & Gradient', description: 'Background image with gradient overlay' },
-		{ id: 'centered', label: 'Centered', description: 'Bold headline centered, no image needed' },
-		{ id: 'split', label: 'Split', description: 'Text left, image right' },
-		{ id: 'minimal', label: 'Minimal', description: 'Large typography, maximum whitespace' },
-		{ id: 'stacked', label: 'Stacked', description: 'Headline above, full-width image below' }
-	];
 
 	onMount(async () => {
 		await Promise.all([loadProfile(), loadSiteSettings(), loadSMTPSettings()]);
@@ -91,100 +66,9 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 			const records = await collection('profile').getList(1, 1);
 			if (records.items.length > 0) {
 				profile = records.items[0] as unknown as Profile;
-				selectedAccentColor = (profile.accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
-				customHexColor = (profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
-				selectedFontPack = (profile.font_pack as FontPack) || DEFAULT_FONT_PACK;
-				selectedHeroLayout = (profile as any).hero_layout || 'standard';
 			}
 		} catch (err) {
 			console.error('Failed to load profile:', err);
-		}
-	}
-
-	async function saveAccentColor(color: AccentColor) {
-		if (!profile) return;
-
-		savingAppearance = true;
-		try {
-			// Clearing custom hex when a curated swatch is chosen keeps storage in sync.
-			await collection('profile').update(profile.id, {
-				accent_color: color,
-				custom_hex_color: ''
-			});
-			selectedAccentColor = color;
-			customHexColor = '';
-			profile.accent_color = color;
-			(profile as unknown as { custom_hex_color?: string }).custom_hex_color = '';
-			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
-
-			// Dispatch event to notify layout of color change
-			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: color }));
-		} catch (err) {
-			console.error('Failed to save accent color:', err);
-			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
-		} finally {
-			savingAppearance = false;
-		}
-	}
-
-	async function saveCustomHexColor(hex: string) {
-		if (!profile) return;
-		savingAppearance = true;
-		try {
-			await collection('profile').update(profile.id, {
-				custom_hex_color: hex
-			});
-			customHexColor = hex;
-			(profile as unknown as { custom_hex_color?: string }).custom_hex_color = hex;
-			toasts.add('success', $t('admin.settings_page.appearance.accent_color_updated'));
-			// Notify layout to re-apply
-			window.dispatchEvent(new CustomEvent('accent-color-changed', { detail: hex }));
-		} catch (err) {
-			console.error('Failed to save custom hex color:', err);
-			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
-		} finally {
-			savingAppearance = false;
-		}
-	}
-
-	async function saveFontPack(pack: FontPack) {
-		if (!profile) return;
-		if (pack === selectedFontPack) return;
-
-		savingFontPack = true;
-		try {
-			await collection('profile').update(profile.id, {
-				font_pack: pack
-			});
-			selectedFontPack = pack;
-			profile.font_pack = pack;
-			toasts.add('success', 'Typography updated');
-			window.dispatchEvent(new CustomEvent('font-pack-changed', { detail: pack }));
-		} catch (err) {
-			console.error('Failed to save font pack:', err);
-			toasts.add('error', 'Failed to update typography');
-		} finally {
-			savingFontPack = false;
-		}
-	}
-
-	async function saveHeroLayout(layout: string) {
-		if (!profile) return;
-		if (layout === selectedHeroLayout) return;
-
-		savingHeroLayout = true;
-		try {
-			await collection('profile').update(profile.id, {
-				hero_layout: layout
-			});
-			selectedHeroLayout = layout;
-			(profile as any).hero_layout = layout;
-			toasts.add('success', 'Hero layout updated');
-		} catch (err) {
-			console.error('Failed to save hero layout:', err);
-			toasts.add('error', 'Failed to update hero layout');
-		} finally {
-			savingHeroLayout = false;
 		}
 	}
 
@@ -536,11 +420,6 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 
 <svelte:head>
 	<title>{$t('admin.settings_page.title')} - {$t('admin.settings_page.page_title_suffix')}</title>
-	<!-- Load all font pack fonts for typography preview -->
-	{#each FONT_PACK_LIST as pack}
-		{@const packInfo = FONT_PACKS[pack]}
-		<link href={packInfo.googleFontsUrl} rel="stylesheet" />
-	{/each}
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
@@ -551,136 +430,23 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.appearance.section_description')}</p>
 		</div>
 
-		<!-- Accent Color (collapsible) -->
-		<AccordionSection
-			title={$t('admin.settings_page.appearance.accent_color_title')}
-			description={$t('admin.settings_page.appearance.accent_color_description')}
-			iconPath="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-		>
-			{#if profile}
-				<AccentPicker
-					value={selectedAccentColor}
-					customHex={customHexColor}
-					onchange={(color) => saveAccentColor(color)}
-					onhexchange={(hex) => saveCustomHexColor(hex)}
-				/>
-			{:else}
-				<div class="text-gray-500 dark:text-gray-400 text-center py-4">
-					<p>{$t('admin.settings_page.appearance.no_profile_message')}</p>
-					<a href="/admin/homepage" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
-						{$t('admin.settings_page.appearance.go_to_homepage')}
-					</a>
-				</div>
-			{/if}
-		</AccordionSection>
-
-		<!-- Typography -->
+		<!-- Brand deep link — accent color, typography, and hero layout now live
+		     on the Homepage editor so brand stays consistent across every facet.
+		     A short pointer is kept here for users who land on Settings first. -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Typography</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.settings_page.appearance.brand_card_title')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				Choose a font combination for your profile. Each pack includes fonts for headings, body text, and code blocks.
+				{$t('admin.settings_page.appearance.brand_card_description')}
 			</p>
-
-		{#if profile}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				{#each FONT_PACK_LIST as pack}
-					{@const packInfo = FONT_PACKS[pack]}
-					{@const isSelected = selectedFontPack === pack}
-					<button
-						type="button"
-						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200
-							{isSelected
-							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
-							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
-						onclick={() => saveFontPack(pack)}
-						disabled={savingFontPack}
-					>
-						{#if isSelected}
-							<div class="absolute top-3 right-3">
-								<svg class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							</div>
-						{/if}
-						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
-							{packInfo.label}
-						</span>
-						<span class="block text-xs text-gray-500 dark:text-gray-400 mb-3">
-							{packInfo.description}
-						</span>
-						<div class="space-y-1 border-t border-gray-100 dark:border-gray-700 pt-3">
-							<p class="text-base font-semibold text-gray-800 dark:text-gray-200" style="font-family: '{packInfo.heading}', serif">
-								Heading Text
-							</p>
-							<p class="text-sm text-gray-600 dark:text-gray-400" style="font-family: '{packInfo.body}', sans-serif">
-								Body text looks like this sentence.
-							</p>
-							<p class="text-xs text-gray-500 dark:text-gray-300" style="font-family: '{packInfo.code}', monospace">
-								const code = "example";
-							</p>
-						</div>
-					</button>
-				{/each}
-			</div>
-
-			{#if selectedFontPack !== DEFAULT_FONT_PACK}
-				<button
-					type="button"
-					class="mt-3 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-					onclick={() => saveFontPack(DEFAULT_FONT_PACK)}
-					disabled={savingFontPack}
-				>
-					Reset to default
-				</button>
-			{/if}
-		{:else}
-			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
-				<p>Set up your profile first to customize typography.</p>
-			</div>
-		{/if}
-		</div>
-
-		<!-- Hero Layout -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Hero Layout</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				Choose the default hero section layout for your profile. Views can override this with their own layout.
-			</p>
-
-		{#if profile}
-			<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-				{#each HERO_LAYOUTS as layout}
-					{@const isSelected = selectedHeroLayout === layout.id}
-					<button
-						type="button"
-						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200
-							{isSelected
-							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
-							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
-						onclick={() => saveHeroLayout(layout.id)}
-						disabled={savingHeroLayout}
-					>
-						{#if isSelected}
-							<div class="absolute top-3 right-3">
-								<svg class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							</div>
-						{/if}
-						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
-							{layout.label}
-						</span>
-						<span class="block text-xs text-gray-500 dark:text-gray-400">
-							{layout.description}
-						</span>
-					</button>
-				{/each}
-			</div>
-		{:else}
-			<div class="text-gray-500 dark:text-gray-400 text-center py-4">
-				<p>Set up your profile first to customize the hero layout.</p>
-			</div>
-		{/if}
+			<a
+				href="/admin/homepage#brand-section"
+				class="btn btn-secondary inline-flex items-center gap-2"
+			>
+				{$t('admin.settings_page.appearance.brand_card_cta')}
+				<span aria-hidden="true">→</span>
+			</a>
 		</div>
 
 		<!-- Default Theme Mode -->
