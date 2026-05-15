@@ -26,7 +26,12 @@
 	}
 
 	body {
-		overflow-x: hidden;
+		/* overflow-x: clip — modern equivalent of `hidden` that does NOT create
+		   a scroll container, so `position: sticky` inside still anchors to the
+		   viewport. With `hidden`, descendants like the sticky save header on
+		   /admin/homepage and /admin/views/[id] anchor to body instead and
+		   never appear pinned on scroll. */
+		overflow-x: clip;
 		overscroll-behavior-x: none;
 	}
 
