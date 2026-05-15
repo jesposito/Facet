@@ -3,18 +3,38 @@ import type { Profile, Experience, Project, Education, Skill } from './pocketbas
 import { fetchWithTimeout } from './utils';
 
 // Theme store
+//
+// Theme resolution precedence (highest to lowest):
+//   1. localStorage 'theme' — per-user override via ThemeToggle, persists across visits
+//   2. serverDefault (admin setting `default_theme_mode`) — when 'light' or 'dark'
+//   3. window prefers-color-scheme — when serverDefault is 'system' (or unset)
+//   4. 'light' — final fallback
+//
+// The FOUC script in app.html runs before SvelteKit hydrates and only sees
+// localStorage + prefers-color-scheme (no SSR data access). When admin's
+// default_theme_mode is 'dark' but the user has no localStorage entry AND no
+// system dark preference, the page paints light briefly, then this store
+// flips it on hydration. Acceptable tradeoff for a static FOUC script.
 function createThemeStore() {
 	const { subscribe, set } = writable<'light' | 'dark'>('light');
 
 	return {
 		subscribe,
-		initialize: () => {
+		initialize: (serverDefault?: string) => {
 			if (typeof window === 'undefined') return;
 			const saved = localStorage.getItem('theme');
 			if (saved === 'dark' || saved === 'light') {
 				set(saved);
 				document.documentElement.classList.toggle('dark', saved === 'dark');
-			} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				return;
+			}
+			// No per-user override — honor admin default if explicit, else system pref
+			if (serverDefault === 'dark' || serverDefault === 'light') {
+				set(serverDefault);
+				document.documentElement.classList.toggle('dark', serverDefault === 'dark');
+				return;
+			}
+			if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
 				set('dark');
 				document.documentElement.classList.add('dark');
 			}

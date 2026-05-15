@@ -22,12 +22,20 @@
 import AccentPicker from '$components/admin/AccentPicker.svelte';
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
-	// Site settings (custom CSS, analytics)
+	// Site settings (custom CSS, analytics, default theme mode)
 	let siteSettingsLoading = $state(true);
 	let siteSettingsSaving = $state(false);
 	let customCSS = $state('');
 	let gaMeasurementId = $state('');
+	let defaultThemeMode = $state<'system' | 'light' | 'dark'>('system');
+	let savingThemeMode = $state(false);
 	let showCSSHelp = $state(false);
+
+	const THEME_MODE_OPTIONS: Array<{ id: 'system' | 'light' | 'dark'; labelKey: string; descKey: string }> = [
+		{ id: 'system', labelKey: 'admin.settings_page.appearance.default_theme_system', descKey: 'admin.settings_page.appearance.default_theme_system_desc' },
+		{ id: 'light', labelKey: 'admin.settings_page.appearance.default_theme_light', descKey: 'admin.settings_page.appearance.default_theme_light_desc' },
+		{ id: 'dark', labelKey: 'admin.settings_page.appearance.default_theme_dark', descKey: 'admin.settings_page.appearance.default_theme_dark_desc' }
+	];
 
 	// Favicon state
 	let faviconUrl: string | null = $state(null);
@@ -189,11 +197,47 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 				customCSS = data.custom_css || '';
 				gaMeasurementId = data.ga_measurement_id || '';
 				faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
+				const mode = data.default_theme_mode;
+				if (mode === 'system' || mode === 'light' || mode === 'dark') {
+					defaultThemeMode = mode;
+				}
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
 		} finally {
 			siteSettingsLoading = false;
+		}
+	}
+
+	async function saveDefaultThemeMode(mode: 'system' | 'light' | 'dark') {
+		if (mode === defaultThemeMode) return;
+		savingThemeMode = true;
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || ''
+				},
+				body: JSON.stringify({ default_theme_mode: mode })
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				toasts.add('error', result.error || $t('admin.settings_page.appearance.default_theme_error'));
+				return;
+			}
+			const saved = result.default_theme_mode;
+			if (saved === 'system' || saved === 'light' || saved === 'dark') {
+				defaultThemeMode = saved;
+			} else {
+				defaultThemeMode = mode;
+			}
+			toasts.add('success', $t('admin.settings_page.appearance.default_theme_updated'));
+		} catch (err) {
+			console.error('Failed to save default theme mode:', err);
+			toasts.add('error', $t('admin.settings_page.appearance.default_theme_error'));
+		} finally {
+			savingThemeMode = false;
 		}
 	}
 
@@ -637,6 +681,54 @@ import AccentPicker from '$components/admin/AccentPicker.svelte';
 				<p>Set up your profile first to customize the hero layout.</p>
 			</div>
 		{/if}
+		</div>
+
+		<!-- Default Theme Mode -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.appearance.default_theme_title')}</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				{$t('admin.settings_page.appearance.default_theme_description')}
+			</p>
+
+			<div
+				role="radiogroup"
+				aria-label={$t('admin.settings_page.appearance.default_theme_title')}
+				class="grid grid-cols-1 sm:grid-cols-3 gap-3"
+			>
+				{#each THEME_MODE_OPTIONS as option}
+					{@const isSelected = defaultThemeMode === option.id}
+					<button
+						type="button"
+						role="radio"
+						aria-checked={isSelected}
+						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200 min-h-[44px]
+							{isSelected
+							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
+							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
+							disabled:opacity-50 disabled:cursor-not-allowed"
+						onclick={() => saveDefaultThemeMode(option.id)}
+						disabled={savingThemeMode || siteSettingsLoading}
+					>
+						{#if isSelected}
+							<div class="absolute top-3 right-3">
+								<svg class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							</div>
+						{/if}
+						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+							{$t(option.labelKey)}
+						</span>
+						<span class="block text-xs text-gray-500 dark:text-gray-400">
+							{$t(option.descKey)}
+						</span>
+					</button>
+				{/each}
+			</div>
+
+			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+				{$t('admin.settings_page.appearance.default_theme_help')}
+			</p>
 		</div>
 
 		<!-- Favicon -->

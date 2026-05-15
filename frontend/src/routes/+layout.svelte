@@ -25,6 +25,7 @@
 			customCSS: string | null;
 			defaultLocale: string | null;
 			showAvatar: boolean;
+			defaultThemeMode: string;
 		};
 	}
 
@@ -300,7 +301,9 @@ function applyCustomCSS(css: string) {
 
 onMount(() => {
 	mounted = true;
-	theme.initialize();
+	// Pass admin-configured default ('system' | 'light' | 'dark') so theme.initialize()
+	// can fall back to it when the user has no localStorage preference yet.
+	theme.initialize(data.defaultThemeMode);
 	(async () => {
 		// Load plan config only if SSR didn't provide it (fallback for client-side navigation)
 		if (!data.planConfig) {

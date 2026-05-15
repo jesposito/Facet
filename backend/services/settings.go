@@ -170,10 +170,28 @@ type SiteSettings struct {
 	SiteCtaEnabled        bool
 	Favicon               string
 	DefaultLocale         string
+	DefaultThemeMode      string
 	HomepageViewCount     int
 	HomepageLastViewedAt  string
 	EnabledFeatures       map[string]bool
 	Record                *core.Record
+}
+
+// loadDefaultThemeMode returns the default_theme_mode field, falling back to
+// "system" when the field isn't present (pre-migration records) or is empty.
+// Valid values are: "system", "light", "dark".
+func loadDefaultThemeMode(record *core.Record) string {
+	if record == nil {
+		return "system"
+	}
+	if record.Collection() != nil && record.Collection().Fields.GetByName("default_theme_mode") == nil {
+		return "system"
+	}
+	mode := record.GetString("default_theme_mode")
+	if mode == "" {
+		return "system"
+	}
+	return mode
 }
 
 // loadShowAvatar returns the show_avatar field as bool, defaulting to true when
@@ -298,6 +316,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		SiteCtaEnabled:        siteCtaEnabled,
 		Favicon:               faviconURL,
 		DefaultLocale:         record.GetString("default_locale"),
+		DefaultThemeMode:      loadDefaultThemeMode(record),
 		HomepageViewCount:     record.GetInt("homepage_view_count"),
 		HomepageLastViewedAt:  record.GetString("homepage_last_viewed_at"),
 		EnabledFeatures:       enabledFeatures,
@@ -425,6 +444,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("default_locale", locale)
 		} else if logger != nil {
 			logger.Warn("default_locale field missing on site_settings, skipping update")
+		}
+	}
+	if mode, ok := updates["default_theme_mode"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("default_theme_mode") != nil {
+			settings.Record.Set("default_theme_mode", mode)
+		} else if logger != nil {
+			logger.Warn("default_theme_mode field missing on site_settings, skipping update")
 		}
 	}
 	if features, ok := updates["enabled_features"]; ok {

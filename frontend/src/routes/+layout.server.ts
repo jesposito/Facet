@@ -14,11 +14,12 @@ import { logger } from '$lib/logger';
 export const load: LayoutServerLoad = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
-	// Fetch site settings server-side (favicon, custom CSS, locale, show_avatar)
+	// Fetch site settings server-side (favicon, custom CSS, locale, show_avatar, default theme)
 	let faviconUrl: string | null = null;
 	let customCSS: string | null = null;
 	let defaultLocale: string | null = null;
 	let showAvatar = true;
+	let defaultThemeMode = 'system';
 	try {
 		const siteSettingsResponse = await fetch(`${pbUrl}/api/site-settings`, {
 			headers: { 'X-Internal': 'true' }
@@ -29,6 +30,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 			customCSS = siteSettings.custom_css || null;
 			defaultLocale = siteSettings.default_locale || null;
 			showAvatar = siteSettings.show_avatar !== false;
+			defaultThemeMode = siteSettings.default_theme_mode || 'system';
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load site settings:', error);
@@ -100,6 +102,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		fontPack,
 		customCSS,
 		defaultLocale,
-		showAvatar
+		showAvatar,
+		defaultThemeMode
 	};
 };
