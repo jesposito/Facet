@@ -558,7 +558,104 @@
 			"new_post": "Neuer Beitrag",
 			"new_talk": "Neuer Vortrag",
 			"new_course": "Neuer Kurs",
-			"payments": "Zahlungen"
+			"payments": "Zahlungen",
+			"help": "Hilfe"
+		},
+		"help": {
+			"page_title": "Hilfe",
+			"page_intro": "Kurze Antworten auf häufige Fragen zum Betrieb deiner selbst gehosteten Facet-Site. Jeder Abschnitt verlinkt direkt in die passende Admin-Seite.",
+			"getting_started": {
+				"title": "Erste Schritte",
+				"intro": "Eine kurze Tour durch die Verwaltung und die ersten Einrichtungsschritte.",
+				"open_dashboard": "Dashboard öffnen",
+				"q_tour": "Was befindet sich in der Admin-Seitenleiste?",
+				"a_tour": "Die Seitenleiste gruppiert alles in Inhalt (Portfolio und Beiträge), Zielgruppe (Referenzen, Kommentare, Abonnenten) und Einstellungen (Konto, Seite, Integrationen). Hinzu kommen feste Verknüpfungen zu Dashboard, Startseite, Medienbibliothek und Facetten. Klicke auf eine Abschnittsüberschrift, um sie auf- oder zuzuklappen. Das Plus-Symbol bei Inhalt und Zielgruppe öffnet ein Schnell-erstellen-Menü.",
+				"q_profile": "Wie richte ich mein Profil ein?",
+				"a_profile": "Öffne den Startseiten-Editor und klappe Profil und Kontakt auf. Füge Name, Überschrift, Zusammenfassung und Links hinzu. Diese Angaben speisen den Hero der öffentlichen Startseite und das Standard-Facetten-Layout. Du kannst sie jederzeit ändern.",
+				"q_preview": "Wie sehe ich eine Vorschau meiner öffentlichen Seite?",
+				"a_preview": "Klicke auf den Site-Namen oben in der Verwaltung oder öffne die Root-URL in einem neuen Tab. Änderungen erscheinen sofort nach dem Speichern — für die meisten Inhalte gibt es keinen separaten Veröffentlichungsschritt.",
+				"q_encryption": "Worum geht es bei der Warnung zum Verschlüsselungsschlüssel?",
+				"a_encryption": "Facet erzeugt beim ersten Start automatisch einen Verschlüsselungsschlüssel unter /data/.encryption_key. Dieser Schlüssel schützt API-Tokens und Freigabe-Links in der Datenbank. Geht die Schlüsseldatei verloren, lassen sich diese Daten nicht mehr entschlüsseln. Nimm /data in deine Backups auf."
+			},
+			"homepage": {
+				"title": "Startseite aufbauen",
+				"intro": "Markenidentität, Hero-Bereich, Navigation, Abschnittsreihenfolge und Sichtbarkeit — alles in einem Editor.",
+				"open_editor": "Startseiten-Editor öffnen",
+				"q_brand": "Wo lege ich Markenfarben und Schriften fest?",
+				"a_brand": "Öffne den Startseiten-Editor und klappe den Bereich Marke auf. Wähle eine Akzentfarbe, ein Schrift-Set und passe Abstand oder Typografie an. Marken-Änderungen gelten für alle öffentlichen Seiten.",
+				"q_hero": "Wie ändere ich den Hero-Bereich?",
+				"a_hero": "Klappe das Akkordeon Hero-Bereich auf. Du kannst ein Layout wählen, Überschrift und Untertitel setzen, einen Call-to-Action-Button hinzufügen und ein Hintergrundbild oder Video festlegen. Der Layout-Picker zeigt dir die verfügbaren Hero-Stile vor dem Speichern.",
+				"q_nav": "Wie funktioniert die Navigation der Site?",
+				"a_nav": "Klappe Site-Navigation auf, um auszuwählen, welche Facetten in der öffentlichen oberen Leiste erscheinen. Du kannst Einträge per Drag-and-Drop umsortieren, Labels umbenennen und zwischen automatisch (alle sichtbaren Facetten) und manuell wechseln.",
+				"q_sections": "Wie ordne ich die Abschnitte der Startseite um?",
+				"a_sections": "Klappe Abschnittsreihenfolge auf. Ziehe die Griffe zum Umsortieren, schalte einzelne Abschnitte ein oder aus und wähle die Layoutbreite für Abschnitte, die mehrere Breiten unterstützen. Die Reihenfolge gilt für Desktop und Mobil.",
+				"q_visibility": "Kann ich die gesamte Startseite verbergen?",
+				"a_visibility": "Ja. Klappe Sichtbarkeit auf, um die Startseite als öffentlich, nicht gelistet oder privat zu markieren. Privat erfordert ein Freigabe-Token; nicht gelistet ist per URL erreichbar, aber von Indexierung und Listings ausgenommen."
+			},
+			"facets": {
+				"title": "Facetten erstellen",
+				"intro": "Facetten sind zielgruppenspezifische Ansichten deiner Inhalte mit eigener URL und eigener Abschnittsliste.",
+				"open_list": "Facetten-Liste öffnen",
+				"q_what": "Was ist eine Facette?",
+				"a_what": "Eine Facette ist eine zugeschnittene Version deiner Site — eine andere Kombination von Abschnitten, ein anderes Layout oder eine kuratierte Auswahl deiner Inhalte — unter einem eigenen URL-Pfad. Vielleicht hast du eine Facette für Recruiter und eine weitere für Kunden.",
+				"q_create": "Wie erstelle ich eine Facette?",
+				"a_create": "Klicke in der Facetten-Liste auf Neue Facette. Vergib Name und URL-Slug, dann wähle im Abschnitts-Manager, was erscheinen soll und in welcher Reihenfolge. Du kannst Akzentfarbe und Typografie pro Facette überschreiben.",
+				"q_search": "Gibt es Tastenkürzel in der Facetten-Liste?",
+				"a_search": "Ja. Drücke / für den Suchfokus, j und k zum Navigieren zwischen Zeilen, Enter zum Öffnen einer Facette und ? für die vollständige Tastenreferenz. Die Filter-Chips oben grenzen nach Sichtbarkeit, vorhandenen Freigabe-Links, Navigations-Mitgliedschaft oder Inaktivität ein.",
+				"q_overrides": "Kann jede Facette die Startseiten-Einstellungen überschreiben?",
+				"a_overrides": "Ja. Im Facetten-Editor kannst du Akzentfarbe, Schrift-Set, Hero-Inhalt und Abschnittsreihenfolge überschreiben, ohne die Startseite oder andere Facetten zu verändern. Alles, was du nicht überschreibst, fällt auf die Startseiten-Standards zurück.",
+				"q_visibility": "Welche Sichtbarkeitsoptionen unterstützen Facetten?",
+				"a_visibility": "Öffentlich (für alle auffindbar), Nicht gelistet (per URL erreichbar), Passwort (erfordert ein geteiltes Kennwort) und Privat (nur über ein erstelltes Freigabe-Token erreichbar). Freigabe-Tokens werden in jeder Facette verwaltet."
+			},
+			"content": {
+				"title": "Beiträge und Inhalte",
+				"intro": "Beiträge, Projekte, Vorträge, eigene Inhalte und die Medienbibliothek teilen sich denselben Editor und dieselben Shortcodes.",
+				"open_posts": "Beiträge öffnen",
+				"q_editor": "Wie funktioniert der Markdown-Editor?",
+				"a_editor": "Der Editor akzeptiert Markdown mit Live-Vorschau. Fett, Überschriften, Listen, Links, Codeblöcke, Tabellen und Zitate funktionieren. Nutze die Symbolleiste oder tippe Markdown direkt. Entwürfe speichern automatisch während du tippst.",
+				"q_shortcodes": "Welche Medien-Shortcodes werden unterstützt?",
+				"a_shortcodes": "In Beiträgen und anderen Markdown-Inhalten kannst du Medien per Shortcode einbetten: {{youtube:URL}}, {{vimeo:URL}}, {{loom:URL}}, {{spotify:URL}}, {{soundcloud:URL}}, {{codepen:URL}}, {{figma:URL}}, {{pdf:URL}}, {{video:URL}} und {{image:URL}}. Füge die vollständige URL ein — Facet erzeugt die Einbettung.",
+				"q_media": "Wie funktioniert die Medienbibliothek?",
+				"a_media": "Öffne Medienbibliothek in der Seitenleiste. Ziehe Dateien hinein, um sie hochzuladen, und hänge sie dann an Beiträge, Projekte, Hero-Hintergründe oder andere Stellen mit Dateiauswahl an. Du kannst Alternativtext und Bildunterschrift direkt bearbeiten — Alternativtext ist für neue Bilder Pflicht, damit die öffentliche Site barrierefrei bleibt.",
+				"q_drafts": "Wie funktionieren Entwürfe?",
+				"a_drafts": "Beiträge, Vorträge und eigene Inhalte unterstützen einen Entwurfs-Schalter. Entwürfe sind auf der öffentlichen Site verborgen. Der Inhalt-Bereich der Seitenleiste zeigt eine Entwurfs-Zählerplakette, damit du unfertige Arbeiten schnell findest.",
+				"q_tags": "Was unterscheidet Admin-Tags von öffentlichen Tags?",
+				"a_tags": "Öffentliche Tags erscheinen auf der öffentlichen Site und erlauben Besuchern das Filtern. Admin-Tags sind private Etiketten zur eigenen Organisation — sie sind nie öffentlich sichtbar. Verwalte Admin-Tags unter Einstellungen, dann Admin-Tags."
+			},
+			"ai": {
+				"title": "KI-Unterstützung",
+				"intro": "Selbst gehostetes Facet nutzt deine eigenen KI-Provider-Schlüssel. Nichts läuft über einen von Facet betriebenen Dienst.",
+				"open_integrations": "KI-Provider-Einstellungen öffnen",
+				"q_byo": "Wie funktioniert KI im selbst gehosteten Facet?",
+				"a_byo": "KI-Unterstützung ist ausschließlich Bring-your-own-Key. Du hinterlegst einen API-Schlüssel für OpenAI, Anthropic oder eine lokale Ollama-Instanz, und Facet ruft diese Provider direkt mit deinen Zugangsdaten auf. Es gibt keine verwalteten Credits und keine monatlichen Token-Quoten — dein Provider rechnet direkt mit dir ab.",
+				"q_providers": "Welche Provider werden unterstützt?",
+				"a_providers": "OpenAI (GPT-Modelle), Anthropic (Claude-Modelle), Ollama (jedes lokal verfügbare Modell) und eine generische OpenAI-kompatible Custom-Option für selbst betriebene Gateways oder andere kompatible APIs. Du kannst mehrere Provider konfigurieren und einen Standard wählen.",
+				"q_usage": "Wobei hilft KI innerhalb von Facet?",
+				"a_usage": "Beim Umschreiben von Beiträgen, beim Feinschliff von Biografien und Zusammenfassungen, beim Vorschlagen von Tags, beim Importieren aus LinkedIn oder eingefügten Lebensläufen und beim Erzeugen von Alternativtext für Bilder. KI-Funktionen werden erst sichtbar, wenn mindestens ein Provider konfiguriert ist.",
+				"q_local": "Kann ich mit Ollama alles auf dem eigenen Rechner halten?",
+				"a_local": "Ja. Installiere Ollama, lade ein Modell wie llama3.2 oder mistral und füge in den Integrationen einen Ollama-Provider mit der Basis-URL deines Ollama-Servers hinzu. So verlassen keine Daten dein Netz."
+			},
+			"settings": {
+				"title": "Einstellungen und Daten",
+				"intro": "Erscheinungsbild der Site, E-Mail und Betriebseinstellungen findest du in der Gruppe Einstellungen der Seitenleiste.",
+				"open_site": "Seiteneinstellungen öffnen",
+				"q_appearance": "Wie ändere ich Favicon, eigenes CSS oder Standard-Theme?",
+				"a_appearance": "Öffne Seiteneinstellungen. Du kannst ein Favicon hochladen, eigenes CSS einfügen, das auf jeder öffentlichen Seite gilt, und das Standard-Theme (System, Hell, Dunkel) wählen, das neue Besucher zu sehen bekommen, bevor sie selbst wählen.",
+				"q_language": "Wie stelle ich die Sprache der Site ein?",
+				"a_language": "Die Site-Sprache wird in Seiteneinstellungen unter Allgemein gesetzt. Das steuert die Sprache der öffentlichen Site. Die Verwaltungsoberfläche folgt derselben Sprachwahl.",
+				"q_smtp": "Wie konfiguriere ich E-Mail (SMTP)?",
+				"a_smtp": "Seiteneinstellungen enthält einen SMTP-Konfigurationsbereich. Trage Host, Port, Benutzername, Passwort und Absenderadresse ein und nutze Testmail senden, um die Einstellungen zu prüfen. SMTP wird für Referenz-Verifizierungen, Abonnenten-Bestätigungen und Admin-Benachrichtigungen benötigt.",
+				"q_backups": "Wie sichere ich meine Daten?",
+				"a_backups": "Öffne Über Facet, um native PocketBase-Backups zu verwalten. Du kannst auf Knopfdruck ein Backup erstellen, die Liste vorhandener Backups einsehen und ein Backup wiederherstellen. Backups landen unter /data/backups im Container — beziehe /data in deine Host-Sicherung ein.",
+				"q_audit": "Wo sehe ich, was sich geändert hat?",
+				"a_audit": "Das Prüfprotokoll unter Einstellungen erfasst administrative Aktionen wie Anmeldungen, Inhaltsänderungen und Einstellungswechsel. Nutze es zur Aktivitätsprüfung oder Fehlersuche."
+			},
+			"more": {
+				"title": "Hängst du immer noch fest?",
+				"intro": "Sieh dir Version und Changelog innerhalb von Facet an oder öffne das Projekt-Repository für Issues und Diskussionen.",
+				"open_about": "Seite Über Facet öffnen",
+				"open_repo": "Facet-GitHub-Repository öffnen"
+			}
 		},
 		"courses": {
 			"page_title": "Kurse",
@@ -2476,6 +2573,7 @@
 			"main_menu": "Hauptmenü",
 			"notifications": "Benachrichtigungen",
 			"open_menu": "Menü öffnen",
+			"opens_in_new_tab": "(öffnet in neuem Tab)",
 			"skip_to_content": "Zum Hauptinhalt springen"
 		},
 		"pagination": {

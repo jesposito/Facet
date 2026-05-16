@@ -558,7 +558,104 @@
 			"new_post": "Nowe Tirne",
 			"new_talk": "Nowe Oration",
 			"new_course": "Nowe Tirelya",
-			"payments": "Mancale"
+			"payments": "Mancale",
+			"help": "Calmion"
+		},
+		"help": {
+			"page_title": "Calmion",
+			"page_intro": "Brief lights for wayfarers tending their own realm of Facet. Each grove links to the chamber where the craft is wrought.",
+			"getting_started": {
+				"title": "First Steps",
+				"intro": "A short journey through the inner hall and the first rites of arrangement.",
+				"open_dashboard": "Open the Great Hall",
+				"q_tour": "What dwells in the inner sidebar?",
+				"a_tour": "The sidebar gathers all things into Quettar (Writings and works), Seler (Friends and witnesses), and Inscriptions (Account, Realm, Alliances). Pinned beside them are the Great Hall, Home Realm, the Treasury of Images, and your Facets. Click a banner to fold or unfold it. The plus rune on Quettar and Seler opens a swift-making circle.",
+				"q_profile": "How shall I set my own seal?",
+				"a_profile": "Enter the Home Realm editor and unfold Profile and Contact. Lay down your name, banner-phrase, brief tale, and bindings. These feed the hero of the open realm and the standard Facet layout. Change them whenever you will.",
+				"q_preview": "How may I look upon my open realm?",
+				"a_preview": "Click the realm-name in the upper border, or open the root road in a fresh window. Changes show forth at once after saving — for most works no separate rite of publishing is needed.",
+				"q_encryption": "What is this warding-key warning?",
+				"a_encryption": "Facet forges a warding-key at /data/.encryption_key when first awakened. This key wards over API tokens and share-bindings within the chronicle. Should the key be lost, what is sealed shall not be unsealed. Bind /data into thy keepings."
+			},
+			"homepage": {
+				"title": "Building the Home Realm",
+				"intro": "Banner, hero, navigation, order of groves, and openness — all wrought in a single chamber.",
+				"open_editor": "Open the Home Realm editor",
+				"q_brand": "Where do I lay banner-colors and runes?",
+				"a_brand": "Open the Home Realm editor and unfold the Banner accordion. Choose a true color, pick a rune-pack, and tune spacing or letter-craft. Banner-changes hold over every open page.",
+				"q_hero": "How do I alter the hero?",
+				"a_hero": "Unfold the Hero Section. Choose a layout, set the great-line and lesser-line, lay down a call-to-deed button, and pick a backing image or moving picture. The layout-picker reveals the heroic styles before thou sealest the change.",
+				"q_nav": "How does the realm-navigation work?",
+				"a_nav": "Unfold Site Navigation to choose which Facets walk the upper road of the open realm. Drag to reorder, rename the labels, and turn between automatic (all open Facets) and manual modes.",
+				"q_sections": "How do I reorder the groves of the home realm?",
+				"a_sections": "Unfold Section Order. Take the handles to reorder, set each grove on or off, and choose the breadth for those that admit many. Order rules both wide screens and small.",
+				"q_visibility": "May I hide the whole home realm?",
+				"a_visibility": "Yea. Unfold Visibility to mark the home realm Open, Hidden, or Secret. Secret requires a share-token; Hidden may be reached by road but stands aside from indexing and listings."
+			},
+			"facets": {
+				"title": "Forging Facets",
+				"intro": "Facets are listener-shaped views of thy works, each with its own road and grove-list.",
+				"open_list": "Open the Facets list",
+				"q_what": "What is a Facet?",
+				"a_what": "A Facet is a tailored telling of thy realm — another weaving of groves, another layout, or a chosen handful of works — at its own road. Thou mayst have one Facet for seekers of craft and another for kindred patrons.",
+				"q_create": "How do I forge a Facet?",
+				"a_create": "From the Facets list, choose New Facet. Give it a name and a road-slug, then in the grove-manager choose what shall appear and in what order. Thou mayst also overwrite the true color and rune-pack within each Facet.",
+				"q_search": "Are there key-runes upon the Facets list?",
+				"a_search": "Yea. Press / to set thy search aglow, j and k to walk between rows, Enter to open a Facet, and ? to reveal the full key-rune scroll. The filter-charms above narrow by openness, by share-bindings, by navigation-membership, or by stilled state.",
+				"q_overrides": "Can each Facet overwrite the home realm settings?",
+				"a_overrides": "Yea. Within a Facet editor thou mayst overwrite true color, rune-pack, hero, and grove order without disturbing the home realm or other Facets. What thou dost not overwrite falleth back upon the home defaults.",
+				"q_visibility": "What openness do Facets allow?",
+				"a_visibility": "Open (any may find it), Hidden (any with the road), Password (a shared word is required), and Secret (only by a share-token thou hast forged). Share-tokens are wrought within each Facet."
+			},
+			"content": {
+				"title": "Writings and Works",
+				"intro": "Writings, projects, orations, unique tellings, and the Treasury of Images all share the same scribing-chamber and shortcodes.",
+				"open_posts": "Open the Writings",
+				"q_editor": "How does the markdown chamber work?",
+				"a_editor": "The chamber receives markdown with living preview. Bold, headings, lists, bindings, code-stones, tables, and quoted-words all answer. Use the rune-bar or write markdown plainly. Drafts seal themselves as thou writest.",
+				"q_shortcodes": "Which media-shortcodes are honored?",
+				"a_shortcodes": "Within writings and other markdown thou mayst weave media by shortcode: {{youtube:URL}}, {{vimeo:URL}}, {{loom:URL}}, {{spotify:URL}}, {{soundcloud:URL}}, {{codepen:URL}}, {{figma:URL}}, {{pdf:URL}}, {{video:URL}}, and {{image:URL}}. Paste the full road — Facet bindeth the embed.",
+				"q_media": "How worketh the Treasury of Images?",
+				"a_media": "Open Treasury of Images from the sidebar. Drag files in to bind them, then attach to writings, projects, hero backings, or any chamber with a file-binding. Edit alt-text and caption in place — alt-text is required of new images, that the open realm remain reachable to all.",
+				"q_drafts": "How worketh draft-state?",
+				"a_drafts": "Writings, orations, and unique tellings all bear a draft-rune. Drafts are veiled from the open realm. The Content banner showeth a draft count, that unfinished work may be swiftly found.",
+				"q_tags": "What dividest admin-tokens from open-tokens?",
+				"a_tags": "Open-tokens are seen upon the open realm and let watchers filter. Admin-tokens are private labels for thine own ordering — they are never beheld openly. Govern admin-tokens under Inscriptions, then Tokens."
+			},
+			"ai": {
+				"title": "Artificer Aid",
+				"intro": "Self-hosted Facet useth thine own artificer-keys. Nothing flows through a Facet-tended service.",
+				"open_integrations": "Open the artificer alliance settings",
+				"q_byo": "How doth artificer-aid work upon self-hosted Facet?",
+				"a_byo": "Artificer-aid is bring-thine-own-key alone. Thou layest down an API-key for OpenAI, for Anthropic, or for a local Ollama; Facet calleth those keepers directly with thy seal. There are no managed credits and no monthly token-quotas — thy keeper reckoneth the bill with thee.",
+				"q_providers": "Which keepers are honored?",
+				"a_providers": "OpenAI (GPT-folk), Anthropic (Claude-folk), Ollama (any model thou hast pulled to thy hall), and a Custom OpenAI-compatible road for self-tended gateways or other kin. Many keepers may be set, and one chosen as default.",
+				"q_usage": "Whereto doth the artificer help inside Facet?",
+				"a_usage": "Re-shaping writings, polishing bios and summaries, suggesting tokens, aiding imports from LinkedIn or pasted resumes, and forging alt-text for images. Artificer charms appear only after at least one keeper is set.",
+				"q_local": "May I keep all upon my own hall with Ollama?",
+				"a_local": "Yea. Install Ollama, pull a model such as llama3.2 or mistral, then in the alliance chamber set an Ollama keeper with thy Ollama base-road. No tidings leave thy net."
+			},
+			"settings": {
+				"title": "Inscriptions and Keepings",
+				"intro": "Realm appearance, post-bird, and steward-settings dwell within the Inscriptions group of the sidebar.",
+				"open_site": "Open Realm Settings",
+				"q_appearance": "How do I alter the small-rune, custom styling, or default mode?",
+				"a_appearance": "Open Realm Settings. Thou mayst lift a small-rune (favicon), inscribe custom styling that holdeth on every open page, and choose the default mode (system, light, dark) that new wayfarers see before they choose.",
+				"q_language": "How do I set the tongue of the realm?",
+				"a_language": "The realm-tongue is set in Realm Settings under the general grove. This rules the tongue of the open realm. The steward-chamber followeth the same choice.",
+				"q_smtp": "How do I bind the post-bird (SMTP)?",
+				"a_smtp": "Realm Settings holdeth an SMTP chamber. Lay down host, gate, name, word, and sender-binding, then use Send Test Letter to confirm the binding. SMTP is needed for testimonial verifications, subscriber confirmations, and steward tidings.",
+				"q_backups": "How do I make safe-keepings of mine works?",
+				"a_backups": "Open the Of Facet page to govern native PocketBase safe-keepings. Thou mayst forge a safe-keeping at will, see the roll of those already made, and restore from one. Safe-keepings rest within /data/backups inside the container — bring /data into thy host-side keepings.",
+				"q_audit": "Where may I see what hath changed?",
+				"a_audit": "The Govannas Tirith under Inscriptions recordeth steward-deeds: entries, content changes, settings turned. Use it to review activity or untangle troubles."
+			},
+			"more": {
+				"title": "Still adrift?",
+				"intro": "Look upon the version and chronicle inside Facet, or open the project-vault for issues and counsels.",
+				"open_about": "Open the Of Facet page",
+				"open_repo": "Open the Facet vault upon GitHub"
+			}
 		},
 		"courses": {
 			"page_title": "Tirelyar",
@@ -2476,6 +2573,7 @@
 			"main_menu": "Main paths",
 			"notifications": "Tidings",
 			"open_menu": "Open paths",
+			"opens_in_new_tab": "(opens in a new window)",
 			"skip_to_content": "Journey to main content"
 		},
 		"pagination": {

@@ -558,7 +558,104 @@
 			"new_post": "Noo Post",
 			"new_talk": "Noo Tawk",
 			"new_course": "Noo Lernin",
-			"payments": "Moniez"
+			"payments": "Moniez",
+			"help": "Halp"
+		},
+		"help": {
+			"page_title": "Halp",
+			"page_intro": "Smol anserz 2 commun qweschunz bout runnin yer own self-hostd Facet. Each part haz a clickz strait into da admin paje.",
+			"getting_started": {
+				"title": "Start Hear",
+				"intro": "A liddle tour ov da admin and da furst stuffz 2 set up.",
+				"open_dashboard": "Open da Dashbord",
+				"q_tour": "Wut iz in da admin sidebar?",
+				"a_tour": "Da sidebar puts evrythin in MAH CREASHUNS (yer postz n stuffz), MAH FANZ (testimonialz, commentz, peepz), n Settingz (accownt, site, integrayshunz). Plus pinnd linkz 4 Dashbord, Homepaj, Media Library, n Facets. Click a heder 2 fold or unfold it. Da plus button on MAH CREASHUNS n MAH FANZ open a quick mak menu. So eezy!",
+				"q_profile": "How I set up mah profile?",
+				"a_profile": "Open da Homepaj editr n unfold Profile and Contact. Put in yer name, headline, summary, n linkz. Diz feedz da public homepaj hero n da default Facet layout. Yu can changez wenevr.",
+				"q_preview": "How I peek at mah public site?",
+				"a_preview": "Click da site name in da top bar, or open da root URL in anothr tab. Changez show up rite away aftr u save — no separate publish step 4 most stuffz.",
+				"q_encryption": "Wut iz dis encryption key warning?",
+				"a_encryption": "Facet maeks an encryption key at /data/.encryption_key on furst start. Dis key keepz API tokenz n share linkz safe in da databaze. U loze da key file = u no can decrypt dat stuffz. Put /data in yer backupz. SRSLY DO IT."
+			},
+			"homepage": {
+				"title": "Buildin yer Homepaj",
+				"intro": "Brand, hero, nav, section ordr, n visibility — all in won editr. Eezy peezy!",
+				"open_editor": "Open da Homepaj editr",
+				"q_brand": "Wear I set mah brand colorz n fontz?",
+				"a_brand": "Open da Homepaj editr n unfold da Brand section. Pik a accent color, choze a font pak, n tweek spasin or typografy. Brand changez go on evry public paje.",
+				"q_hero": "How I change da hero?",
+				"a_hero": "Unfold da Hero Section. Pik a layout, set da big text n smaller text, ad a call 2 acshun button, n choze a backgrownd pic or vidyo. Da layout pikkr letz u peek b4 yu save.",
+				"q_nav": "How da site nav work?",
+				"a_nav": "Unfold Site Navigation 2 pik which Facets show up in da public top bar. Drag 2 reordr, rename labelz, n flip between automatik (all visibul Facets) n manual mode.",
+				"q_sections": "How I reordr da homepaj sectionz?",
+				"a_sections": "Unfold Section Ordr. Drag da handelz 2 reordr, toggl sectionz on or off, n pik widthz 4 sectionz dat alow it. Ordr applyz 2 both deztop n mobil.",
+				"q_visibility": "Can I hide da WHOLE homepaj?",
+				"a_visibility": "Yaz u can! Unfold Visibility 2 mark da homepaj Public, Unlistd, or Privat. Privat needz a share tokn; Unlistd workz by URL but not in indexing or listingz."
+			},
+			"facets": {
+				"title": "Makin Facets",
+				"intro": "Facets r audyenz-shapd viewz of yer stuffz, each wit ownz URL n section list.",
+				"open_list": "Open da Facets list",
+				"q_what": "Wut iz a Facet?",
+				"a_what": "A Facet iz a custumized vershun ov yer site — diffrnt sectionz, diffrnt layout, or a hand-pikkd set ov yer stuffz — at its own URL path. Liek won Facet 4 recruiterz n anothr 4 clients. Many options!",
+				"q_create": "How I mak a Facet?",
+				"a_create": "From da Facets list, clik New Facet. Giv it a name n a slug, den uze da section managr 2 choze wut shoz n in wut ordr. Yu can also ovrride accent color n font pak per Facet.",
+				"q_search": "R thar keyboard shortcuts on da Facets list?",
+				"a_search": "OH YAH. Press / 2 fokuz da search box, j n k 2 mooove between rowz, Enter 2 open a Facet, n ? 2 see da fulll keyboard halp. Filter chipz at da top narrow by visibility, share linkz, nav membership, or inactiv state.",
+				"q_overrides": "Can each Facet ovrride da homepaj stuffz?",
+				"a_overrides": "Yaz. In a Facet editr u can ovrride accent color, font pak, hero, n section ordr witowt changin da homepaj or othr Facets. Wutevr u dont ovrride falls bak 2 homepaj defaultz.",
+				"q_visibility": "Wut visibility opshunz do Facets do?",
+				"a_visibility": "Public (anyone canz find), Unlistd (anyone wit URL), Password (needz shared wurd), n Privat (only via share tokn u maekd). Share toknz r managd inside each Facet."
+			},
+			"content": {
+				"title": "Postz n Stuffz",
+				"intro": "Postz, projektz, talkz, custum stuffz, n da media library all share da same editr n shortcodez.",
+				"open_posts": "Open Postz",
+				"q_editor": "How da markdown editr work?",
+				"a_editor": "Da editr takez markdown wit liv preview. Bold, headingz, listz, linkz, code blokz, tabelz, n quotez all work. Uze da toolbar or jus typ markdown direktly. Draftz save themselvz wile u typ. So convenent!",
+				"q_shortcodes": "Wut media shortcodez r supportd?",
+				"a_shortcodes": "Inside postz n othr markdown u canz embedz media wit shortcodez liek {{youtube:URL}}, {{vimeo:URL}}, {{loom:URL}}, {{spotify:URL}}, {{soundcloud:URL}}, {{codepen:URL}}, {{figma:URL}}, {{pdf:URL}}, {{video:URL}}, n {{image:URL}}. Past da full URL — Facet doez da embedz.",
+				"q_media": "How da media library workz?",
+				"a_media": "Open Media Library from da sidebar. Drag filez in 2 upload, den attach 2 postz, projektz, hero backgrowndz, or anywear wit a file pikkr. Edit alt text n captshun rite thar — alt text iz REQUIRD 4 new picz so da public site stayz reachabl 2 evryone.",
+				"q_drafts": "How da draftz work?",
+				"a_drafts": "Postz, talkz, n custum stuffz all hav a draft togl. Draftz r hidden frum da public site. Da Content sidebar shoz a draft count badj so u finds unfinishd stuffz fast.",
+				"q_tags": "Wut iz da diffrenz between admin tagz n public tagz?",
+				"a_tags": "Public tagz show on da public site n let visitorz filtr stuffz. Admin tagz r privat labelz 4 yer own organizin — neva shown publicly. Manaj admin tagz undr Settingz den Admin Tagz."
+			},
+			"ai": {
+				"title": "AI Halpr",
+				"intro": "Self-hostd Facet usez YER own AI provider keyz. Nothin goez thru a Facet-runnd servis.",
+				"open_integrations": "Open AI provider settingz",
+				"q_byo": "How AI work on self-hostd Facet?",
+				"a_byo": "AI halp iz bring-yer-own-key ONLY. U ad a API key 4 OpenAI, 4 Anthropic, or 4 a local Ollama, n Facet callz dose providerz direktly wit yer credenshulz. Thar iz no managd creditz n no monthly tokn quotaz — yer provider billz u direktly.",
+				"q_providers": "Which providerz r supportd?",
+				"a_providers": "OpenAI (GPT modelz), Anthropic (Claude modelz), Ollama (eny model u haz pulld localy), n a generik OpenAI-compatibul Custum opshun 4 self-hostd gatewayz or othr compatibul APIz. U can sett many providerz n pik a default.",
+				"q_usage": "Wut AI halps wit inside Facet?",
+				"a_usage": "Rewritin postz, polishin bios n summaryz, suggestin tagz, halpin wit importz frum LinkedIn or pastd rezumez, n maekin alt text 4 picz. AI featurez only show up aftr u sett at least won provider.",
+				"q_local": "Can I keep evrythin on mah own machine wit Ollama?",
+				"a_local": "YAZ. Install Ollama, pull a model liek llama3.2 or mistral, den in da integrayshunz paje ad a Ollama provider wit da baze URL of yer Ollama servr. No data leevz yer network. Yu winz!"
+			},
+			"settings": {
+				"title": "Settingz n Stuffz",
+				"intro": "Site lookz, emaylz, n operashunal stuffz liv undr da Settingz group in da sidebar.",
+				"open_site": "Open Site Settingz",
+				"q_appearance": "How I change da favicon, custum CSS, or default theem?",
+				"a_appearance": "Open Site Settingz. U canz upload a favicon, past custum CSS dat applyz 2 evry public paje, n pik da default theem mode (system, light, or dark) dat new visitorz see b4 thay choze.",
+				"q_language": "How I sett da site languaj?",
+				"a_language": "Site languaj iz sett in Site Settingz undr da General area. Diz controlz da languaj of da public site. Da admin panel followz da same choze.",
+				"q_smtp": "How I configgr emayl (SMTP)?",
+				"a_smtp": "Site Settingz haz a SMTP configgr section. Put in yer host, port, usernaem, password, n frum-addrez, den uze Send Test Emayl 2 chek it work. SMTP iz neeedd 4 testimonial verificashunz, subscriber confirmz, n admin notificashunz.",
+				"q_backups": "How I back up mah data?",
+				"a_backups": "Open About Facet 2 manaj nativ PocketBase backupz. U canz mak a backup on demand, see da list of egzistin backupz, n restore frum won. Backupz r writtd 2 /data/backups inside da container — put /data in yer host-side backup routine.",
+				"q_audit": "Wear I see wut changd?",
+				"a_audit": "Da Audit Log undr Settingz records administrativ acshunz liek loginz, content editz, n setting changez. Uze it 2 review activity or troublshootz."
+			},
+			"more": {
+				"title": "Still stuk?",
+				"intro": "Chek da vershun n changelog inside Facet, or open da projekt repozitory 4 issuez n diskussionz.",
+				"open_about": "Open da About Facet paje",
+				"open_repo": "Open da Facet GitHub repozitory"
+			}
 		},
 		"courses": {
 			"page_title": "Lernin Stuffz",
@@ -2476,6 +2573,7 @@
 			"main_menu": "Main menu",
 			"notifications": "Notificashunz",
 			"open_menu": "Open menu",
+			"opens_in_new_tab": "(opnz in noo tab)",
 			"skip_to_content": "Skip 2 main content"
 		},
 		"pagination": {

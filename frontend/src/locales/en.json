@@ -559,7 +559,104 @@
 			"new_post": "New Post",
 			"new_talk": "New Talk",
 			"new_course": "New Course",
-			"payments": "Payments"
+			"payments": "Payments",
+			"help": "Help"
+		},
+		"help": {
+			"page_title": "Help",
+			"page_intro": "Short answers to common questions about running your self-hosted Facet site. Each section links straight into the matching admin page.",
+			"getting_started": {
+				"title": "Getting started",
+				"intro": "A short tour of the admin and the first things to set up.",
+				"open_dashboard": "Open the dashboard",
+				"q_tour": "What is in the admin sidebar?",
+				"a_tour": "The sidebar groups everything into Content (your portfolio and articles), Audience (testimonials, comments, subscribers), Settings (account, site, integrations), plus pinned links for Dashboard, Homepage, Media Library, and Facets. Click a section header to collapse or expand it. The plus icon on Content and Audience opens a quick-create menu.",
+				"q_profile": "How do I set up my profile?",
+				"a_profile": "Open the Homepage editor and expand Profile and Contact. Add your name, headline, summary, and links. This information feeds the public homepage hero and the default Facet layout. You can change it at any time.",
+				"q_preview": "How do I preview my public site?",
+				"a_preview": "Click the site name in the top bar of the admin or open the root URL in another tab. Changes appear immediately after you save — there is no separate publish step for most content.",
+				"q_encryption": "What is the encryption key warning about?",
+				"a_encryption": "Facet auto-generates an encryption key at /data/.encryption_key on first run. That key protects API tokens and share links stored in the database. If you lose the key file you cannot decrypt that data. Include /data in your backups."
+			},
+			"homepage": {
+				"title": "Building your homepage",
+				"intro": "Brand identity, hero, navigation, section order, and visibility — all configured from one editor.",
+				"open_editor": "Open the Homepage editor",
+				"q_brand": "Where do I set my brand colors and fonts?",
+				"a_brand": "Open the Homepage editor and expand the Brand section. Pick an accent color, choose a font pack, and adjust spacing or typography there. Brand changes apply to every public page.",
+				"q_hero": "How do I change the hero?",
+				"a_hero": "Expand the Hero Section accordion. You can choose a layout, set the headline and subhead, add a call-to-action button, and pick a background image or video. The layout picker lets you preview the available hero styles before saving.",
+				"q_nav": "How does the site navigation work?",
+				"a_nav": "Expand Site Navigation to choose which Facets appear in the public top bar. You can reorder items by drag, rename labels, and switch between automatic (all visible Facets) and manual modes.",
+				"q_sections": "How do I reorder homepage sections?",
+				"a_sections": "Expand Section Order. Drag the handles to reorder, toggle each section on or off, and pick the layout width for sections that support multiple widths. Order applies to both desktop and mobile.",
+				"q_visibility": "Can I hide the whole homepage?",
+				"a_visibility": "Yes. Expand the Visibility section to mark the homepage public, unlisted, or private. Private requires a share token, unlisted is reachable by URL but excluded from indexing and listings."
+			},
+			"facets": {
+				"title": "Creating facets",
+				"intro": "Facets are audience-specific views of your content with their own URL and section list.",
+				"open_list": "Open the Facets list",
+				"q_what": "What is a Facet?",
+				"a_what": "A Facet is a tailored version of your site — a different combination of sections, a different layout, or a curated subset of your content — at its own URL path. You might have one Facet for recruiters and another for clients.",
+				"q_create": "How do I create a Facet?",
+				"a_create": "From the Facets list, click New Facet. Give it a name and a URL slug, then use the section manager to choose what appears and in what order. You can also override the accent color and typography per Facet.",
+				"q_search": "Are there keyboard shortcuts on the Facets list?",
+				"a_search": "Yes. Press / to focus the search box, j and k to move between rows, Enter to open a Facet, and ? to open the full keyboard reference. The filter chips at the top let you narrow by visibility, share-link presence, navigation membership, or inactive state.",
+				"q_overrides": "Can each Facet override the homepage settings?",
+				"a_overrides": "Yes. Inside a Facet editor you can override accent color, font pack, hero content, and section order without affecting the homepage or other Facets. Anything you do not override falls back to the homepage defaults.",
+				"q_visibility": "What visibility options do Facets support?",
+				"a_visibility": "Public (anyone can find it), Unlisted (anyone with the URL), Password (requires a shared password), and Private (only reachable via a share token you create). Share tokens are managed inside each Facet."
+			},
+			"content": {
+				"title": "Posts and content",
+				"intro": "Posts, projects, talks, custom content, and the media library all share the same editor and shortcodes.",
+				"open_posts": "Open Posts",
+				"q_editor": "How does the markdown editor work?",
+				"a_editor": "The editor accepts markdown with live preview. Bold, headings, lists, links, code blocks, tables, and blockquotes all work. Use the toolbar or type markdown directly. Drafts save automatically as you type.",
+				"q_shortcodes": "What media shortcodes are supported?",
+				"a_shortcodes": "Inside posts and other markdown content you can embed media with shortcodes like {{youtube:URL}}, {{vimeo:URL}}, {{loom:URL}}, {{spotify:URL}}, {{soundcloud:URL}}, {{codepen:URL}}, {{figma:URL}}, {{pdf:URL}}, {{video:URL}}, and {{image:URL}}. Paste the full URL — Facet handles the embed.",
+				"q_media": "How does the media library work?",
+				"a_media": "Open Media Library from the sidebar. Drag files in to upload, then attach them to posts, projects, hero backgrounds, or anywhere a file picker appears. You can edit alt text and captions in place — alt text is required for new images so the public site stays accessible.",
+				"q_drafts": "How do drafts work?",
+				"a_drafts": "Posts, talks, and custom content all support a draft toggle. Drafts are hidden from the public site. The sidebar Content section shows a draft count badge so you can find unfinished work quickly.",
+				"q_tags": "What are admin tags versus public tags?",
+				"a_tags": "Public tags appear on the public site and let visitors filter content. Admin tags are private labels for your own organization — they never appear publicly. Manage admin tags from Settings then Admin Tags."
+			},
+			"ai": {
+				"title": "AI assistance",
+				"intro": "Self-hosted Facet uses your own AI provider keys. Nothing is routed through a Facet-managed service.",
+				"open_integrations": "Open AI provider settings",
+				"q_byo": "How does AI work on self-hosted Facet?",
+				"a_byo": "AI assistance is bring-your-own-key only. You add an API key for OpenAI, Anthropic, or a local Ollama instance, and Facet calls those providers directly using your credentials. There are no managed credits and no monthly token quotas — your provider bills you directly.",
+				"q_providers": "Which providers are supported?",
+				"a_providers": "OpenAI (GPT models), Anthropic (Claude models), Ollama (any model you have pulled locally), and a generic OpenAI-compatible Custom option for self-hosted gateways or other compatible APIs. You can configure multiple providers and pick a default.",
+				"q_usage": "What does AI help with inside Facet?",
+				"a_usage": "Rewriting posts, polishing bios and summaries, suggesting tags, helping with imports from LinkedIn or pasted resumes, and generating alt text for images. AI features only show up after you have configured at least one provider.",
+				"q_local": "Can I keep everything on my own machine with Ollama?",
+				"a_local": "Yes. Install Ollama, pull a model like llama3.2 or mistral, then add an Ollama provider in the integrations page with the base URL of your Ollama server. No data leaves your network."
+			},
+			"settings": {
+				"title": "Settings and data",
+				"intro": "Site appearance, email, and operational settings live under the Settings group in the sidebar.",
+				"open_site": "Open Site Settings",
+				"q_appearance": "How do I change the favicon, custom CSS, or default theme?",
+				"a_appearance": "Open Site Settings. You can upload a favicon, paste custom CSS that applies to every public page, and pick the default theme mode (system, light, or dark) that new visitors see before they pick their own.",
+				"q_language": "How do I set the site language?",
+				"a_language": "Site language is set in Site Settings under the General area. This controls the language of the public-facing site. The admin panel itself follows the same language choice.",
+				"q_smtp": "How do I configure email (SMTP)?",
+				"a_smtp": "Site Settings has an SMTP configuration section. Enter your host, port, username, password, and from-address, then use Send Test Email to confirm it works. SMTP is needed for testimonial verification emails, subscriber confirmations, and admin notifications.",
+				"q_backups": "How do I back up my data?",
+				"a_backups": "Open About Facet to manage native PocketBase backups. You can create a backup on demand, see the list of existing backups, and restore from one. Backups are written to /data/backups inside the container — include /data in your host-side backup routine.",
+				"q_audit": "Where can I see what changed?",
+				"a_audit": "The Audit Log under Settings records administrative actions like logins, content edits, and setting changes. Use it to review activity or troubleshoot."
+			},
+			"more": {
+				"title": "Still stuck?",
+				"intro": "Check the version and changelog inside Facet, or open the project repository for issues and discussions.",
+				"open_about": "Open the About Facet page",
+				"open_repo": "Open the Facet GitHub repository"
+			}
 		},
 		"courses": {
 			"page_title": "Courses",
@@ -2524,6 +2621,7 @@
 			"main_menu": "Main menu",
 			"notifications": "Notifications",
 			"open_menu": "Open menu",
+			"opens_in_new_tab": "(opens in new tab)",
 			"skip_to_content": "Skip to main content"
 		},
 		"pagination": {

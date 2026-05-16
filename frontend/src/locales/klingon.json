@@ -558,7 +558,104 @@
 			"new_post": "chu' QIn",
 			"new_talk": "chu' jatlh",
 			"new_course": "chu' ghojmeH",
-			"payments": "Huch"
+			"payments": "Huch",
+			"help": "QaH"
+		},
+		"help": {
+			"page_title": "QaH",
+			"page_intro": "Short answers for warriors commanding their own self-hosted Facet outpost. Each section links straight to the matching battle station.",
+			"getting_started": {
+				"title": "Battle Orientation",
+				"intro": "A short tour of the command center and the first deployments.",
+				"open_dashboard": "Open the Command Center",
+				"q_tour": "What is stationed in the admin sidebar?",
+				"a_tour": "The sidebar groups operations into Content (your battle logs and intel), Audience (commendations, reports, allies), and Configurations (account, station, alliances). Pinned beside them are the Command Center, Home Base, the Weapons Locker, and your Facets. Click a section banner to collapse or expand. The plus-rune on Content and Audience opens a quick-deploy menu.",
+				"q_profile": "How shall I record my profile?",
+				"a_profile": "Open the Home Base editor and expand Profile and Contact. Enter your name, banner-phrase, dossier, and channels. These feed the public hero and the default Facet formation. Adjust at any time.",
+				"q_preview": "How do I preview my public outpost?",
+				"a_preview": "Click the station-name in the upper bar, or open the root road in a fresh window. Changes appear at once after saving — for most operations there is no separate broadcast step.",
+				"q_encryption": "What is this encryption-key alarm?",
+				"a_encryption": "Facet generates an encryption key at /data/.encryption_key on first activation. This key guards API tokens and share-links in the chronicle. Lose the key file and what was sealed cannot be reopened. Include /data in your backups. Do not fail!"
+			},
+			"homepage": {
+				"title": "Building the Home Base",
+				"intro": "Banner, hero, navigation, section order, and visibility — all configured in one war room.",
+				"open_editor": "Open the Home Base editor",
+				"q_brand": "Where do I set banner colors and fonts?",
+				"a_brand": "Open the Home Base editor and expand the Brand section. Choose an accent color, pick a font pack, and tune spacing or typography. Brand changes apply to every public page.",
+				"q_hero": "How do I change the hero?",
+				"a_hero": "Expand the Hero Section. Choose a layout, set the headline and subhead, deploy a call-to-action button, and pick a background image or video. The layout-picker reveals the hero styles before you commit.",
+				"q_nav": "How does the station navigation work?",
+				"a_nav": "Expand Site Navigation to choose which Facets walk the public command bar. Drag to reorder, rename labels, and switch between automatic (all visible Facets) and manual modes.",
+				"q_sections": "How do I reorder home base sections?",
+				"a_sections": "Expand Section Order. Drag the handles to reorder, toggle sections on or off, and pick widths for sections that allow more than one. Order applies to both wide and narrow screens.",
+				"q_visibility": "Can I conceal the entire home base?",
+				"a_visibility": "QaplaH! Yes. Expand Visibility to mark the home base Public, Cloaked, or Classified. Classified requires a share token; Cloaked is reachable by URL but kept off indexing and listings."
+			},
+			"facets": {
+				"title": "Forging Facets",
+				"intro": "Facets are audience-tuned views of your intel with their own road and section roster.",
+				"open_list": "Open the Facets list",
+				"q_what": "What is a Facet?",
+				"a_what": "A Facet is a tailored deployment of your station — a different combination of sections, a different layout, or a curated set of records — at its own URL path. You might have one Facet for recruiters and another for allies in commerce.",
+				"q_create": "How do I forge a Facet?",
+				"a_create": "From the Facets list, strike New Facet. Give it a name and a slug, then use the section manager to choose what appears and in what order. You may override accent color and font pack within each Facet.",
+				"q_search": "Are there keyboard shortcuts on the Facets list?",
+				"a_search": "Indeed. Press / to focus search, j and k to march between rows, Enter to open a Facet, and ? to reveal the full keyboard manual. Filter chips at the top narrow by visibility, share-link presence, navigation membership, or inactive state.",
+				"q_overrides": "Can a Facet override the home base settings?",
+				"a_overrides": "Yes. Inside a Facet editor you can override accent color, font pack, hero content, and section order without disturbing the home base or other Facets. Anything left unset falls back to home defaults.",
+				"q_visibility": "What visibility options do Facets honor?",
+				"a_visibility": "Public (anyone may find it), Cloaked (anyone with the URL), Password (requires a shared word), and Classified (only via a share token you have forged). Share tokens are managed within each Facet."
+			},
+			"content": {
+				"title": "Battle Logs and Intel",
+				"intro": "Battle logs, missions, speeches, custom intel, and the weapons locker share the same editor and shortcodes.",
+				"open_posts": "Open Battle Logs",
+				"q_editor": "How does the markdown editor work?",
+				"a_editor": "The editor accepts markdown with live preview. Bold, headings, lists, links, code blocks, tables, and quotes all answer. Use the toolbar or type markdown directly. Drafts save themselves as you write. No retreat!",
+				"q_shortcodes": "Which media shortcodes are honored?",
+				"a_shortcodes": "Inside battle logs and other markdown you may deploy media via shortcode: {{youtube:URL}}, {{vimeo:URL}}, {{loom:URL}}, {{spotify:URL}}, {{soundcloud:URL}}, {{codepen:URL}}, {{figma:URL}}, {{pdf:URL}}, {{video:URL}}, and {{image:URL}}. Paste the full URL — Facet builds the embed.",
+				"q_media": "How does the weapons locker work?",
+				"a_media": "Open Weapons Locker from the sidebar. Drag files in to load them, then attach to battle logs, missions, hero backings, or any chamber with a file picker. Edit alt text and caption inline — alt text is required for new images so the public outpost remains reachable to all.",
+				"q_drafts": "How do drafts work?",
+				"a_drafts": "Battle logs, speeches, and custom intel all support a draft flag. Drafts are concealed from the public outpost. The Content banner shows a draft count badge so unfinished operations are found swiftly.",
+				"q_tags": "What separates admin tags from public tags?",
+				"a_tags": "Public tags appear on the public outpost and let visitors filter intel. Admin tags are private labels for your own command — never shown publicly. Govern admin tags under Configurations, then Battle Tags."
+			},
+			"ai": {
+				"title": "AI Assistance",
+				"intro": "Self-hosted Facet uses your own AI provider keys. Nothing is routed through a Facet-managed service.",
+				"open_integrations": "Open AI provider settings",
+				"q_byo": "How does AI work on self-hosted Facet?",
+				"a_byo": "AI assistance is bring-your-own-key only. You install an API key for OpenAI, for Anthropic, or for a local Ollama, and Facet hails those providers directly with your credentials. There are no managed credits and no monthly token quotas — your provider reckons the bill with you.",
+				"q_providers": "Which providers are honored?",
+				"a_providers": "OpenAI (GPT-class), Anthropic (Claude-class), Ollama (any model your hall has pulled), and a Custom OpenAI-compatible road for self-run gateways or other kin. Several providers may be configured, with one chosen as default.",
+				"q_usage": "Where does AI assist inside Facet?",
+				"a_usage": "Rewriting battle logs, polishing dossiers and summaries, suggesting tags, helping with imports from LinkedIn or pasted resumes, and forging alt text for images. AI charms only appear after at least one provider is configured.",
+				"q_local": "Can I keep all combat on my own hall with Ollama?",
+				"a_local": "Yes. Install Ollama, pull a model such as llama3.2 or mistral, then in the alliances chamber configure an Ollama provider with the base URL of your Ollama server. No intel crosses the border."
+			},
+			"settings": {
+				"title": "Configurations and Data",
+				"intro": "Station appearance, comm relays, and operational settings live within the Configurations group of the sidebar.",
+				"open_site": "Open Station Settings",
+				"q_appearance": "How do I change the small banner, custom styling, or default mode?",
+				"a_appearance": "Open Station Settings. You may load a small banner (favicon), inscribe custom styling that holds across every public page, and pick the default mode (system, light, dark) that new visitors meet before they choose.",
+				"q_language": "How do I set the station tongue?",
+				"a_language": "Station tongue is set in Station Settings under the general field. This rules the tongue of the public station. The command chamber follows the same choice.",
+				"q_smtp": "How do I configure the comm relay (SMTP)?",
+				"a_smtp": "Station Settings holds an SMTP section. Enter host, port, name, password, and sending channel, then strike Send Test Message to verify. SMTP is required for testimonial verifications, subscriber confirmations, and command notices.",
+				"q_backups": "How do I back up my chronicle?",
+				"a_backups": "Open the About Facet page to govern native PocketBase backups. You may forge a backup at will, view the roster of existing backups, and restore from one. Backups rest inside /data/backups within the container — include /data in your host-side backup discipline.",
+				"q_audit": "Where do I see what changed?",
+				"a_audit": "The yIqel ta under Configurations records command actions: logins, content edits, and setting changes. Use it to review activity or hunt down trouble."
+			},
+			"more": {
+				"title": "Still adrift?",
+				"intro": "Inspect the version and chronicle inside Facet, or open the project repository for issues and councils.",
+				"open_about": "Open the About Facet page",
+				"open_repo": "Open the Facet repository on GitHub"
+			}
 		},
 		"courses": {
 			"page_title": "ghojmeH HoD",
@@ -2476,6 +2573,7 @@
 			"main_menu": "Main menu",
 			"notifications": "Alerts",
 			"open_menu": "Open menu",
+			"opens_in_new_tab": "(opens new viewport)",
 			"skip_to_content": "Skip to main content"
 		},
 		"pagination": {
