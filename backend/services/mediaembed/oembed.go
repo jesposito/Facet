@@ -58,6 +58,14 @@ func FetchMetadata(rawURL string) (*OEmbedMetadata, error) {
 		provider = "soundcloud"
 		oembedURL = "https://soundcloud.com/oembed?url=" + url.QueryEscape(rawURL) + "&format=json"
 
+	case strings.Contains(host, "codepen.io"):
+		provider = "codepen"
+		oembedURL = "https://codepen.io/api/oembed?url=" + url.QueryEscape(rawURL) + "&format=json"
+
+	case strings.Contains(host, "figma.com"):
+		provider = "figma"
+		oembedURL = "https://www.figma.com/api/oembed?url=" + url.QueryEscape(rawURL) + "&format=json"
+
 	default:
 		return nil, fmt.Errorf("unsupported provider for URL: %s", host)
 	}
@@ -119,5 +127,7 @@ func IsSupportedProvider(rawURL string) bool {
 		strings.Contains(host, "youtu.be") ||
 		strings.Contains(host, "vimeo.com") ||
 		strings.Contains(host, "loom.com") ||
-		strings.Contains(host, "soundcloud.com")
+		strings.Contains(host, "soundcloud.com") ||
+		strings.Contains(host, "codepen.io") ||
+		strings.Contains(host, "figma.com")
 }

@@ -69,6 +69,9 @@
 		if (provider === 'vimeo') return 'vimeo';
 		if (provider === 'spotify') return 'spotify';
 		if (provider === 'soundcloud') return 'soundcloud';
+		if (provider === 'loom') return 'loom';
+		if (provider === 'codepen') return 'codepen';
+		if (provider === 'figma') return 'figma';
 		if (item.mime?.startsWith('video/')) return 'video';
 		if (item.mime?.startsWith('audio/')) return 'music';
 		if (item.mime?.startsWith('image/')) return 'image';
@@ -1338,7 +1341,7 @@
 				{@const previewUrl = newExternal.url.trim()}
 				{@const userThumb = newExternal.thumbnail_url.trim()}
 				{@const thumbUrl = userThumb || externalAutoThumbnail || ''}
-				{@const providerIconName = (externalProvider === 'youtube' || externalProvider === 'vimeo' || externalProvider === 'spotify' || externalProvider === 'soundcloud') ? externalProvider : 'globe'}
+				{@const providerIconName = (externalProvider === 'youtube' || externalProvider === 'vimeo' || externalProvider === 'spotify' || externalProvider === 'soundcloud' || externalProvider === 'loom' || externalProvider === 'codepen' || externalProvider === 'figma') ? externalProvider : 'globe'}
 				<div class="lg:col-span-4">
 					{#key previewUrl}
 						<div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
