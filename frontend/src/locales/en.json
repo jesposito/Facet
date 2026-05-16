@@ -2722,6 +2722,8 @@
 		"report_other": "Other",
 		"report_detail": "Additional details (optional)",
 		"report_submitted": "Report submitted — thank you",
-		"chars_remaining": "{count} characters remaining"
+		"chars_remaining": "{count} characters remaining",
+		"replies": "Replies",
+		"just_now": "just now"
 	}
 }
