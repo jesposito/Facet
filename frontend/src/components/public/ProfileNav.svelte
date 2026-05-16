@@ -16,7 +16,9 @@
 		hasSkills?: boolean;
 		hasPosts?: boolean;
 		hasTalks?: boolean;
+		hasCourses?: boolean;
 		hasTestimonials?: boolean;
+		hasNewsletter?: boolean;
 		hasContacts?: boolean;
 		viewSlug?: string;
 		sectionOrder?: string[];
@@ -32,7 +34,9 @@
 		hasSkills = false,
 		hasPosts = false,
 		hasTalks = false,
+		hasCourses = false,
 		hasTestimonials = false,
+		hasNewsletter = false,
 		hasContacts = false,
 		viewSlug = '',
 		sectionOrder = [],
@@ -98,12 +102,14 @@
 		skills: { getShow: () => hasSkills },
 		posts: { href: buildUrl('/posts'), getShow: () => hasPosts },
 		talks: { href: buildUrl('/talks'), getShow: () => hasTalks },
+		courses: { getShow: () => hasCourses },
 		testimonials: { getShow: () => hasTestimonials },
+		newsletter: { getShow: () => hasNewsletter },
 		contacts: { getShow: () => hasContacts }
 	};
 
 	// Default order (used when no sectionOrder provided)
-	const DEFAULT_NAV_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_NAV_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'courses', 'testimonials', 'newsletter', 'contacts'];
 
 	// Build nav items respecting the provided section order
 	let navItems = $derived.by(() => {

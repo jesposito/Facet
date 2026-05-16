@@ -41,7 +41,7 @@ import { getCanonicalUrl, generateOpenGraphTags, generateArticleJsonLd, serializ
 	// JSON-LD Article schema for rich-results / share previews. Emitted in
 	// <svelte:head>; serializer escapes `</` to avoid breaking out of the tag.
 	let articleJsonLd = $derived(
-		serializeJsonLd(generateArticleJsonLd(data.post, baseUrl, data.profile ?? null))
+		serializeJsonLd(generateArticleJsonLd(data.post as unknown as RecordModel, baseUrl, data.profile ?? null))
 	);
 	let postThumb = $derived((data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url);
 	let postLarge = $derived((data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url);

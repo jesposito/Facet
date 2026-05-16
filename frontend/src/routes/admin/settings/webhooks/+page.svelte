@@ -212,8 +212,8 @@
 		const ok = await confirm({
 			title: $t('admin.webhooks.delete_title'),
 			message: $t('admin.webhooks.delete_message', { values: { label: wh.label } }),
-			confirmLabel: $t('shared.actions.delete'),
-			variant: 'danger'
+			confirmText: $t('shared.actions.delete'),
+			danger: true
 		});
 		if (!ok) return;
 

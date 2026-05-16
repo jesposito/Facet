@@ -89,7 +89,11 @@
 	});
 
 	let themeColor = $state('#0ea5e9'); // Default sky-500
-	let customCSS = $state('');
+	// Seed from SSR data so the $effect at the bottom of <script> applies the
+	// admin-configured CSS on mount. Without this, the effect would call
+	// applyCustomCSS('') and wipe the <style id="custom-css"> element
+	// immediately after onMount injected it (regression in v2.21.15).
+	let customCSS = $state(data.customCSS ?? '');
 	let lastCustomCSS = $state('');
 	let mounted = $state(false);
 let gaMeasurementId = $state('');
@@ -288,11 +292,10 @@ onMount(() => {
 		}
 		// SSR provides locale and custom CSS from +layout.server.ts.
 		// Fall back to client-side loadSiteSettings() if SSR didn't provide them.
+		// customCSS is already seeded from data.customCSS via the $state initializer;
+		// the $effect at the bottom of <script> applies it on mount.
 		if (data.defaultLocale || data.customCSS) {
 			initI18n(data.defaultLocale || undefined);
-			if (data.customCSS) {
-				applyCustomCSS(data.customCSS);
-			}
 		} else {
 			const serverLocale = await loadSiteSettings();
 			initI18n(serverLocale);
