@@ -307,7 +307,7 @@ Selected cloud "ops/admin" features were ported as **stripped-down single-tenant
 ### Tier 3 — Write API + Ops Surfaces
 
 - ✅ **API v1 writes** — `POST/PATCH/DELETE /api/v1/{posts,projects,skills,experience}` + `PATCH /api/v1/profile` (singleton, PATCH-only). New `write:*` scopes; read and write scopes are independent. Field allowlist per collection so callers can't sneak in protected fields.
-- ✅ **System alerts inbox** — `/admin/alerts` with new `system_alerts` collection. Three severities (info/warning/critical), ack-one/ack-all, sidebar unread badge. `CreateSystemAlert` helper is lenient (logs and returns silently on failure).
+- ✅ **System alerts inbox** — `/admin/alerts` with new `system_alerts` collection. Three severities (info/warning/critical), ack-one/ack-all. `CreateSystemAlert` helper is lenient (logs and returns silently on failure). Sidebar link is hidden until alert emitters are wired into backup / SMTP / webhook code paths.
 - ✅ **Newsletter multi-list (segments)** — new `newsletter_lists` + `subscriber_list_memberships` collections. Per-list sender/reply-to/welcome email, atomic default swap, subscriber-count recompute hooks. Self-hosted has no list cap (`cap: 0`). Default-list backfill keeps existing instances unchanged.
 - ✅ **Newsletter compose + lists UI** — `/admin/newsletter` (hub), `/admin/newsletter/lists`, `/admin/newsletter/compose`.
 - ✅ **External media providers** — Loom, CodePen, Figma oEmbed (in addition to YouTube, Vimeo, SoundCloud). Brand icons.

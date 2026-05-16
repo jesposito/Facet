@@ -399,7 +399,7 @@ const ok = crypto.timingSafeEqual(
 
 ### System Alerts (Know When Something Breaks)
 
-Background failures used to be invisible until you went looking for them. Now they land in **Admin → Alerts** with a count badge in the sidebar.
+Background failures used to be invisible until you went looking for them. Now they land at `/admin/alerts`. The sidebar link is hidden today because no emitters are wired yet — the page works, the inbox just stays empty until backup / SMTP / webhook code paths start calling `CreateSystemAlert`.
 
 What shows up here:
 

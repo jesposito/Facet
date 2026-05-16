@@ -450,9 +450,9 @@ Get notified when something happens in Facet. Configure webhook endpoints under 
 
 ### System Alerts Inbox
 
-When something goes wrong in the background — a failed backup, an SMTP error, repeated webhook delivery failures — it lands in **Admin → Alerts**. The sidebar gets an unread-count badge so you don't have to hunt for incidents.
+When something goes wrong in the background — a failed backup, an SMTP error, repeated webhook delivery failures — it lands at `/admin/alerts`. Three severities (`info` / `warning` / `critical`), filterable, acknowledgable individually or all at once. Each alert can carry structured metadata for richer rendering. Backend emitters call a single `CreateSystemAlert` helper; failures to write an alert are silently logged so the alert subsystem can never break the hot path that triggered it.
 
-Three severities (`info` / `warning` / `critical`), filterable, acknowledgable individually or all at once. Each alert can carry structured metadata for richer rendering. Backend emitters call a single `CreateSystemAlert` helper; failures to write an alert are silently logged so the alert subsystem can never break the hot path that triggered it.
+The sidebar link is hidden today — the page works but the inbox stays empty until emitters are wired into backup, SMTP, and webhook code paths. Re-enable the sidebar entry in `AdminSidebar.svelte` once those are in place.
 
 ### Newsletter Lists (Segments)
 
