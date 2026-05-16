@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.13 - May 16, 2026
+
+**Bugs Fixed:**
+- patch 11 security advisories (svelte, dompurify, postcss, aws-sdk, x/image)
+
+**Other Changes:**
+- remove stale local template, point to canonical
+
+**Pull Requests:** [#436](https://github.com/jesposito/Facet/pull/436),[#437](https://github.com/jesposito/Facet/pull/437),
+
+---
+
+
 ## v2.21.12 - May 16, 2026
 
 **Other Changes:**
