@@ -1,10 +1,17 @@
 import { waitLocale } from '$lib/i18n';
+import type { LayoutLoad } from './$types';
 
 /**
  * Universal load function to ensure i18n is ready before rendering.
- * SSR data (favicon, accent color, plan config) is handled by +layout.server.ts.
+ *
+ * IMPORTANT: must forward `data` from +layout.server.ts. SvelteKit replaces
+ * the server data with whatever this universal load returns, so returning
+ * `{}` silently discards faviconUrl / planConfig / siteNav / accentColor /
+ * customCSS / etc. — which caused the favicon SSR regression where the
+ * page rendered the fallback `<link rel="icon" href="/favicon.png">`
+ * even though the server fetched the correct `/api/favicon` URL.
  */
-export const load = async () => {
+export const load: LayoutLoad = async ({ data }) => {
 	await waitLocale();
-	return {};
+	return { ...data };
 };
