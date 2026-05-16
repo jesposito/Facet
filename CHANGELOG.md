@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.15 - May 16, 2026
+
+**New Features:**
+- add Discord badge to README
+
+**Pull Requests:** [#438](https://github.com/jesposito/Facet/pull/438),
+
+---
+
+
 ## v2.21.13 - May 16, 2026
 
 **Bugs Fixed:**
