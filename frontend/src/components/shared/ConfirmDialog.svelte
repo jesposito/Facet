@@ -58,23 +58,36 @@
 		}
 	}
 
-	// Lock body scroll when open
+	// Lock body scroll when open. Capture previousActiveElement only on the
+	// false→true transition so a pre-empt (one confirm() opens while another
+	// is already showing) doesn't overwrite the original trigger element
+	// with the cancel-button of the prior dialog.
+	let wasOpen = false;
 	$effect(() => {
 		if (typeof document !== 'undefined') {
-			if ($confirmDialog.open) {
+			const isOpen = $confirmDialog.open;
+			if (isOpen && !wasOpen) {
 				previousActiveElement = document.activeElement as HTMLElement;
 				document.body.style.overflow = 'hidden';
 				// Focus cancel button after dialog renders
 				requestAnimationFrame(() => {
 					cancelBtnEl?.focus();
 				});
-			} else {
+			} else if (isOpen && wasOpen) {
+				// Pre-empt: keyed remount handles announce + autofocus.
+				// We just need the cancel button to refocus on the new mount.
+				requestAnimationFrame(() => {
+					cancelBtnEl?.focus();
+				});
+			} else if (!isOpen && wasOpen) {
 				document.body.style.overflow = '';
 				// Restore focus to previous element
-				if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
+				if (previousActiveElement && typeof previousActiveElement.focus === 'function' && document.contains(previousActiveElement)) {
 					previousActiveElement.focus();
 				}
+				previousActiveElement = null;
 			}
+			wasOpen = isOpen;
 		}
 	});
 
@@ -88,7 +101,11 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if $confirmDialog.open && $confirmDialog.options}
-	<!-- Backdrop -->
+	<!-- Backdrop. Keyed on contentKey: when one confirm() pre-empts another,
+	     the dialog DOM unmounts + remounts with the new content. The alertdialog
+	     role re-fires its SR announcement and the cancel-button auto-focus
+	     runs again. -->
+	{#key $confirmDialog.contentKey}
 	<div
 		class="fixed inset-0 z-50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
 		onclick={handleOverlayClick}
@@ -151,6 +168,7 @@
 			</div>
 		</div>
 	</div>
+	{/key}
 {/if}
 
 <style>

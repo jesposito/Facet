@@ -2,7 +2,12 @@
 	import { onMount } from 'svelte';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
-	import { formatDate } from '$lib/utils';
+	import {
+		formatDate,
+		detectExternalMediaProvider,
+		getExternalMediaProviderLabel,
+		getExternalMediaThumbnail
+	} from '$lib/utils';
 	import { pb } from '$lib/pocketbase';
 	import { goto } from '$app/navigation';
 	import PageHelp from '$components/admin/PageHelp.svelte';
@@ -64,6 +69,9 @@
 		if (provider === 'vimeo') return 'vimeo';
 		if (provider === 'spotify') return 'spotify';
 		if (provider === 'soundcloud') return 'soundcloud';
+		if (provider === 'loom') return 'loom';
+		if (provider === 'codepen') return 'codepen';
+		if (provider === 'figma') return 'figma';
 		if (item.mime?.startsWith('video/')) return 'video';
 		if (item.mime?.startsWith('audio/')) return 'music';
 		if (item.mime?.startsWith('image/')) return 'image';
@@ -168,8 +176,18 @@
 		mime: '',
 		thumbnail_url: '',
 		saving: false,
-		fetching: false
+		fetching: false,
+		urlTouched: false
 	});
+
+	// Detected provider for the currently-typed URL (null when empty or unsupported).
+	// Validation only runs once the user has interacted (typed/blurred) so the form
+	// doesn't show an error before they've started typing.
+	let externalProvider = $derived.by(() => detectExternalMediaProvider(newExternal.url));
+	let externalUrlInvalid = $derived.by(() =>
+		newExternal.urlTouched && newExternal.url.trim() !== '' && externalProvider === null
+	);
+	let externalAutoThumbnail = $derived.by(() => getExternalMediaThumbnail(newExternal.url));
 	let uploadFile: File | null = $state(null);
 	let uploadTitle = $state('');
 	let uploading = $state(false);
@@ -835,10 +853,26 @@
 	}
 
 	async function createExternal() {
-		if (!newExternal.url.trim()) {
+		const trimmed = newExternal.url.trim();
+		if (!trimmed) {
+			newExternal.urlTouched = true;
 			toasts.add('error', $t('admin.media.toast_url_required'));
 			return;
 		}
+		// Enforce the same provider allowlist as the markdown sanitizer.
+		// Anything outside this list cannot be embedded in posts/projects, so
+		// rejecting it here keeps the library and the renderer in sync.
+		const provider = detectExternalMediaProvider(trimmed);
+		if (!provider) {
+			newExternal.urlTouched = true;
+			toasts.add('error', $t('admin.media.toast_unsupported_provider'));
+			return;
+		}
+		// If the user didn't supply a thumbnail, fill in the predictable
+		// provider thumbnail (currently YouTube). Other providers fall back to
+		// the provider icon in the grid.
+		const autoThumb = getExternalMediaThumbnail(trimmed);
+		const thumb = newExternal.thumbnail_url.trim() || autoThumb || '';
 		newExternal.saving = true;
 		try {
 			const res = await fetch('/api/media/external', {
@@ -848,10 +882,11 @@
 					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 				},
 				body: JSON.stringify({
-					url: newExternal.url.trim(),
+					url: trimmed,
 					title: newExternal.title.trim(),
 					mime: newExternal.mime.trim(),
-					thumbnail_url: newExternal.thumbnail_url.trim()
+					thumbnail_url: thumb,
+					provider
 				})
 			});
 			if (!res.ok) {
@@ -859,7 +894,15 @@
 				throw new Error(respBody.message || respBody.error || 'Failed to add external media');
 			}
 			toasts.add('success', $t('admin.media.toast_external_added'));
-			newExternal = { url: '', title: '', mime: '', thumbnail_url: '', saving: false, fetching: false };
+			newExternal = {
+				url: '',
+				title: '',
+				mime: '',
+				thumbnail_url: '',
+				saving: false,
+				fetching: false,
+				urlTouched: false
+			};
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
@@ -1215,8 +1258,16 @@
 			<div>
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.media.external_title')}</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.media.external_description')}</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+					{$t('admin.media.external_supported_providers')}
+				</p>
 			</div>
-			<button class="btn btn-primary" onclick={createExternal} aria-busy={newExternal.saving}>
+			<button
+				class="btn btn-primary"
+				onclick={createExternal}
+				aria-busy={newExternal.saving}
+				disabled={newExternal.saving || externalUrlInvalid || !newExternal.url.trim()}
+			>
 				{newExternal.saving ? $t('admin.media.saving') : $t('admin.media.add_button')}
 			</button>
 		</div>
@@ -1226,19 +1277,25 @@
 				<div class="flex gap-2">
 					<input
 						id="ext-url"
-						class="input flex-1"
+						type="url"
+						class="input flex-1 {externalUrlInvalid ? 'border-red-500 focus:border-red-500' : ''}"
 						bind:value={newExternal.url}
 						placeholder={$t('admin.media.url_placeholder')}
-						oninput={() => { externalPreviewFailed = false; }}
+						aria-invalid={externalUrlInvalid}
+						aria-describedby="ext-url-help"
+						oninput={() => {
+							externalPreviewFailed = false;
+							newExternal.urlTouched = true;
+						}}
 						onblur={() => {
+							newExternal.urlTouched = true;
 							// Auto-fetch metadata when URL is from a supported provider
-							const url = newExternal.url.trim().toLowerCase();
-							if (url && (url.includes('youtube.') || url.includes('youtu.be') || url.includes('vimeo.') || url.includes('loom.') || url.includes('soundcloud.'))) {
+							if (externalProvider) {
 								fetchExternalMetadata();
 							}
 						}}
 					/>
-					{#if newExternal.url.trim() && (newExternal.url.toLowerCase().includes('youtube.') || newExternal.url.toLowerCase().includes('youtu.be') || newExternal.url.toLowerCase().includes('vimeo.') || newExternal.url.toLowerCase().includes('loom.') || newExternal.url.toLowerCase().includes('soundcloud.'))}
+					{#if externalProvider}
 						<button
 							type="button"
 							class="btn btn-secondary btn-sm whitespace-nowrap"
@@ -1256,6 +1313,17 @@
 						</button>
 					{/if}
 				</div>
+				{#if externalUrlInvalid}
+					<p id="ext-url-help" class="text-xs text-red-600 dark:text-red-400 mt-1" role="alert">
+						{$t('admin.media.external_url_invalid')}
+					</p>
+				{:else if externalProvider}
+					<p id="ext-url-help" class="text-xs text-green-600 dark:text-green-400 mt-1">
+						{$t('admin.media.external_url_detected', { values: { provider: getExternalMediaProviderLabel(externalProvider) } })}
+					</p>
+				{:else}
+					<p id="ext-url-help" class="sr-only">{$t('admin.media.external_url_help')}</p>
+				{/if}
 			</div>
 			<div>
 				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
@@ -1269,36 +1337,33 @@
 				<label class="label" for="ext-thumb">{$t('admin.media.thumbnail_label')}</label>
 				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder={$t('admin.media.thumbnail_placeholder')} />
 			</div>
-			{#if newExternal.url.trim()}
-				{@const previewMime = newExternal.mime.trim()}
+			{#if newExternal.url.trim() && externalProvider}
 				{@const previewUrl = newExternal.url.trim()}
-				{@const thumbUrl = newExternal.thumbnail_url.trim()}
-				{@const isVideo = previewMime.startsWith('video/') || /youtube|vimeo|loom/i.test(previewUrl)}
+				{@const userThumb = newExternal.thumbnail_url.trim()}
+				{@const thumbUrl = userThumb || externalAutoThumbnail || ''}
+				{@const providerIconName = (externalProvider === 'youtube' || externalProvider === 'vimeo' || externalProvider === 'spotify' || externalProvider === 'soundcloud' || externalProvider === 'loom' || externalProvider === 'codepen' || externalProvider === 'figma') ? externalProvider : 'globe'}
 				<div class="lg:col-span-4">
 					{#key previewUrl}
 						<div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-							{#if isVideo}
-								{#if thumbUrl}
-									<img src={thumbUrl} alt="Thumbnail" class="max-h-48 mx-auto rounded" />
-								{:else}
-									<p class="text-sm text-gray-500 dark:text-gray-400 text-center">{$t('admin.media.video_preview_note')}</p>
-								{/if}
+							{#if thumbUrl && !externalPreviewFailed}
+								<img
+									src={thumbUrl}
+									alt={$t('admin.media.preview_alt', { values: { provider: getExternalMediaProviderLabel(externalProvider) } })}
+									class="max-h-48 mx-auto rounded"
+									onerror={() => { externalPreviewFailed = true; }}
+								/>
 							{:else}
-								<!-- Try to load as image; show fallback on error -->
-								{#if !externalPreviewFailed}
-									<img
-										src={previewUrl}
-										alt="Preview"
-										class="max-h-48 mx-auto rounded"
-										onerror={() => { externalPreviewFailed = true; }}
-									/>
-								{:else}
-									<div class="flex items-center justify-center h-24">
-										<a href={previewUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
-											{$t('admin.media.open_link')}
-										</a>
-									</div>
-								{/if}
+								<div class="flex flex-col items-center justify-center h-32 gap-3">
+									<span class="text-gray-500 dark:text-gray-400" aria-hidden="true">
+										{@html icon(providerIconName, 'w-12 h-12')}
+									</span>
+									<span class="text-sm text-gray-600 dark:text-gray-400">
+										{getExternalMediaProviderLabel(externalProvider)}
+									</span>
+									<a href={previewUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+										{$t('admin.media.open_link')}
+									</a>
+								</div>
 							{/if}
 						</div>
 					{/key}

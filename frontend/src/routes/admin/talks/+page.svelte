@@ -18,6 +18,7 @@
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let talks: Talk[] = $state([]);
 	let loading = $state(true);
@@ -521,71 +522,71 @@ afterNavigate(() => {
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Media & Links</h2>
-
-				<div>
-					<label for="video_url" class="label">Video URL</label>
-					<input
-						type="url"
-						id="video_url"
-						bind:value={videoUrl}
-						class="input"
-						placeholder="https://youtube.com/watch?v=..."
-					/>
-					<p class="text-xs text-gray-500 mt-1">YouTube and Vimeo links will be embedded automatically</p>
-				</div>
-
-				<div>
-					<label for="slides_url" class="label">Slides URL</label>
-					<input
-						type="url"
-						id="slides_url"
-						bind:value={slidesUrl}
-						class="input"
-						placeholder="https://speakerdeck.com/... or https://slides.com/..."
-					/>
-				</div>
-
-				<MultiMediaPicker
-					bind:this={mediaPickerRef}
-					bind:value={mediaRefs}
-					label={$t('admin.content.common.attached_media')}
-					helpText="Select media from your library to attach to this talk"
-				/>
-			</div>
-
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Publishing</h2>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<VisibilitySelector bind:value={visibility} />
+			<AccordionSection title="Media & Links" open={false}>
+				<div class="space-y-4">
+					<div>
+						<label for="video_url" class="label">Video URL</label>
+						<input
+							type="url"
+							id="video_url"
+							bind:value={videoUrl}
+							class="input"
+							placeholder="https://youtube.com/watch?v=..."
+						/>
+						<p class="text-xs text-gray-500 mt-1">YouTube and Vimeo links will be embedded automatically</p>
+					</div>
 
 					<div>
-						<label for="sort_order" class="label">Sort Order</label>
+						<label for="slides_url" class="label">Slides URL</label>
 						<input
-							type="number"
-							id="sort_order"
-							bind:value={sortOrder}
+							type="url"
+							id="slides_url"
+							bind:value={slidesUrl}
 							class="input"
-							min="0"
+							placeholder="https://speakerdeck.com/... or https://slides.com/..."
 						/>
-						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+					</div>
+
+					<MultiMediaPicker
+						bind:this={mediaPickerRef}
+						bind:value={mediaRefs}
+						label={$t('admin.content.common.attached_media')}
+						helpText="Select media from your library to attach to this talk"
+					/>
+				</div>
+			</AccordionSection>
+
+			<AccordionSection title="Publishing" open={false}>
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<VisibilitySelector bind:value={visibility} />
+
+						<div>
+							<label for="sort_order" class="label">Sort Order</label>
+							<input
+								type="number"
+								id="sort_order"
+								bind:value={sortOrder}
+								class="input"
+								min="0"
+							/>
+							<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+						</div>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							id="is_draft"
+							bind:checked={isDraft}
+							class="w-4 h-4 text-primary-600 rounded border-gray-300"
+						/>
+						<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
+							Save as draft (won't be visible publicly)
+						</label>
 					</div>
 				</div>
-
-				<div class="flex items-center gap-2">
-					<input
-						type="checkbox"
-						id="is_draft"
-						bind:checked={isDraft}
-						class="w-4 h-4 text-primary-600 rounded border-gray-300"
-					/>
-					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
-						Save as draft (won't be visible publicly)
-					</label>
-				</div>
-			</div>
+			</AccordionSection>
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>

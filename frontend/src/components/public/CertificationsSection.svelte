@@ -115,7 +115,7 @@
 							</div>
 							<p class="text-sm text-gray-600 dark:text-gray-400">{cert.issuer || $t('public.certifications.unknown')}</p>
 							{#if cert.issue_date}
-								<p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+								<p class="text-xs text-gray-500 dark:text-gray-300 mt-1">
 									{formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
 								</p>
 							{/if}
@@ -164,7 +164,7 @@
 										{/if}
 									</div>
 									{#if cert.credential_id}
-										<div class="mt-1 text-xs text-gray-500 dark:text-gray-500">
+										<div class="mt-1 text-xs text-gray-500 dark:text-gray-300">
 											{$t('public.certifications.credential_id')}: {cert.credential_id}
 										</div>
 									{/if}

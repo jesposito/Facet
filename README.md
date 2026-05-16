@@ -399,6 +399,76 @@ Features:
 
 Media attaches to projects, posts, and talks. It shows up on public pages with lazy loading and proper alt text.
 
+### Public REST API (For Scripts, Automations, and Integrations)
+
+Need to read or write your Facet content from outside the admin UI? Facet ships a clean, scoped public API under `/api/v1/*`. Use it to mirror posts to your static site, build a custom resume page, or pipe new GitHub repos into your portfolio from CI.
+
+**How it works:**
+
+1. Go to **Admin → API** and create a key with the scopes you need
+2. The key (`facet_...`) is shown once — store it like a password
+3. Pass it as `Authorization: Bearer facet_...` on every request
+
+**Scopes:** `read:*` and `write:*` for `profile`, `posts`, `projects`, `skills`, `experience`. Read and write are independent — granting `write:posts` does **not** imply `read:posts`.
+
+**Example — list public posts:**
+```bash
+curl https://your-facet.example.com/api/v1/posts \
+  -H "Authorization: Bearer facet_..."
+```
+
+**Example — create a draft post:**
+```bash
+curl -X POST https://your-facet.example.com/api/v1/posts \
+  -H "Authorization: Bearer facet_..." \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Hello","slug":"hello","content":"Markdown body","is_draft":true}'
+```
+
+Keys can be revoked, expired on a date, and limited to specific browser origins (for CORS-style usage). Raw keys are never stored — only the SHA-256 hash.
+
+### Webhooks (Push Events to Other Systems)
+
+Get notified when something happens in Facet. Configure webhook endpoints under **Admin → Settings → Webhooks** and subscribe to events.
+
+**Events available:**
+- `post.published` — a post (or talk, or custom content) transitioned out of draft
+- `comment.created` — someone left a comment on a public item
+- `newsletter.subscribed` — a new subscriber confirmed
+
+**Security:**
+- Every payload is signed with HMAC-SHA256 over the JSON body (`X-Facet-Signature: sha256=<hex>`)
+- The signing secret is shown once at create time
+- SSRF protection: hostnames are resolved at dial-time and rejected if they resolve to private/loopback/link-local/CGNAT/metadata IPs (no firing webhooks at `localhost` or `169.254.169.254`)
+- Endpoints that fail 10 times in a row are auto-disabled
+- Re-enabling resets the failure counter
+
+**Testing:**
+- "Send test" on each webhook fires a synthetic delivery and shows the response inline
+- The **dispatch test event** picker fires a realistic synthetic payload to all active subscribers of a chosen event so you can validate your receiver
+- Every attempt is logged with status code, response body, and attempt count
+
+### System Alerts Inbox
+
+When something goes wrong in the background — a failed backup, an SMTP error, repeated webhook delivery failures — it lands at `/admin/alerts`. Three severities (`info` / `warning` / `critical`), filterable, acknowledgable individually or all at once. Each alert can carry structured metadata for richer rendering. Backend emitters call a single `CreateSystemAlert` helper; failures to write an alert are silently logged so the alert subsystem can never break the hot path that triggered it.
+
+The sidebar link is hidden today — the page works but the inbox stays empty until emitters are wired into backup, SMTP, and webhook code paths. Re-enable the sidebar entry in `AdminSidebar.svelte` once those are in place.
+
+### Newsletter Lists (Segments)
+
+Run more than one mailing list from a single Facet instance. Default install has a single "Newsletter" list seeded for you; create more as needed under **Admin → Newsletter → Lists**.
+
+**Per-list configuration:**
+- Custom name, slug, description
+- Per-list sender name and reply-to address
+- Per-list welcome email subject and HTML body
+- Active/inactive toggle (pauses subscribes without losing existing members)
+- One list is always the "default" (you can swap the flag atomically)
+
+**Compose UI:** **Admin → Newsletter → Compose** lets you pick which lists to send to, preview the rendered email, send a test to yourself, and dispatch a broadcast. The newsletter hub at `/admin/newsletter` shows recent sends, subscriber counts, and a per-list overview.
+
+Subscriber-count cache is kept honest by automatic recomputation hooks whenever memberships are created or deleted. The join table cascade-deletes correctly so subscribers keep their other memberships if you delete a single list.
+
 ### Feeds and Exports
 
 **RSS Feed** (`/rss.xml`):
@@ -761,6 +831,12 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - `GET /admin/settings/account` → Account & security (password, 2FA)
 - `GET /admin/settings/site` → Site settings, SMTP/email configuration
 - `GET /admin/settings/integrations` → AI providers & integrations
+- `GET /admin/settings/webhooks` → Webhook endpoints, secrets, delivery log
+- `GET /admin/api` → API key management (create, scope, revoke)
+- `GET /admin/alerts` → System alerts inbox
+- `GET /admin/newsletter` → Newsletter overview
+- `GET /admin/newsletter/lists` → Manage newsletter lists (segments)
+- `GET /admin/newsletter/compose` → Compose and send broadcasts
 - (Plus routes for education, certifications, skills, posts, talks, awards, contacts, tokens)
 
 **API routes** (via PocketBase hooks):
@@ -769,6 +845,9 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - `POST /api/ai/enrich` → AI enrichment
 - `GET /api/export?format=json|yaml` → Data export
 - `POST /api/share/validate` → Validate share token
+- `GET /api/v1/{profile,posts,projects,skills,experience}` → Public read API (requires `read:*` scope)
+- `POST/PATCH/DELETE /api/v1/{posts,projects,skills,experience}` → Public write API (requires `write:*` scope)
+- `PATCH /api/v1/profile` → Update the singleton profile (requires `write:profile`)
 - (Plus standard PocketBase collection endpoints)
 
 ---
@@ -789,6 +868,7 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 | [docs/AI_WRITING_ASSISTANT.md](docs/AI_WRITING_ASSISTANT.md) | Writing assistant tones, critique mode, implementation |
 | [docs/CONTACT_PROTECTION.md](docs/CONTACT_PROTECTION.md) | Contact protection tiers, implementation details |
 | [docs/MEDIA.md](docs/MEDIA.md) | Media system internals, file handling, optimization |
+| [docs/SELF-HOSTING-GUIDE.md](docs/SELF-HOSTING-GUIDE.md) | Beginner guide: install, expose, API keys, webhooks, alerts, newsletter |
 
 > **Note for contributors:** Keep [ROADMAP.md](docs/ROADMAP.md) up-to-date. When you complete a feature, mark it done. When you add a feature, add it to the roadmap. It's the source of truth for what's implemented vs. planned.
 
@@ -819,6 +899,12 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Version update notifications (checks GitHub for new releases)
 - ✅ Automated changelog generation from PR descriptions
 - ✅ Optional TOTP two-factor authentication with recovery codes
+- ✅ Public REST API (`/api/v1/*`) with scoped API keys (read + write)
+- ✅ Webhooks with HMAC signing, SSRF protection, retry + auto-disable, delivery log
+- ✅ System alerts inbox (operator-facing event log)
+- ✅ Newsletter lists / segments (multi-list with per-list sender + welcome email)
+- ✅ Newsletter compose UI with list picker, preview, test send
+- ✅ External media expanded: Loom, CodePen, Figma oEmbed providers
 
 **Coming Soon:**
 - CAPTCHA contact protection (Cloudflare Turnstile integration)
@@ -826,7 +912,6 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 
 **Planned (Lower Priority):**
 - Content Security Policy headers
-- Webhooks and integrations
 - Theme system with pre-built themes
 
 Full roadmap: [ROADMAP.md](docs/ROADMAP.md)

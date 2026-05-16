@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"facet/hooks"
 	"facet/services"
@@ -40,9 +39,10 @@ func main() {
 	rateLimitService := services.NewRateLimitService()
 	planConfig := services.LoadPlanConfig()
 
-	// Register migrations
+	// Register migrations. Self-hosted single-user — always run new migrations
+	// on boot so deploys pick up schema changes without manual `migrate up`.
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
-		Automigrate: strings.HasPrefix(os.Args[0], os.TempDir()),
+		Automigrate: true,
 	})
 
 	// Register custom hooks
@@ -53,6 +53,7 @@ func main() {
 	hooks.RegisterAdminAuth(app)
 	hooks.RegisterPasswordChangeEndpoint(app, rateLimitService) // Password change endpoint for first-time setup
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
+	hooks.RegisterVersionHooks(app, githubService) // /api/version-check (proxies LATEST_VERSION to avoid CSP issues)
 	hooks.RegisterAIHooks(app, aiService, cryptoService)
 	hooks.RegisterShareHooks(app, shareService, cryptoService, rateLimitService)
 	hooks.RegisterPasswordHooks(app, cryptoService, rateLimitService)
@@ -76,11 +77,16 @@ func main() {
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCommentHooks(app, planConfig)
 	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
+	hooks.RegisterNewsletterListHooks(app) // Multi-list segment support (admin CRUD + count recompute)
 	hooks.RegisterPurchaseHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCouponHooks(app, rateLimitService)
 	hooks.RegisterDownloadHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCourseHooks(app, planConfig, cryptoService, rateLimitService)
 	hooks.RegisterQuizHooks(app, planConfig, cryptoService, rateLimitService)
+	hooks.RegisterWebhookHooks(app, rateLimitService)
+	hooks.RegisterAPIKeyHooks(app)      // Public read-only API + admin key management
+	hooks.RegisterSystemAlertHooks(app) // Operator-facing system event inbox
+	hooks.RegisterAPIV1WriteHooks(app)  // POST/PATCH/DELETE on /api/v1/* (write scopes)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)

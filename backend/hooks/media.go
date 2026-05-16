@@ -285,6 +285,11 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			if _, err := validateURL(req.URL); err != nil {
 				return apis.NewBadRequestError("invalid url", err)
 			}
+			// Hostname allowlist: mirrors the iframe sanitizer allowlist so
+			// links saved to the library can actually be embedded in content.
+			if !isAllowedExternalMediaURL(req.URL) {
+				return apis.NewBadRequestError("unsupported provider; allowed: youtube, vimeo, spotify, loom, soundcloud, codepen, figma", nil)
+			}
 			if req.ThumbnailURL != "" {
 				if _, err := validateURL(req.ThumbnailURL); err != nil {
 					return apis.NewBadRequestError("invalid thumbnail_url", err)
@@ -1646,6 +1651,41 @@ func validateURL(raw string) (*url.URL, error) {
 		return nil, os.ErrInvalid
 	}
 	return parsed, nil
+}
+
+// externalMediaAllowedHosts is the server-side allowlist that mirrors the
+// iframe hostname allowlist enforced by the markdown sanitizer in
+// frontend/src/lib/utils.ts. Anything outside this list cannot be embedded
+// in posts/projects, so we reject it at write time to keep the media
+// library and the renderer in sync.
+var externalMediaAllowedHosts = []string{
+	"youtube.com", "youtu.be", "youtube-nocookie.com",
+	"vimeo.com", "player.vimeo.com",
+	"spotify.com", "open.spotify.com",
+	"loom.com",
+	"soundcloud.com", "w.soundcloud.com",
+	"codepen.io",
+	"figma.com",
+}
+
+// isAllowedExternalMediaURL returns true when the URL is https and its
+// hostname matches (exactly or as a subdomain of) one of the providers in
+// the sanitizer allowlist.
+func isAllowedExternalMediaURL(raw string) bool {
+	parsed, err := validateURL(raw)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "https" {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	for _, allowed := range externalMediaAllowedHosts {
+		if host == allowed || strings.HasSuffix(host, "."+allowed) {
+			return true
+		}
+	}
+	return false
 }
 
 // detectMimeType determines the MIME type of a file using extension and content sniffing.

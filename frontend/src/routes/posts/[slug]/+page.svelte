@@ -13,7 +13,7 @@ import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 import { onMount } from 'svelte';
 	import type { RecordModel } from 'pocketbase';
-import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
+import { getCanonicalUrl, generateOpenGraphTags, generateArticleJsonLd, serializeJsonLd } from '$lib/seo';
 
 	interface Props {
 		data: PageData;
@@ -37,6 +37,12 @@ import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
 	// Format the published date
 	let publishedDate = $derived(data.post.published_at ? formatDate(data.post.published_at) : null);
+
+	// JSON-LD Article schema for rich-results / share previews. Emitted in
+	// <svelte:head>; serializer escapes `</` to avoid breaking out of the tag.
+	let articleJsonLd = $derived(
+		serializeJsonLd(generateArticleJsonLd(data.post, baseUrl, data.profile ?? null))
+	);
 	let postThumb = $derived((data.post as Record<string, string>).cover_image_thumb_url ?? data.post.cover_image_url);
 	let postLarge = $derived((data.post as Record<string, string>).cover_image_large_url ?? data.post.cover_image_url);
 	let mediaRefs = $derived((data.media_refs as Array<RecordModel & {
@@ -173,6 +179,9 @@ const getHost = (url?: string) => {
 	{#each Object.entries(ogTags) as [property, content]}
 		<meta property={property} content={content} />
 	{/each}
+
+	<!-- schema.org Article JSON-LD for rich results (Google, Bing, Pinterest) -->
+	{@html `<script type="application/ld+json">${articleJsonLd}</script>`}
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">

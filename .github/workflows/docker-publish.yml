@@ -24,6 +24,7 @@ on:
       - 'feat/*'
       - 'dev/*'
       - 'fix/*'
+      - 'backport'
     tags:
       - 'v*.*.*'
   pull_request:
@@ -202,7 +203,7 @@ jobs:
             # Set latest tag for version tags (releases) - direct push
             type=raw,value=latest,enable=${{ inputs.tag == '' && startsWith(github.ref, 'refs/tags/v') }}
             # Dev tag for upgrade, claude, auto-claude, feature, feat, dev, and fix branches
-            type=raw,value=dev,enable=${{ inputs.tag == '' && (startsWith(github.ref, 'refs/heads/upgrade/') || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/auto-claude/') || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/feat/') || startsWith(github.ref, 'refs/heads/dev/') || startsWith(github.ref, 'refs/heads/fix/')) }}
+            type=raw,value=dev,enable=${{ inputs.tag == '' && (startsWith(github.ref, 'refs/heads/upgrade/') || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/auto-claude/') || startsWith(github.ref, 'refs/heads/feature/') || startsWith(github.ref, 'refs/heads/feat/') || startsWith(github.ref, 'refs/heads/dev/') || startsWith(github.ref, 'refs/heads/fix/') || github.ref == 'refs/heads/backport') }}
             # Branch name (e.g., feature/foo)
             type=ref,event=branch,enable=${{ inputs.tag == '' }}
             # Tag name (e.g., v1.0.0 -> 1.0.0)

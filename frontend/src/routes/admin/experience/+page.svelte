@@ -20,6 +20,7 @@
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
+	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let experiences: Experience[] = $state([]);
 	let loading = $state(true);
@@ -671,43 +672,43 @@
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.common.settings_section')}</h2>
+			<AccordionSection title={$t('admin.content.common.settings_section')} open={false}>
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<VisibilitySelector bind:value={visibility} />
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<VisibilitySelector bind:value={visibility} />
+						<div>
+							<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
+							<input
+								type="number"
+								id="sort_order"
+								bind:value={sortOrder}
+								class="input"
+								min="0"
+							/>
+							<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.sort_order_help')}</p>
+						</div>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							id="is_draft"
+							bind:checked={isDraft}
+							class="w-4 h-4 text-primary-600 rounded border-gray-300"
+						/>
+						<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
+							{$t('admin.content.common.is_draft_label')}
+						</label>
+					</div>
 
 					<div>
-						<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
-						<input
-							type="number"
-							id="sort_order"
-							bind:value={sortOrder}
-							class="input"
-							min="0"
-						/>
-						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.sort_order_help')}</p>
+						<span id="admin-tags-label" class="label">{$t('admin.content.common.admin_tags_label')}</span>
+						<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.admin_tags_help')}</p>
 					</div>
 				</div>
-
-				<div class="flex items-center gap-2">
-					<input
-						type="checkbox"
-						id="is_draft"
-						bind:checked={isDraft}
-						class="w-4 h-4 text-primary-600 rounded border-gray-300"
-					/>
-					<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
-						{$t('admin.content.common.is_draft_label')}
-					</label>
-				</div>
-
-				<div>
-					<span id="admin-tags-label" class="label">{$t('admin.content.common.admin_tags_label')}</span>
-					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
-					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.admin_tags_help')}</p>
-				</div>
-			</div>
+			</AccordionSection>
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>{$t('admin.content.common.cancel')}</button>

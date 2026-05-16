@@ -182,7 +182,7 @@
 										</span>
 									{/each}
 									{#if post.tags.length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-500">
+										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-300">
 											+{post.tags.length - 3}
 										</span>
 									{/if}

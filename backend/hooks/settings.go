@@ -54,11 +54,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"homepage_section_order":  settings.HomepageSectionOrder,
 				"homepage_sections":       settings.HomepageSections,
 				"site_nav_enabled":        settings.SiteNavEnabled,
+				"site_nav_mode":           settings.SiteNavMode,
+				"site_nav_position":       settings.SiteNavPosition,
 				"site_nav_items":          settings.SiteNavItems,
+				"show_avatar":             settings.ShowAvatar,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
+				"default_theme_mode":      settings.DefaultThemeMode,
 				"homepage_view_count":     settings.HomepageViewCount,
 				"homepage_last_viewed_at": settings.HomepageLastViewedAt,
 				"enabled_features":        settings.EnabledFeatures,
@@ -82,10 +86,14 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				HomepageSectionOrder  []string                                  `json:"homepage_section_order"`
 				HomepageSections      map[string]services.HomepageSectionConfig `json:"homepage_sections"`
 				SiteNavEnabled        *bool                                     `json:"site_nav_enabled"`
+				SiteNavMode           *string                                   `json:"site_nav_mode"`
+				SiteNavPosition       *string                                   `json:"site_nav_position"`
 				SiteNavItems          []services.SiteNavItem                    `json:"site_nav_items"`
+				ShowAvatar            *bool                                     `json:"show_avatar"`
 				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
 				DefaultLocale         *string                                   `json:"default_locale"`
+				DefaultThemeMode      *string                                   `json:"default_theme_mode"`
 				EnabledFeatures       map[string]bool                           `json:"enabled_features"`
 			}
 
@@ -137,6 +145,20 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			if req.SiteNavEnabled != nil {
 				updates["site_nav_enabled"] = *req.SiteNavEnabled
 			}
+			if req.SiteNavMode != nil {
+				mode := strings.TrimSpace(*req.SiteNavMode)
+				if mode != "bar" && mode != "chips" {
+					mode = "bar"
+				}
+				updates["site_nav_mode"] = mode
+			}
+			if req.SiteNavPosition != nil {
+				pos := strings.TrimSpace(*req.SiteNavPosition)
+				if pos != "above" && pos != "below" {
+					pos = "below"
+				}
+				updates["site_nav_position"] = pos
+			}
 			if req.SiteNavItems != nil {
 				updates["site_nav_items"] = req.SiteNavItems
 			}
@@ -146,9 +168,19 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			if req.SiteCtaEnabled != nil {
 				updates["site_cta_enabled"] = *req.SiteCtaEnabled
 			}
+			if req.ShowAvatar != nil {
+				updates["show_avatar"] = *req.ShowAvatar
+			}
 			if req.DefaultLocale != nil {
 				locale := strings.TrimSpace(*req.DefaultLocale)
 				updates["default_locale"] = locale
+			}
+			if req.DefaultThemeMode != nil {
+				mode := strings.TrimSpace(*req.DefaultThemeMode)
+				if mode != "system" && mode != "light" && mode != "dark" {
+					mode = "system"
+				}
+				updates["default_theme_mode"] = mode
 			}
 			if req.EnabledFeatures != nil {
 				updates["enabled_features"] = req.EnabledFeatures
@@ -170,11 +202,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"homepage_section_order":  settings.HomepageSectionOrder,
 				"homepage_sections":       settings.HomepageSections,
 				"site_nav_enabled":        settings.SiteNavEnabled,
+				"site_nav_mode":           settings.SiteNavMode,
+				"site_nav_position":       settings.SiteNavPosition,
 				"site_nav_items":          settings.SiteNavItems,
+				"show_avatar":             settings.ShowAvatar,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
+				"default_theme_mode":      settings.DefaultThemeMode,
 				"enabled_features":        settings.EnabledFeatures,
 			})
 		})

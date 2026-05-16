@@ -195,21 +195,80 @@
 		return trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('mailto:') || trimmed.startsWith('/');
 	}
 
-	function insertLink() {
-		const url = prompt('Enter URL:');
-		if (url && isSafeUrl(url)) {
-			editor?.chain().focus().setLink({ href: url.trim() }).run();
-		} else if (url) {
-			alert('Only http://, https://, mailto:, and relative URLs are allowed.');
-		}
+	// Inline dialog state (replaces window.prompt/alert)
+	type DialogType = 'link' | 'image' | null;
+	let activeDialog: DialogType = $state(null);
+	let dialogInput = $state('');
+	let dialogError = $state('');
+	let dialogRef: HTMLDivElement | undefined = $state();
+	let dialogPreviousFocus: HTMLElement | null = $state(null);
+
+	function openLinkDialog() {
+		activeDialog = 'link';
+		dialogInput = '';
+		dialogError = '';
+		dialogPreviousFocus = document.activeElement as HTMLElement;
+		setTimeout(() => dialogRef?.querySelector<HTMLInputElement>('input')?.focus(), 50);
 	}
 
-	function insertImage() {
-		const url = prompt('Enter image URL:');
-		if (url && isSafeUrl(url)) {
-			editor?.chain().focus().setImage({ src: url.trim() }).run();
-		} else if (url) {
-			alert('Only http://, https://, and relative URLs are allowed.');
+	function openImageDialog() {
+		activeDialog = 'image';
+		dialogInput = '';
+		dialogError = '';
+		dialogPreviousFocus = document.activeElement as HTMLElement;
+		setTimeout(() => dialogRef?.querySelector<HTMLInputElement>('input')?.focus(), 50);
+	}
+
+	function confirmDialog() {
+		const url = dialogInput.trim();
+		if (!url) {
+			dialogError = activeDialog === 'link'
+				? 'Please enter a URL.'
+				: 'Please enter an image URL.';
+			return;
+		}
+		if (!isSafeUrl(url)) {
+			dialogError = 'Only http://, https://, mailto:, and relative URLs are allowed.';
+			return;
+		}
+		if (activeDialog === 'link') {
+			editor?.chain().focus().setLink({ href: url }).run();
+		} else if (activeDialog === 'image') {
+			editor?.chain().focus().setImage({ src: url }).run();
+		}
+		closeDialog();
+	}
+
+	function closeDialog() {
+		activeDialog = null;
+		dialogInput = '';
+		dialogError = '';
+		requestAnimationFrame(() => {
+			if (dialogPreviousFocus && typeof dialogPreviousFocus.focus === 'function') {
+				dialogPreviousFocus.focus();
+			}
+			dialogPreviousFocus = null;
+		});
+	}
+
+	function handleDialogKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			closeDialog();
+		} else if (e.key === 'Tab' && dialogRef) {
+			const focusable = dialogRef.querySelectorAll<HTMLElement>(
+				'button:not([disabled]), input:not([disabled])'
+			);
+			if (focusable.length === 0) return;
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			if (e.shiftKey && document.activeElement === first) {
+				e.preventDefault();
+				last.focus();
+			} else if (!e.shiftKey && document.activeElement === last) {
+				e.preventDefault();
+				first.focus();
+			}
 		}
 	}
 
@@ -365,7 +424,7 @@
 				<button
 					type="button"
 					class="toolbar-btn {toolbarActive.link ? 'active' : ''}"
-					onclick={insertLink}
+					onclick={openLinkDialog}
 					aria-label="Insert link"
 					title="Insert link"
 				>
@@ -376,7 +435,7 @@
 					<button
 						type="button"
 						class="toolbar-btn"
-						onclick={insertImage}
+						onclick={openImageDialog}
 						aria-label="Insert image"
 						title="Insert image"
 					>
@@ -469,6 +528,50 @@
 			></textarea>
 		{/if}
 	</div>
+
+	<!-- Inline URL dialog (replaces window.prompt/alert) -->
+	{#if activeDialog}
+		<div
+			class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+			role="presentation"
+			onclick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}
+		>
+			<div
+				bind:this={dialogRef}
+				class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl w-full max-w-sm p-4 space-y-3"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="editor-dialog-title"
+				onkeydown={handleDialogKeydown}
+			>
+				<h3 id="editor-dialog-title" class="text-sm font-semibold text-gray-900 dark:text-white">
+					{activeDialog === 'link' ? 'Insert Link' : 'Insert Image'}
+				</h3>
+				<div>
+					<label for="editor-dialog-url" class="text-xs text-gray-600 dark:text-gray-400">URL</label>
+					<input
+						id="editor-dialog-url"
+						type="url"
+						class="mt-1 block w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+						placeholder={activeDialog === 'link' ? 'https://example.com' : 'https://example.com/image.jpg'}
+						bind:value={dialogInput}
+						aria-invalid={dialogError ? 'true' : undefined}
+						aria-describedby={dialogError ? 'editor-dialog-error' : undefined}
+						onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmDialog(); } }}
+					/>
+					{#if dialogError}
+						<p id="editor-dialog-error" class="mt-1 text-xs text-red-600 dark:text-red-400">{dialogError}</p>
+					{/if}
+				</div>
+				<div class="flex justify-end gap-2">
+					<button type="button" class="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick={closeDialog}>Cancel</button>
+					<button type="button" class="px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700 transition-colors" onclick={confirmDialog}>
+						{activeDialog === 'link' ? 'Insert Link' : 'Insert Image'}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>

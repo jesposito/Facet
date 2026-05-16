@@ -6,30 +6,64 @@ type EmbedMatch = {
 	url: string;
 };
 
-// Configure DOMPurify with iframe domain whitelist for security
-// This hook validates iframe sources to prevent malicious embeds
+// Configure DOMPurify with iframe domain whitelist for security.
+// URL-parsing-based check (not substring) so that hostile URLs like
+// `https://www.youtube.com.attacker.tld/embed/...` cannot satisfy the allowlist
+// by happening to start with a trusted prefix.
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-	if (data.tagName === 'iframe' && node instanceof Element) {
-		const src = node.getAttribute('src') || '';
+	// Duck-type the Element check: `node instanceof Element` throws
+	// `ReferenceError: Element is not defined` during SvelteKit SSR because
+	// the jsdom-backed `Element` global isn't always materialized in the
+	// hook's evaluation context. Checking for the methods we need is
+	// equivalent for our purposes and works in both Node and the browser.
+	const el = node as unknown as { getAttribute?: (n: string) => string | null; parentNode?: { removeChild: (n: unknown) => void } } | null;
+	if (data.tagName === 'iframe' && el && typeof el.getAttribute === 'function') {
+		const src = el.getAttribute('src') || '';
 
-		// Whitelist of trusted embed domains matching our shortcode providers
-		const allowedDomains = [
-			'https://www.youtube.com/embed/',
-			'https://www.youtube-nocookie.com/embed/',
-			'https://player.vimeo.com/video/',
-			'https://www.loom.com/embed/',
-			'https://w.soundcloud.com/player/',
-			'https://open.spotify.com/embed/',
-			'https://codepen.io/embed/',
-			'https://www.figma.com/embed/'
+		// Allowlist of trusted embed origins + required path prefix per provider.
+		const allowedOrigins: Array<{ hostname: string; pathPrefix: string }> = [
+			{ hostname: 'www.youtube.com', pathPrefix: '/embed/' },
+			{ hostname: 'www.youtube-nocookie.com', pathPrefix: '/embed/' },
+			{ hostname: 'player.vimeo.com', pathPrefix: '/video/' },
+			{ hostname: 'www.loom.com', pathPrefix: '/embed/' },
+			{ hostname: 'w.soundcloud.com', pathPrefix: '/player/' },
+			{ hostname: 'open.spotify.com', pathPrefix: '/embed/' },
+			{ hostname: 'codepen.io', pathPrefix: '/embed/' },
+			// Figma's embed endpoint is `/embed?embed_host=...` (no trailing slash).
+			{ hostname: 'www.figma.com', pathPrefix: '/embed' }
 		];
 
-		// Remove iframe if source doesn't match whitelisted domains
-		const isAllowed = allowedDomains.some(domain => src.startsWith(domain));
+		let isAllowed = false;
+		try {
+			const url = new URL(src);
+			if (url.protocol === 'https:') {
+				isAllowed = allowedOrigins.some(
+					({ hostname, pathPrefix }) =>
+						url.hostname === hostname && url.pathname.startsWith(pathPrefix)
+				);
+			}
+		} catch {
+			// Invalid URL → not allowed.
+		}
+
 		if (!isAllowed) {
-			node.parentNode?.removeChild(node);
+			el.parentNode?.removeChild(node);
 			console.warn('[Security] Blocked iframe with untrusted source:', src);
 		}
+	}
+});
+
+// WCAG 1.4.2 (Audio Control): autoplay must not start automatically. Strip the
+// `autoplay` token from any iframe `allow=` value that survives sanitization.
+// Done as a separate hook because DOMPurify cannot filter individual tokens
+// inside an attribute value list.
+DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+	if (data.attrName === 'allow' && typeof data.attrValue === 'string') {
+		data.attrValue = data.attrValue
+			.split(';')
+			.map((t) => t.trim())
+			.filter((t) => t && !/^autoplay\b/i.test(t))
+			.join('; ');
 	}
 });
 
@@ -76,6 +110,9 @@ export function parseMarkdown(content: string): string {
 
 	// Step 3: Sanitize HTML to prevent XSS attacks
 	// This protects against malicious content in markdown (scripts, dangerous attributes, etc.)
+	// Accessibility-driven attribute set: dropped deprecated HTML4 `frameborder`
+	// and `scrolling`; added `title`/`name` for screen-reader iframe labelling
+	// (WCAG 4.1.2) and `poster` for `<video>` preview frames.
 	return DOMPurify.sanitize(html, {
 		// Extend default safe tags with media/embed elements
 		ADD_TAGS: ['iframe', 'video', 'audio', 'figure', 'figcaption', 'picture', 'source'],
@@ -83,13 +120,14 @@ export function parseMarkdown(content: string): string {
 		// Add attributes needed for media embeds and accessibility
 		ADD_ATTR: [
 			'allowfullscreen', // YouTube/Vimeo fullscreen capability
-			'frameborder',     // iframe styling (legacy but still used)
 			'loading',         // lazy loading for performance
 			'controls',        // video/audio playback controls
 			'target',          // open links in new tab
 			'rel',             // link security (noopener, noreferrer)
-			'allow',           // iframe permissions (autoplay, encrypted-media)
-			'scrolling'        // iframe scrolling behavior
+			'allow',           // iframe permissions (encrypted-media); autoplay stripped post-sanitize
+			'title',           // accessible name for iframe (WCAG 4.1.2)
+			'name',
+			'poster'           // <video> preview frame
 		],
 
 		// Keep data-* and aria-* attributes for accessibility and functionality
@@ -247,6 +285,107 @@ export function normalizeExternalUrl(url: string | undefined | null): string | n
 	}
 
 	// Doesn't look like a URL (e.g., plain username, random text)
+	return null;
+}
+
+/**
+ * Supported external media providers. The list mirrors the iframe allowlist
+ * enforced by the markdown sanitizer above (see `allowedOrigins`) so the
+ * media library can only accept links that are renderable in posts/projects.
+ */
+export type ExternalMediaProvider =
+	| 'youtube'
+	| 'vimeo'
+	| 'spotify'
+	| 'loom'
+	| 'soundcloud'
+	| 'codepen'
+	| 'figma';
+
+type ExternalProviderSpec = {
+	provider: ExternalMediaProvider;
+	hostnames: string[]; // matched as exact or subdomain
+	label: string;
+};
+
+const EXTERNAL_MEDIA_PROVIDERS: ExternalProviderSpec[] = [
+	{ provider: 'youtube', hostnames: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'], label: 'YouTube' },
+	{ provider: 'vimeo', hostnames: ['vimeo.com', 'player.vimeo.com'], label: 'Vimeo' },
+	{ provider: 'spotify', hostnames: ['spotify.com', 'open.spotify.com'], label: 'Spotify' },
+	{ provider: 'loom', hostnames: ['loom.com'], label: 'Loom' },
+	{ provider: 'soundcloud', hostnames: ['soundcloud.com', 'w.soundcloud.com'], label: 'SoundCloud' },
+	{ provider: 'codepen', hostnames: ['codepen.io'], label: 'CodePen' },
+	{ provider: 'figma', hostnames: ['figma.com'], label: 'Figma' }
+];
+
+/**
+ * Detect the embed provider for a given URL by matching its hostname against
+ * the same allowlist used by the markdown sanitizer iframe policy.
+ *
+ * Returns `null` when the URL is invalid, non-https, or not in the allowlist.
+ */
+export function detectExternalMediaProvider(raw: string): ExternalMediaProvider | null {
+	const trimmed = (raw || '').trim();
+	if (!trimmed) return null;
+	let parsed: URL;
+	try {
+		parsed = new URL(trimmed);
+	} catch {
+		return null;
+	}
+	if (parsed.protocol !== 'https:') return null;
+	const host = parsed.hostname.toLowerCase();
+	for (const spec of EXTERNAL_MEDIA_PROVIDERS) {
+		if (spec.hostnames.some((h) => host === h || host.endsWith(`.${h}`))) {
+			return spec.provider;
+		}
+	}
+	return null;
+}
+
+/**
+ * Human-readable label for a provider (e.g., "youtube" -> "YouTube").
+ */
+export function getExternalMediaProviderLabel(provider: ExternalMediaProvider | null | undefined): string {
+	if (!provider) return '';
+	const spec = EXTERNAL_MEDIA_PROVIDERS.find((p) => p.provider === provider);
+	return spec?.label ?? provider;
+}
+
+/**
+ * Extracts a YouTube video ID from any common YouTube URL shape (watch, embed,
+ * youtu.be, /shorts/). Returns null if no ID can be derived.
+ */
+export function extractYouTubeVideoId(raw: string): string | null {
+	try {
+		const u = new URL(raw);
+		if (u.hostname.endsWith('youtu.be')) {
+			const id = u.pathname.replace(/^\//, '').split('/')[0];
+			return id || null;
+		}
+		const v = u.searchParams.get('v');
+		if (v) return v;
+		if (u.pathname.startsWith('/embed/')) return u.pathname.replace('/embed/', '').split('/')[0] || null;
+		if (u.pathname.startsWith('/shorts/')) return u.pathname.replace('/shorts/', '').split('/')[0] || null;
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Predictable thumbnail URL for supported providers. Today only YouTube has
+ * predictable thumbnail URLs without an extra oEmbed call — others (Vimeo,
+ * Spotify, Loom, etc.) return null and the UI falls back to a provider icon.
+ */
+export function getExternalMediaThumbnail(url: string): string | null {
+	const provider = detectExternalMediaProvider(url);
+	if (!provider) return null;
+	if (provider === 'youtube') {
+		const id = extractYouTubeVideoId(url);
+		if (!id) return null;
+		return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+	}
 	return null;
 }
 

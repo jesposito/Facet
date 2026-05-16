@@ -28,6 +28,8 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 		cta_enabled: boolean;
 		font_pack: string | null;
 		hero_layout: string | null;
+		hero_spacing: string | null;
+		hero_bg_color: string | null;
 	} | null;
 
 	try {

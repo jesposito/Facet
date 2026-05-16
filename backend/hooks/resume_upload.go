@@ -2,10 +2,9 @@ package hooks
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -13,73 +12,53 @@ import (
 
 	"facet/services"
 
-	"github.com/google/uuid"
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
-// UserError represents an error with both user-friendly and technical details
+// UserError represents an error with both user-friendly and technical details.
 type UserError struct {
-	Message   string `json:"message"`   // User-friendly message
-	Action    string `json:"action"`    // Suggested action for user
-	Technical string `json:"technical"` // Technical details for support/debugging
+	Message   string `json:"message"`
+	Action    string `json:"action"`
+	Technical string `json:"technical"`
 }
 
-// NewUserError creates a user-friendly error with technical details
+// NewUserError builds a user-facing error with technical context.
 func NewUserError(message, action, technical string) UserError {
-	return UserError{
-		Message:   message,
-		Action:    action,
-		Technical: technical,
-	}
+	return UserError{Message: message, Action: action, Technical: technical}
 }
 
-func normalizeDate(dateStr string) string {
-	dateStr = strings.TrimSpace(dateStr)
-	if dateStr == "" || strings.EqualFold(dateStr, "null") || strings.EqualFold(dateStr, "present") {
-		return ""
-	}
+// File-size and MIME-type limits for resume uploads.
+const (
+	resumeMaxBytes = 10 * 1024 * 1024 // 10MB hard ceiling
+	mimePDF        = "application/pdf"
+	mimeDOCX       = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+)
 
-	if idx := strings.IndexAny(dateStr, "T "); idx != -1 {
-		dateStr = dateStr[:idx]
-	}
-
-	layouts := []struct {
-		format string
-		suffix string
-	}{
-		{"2006-01-02", ""},
-		{"2006-01", "-01"},
-		{"2006", "-01-01"},
-	}
-
-	for _, l := range layouts {
-		if _, err := time.Parse(l.format, dateStr); err == nil {
-			return dateStr + l.suffix
-		}
-	}
-
-	return ""
+// importPayload mirrors services.ParsedResume but is decoded from the request body
+// so the frontend can return only the items the user chose to import.
+type importPayload struct {
+	Filename   string                  `json:"filename"`
+	Visibility string                  `json:"visibility"`
+	Parsed     *services.ParsedResume `json:"parsed"`
 }
 
-// RegisterResumeUploadHooks registers resume upload and parsing endpoints
+// RegisterResumeUploadHooks wires up the BYO-key resume parsing + import endpoints.
+// No credit gating, no managed tiers: the active AI provider configured by the user
+// at /admin/settings/integrations is called directly.
 func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	ai := services.NewAIService(crypto)
 	parser := services.NewResumeParser(ai)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
-		// Upload and parse resume
 		// POST /api/resume/upload
-		// Uploads PDF/DOCX resume, extracts text, parses with AI, creates records in main collections
+		// Extract text → call AI → return parsed JSON. NO records are created here.
 		se.Router.POST("/api/resume/upload", func(e *core.RequestEvent) error {
-			// Get uploaded file
 			file, header, err := e.Request.FormFile("file")
 			if err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to get file: %v", err)
 				return e.JSON(http.StatusBadRequest, map[string]interface{}{
 					"error": NewUserError(
 						"We couldn't find a file to upload.",
@@ -90,25 +69,20 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			}
 			defer file.Close()
 
-			// Check file size (5MB max)
-			const maxSize = 5 * 1024 * 1024 // 5MB
-			if header.Size > maxSize {
-				log.Printf("[RESUME-UPLOAD] File too large: %d bytes", header.Size)
+			if header.Size > resumeMaxBytes {
 				fileSizeMB := float64(header.Size) / (1024 * 1024)
-				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+				return e.JSON(http.StatusRequestEntityTooLarge, map[string]interface{}{
 					"error": NewUserError(
 						"Your resume file is too large.",
-						"Please use a file smaller than 5MB. Try compressing images or saving as a simpler format.",
-						fmt.Sprintf("File size: %.2f MB (maximum: 5 MB)", fileSizeMB),
+						"Please use a file smaller than 10MB. Try compressing images or saving as a simpler format.",
+						fmt.Sprintf("File size: %.2f MB (maximum: 10 MB)", fileSizeMB),
 					),
 				})
 			}
 
-			// Check file type
 			mimeType := header.Header.Get("Content-Type")
-			if mimeType != "application/pdf" && mimeType != "application/vnd.openxmlformats-officedocument.wordprocessingml.document" {
-				log.Printf("[RESUME-UPLOAD] Invalid file type: %s", mimeType)
-				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+			if mimeType != mimePDF && mimeType != mimeDOCX {
+				return e.JSON(http.StatusUnsupportedMediaType, map[string]interface{}{
 					"error": NewUserError(
 						"This file type isn't supported.",
 						"Please upload your resume as a PDF (.pdf) or Word document (.docx).",
@@ -117,82 +91,52 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-
-			// Get AI provider
 			providerID := e.Request.FormValue("provider_id")
 			provider, err := getActiveProvider(app, crypto, providerID)
 			if err != nil {
-				log.Printf("[RESUME-UPLOAD] No AI provider: %v", err)
 				return e.JSON(http.StatusBadRequest, map[string]interface{}{
 					"error": NewUserError(
-						"AI provider is not configured.",
-						"Resume import requires AI to parse the file. Please configure an AI provider (OpenAI, Anthropic, or Ollama) in Admin → Settings → AI.",
+						"No AI provider configured.",
+						"Resume import requires AI to parse the file. Configure a provider in Admin → Settings → Integrations.",
 						fmt.Sprintf("Provider error: %v", err),
 					),
 				})
 			}
 
-			// Read file bytes
 			fileBytes, err := services.ReadFileBytes(file)
 			if err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to read file: %v", err)
 				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
 					"error": NewUserError(
 						"We couldn't read your file.",
-						"This is unusual. Try uploading your file again, or try a different file format.",
+						"Try uploading again, or try a different file format.",
 						fmt.Sprintf("File read error: %v (filename: %s)", err, header.Filename),
 					),
 				})
 			}
-
-			// Hash the file to check for duplicates
-			hasher := sha256.New()
-			hasher.Write(fileBytes)
-			fileHash := hex.EncodeToString(hasher.Sum(nil))
-
-			// Check if this exact file has been imported before
-			resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports")
-			if err == nil {
-				existingImport, err := app.FindFirstRecordByFilter(
-					resumeImportsCollection.Name,
-					"hash = {:hash}",
-					dbx.Params{"hash": fileHash},
-				)
-				if err == nil && existingImport != nil {
-					// This file was already imported - check if it was recent (within 5 minutes)
-					importedAt := existingImport.GetDateTime("imported_at")
-					originalFilename := existingImport.GetString("filename")
-					minutesSinceImport := time.Since(importedAt.Time()).Minutes()
-
-					// If imported within last 5 minutes, likely accidental duplicate - reject
-					if minutesSinceImport < 5.0 {
-						return e.JSON(http.StatusBadRequest, map[string]interface{}{
-							"error": NewUserError(
-								"This resume was just imported.",
-								fmt.Sprintf("This exact file was imported %d minutes ago as '%s'. All data from this resume is already in your profile.",
-									int(minutesSinceImport), originalFilename),
-								fmt.Sprintf("Duplicate hash: %s (imported %.1f minutes ago)", fileHash, minutesSinceImport),
-							),
-						})
-					}
-
-					// Imported more than 5 minutes ago - allow re-import
-					// User may have deleted/modified records and wants to restore them
-				}
+			if len(fileBytes) == 0 {
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"Your resume file appears to be empty.",
+						"Please check the file and try again with a valid PDF or DOCX document.",
+						fmt.Sprintf("Empty file: %s (0 bytes)", header.Filename),
+					),
+				})
 			}
 
-			// Extract text
+			// Extract text.
 			resumeText, err := parser.ExtractText(fileBytes, mimeType)
+			// Drop the raw bytes immediately — we don't store the upload anywhere.
+			fileBytes = nil
 			if err != nil {
-				log.Printf("[RESUME-UPLOAD] Text extraction failed: %v", err)
-				// Provide context-specific suggestions based on error
+				status := http.StatusBadRequest
 				action := "Try converting your resume to PDF format, or re-save your document and try again."
-				if strings.Contains(err.Error(), "corrupted") {
-					action = "Your file may be corrupted. Try opening it in Word/PDF viewer and saving a new copy."
-				} else if strings.Contains(err.Error(), "no text found") {
-					action = "Your file appears to contain only images. Try using a version with selectable text, or use OCR software first."
+				if strings.Contains(err.Error(), "no text found") || strings.Contains(err.Error(), "scanned image") {
+					status = http.StatusUnprocessableEntity
+					action = "Your file appears to contain only images. Run it through OCR (or export as text-based PDF) and try again."
+				} else if strings.Contains(err.Error(), "corrupted") {
+					action = "Your file may be corrupted. Try opening it and saving a new copy."
 				}
-				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+				return e.JSON(status, map[string]interface{}{
 					"error": NewUserError(
 						"We couldn't extract text from your resume.",
 						action,
@@ -201,22 +145,31 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-
-			// Parse with AI
+			// Parse with the user's configured AI provider.
 			ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 			defer cancel()
 
 			parsed, err := parser.ParseResume(ctx, provider, resumeText)
 			if err != nil {
-				log.Printf("[RESUME-UPLOAD] AI parsing failed: %v", err)
-				// Provide helpful suggestions based on error type
+				// If the AI returned content but JSON parsing failed, surface raw text
+				// so the user can copy/paste manually.
+				if strings.Contains(err.Error(), "JSON") || strings.Contains(err.Error(), "json") {
+					return e.JSON(http.StatusOK, map[string]interface{}{
+						"status":   "partial",
+						"filename": header.Filename,
+						"raw_text": resumeText,
+						"error": NewUserError(
+							"We extracted your resume text but couldn't structure it.",
+							"Copy/paste the relevant pieces into Experience, Projects, etc. manually.",
+							fmt.Sprintf("AI parsing error: %v", err),
+						),
+					})
+				}
 				action := "Try uploading your resume again. If the problem persists, try a simpler resume format."
 				if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
 					action = "The AI service took too long to respond. Try again in a moment, or try a shorter resume."
-				} else if strings.Contains(err.Error(), "JSON") {
-					action = "The AI had trouble understanding your resume format. Try a simpler layout or contact support."
 				}
-				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+				return e.JSON(http.StatusBadGateway, map[string]interface{}{
 					"error": NewUserError(
 						"We couldn't parse your resume with AI.",
 						action,
@@ -225,80 +178,76 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				})
 			}
 
-
-		// Generate unique session ID for this import
-		// This allows us to track which items came from which resume upload
-		importSessionID := uuid.New().String()
-
-		// Get visibility preference from form (default to private)
-		visibility := e.Request.FormValue("visibility")
-		if visibility == "" {
-			visibility = "private"
-		}
-
-		// Create records in collections with smart deduplication
-		imported, deduped, err := createResumeRecordsWithDeduplication(app, parsed, header.Filename, importSessionID, visibility)
-		if err != nil {
-			log.Printf("[RESUME-UPLOAD] Failed to create records: %v", err)
-			return e.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": NewUserError(
-					"We parsed your resume but couldn't save the data.",
-					"This might be a temporary database issue. Please try again in a moment.",
-					fmt.Sprintf("Database error: %v", err),
-				),
-			})
-		}
-
-			// Create or update resume_imports record to track this import
-			if resumeImportsCollection, err := app.FindCollectionByNameOrId("resume_imports"); err == nil {
-				// Check if a record with this hash already exists
-				var resumeImportRecord *core.Record
-				existingRecord, err := app.FindFirstRecordByFilter(
-					resumeImportsCollection.Name,
-					"hash = {:hash}",
-					dbx.Params{"hash": fileHash},
-				)
-				if err == nil && existingRecord != nil {
-					// Update existing record
-					resumeImportRecord = existingRecord
-				} else {
-					// Create new record
-					resumeImportRecord = core.NewRecord(resumeImportsCollection)
-					resumeImportRecord.Set("hash", fileHash)
-				}
-
-				resumeImportRecord.Set("filename", header.Filename)
-				resumeImportRecord.Set("file_size", header.Size)
-				resumeImportRecord.Set("record_counts", map[string]int{
-					"experience":     len(imported["experience"]),
-					"education":      len(imported["education"]),
-					"skills":         len(imported["skills"]),
-					"certifications": len(imported["certifications"]),
-					"projects":       len(imported["projects"]),
-					"awards":         len(imported["awards"]),
-					"talks":          len(imported["talks"]),
-				})
-				resumeImportRecord.Set("imported_at", time.Now())
-
-				// Attach the uploaded file to the record
-				// We already have fileBytes from earlier, so create a file object from it
-				f, err := filesystem.NewFileFromBytes(fileBytes, header.Filename)
-				if err == nil {
-					resumeImportRecord.Set("file", f)
-				} else {
-					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to create file object: %v", err)
-				}
-
-				if err := app.Save(resumeImportRecord); err != nil {
-					log.Printf("[RESUME-UPLOAD] [WARNING] Failed to save resume_imports record: %v", err)
-					// Don't fail the import if we can't save the tracking record
-				}
-			}
-
-			// Return success with import details
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"status":   "success",
-				"imported": imported,
+				"filename": header.Filename,
+				"parsed":   parsed,
+			})
+		}).Bind(apis.RequireAuth())
+
+		// POST /api/resume/import
+		// Body: { filename, visibility, parsed: <ParsedResume from /upload, with items the user chose> }
+		// Creates records with smart deduplication. The frontend trims `parsed.<section>`
+		// arrays to only the items the user checked.
+		se.Router.POST("/api/resume/import", func(e *core.RequestEvent) error {
+			body, err := readRequestBody(e.Request.Body, 10*1024*1024)
+			if err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"Couldn't read import payload.",
+						"Try again — the request body was unreadable.",
+						fmt.Sprintf("Body read error: %v", err),
+					),
+				})
+			}
+
+			var payload importPayload
+			if err := json.Unmarshal(body, &payload); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"Invalid import payload.",
+						"Try parsing the resume again and resubmit the selection.",
+						fmt.Sprintf("JSON decode error: %v", err),
+					),
+				})
+			}
+			if payload.Parsed == nil {
+				return e.JSON(http.StatusBadRequest, map[string]interface{}{
+					"error": NewUserError(
+						"No parsed resume data provided.",
+						"Upload and parse the resume first, then choose items to import.",
+						"payload.parsed is nil",
+					),
+				})
+			}
+
+			visibility := payload.Visibility
+			switch visibility {
+			case "public", "private", "unlisted":
+				// ok
+			default:
+				visibility = "private"
+			}
+			filename := payload.Filename
+			if filename == "" {
+				filename = "resume-import"
+			}
+
+			imported, deduped, err := createResumeRecordsWithDeduplication(app, payload.Parsed, filename, visibility)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"error": NewUserError(
+						"We couldn't save the selected items.",
+						"This might be a temporary database issue. Try again in a moment.",
+						fmt.Sprintf("Database error: %v", err),
+					),
+				})
+			}
+
+			return e.JSON(http.StatusOK, map[string]interface{}{
+				"status":       "success",
+				"imported":     imported,
+				"deduplicated": deduped,
 				"counts": map[string]int{
 					"experience":     len(imported["experience"]),
 					"education":      len(imported["education"]),
@@ -308,278 +257,84 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					"awards":         len(imported["awards"]),
 					"talks":          len(imported["talks"]),
 				},
-				"deduplicated": deduped,
-				"warnings":     parsed.Metadata.Warnings,
-				"confidence":   parsed.Metadata.Confidence,
-				"filename":     header.Filename,
 			})
-		}).Bind(apis.RequireAuth()) // Require authentication
+		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})
 }
 
-// createResumeRecords creates records in all relevant collections from parsed resume
-func createResumeRecords(app *pocketbase.PocketBase, parsed *services.ParsedResume) (map[string][]string, error) {
-	imported := make(map[string][]string)
-
-	// Helper to get table name (always use main tables for resume upload)
-	getTableName := func(baseName string) string {
-		return baseName
+// readRequestBody caps body size for the JSON import endpoint.
+func readRequestBody(body io.ReadCloser, max int64) ([]byte, error) {
+	defer body.Close()
+	limited := io.LimitReader(body, max+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return data, err
 	}
-
-	// Create experience records
-	if len(parsed.Experience) > 0 {
-		expCollection, err := app.FindCollectionByNameOrId(getTableName("experience"))
-		if err != nil {
-			return nil, fmt.Errorf("experience collection not found: %w", err)
-		}
-
-		for _, exp := range parsed.Experience {
-			record := core.NewRecord(expCollection)
-			record.Set("company", exp.Company)
-			record.Set("company_group_id", NormalizeCompanyName(exp.Company))
-			record.Set("title", exp.Title)
-			record.Set("location", exp.Location)
-			if normalized := normalizeDate(exp.StartDate); normalized != "" {
-				record.Set("start_date", normalized)
-			}
-			if normalized := normalizeDate(exp.EndDate); normalized != "" {
-				record.Set("end_date", normalized)
-			}
-			record.Set("description", exp.Description)
-			if len(exp.Bullets) > 0 {
-				record.Set("bullets", exp.Bullets)
-			}
-			if len(exp.Skills) > 0 {
-				record.Set("skills", exp.Skills)
-			}
-			record.Set("visibility", "private") // Private by default
-			record.Set("is_draft", false)
-			record.Set("sort_order", 0)
-
-			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create experience: %v", err)
-				continue
-			}
-			imported["experience"] = append(imported["experience"], record.Id)
-		}
+	if int64(len(data)) > max {
+		return nil, fmt.Errorf("body exceeds %d bytes", max)
 	}
-
-	// Create education records
-	if len(parsed.Education) > 0 {
-		eduCollection, err := app.FindCollectionByNameOrId(getTableName("education"))
-		if err != nil {
-			return nil, fmt.Errorf("education collection not found: %w", err)
-		}
-
-		for _, edu := range parsed.Education {
-			record := core.NewRecord(eduCollection)
-			record.Set("institution", edu.Institution)
-			record.Set("degree", edu.Degree)
-			record.Set("field", edu.Field)
-			if normalized := normalizeDate(edu.StartDate); normalized != "" {
-				record.Set("start_date", normalized)
-			}
-			if normalized := normalizeDate(edu.EndDate); normalized != "" {
-				record.Set("end_date", normalized)
-			}
-			record.Set("description", edu.Description)
-			record.Set("visibility", "private")
-			record.Set("is_draft", false)
-			record.Set("sort_order", 0)
-
-			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create education: %v", err)
-				continue
-			}
-			imported["education"] = append(imported["education"], record.Id)
-		}
-	}
-
-	// Create skills records
-	if len(parsed.Skills) > 0 {
-		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
-		if err != nil {
-			return nil, fmt.Errorf("skills collection not found: %w", err)
-		}
-
-		for _, skill := range parsed.Skills {
-			record := core.NewRecord(skillsCollection)
-			record.Set("name", skill.Name)
-			record.Set("category", skill.Category)
-			record.Set("proficiency", skill.Proficiency)
-			record.Set("visibility", "private")
-			record.Set("sort_order", 0)
-
-			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create skill: %v", err)
-				continue
-			}
-			imported["skills"] = append(imported["skills"], record.Id)
-		}
-	}
-
-	// Create certifications records
-	if len(parsed.Certifications) > 0 {
-		certsCollection, err := app.FindCollectionByNameOrId(getTableName("certifications"))
-		if err != nil {
-			return nil, fmt.Errorf("certifications collection not found: %w", err)
-		}
-
-		for _, cert := range parsed.Certifications {
-			record := core.NewRecord(certsCollection)
-			record.Set("name", cert.Name)
-			record.Set("issuer", cert.Issuer)
-			if normalized := normalizeDate(cert.IssueDate); normalized != "" {
-				record.Set("issue_date", normalized)
-			}
-			if normalized := normalizeDate(cert.ExpiryDate); normalized != "" {
-				record.Set("expiry_date", normalized)
-			}
-			record.Set("credential_id", cert.CredentialID)
-			record.Set("credential_url", cert.CredentialURL)
-			record.Set("visibility", "private")
-			record.Set("is_draft", false)
-			record.Set("sort_order", 0)
-
-			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create certification: %v", err)
-				continue
-			}
-			imported["certifications"] = append(imported["certifications"], record.Id)
-		}
-	}
-
-	// Create projects records
-	if len(parsed.Projects) > 0 {
-		projectsCollection, err := app.FindCollectionByNameOrId(getTableName("projects"))
-		if err != nil {
-			return nil, fmt.Errorf("projects collection not found: %w", err)
-		}
-
-		for _, proj := range parsed.Projects {
-			record := core.NewRecord(projectsCollection)
-			record.Set("title", proj.Title)
-			// Generate slug from title
-			slug := generateSlug(proj.Title)
-			record.Set("slug", slug)
-			record.Set("summary", proj.Summary)
-			record.Set("description", proj.Description)
-			if len(proj.TechStack) > 0 {
-				record.Set("tech_stack", proj.TechStack)
-			}
-			if len(proj.Links) > 0 {
-				linksJSON, _ := json.Marshal(proj.Links)
-				record.Set("links", string(linksJSON))
-			}
-			record.Set("visibility", "private")
-			record.Set("is_draft", false)
-			record.Set("is_featured", false)
-			record.Set("sort_order", 0)
-
-			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create project: %v", err)
-				continue
-			}
-			imported["projects"] = append(imported["projects"], record.Id)
-		}
-	}
-
-	// Create awards records
-	if len(parsed.Awards) > 0 {
-		awardsCollection, err := app.FindCollectionByNameOrId(getTableName("awards"))
-		if err != nil {
-			log.Printf("[RESUME-UPLOAD] Awards collection not found (skipping): %v", err)
-		} else {
-			for _, award := range parsed.Awards {
-				record := core.NewRecord(awardsCollection)
-				record.Set("title", award.Title)
-				record.Set("issuer", award.Issuer)
-				if normalized := normalizeDate(award.AwardedAt); normalized != "" {
-					record.Set("awarded_at", normalized)
-				}
-				record.Set("description", award.Description)
-				record.Set("visibility", "private")
-				record.Set("is_draft", false)
-				record.Set("sort_order", 0)
-
-				if err := app.Save(record); err != nil {
-					log.Printf("[RESUME-UPLOAD] Failed to create award: %v", err)
-					continue
-				}
-				imported["awards"] = append(imported["awards"], record.Id)
-			}
-		}
-	}
-
-	// Create talks records
-	if len(parsed.Talks) > 0 {
-		talksCollection, err := app.FindCollectionByNameOrId(getTableName("talks"))
-		if err != nil {
-			log.Printf("[RESUME-UPLOAD] Talks collection not found (skipping): %v", err)
-		} else {
-			for _, talk := range parsed.Talks {
-				record := core.NewRecord(talksCollection)
-				record.Set("title", talk.Title)
-				slug := generateSlug(talk.Title)
-				record.Set("slug", slug)
-				record.Set("event", talk.Event)
-				if normalized := normalizeDate(talk.Date); normalized != "" {
-					record.Set("date", normalized)
-				}
-				record.Set("location", talk.Location)
-				record.Set("description", talk.Description)
-				record.Set("visibility", "private")
-				record.Set("is_draft", false)
-				record.Set("sort_order", 0)
-
-				if err := app.Save(record); err != nil {
-					log.Printf("[RESUME-UPLOAD] Failed to create talk: %v", err)
-					continue
-				}
-				imported["talks"] = append(imported["talks"], record.Id)
-			}
-		}
-	}
-
-	return imported, nil
+	return data, nil
 }
 
-// createResumeRecordsWithDeduplication creates records with smart deduplication and import metadata
-//
-// Deduplication Strategy (for faceted resume views):
-// - Skills: Always dedupe across all imports (same skill is same skill, case-insensitive)
-// - Experience: Dedupe by filename (same resume = dedupe, different resumes = different facets)
-// - Education: Always dedupe across all imports (same degree is same credential)
-// - Awards: Always dedupe across all imports (same award is same achievement)
-// - Projects: Dedupe by filename (same resume = dedupe, different resumes = different facets)
-//
-// The filename-based deduplication for experience/projects allows:
-// 1. Same resume imported multiple times → prevents duplicates
-// 2. Different resumes with same role → creates faceted views
-func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string, importSessionID string, visibility string) (map[string][]string, int, error) {
+// normalizeDate coerces a variety of date string shapes into PocketBase date format.
+func normalizeDate(dateStr string) string {
+	dateStr = strings.TrimSpace(dateStr)
+	if dateStr == "" || strings.EqualFold(dateStr, "null") || strings.EqualFold(dateStr, "present") {
+		return ""
+	}
+	if idx := strings.IndexAny(dateStr, "T "); idx != -1 {
+		dateStr = dateStr[:idx]
+	}
+	layouts := []struct {
+		format string
+		suffix string
+	}{
+		{"2006-01-02", ""},
+		{"2006-01", "-01"},
+		{"2006", "-01-01"},
+	}
+	for _, l := range layouts {
+		if _, err := time.Parse(l.format, dateStr); err == nil {
+			return dateStr + l.suffix
+		}
+	}
+	return ""
+}
+
+// generateSlug creates a URL-friendly slug from a title.
+func generateSlug(title string) string {
+	slug := strings.ToLower(title)
+	slug = strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			return r
+		}
+		return '-'
+	}, slug)
+	for strings.Contains(slug, "--") {
+		slug = strings.ReplaceAll(slug, "--", "-")
+	}
+	slug = strings.Trim(slug, "-")
+	if len(slug) > 50 {
+		slug = slug[:50]
+	}
+	return slug
+}
+
+// createResumeRecordsWithDeduplication writes records to the canonical collections,
+// deduping with the same strategy the cloud uses (per-resume for facetable items,
+// global for credentials).
+func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *services.ParsedResume, filename string, visibility string) (map[string][]string, int, error) {
 	imported := make(map[string][]string)
 	duplicateCount := 0
 
-	// Helper to get table name
-	getTableName := func(baseName string) string {
-		return baseName
-	}
-
-	// Create experience records with within-session deduplication only
-	// Strategy: Different resumes = different facets, so we allow same job to appear multiple times
-	// but dedupe within the same resume upload to avoid duplicates from parsing errors
 	if len(parsed.Experience) > 0 {
-		expCollection, err := app.FindCollectionByNameOrId(getTableName("experience"))
+		expCollection, err := app.FindCollectionByNameOrId("experience")
 		if err != nil {
 			return nil, 0, fmt.Errorf("experience collection not found: %w", err)
 		}
-
 		for _, exp := range parsed.Experience {
-			// Check for duplicate within same resume (by filename)
-			// This allows same role from DIFFERENT resumes (faceted views)
-			// but prevents duplicates from same resume imported multiple times
 			filter := "company = {:company} && title = {:title} && start_date = {:startDate} && import_filename = {:filename}"
 			existing, err := app.FindRecordsByFilter(expCollection.Name, filter, "", 1, 0,
 				dbx.Params{
@@ -588,24 +343,20 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 					"startDate": normalizeDate(exp.StartDate),
 					"filename":  filename,
 				})
-			if err != nil {
-				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for experience '%s at %s': %v", exp.Title, exp.Company, err)
-			}
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
 				continue
 			}
-
 			record := core.NewRecord(expCollection)
 			record.Set("company", exp.Company)
 			record.Set("company_group_id", NormalizeCompanyName(exp.Company))
 			record.Set("title", exp.Title)
 			record.Set("location", exp.Location)
-			if normalized := normalizeDate(exp.StartDate); normalized != "" {
-				record.Set("start_date", normalized)
+			if n := normalizeDate(exp.StartDate); n != "" {
+				record.Set("start_date", n)
 			}
-			if normalized := normalizeDate(exp.EndDate); normalized != "" {
-				record.Set("end_date", normalized)
+			if n := normalizeDate(exp.EndDate); n != "" {
+				record.Set("end_date", n)
 			}
 			record.Set("description", exp.Description)
 			if len(exp.Bullets) > 0 {
@@ -614,209 +365,154 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 			if len(exp.Skills) > 0 {
 				record.Set("skills", exp.Skills)
 			}
-			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
 			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
-
 			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create experience: %v", err)
+				log.Printf("[RESUME-IMPORT] failed to create experience: %v", err)
 				continue
 			}
 			imported["experience"] = append(imported["experience"], record.Id)
 		}
 	}
 
-	// Create education records with cross-session deduplication
-	// Strategy: Same degree = same credential, regardless of which resume it appears on
-	// Match on institution + degree + field + end_date (graduation date)
 	if len(parsed.Education) > 0 {
-		eduCollection, err := app.FindCollectionByNameOrId(getTableName("education"))
+		eduCollection, err := app.FindCollectionByNameOrId("education")
 		if err != nil {
 			return nil, 0, fmt.Errorf("education collection not found: %w", err)
 		}
-
 		for _, edu := range parsed.Education {
-			// Check for duplicate across ALL imports (not session-specific)
-			// A degree from MIT is the same degree regardless of which resume lists it
 			var filter string
 			var params dbx.Params
 			if edu.EndDate != "" && edu.EndDate != "null" {
 				filter = "institution = {:institution} && degree = {:degree} && field = {:field} && end_date = {:endDate}"
-				params = dbx.Params{
-					"institution": edu.Institution,
-					"degree":      edu.Degree,
-					"field":       edu.Field,
-					"endDate":     normalizeDate(edu.EndDate),
-				}
+				params = dbx.Params{"institution": edu.Institution, "degree": edu.Degree, "field": edu.Field, "endDate": normalizeDate(edu.EndDate)}
 			} else {
 				filter = "institution = {:institution} && degree = {:degree} && field = {:field}"
-				params = dbx.Params{
-					"institution": edu.Institution,
-					"degree":      edu.Degree,
-					"field":       edu.Field,
-				}
+				params = dbx.Params{"institution": edu.Institution, "degree": edu.Degree, "field": edu.Field}
 			}
-
 			existing, err := app.FindRecordsByFilter(eduCollection.Name, filter, "", 1, 0, params)
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
 				continue
 			}
-
 			record := core.NewRecord(eduCollection)
 			record.Set("institution", edu.Institution)
 			record.Set("degree", edu.Degree)
 			record.Set("field", edu.Field)
-			if normalized := normalizeDate(edu.StartDate); normalized != "" {
-				record.Set("start_date", normalized)
+			if n := normalizeDate(edu.StartDate); n != "" {
+				record.Set("start_date", n)
 			}
-			if normalized := normalizeDate(edu.EndDate); normalized != "" {
-				record.Set("end_date", normalized)
+			if n := normalizeDate(edu.EndDate); n != "" {
+				record.Set("end_date", n)
 			}
 			record.Set("description", edu.Description)
-			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
 			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
-
 			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create education: %v", err)
+				log.Printf("[RESUME-IMPORT] failed to create education: %v", err)
 				continue
 			}
 			imported["education"] = append(imported["education"], record.Id)
 		}
 	}
 
-	// Create skills records with cross-session deduplication
-	// Strategy: A skill is a skill - "Python" is "Python" regardless of which resume it appears on
-	// Always dedupe across all imports (case-insensitive match)
 	if len(parsed.Skills) > 0 {
-		skillsCollection, err := app.FindCollectionByNameOrId(getTableName("skills"))
+		skillsCollection, err := app.FindCollectionByNameOrId("skills")
 		if err != nil {
 			return nil, 0, fmt.Errorf("skills collection not found: %w", err)
 		}
-
-		// Pre-load existing skills into a case-insensitive map for O(n+m) dedup
-		existingSkills := make(map[string]struct{})
-		const skillPageSize = 200
-		for skillOffset := 0; ; skillOffset += skillPageSize {
-			page, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", skillPageSize, skillOffset, nil)
+		existing := make(map[string]struct{})
+		const pageSize = 200
+		for offset := 0; ; offset += pageSize {
+			page, err := app.FindRecordsByFilter(skillsCollection.Name, "", "", pageSize, offset, nil)
 			if err != nil {
 				break
 			}
 			for _, s := range page {
-				existingSkills[strings.ToLower(strings.TrimSpace(s.GetString("name")))] = struct{}{}
+				existing[strings.ToLower(strings.TrimSpace(s.GetString("name")))] = struct{}{}
 			}
-			if len(page) < skillPageSize {
+			if len(page) < pageSize {
 				break
 			}
 		}
-
 		for _, skill := range parsed.Skills {
-			normalizedName := strings.ToLower(strings.TrimSpace(skill.Name))
-			if _, exists := existingSkills[normalizedName]; exists {
+			norm := strings.ToLower(strings.TrimSpace(skill.Name))
+			if _, ok := existing[norm]; ok {
 				duplicateCount++
 				continue
 			}
-
 			record := core.NewRecord(skillsCollection)
 			record.Set("name", skill.Name)
 			record.Set("category", skill.Category)
 			record.Set("proficiency", skill.Proficiency)
-			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
 			record.Set("visibility", visibility)
 			record.Set("sort_order", 0)
-
 			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create skill: %v", err)
+				log.Printf("[RESUME-IMPORT] failed to create skill: %v", err)
 				continue
 			}
 			imported["skills"] = append(imported["skills"], record.Id)
-			// Track newly created skill to dedupe within this import batch
-			existingSkills[normalizedName] = struct{}{}
+			existing[norm] = struct{}{}
 		}
 	}
 
-	// Create certifications records with deduplication
 	if len(parsed.Certifications) > 0 {
-		certsCollection, err := app.FindCollectionByNameOrId(getTableName("certifications"))
+		certsCollection, err := app.FindCollectionByNameOrId("certifications")
 		if err != nil {
 			return nil, 0, fmt.Errorf("certifications collection not found: %w", err)
 		}
-
 		for _, cert := range parsed.Certifications {
-			// Check for duplicate: same name + issuer
-			filter := "name = {:name} && issuer = {:issuer}"
-			existing, err := app.FindRecordsByFilter(certsCollection.Name, filter, "", 1, 0,
-				dbx.Params{
-					"name":   cert.Name,
-					"issuer": cert.Issuer,
-				})
+			existing, err := app.FindRecordsByFilter(certsCollection.Name,
+				"name = {:name} && issuer = {:issuer}", "", 1, 0,
+				dbx.Params{"name": cert.Name, "issuer": cert.Issuer})
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
 				continue
 			}
-
 			record := core.NewRecord(certsCollection)
 			record.Set("name", cert.Name)
 			record.Set("issuer", cert.Issuer)
-			if normalized := normalizeDate(cert.IssueDate); normalized != "" {
-				record.Set("issue_date", normalized)
+			if n := normalizeDate(cert.IssueDate); n != "" {
+				record.Set("issue_date", n)
 			}
-			if normalized := normalizeDate(cert.ExpiryDate); normalized != "" {
-				record.Set("expiry_date", normalized)
+			if n := normalizeDate(cert.ExpiryDate); n != "" {
+				record.Set("expiry_date", n)
 			}
 			record.Set("credential_id", cert.CredentialID)
 			record.Set("credential_url", cert.CredentialURL)
-			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
 			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("sort_order", 0)
-
 			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create certification: %v", err)
+				log.Printf("[RESUME-IMPORT] failed to create certification: %v", err)
 				continue
 			}
 			imported["certifications"] = append(imported["certifications"], record.Id)
 		}
 	}
 
-	// Create projects records with within-session deduplication only
-	// Strategy: Like experience, projects are faceted - same project may have different descriptions
-	// for different audiences (e.g., emphasizing different tech stacks or outcomes)
 	if len(parsed.Projects) > 0 {
-		projectsCollection, err := app.FindCollectionByNameOrId(getTableName("projects"))
+		projectsCollection, err := app.FindCollectionByNameOrId("projects")
 		if err != nil {
 			return nil, 0, fmt.Errorf("projects collection not found: %w", err)
 		}
-
 		for _, proj := range parsed.Projects {
-			// Check for duplicate within same resume (by filename)
-			// This allows same project from DIFFERENT resumes (faceted views)
-			// but prevents duplicates from same resume imported multiple times
-			filter := "title = {:title} && import_filename = {:filename}"
-			existing, err := app.FindRecordsByFilter(projectsCollection.Name, filter, "", 1, 0,
-				dbx.Params{
-					"title":    proj.Title,
-					"filename": filename,
-				})
-			if err != nil {
-				log.Printf("[RESUME-UPLOAD] [ERROR] Filter query failed for project '%s': %v", proj.Title, err)
-			}
+			existing, err := app.FindRecordsByFilter(projectsCollection.Name,
+				"title = {:title} && import_filename = {:filename}", "", 1, 0,
+				dbx.Params{"title": proj.Title, "filename": filename})
 			if err == nil && len(existing) > 0 {
 				duplicateCount++
 				continue
 			}
-
 			record := core.NewRecord(projectsCollection)
 			record.Set("title", proj.Title)
-			slug := generateSlug(proj.Title)
-			record.Set("slug", slug)
+			record.Set("slug", generateSlug(proj.Title))
 			record.Set("summary", proj.Summary)
 			record.Set("description", proj.Description)
 			if len(proj.TechStack) > 0 {
@@ -826,70 +522,50 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 				linksJSON, _ := json.Marshal(proj.Links)
 				record.Set("links", string(linksJSON))
 			}
-			record.Set("import_session_id", importSessionID)
 			record.Set("import_filename", filename)
 			record.Set("visibility", visibility)
 			record.Set("is_draft", false)
 			record.Set("is_featured", false)
 			record.Set("sort_order", 0)
-
 			if err := app.Save(record); err != nil {
-				log.Printf("[RESUME-UPLOAD] Failed to create project: %v", err)
+				log.Printf("[RESUME-IMPORT] failed to create project: %v", err)
 				continue
 			}
 			imported["projects"] = append(imported["projects"], record.Id)
 		}
 	}
 
-	// Create awards records with cross-session deduplication
-	// Strategy: Same award = same achievement regardless of which resume it appears on
-	// "Best Paper Award at ICML 2024" is the same award everywhere
 	if len(parsed.Awards) > 0 {
-		awardsCollection, err := app.FindCollectionByNameOrId(getTableName("awards"))
-		if err != nil {
-			log.Printf("[RESUME-UPLOAD] Awards collection not found (skipping): %v", err)
-		} else {
+		awardsCollection, err := app.FindCollectionByNameOrId("awards")
+		if err == nil {
 			for _, award := range parsed.Awards {
-				// Check for duplicate across ALL imports (not session-specific)
-				// Match on title + issuer + date for uniqueness
 				var filter string
 				var params dbx.Params
 				if award.AwardedAt != "" && award.AwardedAt != "null" {
 					filter = "title = {:title} && issuer = {:issuer} && awarded_at = {:awardedAt}"
-					params = dbx.Params{
-						"title":     award.Title,
-						"issuer":    award.Issuer,
-						"awardedAt": normalizeDate(award.AwardedAt),
-					}
+					params = dbx.Params{"title": award.Title, "issuer": award.Issuer, "awardedAt": normalizeDate(award.AwardedAt)}
 				} else {
 					filter = "title = {:title} && issuer = {:issuer}"
-					params = dbx.Params{
-						"title":  award.Title,
-						"issuer": award.Issuer,
-					}
+					params = dbx.Params{"title": award.Title, "issuer": award.Issuer}
 				}
-
 				existing, err := app.FindRecordsByFilter(awardsCollection.Name, filter, "", 1, 0, params)
 				if err == nil && len(existing) > 0 {
 					duplicateCount++
 					continue
 				}
-
 				record := core.NewRecord(awardsCollection)
 				record.Set("title", award.Title)
 				record.Set("issuer", award.Issuer)
-				if normalized := normalizeDate(award.AwardedAt); normalized != "" {
-					record.Set("awarded_at", normalized)
+				if n := normalizeDate(award.AwardedAt); n != "" {
+					record.Set("awarded_at", n)
 				}
 				record.Set("description", award.Description)
-				record.Set("import_session_id", importSessionID)
 				record.Set("import_filename", filename)
 				record.Set("visibility", visibility)
 				record.Set("is_draft", false)
 				record.Set("sort_order", 0)
-
 				if err := app.Save(record); err != nil {
-					log.Printf("[RESUME-UPLOAD] Failed to create award: %v", err)
+					log.Printf("[RESUME-IMPORT] failed to create award: %v", err)
 					continue
 				}
 				imported["awards"] = append(imported["awards"], record.Id)
@@ -897,43 +573,32 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 		}
 	}
 
-	// Create talks records with deduplication
 	if len(parsed.Talks) > 0 {
-		talksCollection, err := app.FindCollectionByNameOrId(getTableName("talks"))
-		if err != nil {
-			log.Printf("[RESUME-UPLOAD] Talks collection not found (skipping): %v", err)
-		} else {
+		talksCollection, err := app.FindCollectionByNameOrId("talks")
+		if err == nil {
 			for _, talk := range parsed.Talks {
-				// Check for duplicate: same title + event
-				filter := "title = {:title} && event = {:event}"
-				existing, err := app.FindRecordsByFilter(talksCollection.Name, filter, "", 1, 0,
-					dbx.Params{
-						"title": talk.Title,
-						"event": talk.Event,
-					})
+				existing, err := app.FindRecordsByFilter(talksCollection.Name,
+					"title = {:title} && event = {:event}", "", 1, 0,
+					dbx.Params{"title": talk.Title, "event": talk.Event})
 				if err == nil && len(existing) > 0 {
 					duplicateCount++
 					continue
 				}
-
 				record := core.NewRecord(talksCollection)
 				record.Set("title", talk.Title)
-				slug := generateSlug(talk.Title)
-				record.Set("slug", slug)
+				record.Set("slug", generateSlug(talk.Title))
 				record.Set("event", talk.Event)
-				if normalized := normalizeDate(talk.Date); normalized != "" {
-					record.Set("date", normalized)
+				if n := normalizeDate(talk.Date); n != "" {
+					record.Set("date", n)
 				}
 				record.Set("location", talk.Location)
 				record.Set("description", talk.Description)
-				record.Set("import_session_id", importSessionID)
 				record.Set("import_filename", filename)
 				record.Set("visibility", visibility)
 				record.Set("is_draft", false)
 				record.Set("sort_order", 0)
-
 				if err := app.Save(record); err != nil {
-					log.Printf("[RESUME-UPLOAD] Failed to create talk: %v", err)
+					log.Printf("[RESUME-IMPORT] failed to create talk: %v", err)
 					continue
 				}
 				imported["talks"] = append(imported["talks"], record.Id)
@@ -942,47 +607,4 @@ func createResumeRecordsWithDeduplication(app *pocketbase.PocketBase, parsed *se
 	}
 
 	return imported, duplicateCount, nil
-}
-
-// sanitizeFilename removes special characters from filename
-func sanitizeFilename(filename string) string {
-	// Remove extension
-	name := strings.TrimSuffix(filename, ".pdf")
-	name = strings.TrimSuffix(name, ".docx")
-	// Replace special chars with underscores
-	name = strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
-			return r
-		}
-		return '_'
-	}, name)
-	// Limit length
-	if len(name) > 30 {
-		name = name[:30]
-	}
-	return name
-}
-
-// generateSlug creates a URL-friendly slug from a title
-func generateSlug(title string) string {
-	// Convert to lowercase
-	slug := strings.ToLower(title)
-	// Replace spaces and special chars with hyphens
-	slug = strings.Map(func(r rune) rune {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
-			return r
-		}
-		return '-'
-	}, slug)
-	// Remove consecutive hyphens
-	for strings.Contains(slug, "--") {
-		slug = strings.ReplaceAll(slug, "--", "-")
-	}
-	// Trim hyphens from ends
-	slug = strings.Trim(slug, "-")
-	// Limit length
-	if len(slug) > 50 {
-		slug = slug[:50]
-	}
-	return slug
 }

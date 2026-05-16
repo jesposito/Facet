@@ -31,7 +31,7 @@
 		<div class="space-y-6">
 			{#each items as award (award.id)}
 				<article class="card p-5 flex gap-4 items-start animate-fade-in">
-					<div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200 flex items-center justify-center font-semibold">
+					<div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100 flex items-center justify-center font-semibold">
 						{award.awarded_at ? formatDate(award.awarded_at, { year: 'numeric' }) : ''}
 					</div>
 					<div class="flex-1 space-y-1">
@@ -69,7 +69,7 @@
 					<div class="flex items-start justify-between gap-2">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{award.title}</h3>
 						{#if award.awarded_at}
-							<span class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200">
+							<span class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100">
 								{formatDate(award.awarded_at, { month: 'short', year: 'numeric' })}
 							</span>
 						{/if}
@@ -112,7 +112,7 @@
 										{award.title}
 									</h4>
 									{#if award.awarded_at}
-										<span class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-200">
+										<span class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100">
 											{formatDate(award.awarded_at, { month: 'short', year: 'numeric' })}
 										</span>
 									{/if}

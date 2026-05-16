@@ -22,6 +22,7 @@
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
+	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let projects: Project[] = $state([]);
 	let loading = $state(true);
@@ -718,133 +719,134 @@ let filteredProjects = $derived(
 				</div>
 			</div>
 
-			<div class="card p-6 space-y-4">
-				<div class="flex items-center justify-between">
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.projects.links_label')}</h2>
-					<button type="button" class="btn btn-secondary btn-sm" onclick={addLink}>
-						{$t('admin.content.projects.add_link')}
-					</button>
-				</div>
-
-				{#if links.length === 0}
-					<p class="text-sm text-gray-500 dark:text-gray-400">
-						{$t('admin.content.projects.no_links_yet')}
-					</p>
-				{:else}
-					<div class="space-y-3">
-						{#each links as link, i}
-							<div class="flex flex-col sm:flex-row gap-2">
-								<select bind:value={link.type} class="input w-full sm:w-32">
-									{#each linkTypes as lt}
-										<option value={lt.value}>{lt.label}</option>
-									{/each}
-								</select>
-								<div class="flex gap-2 flex-1">
-									<input
-										type="url"
-										bind:value={link.url}
-										class="input flex-1"
-										placeholder="https://..."
-									/>
-									<button type="button" class="btn btn-secondary" onclick={() => removeLink(i)} aria-label={$t('admin.content.projects.remove_link')}>
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-										</svg>
-									</button>
-								</div>
-							</div>
-						{/each}
+			<AccordionSection title={$t('admin.content.projects.links_label')} open={false}>
+				<div class="space-y-4">
+					<div class="flex items-center justify-between">
+						<button type="button" class="btn btn-secondary btn-sm" onclick={addLink}>
+							{$t('admin.content.projects.add_link')}
+						</button>
 					</div>
-				{/if}
-			</div>
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.projects.media_label')}</h2>
+					{#if links.length === 0}
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{$t('admin.content.projects.no_links_yet')}
+						</p>
+					{:else}
+						<div class="space-y-3">
+							{#each links as link, i}
+								<div class="flex flex-col sm:flex-row gap-2">
+									<select bind:value={link.type} class="input w-full sm:w-32">
+										{#each linkTypes as lt}
+											<option value={lt.value}>{lt.label}</option>
+										{/each}
+									</select>
+									<div class="flex gap-2 flex-1">
+										<input
+											type="url"
+											bind:value={link.url}
+											class="input flex-1"
+											placeholder="https://..."
+										/>
+										<button type="button" class="btn btn-secondary" onclick={() => removeLink(i)} aria-label={$t('admin.content.projects.remove_link')}>
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			</AccordionSection>
 
-				<div>
-					<SingleMediaPicker
-						label={$t('admin.content.projects.cover_image_label')}
-						helpText={$t('admin.content.projects.cover_image_help')}
-						bind:value={coverImageLibraryUrl}
-						bind:fileInput={coverImageFile}
-						bind:clearExisting={clearCoverImage}
-						currentFileUrl={editingProject?.cover_image ? getCoverImageUrl(editingProject) : ''}
-						currentFileName={editingProject?.cover_image || ''}
-						imagesOnly={true}
-						onchange={handleFormChange}
+			<AccordionSection title={$t('admin.content.projects.media_label')} open={false}>
+				<div class="space-y-4">
+					<div>
+						<SingleMediaPicker
+							label={$t('admin.content.projects.cover_image_label')}
+							helpText={$t('admin.content.projects.cover_image_help')}
+							bind:value={coverImageLibraryUrl}
+							bind:fileInput={coverImageFile}
+							bind:clearExisting={clearCoverImage}
+							currentFileUrl={editingProject?.cover_image ? getCoverImageUrl(editingProject) : ''}
+							currentFileName={editingProject?.cover_image || ''}
+							imagesOnly={true}
+							onchange={handleFormChange}
+						/>
+					</div>
+
+					<MultiMediaPicker
+						bind:this={mediaPickerRef}
+						bind:value={mediaRefs}
+						label={$t('admin.content.common.attached_media')}
+						helpText={$t('admin.content.projects.media_attach_help')}
 					/>
 				</div>
+			</AccordionSection>
 
-			<MultiMediaPicker
-				bind:this={mediaPickerRef}
-				bind:value={mediaRefs}
-				label={$t('admin.content.common.attached_media')}
-				helpText={$t('admin.content.projects.media_attach_help')}
-			/>
-		</div>
+			<AccordionSection title={$t('admin.content.projects.publishing_heading')} open={false}>
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<VisibilitySelector bind:value={visibility} />
 
-			<div class="card p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.projects.publishing_heading')}</h2>
+						<div>
+							<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
+							<input
+								type="number"
+								id="sort_order"
+								bind:value={sortOrder}
+								class="input"
+								min="0"
+							/>
+						</div>
+					</div>
 
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<VisibilitySelector bind:value={visibility} />
+					<div class="space-y-2">
+						<div class="flex items-center gap-2">
+							<input
+								type="checkbox"
+								id="is_draft"
+								bind:checked={isDraft}
+								class="w-4 h-4 text-primary-600 rounded border-gray-300"
+							/>
+							<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
+								{$t('admin.content.common.is_draft_label')}
+							</label>
+						</div>
+
+						<div class="flex items-center gap-2">
+							<input
+								type="checkbox"
+								id="is_featured"
+								bind:checked={isFeatured}
+								class="w-4 h-4 text-primary-600 rounded border-gray-300"
+							/>
+							<label for="is_featured" class="text-sm text-gray-700 dark:text-gray-300">
+								{$t('admin.content.projects.is_featured_label')}
+							</label>
+						</div>
+					</div>
+
+					<div class="flex items-center gap-2">
+						<input
+							type="checkbox"
+							id="comments_enabled"
+							bind:checked={commentsEnabled}
+							class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+						/>
+						<label for="comments_enabled" class="text-sm text-gray-700 dark:text-gray-300">
+							{$t('admin.content.projects.enable_comments')}
+						</label>
+					</div>
 
 					<div>
-						<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
-						<input
-							type="number"
-							id="sort_order"
-							bind:value={sortOrder}
-							class="input"
-							min="0"
-						/>
+						<span id="admin-tags-label" class="label">{$t('admin.content.common.admin_tags_label')}</span>
+						<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
+						<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.admin_tags_help')}</p>
 					</div>
 				</div>
-
-				<div class="space-y-2">
-					<div class="flex items-center gap-2">
-						<input
-							type="checkbox"
-							id="is_draft"
-							bind:checked={isDraft}
-							class="w-4 h-4 text-primary-600 rounded border-gray-300"
-						/>
-						<label for="is_draft" class="text-sm text-gray-700 dark:text-gray-300">
-							{$t('admin.content.common.is_draft_label')}
-						</label>
-					</div>
-
-					<div class="flex items-center gap-2">
-						<input
-							type="checkbox"
-							id="is_featured"
-							bind:checked={isFeatured}
-							class="w-4 h-4 text-primary-600 rounded border-gray-300"
-						/>
-						<label for="is_featured" class="text-sm text-gray-700 dark:text-gray-300">
-							{$t('admin.content.projects.is_featured_label')}
-						</label>
-					</div>
-				</div>
-
-				<div class="flex items-center gap-2">
-					<input
-						type="checkbox"
-						id="comments_enabled"
-						bind:checked={commentsEnabled}
-						class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-					/>
-					<label for="comments_enabled" class="text-sm text-gray-700 dark:text-gray-300">
-						{$t('admin.content.projects.enable_comments')}
-					</label>
-				</div>
-
-				<div>
-					<span id="admin-tags-label" class="label">{$t('admin.content.common.admin_tags_label')}</span>
-					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
-					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.admin_tags_help')}</p>
-				</div>
-			</div>
+			</AccordionSection>
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>{$t('shared.actions.cancel')}</button>

@@ -162,15 +162,49 @@ type SiteSettings struct {
 	HomepageSectionOrder  []string
 	HomepageSections      map[string]HomepageSectionConfig
 	SiteNavEnabled        bool
+	SiteNavMode           string
+	SiteNavPosition       string
 	SiteNavItems          []SiteNavItem
+	ShowAvatar            bool
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
 	Favicon               string
 	DefaultLocale         string
+	DefaultThemeMode      string
 	HomepageViewCount     int
 	HomepageLastViewedAt  string
 	EnabledFeatures       map[string]bool
 	Record                *core.Record
+}
+
+// loadDefaultThemeMode returns the default_theme_mode field, falling back to
+// "system" when the field isn't present (pre-migration records) or is empty.
+// Valid values are: "system", "light", "dark".
+func loadDefaultThemeMode(record *core.Record) string {
+	if record == nil {
+		return "system"
+	}
+	if record.Collection() != nil && record.Collection().Fields.GetByName("default_theme_mode") == nil {
+		return "system"
+	}
+	mode := record.GetString("default_theme_mode")
+	if mode == "" {
+		return "system"
+	}
+	return mode
+}
+
+// loadShowAvatar returns the show_avatar field as bool, defaulting to true when
+// the field isn't present (pre-migration records) so existing sites keep their avatars.
+func loadShowAvatar(record *core.Record) bool {
+	if record == nil {
+		return true
+	}
+	if record.Collection() != nil && record.Collection().Fields.GetByName("show_avatar") == nil {
+		return true
+	}
+	// Field exists; honor the saved value. Default DB value is true (set by migration).
+	return record.GetBool("show_avatar")
 }
 
 // LoadSiteSettings returns the current site settings, ensuring a default record exists.
@@ -274,11 +308,15 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		HomepageSectionOrder:  homepageSectionOrder,
 		HomepageSections:      homepageSections,
 		SiteNavEnabled:        record.GetBool("site_nav_enabled"),
+		SiteNavMode:           record.GetString("site_nav_mode"),
+		SiteNavPosition:       record.GetString("site_nav_position"),
 		SiteNavItems:          siteNavItems,
+		ShowAvatar:            loadShowAvatar(record),
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
 		Favicon:               faviconURL,
 		DefaultLocale:         record.GetString("default_locale"),
+		DefaultThemeMode:      loadDefaultThemeMode(record),
 		HomepageViewCount:     record.GetInt("homepage_view_count"),
 		HomepageLastViewedAt:  record.GetString("homepage_last_viewed_at"),
 		EnabledFeatures:       enabledFeatures,
@@ -359,6 +397,27 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			logger.Warn("site_nav_enabled field missing on site_settings, skipping update")
 		}
 	}
+	if mode, ok := updates["site_nav_mode"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav_mode") != nil {
+			settings.Record.Set("site_nav_mode", mode)
+		} else if logger != nil {
+			logger.Warn("site_nav_mode field missing on site_settings, skipping update")
+		}
+	}
+	if pos, ok := updates["site_nav_position"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("site_nav_position") != nil {
+			settings.Record.Set("site_nav_position", pos)
+		} else if logger != nil {
+			logger.Warn("site_nav_position field missing on site_settings, skipping update")
+		}
+	}
+	if show, ok := updates["show_avatar"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("show_avatar") != nil {
+			settings.Record.Set("show_avatar", show)
+		} else if logger != nil {
+			logger.Warn("show_avatar field missing on site_settings, skipping update")
+		}
+	}
 	if navItems, ok := updates["site_nav_items"]; ok {
 		if settings.Record.Collection().Fields.GetByName("site_nav_items") != nil {
 			settings.Record.Set("site_nav_items", navItems)
@@ -385,6 +444,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("default_locale", locale)
 		} else if logger != nil {
 			logger.Warn("default_locale field missing on site_settings, skipping update")
+		}
+	}
+	if mode, ok := updates["default_theme_mode"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("default_theme_mode") != nil {
+			settings.Record.Set("default_theme_mode", mode)
+		} else if logger != nil {
+			logger.Warn("default_theme_mode field missing on site_settings, skipping update")
 		}
 	}
 	if features, ok := updates["enabled_features"]; ok {
