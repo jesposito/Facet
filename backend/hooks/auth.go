@@ -135,6 +135,12 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase, rl *services.Rat
 			// Refresh the token key (required after password change)
 			user.RefreshTokenKey()
 
+			// Mark the user as no longer using the default seed password.
+			// Without this the field stays false forever after a real change,
+			// diverging from /api/auth/check-default-password (which hashes the
+			// live password). Two truth sources => bug. Keep them aligned.
+			user.Set("password_changed_from_default", true)
+
 			// Save user record
 			if err := app.Save(user); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
