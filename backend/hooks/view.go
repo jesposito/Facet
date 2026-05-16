@@ -1764,6 +1764,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"visibility":       visibility,
 				"is_draft":         isDraft,
 				"is_authenticated": isAuthenticated,
+				// `comments_enabled` drives whether the post detail page renders
+				// the Comments section. Omitting it leaves the field undefined
+				// on the frontend (falsy) so even posts with the toggle on show
+				// no comment thread.
+				"comments_enabled": post.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := post.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
@@ -1915,6 +1920,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"visibility":       visibility,
 				"is_draft":         isDraft,
 				"is_authenticated": isAuthenticated,
+				"comments_enabled": project.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := project.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
@@ -2038,6 +2044,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"visibility":       visibility,
 				"is_draft":         isDraft,
 				"is_authenticated": isAuthenticated,
+				"comments_enabled": talk.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
