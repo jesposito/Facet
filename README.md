@@ -1,5 +1,7 @@
 # Facet
 
+[![Join the Facet HQ Discord](https://img.shields.io/badge/Discord-Join%20Facet%20HQ-5865F2?logo=discord&logoColor=white)](https://discord.gg/XD8eUudnmf)
+
 [![Latest version](https://img.shields.io/github/v/tag/jesposito/Facet?color=blueviolet&label=version&sort=semver)](https://github.com/jesposito/Facet/tags)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker image](https://img.shields.io/badge/docker-ghcr.io%2Fjesposito%2Ffacet-2496ED?logo=docker&logoColor=white)](https://github.com/jesposito/Facet/pkgs/container/facet)
