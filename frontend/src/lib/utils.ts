@@ -11,8 +11,14 @@ type EmbedMatch = {
 // `https://www.youtube.com.attacker.tld/embed/...` cannot satisfy the allowlist
 // by happening to start with a trusted prefix.
 DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-	if (data.tagName === 'iframe' && node instanceof Element) {
-		const src = node.getAttribute('src') || '';
+	// Duck-type the Element check: `node instanceof Element` throws
+	// `ReferenceError: Element is not defined` during SvelteKit SSR because
+	// the jsdom-backed `Element` global isn't always materialized in the
+	// hook's evaluation context. Checking for the methods we need is
+	// equivalent for our purposes and works in both Node and the browser.
+	const el = node as unknown as { getAttribute?: (n: string) => string | null; parentNode?: { removeChild: (n: unknown) => void } } | null;
+	if (data.tagName === 'iframe' && el && typeof el.getAttribute === 'function') {
+		const src = el.getAttribute('src') || '';
 
 		// Allowlist of trusted embed origins + required path prefix per provider.
 		const allowedOrigins: Array<{ hostname: string; pathPrefix: string }> = [
@@ -41,7 +47,7 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
 		}
 
 		if (!isAllowed) {
-			node.parentNode?.removeChild(node);
+			el.parentNode?.removeChild(node);
 			console.warn('[Security] Blocked iframe with untrusted source:', src);
 		}
 	}
