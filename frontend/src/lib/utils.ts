@@ -283,6 +283,107 @@ export function normalizeExternalUrl(url: string | undefined | null): string | n
 }
 
 /**
+ * Supported external media providers. The list mirrors the iframe allowlist
+ * enforced by the markdown sanitizer above (see `allowedOrigins`) so the
+ * media library can only accept links that are renderable in posts/projects.
+ */
+export type ExternalMediaProvider =
+	| 'youtube'
+	| 'vimeo'
+	| 'spotify'
+	| 'loom'
+	| 'soundcloud'
+	| 'codepen'
+	| 'figma';
+
+type ExternalProviderSpec = {
+	provider: ExternalMediaProvider;
+	hostnames: string[]; // matched as exact or subdomain
+	label: string;
+};
+
+const EXTERNAL_MEDIA_PROVIDERS: ExternalProviderSpec[] = [
+	{ provider: 'youtube', hostnames: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'], label: 'YouTube' },
+	{ provider: 'vimeo', hostnames: ['vimeo.com', 'player.vimeo.com'], label: 'Vimeo' },
+	{ provider: 'spotify', hostnames: ['spotify.com', 'open.spotify.com'], label: 'Spotify' },
+	{ provider: 'loom', hostnames: ['loom.com'], label: 'Loom' },
+	{ provider: 'soundcloud', hostnames: ['soundcloud.com', 'w.soundcloud.com'], label: 'SoundCloud' },
+	{ provider: 'codepen', hostnames: ['codepen.io'], label: 'CodePen' },
+	{ provider: 'figma', hostnames: ['figma.com'], label: 'Figma' }
+];
+
+/**
+ * Detect the embed provider for a given URL by matching its hostname against
+ * the same allowlist used by the markdown sanitizer iframe policy.
+ *
+ * Returns `null` when the URL is invalid, non-https, or not in the allowlist.
+ */
+export function detectExternalMediaProvider(raw: string): ExternalMediaProvider | null {
+	const trimmed = (raw || '').trim();
+	if (!trimmed) return null;
+	let parsed: URL;
+	try {
+		parsed = new URL(trimmed);
+	} catch {
+		return null;
+	}
+	if (parsed.protocol !== 'https:') return null;
+	const host = parsed.hostname.toLowerCase();
+	for (const spec of EXTERNAL_MEDIA_PROVIDERS) {
+		if (spec.hostnames.some((h) => host === h || host.endsWith(`.${h}`))) {
+			return spec.provider;
+		}
+	}
+	return null;
+}
+
+/**
+ * Human-readable label for a provider (e.g., "youtube" -> "YouTube").
+ */
+export function getExternalMediaProviderLabel(provider: ExternalMediaProvider | null | undefined): string {
+	if (!provider) return '';
+	const spec = EXTERNAL_MEDIA_PROVIDERS.find((p) => p.provider === provider);
+	return spec?.label ?? provider;
+}
+
+/**
+ * Extracts a YouTube video ID from any common YouTube URL shape (watch, embed,
+ * youtu.be, /shorts/). Returns null if no ID can be derived.
+ */
+export function extractYouTubeVideoId(raw: string): string | null {
+	try {
+		const u = new URL(raw);
+		if (u.hostname.endsWith('youtu.be')) {
+			const id = u.pathname.replace(/^\//, '').split('/')[0];
+			return id || null;
+		}
+		const v = u.searchParams.get('v');
+		if (v) return v;
+		if (u.pathname.startsWith('/embed/')) return u.pathname.replace('/embed/', '').split('/')[0] || null;
+		if (u.pathname.startsWith('/shorts/')) return u.pathname.replace('/shorts/', '').split('/')[0] || null;
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Predictable thumbnail URL for supported providers. Today only YouTube has
+ * predictable thumbnail URLs without an extra oEmbed call — others (Vimeo,
+ * Spotify, Loom, etc.) return null and the UI falls back to a provider icon.
+ */
+export function getExternalMediaThumbnail(url: string): string | null {
+	const provider = detectExternalMediaProvider(url);
+	if (!provider) return null;
+	if (provider === 'youtube') {
+		const id = extractYouTubeVideoId(url);
+		if (!id) return null;
+		return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+	}
+	return null;
+}
+
+/**
  * Contact types that cannot be linked (copy-only)
  * These platforms don't support direct profile links from usernames
  */
