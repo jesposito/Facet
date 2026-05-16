@@ -459,6 +459,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if heroLayout := view.GetString("hero_layout"); heroLayout != "" {
 				response["hero_layout"] = heroLayout
 			}
+			if heroSpacing := view.GetString("hero_spacing"); heroSpacing != "" {
+				response["hero_spacing"] = heroSpacing
+			}
+			if heroBgColor := view.GetString("hero_bg_color"); heroBgColor != "" {
+				response["hero_bg_color"] = heroBgColor
+			}
 
 			if heroImage := view.GetString("hero_image"); heroImage != "" {
 				response["hero_image_url"] = "/api/files/" + view.Collection().Id + "/" + view.Id + "/" + url.PathEscape(heroImage)
@@ -658,6 +664,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"accent_color":    profile.GetString("accent_color"),
 					"font_pack":       profile.GetString("font_pack"),
 					"hero_layout":     profile.GetString("hero_layout"),
+					"hero_spacing":    profile.GetString("hero_spacing"),
+					"hero_bg_color":   profile.GetString("hero_bg_color"),
 					"cta_text":        profile.GetString("cta_text"),
 					"cta_url":         profile.GetString("cta_url"),
 					"cta_button_text": profile.GetString("cta_button_text"),
@@ -759,15 +767,19 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			settings, err := services.LoadSiteSettings(app)
 			if err != nil {
 				return e.JSON(http.StatusOK, map[string]interface{}{
-					"enabled": false,
-					"items":   []interface{}{},
+					"enabled":  false,
+					"mode":     "bar",
+					"position": "below",
+					"items":    []interface{}{},
 				})
 			}
 
 			if !settings.SiteNavEnabled || len(settings.SiteNavItems) == 0 {
 				return e.JSON(http.StatusOK, map[string]interface{}{
-					"enabled": false,
-					"items":   []interface{}{},
+					"enabled":  false,
+					"mode":     "bar",
+					"position": "below",
+					"items":    []interface{}{},
 				})
 			}
 
@@ -802,8 +814,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"enabled": true,
-				"items":   navItems,
+				"enabled":  true,
+				"mode":     settings.SiteNavMode,
+				"position": settings.SiteNavPosition,
+				"items":    navItems,
 			})
 		}))
 
@@ -888,6 +902,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"accent_color":    profile.GetString("accent_color"),
 					"font_pack":       profile.GetString("font_pack"),
 					"hero_layout":     profile.GetString("hero_layout"),
+					"hero_spacing":    profile.GetString("hero_spacing"),
+					"hero_bg_color":   profile.GetString("hero_bg_color"),
 					"cta_text":        profile.GetString("cta_text"),
 					"cta_url":         profile.GetString("cta_url"),
 					"cta_button_text": profile.GetString("cta_button_text"),
@@ -1748,6 +1764,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"visibility":       visibility,
 				"is_draft":         isDraft,
 				"is_authenticated": isAuthenticated,
+				// `comments_enabled` drives whether the post detail page renders
+				// the Comments section. Omitting it leaves the field undefined
+				// on the frontend (falsy) so even posts with the toggle on show
+				// no comment thread.
+				"comments_enabled": post.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := post.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
@@ -1899,6 +1920,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"visibility":       visibility,
 				"is_draft":         isDraft,
 				"is_authenticated": isAuthenticated,
+				"comments_enabled": project.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := project.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
@@ -2022,6 +2044,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"visibility":       visibility,
 				"is_draft":         isDraft,
 				"is_authenticated": isAuthenticated,
+				"comments_enabled": talk.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs

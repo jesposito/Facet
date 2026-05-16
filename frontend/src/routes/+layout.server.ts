@@ -14,10 +14,12 @@ import { logger } from '$lib/logger';
 export const load: LayoutServerLoad = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
-	// Fetch site settings server-side (favicon, custom CSS, locale)
+	// Fetch site settings server-side (favicon, custom CSS, locale, show_avatar, default theme)
 	let faviconUrl: string | null = null;
 	let customCSS: string | null = null;
 	let defaultLocale: string | null = null;
+	let showAvatar = true;
+	let defaultThemeMode = 'system';
 	try {
 		const siteSettingsResponse = await fetch(`${pbUrl}/api/site-settings`, {
 			headers: { 'X-Internal': 'true' }
@@ -27,6 +29,8 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 			faviconUrl = siteSettings.favicon || null;
 			customCSS = siteSettings.custom_css || null;
 			defaultLocale = siteSettings.default_locale || null;
+			showAvatar = siteSettings.show_avatar !== false;
+			defaultThemeMode = siteSettings.default_theme_mode || 'system';
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load site settings:', error);
@@ -54,14 +58,14 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 	const appUrl = process.env.APP_URL || '';
 
 	// Fetch site-nav server-side to eliminate nav pop-in on page load
-	let siteNav = { enabled: false, items: [] as Array<{ viewId: string; slug: string; label: string; name: string }> };
+	let siteNav = { enabled: false, mode: 'bar', position: 'below', items: [] as Array<{ viewId: string; slug: string; label: string; name: string }> };
 	try {
 		const navResponse = await fetch(`${pbUrl}/api/site-nav`, {
 			headers: { 'X-Internal': 'true' }
 		});
 		if (navResponse.ok) {
 			const navData = await navResponse.json();
-			siteNav = { enabled: navData.enabled === true, items: navData.items || [] };
+			siteNav = { enabled: navData.enabled === true, mode: navData.mode || 'bar', position: navData.position || 'below', items: navData.items || [] };
 			logger.debug('[LAYOUT SSR] Loaded site nav:', siteNav.enabled, siteNav.items.length, 'items');
 		} else {
 			logger.debug('[LAYOUT SSR] Site nav API returned:', navResponse.status);
@@ -97,6 +101,8 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		customHexColor,
 		fontPack,
 		customCSS,
-		defaultLocale
+		defaultLocale,
+		showAvatar,
+		defaultThemeMode
 	};
 };

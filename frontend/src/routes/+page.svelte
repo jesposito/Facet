@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { self } from 'svelte/legacy';
-
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
@@ -26,9 +24,11 @@
 	import Footer from '$components/public/Footer.svelte';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import WelcomePage from '$components/public/WelcomePage.svelte';
-	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import AIResumeModal from '$components/public/AIResumeModal.svelte';
+	import { createAIResumeController } from '$lib/ai-resume/controller.svelte';
+	import { ACCENT_COLORS, type AccentColor, applyPaletteToRoot } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK } from '$lib/fonts';
-	import { pb, currentUser, performLogout, getSectionLayout as getDefaultSectionLayout } from '$lib/pocketbase';
+	import { currentUser, performLogout, getSectionLayout as getDefaultSectionLayout } from '$lib/pocketbase';
 	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
 	import { goto } from '$app/navigation';
 
@@ -228,23 +228,13 @@
 
 	// Print menu state
 	let showPrintMenu = $state(false);
-	let showGenerateModal = $state(false);
-	let generating = $state(false);
-	let modalEl: HTMLDivElement | undefined = $state();
 	let printMenuTriggerEl: HTMLButtonElement | undefined = $state();
-	let previousActiveElement: HTMLElement | null = $state(null);
-	let aiPrintStatus = $state({
-		available: false,
-		ai_configured: false,
-		pandoc_installed: false
+	// AI-resume controller owns the modal state, fetch, and download flow.
+	// See $lib/ai-resume/controller.svelte for shape — was ~150 LOC inline.
+	const aiResume = createAIResumeController({
+		getSlug: () => data.view?.slug,
+		getTargetRole: () => data.view?.hero_headline || data.profile?.headline || ''
 	});
-	let generationConfig = $state({
-		format: 'pdf' as 'pdf' | 'docx',
-		target_role: '',
-		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
-		length: 'two-page' as 'one-page' | 'two-page' | 'full'
-	});
-	let generatedUrl: string | null = $state(null);
 	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
 
 	// Floating buttons visibility - hide when nav is pinned (sticky)
@@ -258,18 +248,7 @@
 		const color = ACCENT_COLORS[colorName];
 		if (!color) return;
 
-		const root = document.documentElement;
-		root.style.setProperty('--color-primary-50', color.scale[50]);
-		root.style.setProperty('--color-primary-100', color.scale[100]);
-		root.style.setProperty('--color-primary-200', color.scale[200]);
-		root.style.setProperty('--color-primary-300', color.scale[300]);
-		root.style.setProperty('--color-primary-400', color.scale[400]);
-		root.style.setProperty('--color-primary-500', color.scale[500]);
-		root.style.setProperty('--color-primary-600', color.scale[600]);
-		root.style.setProperty('--color-primary-700', color.scale[700]);
-		root.style.setProperty('--color-primary-800', color.scale[800]);
-		root.style.setProperty('--color-primary-900', color.scale[900]);
-		root.style.setProperty('--color-primary-950', color.scale[950]);
+		applyPaletteToRoot(color.scale);
 	}
 
 	onMount(() => {
@@ -312,7 +291,7 @@
 		}
 
 		// Check AI Print availability
-		checkAIPrintStatus();
+		if (!data.homepageDisabled) aiResume.checkStatus();
 
 		// Track when sentinel scrolls past top (nav becomes sticky)
 		const checkSentinel = () => {
@@ -338,133 +317,9 @@
 		};
 	});
 
-	async function checkAIPrintStatus() {
-		if (data.homepageDisabled) return;
-
-		try {
-			const response = await fetch('/api/ai-print/status', {
-				headers: { Authorization: pb.authStore.token || '' }
-			});
-			if (response.ok) {
-				const result = await response.json();
-				aiPrintStatus = {
-					available: result.available,
-					ai_configured: result.ai_configured,
-					pandoc_installed: result.pandoc_installed
-				};
-			}
-		} catch (err) {
-			console.error('[AI-PRINT] Failed to check status:', err);
-		}
-	}
-
-	async function generateResume() {
-		if (data.homepageDisabled) return;
-
-		const slug = data.view?.slug;
-		if (!slug) return;
-		generating = true;
-		generatedUrl = null;
-
-		try {
-			// Use the view's hero_headline as target role (configured by profile owner)
-			const config = {
-				...generationConfig,
-				target_role: data.view?.hero_headline || data.profile?.headline || ''
-			};
-			const response = await fetch(`/api/view/${slug}/generate`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify(config)
-			});
-
-			const result = await response.json();
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Generation failed');
-			}
-
-			generatedUrl = result.download_url;
-
-			// Auto-download the file
-			if (generatedUrl) {
-				const link = document.createElement('a');
-				link.href = generatedUrl;
-				link.download = `resume.${generationConfig.format}`;
-				document.body.appendChild(link);
-				link.click();
-				document.body.removeChild(link);
-			}
-		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Failed to generate resume';
-			alert(message);
-		} finally {
-			generating = false;
-		}
-	}
-
 	function closePrintMenu() {
 		showPrintMenu = false;
 	}
-
-	function closeGenerateModal() {
-		showGenerateModal = false;
-		generatedUrl = null;
-		// Restore focus to the element that triggered the modal
-		if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
-			previousActiveElement.focus();
-		}
-	}
-
-	// Modal focus trap, Escape key, and body scroll lock
-	function handleModalKeydown(event: KeyboardEvent) {
-		if (!showGenerateModal) return;
-
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			closeGenerateModal();
-			return;
-		}
-
-		if (event.key === 'Tab') {
-			const focusableElements = modalEl?.querySelectorAll<HTMLElement>(
-				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-			);
-			if (!focusableElements?.length) return;
-
-			const firstElement = focusableElements[0];
-			const lastElement = focusableElements[focusableElements.length - 1];
-
-			if (event.shiftKey && document.activeElement === firstElement) {
-				event.preventDefault();
-				lastElement.focus();
-			} else if (!event.shiftKey && document.activeElement === lastElement) {
-				event.preventDefault();
-				firstElement.focus();
-			}
-		}
-	}
-
-	// Lock body scroll and manage focus when modal opens/closes
-	$effect(() => {
-		if (typeof document === 'undefined') return;
-		if (showGenerateModal) {
-			previousActiveElement = document.activeElement as HTMLElement;
-			document.body.style.overflow = 'hidden';
-			// Focus the first focusable element in the modal after render
-			requestAnimationFrame(() => {
-				const firstFocusable = modalEl?.querySelector<HTMLElement>(
-					'select, button:not([disabled]), [href], input:not([disabled])'
-				);
-				firstFocusable?.focus();
-			});
-		} else {
-			document.body.style.overflow = '';
-		}
-	});
 
 	// Print menu keyboard handler
 	function handlePrintMenuKeydown(event: KeyboardEvent) {
@@ -526,6 +381,7 @@
 		class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
 		class:opacity-0={navPinned}
 		class:pointer-events-none={navPinned}
+		inert={navPinned}
 	>
 		<!-- Print Menu -->
 		<div class="relative">
@@ -556,11 +412,17 @@
 						</svg>
 						{$t('public.homepage.simple_print')}
 					</button>
-					{#if aiPrintStatus.ai_configured && data.view?.slug}
+					{#if aiResume.status.ai_configured && data.view?.slug}
 						<button
-							onclick={() => { showGenerateModal = true; closePrintMenu(); }}
+							onclick={() => {
+								// Capture the menu trigger BEFORE closing the popover, so the
+								// AI-resume dialog can return focus to it on close (SC 2.4.3).
+								aiResume.show(printMenuTriggerEl ?? null);
+								closePrintMenu();
+							}}
 							class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
 							role="menuitem"
+							aria-haspopup="dialog"
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -599,6 +461,19 @@
 		<ThemeToggle />
 	</div>
 
+	<!-- Site Navigation (above hero) - only renders when position='above' -->
+	<SiteNav
+		slot="above"
+		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+		ssrNavEnabled={data.siteNav?.enabled}
+		ssrNavMode={data.siteNav?.mode}
+		ssrNavPosition={data.siteNav?.position}
+		ssrNavItems={data.siteNav?.items}
+	/>
+
 	<!-- Hero section with possible view overrides -->
 	<ProfileHero
 		profile={{
@@ -608,15 +483,21 @@
 			location
 		}}
 		layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
+		spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
+		heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
+		showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
 	/>
 
-	<!-- Site Navigation / CTA Banner -->
+	<!-- Site Navigation (below hero) / CTA Banner - only renders when position='below' (default) -->
 	<SiteNav
+		slot="below"
 		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
 		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
 		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 		ssrNavEnabled={data.siteNav?.enabled}
+		ssrNavMode={data.siteNav?.mode}
+		ssrNavPosition={data.siteNav?.position}
 		ssrNavItems={data.siteNav?.items}
 	/>
 
@@ -654,73 +535,100 @@
 			</div>
 		{:else}
 			<!-- Dynamic section rendering based on homepage_section_order -->
-			{#each effectiveSectionOrder as sectionKey}
-				{#if isCustomSection(sectionKey)}
-					{@const customItem = data.sections?.[sectionKey]?.[0] || customContentMap.get(getCustomContentId(sectionKey))}
-					{#if customItem}
-						<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-						<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
-					{/if}
-				{:else if sectionKey === 'experience' && data.experience.length > 0}
-					<ExperienceSection items={data.experience} layout={getSectionLayout('experience')} />
-				{:else if sectionKey === 'projects' && data.projects.length > 0}
-					<ProjectsSection items={data.projects} layout={getSectionLayout('projects')} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
-				{:else if sectionKey === 'education' && data.education.length > 0}
-					<EducationSection items={data.education} layout={getSectionLayout('education')} />
-				{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
-					<CertificationsSection items={data.certifications} layout={getSectionLayout('certifications')} />
-				{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
-					<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
-				{:else if sectionKey === 'skills' && data.skills.length > 0}
-					<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
-				{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
-					{#if (data.postsTotalCount ?? 0) > data.posts.length}
-						<div class="flex items-center justify-between gap-3 mb-4">
-							<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
-							<a
-								href="/posts"
-								class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-							>
-								{$t('public.homepage.browse_all')}
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-								</svg>
-							</a>
+			<div class="sections-grid">
+				{#each effectiveSectionOrder as sectionKey}
+					{@const widthClass = getWidthClass(getSectionWidth(sectionKey))}
+					{#if isCustomSection(sectionKey)}
+						{@const customItem = data.sections?.[sectionKey]?.[0] || customContentMap.get(getCustomContentId(sectionKey))}
+						{#if customItem}
+							<div class={widthClass}>
+								<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
+								<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
+							</div>
+						{/if}
+					{:else if sectionKey === 'experience' && data.experience.length > 0}
+						<div class={widthClass}>
+							<ExperienceSection items={data.experience} layout={getSectionLayout('experience')} />
 						</div>
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
-					{:else}
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
-					{/if}
-				{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
-					{#if (data.talksTotalCount ?? 0) > data.talks.length}
-						<div class="flex items-center justify-between gap-3 mb-4">
-							<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
-							<a
-								href="/talks"
-								class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-							>
-								{$t('public.homepage.browse_all')}
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-								</svg>
-							</a>
+					{:else if sectionKey === 'projects' && data.projects.length > 0}
+						<div class={widthClass}>
+							<ProjectsSection items={data.projects} layout={getSectionLayout('projects')} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
 						</div>
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" showHeader={false} />
-					{:else}
-						<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-						<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
+					{:else if sectionKey === 'education' && data.education.length > 0}
+						<div class={widthClass}>
+							<EducationSection items={data.education} layout={getSectionLayout('education')} />
+						</div>
+					{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
+						<div class={widthClass}>
+							<CertificationsSection items={data.certifications} layout={getSectionLayout('certifications')} />
+						</div>
+					{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
+						<div class={widthClass}>
+							<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
+						</div>
+					{:else if sectionKey === 'skills' && data.skills.length > 0}
+						<div class={widthClass}>
+							<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
+						</div>
+					{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
+						<div class={widthClass}>
+							{#if (data.postsTotalCount ?? 0) > data.posts.length}
+								<div class="flex items-center justify-between gap-3 mb-4">
+									<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
+									<a
+										href="/posts"
+										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+									>
+										{$t('public.homepage.browse_all')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								</div>
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
+							{:else}
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
+							{/if}
+						</div>
+					{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
+						<div class={widthClass}>
+							{#if (data.talksTotalCount ?? 0) > data.talks.length}
+								<div class="flex items-center justify-between gap-3 mb-4">
+									<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
+									<a
+										href="/talks"
+										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+									>
+										{$t('public.homepage.browse_all')}
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+										</svg>
+									</a>
+								</div>
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" showHeader={false} />
+							{:else}
+								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+								<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
+							{/if}
+						</div>
+					{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
+						<div class={widthClass}>
+							<CoursesSection items={data.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug="" />
+						</div>
+					{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
+						<div class={widthClass}>
+							<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
+						</div>
+					{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
+						<div class={widthClass}>
+							<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
+						</div>
 					{/if}
-				{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
-					<CoursesSection items={data.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug="" />
-				{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
-					<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
-				{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
-					<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
-				{/if}
-			{/each}
+				{/each}
+			</div>
 
 			<!-- Render any custom content not in the section order (for backwards compatibility) -->
 			{#if data.customContent && data.customContent.length > 0 && (!data.homepageSectionOrder || data.homepageSectionOrder.length === 0)}
@@ -745,96 +653,45 @@
 </div>
 
 <!-- AI Resume Generation Modal -->
-{#if showGenerateModal}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden"
-		onclick={self(closeGenerateModal)}
-		onkeydown={handleModalKeydown}
-		role="presentation"
-	>
-		<div
-			bind:this={modalEl}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="ai-resume-modal-title"
-			class="bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
-		>
-			<div class="p-4 border-b border-stone-200 dark:border-stone-700">
-				<h2 id="ai-resume-modal-title" class="text-lg font-semibold text-stone-900 dark:text-white">{$t('public.ai_resume.title')}</h2>
-				<p class="text-sm text-stone-500 dark:text-stone-400 mt-1">
-					{$t('public.ai_resume.description')}
-				</p>
-			</div>
-
-			<div class="p-4 space-y-4">
-				{#if generatedUrl}
-					<div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-						<p class="text-green-700 dark:text-green-300 mb-3">{$t('public.ai_resume.success')}</p>
-						<a
-							href={generatedUrl}
-							download
-							class="btn btn-primary"
-						>
-							{$t('public.ai_resume.download')}
-						</a>
-					</div>
-				{:else}
-					<div>
-						<label for="format" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{$t('public.ai_resume.format')}</label>
-						<select id="format" bind:value={generationConfig.format} class="input">
-							<option value="pdf">{$t('public.ai_resume.format_pdf')}</option>
-							<option value="docx">{$t('public.ai_resume.format_word')}</option>
-						</select>
-					</div>
-
-					<div>
-						<label for="style" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{$t('public.ai_resume.style')}</label>
-						<select id="style" bind:value={generationConfig.style} class="input">
-							<option value="chronological">{$t('public.ai_resume.style_chronological')}</option>
-							<option value="functional">{$t('public.ai_resume.style_functional')}</option>
-							<option value="hybrid">{$t('public.ai_resume.style_hybrid')}</option>
-						</select>
-					</div>
-
-					<div>
-						<label for="length" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">{$t('public.ai_resume.length')}</label>
-						<select id="length" bind:value={generationConfig.length} class="input">
-							<option value="one-page">{$t('public.ai_resume.length_one')}</option>
-							<option value="two-page">{$t('public.ai_resume.length_two')}</option>
-							<option value="full">{$t('public.ai_resume.length_full')}</option>
-						</select>
-					</div>
-				{/if}
-			</div>
-
-			<div class="p-4 border-t border-stone-200 dark:border-stone-700 flex justify-end gap-2">
-				<button
-					type="button"
-					class="btn btn-ghost"
-					onclick={closeGenerateModal}
-				>
-					{generatedUrl ? $t('shared.close') : $t('shared.cancel')}
-				</button>
-				{#if !generatedUrl}
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={generateResume}
-						disabled={generating}
-					>
-						{#if generating}
-							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-							{$t('public.ai_resume.generating')}
-						{:else}
-							{$t('public.ai_resume.generate')}
-						{/if}
-					</button>
-				{/if}
-			</div>
-		</div>
-	</div>
+<AIResumeModal controller={aiResume} />
 {/if}
-{/if}
+
+
+<style>
+	/* Section grid layout */
+	.sections-grid {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+		gap: 1.5rem;
+	}
+
+	/* Full width: spans all 6 columns */
+	:global(.section-full) {
+		grid-column: span 6;
+	}
+
+	/* Half width: spans 3 columns (50%) */
+	:global(.section-half) {
+		grid-column: span 3;
+	}
+
+	/* Third width: spans 2 columns (33%) */
+	:global(.section-third) {
+		grid-column: span 2;
+	}
+
+	/* Responsive: collapse to full width on mobile */
+	@media (max-width: 768px) {
+		:global(.section-half),
+		:global(.section-third) {
+			grid-column: span 6;
+		}
+	}
+
+	/* Print: allow side-by-side on wider paper */
+	@media print {
+		.sections-grid {
+			gap: 1rem;
+		}
+	}
+</style>

@@ -362,11 +362,11 @@
 	{:else if tokens.length === 0}
 		<div class="card p-8 text-center">
 			<p class="text-gray-600 dark:text-gray-400 mb-2">{$t('admin.tokens.no_tokens')}</p>
-			<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">
+			<p class="text-gray-500 dark:text-gray-300 text-sm mb-4">
 				{$t('admin.tokens.no_tokens_description')}
 			</p>
 			{#if views.length === 0}
-				<p class="text-gray-500 dark:text-gray-500 text-sm mb-4">
+				<p class="text-gray-500 dark:text-gray-300 text-sm mb-4">
 					{@html $t('admin.tokens.create_unlisted_first', { values: { link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.create_unlisted_link')}</a>` } })}
 				</p>
 			{:else}

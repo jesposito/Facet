@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { self } from 'svelte/legacy';
 	import { t } from 'svelte-i18n';
 
 	import type { PageData } from './$types';
@@ -26,6 +25,8 @@
 	import { checkFeature } from '$lib/stores/plan';
 	import SiteNav from '$components/public/SiteNav.svelte';
 	import ATSContent from '$components/public/ATSContent.svelte';
+	import AIResumeModal from '$components/public/AIResumeModal.svelte';
+	import { createAIResumeController } from '$lib/ai-resume/controller.svelte';
 
 	// Helper to check if a section key is for custom content
 	function isCustomSection(sectionKey: string): boolean {
@@ -35,7 +36,7 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import ShareButton from '$components/shared/ShareButton.svelte';
 	import PasswordPrompt from '$components/public/PasswordPrompt.svelte';
-	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import { ACCENT_COLORS, type AccentColor, applyPaletteToRoot } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK } from '$lib/fonts';
 	import { pb, getSectionLayout as getDefaultSectionLayout } from '$lib/pocketbase';
 	import { generatePersonJsonLd, serializeJsonLd } from '$lib/seo';
@@ -54,23 +55,12 @@
 
 	// Print menu state
 	let showPrintMenu = $state(false);
-	let showGenerateModal = $state(false);
-	let generating = $state(false);
-	let modalEl: HTMLDivElement | undefined = $state();
 	let printMenuTriggerEl: HTMLButtonElement | undefined = $state();
-	let previousActiveElement: HTMLElement | null = $state(null);
-	let aiPrintStatus = $state({
-		available: false,
-		ai_configured: false,
-		pandoc_installed: false
+	// AI-resume controller owns the modal state, fetch, and download flow.
+	const aiResume = createAIResumeController({
+		getSlug: () => data.view?.slug,
+		getTargetRole: () => data.view?.hero_headline || data.profile?.headline || ''
 	});
-	let generationConfig = $state({
-		format: 'pdf' as 'pdf' | 'docx',
-		target_role: '',
-		style: 'chronological' as 'chronological' | 'functional' | 'hybrid',
-		length: 'two-page' as 'one-page' | 'two-page' | 'full'
-	});
-	let generatedUrl: string | null = $state(null);
 
 	// Floating buttons visibility - hide when nav is pinned (sticky)
 	let navPinned = $state(false);
@@ -83,18 +73,7 @@
 		const color = ACCENT_COLORS[colorName];
 		if (!color) return;
 
-		const root = document.documentElement;
-		root.style.setProperty('--color-primary-50', color.scale[50]);
-		root.style.setProperty('--color-primary-100', color.scale[100]);
-		root.style.setProperty('--color-primary-200', color.scale[200]);
-		root.style.setProperty('--color-primary-300', color.scale[300]);
-		root.style.setProperty('--color-primary-400', color.scale[400]);
-		root.style.setProperty('--color-primary-500', color.scale[500]);
-		root.style.setProperty('--color-primary-600', color.scale[600]);
-		root.style.setProperty('--color-primary-700', color.scale[700]);
-		root.style.setProperty('--color-primary-800', color.scale[800]);
-		root.style.setProperty('--color-primary-900', color.scale[900]);
-		root.style.setProperty('--color-primary-950', color.scale[950]);
+		applyPaletteToRoot(color.scale);
 	}
 
 	onMount(() => {
@@ -128,7 +107,7 @@
 		}
 
 		// Check AI Print availability (always check - API handles auth)
-		checkAIPrintStatus();
+		aiResume.checkStatus();
 
 		// Track when sentinel scrolls past top (nav becomes sticky)
 		const checkSentinel = () => {
@@ -154,135 +133,9 @@
 		};
 	});
 
-	async function checkAIPrintStatus() {
-		try {
-			console.log('[AI-PRINT] Checking status, auth valid:', pb.authStore.isValid);
-			const response = await fetch('/api/ai-print/status', {
-				headers: { Authorization: pb.authStore.token || '' }
-			});
-			console.log('[AI-PRINT] Status response:', response.status);
-			if (response.ok) {
-				const result = await response.json();
-				console.log('[AI-PRINT] Status result:', result);
-				aiPrintStatus = {
-					available: result.available,
-					ai_configured: result.ai_configured,
-					pandoc_installed: result.pandoc_installed
-				};
-			} else if (response.status === 401) {
-				console.log('[AI-PRINT] Not authenticated - AI Resume requires login');
-			}
-		} catch (err) {
-			console.error('[AI-PRINT] Failed to check status:', err);
-		}
-	}
-
-	async function generateResume() {
-		if (!data.view?.slug) return;
-		generating = true;
-		generatedUrl = null;
-
-		try {
-			console.log('[AI-PRINT] Starting generation for:', data.view.slug);
-			// Use the view's hero_headline as target role (configured by profile owner)
-			const config = {
-				...generationConfig,
-				target_role: data.view?.hero_headline || data.profile?.headline || ''
-			};
-			const response = await fetch(`/api/view/${data.view.slug}/generate`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
-				},
-				body: JSON.stringify(config)
-			});
-
-			const result = await response.json();
-			console.log('[AI-PRINT] Generation result:', result);
-
-			if (!response.ok) {
-				throw new Error(result.error || 'Generation failed');
-			}
-
-			generatedUrl = result.download_url;
-
-			// Auto-download the file
-			if (generatedUrl) {
-				console.log('[AI-PRINT] Auto-downloading from:', generatedUrl);
-				const link = document.createElement('a');
-				link.href = generatedUrl;
-				link.download = `resume.${generationConfig.format}`;
-				document.body.appendChild(link);
-				link.click();
-				document.body.removeChild(link);
-			}
-		} catch (err) {
-			console.error('[AI-PRINT] Generation error:', err);
-			const message = err instanceof Error ? err.message : 'Failed to generate resume';
-			alert(message); // Simple alert for public page
-		} finally {
-			generating = false;
-		}
-	}
-
 	function closePrintMenu() {
 		showPrintMenu = false;
 	}
-
-	function closeGenerateModal() {
-		showGenerateModal = false;
-		generatedUrl = null;
-		if (previousActiveElement && typeof previousActiveElement.focus === 'function') {
-			previousActiveElement.focus();
-		}
-	}
-
-	// Modal focus trap, Escape key, and body scroll lock
-	function handleModalKeydown(event: KeyboardEvent) {
-		if (!showGenerateModal) return;
-
-		if (event.key === 'Escape') {
-			event.preventDefault();
-			closeGenerateModal();
-			return;
-		}
-
-		if (event.key === 'Tab') {
-			const focusableElements = modalEl?.querySelectorAll<HTMLElement>(
-				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-			);
-			if (!focusableElements?.length) return;
-
-			const firstElement = focusableElements[0];
-			const lastElement = focusableElements[focusableElements.length - 1];
-
-			if (event.shiftKey && document.activeElement === firstElement) {
-				event.preventDefault();
-				lastElement.focus();
-			} else if (!event.shiftKey && document.activeElement === lastElement) {
-				event.preventDefault();
-				firstElement.focus();
-			}
-		}
-	}
-
-	// Lock body scroll and manage focus when modal opens/closes
-	$effect(() => {
-		if (typeof document === 'undefined') return;
-		if (showGenerateModal) {
-			previousActiveElement = document.activeElement as HTMLElement;
-			document.body.style.overflow = 'hidden';
-			requestAnimationFrame(() => {
-				const firstFocusable = modalEl?.querySelector<HTMLElement>(
-					'select, button:not([disabled]), [href], input:not([disabled])'
-				);
-				firstFocusable?.focus();
-			});
-		} else {
-			document.body.style.overflow = '';
-		}
-	});
 
 	// Print menu keyboard handler
 	function handlePrintMenuKeydown(event: KeyboardEvent) {
@@ -426,6 +279,7 @@
 			class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
 			class:opacity-0={navPinned}
 			class:pointer-events-none={navPinned}
+			inert={navPinned}
 		>
 			<!-- Print Menu -->
 			<div class="relative">
@@ -433,7 +287,7 @@
 					bind:this={printMenuTriggerEl}
 					onclick={() => showPrintMenu = !showPrintMenu}
 					class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-					title="Print options"
+					title={$t('public.aria.print_options')}
 					aria-label={$t('public.aria.print_options')}
 					aria-expanded={showPrintMenu}
 					aria-haspopup="menu"
@@ -454,18 +308,24 @@
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 							</svg>
-							Simple Print
+							{$t('public.homepage.simple_print')}
 						</button>
-						{#if aiPrintStatus.ai_configured}
+						{#if aiResume.status.ai_configured}
 							<button
-								onclick={() => { showGenerateModal = true; closePrintMenu(); }}
+								onclick={() => {
+									// Capture the menu trigger BEFORE closing the popover, so the
+									// AI-resume dialog can return focus to it on close (SC 2.4.3).
+									aiResume.show(printMenuTriggerEl ?? null);
+									closePrintMenu();
+								}}
 								class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
 								role="menuitem"
+								aria-haspopup="dialog"
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 								</svg>
-								AI Resume
+								{$t('public.homepage.ai_resume')}
 							</button>
 						{/if}
 					</div>
@@ -495,6 +355,21 @@
 			<ThemeToggle />
 		</div>
 
+		<!-- Site Navigation (above hero) - only renders when position='above' -->
+		{#if data.isPublicView}
+			<SiteNav
+				slot="above"
+				ctaUrl={data.view?.cta_url || ''}
+				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
+				ctaText={data.view?.cta_text || ''}
+				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+				ssrNavEnabled={data.siteNav?.enabled}
+				ssrNavMode={data.siteNav?.mode}
+				ssrNavPosition={data.siteNav?.position}
+				ssrNavItems={data.siteNav?.items}
+			/>
+		{/if}
+
 		<!-- Modified hero with view overrides -->
 		<ProfileHero
 			profile={{
@@ -505,16 +380,22 @@
 				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
 			}}
 			layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
+			spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
+			heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
+			showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
 		/>
 
-		<!-- Site Navigation / CTA banner (only on public views) -->
+		<!-- Site Navigation (below hero) / CTA banner - only on public views -->
 		{#if data.isPublicView}
 			<SiteNav
+				slot="below"
 				ctaUrl={data.view?.cta_url || ''}
 				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
 				ctaText={data.view?.cta_text || ''}
 				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
 				ssrNavEnabled={data.siteNav?.enabled}
+				ssrNavMode={data.siteNav?.mode}
+				ssrNavPosition={data.siteNav?.position}
 				ssrNavItems={data.siteNav?.items}
 			/>
 		{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
@@ -670,98 +551,7 @@
 {/if}
 
 <!-- AI Resume Generation Modal -->
-{#if showGenerateModal}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 print:hidden"
-		onclick={self(closeGenerateModal)}
-		onkeydown={handleModalKeydown}
-		role="presentation"
-	>
-		<div
-			bind:this={modalEl}
-			role="dialog"
-			aria-modal="true"
-			aria-labelledby="ai-resume-modal-title"
-			class="bg-white dark:bg-stone-800 rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
-		>
-			<div class="p-4 border-b border-stone-200 dark:border-stone-700">
-				<h2 id="ai-resume-modal-title" class="text-lg font-semibold text-stone-900 dark:text-white">Generate AI Resume</h2>
-				<p class="text-sm text-stone-500 dark:text-stone-400 mt-1">
-					Create a professionally formatted resume from this view.
-				</p>
-			</div>
-
-			<div class="p-4 space-y-4">
-				{#if generatedUrl}
-					<div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-4 text-center">
-						<p class="text-green-700 dark:text-green-300 mb-3">Resume generated successfully!</p>
-						<a
-							href={generatedUrl}
-							download
-							class="btn btn-primary"
-						>
-							Download Resume
-						</a>
-					</div>
-				{:else}
-					<div>
-						<label for="format" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Format</label>
-						<select id="format" bind:value={generationConfig.format} class="input">
-							<option value="pdf">PDF</option>
-							<option value="docx">Word Document</option>
-						</select>
-					</div>
-
-					<div>
-						<label for="style" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Style</label>
-						<select id="style" bind:value={generationConfig.style} class="input">
-							<option value="chronological">Chronological</option>
-							<option value="functional">Functional</option>
-							<option value="hybrid">Hybrid</option>
-						</select>
-					</div>
-
-					<div>
-						<label for="length" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">Length</label>
-						<select id="length" bind:value={generationConfig.length} class="input">
-							<option value="one-page">One Page</option>
-							<option value="two-page">Two Pages</option>
-							<option value="full">Full</option>
-						</select>
-					</div>
-				{/if}
-			</div>
-
-			<div class="p-4 border-t border-stone-200 dark:border-stone-700 flex justify-end gap-2">
-				<button
-					type="button"
-					class="btn btn-ghost"
-					onclick={closeGenerateModal}
-				>
-					{generatedUrl ? 'Close' : 'Cancel'}
-				</button>
-				{#if !generatedUrl}
-					<button
-						type="button"
-						class="btn btn-primary"
-						onclick={generateResume}
-						disabled={generating}
-					>
-						{#if generating}
-							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-							</svg>
-							Generating...
-						{:else}
-							Generate
-						{/if}
-					</button>
-				{/if}
-			</div>
-		</div>
-	</div>
-{/if}
+<AIResumeModal controller={aiResume} />
 
 <style>
 	/* Section grid layout (Phase 6.3) */

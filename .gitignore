@@ -120,3 +120,6 @@ unraid-docker-templates/
 
 # Auto Claude data directory
 .auto-claude/
+.gstack/
+.gstack/
+.serena/

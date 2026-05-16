@@ -373,10 +373,10 @@
 	<!-- Login page renders without admin chrome -->
 	{@render children?.()}
 {:else if authorized}
-	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-clip">
 		<AdminHeader />
 
-		<div class="flex min-w-0 overflow-hidden">
+		<div class="flex min-w-0 overflow-x-clip">
 			<!-- Mobile backdrop overlay - closes sidebar when clicked -->
 			{#if isMobile && $adminSidebarOpen}
 				<button
@@ -403,7 +403,7 @@
 			-->
 			<main
 				id="main-content"
-				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-hidden w-full max-w-full
+				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-clip w-full max-w-full
 					{isMobile ? '' : ($adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16')}"
 			>
 				{#if showEncryptionWarning}

@@ -45,6 +45,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
+						.replace(/;?\s*$/, ';')
 				);
 			}
 			if (fontCSSVars) {
@@ -54,6 +55,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
+						.replace(/;?\s*$/, ';')
 				);
 			}
 

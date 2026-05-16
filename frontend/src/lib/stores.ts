@@ -3,18 +3,38 @@ import type { Profile, Experience, Project, Education, Skill } from './pocketbas
 import { fetchWithTimeout } from './utils';
 
 // Theme store
+//
+// Theme resolution precedence (highest to lowest):
+//   1. localStorage 'theme' — per-user override via ThemeToggle, persists across visits
+//   2. serverDefault (admin setting `default_theme_mode`) — when 'light' or 'dark'
+//   3. window prefers-color-scheme — when serverDefault is 'system' (or unset)
+//   4. 'light' — final fallback
+//
+// The FOUC script in app.html runs before SvelteKit hydrates and only sees
+// localStorage + prefers-color-scheme (no SSR data access). When admin's
+// default_theme_mode is 'dark' but the user has no localStorage entry AND no
+// system dark preference, the page paints light briefly, then this store
+// flips it on hydration. Acceptable tradeoff for a static FOUC script.
 function createThemeStore() {
 	const { subscribe, set } = writable<'light' | 'dark'>('light');
 
 	return {
 		subscribe,
-		initialize: () => {
+		initialize: (serverDefault?: string) => {
 			if (typeof window === 'undefined') return;
 			const saved = localStorage.getItem('theme');
 			if (saved === 'dark' || saved === 'light') {
 				set(saved);
 				document.documentElement.classList.toggle('dark', saved === 'dark');
-			} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+				return;
+			}
+			// No per-user override — honor admin default if explicit, else system pref
+			if (serverDefault === 'dark' || serverDefault === 'light') {
+				set(serverDefault);
+				document.documentElement.classList.toggle('dark', serverDefault === 'dark');
+				return;
+			}
+			if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
 				set('dark');
 				document.documentElement.classList.add('dark');
 			}
@@ -254,48 +274,91 @@ interface ConfirmState {
 	open: boolean;
 	options: ConfirmOptions | null;
 	resolve: ((value: boolean) => void) | null;
+	/** Keyed remount counter so pre-empted dialogs re-announce to AT. */
+	contentKey: number;
 }
 
 function createConfirmStore() {
-	const { subscribe, set, update } = writable<ConfirmState>({
+	const initial: ConfirmState = {
 		open: false,
 		options: null,
-		resolve: null
+		resolve: null,
+		contentKey: 0
+	};
+	const { subscribe, set, update } = writable<ConfirmState>(initial);
+
+	// Snapshot of current state for synchronous read inside confirm().
+	// Required so a new confirm() can resolve a prior unresolved promise
+	// as false before setting new state — without this the prior caller
+	// hangs forever (memory leak + silent wrong-row action when user
+	// rapidly fires shortcuts on admin lists).
+	let current: ConfirmState = initial;
+	subscribe((s) => {
+		current = s;
 	});
 
 	return {
 		subscribe,
 		confirm: (options: ConfirmOptions): Promise<boolean> => {
 			return new Promise((resolve) => {
+				// Reject-previous: if a prior confirm is unresolved, resolve it
+				// false first. Caller treats it as "user cancelled by opening a
+				// new prompt". Single source of truth is the new dialog the user
+				// is about to see.
+				const priorResolve = current.resolve;
+				if (priorResolve) {
+					try {
+						priorResolve(false);
+					} catch (err) {
+						console.error('[confirmDialog] prior resolver threw', err);
+					}
+				}
 				set({
 					open: true,
 					options,
-					resolve
+					resolve,
+					contentKey: current.contentKey + 1
 				});
 			});
 		},
 		respond: (value: boolean) => {
 			update((state) => {
-				if (state.resolve) {
-					state.resolve(value);
-				}
-				return {
+				// Dedupe: capture and null the resolver before invoking so a
+				// re-entrant call can't double-resolve the same Promise.
+				const resolver = state.resolve;
+				const next: ConfirmState = {
 					open: false,
 					options: null,
-					resolve: null
+					resolve: null,
+					contentKey: state.contentKey
 				};
+				if (resolver) {
+					try {
+						resolver(value);
+					} catch (err) {
+						console.error('[confirmDialog] resolver threw', err);
+					}
+				}
+				return next;
 			});
 		},
 		close: () => {
 			update((state) => {
-				if (state.resolve) {
-					state.resolve(false);
-				}
-				return {
+				const resolver = state.resolve;
+				const next: ConfirmState = {
 					open: false,
 					options: null,
-					resolve: null
+					resolve: null,
+					contentKey: state.contentKey
 				};
+				if (resolver) {
+					try {
+						resolver(false);
+					} catch (err) {
+						console.error('[confirmDialog] resolver threw on close', err);
+					}
+				}
+				return next;
 			});
 		}
 	};

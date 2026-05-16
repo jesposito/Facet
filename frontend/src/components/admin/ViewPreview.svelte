@@ -34,7 +34,7 @@
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
-	import { ACCENT_COLORS, type AccentColor } from '$lib/colors';
+	import { ACCENT_COLORS, type AccentColor, hexToRgbChannels } from '$lib/colors';
 	import { t } from 'svelte-i18n';
 
 	// Helper to check if a section key is for custom content
@@ -233,18 +233,30 @@
 	let accentStyles = $derived(effectiveAccentColor ? (() => {
 		const color = ACCENT_COLORS[effectiveAccentColor];
 		if (!color) return '';
+		const s = color.scale;
 		return `
-			--color-primary-50: ${color.scale[50]};
-			--color-primary-100: ${color.scale[100]};
-			--color-primary-200: ${color.scale[200]};
-			--color-primary-300: ${color.scale[300]};
-			--color-primary-400: ${color.scale[400]};
-			--color-primary-500: ${color.scale[500]};
-			--color-primary-600: ${color.scale[600]};
-			--color-primary-700: ${color.scale[700]};
-			--color-primary-800: ${color.scale[800]};
-			--color-primary-900: ${color.scale[900]};
-			--color-primary-950: ${color.scale[950]};
+			--color-primary-50: ${s[50]};
+			--color-primary-100: ${s[100]};
+			--color-primary-200: ${s[200]};
+			--color-primary-300: ${s[300]};
+			--color-primary-400: ${s[400]};
+			--color-primary-500: ${s[500]};
+			--color-primary-600: ${s[600]};
+			--color-primary-700: ${s[700]};
+			--color-primary-800: ${s[800]};
+			--color-primary-900: ${s[900]};
+			--color-primary-950: ${s[950]};
+			--color-primary-50-rgb: ${hexToRgbChannels(s[50])};
+			--color-primary-100-rgb: ${hexToRgbChannels(s[100])};
+			--color-primary-200-rgb: ${hexToRgbChannels(s[200])};
+			--color-primary-300-rgb: ${hexToRgbChannels(s[300])};
+			--color-primary-400-rgb: ${hexToRgbChannels(s[400])};
+			--color-primary-500-rgb: ${hexToRgbChannels(s[500])};
+			--color-primary-600-rgb: ${hexToRgbChannels(s[600])};
+			--color-primary-700-rgb: ${hexToRgbChannels(s[700])};
+			--color-primary-800-rgb: ${hexToRgbChannels(s[800])};
+			--color-primary-900-rgb: ${hexToRgbChannels(s[900])};
+			--color-primary-950-rgb: ${hexToRgbChannels(s[950])};
 		`;
 	})() : '');
 </script>

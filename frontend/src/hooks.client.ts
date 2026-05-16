@@ -12,7 +12,7 @@ if (typeof window !== 'undefined') {
 }
 
 /** @type {import('@sveltejs/kit').HandleClientError} */
-export function handleError({ error, event, status, message }) {
+export function handleError({ error, event, status, message }: { error: unknown; event: { url: { href: string } }; status: number; message: string }) {
 	console.error('[HOOKS CLIENT] Client error:', {
 		status,
 		message,

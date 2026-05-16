@@ -22,6 +22,10 @@ export interface JsonLdArticle {
 	dateModified?: string;
 	author?: JsonLdPerson;
 	url?: string;
+	mainEntityOfPage?: {
+		'@type': 'WebPage';
+		'@id': string;
+	};
 }
 
 export interface JsonLdWebSite {
@@ -60,12 +64,14 @@ export function generatePersonJsonLd(profile: RecordModel, baseUrl: string): Jso
 }
 
 /**
- * Generate JSON-LD for a blog post
+ * Generate JSON-LD for a blog post. When `post.excerpt` is empty the
+ * description is derived from the first ~160 chars of the post body so the
+ * rich-result snippet stays populated.
  */
 export function generateArticleJsonLd(
 	post: RecordModel,
 	baseUrl: string,
-	author?: RecordModel
+	author?: RecordModel | null
 ): JsonLdArticle {
 	const authorData: JsonLdPerson | undefined = author
 		? {
@@ -76,16 +82,31 @@ export function generateArticleJsonLd(
 		  }
 		: undefined;
 
+	let description: string | undefined = post.excerpt || undefined;
+	if (!description && typeof post.content === 'string' && post.content.length > 0) {
+		const stripped = post.content
+			.replace(/[#*_`\[\]()>~\-|]/g, '')
+			.replace(/\s+/g, ' ')
+			.trim();
+		description = stripped.length > 160 ? stripped.slice(0, 157) + '...' : stripped || undefined;
+	}
+
+	const url = `${baseUrl}/posts/${post.slug}`;
+
 	return {
 		'@context': 'https://schema.org',
 		'@type': 'BlogPosting',
 		headline: post.title,
-		description: post.excerpt || undefined,
+		description,
 		image: post.cover_image_url || undefined,
 		datePublished: post.published_at || post.created,
 		dateModified: post.updated,
 		author: authorData,
-		url: `${baseUrl}/posts/${post.slug}`
+		url,
+		mainEntityOfPage: {
+			'@type': 'WebPage',
+			'@id': url
+		}
 	};
 }
 
@@ -103,10 +124,12 @@ export function generateWebSiteJsonLd(profile: RecordModel, baseUrl: string): Js
 }
 
 /**
- * Serialize JSON-LD to HTML script tag content
+ * Serialize JSON-LD to HTML script tag content. The `</` escape prevents
+ * a closing-script-tag injection from rich text fields breaking out of the
+ * surrounding <script type="application/ld+json"> block.
  */
 export function serializeJsonLd(data: object): string {
-	return JSON.stringify(data, null, 0); // Minified for production
+	return JSON.stringify(data, null, 0).replace(/<\//g, '<\\/');
 }
 
 /**

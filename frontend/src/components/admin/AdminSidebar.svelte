@@ -244,8 +244,11 @@
 
 		// Newsletter subgroup
 		if ($hasNewsletter) {
-			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.subscribers' });
+			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.newsletter' });
+			items.push({ href: '/admin/newsletter', labelKey: 'admin.sidebar.newsletter_overview', icon: 'mail' });
 			items.push({ href: '/admin/subscribers', labelKey: 'admin.sidebar.subscribers', icon: 'users' });
+			items.push({ href: '/admin/newsletter/lists', labelKey: 'admin.sidebar.newsletter_lists', icon: 'list' });
+			items.push({ href: '/admin/newsletter/compose', labelKey: 'admin.sidebar.newsletter_compose', icon: 'pencil' });
 		}
 
 		return items;
@@ -259,6 +262,8 @@
 		items.push({ href: '/admin/settings/site', labelKey: 'admin.sidebar.site_settings', icon: 'cog' });
 		items.push({ href: '/admin/settings/features', labelKey: 'admin.sidebar.features', icon: 'puzzle' });
 		items.push({ href: '/admin/settings/integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' });
+		items.push({ href: '/admin/settings/webhooks', labelKey: 'admin.sidebar.webhooks', icon: 'webhook' });
+		items.push({ href: '/admin/api', labelKey: 'admin.sidebar.api_keys', icon: 'key' });
 
 		// Commerce subgroup
 		if ($hasPricing) {
@@ -270,6 +275,7 @@
 
 		items.push({ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' });
 		items.push({ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' });
+		items.push({ href: '/admin/help', labelKey: 'admin.sidebar.help', icon: 'help' });
 
 		return items;
 	});
@@ -290,7 +296,7 @@
 		for (const entry of settingsItems) {
 			if (!isSubGroup(entry)) hrefs.add(entry.href);
 		}
-		for (const facet of facets) hrefs.add(`/admin/views/${facet.id}`);
+		// Individual facet IDs removed — sidebar now shows single link to /admin/views
 		return hrefs;
 	});
 
@@ -428,160 +434,77 @@
 			</a>
 		</div>
 
-		<!-- Facets Section - collapsible -->
-		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.facets)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.facets)}
-				aria-controls="sidebar-facets-items"
+		<!-- Facets - single pinned link with count badge (no accordion) -->
+		<div>
+			<a
+				href="/admin/views"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
+				aria-current={isActive('/admin/views') ? 'page' : undefined}
 			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
-					</svg>
-					{$t('admin.sidebar.facets')}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.facets) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
 				</svg>
-			</button>
-			{#if isSectionExpanded(SECTION_IDS.facets)}
-			<div id="sidebar-facets-items" class="space-y-1 animate-slide-in-down">
-					{#if facetsLoading}
-						<div class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 {$adminSidebarOpen ? '' : 'sr-only'}">
-							{$t('admin.sidebar.loading')}
-						</div>
-					{:else if facetsError}
-						<!-- Error state with retry -->
-						<div class="px-3 py-2 {$adminSidebarOpen ? '' : 'sr-only'}">
-							<p class="text-sm text-red-500 dark:text-red-400 mb-2">{$t('admin.sidebar.unable_to_load_facets')}</p>
-							<button
-								type="button"
-								onclick={() => loadFacets()}
-								class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
-							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-								</svg>
-								{$t('admin.sidebar.retry')}
-							</button>
-						</div>
-					{:else}
-						{#each facets as facet}
-							<a
-								href="/admin/views/{facet.id}"
-								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(`/admin/views/${facet.id}`)
-									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? `${$t('admin.sidebar.facets')}: ${facet.name}` : undefined}
-								aria-current={isActive(`/admin/views/${facet.id}`) ? 'page' : undefined}
-							>
-								<!-- Diamond icon -->
-								<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
-								</svg>
-								<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
-									<span class="truncate" title={facet.name as string}>{facet.name}</span>
-									<!-- Visibility indicator -->
-									{#if facet.visibility === 'public'}
-										<span class="w-2 h-2 rounded-full bg-green-500 shrink-0" title={$t('admin.sidebar.public')}></span>
-									{:else if facet.visibility === 'unlisted'}
-										<span class="w-2 h-2 rounded-full bg-yellow-500 shrink-0" title={$t('admin.sidebar.unlisted')}></span>
-									{:else if facet.visibility === 'private' || facet.visibility === 'password'}
-										<span class="w-2 h-2 rounded-full bg-gray-400 shrink-0" title={$t('admin.sidebar.private')}></span>
-									{/if}
-								</span>
-							</a>
-						{/each}
+				<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
+					<span class="truncate">{$t('admin.sidebar.facets')}</span>
+					{#if facetsTotalCount > 0}
+						<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{facetsTotalCount} facets">
+							{facetsTotalCount}
+						</span>
 					{/if}
-					<!-- View more link - only show if there are more than 4 facets -->
-					{#if facetsTotalCount > 4}
-						<a
-							href="/admin/views"
-							class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-							title={!$adminSidebarOpen ? $t('admin.sidebar.view_more') : undefined}
-						>
-							<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-							</svg>
-							<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.view_more')}</span>
-						</a>
-					{/if}
-					<!-- New Facet button - always visible -->
-					<a
-						href="/admin/views/new"
-						class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views/new')
-							? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-							: 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'}"
-						title={!$adminSidebarOpen ? $t('admin.sidebar.new_facet') : undefined}
-						aria-current={isActive('/admin/views/new') ? 'page' : undefined}
-					>
-						<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-						</svg>
-						<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.new_facet')}</span>
-					</a>
-			</div>
-			{:else}
-				<div id="sidebar-facets-items" hidden></div>
-			{/if}
+				</span>
+			</a>
 		</div>
 
 		<!-- Content Section (merged Portfolio + Content) -->
 		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.content)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.content)}
-				aria-controls="sidebar-content-items"
-			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-					</svg>
-					{$t('admin.sidebar.content')}
-					{#if contentBadge > 0}
-						<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{contentBadge} drafts">
-							{contentBadge}
-						</span>
-					{/if}
-					{#if $adminSidebarOpen}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<span
-							role="button"
-							tabindex="-1"
-							data-quick-create-trigger
-							onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'content'); }}
-							class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
-							aria-label={$t('admin.sidebar.new_content')}
-							aria-expanded={contentMenuOpen}
-							aria-haspopup="menu"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-							</svg>
-						</span>
-					{/if}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.content) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
+			<div class="relative flex items-center">
+				<button
+					type="button"
+					onclick={() => sidebarSectionStates.toggle(SECTION_IDS.content)}
+					class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
+					aria-expanded={isSectionExpanded(SECTION_IDS.content)}
+					aria-controls="sidebar-content-items"
 				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-				</svg>
-			</button>
+					<span class="flex items-center gap-1.5">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+						</svg>
+						{$t('admin.sidebar.content')}
+						{#if contentBadge > 0}
+							<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{contentBadge} drafts">
+								{contentBadge}
+							</span>
+						{/if}
+					</span>
+					<svg
+						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.content) ? 'rotate-0' : '-rotate-90'}"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+				{#if $adminSidebarOpen}
+					<button
+						type="button"
+						data-quick-create-trigger
+						onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'content'); }}
+						class="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
+						aria-label={$t('admin.sidebar.new_content')}
+						aria-expanded={contentMenuOpen}
+						aria-haspopup="menu"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+						</svg>
+					</button>
+				{/if}
+			</div>
 			{#if isSectionExpanded(SECTION_IDS.content)}
 				<div id="sidebar-content-items" class="space-y-0 animate-slide-in-down">
 					{#each contentItems as entry, i}
@@ -612,54 +535,54 @@
 
 		<!-- Audience Section -->
 		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.audience)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.audience)}
-				aria-controls="sidebar-audience-items"
-			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-					</svg>
-					{$t('admin.sidebar.audience')}
-					{#if audienceBadge > 0}
-						<span
-							class="inline-flex items-center justify-center text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 {audienceBadgeAmber ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-gray-700 text-gray-300'}"
-							aria-label={audienceBadgeAmber ? $t('admin.sidebar.testimonials') : $t('admin.sidebar.subscribers')}
-						>
-							{audienceBadge}
-						</span>
-					{/if}
-					{#if $adminSidebarOpen}
-						<!-- svelte-ignore a11y_click_events_have_key_events -->
-						<span
-							role="button"
-							tabindex="-1"
-							data-quick-create-trigger
-							onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'audience'); }}
-							class="inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
-							aria-label={$t('admin.sidebar.quick_create')}
-							aria-expanded={audienceMenuOpen}
-							aria-haspopup="menu"
-						>
-							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-							</svg>
-						</span>
-					{/if}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.audience) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
+			<div class="relative flex items-center">
+				<button
+					type="button"
+					onclick={() => sidebarSectionStates.toggle(SECTION_IDS.audience)}
+					class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
+					aria-expanded={isSectionExpanded(SECTION_IDS.audience)}
+					aria-controls="sidebar-audience-items"
 				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-				</svg>
-			</button>
+					<span class="flex items-center gap-1.5">
+						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+						</svg>
+						{$t('admin.sidebar.audience')}
+						{#if audienceBadge > 0}
+							<span
+								class="inline-flex items-center justify-center text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 {audienceBadgeAmber ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-gray-700 text-gray-300'}"
+								aria-label={audienceBadgeAmber ? $t('admin.sidebar.testimonials') : $t('admin.sidebar.subscribers')}
+							>
+								{audienceBadge}
+							</span>
+						{/if}
+					</span>
+					<svg
+						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.audience) ? 'rotate-0' : '-rotate-90'}"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					</svg>
+				</button>
+				{#if $adminSidebarOpen}
+					<button
+						type="button"
+						data-quick-create-trigger
+						onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'audience'); }}
+						class="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
+						aria-label={$t('admin.sidebar.quick_create')}
+						aria-expanded={audienceMenuOpen}
+						aria-haspopup="menu"
+					>
+						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+						</svg>
+					</button>
+				{/if}
+			</div>
 			{#if isSectionExpanded(SECTION_IDS.audience)}
 				<div id="sidebar-audience-items" class="space-y-0 animate-slide-in-down">
 					{#each audienceItems as entry, i}
@@ -883,6 +806,10 @@
 		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 		</svg>
+	{:else if icon === 'help'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+		</svg>
 	{:else if icon === 'shield'}
 		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -919,6 +846,27 @@
 	{:else if icon === 'tag'}
 		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+		</svg>
+	{:else if icon === 'webhook'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8l-2 2 2 2m8-4l2 2-2 2" />
+		</svg>
+	{:else if icon === 'key'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+		</svg>
+	{:else if icon === 'bell'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+		</svg>
+	{:else if icon === 'list'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+		</svg>
+	{:else if icon === 'pencil'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 		</svg>
 	{/if}
 {/snippet}

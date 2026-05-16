@@ -2,33 +2,72 @@
 	import type { Profile } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { parseMarkdown } from '$lib/utils';
+	import { hexLuminance, DARK_TEXT_THRESHOLD, isValidHexColor } from '$lib/colors';
 
 	type HeroLayout = 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
+	type HeroSpacing = 'compact' | 'default' | 'spacious' | '';
 
 	interface Props {
 		profile: Profile | null;
 		layout?: HeroLayout;
+		spacing?: HeroSpacing;
+		heroBgColor?: string;
+		showAvatar?: boolean;
 	}
 
-	let { profile, layout = 'standard' }: Props = $props();
+	let { profile, layout = 'standard', spacing = '', heroBgColor = '', showAvatar = true }: Props = $props();
 
 	let contactLinks = $derived(profile?.contact_links || []);
 	let heroImageUrl = $derived(profile?.hero_image_url || null);
-	let avatarUrl = $derived((profile as unknown as Record<string, string>)?.avatar_url || null);
+	let rawAvatarUrl = $derived((profile as unknown as Record<string, string>)?.avatar_url || null);
+	// Respect site-wide show_avatar toggle (per cloud parity)
+	let avatarUrl = $derived(showAvatar ? rawAvatarUrl : null);
+
+	// Vertical breathing room — cloud parity (ProfileHero.svelte lines 28-34)
+	let heroSpacingClass = $derived(
+		spacing === 'compact'
+			? 'py-10 sm:py-14'
+			: spacing === 'spacious'
+				? 'py-24 sm:py-36'
+				: 'py-16 sm:py-24'
+	);
+
+	// Custom hero background color (cloud parity, hero_bg_color field).
+	// When image is set, image wins — color is irrelevant.
+	let effectiveBgColor = $derived(
+		!heroImageUrl && heroBgColor && isValidHexColor(heroBgColor) ? heroBgColor : ''
+	);
+	// Use dark text when bg is light enough (WCAG 4.5:1 inflection at L≈0.179).
+	let useDarkText = $derived(
+		effectiveBgColor !== '' && hexLuminance(effectiveBgColor) > DARK_TEXT_THRESHOLD
+	);
+	// Per a11y review: stone-700 (not 600) and stone-200 (not 300) to keep AA on
+	// arbitrary user-chosen backgrounds.
+	let textColorClass = $derived(useDarkText ? 'text-stone-900' : 'text-white');
+	let subTextColorClass = $derived(useDarkText ? 'text-stone-700' : 'text-stone-200');
+	let mutedTextColorClass = $derived(useDarkText ? 'text-stone-700' : 'text-stone-200');
+	let contactLinkClass = $derived(
+		useDarkText
+			? 'bg-stone-900/10 hover:bg-stone-900/20 text-stone-900'
+			: 'bg-white/10 hover:bg-white/20'
+	);
+	let headerBgStyle = $derived(effectiveBgColor !== '' ? `background-color: ${effectiveBgColor};` : '');
+	// When custom bg, drop the dark gradient class.
+	let headerBgClass = $derived(effectiveBgColor !== '' ? '' : 'bg-gradient-to-br from-gray-900 to-gray-800');
 </script>
 
 {#if layout === 'centered'}
 <!-- Centered: Bold headline centered, gradient/solid background, no image dependency -->
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
-	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32 text-center">
+<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
+	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass} text-center">
 		{#if profile?.name}
-			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 tracking-tight" itemprop="name">
+			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight leading-[1.08]" itemprop="name">
 				{profile.name}
 			</h1>
 		{/if}
 
 		{#if profile?.headline}
-			<p class="text-xl sm:text-2xl text-gray-300 mb-6 max-w-2xl mx-auto" itemprop="jobTitle">
+			<p class="text-xl sm:text-2xl text-gray-300 mb-6 max-w-2xl mx-auto leading-relaxed" itemprop="jobTitle">
 				{profile.headline}
 			</p>
 		{/if}
@@ -72,18 +111,18 @@
 
 {:else if layout === 'split'}
 <!-- Split: Text left, avatar/image right -->
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
-	<div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
+	<div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		<div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
 			<div class="md:col-span-3">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3" itemprop="name">
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-3 tracking-tight leading-[1.08]" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
 
 				{#if profile?.headline}
-					<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
+					<p class="text-xl sm:text-2xl text-gray-300 mb-4 leading-relaxed" itemprop="jobTitle">
 						{profile.headline}
 					</p>
 				{/if}
@@ -150,21 +189,21 @@
 {:else if layout === 'minimal'}
 <!-- Minimal: Large typography, no image, maximum whitespace -->
 <header class="relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white" itemscope itemtype="https://schema.org/Person">
-	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-32">
+	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		{#if profile?.name}
-			<h1 class="text-display-lg sm:text-display-xl font-bold mb-6 tracking-tight" itemprop="name">
+			<h1 class="text-display-lg sm:text-display-xl font-semibold mb-6 tracking-tight leading-[1.06]" itemprop="name">
 				{profile.name}
 			</h1>
 		{/if}
 
 		{#if profile?.headline}
-			<p class="text-2xl sm:text-3xl text-gray-500 dark:text-gray-400 mb-6" itemprop="jobTitle">
+			<p class="text-2xl sm:text-3xl text-gray-500 dark:text-gray-400 mb-6 leading-relaxed" itemprop="jobTitle">
 				{profile.headline}
 			</p>
 		{/if}
 
 		{#if profile?.location}
-			<p class="flex items-center gap-2 text-gray-400 dark:text-gray-500 mb-8" itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+			<p class="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-8" itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -203,8 +242,8 @@
 {:else if layout === 'stacked'}
 <!-- Stacked: Headline at top, full-width image below -->
 <header class="relative" itemscope itemtype="https://schema.org/Person">
-	<div class="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+	<div class="{headerBgClass} {textColorClass}" style={headerBgStyle}>
+		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 			<div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
 				{#if avatarUrl}
 					<img
@@ -220,13 +259,13 @@
 
 				<div class="text-center sm:text-left flex-1">
 					{#if profile?.name}
-						<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" itemprop="name">
+						<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.06]" itemprop="name">
 							{profile.name}
 						</h1>
 					{/if}
 
 					{#if profile?.headline}
-						<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
+						<p class="text-xl sm:text-2xl text-gray-300 mb-4 leading-relaxed" itemprop="jobTitle">
 							{profile.headline}
 						</p>
 					{/if}
@@ -283,7 +322,7 @@
 
 {:else}
 <!-- Standard (default): Image with gradient overlay, avatar left, text right -->
-<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white" itemscope itemtype="https://schema.org/Person">
+<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	{#if heroImageUrl}
 		<div class="absolute inset-0" aria-hidden="true">
 			<img
@@ -295,7 +334,7 @@
 		</div>
 	{/if}
 
-	<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+	<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		<div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
 			{#if avatarUrl}
 				<img
@@ -311,13 +350,13 @@
 
 			<div class="text-center sm:text-left flex-1">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2" itemprop="name">
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.08]" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
 
 				{#if profile?.headline}
-					<p class="text-xl sm:text-2xl text-gray-300 mb-4" itemprop="jobTitle">
+					<p class="text-xl sm:text-2xl text-gray-300 mb-4 leading-relaxed" itemprop="jobTitle">
 						{profile.headline}
 					</p>
 				{/if}

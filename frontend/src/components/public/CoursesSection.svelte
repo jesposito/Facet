@@ -164,7 +164,7 @@
 								</span>
 							{/if}
 							{#if featuredCourse.estimated_hours}
-								<span class="text-sm text-stone-500 dark:text-stone-500 flex items-center gap-1">
+								<span class="text-sm text-stone-500 dark:text-stone-400 flex items-center gap-1">
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
@@ -172,7 +172,7 @@
 								</span>
 							{/if}
 							{#if featuredCourse.total_lessons}
-								<span class="text-sm text-stone-500 dark:text-stone-500 flex items-center gap-1">
+								<span class="text-sm text-stone-500 dark:text-stone-400 flex items-center gap-1">
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 									</svg>
@@ -289,7 +289,7 @@
 										</span>
 									{/if}
 									{#if course.estimated_hours}
-										<span class="text-xs text-stone-500 dark:text-stone-500 flex items-center gap-1">
+										<span class="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
 											<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 											</svg>
@@ -297,7 +297,7 @@
 										</span>
 									{/if}
 									{#if course.total_lessons}
-										<span class="text-xs text-stone-500 dark:text-stone-500 flex items-center gap-1">
+										<span class="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
 											<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 											</svg>
@@ -416,7 +416,7 @@
 								</span>
 							{/if}
 							{#if course.estimated_hours}
-								<span class="text-xs text-stone-500 dark:text-stone-500 flex items-center gap-1">
+								<span class="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
 									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
@@ -424,7 +424,7 @@
 								</span>
 							{/if}
 							{#if course.total_lessons}
-								<span class="text-xs text-stone-500 dark:text-stone-500 flex items-center gap-1">
+								<span class="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
 									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 									</svg>
@@ -545,7 +545,7 @@
 								</span>
 							{/if}
 							{#if course.estimated_hours}
-								<span class="text-xs text-stone-500 dark:text-stone-500 flex items-center gap-1">
+								<span class="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
 									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
 									</svg>
@@ -553,7 +553,7 @@
 								</span>
 							{/if}
 							{#if course.total_lessons}
-								<span class="text-xs text-stone-500 dark:text-stone-500 flex items-center gap-1">
+								<span class="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1">
 									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 									</svg>
