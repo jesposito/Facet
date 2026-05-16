@@ -1,11 +1,11 @@
 # Facet
 
-[![Latest release](https://img.shields.io/github/v/release/jesposito/Facet?color=blueviolet&label=release)](https://github.com/jesposito/Facet/releases)
+[![Latest version](https://img.shields.io/github/v/tag/jesposito/Facet?color=blueviolet&label=version&sort=semver)](https://github.com/jesposito/Facet/tags)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker image](https://img.shields.io/badge/docker-ghcr.io%2Fjesposito%2Ffacet-2496ED?logo=docker&logoColor=white)](https://github.com/jesposito/Facet/pkgs/container/facet)
 [![Build](https://img.shields.io/github/actions/workflow/status/jesposito/Facet/docker-publish.yml?branch=main&label=build)](https://github.com/jesposito/Facet/actions)
-[![Go Report Card](https://goreportcard.com/badge/github.com/jesposito/Facet)](https://goreportcard.com/report/github.com/jesposito/Facet)
-[![Made with Svelte 5](https://img.shields.io/badge/Svelte-5.x-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
+[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Svelte 5](https://img.shields.io/badge/Svelte-5.x-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-friendly-2ea44f?logo=docker&logoColor=white)](docs/SELF-HOSTING-GUIDE.md)
 [![Stars](https://img.shields.io/github/stars/jesposito/Facet?style=social)](https://github.com/jesposito/Facet/stargazers)
 
