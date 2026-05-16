@@ -9,7 +9,7 @@ ARG GIT_COMMIT=unknown
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.24-bookworm AS backend-builder
+FROM golang:1.25-bookworm AS backend-builder
 
 WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
