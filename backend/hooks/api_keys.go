@@ -37,17 +37,24 @@ var (
 	lastUsedCache = make(map[string]time.Time)
 )
 
-// Valid scopes for the self-hosted public API. Keep this list short and read-only
-// for now; write scopes can be added in a follow-up.
+// Valid scopes for the self-hosted public API.
 //
 // IMPORTANT: keep these in sync with the i18n keys under `admin.api_keys.scope_*`
 // and with the matching frontend list in /admin/api/+page.svelte.
+//
+// Write scopes are independent of read scopes — granting `write:posts` does NOT
+// imply `read:posts`. Callers that need both must request both.
 var validScopes = map[string]bool{
-	"read:profile":    true,
-	"read:posts":      true,
-	"read:projects":   true,
-	"read:skills":     true,
-	"read:experience": true,
+	"read:profile":     true,
+	"read:posts":       true,
+	"read:projects":    true,
+	"read:skills":      true,
+	"read:experience":  true,
+	"write:profile":    true,
+	"write:posts":      true,
+	"write:projects":   true,
+	"write:skills":     true,
+	"write:experience": true,
 }
 
 // generateAPIKey returns a freshly-minted key like "facet_<64 hex chars>".

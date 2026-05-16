@@ -103,14 +103,26 @@ func TestApiKeyScopeCheck(t *testing.T) {
 }
 
 func TestApiKeyValidScopes(t *testing.T) {
-	// Self-hosted v1 must ONLY expose read scopes — anything write is a regression.
+	// Self-hosted v1 exposes read:* and write:* scopes only. Any other prefix
+	// (e.g. admin:*, delete:*) is a regression — those would imply privileged
+	// operations that the public API surface deliberately does not offer.
 	for s := range validScopes {
-		if !strings.HasPrefix(s, "read:") {
-			t.Errorf("unexpected non-read scope in validScopes: %q", s)
+		if !strings.HasPrefix(s, "read:") && !strings.HasPrefix(s, "write:") {
+			t.Errorf("unexpected scope prefix in validScopes: %q", s)
 		}
 	}
 	if len(validScopes) == 0 {
 		t.Fatalf("validScopes is empty; admin UI will have nothing to offer")
+	}
+	// Sanity: every resource that has a write scope must have a matching read
+	// scope, otherwise a write-only key couldn't read back what it created.
+	for s := range validScopes {
+		if strings.HasPrefix(s, "write:") {
+			readEquiv := "read:" + strings.TrimPrefix(s, "write:")
+			if !validScopes[readEquiv] {
+				t.Errorf("write scope %q has no matching read scope %q", s, readEquiv)
+			}
+		}
 	}
 }
 

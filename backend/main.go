@@ -86,6 +86,7 @@ func main() {
 	hooks.RegisterWebhookHooks(app, rateLimitService)
 	hooks.RegisterAPIKeyHooks(app)      // Public read-only API + admin key management
 	hooks.RegisterSystemAlertHooks(app) // Operator-facing system event inbox
+	hooks.RegisterAPIV1WriteHooks(app)  // POST/PATCH/DELETE on /api/v1/* (write scopes)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
