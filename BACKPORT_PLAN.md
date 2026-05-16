@@ -27,7 +27,9 @@
 | **Member accounts** | Member auth, claims, invitations, subscription bridge, lifecycle nudges, milestones |
 | **Newsletter advanced** | SES cutover, Liquid personalization, sequences, broadcast scaling, sending reputation |
 | **i18n edge** | 17 locales, multi-currency, CF Workers for landing i18n, Adaptive Pricing |
-| **Ops/Admin** | Alerts, API keys, webhooks, cart recovery, domain management, billing settings |
+| **Ops/Admin** | Cart recovery, domain management, billing settings |
+
+> **Note (May 2026):** API keys, webhooks, system alerts, and newsletter multi-list (segments) were **partially backported** as stripped-down single-tenant variants. See "Tier 2 + Tier 3" section below.
 
 ### Safe for Backport
 | Category | Examples |
@@ -288,3 +290,36 @@ The **safest and highest-value** backports are:
 These represent roughly **8–12 hours of focused work** and deliver measurable UX improvement with zero risk of SaaS feature leakage.
 
 The **larger architectural backports** (multi-currency, i18n big-bang, SectionManager autosave, FacetChipStrip) should be evaluated individually after Phase 1 is complete and stable.
+
+---
+
+## 10. Tier 2 + Tier 3 Backports (Shipped May 2026)
+
+Selected cloud "ops/admin" features were ported as **stripped-down single-tenant variants**. The cloud versions assume multi-tenant rate limiting, tier gating, credit reservation, and per-tenant scoping; the self-hosted variants drop all of that and operate on a single profile/database.
+
+### Tier 2 — Read API + Integration Surface
+
+- ✅ **API keys (read scopes)** — `read:profile`, `read:posts`, `read:projects`, `read:skills`, `read:experience`. Keys stored as SHA-256 hash, full key shown once, soft-revoke. Backed by new `api_keys` collection. `APIKeyMiddleware` enforces scope on `/api/v1/*`.
+- ✅ **Webhooks dispatch infrastructure** — HMAC-SHA256 signing (`X-Facet-Signature`), SSRF-protected dialer, exponential backoff retry (6 attempts: 1m/5m/30m/2h/12h), auto-disable after 10 consecutive failures, per-webhook delivery log. Events: `post.published`, `comment.created`, `newsletter.subscribed`.
+- ✅ **Webhook dispatch test event picker** — synthetic payloads to all active subscribers via the normal Dispatch pipeline.
+- ✅ **AI resume parsing (BYO-key)** — PDF/DOCX upload, AI extracts structured data, smart deduplication. All AI features remain bring-your-own-key (no managed credits in self-hosted).
+
+### Tier 3 — Write API + Ops Surfaces
+
+- ✅ **API v1 writes** — `POST/PATCH/DELETE /api/v1/{posts,projects,skills,experience}` + `PATCH /api/v1/profile` (singleton, PATCH-only). New `write:*` scopes; read and write scopes are independent. Field allowlist per collection so callers can't sneak in protected fields.
+- ✅ **System alerts inbox** — `/admin/alerts` with new `system_alerts` collection. Three severities (info/warning/critical), ack-one/ack-all, sidebar unread badge. `CreateSystemAlert` helper is lenient (logs and returns silently on failure).
+- ✅ **Newsletter multi-list (segments)** — new `newsletter_lists` + `subscriber_list_memberships` collections. Per-list sender/reply-to/welcome email, atomic default swap, subscriber-count recompute hooks. Self-hosted has no list cap (`cap: 0`). Default-list backfill keeps existing instances unchanged.
+- ✅ **Newsletter compose + lists UI** — `/admin/newsletter` (hub), `/admin/newsletter/lists`, `/admin/newsletter/compose`.
+- ✅ **External media providers** — Loom, CodePen, Figma oEmbed (in addition to YouTube, Vimeo, SoundCloud). Brand icons.
+
+### Explicitly Excluded from Self-Hosted
+
+| Cloud Feature | Why Excluded |
+|---------------|--------------|
+| Tier-based rate limits / quotas | Self-hosted is single-user |
+| Member tier gating on API keys | No member system in self-hosted |
+| Newsletter list `cap` enforcement | No plan limits |
+| Liquid personalization | Newsletter advanced — deferred |
+| `webhook_events_log` (separate audit) | Per-webhook delivery log is sufficient |
+| Managed AI credits / billing | All AI is BYO-key (OpenAI / Anthropic / Ollama) |
+| `purchases.completed`, course events | No course system in self-hosted |

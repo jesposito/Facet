@@ -285,6 +285,164 @@ You're now self-hosting your own profile platform. Here's what to do next:
 
 ---
 
+## Going Further: Power-User Features
+
+Once you have Facet running, these features unlock automation, monitoring, and integration with the rest of your stack. None of them require an account anywhere — everything runs on your own box.
+
+### API Keys (Build Things Around Your Profile)
+
+Want a static site to mirror your latest blog posts? A cron job that pipes new GitHub repos into your portfolio? A small script that publishes drafts from your terminal? The public API at `/api/v1/*` is built for that.
+
+**Create a key:**
+
+1. Log in to `/admin`
+2. Go to **API** in the sidebar
+3. Click **New API Key**
+4. Give it a label (e.g. "Static site mirror"), pick scopes, optionally set an expiry
+5. Copy the `facet_...` key — it is shown **once** and never again
+
+**Read your posts from a script:**
+
+```bash
+curl https://facet.example.com/api/v1/posts \
+  -H "Authorization: Bearer facet_a1b2c3..."
+```
+
+**Publish a draft from a script:**
+
+```bash
+curl -X POST https://facet.example.com/api/v1/posts \
+  -H "Authorization: Bearer facet_a1b2c3..." \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Hello","slug":"hello","content":"Markdown body","is_draft":true}'
+```
+
+**Available scopes:**
+
+| Scope | Lets the key do this |
+|-------|----------------------|
+| `read:profile` | `GET /api/v1/profile` |
+| `read:posts` | `GET /api/v1/posts` |
+| `read:projects` | `GET /api/v1/projects` |
+| `read:skills` | `GET /api/v1/skills` |
+| `read:experience` | `GET /api/v1/experience` |
+| `write:profile` | `PATCH /api/v1/profile` |
+| `write:posts` | `POST/PATCH/DELETE /api/v1/posts[/{id}]` |
+| `write:projects` | `POST/PATCH/DELETE /api/v1/projects[/{id}]` |
+| `write:skills` | `POST/PATCH/DELETE /api/v1/skills[/{id}]` |
+| `write:experience` | `POST/PATCH/DELETE /api/v1/experience[/{id}]` |
+
+Read and write are **independent** — granting `write:posts` does not imply `read:posts`. Request both if your tool needs to read after writing.
+
+Keys can be revoked from the same page; revocation is a soft flag so the audit trail survives.
+
+### Webhooks (Get Notified When Things Happen)
+
+Webhooks let Facet POST a JSON envelope to a URL of your choice when something happens. Use them to fan content out to Slack/Discord, trigger a deploy when you publish a post, or pipe new comments into your moderation queue.
+
+**Available events:**
+
+| Event | Fired when |
+|-------|------------|
+| `post.published` | A post / talk / custom content row transitions out of draft |
+| `comment.created` | A new comment is created on a public item |
+| `newsletter.subscribed` | A new subscriber confirms (status becomes `active`) |
+
+**Add a webhook:**
+
+1. Go to **Admin → Settings → Webhooks**
+2. Click **New Webhook**
+3. Give it a label, paste the receiver URL, pick events
+4. Copy the auto-generated `secret` — shown **once**, used to verify signatures
+
+**Payload shape:**
+
+```json
+{
+  "event": "post.published",
+  "timestamp": "2026-05-16T12:00:00Z",
+  "data": {
+    "id": "abc123",
+    "collection": "posts",
+    "title": "Hello",
+    "slug": "hello"
+  }
+}
+```
+
+**Verifying signatures (Node.js):**
+
+```js
+import crypto from 'node:crypto';
+const expected = 'sha256=' + crypto
+  .createHmac('sha256', WEBHOOK_SECRET)
+  .update(rawBody)
+  .digest('hex');
+// Compare in constant time
+const ok = crypto.timingSafeEqual(
+  Buffer.from(expected),
+  Buffer.from(req.headers['x-facet-signature']),
+);
+```
+
+**What you can trust:**
+
+- The receiver URL is validated **at dial time**: hostnames are resolved and rejected if they point at private / loopback / link-local / CGNAT / cloud-metadata IPs. You cannot accidentally aim a webhook at `localhost` or `169.254.169.254`.
+- Delivery retries with exponential backoff (1m, 5m, 30m, 2h, 12h — 6 total attempts).
+- After 10 consecutive failures the endpoint is auto-disabled to stop piling up dead deliveries. Toggle it back on in the UI to reset the counter.
+- Every attempt is logged in **Deliveries** with status code, response body, and attempt count.
+
+**Testing without waiting for a real event:**
+
+- **Send test** on a webhook fires a synthetic delivery and shows the response inline.
+- The **dispatch test event** picker (above the webhooks list) fires a realistic synthetic payload for any registered event to every active subscriber so you can validate your receiver before going live.
+
+### System Alerts (Know When Something Breaks)
+
+Background failures used to be invisible until you went looking for them. Now they land in **Admin → Alerts** with a count badge in the sidebar.
+
+What shows up here:
+
+- Failed backups, SMTP errors, repeated webhook delivery failures
+- Security warnings (e.g., login lockouts)
+- Anything backend code emits via `CreateSystemAlert`
+
+Three severities: `info` (FYI), `warning` (look soon), `critical` (look now). You can filter by severity or by acknowledged / unacknowledged, ack alerts one at a time or all at once, and delete alerts you no longer want around.
+
+The alert subsystem is intentionally lenient — if writing an alert fails, the originating operation never breaks. Better to lose a notification than to lose a backup.
+
+### Newsletter Lists (Run More Than One List)
+
+A fresh install seeds a single "Newsletter" list so the existing subscribe flow keeps working. When one list isn't enough — say, separate "Engineering posts" and "Talks I'm giving" lists — head to **Admin → Newsletter → Lists** and create as many as you want.
+
+**Per-list settings:**
+
+- Name, slug, description
+- Custom sender name and reply-to address
+- Custom welcome email subject + HTML body
+- Active toggle (pauses new subscribes without deleting members)
+- "Default" flag (exactly one list is default; the swap is atomic)
+
+**Sending a broadcast:**
+
+1. **Admin → Newsletter → Compose**
+2. Pick which lists to send to
+3. Compose subject + body, preview the rendered email
+4. Send a test to yourself
+5. Dispatch the broadcast
+
+Self-hosted has no list cap (`cap: 0` in the API response means unlimited). Subscriber counts on each list are kept in sync automatically by hooks on the underlying membership join table.
+
+### AI Features Are Bring-Your-Own-Key
+
+All AI features in Facet — resume parsing, the writing assistant, GitHub project enrichment, AI Print resume generation — use **your own** API credentials. Nothing is metered, billed, or rate-limited by a Facet service. Configure providers under **Admin → Settings → Integrations**.
+
+Supported providers: OpenAI, Anthropic, and any OpenAI-compatible endpoint (including a local Ollama instance, so you can keep everything on-prem). Provider keys are encrypted at rest with AES-256-GCM.
+
+If you skip this step entirely, the AI panels just don't appear in the UI. Facet works fully without AI.
+
+---
+
 ## Common Questions
 
 ### Is this secure?

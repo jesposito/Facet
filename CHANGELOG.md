@@ -3,6 +3,38 @@
 All notable changes to Facet will be documented in this file.
 
 
+## [Unreleased]
+
+**New Features:**
+- Public REST API v1 (`/api/v1/*`) with scoped API keys — read scopes (`read:profile`, `read:posts`, `read:projects`, `read:skills`, `read:experience`) and write scopes (`write:*`) are independently grantable. Keys are shown once, stored as SHA-256 hashes, support per-key expiry and origin allowlist.
+- API v1 write endpoints: `POST/PATCH/DELETE /api/v1/{posts,projects,skills,experience}` plus `PATCH /api/v1/profile` (singleton).
+- Webhooks: subscribe HTTPS endpoints to `post.published`, `comment.created`, `newsletter.subscribed`. HMAC-SHA256 signed (`X-Facet-Signature`), SSRF-protected dialer, exponential-backoff retry (6 attempts), auto-disable after 10 consecutive failures, per-webhook delivery log.
+- Webhook **dispatch test event** picker — fires realistic synthetic payloads to all active subscribers of a chosen event to validate receivers before going live.
+- System alerts inbox at `/admin/alerts` — operator-facing event log (failed backups, SMTP errors, webhook delivery failures). Three severities, ack-one / ack-all, sidebar unread badge. Backed by new `system_alerts` collection.
+- Newsletter multi-list (segments): new `newsletter_lists` collection with admin CRUD, per-list sender/reply-to, per-list welcome email, atomic default-list swap, and automatic subscriber-count recompute on membership change. Default install seeds a single "Newsletter" list for backward compatibility.
+- Newsletter compose UI at `/admin/newsletter/compose` with list picker, preview, test send. Lists management at `/admin/newsletter/lists`. Hub at `/admin/newsletter`.
+- External media expansion: Loom, CodePen, and Figma oEmbed providers (in addition to existing YouTube, Vimeo, SoundCloud). Brand icons added to the media library UI.
+- AI resume parsing (BYO-key): upload PDF/DOCX, AI extracts experience, education, skills, certifications with smart deduplication.
+
+**Bugs Fixed:**
+- Expose `comments_enabled` on public post/project/talk endpoints so the frontend can hide the comments section when disabled.
+- Duck-type `Element` check in HTML sanitizer to survive SSR contexts where the global is absent.
+- 14 dark-mode contrast regressions across public components.
+- Emit RGB-channel CSS vars so Tailwind opacity modifiers resolve.
+- `admin/body` overflow switched from `hidden` to `clip` so the sticky save header anchors to the viewport.
+
+**Changed:**
+- Comments component decomposed; i18n coverage now 100% across all 5 locales.
+- Tightened iframe allowlist and added `Article` JSON-LD on posts.
+- Admin sidebar: replaced duplicate Brand/Typography/Hero cards with a single deep link.
+- Rebuilt `/admin/views` with search, filters, keyboard navigation, and a responsive table.
+- Wrapped secondary form sections in collapsible `AccordionSection` for cleaner editor surfaces.
+- AI resume modal + `settings-dirty` store + improved a11y for external media.
+- In-admin Help page; new `shouldValidate` / `useDirty` form helpers.
+
+---
+
+
 ## v2.21.11 - April 13, 2026
 
 **Bugs Fixed:**
