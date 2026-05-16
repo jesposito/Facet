@@ -77,6 +77,7 @@ func main() {
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCommentHooks(app, planConfig)
 	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
+	hooks.RegisterNewsletterListHooks(app) // Multi-list segment support (admin CRUD + count recompute)
 	hooks.RegisterPurchaseHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCouponHooks(app, rateLimitService)
 	hooks.RegisterDownloadHooks(app, cryptoService, rateLimitService)
