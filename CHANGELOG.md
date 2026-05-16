@@ -3,37 +3,12 @@
 All notable changes to Facet will be documented in this file.
 
 
-## [Unreleased]
+## v2.21.12 - May 16, 2026
 
-**New Features:**
-- Public REST API v1 (`/api/v1/*`) with scoped API keys — read scopes (`read:profile`, `read:posts`, `read:projects`, `read:skills`, `read:experience`) and write scopes (`write:*`) are independently grantable. Keys are shown once, stored as SHA-256 hashes, support per-key expiry and origin allowlist.
-- API v1 write endpoints: `POST/PATCH/DELETE /api/v1/{posts,projects,skills,experience}` plus `PATCH /api/v1/profile` (singleton).
-- Webhooks: subscribe HTTPS endpoints to `post.published`, `comment.created`, `newsletter.subscribed`. HMAC-SHA256 signed (`X-Facet-Signature`), SSRF-protected dialer, exponential-backoff retry (6 attempts), auto-disable after 10 consecutive failures, per-webhook delivery log.
-- Webhook **dispatch test event** picker — fires realistic synthetic payloads to all active subscribers of a chosen event to validate receivers before going live.
-- System alerts inbox at `/admin/alerts` — operator-facing event log (failed backups, SMTP errors, webhook delivery failures). Three severities, ack-one / ack-all. Backed by new `system_alerts` collection. Sidebar link hidden until alert emitters are wired (the `CreateSystemAlert` helper is in place but no callers populate the inbox yet).
-- Newsletter multi-list (segments): new `newsletter_lists` collection with admin CRUD, per-list sender/reply-to, per-list welcome email, atomic default-list swap, and automatic subscriber-count recompute on membership change. Default install seeds a single "Newsletter" list for backward compatibility.
-- Newsletter compose UI at `/admin/newsletter/compose` with list picker, preview, test send. Lists management at `/admin/newsletter/lists`. Hub at `/admin/newsletter`.
-- External media expansion: Loom, CodePen, and Figma oEmbed providers (in addition to existing YouTube, Vimeo, SoundCloud). Brand icons added to the media library UI.
-- AI resume parsing (BYO-key): upload PDF/DOCX, AI extracts experience, education, skills, certifications with smart deduplication.
+**Other Changes:**
+- Backport: Tier 2 + Tier 3 (API keys, webhooks, alerts, newsletter, AI BYO-key)
 
-**Bugs Fixed:**
-- Expose `comments_enabled` on public post/project/talk endpoints so the frontend can hide the comments section when disabled.
-- Duck-type `Element` check in HTML sanitizer to survive SSR contexts where the global is absent.
-- 14 dark-mode contrast regressions across public components.
-- Emit RGB-channel CSS vars so Tailwind opacity modifiers resolve.
-- `admin/body` overflow switched from `hidden` to `clip` so the sticky save header anchors to the viewport.
-- `POST /api/auth/change-password` now sets `password_changed_from_default = true`. Previously the field stayed `false` forever after a real change, diverging from the hash-based `check-default-password` endpoint.
-- Enable `Automigrate: true` on boot so production deploys actually run new PocketBase migrations. Previously gated on `os.Args[0]` being in `TempDir`, which is only true for `go run` — production binaries never auto-migrated.
-- A11y polish on alerts + newsletter pages: per-row `aria-label`s on Acknowledge / Edit buttons, `aria-busy` on async submits, `role="alert"` vs `role="status"` split for live regions, `required` + `aria-required` on newsletter compose subject/body, `announce()` helper that resets + ticks so identical sequential messages re-announce.
-
-**Changed:**
-- Comments component decomposed; i18n coverage now 100% across all 5 locales.
-- Tightened iframe allowlist and added `Article` JSON-LD on posts.
-- Admin sidebar: replaced duplicate Brand/Typography/Hero cards with a single deep link.
-- Rebuilt `/admin/views` with search, filters, keyboard navigation, and a responsive table.
-- Wrapped secondary form sections in collapsible `AccordionSection` for cleaner editor surfaces.
-- AI resume modal + `settings-dirty` store + improved a11y for external media.
-- In-admin Help page; new `shouldValidate` / `useDirty` form helpers.
+**Pull Requests:** [#435](https://github.com/jesposito/Facet/pull/435),
 
 ---
 
