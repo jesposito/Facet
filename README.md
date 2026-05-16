@@ -25,10 +25,15 @@ Think LinkedIn meets personal portfolio, except you hold all the cards: the data
 
 ## Try It Out
 
-**Live Demo:** [demo.facetcloud.io](https://demo.facetcloud.io)
-- Login: `demo@example.com` / `demo123`
-- Data resets daily at midnight UTC
-- Explore all features without installing anything
+The fastest path is to spin up the Docker image locally:
+
+```bash
+docker run -d --rm -p 8080:8080 -v facet-data:/data \
+  -e ENCRYPTION_KEY_AUTOPROVISION=true \
+  ghcr.io/jesposito/facet:latest
+```
+
+Open `http://localhost:8080`, log in with `admin@example.com` / `changeme123`, change the password when prompted, and explore. See [docs/SELF-HOSTING-GUIDE.md](docs/SELF-HOSTING-GUIDE.md) for production setup (reverse proxy, OAuth, SMTP, AI keys).
 
 ---
 
@@ -347,6 +352,8 @@ It won't rewrite for you, just tells you what's weak. Good for when you want to 
 
 Works on mobile. Context-aware (uses your form data for better results). Supports streaming responses so you see text as it generates.
 
+**Bring-your-own-key only.** Self-hosted Facet has no managed AI credits, no monthly token quotas, no platform-provided providers. You add your own OpenAI / Anthropic / Ollama key in `/admin/settings/integrations` and the backend calls those providers directly. Your API keys are encrypted at rest with AES-256-GCM. You see exactly what you're spending on whose meter.
+
 ### Contact Protection (Four Tiers)
 
 Your email, phone, and social links can be protected:
@@ -468,6 +475,14 @@ Run more than one mailing list from a single Facet instance. Default install has
 **Compose UI:** **Admin → Newsletter → Compose** lets you pick which lists to send to, preview the rendered email, send a test to yourself, and dispatch a broadcast. The newsletter hub at `/admin/newsletter` shows recent sends, subscriber counts, and a per-list overview.
 
 Subscriber-count cache is kept honest by automatic recomputation hooks whenever memberships are created or deleted. The join table cascade-deletes correctly so subscribers keep their other memberships if you delete a single list.
+
+### Comments (Threaded, Moderated, Per-Item Toggle)
+
+Visitors can comment on any post, project, or talk where you've enabled the toggle. Threaded replies, markdown support, rate limiting, deny-by-default moderation queue at `/admin/comments`. Reports flow into the same queue so abusive content has a path. Per-item `comments_enabled` flag means you can leave the system on globally but turn it off for any single piece. All comment text passes through DOMPurify before render. No third-party services involved — comments live in your SQLite database.
+
+### Multi-Language UI (5 Built-In Locales)
+
+The admin and public surfaces ship in English, German, Sindarin-flavored Elvish, Klingon, and LOLcat. English is canonical; the others are translations. 100% key parity is enforced in CI (`npm run i18n:validate`) so locale drift can't ship. Adding a new language is mechanical: copy `frontend/src/locales/en.json`, translate, validate.
 
 ### Feeds and Exports
 
@@ -606,8 +621,12 @@ For detailed architecture: [ARCHITECTURE.md](docs/ARCHITECTURE.md)
 | Variable | Required? | Default | What It Does |
 |----------|-----------|---------|--------------|
 | `ENCRYPTION_KEY` | No | Auto-generated | 32-byte hex key for encrypting API keys and tokens. If not set, one is auto-generated and saved to `/data/.encryption_key`. Generate manually with `openssl rand -hex 32` |
+| `ENCRYPTION_KEY_AUTOPROVISION` | No | `false` | If `true`, the entrypoint generates `ENCRYPTION_KEY` on first boot and persists it to `/data/.encryption_key`. Convenient for self-hosted single-node setups; explicit `ENCRYPTION_KEY` wins if both are set |
+| `ALLOWED_ORIGINS` | No | — | Comma-separated origin allowlist for CORS-style API responses (e.g., `https://your.site,https://api.your.site`). Used by the public REST API and admin endpoints when called from a browser |
 | `PORT` | No | `8080` | Public port for the app |
 | `APP_URL` | No | `http://localhost:8080` | Your public URL (needed for OAuth callbacks) |
+| `PROTOCOL_HEADER` | No | `x-forwarded-proto` | SvelteKit adapter-node header for protocol detection behind a reverse proxy. Defaults to the standard header so HTTPS detection works out of the box |
+| `HOST_HEADER` | No | `x-forwarded-host` | SvelteKit adapter-node header for host detection behind a reverse proxy |
 | `ADMIN_EMAILS` | No | — | Comma-separated email allowlist for OAuth login |
 | `TRUST_PROXY` | No | `false` | Set `true` if behind a reverse proxy (Nginx, Cloudflare, etc.) |
 | `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin UI at `/_/` (use for debugging only) |
@@ -632,23 +651,25 @@ Full setup guide (OAuth, reverse proxy, Unraid, etc.): [docs/SETUP.md](docs/SETU
 
 ## Backup and Restore (Super Simple)
 
-Everything lives in one directory: `./data` (or wherever `DATA_PATH` points).
+Everything lives in two directories: `./data` (database, encryption key, settings) and `./uploads` (user-uploaded media). Both should be backed up.
 
 **Backup:**
 ```bash
-docker-compose down
-tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data
-docker-compose up -d
+docker compose down
+tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data ./uploads
+docker compose up -d
 ```
 
 **Restore:**
 ```bash
-docker-compose down
-tar -xzvf facet-backup-20260103.tar.gz
-docker-compose up -d
+docker compose down
+tar -xzvf facet-backup-20260516.tar.gz
+docker compose up -d
 ```
 
-That's it. The tarball contains your SQLite database and all uploaded files.
+That's it. The tarball contains your SQLite database, your encryption key (`/data/.encryption_key` — keep it safe, encrypted data can't be recovered without it), and all uploaded files.
+
+For PocketBase-native backups (`app.CreateBackup`) with WAL-checkpointed snapshots, use **Admin → Settings → Backups** in the UI.
 
 For upgrade procedures: [docs/UPGRADE.md](docs/UPGRADE.md)
 
@@ -776,11 +797,11 @@ Facet/
 └── docs/                    # Documentation
 ```
 
-**Code stats:**
-- ~38,000 lines across 1,300+ files
-- Backend: ~16,000 lines of Go
-- Frontend: ~21,000 lines of Svelte/TypeScript
-- Tests: ~3,100 lines (Go unit tests + Playwright E2E)
+**Code stats** (approximate, drifts with every release):
+- ~45,000 lines across 1,400+ files
+- Backend: ~19,000 lines of Go (hooks + services + migrations)
+- Frontend: ~23,000 lines of Svelte/TypeScript across 5 locales
+- Tests: ~3,500 lines (Go unit tests + Playwright E2E)
 
 ### Testing
 
@@ -833,7 +854,7 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - `GET /admin/settings/integrations` → AI providers & integrations
 - `GET /admin/settings/webhooks` → Webhook endpoints, secrets, delivery log
 - `GET /admin/api` → API key management (create, scope, revoke)
-- `GET /admin/alerts` → System alerts inbox
+- `GET /admin/alerts` → System alerts inbox (route is live; sidebar link is hidden until alert emitters are wired into backup / SMTP / webhook code paths)
 - `GET /admin/newsletter` → Newsletter overview
 - `GET /admin/newsletter/lists` → Manage newsletter lists (segments)
 - `GET /admin/newsletter/compose` → Compose and send broadcasts
@@ -905,14 +926,22 @@ Full testing guide: [frontend/tests/README.md](frontend/tests/README.md)
 - ✅ Newsletter lists / segments (multi-list with per-list sender + welcome email)
 - ✅ Newsletter compose UI with list picker, preview, test send
 - ✅ External media expanded: Loom, CodePen, Figma oEmbed providers
+- ✅ Threaded comments with moderation queue, reports, per-item enable toggle
+- ✅ Multi-language UI (en / de / elvish / klingon / lolcat) with CI-enforced parity
+- ✅ Webhook dispatch test event picker (fire synthetic payloads to all matching subscribers)
+- ✅ Automigrate on boot for self-hosted (schema changes apply on pull + restart)
 
 **Coming Soon:**
 - CAPTCHA contact protection (Cloudflare Turnstile integration)
 - Scheduled GitHub sync (auto-refresh projects)
+- Newsletter drip sequences (multi-step automated send chains)
+- Full Liquid templating engine for per-subscriber personalization at send time (compose UI has a placeholder shim today)
+- System alert emitters wired into backup, SMTP, and webhook delivery failure code paths
 
 **Planned (Lower Priority):**
 - Content Security Policy headers
 - Theme system with pre-built themes
+- Lucide icon system migration (consolidate inline SVGs into a single icon set)
 
 Full roadmap: [ROADMAP.md](docs/ROADMAP.md)
 
