@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.16 - May 16, 2026
+
+**Bugs Fixed:**
+- restore custom CSS application + clean up preexisting type errors
+
+**Pull Requests:** [#439](https://github.com/jesposito/Facet/pull/439),
+
+---
+
+
 ## v2.21.15 - May 16, 2026
 
 **New Features:**
