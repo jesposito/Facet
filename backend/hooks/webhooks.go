@@ -286,6 +286,60 @@ func RegisterWebhookHooks(app *pocketbase.PocketBase, rl *services.RateLimitServ
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
 		}))
 
+		// POST /api/admin/webhooks/dispatch-test — fire synthetic event to ALL
+		// matching active webhooks via normal Dispatch pipeline. Body: {"event": "post.published"}.
+		// Returns count of webhooks the event was enqueued to so the admin sees
+		// at-a-glance how many endpoints will receive it.
+		se.Router.POST("/api/admin/webhooks/dispatch-test", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
+			if err := requireSuperuser(e); err != nil {
+				return err
+			}
+			var req struct {
+				Event string `json:"event"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+			}
+			if req.Event == "" {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "event is required"})
+			}
+			valid := false
+			for _, ev := range services.RegisteredEvents {
+				if ev == req.Event {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "unknown event"})
+			}
+
+			// Count how many active webhooks subscribe to this event so the UI
+			// can report a meaningful "fired to N webhooks" message.
+			hooks, _ := app.FindRecordsByFilter("webhooks", "is_active = true", "", 200, 0)
+			matched := 0
+			for _, h := range hooks {
+				var events []string
+				if raw := h.Get("events"); raw != nil {
+					b, _ := json.Marshal(raw)
+					_ = json.Unmarshal(b, &events)
+				}
+				for _, ev := range events {
+					if ev == req.Event {
+						matched++
+						break
+					}
+				}
+			}
+
+			svc.Dispatch(req.Event, services.SamplePayload(req.Event))
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"event":    req.Event,
+				"enqueued": matched,
+			})
+		}))
+
 		// POST /api/admin/webhooks/{id}/test — synchronous test fire
 		se.Router.POST("/api/admin/webhooks/{id}/test", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			if err := requireSuperuser(e); err != nil {

@@ -2456,7 +2456,18 @@
 			"pagination_aria": "PAEGIN STUF",
 			"prev_page": "BAK",
 			"next_page": "NEXT",
-			"page_n": "PAEG {page}"
+			"page_n": "PAEG {page}",
+			"dispatch_test_heading": "FYRE TEST EEVENT",
+			"dispatch_test_intro": "SEND PRETENDY PAYLOAD 4 ANY EEVENT. EVRY AWAEK WEBHUK WOT LIKES DAT EEVENT GETS A REEL DELIVRY — gud 4 TESTIN UR REESEEVR EEN2EEND. PURRRR.",
+			"dispatch_test_event_label": "EEVENT",
+			"dispatch_test_select_placeholder": "PIK EEVENT…",
+			"dispatch_test_button": "FYRE",
+			"dispatch_test_dispatching": "FYRIN…",
+			"dispatch_test_no_events": "NO EEVENTS YET. SAD KITTEH.",
+			"dispatch_test_result_success": "FYRED {event} @ {count} WEBHUK(S). CHEK DA DELIVRY LOG 4 RESULTZ.",
+			"dispatch_test_result_zero": "FYRED {event} BUT NO AWAEK WEBHUK CARES. :(",
+			"dispatch_test_network_error": "NETWURK BROKED. CANT FYRE.",
+			"dispatch_test_error_generic": "FYRE FAYL. SAD."
 		},
 		"api_keys": {
 			"title": "API Keez",

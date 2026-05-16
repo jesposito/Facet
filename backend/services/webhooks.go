@@ -50,6 +50,48 @@ var RegisteredEvents = []string{
 	EventNewsletterSubscribed,
 }
 
+// SamplePayload returns a synthetic data payload representative of the given
+// event. Used by the admin "dispatch test event" picker so subscribers can
+// validate their receiver against a realistic envelope before a real event
+// fires. Unknown events get a minimal placeholder.
+func SamplePayload(event string) map[string]any {
+	switch event {
+	case EventCommentCreated:
+		return map[string]any{
+			"comment_id":      "sample_cmt_000",
+			"parent_type":     "post",
+			"parent_slug":     "hello-world",
+			"author_name":     "Sample Visitor",
+			"author_email":    "visitor@example.com",
+			"content_preview": "This is a sample comment payload from Facet.",
+			"status":          "pending",
+			"is_test":         true,
+		}
+	case EventPostPublished:
+		return map[string]any{
+			"post_id":  "sample_post_000",
+			"slug":     "hello-world",
+			"title":    "Sample Post Title",
+			"excerpt":  "Synthetic payload from the dispatch-test picker.",
+			"author":   "Site Owner",
+			"tags":     []string{"sample", "test"},
+			"is_test":  true,
+		}
+	case EventNewsletterSubscribed:
+		return map[string]any{
+			"subscriber_id": "sample_sub_000",
+			"email":         "subscriber@example.com",
+			"source":        "dispatch-test",
+			"is_test":       true,
+		}
+	default:
+		return map[string]any{
+			"message": "Synthetic test event from Facet dispatch-test picker.",
+			"is_test": true,
+		}
+	}
+}
+
 // retryBackoff is the inter-attempt delay schedule. Index 0 is the delay
 // before the *2nd* attempt (i.e. after the first failure). Total of 6
 // attempts (1 initial + 5 retries).

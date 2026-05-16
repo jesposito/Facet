@@ -53,6 +53,12 @@
 	let testing: string | null = $state(null);
 	let testResults: Record<string, TestResult> = $state({});
 
+	// Dispatch-test (event picker → fires sample payload to ALL matching webhooks)
+	let dispatchEvent = $state('');
+	let dispatching = $state(false);
+	let dispatchResult: { event: string; enqueued: number } | null = $state(null);
+	let dispatchError = $state('');
+
 	// Deliveries modal state
 	let deliveriesOpen = $state(false);
 	let deliveriesFor: Webhook | null = $state(null);
@@ -245,6 +251,33 @@
 		}
 	}
 
+	async function dispatchTest() {
+		if (!dispatchEvent) return;
+		dispatching = true;
+		dispatchError = '';
+		dispatchResult = null;
+		try {
+			const res = await fetch('/api/admin/webhooks/dispatch-test', {
+				method: 'POST',
+				headers: {
+					Authorization: pb.authStore.token,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ event: dispatchEvent })
+			});
+			const json = await res.json();
+			if (!res.ok) {
+				dispatchError = json.error || $t('admin.webhooks.dispatch_test_error_generic');
+			} else {
+				dispatchResult = { event: json.event, enqueued: json.enqueued };
+			}
+		} catch {
+			dispatchError = $t('admin.webhooks.dispatch_test_network_error');
+		} finally {
+			dispatching = false;
+		}
+	}
+
 	async function openDeliveries(wh: Webhook) {
 		lastFocused = document.activeElement as HTMLElement;
 		deliveriesFor = wh;
@@ -340,6 +373,76 @@
 			{$t('admin.webhooks.loading')}
 		</div>
 	{:else}
+		<section aria-labelledby="dispatch-test-heading" class="mb-8">
+			<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+				<h2 id="dispatch-test-heading" class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+					{$t('admin.webhooks.dispatch_test_heading')}
+				</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+					{$t('admin.webhooks.dispatch_test_intro')}
+				</p>
+
+				{#if registeredEvents.length === 0}
+					<p class="text-sm text-gray-500">{$t('admin.webhooks.dispatch_test_no_events')}</p>
+				{:else}
+					<form onsubmit={(e) => { e.preventDefault(); dispatchTest(); }} class="flex flex-wrap items-end gap-3">
+						<div class="flex-1 min-w-[240px]">
+							<label for="dispatch-event-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+								{$t('admin.webhooks.dispatch_test_event_label')}
+							</label>
+							<select
+								id="dispatch-event-select"
+								bind:value={dispatchEvent}
+								class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+								required
+								aria-required="true"
+							>
+								<option value="">{$t('admin.webhooks.dispatch_test_select_placeholder')}</option>
+								{#each registeredEvents as ev}
+									<option value={ev}>{ev}</option>
+								{/each}
+							</select>
+						</div>
+						<button
+							type="submit"
+							class="btn btn-secondary"
+							disabled={dispatching || !dispatchEvent}
+							aria-busy={dispatching ? 'true' : undefined}
+						>
+							{dispatching ? $t('admin.webhooks.dispatch_test_dispatching') : $t('admin.webhooks.dispatch_test_button')}
+						</button>
+					</form>
+
+					<div aria-live="polite" aria-atomic="true" class="mt-3 min-h-[1.5rem]">
+						{#if dispatchError}
+							<p role="alert" class="text-sm text-red-700 dark:text-red-300 flex items-start gap-1.5">
+								<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+								</svg>
+								<span>{dispatchError}</span>
+							</p>
+						{:else if dispatchResult}
+							{#if dispatchResult.enqueued === 0}
+								<p role="status" class="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-1.5">
+									<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+									</svg>
+									<span>{$t('admin.webhooks.dispatch_test_result_zero', { values: { event: dispatchResult.event } })}</span>
+								</p>
+							{:else}
+								<p role="status" class="text-sm text-green-700 dark:text-green-300 flex items-start gap-1.5">
+									<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+									</svg>
+									<span>{$t('admin.webhooks.dispatch_test_result_success', { values: { event: dispatchResult.event, count: dispatchResult.enqueued } })}</span>
+								</p>
+							{/if}
+						{/if}
+					</div>
+				{/if}
+			</div>
+		</section>
+
 		<section aria-labelledby="webhooks-list-heading" class="mb-8">
 			<div class="flex items-center justify-between mb-4">
 				<h2 id="webhooks-list-heading" class="text-lg font-semibold text-gray-900 dark:text-white">

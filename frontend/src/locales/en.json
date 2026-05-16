@@ -698,7 +698,18 @@
 			"pagination_aria": "Delivery pagination",
 			"prev_page": "Previous",
 			"next_page": "Next",
-			"page_n": "Page {page}"
+			"page_n": "Page {page}",
+			"dispatch_test_heading": "Dispatch test event",
+			"dispatch_test_intro": "Fire a synthetic payload for any registered event. Every active webhook subscribed to that event will receive a normal delivery — handy for verifying receivers end-to-end.",
+			"dispatch_test_event_label": "Event",
+			"dispatch_test_select_placeholder": "Choose an event…",
+			"dispatch_test_button": "Dispatch",
+			"dispatch_test_dispatching": "Dispatching…",
+			"dispatch_test_no_events": "No events are currently registered.",
+			"dispatch_test_result_success": "Dispatched {event} to {count} webhook(s). Check the delivery log for results.",
+			"dispatch_test_result_zero": "Dispatched {event}, but no active webhooks are subscribed to it.",
+			"dispatch_test_network_error": "Network error — could not dispatch.",
+			"dispatch_test_error_generic": "Dispatch failed."
 		},
 		"help": {
 			"page_title": "Help",
