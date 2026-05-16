@@ -84,7 +84,8 @@ func main() {
 	hooks.RegisterCourseHooks(app, planConfig, cryptoService, rateLimitService)
 	hooks.RegisterQuizHooks(app, planConfig, cryptoService, rateLimitService)
 	hooks.RegisterWebhookHooks(app, rateLimitService)
-	hooks.RegisterAPIKeyHooks(app) // Public read-only API + admin key management
+	hooks.RegisterAPIKeyHooks(app)      // Public read-only API + admin key management
+	hooks.RegisterSystemAlertHooks(app) // Operator-facing system event inbox
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
