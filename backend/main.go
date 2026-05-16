@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"facet/hooks"
 	"facet/services"
@@ -40,9 +39,10 @@ func main() {
 	rateLimitService := services.NewRateLimitService()
 	planConfig := services.LoadPlanConfig()
 
-	// Register migrations
+	// Register migrations. Self-hosted single-user — always run new migrations
+	// on boot so deploys pick up schema changes without manual `migrate up`.
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{
-		Automigrate: strings.HasPrefix(os.Args[0], os.TempDir()),
+		Automigrate: true,
 	})
 
 	// Register custom hooks
