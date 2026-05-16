@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
@@ -33,6 +33,12 @@
 	let atLimit = $state(false);
 	let loading = $state(true);
 	let liveMessage = $state('');
+
+	async function announce(msg: string) {
+		liveMessage = '';
+		await tick();
+		liveMessage = msg;
+	}
 	let editingId = $state<string | null>(null);
 	let actingId = $state<string | null>(null);
 	let showNewForm = $state(false);
@@ -128,7 +134,7 @@
 				newError = data.error || `status ${r.status}`;
 				return;
 			}
-			liveMessage = $t('admin.newsletter_lists.created_live', { values: { name: data.name } });
+			announce($t('admin.newsletter_lists.created_live', { values: { name: data.name } }));
 			toasts.add('success', $t('admin.newsletter_lists.created_toast', { values: { name: data.name } }));
 			newName = '';
 			newSlug = '';
@@ -192,7 +198,7 @@
 				editError = data.error || `status ${r.status}`;
 				return;
 			}
-			liveMessage = $t('admin.newsletter_lists.saved_live', { values: { name: data.name } });
+			announce($t('admin.newsletter_lists.saved_live', { values: { name: data.name } }));
 			toasts.add('success', $t('admin.newsletter_lists.saved_toast'));
 			editingId = null;
 			await load();
@@ -214,7 +220,7 @@
 				headers: authHeaders()
 			});
 			if (!r.ok) throw new Error(`status ${r.status}`);
-			liveMessage = $t('admin.newsletter_lists.default_updated_live');
+			announce($t('admin.newsletter_lists.default_updated_live'));
 			toasts.add('success', $t('admin.newsletter_lists.default_updated_toast'));
 			await load();
 		} catch (err) {
@@ -251,7 +257,7 @@
 				const data = await r.json().catch(() => ({}));
 				throw new Error(data.error || `status ${r.status}`);
 			}
-			liveMessage = $t('admin.newsletter_lists.deleted_live', { values: { name: list.name } });
+			announce($t('admin.newsletter_lists.deleted_live', { values: { name: list.name } }));
 			toasts.add('success', $t('admin.newsletter_lists.deleted_toast'));
 			await load();
 		} catch (err) {
@@ -497,6 +503,7 @@
 									<button
 										type="button"
 										onclick={() => beginEdit(list)}
+										aria-label={$t('admin.newsletter_lists.edit_aria', { values: { name: list.name } })}
 										class="btn btn-ghost btn-sm"
 									>
 										{$t('admin.newsletter_lists.action_edit')}

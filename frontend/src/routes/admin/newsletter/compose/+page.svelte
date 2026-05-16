@@ -484,6 +484,8 @@
 				bind:value={subject}
 				class="input text-sm w-full"
 				placeholder={$t('admin.newsletter.subject_placeholder')}
+				required
+				aria-required="true"
 			/>
 		</div>
 
@@ -499,6 +501,8 @@
 					class="input text-sm w-full font-mono resize-y"
 					style="min-height: 300px;"
 					placeholder={$t('admin.newsletter.body_placeholder')}
+					required
+					aria-required="true"
 				></textarea>
 			</div>
 			<div>
@@ -646,6 +650,7 @@
 				class="btn btn-secondary text-sm"
 				onclick={sendTest}
 				disabled={sendingTest || !subject.trim() || !bodyMarkdown.trim() || !smtpConfigured}
+				aria-busy={sendingTest ? 'true' : undefined}
 				title={!smtpConfigured ? $t('admin.newsletter.smtp_not_configured') : undefined}
 			>
 				{sendingTest ? $t('admin.newsletter.sending_test') : $t('admin.newsletter.send_test')}
@@ -655,6 +660,7 @@
 				class="btn btn-primary text-sm"
 				onclick={sendToAll}
 				disabled={sending || !subject.trim() || !bodyMarkdown.trim() || !smtpConfigured}
+				aria-busy={sending ? 'true' : undefined}
 				title={!smtpConfigured ? $t('admin.newsletter.smtp_not_configured') : undefined}
 			>
 				{sending ? $t('admin.newsletter.sending') : $t('admin.newsletter.send_to_all')}

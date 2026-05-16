@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
@@ -28,6 +28,14 @@
 	let filter = $state<FilterValue>('unacknowledged');
 	let acknowledging = $state<Set<string>>(new Set());
 	let acknowledgingAll = $state(false);
+	let liveMessage = $state('');
+
+	async function announce(msg: string) {
+		// Reset then set so identical sequential messages re-announce in AT.
+		liveMessage = '';
+		await tick();
+		liveMessage = msg;
+	}
 
 	onMount(() => {
 		loadAlerts();
@@ -80,6 +88,7 @@
 					);
 				}
 				toasts.success($t('admin.alerts_page.toast_acknowledged'));
+				announce($t('admin.alerts_page.toast_acknowledged'));
 			} else {
 				toasts.error($t('admin.alerts_page.toast_acknowledge_failed'));
 			}
@@ -113,6 +122,7 @@
 				toasts.success(
 					$t('admin.alerts_page.toast_acknowledge_all_done', { values: { count } })
 				);
+				announce($t('admin.alerts_page.toast_acknowledge_all_done', { values: { count } }));
 				if (filter === 'unacknowledged') {
 					alerts = [];
 				} else {
@@ -146,6 +156,7 @@
 			if (resp.ok) {
 				alerts = alerts.filter((a) => a.id !== id);
 				toasts.success($t('admin.alerts_page.toast_deleted'));
+				announce($t('admin.alerts_page.toast_deleted'));
 			} else {
 				toasts.error($t('admin.alerts_page.toast_delete_failed'));
 			}
@@ -204,6 +215,8 @@
 <svelte:head>
 	<title>{$t('admin.alerts_page.title')}</title>
 </svelte:head>
+
+<div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{liveMessage}</div>
 
 <div class="max-w-4xl mx-auto">
 	<div class="mb-6">
@@ -367,6 +380,8 @@
 								type="button"
 								onclick={() => acknowledgeAlert(alert.id)}
 								disabled={acknowledging.has(alert.id)}
+								aria-label={$t('admin.alerts_page.acknowledge_aria', { values: { title: alert.title } })}
+								aria-busy={acknowledging.has(alert.id) ? 'true' : undefined}
 								class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								{acknowledging.has(alert.id)
