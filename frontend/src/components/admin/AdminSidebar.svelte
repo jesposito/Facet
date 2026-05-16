@@ -273,7 +273,6 @@
 			items.push({ href: '/admin/settings/payments', labelKey: 'admin.sidebar.payments', icon: 'currency' });
 		}
 
-		items.push({ href: '/admin/alerts', labelKey: 'admin.sidebar.alerts', icon: 'bell' });
 		items.push({ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' });
 		items.push({ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' });
 		items.push({ href: '/admin/help', labelKey: 'admin.sidebar.help', icon: 'help' });
