@@ -35,6 +35,8 @@ docker run -d --rm -p 8080:8080 -v facet-data:/data \
 
 Open `http://localhost:8080`, log in with `admin@example.com` / `changeme123`, change the password when prompted, and explore. See [docs/SELF-HOSTING-GUIDE.md](docs/SELF-HOSTING-GUIDE.md) for production setup (reverse proxy, OAuth, SMTP, AI keys).
 
+> **Don't want to self-host?** A managed version is available at [get-facet.com](https://get-facet.com) — same software, hosted for you, with billing + custom domains + managed AI credits handled. Useful if you'd rather skip the Docker / DNS / backup parts.
+
 ---
 
 ## The 30-Second Version
