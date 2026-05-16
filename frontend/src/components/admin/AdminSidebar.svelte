@@ -244,8 +244,11 @@
 
 		// Newsletter subgroup
 		if ($hasNewsletter) {
-			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.subscribers' });
+			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.newsletter' });
+			items.push({ href: '/admin/newsletter', labelKey: 'admin.sidebar.newsletter_overview', icon: 'mail' });
 			items.push({ href: '/admin/subscribers', labelKey: 'admin.sidebar.subscribers', icon: 'users' });
+			items.push({ href: '/admin/newsletter/lists', labelKey: 'admin.sidebar.newsletter_lists', icon: 'list' });
+			items.push({ href: '/admin/newsletter/compose', labelKey: 'admin.sidebar.newsletter_compose', icon: 'pencil' });
 		}
 
 		return items;
@@ -857,6 +860,14 @@
 	{:else if icon === 'bell'}
 		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+		</svg>
+	{:else if icon === 'list'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+		</svg>
+	{:else if icon === 'pencil'}
+		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
 		</svg>
 	{/if}
 {/snippet}
