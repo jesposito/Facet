@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.17 - May 17, 2026
+
+**Bugs Fixed:**
+- gate courses OFF self-hosted, extend export to 44 collections, fix #259 skill sort_order
+
+**Pull Requests:** [#440](https://github.com/jesposito/Facet/pull/440),
+
+---
+
+
 ## v2.21.16 - May 16, 2026
 
 **Bugs Fixed:**
