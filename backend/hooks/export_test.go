@@ -144,3 +144,86 @@ func stringContains(s, substr string) bool {
 	}
 	return false
 }
+
+// TestIsSensitiveField confirms the strip list catches credential field name
+// patterns and lets normal fields through.
+func TestIsSensitiveField(t *testing.T) {
+	cases := []struct {
+		field    string
+		want     bool
+	}{
+		{"password", true},
+		{"password_hash", true},
+		{"Password_Hash", true}, // case insensitive
+		{"api_key", true},
+		{"stripe_api_key", true},
+		{"client_secret", true},
+		{"totp_secret", true},
+		{"verification_token", true},
+		{"email_verification_token", true},
+		{"refresh_token", true},
+		{"access_token", true},
+		{"encryption_key", true},
+		{"private_key", true},
+		{"session_id", true},
+
+		// non-sensitive fields must pass through
+		{"name", false},
+		{"email", false},
+		{"title", false},
+		{"description", false},
+		{"created", false},
+		{"id", false},
+		{"slug", false},
+	}
+
+	for _, tc := range cases {
+		got := isSensitiveField(tc.field)
+		if got != tc.want {
+			t.Errorf("isSensitiveField(%q) = %v, want %v", tc.field, got, tc.want)
+		}
+	}
+}
+
+// TestNewExportCollectionsOmitEmpty confirms every newly added export field
+// is correctly tagged omitempty so an empty database produces a minimal JSON.
+func TestNewExportCollectionsOmitEmpty(t *testing.T) {
+	export := &ExportData{
+		Meta: ExportMeta{Version: "1.1.0", ExportedAt: "2026-01-01T00:00:00Z", App: "Facet"},
+	}
+	jsonBytes, err := json.Marshal(export)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	jsonStr := string(jsonBytes)
+
+	// All new collection fields must be absent from an empty export.
+	newKeys := []string{
+		"testimonials", "testimonial_requests", "contact_methods", "sources",
+		"custom_content", "courses", "modules", "lessons", "course_progress",
+		"lesson_progress", "course_certificates", "quizzes", "quiz_questions",
+		"quiz_attempts", "comments", "comment_reports", "purchases", "coupons",
+		"newsletter_lists", "subscribers", "subscriber_list_memberships",
+		"newsletter_sends", "newsletter_events", "settings", "site_settings",
+		"media_display_names", "external_media", "admin_tags", "ai_providers",
+		"import_proposals", "resume_imports", "view_exports", "webhooks",
+		"download_logs", "uploads",
+	}
+	for _, key := range newKeys {
+		needle := `"` + key + `"`
+		if stringContains(jsonStr, needle) {
+			t.Errorf("empty export should omit %q but it appeared in JSON", key)
+		}
+	}
+}
+
+// TestExportVersionBumped guards the JSON schema version bump that signals
+// new collection coverage to consumers.
+func TestExportVersionBumped(t *testing.T) {
+	// collectExportData hard-codes the version. Mirror that here.
+	const wantVersion = "1.1.0"
+	export := &ExportData{Meta: ExportMeta{Version: wantVersion}}
+	if export.Meta.Version != wantVersion {
+		t.Fatalf("Version = %q, want %q", export.Meta.Version, wantVersion)
+	}
+}

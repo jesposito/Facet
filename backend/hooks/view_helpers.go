@@ -436,6 +436,40 @@ func filterBySelectedItems(items []map[string]interface{}, selectedItems []strin
 	return result
 }
 
+// filterBySelectedItemsKeepOrder filters items by selectedItems set membership
+// but PRESERVES the input items order. Use this for sections whose source has
+// its own ordering authority (e.g. skills via per-skill sort_order set in the
+// admin/skills drag-and-drop reorder UI). selectedItems acts as a visibility
+// filter only.
+//
+// Issue #259: skills inside categories were ignoring the admin-set sort_order
+// on the homepage when the skills section was explicitly configured, because
+// filterBySelectedItemsWithDefault returns items in the selectedItems array
+// order — overriding sort_order. This helper preserves the DB sort instead.
+func filterBySelectedItemsKeepOrder(items []map[string]interface{}, selectedItems []string, isConfigured bool) []map[string]interface{} {
+	if !isConfigured {
+		return items
+	}
+	if len(selectedItems) == 0 {
+		return nil
+	}
+	selectedSet := make(map[string]struct{}, len(selectedItems))
+	for _, id := range selectedItems {
+		selectedSet[id] = struct{}{}
+	}
+	result := make([]map[string]interface{}, 0, len(selectedItems))
+	for _, item := range items {
+		id, ok := item["id"].(string)
+		if !ok {
+			continue
+		}
+		if _, present := selectedSet[id]; present {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
 // filterBySelectedItemsWithDefault filters serialized records based on selected item IDs.
 // If selectedItems is nil (not configured), returns all items (default behavior for unconfigured sections).
 // If selectedItems is empty array (explicitly configured with no selections), returns empty.
