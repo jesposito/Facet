@@ -121,8 +121,15 @@ func RegisterExportHooks(app *pocketbase.PocketBase) {
 // fetchAndSanitize loads all records from a collection and returns sanitized maps.
 // Returns nil (omitted from JSON) on error or empty result. Errors are deliberately
 // swallowed so a single missing/restricted collection cannot break the whole export.
+//
+// Robustness: if the requested sort references a field that does not exist on this
+// collection (schema drift between branches), the query is retried with no sort
+// rather than silently dropping the collection from the export.
 func fetchAndSanitize(app core.App, collection, sort string) []map[string]interface{} {
 	records, err := app.FindRecordsByFilter(collection, "", sort, 0, 0, nil)
+	if err != nil && sort != "" {
+		records, err = app.FindRecordsByFilter(collection, "", "", 0, 0, nil)
+	}
 	if err != nil || len(records) == 0 {
 		return nil
 	}
