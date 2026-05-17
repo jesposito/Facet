@@ -68,6 +68,7 @@
 	}
 </script>
 
+{#if items.length > 0}
 <section id="courses" class="mb-16">
 	{#if showHeader}
 		<h2 class="section-title">{$t('public.sections.courses')}</h2>
@@ -585,3 +586,4 @@
 		</div>
 	{/if}
 </section>
+{/if}

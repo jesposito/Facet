@@ -29,7 +29,10 @@ const defaultConfig: PlanConfig = {
 		basic_analytics: true,
 		analytics: true,
 		badge_forced: false,
-		courses: true,
+		// Courses default OFF self-hosted: public /courses/[slug] route is not implemented
+		// in this repo (cloud only). Backend authority via /api/plan can flip this on
+		// when FACET_FEATURE_COURSES=true is set on the server.
+		courses: false,
 		api: true,
 		custom_domain: true,
 		newsletter: true,
@@ -47,9 +50,15 @@ export const planFeatures = derived(planConfig, ($config) => $config.features);
 export const brandName = derived(planConfig, ($config) => ($config.managed ? 'Facet Cloud' : 'Facet'));
 export const isDemoMode = derived(planConfig, ($config) => $config.demo_mode === true);
 
+// Features that are not fully implemented in the self-hosted build and must
+// honor the explicit flag value even when not in managed mode. Adding a feature
+// here means "self-hosted does not unconditionally get this feature".
+const selfHostedOptInFeatures: ReadonlySet<keyof PlanFeatures> = new Set(['courses']);
+
 // Non-reactive version for use in script blocks
 export function checkFeature(feature: keyof PlanFeatures): boolean {
 	const config = get(planConfig);
+	if (selfHostedOptInFeatures.has(feature)) return config.features[feature] === true;
 	if (!config.managed) return true;
 	return config.features[feature] ?? false;
 }
@@ -57,6 +66,7 @@ export function checkFeature(feature: keyof PlanFeatures): boolean {
 // Reactive version for use in templates
 export function hasFeature(feature: keyof PlanFeatures): Readable<boolean> {
 	return derived(planConfig, ($config) => {
+		if (selfHostedOptInFeatures.has(feature)) return $config.features[feature] === true;
 		if (!$config.managed) return true;
 		return $config.features[feature] ?? false;
 	});

@@ -1025,7 +1025,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					skills := serializeRecords(skillRecords)
-					response["skills"] = filterBySelectedItemsWithDefault(skills, skillsSelectedItems, skillsConfigured)
+					// Skills carry their own per-category sort_order set by the
+					// drag-and-drop reorder in admin/skills. Preserve that DB
+					// order; treat selectedItems as a visibility filter only.
+					// Fixes #259.
+					response["skills"] = filterBySelectedItemsKeepOrder(skills, skillsSelectedItems, skillsConfigured)
 				}
 			}
 
