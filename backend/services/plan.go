@@ -36,6 +36,10 @@ type PlanConfig struct {
 // LoadPlanConfig reads plan configuration from environment variables.
 // When FACET_MANAGED is not set or false, returns a self-hosted config with all features unlocked.
 // Self-hosted is the expected mode for this upstream repo; managed support is minimal for compatibility.
+//
+// Courses is OFF by default self-hosted because the public /courses/[slug] route is
+// not implemented in this repo (cloud has it). Operators who want admin-only course
+// authoring (e.g., headless integrations) can opt in with FACET_FEATURE_COURSES=true.
 func LoadPlanConfig() *PlanConfig {
 	managed := envBool("FACET_MANAGED", false)
 
@@ -47,7 +51,7 @@ func LoadPlanConfig() *PlanConfig {
 				BasicAnalytics: true,
 				Analytics:      true,
 				BadgeForced:    false,
-				Courses:        true,
+				Courses:        envBool("FACET_FEATURE_COURSES", false),
 				API:            true,
 				CustomDomain:   true,
 				Newsletter:     true,
