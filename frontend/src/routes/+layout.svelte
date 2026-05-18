@@ -405,7 +405,7 @@ $effect(() => {
 
 <!-- Skip link for keyboard navigation -->
 <a href="#main-content" class="skip-link">
-	Skip to main content
+	{$t('shared.aria.skip_to_content')}
 </a>
 
 {@render children?.()}
