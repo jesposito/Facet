@@ -2756,7 +2756,8 @@
 		"lightbox": {
 			"close": "Close lightbox",
 			"next_image": "Next image",
-			"previous_image": "Previous image"
+			"previous_image": "Previous image",
+			"title": "Image viewer"
 		},
 		"experience": {
 			"at": "at",

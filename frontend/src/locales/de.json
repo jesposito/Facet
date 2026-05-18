@@ -2756,7 +2756,8 @@
 		"lightbox": {
 			"close": "Lightbox schließen",
 			"next_image": "Nächstes Bild",
-			"previous_image": "Vorheriges Bild"
+			"previous_image": "Vorheriges Bild",
+			"title": "Bildansicht"
 		},
 		"experience": {
 			"at": "bei",

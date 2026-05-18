@@ -2756,7 +2756,8 @@
 		"lightbox": {
 			"close": "Cloze litebox",
 			"next_image": "Nekst pictur",
-			"previous_image": "Previus pictur"
+			"previous_image": "Previus pictur",
+			"title": "Pictur viewr"
 		},
 		"experience": {
 			"at": "at",

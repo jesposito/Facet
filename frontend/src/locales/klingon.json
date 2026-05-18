@@ -2756,7 +2756,8 @@
 		"lightbox": {
 			"close": "Close viewscreen",
 			"next_image": "Next display",
-			"previous_image": "Previous display"
+			"previous_image": "Previous display",
+			"title": "naghHom Sech"
 		},
 		"experience": {
 			"at": "serving",

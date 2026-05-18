@@ -2756,7 +2756,8 @@
 		"lightbox": {
 			"close": "Close vision",
 			"next_image": "Next vision",
-			"previous_image": "Previous vision"
+			"previous_image": "Previous vision",
+			"title": "Vision of pictures"
 		},
 		"experience": {
 			"at": "with",
