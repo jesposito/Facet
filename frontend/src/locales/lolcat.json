@@ -2424,7 +2424,7 @@
 			"opens": "{count} openz",
 			"clicks": "{count} clickz",
 			"smtp_not_configured": "SMTP nawt configurrd",
-"smtp_not_configured_hint": "Configur SMTP in Settingz 2 send newsletterz. U can still collect peepz tho!",
+			"smtp_not_configured_hint": "Configur SMTP in Settingz 2 send newsletterz. U can still collect peepz tho!",
 			"hub_title": "Mewzlettr",
 			"hub_description": "Boss ur peepz, sort em into litterz, n yeet noozez owt 2 dem.",
 			"card_subscribers_title": "Peepz",
@@ -2793,7 +2793,19 @@
 		},
 		"posts": {
 			"read_more": "Moar plz",
-			"featured": "Speshul"
+			"featured": "Speshul",
+			"title_all": "All Da Posts",
+			"title_tagged": "Posts taggd \"{tag}\"",
+			"back_to_profile": "Bak 2 Profile",
+			"by_author": "by {name}",
+			"subscribe_rss": "Subscrybe 2 posts (RSS)",
+			"filter_by_tag": "Filtr by tag",
+			"filter_all": "All",
+			"empty": "No posts yit",
+			"empty_tagged": "No posts wit tag \"{tag}\" oh noes",
+			"view_all": "Vyu all posts",
+			"hidden_title": "Posts r hyd rite naow",
+			"profile_setup_default": "Dis profile is bein set up."
 		},
 		"testimonials": {
 			"photo_alt": "Picshur of {name}",

@@ -584,7 +584,6 @@
 			"content": "Content",
 			"features": "Features",
 			"audience": "Audience",
-			"analytics": "Analytics",
 			"comments": "Comments",
 			"subscribers": "Subscribers",
 			"newsletter": "Newsletter",
@@ -2794,7 +2793,19 @@
 		},
 		"posts": {
 			"read_more": "Read more",
-			"featured": "Featured"
+			"featured": "Featured",
+			"title_all": "All Posts",
+			"title_tagged": "Posts tagged \"{tag}\"",
+			"back_to_profile": "Back to Profile",
+			"by_author": "by {name}",
+			"subscribe_rss": "Subscribe to posts (RSS)",
+			"filter_by_tag": "Filter by tag",
+			"filter_all": "All",
+			"empty": "No posts yet",
+			"empty_tagged": "No posts found with tag \"{tag}\"",
+			"view_all": "View all posts",
+			"hidden_title": "Posts are hidden right now",
+			"profile_setup_default": "This profile is being set up."
 		},
 		"testimonials": {
 			"photo_alt": "Photo of {name}",

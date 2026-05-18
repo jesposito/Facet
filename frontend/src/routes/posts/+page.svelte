@@ -16,7 +16,7 @@
 
 	// Compute back navigation URL based on where user came from
 	let backUrl = $derived(data.fromView ? `/${data.fromView}` : '/');
-	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
+	let landingMessage = $derived(data.landingPageMessage || $t('public.posts.profile_setup_default'));
 	let rssUrl = $derived(browser ? new URL('/rss.xml', pb.baseUrl).toString() : '/rss.xml');
 
 	onMount(() => {
@@ -42,7 +42,7 @@
 			<ThemeToggle />
 		</div>
 		<div class="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 text-center space-y-4">
-			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Posts are hidden right now</h1>
+			<h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{$t('public.posts.hidden_title')}</h1>
 			<p class="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
 		</div>
 	</div>
@@ -67,20 +67,20 @@
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>Back to Profile</span>
+				<span>{$t('public.posts.back_to_profile')}</span>
 			</a>
 
 			<h1 class="text-3xl sm:text-4xl font-bold">
 				{#if data.selectedTag}
-					Posts tagged "{data.selectedTag}"
+					{$t('public.posts.title_tagged', { values: { tag: data.selectedTag } })}
 				{:else}
-					All Posts
+					{$t('public.posts.title_all')}
 				{/if}
 			</h1>
 
 			{#if data.profile?.name}
 				<p class="mt-2 text-gray-300">
-					by {data.profile.name}
+					{$t('public.posts.by_author', { values: { name: data.profile.name } })}
 				</p>
 			{/if}
 
@@ -92,7 +92,7 @@
 					<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
 						<path d="M4.5 14.5a1.5 1.5 0 10.001 3.001A1.5 1.5 0 004.5 14.5zM3 4a1 1 0 011-1c6.075 0 11 4.925 11 11a1 1 0 01-1 1h-1a1 1 0 01-1-1 9 9 0 00-9-9 1 1 0 01-1-1V4zm0 5a1 1 0 011-1c3.866 0 7 3.134 7 7a1 1 0 01-1 1h-1a1 1 0 01-1-1 5 5 0 00-5-5 1 1 0 01-1-1V9z" />
 					</svg>
-					<span class="text-sm font-medium">Subscribe to posts (RSS)</span>
+					<span class="text-sm font-medium">{$t('public.posts.subscribe_rss')}</span>
 				</a>
 			</div>
 		</div>
@@ -103,7 +103,7 @@
 		<!-- Tag filter -->
 		{#if data.allTags.length > 0}
 			<div class="mb-8">
-				<h2 class="sr-only">Filter by tag</h2>
+				<h2 class="sr-only">{$t('public.posts.filter_by_tag')}</h2>
 				<div class="flex flex-wrap gap-2">
 					<a
 						href="/posts"
@@ -111,7 +111,7 @@
 							? 'bg-primary-600 text-white'
 							: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}"
 					>
-						All
+						{$t('public.posts.filter_all')}
 					</a>
 					{#each data.allTags as tag}
 						<a
@@ -200,14 +200,14 @@
 				</svg>
 				<p class="text-gray-500 dark:text-gray-400 text-lg">
 					{#if data.selectedTag}
-						No posts found with tag "{data.selectedTag}"
+						{$t('public.posts.empty_tagged', { values: { tag: data.selectedTag } })}
 					{:else}
-						No posts yet
+						{$t('public.posts.empty')}
 					{/if}
 				</p>
 				{#if data.selectedTag}
 					<a href="/posts" class="mt-4 inline-block text-primary-600 dark:text-primary-400 hover:underline">
-						View all posts
+						{$t('public.posts.view_all')}
 					</a>
 				{/if}
 			</div>

@@ -2424,7 +2424,7 @@
 			"opens": "{count} opened",
 			"clicks": "{count} followed links",
 			"smtp_not_configured": "The messenger pigeons are not prepared",
-"smtp_not_configured_hint": "Configure SMTP to send scrolls. You may still gather listeners.",
+			"smtp_not_configured_hint": "Configure SMTP to send scrolls. You may still gather listeners.",
 			"hub_title": "Postar Annon",
 			"hub_description": "Lerno palthaneri, lestath nín, ar suilad i thent.",
 			"card_subscribers_title": "Palthaneri",
@@ -2793,7 +2793,19 @@
 		},
 		"posts": {
 			"read_more": "Read further",
-			"featured": "Honored"
+			"featured": "Honored",
+			"title_all": "Ilye Parmar",
+			"title_tagged": "Parmar marked with \"{tag}\"",
+			"back_to_profile": "Return to the chronicle",
+			"by_author": "penned by {name}",
+			"subscribe_rss": "Heed the herald (RSS)",
+			"filter_by_tag": "Sift by sigil",
+			"filter_all": "All",
+			"empty": "No tales told yet",
+			"empty_tagged": "No tales bearing the sigil \"{tag}\"",
+			"view_all": "Behold all tales",
+			"hidden_title": "The tales are veiled at this hour",
+			"profile_setup_default": "This chronicle is being prepared."
 		},
 		"testimonials": {
 			"photo_alt": "Canthui o {name}",

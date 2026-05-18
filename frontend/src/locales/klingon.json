@@ -2424,7 +2424,7 @@
 			"opens": "{count} opened",
 			"clicks": "{count} acted",
 			"smtp_not_configured": "Communications array offline",
-"smtp_not_configured_hint": "Configure SMTP to send dispatches. Warriors can still enlist.",
+			"smtp_not_configured_hint": "Configure SMTP to send dispatches. Warriors can still enlist.",
 			"hub_title": "War Dispatch",
 			"hub_description": "Command your warriors, divide them into squads, and broadcast dispatches.",
 			"card_subscribers_title": "loDnI'pu'",
@@ -2793,7 +2793,19 @@
 		},
 		"posts": {
 			"read_more": "Continue reading",
-			"featured": "Honored"
+			"featured": "Honored",
+			"title_all": "Hoch ghItlhmey",
+			"title_tagged": "ghItlhmey {tag}",
+			"back_to_profile": "profile-Daq chegh",
+			"by_author": "qonta' {name}",
+			"subscribe_rss": "ghItlhmey tlhob (RSS)",
+			"filter_by_tag": "tag wIv",
+			"filter_all": "Hoch",
+			"empty": "ghItlh tu'lu'be'",
+			"empty_tagged": "\"{tag}\" rurbogh ghItlh tu'lu'be'",
+			"view_all": "Hoch ghItlhmey legh",
+			"hidden_title": "DaH So'lu'bogh ghItlhmey",
+			"profile_setup_default": "cherta'lu'taH profile."
 		},
 		"testimonials": {
 			"photo_alt": "mIllogh {name}",

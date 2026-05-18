@@ -2424,7 +2424,7 @@
 			"opens": "{count} Öffnungen",
 			"clicks": "{count} Klicks",
 			"smtp_not_configured": "SMTP nicht konfiguriert",
-"smtp_not_configured_hint": "Konfigurieren Sie SMTP in den Einstellungen, um Newsletter zu versenden. Sie können weiterhin Abonnenten sammeln.",
+			"smtp_not_configured_hint": "Konfigurieren Sie SMTP in den Einstellungen, um Newsletter zu versenden. Sie können weiterhin Abonnenten sammeln.",
 			"hub_title": "Newsletter",
 			"hub_description": "Verwalten Sie Abonnenten, segmentieren Sie sie in Listen und senden Sie Rundschreiben.",
 			"card_subscribers_title": "Abonnenten",
@@ -2793,7 +2793,19 @@
 		},
 		"posts": {
 			"read_more": "Weiterlesen",
-			"featured": "Empfohlen"
+			"featured": "Empfohlen",
+			"title_all": "Alle Beiträge",
+			"title_tagged": "Beiträge mit Tag „{tag}“",
+			"back_to_profile": "Zurück zum Profil",
+			"by_author": "von {name}",
+			"subscribe_rss": "Beiträge abonnieren (RSS)",
+			"filter_by_tag": "Nach Tag filtern",
+			"filter_all": "Alle",
+			"empty": "Noch keine Beiträge",
+			"empty_tagged": "Keine Beiträge mit Tag „{tag}“ gefunden",
+			"view_all": "Alle Beiträge anzeigen",
+			"hidden_title": "Beiträge sind derzeit ausgeblendet",
+			"profile_setup_default": "Dieses Profil wird gerade eingerichtet."
 		},
 		"testimonials": {
 			"photo_alt": "Foto von {name}",
