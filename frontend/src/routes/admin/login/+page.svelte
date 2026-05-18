@@ -261,6 +261,7 @@
 						bind:value={email}
 						class="input"
 						placeholder="admin@example.com"
+						autocomplete="username"
 						disabled={loading}
 					/>
 				</div>
@@ -273,6 +274,7 @@
 						bind:value={password}
 						class="input"
 						placeholder="••••••••"
+						autocomplete="current-password"
 						disabled={loading}
 					/>
 				</div>
