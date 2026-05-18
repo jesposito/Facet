@@ -388,7 +388,7 @@
 			<button
 				bind:this={printMenuTriggerEl}
 				onclick={() => showPrintMenu = !showPrintMenu}
-				class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+				class="p-2 min-w-11 min-h-11 inline-flex items-center justify-center rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
 				title={$t('public.homepage.print_options')}
 				aria-label={$t('public.homepage.print_options')}
 				aria-expanded={showPrintMenu}
@@ -440,7 +440,7 @@
 			{#if $currentUser}
 				<button
 					onclick={handleLogout}
-					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
+					class="px-3 py-2 min-h-11 inline-flex items-center rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
 					title={$t('public.homepage.log_in_account')}
 					aria-label={$t('public.homepage.log_in_account')}
 				>
@@ -449,7 +449,7 @@
 			{:else}
 				<a
 					href="/admin/login"
-					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
+					class="px-3 py-2 min-h-11 inline-flex items-center rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
 					title={$t('public.homepage.log_in')}
 					aria-label={$t('public.homepage.log_in')}
 				>

@@ -4,7 +4,7 @@
 </script>
 
 <button
-	class="p-2 rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+	class="p-2 min-w-11 min-h-11 inline-flex items-center justify-center rounded-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 	onclick={() => theme.toggle()}
 	aria-label={$theme === 'dark' ? $t('shared.theme.switch_to_light') : $t('shared.theme.switch_to_dark')}
 >

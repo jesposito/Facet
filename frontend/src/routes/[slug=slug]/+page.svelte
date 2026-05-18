@@ -286,7 +286,7 @@
 				<button
 					bind:this={printMenuTriggerEl}
 					onclick={() => showPrintMenu = !showPrintMenu}
-					class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+					class="p-2 min-w-11 min-h-11 inline-flex items-center justify-center rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
 					title={$t('public.aria.print_options')}
 					aria-label={$t('public.aria.print_options')}
 					aria-expanded={showPrintMenu}
@@ -342,7 +342,7 @@
 			{#if pb.authStore.isValid}
 				<a
 					href="/admin"
-					class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+					class="p-2 min-w-11 min-h-11 inline-flex items-center justify-center rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
 					title="Go to Admin"
 					aria-label={$t('public.aria.go_to_admin')}
 				>
