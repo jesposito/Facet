@@ -2275,7 +2275,10 @@
 			"multi_picker_selected_count": "{count} selected",
 			"multi_picker_confirm": "Confirm ({count})",
 			"multi_picker_or": "or",
-			"multi_picker_upload_new": "Upload New"
+			"multi_picker_upload_new": "Upload New",
+			"multi_picker_move_up": "Move {title} up",
+			"multi_picker_move_down": "Move {title} down",
+			"multi_picker_reorder_announce": "Moved {title} to position {position} of {total}"
 		},
 		"tokens": {
 			"page_title": "Share Tokens | Facet",

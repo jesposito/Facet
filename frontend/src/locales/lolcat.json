@@ -2100,7 +2100,10 @@
 			"multi_picker_selected_count": "{count} pikked",
 			"multi_picker_confirm": "Okai ({count})",
 			"multi_picker_or": "or",
-			"multi_picker_upload_new": "Uplodz Noo"
+			"multi_picker_upload_new": "Uplodz Noo",
+			"multi_picker_move_up": "Moov {title} up",
+			"multi_picker_move_down": "Moov {title} down",
+			"multi_picker_reorder_announce": "{title} nao at spot {position} ov {total}, k"
 		},
 		"tokens": {
 			"page_title": "Shaer Tokenz | Facet",

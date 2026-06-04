@@ -2100,7 +2100,10 @@
 			"multi_picker_selected_count": "{count} chosen",
 			"multi_picker_confirm": "Affirm ({count})",
 			"multi_picker_or": "egor",
-			"multi_picker_upload_new": "Onlod Celair"
+			"multi_picker_upload_new": "Onlod Celair",
+			"multi_picker_move_up": "Ortha {title} amrûn",
+			"multi_picker_move_down": "Penna {title} dadben",
+			"multi_picker_reorder_announce": "{title} gwennen na had {position} o {total}"
 		},
 		"tokens": {
 			"page_title": "Tokens of Passage | Facet",

@@ -2100,7 +2100,10 @@
 			"multi_picker_selected_count": "{count} acquired",
 			"multi_picker_confirm": "Confirm ({count})",
 			"multi_picker_or": "joq",
-			"multi_picker_upload_new": "ngoH chu'"
+			"multi_picker_upload_new": "ngoH chu'",
+			"multi_picker_move_up": "{title} Dung vIH",
+			"multi_picker_move_down": "{title} bIng vIH",
+			"multi_picker_reorder_announce": "{title} Daq {position} vIHta', {total} naQ"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",

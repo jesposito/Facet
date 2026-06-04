@@ -2100,7 +2100,10 @@
 			"multi_picker_selected_count": "{count} ausgewählt",
 			"multi_picker_confirm": "Bestätigen ({count})",
 			"multi_picker_or": "oder",
-			"multi_picker_upload_new": "Neue Datei hochladen"
+			"multi_picker_upload_new": "Neue Datei hochladen",
+			"multi_picker_move_up": "{title} nach oben verschieben",
+			"multi_picker_move_down": "{title} nach unten verschieben",
+			"multi_picker_reorder_announce": "{title} an Position {position} von {total} verschoben"
 		},
 		"tokens": {
 			"page_title": "Freigabe-Token | Facet",

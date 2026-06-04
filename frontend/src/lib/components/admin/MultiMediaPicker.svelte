@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { toasts } from '$lib/stores';
@@ -327,6 +328,45 @@
 		onchange?.();
 	}
 
+	// Screen-reader announcement for reorder actions (mounted unconditionally;
+	// only the text is toggled, to avoid double/zero announcements).
+	let reorderMessage = $state('');
+
+	/**
+	 * Move a selected item up or down in display order by swapping it within `value`
+	 * (the source array `selectedItems` is derived from). Keyboard-operable and
+	 * mobile-friendly; the public gallery already renders in `value` order.
+	 */
+	async function moveItem(
+		item: MediaOption,
+		index: number,
+		direction: 'up' | 'down',
+		btn: HTMLButtonElement
+	) {
+		const from = value.indexOf(item.id);
+		if (from === -1) return;
+		const to = direction === 'up' ? from - 1 : from + 1;
+		if (to < 0 || to >= value.length) return;
+		const next = [...value];
+		[next[from], next[to]] = [next[to], next[from]];
+		value = next;
+		onchange?.();
+		const position = direction === 'up' ? index : index + 2;
+		reorderMessage = $t('admin.media.multi_picker_reorder_announce', {
+			values: { title: item.title, position, total: selectedItems.length }
+		});
+		// Keyed {#each} keeps focus on the moving button; but at a boundary that
+		// button becomes disabled and blurs to <body>. Redirect focus to the
+		// opposite-direction control on the same chip so focus is never lost.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
+	}
+
 	async function handleFileUpload(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const files = target.files;
@@ -442,7 +482,7 @@
 		<!-- Selected items display -->
 		{#if selectedItems.length > 0}
 			<div class="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-				{#each selectedItems as item}
+				{#each selectedItems as item, index (item.id)}
 					<div class="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
 						{#if item.thumbnail_url || (isImage(item) && item.url)}
 							<img
@@ -459,9 +499,37 @@
 							</div>
 						{/if}
 						<span class="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[120px]">{item.title}</span>
+						{#if selectedItems.length > 1}
+							<div class="flex items-center">
+								<button
+									type="button"
+									data-move="up"
+									class="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed dark:hover:text-gray-200"
+									onclick={(e) => moveItem(item, index, 'up', e.currentTarget)}
+									disabled={index === 0}
+									aria-label={$t('admin.media.multi_picker_move_up', { values: { title: item.title } })}
+								>
+									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+									</svg>
+								</button>
+								<button
+									type="button"
+									data-move="down"
+									class="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed dark:hover:text-gray-200"
+									onclick={(e) => moveItem(item, index, 'down', e.currentTarget)}
+									disabled={index === selectedItems.length - 1}
+									aria-label={$t('admin.media.multi_picker_move_down', { values: { title: item.title } })}
+								>
+									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									</svg>
+								</button>
+							</div>
+						{/if}
 						<button
 							type="button"
-							class="text-gray-400 hover:text-red-500 dark:hover:text-red-400"
+							class="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400"
 							onclick={() => handleRemoveItem(item.id)}
 							aria-label={$t('admin.media.remove_item')}
 						>
@@ -520,6 +588,9 @@
 			<p class="text-xs text-gray-500 dark:text-gray-400">{helpText}</p>
 		{/if}
 	</div>
+
+	<!-- Reorder announcements for screen readers (always mounted; only text changes) -->
+	<div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{reorderMessage}</div>
 
 	<!-- Media picker modal -->
 	{#if showPicker}
