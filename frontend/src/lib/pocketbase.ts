@@ -216,6 +216,7 @@ export interface Talk {
 	description?: string;
 	slides_url?: string;
 	video_url?: string;
+	cover_image_library_url?: string;
 	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;

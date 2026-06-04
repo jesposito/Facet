@@ -1615,6 +1615,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Video URL (optional)",
 				"video_url_placeholder": "https://youtube.com/...",
+				"cover_image_label": "Cover Image",
+				"cover_image_help": "Shown as the talk's image when it has no video",
 				"required_error": "Title and event are required"
 			},
 			"testimonials": {

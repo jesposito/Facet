@@ -869,9 +869,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if styleErr == nil && len(styleRecords) > 0 {
 					p := styleRecords[0]
 					response["profile"] = map[string]interface{}{
-						"accent_color":    p.GetString("accent_color"),
+						"accent_color":     p.GetString("accent_color"),
 						"custom_hex_color": p.GetString("custom_hex_color"),
-						"font_pack":       p.GetString("font_pack"),
+						"font_pack":        p.GetString("font_pack"),
 					}
 				}
 
@@ -2033,22 +2033,23 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			response := map[string]interface{}{
-				"id":               talk.Id,
-				"title":            talk.GetString("title"),
-				"slug":             talk.GetString("slug"),
-				"event":            talk.GetString("event"),
-				"event_url":        talk.GetString("event_url"),
-				"date":             talk.GetDateTime("date"),
-				"location":         talk.GetString("location"),
-				"description":      talk.GetString("description"),
-				"slides_url":       talk.GetString("slides_url"),
-				"video_url":        talk.GetString("video_url"),
-				"created":          talk.GetDateTime("created"),
-				"updated":          talk.GetDateTime("updated"),
-				"visibility":       visibility,
-				"is_draft":         isDraft,
-				"is_authenticated": isAuthenticated,
-				"comments_enabled": talk.GetBool("comments_enabled"),
+				"id":                      talk.Id,
+				"title":                   talk.GetString("title"),
+				"slug":                    talk.GetString("slug"),
+				"event":                   talk.GetString("event"),
+				"event_url":               talk.GetString("event_url"),
+				"date":                    talk.GetDateTime("date"),
+				"location":                talk.GetString("location"),
+				"description":             talk.GetString("description"),
+				"slides_url":              talk.GetString("slides_url"),
+				"video_url":               talk.GetString("video_url"),
+				"cover_image_library_url": talk.GetString("cover_image_library_url"),
+				"created":                 talk.GetDateTime("created"),
+				"updated":                 talk.GetDateTime("updated"),
+				"visibility":              visibility,
+				"is_draft":                isDraft,
+				"is_authenticated":        isAuthenticated,
+				"comments_enabled":        talk.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs

@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				description: talk.description || '',
 				slides_url: talk.slides_url || null,
 				video_url: talk.video_url || null,
+				cover_image_library_url: talk.cover_image_library_url || null,
 				created: talk.created,
 				updated: talk.updated,
 				visibility: talk.visibility || 'public',

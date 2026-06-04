@@ -1440,6 +1440,8 @@
 				"slides_url_placeholder": "https://scrolls.me/...",
 				"video_url_label": "Recording Path (optional)",
 				"video_url_placeholder": "https://palantir.com/...",
+				"cover_image_label": "Emma Orchal",
+				"cover_image_help": "Tannen sui emma i-narn ir' video u-ea",
 				"required_error": "Title and gathering are required"
 			},
 			"testimonials": {

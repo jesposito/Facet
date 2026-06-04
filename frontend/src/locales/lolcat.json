@@ -1440,6 +1440,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Video URL (opshunl)",
 				"video_url_placeholder": "https://youtube.com/...",
+				"cover_image_label": "Kover Pikchur",
+				"cover_image_help": "Showd as teh tawk pikchur wen no video, k",
 				"required_error": "Tietl n event r requird"
 			},
 			"testimonials": {

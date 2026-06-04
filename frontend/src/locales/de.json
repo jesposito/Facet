@@ -1440,6 +1440,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Video-URL (optional)",
 				"video_url_placeholder": "https://youtube.com/...",
+				"cover_image_label": "Titelbild",
+				"cover_image_help": "Wird als Bild des Vortrags angezeigt, wenn kein Video vorhanden ist",
 				"required_error": "Titel und Veranstaltung sind erforderlich"
 			},
 			"testimonials": {

@@ -175,6 +175,15 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 				/>
 				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
 			</div>
+		{:else if data.talk.cover_image_library_url}
+			<div class="absolute inset-0">
+				<img
+					src={data.talk.cover_image_library_url}
+					alt=""
+					class="w-full h-full object-cover opacity-20"
+				/>
+				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
+			</div>
 		{/if}
 
 		<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
@@ -288,6 +297,14 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 					</svg>
 					<span class="text-lg font-medium">Watch Video</span>
 				</a>
+			</div>
+		{:else if data.talk.cover_image_library_url}
+			<div class="aspect-video w-full mb-8 rounded-xl overflow-hidden shadow-lg">
+				<img
+					src={data.talk.cover_image_library_url}
+					alt={data.talk.title}
+					class="w-full h-full object-cover"
+				/>
 			</div>
 		{/if}
 

@@ -1440,6 +1440,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Recording URL (optional)",
 				"video_url_placeholder": "https://subspace.klingon/...",
+				"cover_image_label": "So'wI' mIllogh",
+				"cover_image_help": "video Hutlh qaSDI', mIllogh cha'lu'",
 				"required_error": "Title and event are required"
 			},
 			"testimonials": {
