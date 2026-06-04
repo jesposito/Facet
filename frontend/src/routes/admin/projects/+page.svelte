@@ -867,6 +867,7 @@ let filteredProjects = $derived(
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="shortcodes-title"
+				tabindex="-1"
 				onkeydown={(e) => e.key === 'Escape' && toggleShortcodes()}
 			>
 				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">

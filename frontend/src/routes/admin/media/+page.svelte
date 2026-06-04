@@ -1635,7 +1635,7 @@
 					</div>
 					{#if availableTags.length > 0}
 						<div>
-							<label class="label">{$t('admin.media.edit_tags_label')}</label>
+							<span class="label">{$t('admin.media.edit_tags_label')}</span>
 							<div class="flex flex-wrap gap-2">
 								{#each availableTags as tag}
 									<label
@@ -1747,7 +1747,7 @@
 
 			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); executeBulkTag(); }}>
 				<div>
-					<label class="label">{$t('admin.media.bulk_tag_add_label')}</label>
+					<span class="label">{$t('admin.media.bulk_tag_add_label')}</span>
 					<div class="flex flex-wrap gap-2">
 						{#each availableTags as tag}
 							<label
@@ -1783,7 +1783,7 @@
 				</div>
 
 				<div>
-					<label class="label">{$t('admin.media.bulk_tag_remove_label')}</label>
+					<span class="label">{$t('admin.media.bulk_tag_remove_label')}</span>
 					<div class="flex flex-wrap gap-2">
 						{#each availableTags as tag}
 							<label

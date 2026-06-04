@@ -299,7 +299,7 @@
 
 				{#if showPrintMenu}
 					<div class="fixed inset-0" onclick={closePrintMenu} onkeydown={handlePrintMenuKeydown} role="presentation" tabindex="-1"></div>
-					<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50" role="menu" onkeydown={handlePrintMenuKeydown}>
+					<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50" role="menu" tabindex="-1" onkeydown={handlePrintMenuKeydown}>
 						<button
 							onclick={() => { window.print(); closePrintMenu(); }}
 							class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
