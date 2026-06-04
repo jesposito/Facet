@@ -343,10 +343,13 @@
 		direction: 'up' | 'down',
 		btn: HTMLButtonElement
 	) {
+		// Swap with the adjacent *displayed* item (not value[from±1]), so hidden or
+		// not-yet-reconciled refs that may sit between displayed items are never moved.
+		const neighbor = selectedItems[direction === 'up' ? index - 1 : index + 1];
+		if (!neighbor) return;
 		const from = value.indexOf(item.id);
-		if (from === -1) return;
-		const to = direction === 'up' ? from - 1 : from + 1;
-		if (to < 0 || to >= value.length) return;
+		const to = value.indexOf(neighbor.id);
+		if (from === -1 || to === -1) return;
 		const next = [...value];
 		[next[from], next[to]] = [next[to], next[from]];
 		value = next;
