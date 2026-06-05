@@ -2795,6 +2795,7 @@
 		},
 		"lightbox": {
 			"close": "Cloze litebox",
+			"label": "Pictur litebox",
 			"next_image": "Nekst pictur",
 			"previous_image": "Previus pictur"
 		},

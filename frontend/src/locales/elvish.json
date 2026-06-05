@@ -2795,6 +2795,7 @@
 		},
 		"lightbox": {
 			"close": "Close vision",
+			"label": "Image vision",
 			"next_image": "Next vision",
 			"previous_image": "Previous vision"
 		},

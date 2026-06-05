@@ -3,6 +3,7 @@
 	import { toasts } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	interface Props {
 		onSuccess: (imported: Record<string, string[]>) => void;
@@ -17,6 +18,13 @@
 	let dragActive = $state(false);
 	let visibility: 'private' | 'unlisted' | 'public' = $state('private');
 	let isMobile = $state(false);
+	let headingEl = $state<HTMLHeadingElement | null>(null);
+
+	// Move focus to the dialog title on open (the focus trap runs with
+	// autoFocus:false so it does not land on the invisible backdrop button).
+	onMount(() => {
+		headingEl?.focus();
+	});
 
 	function handleFileDrop(e: DragEvent) {
 		e.preventDefault();
@@ -111,22 +119,28 @@
 	class="fixed inset-0 bg-black/50 flex {isMobile
 		? 'flex-col justify-end'
 		: 'items-center justify-center'} p-4 z-50"
+	use:focusTrap={{ onEscape: onClose, autoFocus: false }}
 >
 	<button
 		class="absolute inset-0 w-full h-full cursor-default border-0 p-0 m-0 bg-transparent"
+		tabindex="-1"
 		aria-label={$t('shared.aria.close_modal')}
 		onclick={onClose}
 		type="button"
 	></button>
 
 	<div
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="resume-import-title"
+		tabindex="-1"
 		class="card w-full p-6 transform transition-transform relative z-10 {isMobile
 			? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto'
 			: 'max-w-2xl'}"
 	>
 		<div class="flex justify-between items-start mb-6">
 			<div>
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('admin.import.modal_title')}</h2>
+				<h2 id="resume-import-title" tabindex="-1" bind:this={headingEl} class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('admin.import.modal_title')}</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
 					{$t('admin.import.modal_subtitle')}
 				</p>

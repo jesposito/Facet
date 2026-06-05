@@ -2795,6 +2795,7 @@
 		},
 		"lightbox": {
 			"close": "Close viewscreen",
+			"label": "Image viewscreen",
 			"next_image": "Next display",
 			"previous_image": "Previous display"
 		},

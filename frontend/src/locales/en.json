@@ -2796,6 +2796,7 @@
 		},
 		"lightbox": {
 			"close": "Close lightbox",
+			"label": "Image lightbox",
 			"next_image": "Next image",
 			"previous_image": "Previous image"
 		},

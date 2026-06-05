@@ -11,6 +11,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -864,13 +865,16 @@ let filteredProjects = $derived(
 		{#if showShortcodes}
 			<div
 				class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="shortcodes-title"
-				tabindex="-1"
-				onkeydown={(e) => e.key === 'Escape' && toggleShortcodes()}
+				role="presentation"
 			>
-				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="shortcodes-title"
+					tabindex="-1"
+					use:focusTrap={{ onEscape: toggleShortcodes }}
+				>
 					<div class="flex items-center justify-between">
 						<h3 id="shortcodes-title" class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.projects.shortcodes_title')}</h3>
 						<button class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>{$t('shared.actions.close')}</button>
