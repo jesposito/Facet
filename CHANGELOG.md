@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.21.18 - June 05, 2026
+
+**Other Changes:**
+- Self-hosted Facet issue sweep: #407 #400 #406 #405 #403 #375 #404 + a11y hardening
+
+**Pull Requests:** [#442](https://github.com/jesposito/Facet/pull/442),
+
+---
+
+
 ## v2.21.17 - May 17, 2026
 
 **Bugs Fixed:**
