@@ -9,13 +9,17 @@
 	 * - Drag-and-drop reordering of items within sections
 	 */
 	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import type { CustomContent } from '$lib/pocketbase';
 	import { VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { t } from 'svelte-i18n';
+
+	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -224,7 +228,7 @@
 		updateSectionItems();
 	}
 
-	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
+	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string; id?: string } }>) {
 		const trigger = e.detail.info?.trigger;
 		const finalPublicItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		// Non-public items = private, unlisted, or draft - keep them at the end (not shown in UI)
@@ -234,6 +238,12 @@
 
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
 			updateItemsOrderFromDisplay(sectionKey);
+			// Announce the dropped item's new position for screen-reader users.
+			const droppedId = e.detail.info?.id;
+			const droppedIdx = finalPublicItems.findIndex(i => i.id === droppedId);
+			if (droppedIdx !== -1) {
+				announceItemMove(finalPublicItems[droppedIdx].label, droppedIdx + 1, finalPublicItems.length);
+			}
 		}
 	}
 
@@ -245,9 +255,58 @@
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
 	}
+
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceItemMove(label: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.sections.item_reorder_announce', {
+				values: { item: label, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible item reordering within a section (complements drag).
+	// Swaps the item with its adjacent neighbor in the displayed public list and
+	// reuses the existing drag persistence path (updateItemsOrderFromDisplay).
+	async function moveSectionItem(
+		sectionKey: string,
+		index: number,
+		direction: 'up' | 'down',
+		btn: HTMLButtonElement
+	) {
+		const allItems = sectionItems[sectionKey] || [];
+		const publicItems = allItems.filter(i => i.visibility === 'public' && !i.is_draft);
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= publicItems.length) return;
+
+		const moved = publicItems[index];
+		const newPublic = [...publicItems];
+		[newPublic[index], newPublic[targetIdx]] = [newPublic[targetIdx], newPublic[index]];
+
+		// Rebuild sectionItems as [reordered public, ...non-public] (same shape the
+		// drag handlers maintain) then persist selection order via the shared path.
+		const nonPublicItems = allItems.filter(i => i.visibility !== 'public' || i.is_draft);
+		sectionItems[sectionKey] = [...newPublic, ...nonPublicItems];
+		updateSectionItems();
+		updateItemsOrderFromDisplay(sectionKey);
+
+		announceItemMove(moved.label, targetIdx + 1, publicItems.length);
+
+		// Keyed {#each} keeps focus on the moving button; redirect at a boundary
+		// where the pressed button becomes disabled and would blur to <body>.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
+	}
 </script>
 
 <div class="space-y-4">
+	<!-- Polite live region for keyboard + drag reorder announcements -->
+	<ReorderAnnouncer bind:this={reorderAnnouncer} />
 	<div class="flex items-center justify-between">
 		<div>
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.sections.title')}</h2>
@@ -507,7 +566,7 @@
 									onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
 									onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 								>
-									{#each publicItems as item (item.id)}
+									{#each publicItems as item, itemIdx (item.id)}
 										{@const isSelected = sectionConfig.items.includes(item.id)}
 										<div
 											class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
@@ -520,6 +579,33 @@
 												<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 													<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 												</svg>
+											</div>
+											<!-- Keyboard-accessible reorder controls (complement drag) -->
+											<div class="flex flex-col flex-shrink-0">
+												<button
+													type="button"
+													data-move="up"
+													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+													disabled={itemIdx === 0}
+													onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
+													aria-label={$t('admin.view_editor.sections.item_move_up', { values: { item: item.label } })}
+												>
+													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+													</svg>
+												</button>
+												<button
+													type="button"
+													data-move="down"
+													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+													disabled={itemIdx === publicItems.length - 1}
+													onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
+													aria-label={$t('admin.view_editor.sections.item_move_down', { values: { item: item.label } })}
+												>
+													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+													</svg>
+												</button>
 											</div>
 											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 											<label
