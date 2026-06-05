@@ -1865,6 +1865,8 @@
 				"drag_to_reorder": "Drag to reorder",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
 				"item_move_up": "Move {item} up",
 				"item_move_down": "Move {item} down",
 				"item_reorder_announce": "Moved {item} to position {position} of {total}",

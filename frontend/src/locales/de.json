@@ -1690,6 +1690,8 @@
 				"drag_to_reorder": "Zum Neuordnen ziehen",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
 				"item_move_up": "{item} nach oben verschieben",
 				"item_move_down": "{item} nach unten verschieben",
 				"item_reorder_announce": "{item} an Position {position} von {total} verschoben",

@@ -1690,6 +1690,8 @@
 				"drag_to_reorder": "Draw to reorder",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
 				"item_move_up": "Ortha {item} amrûn",
 				"item_move_down": "Ortha {item} dad",
 				"item_reorder_announce": "{item} gwennen na had {position} o {total}",

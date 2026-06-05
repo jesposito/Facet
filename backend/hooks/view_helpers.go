@@ -511,7 +511,11 @@ func incrementHomepageViewCount(app core.App, e *core.RequestEvent) {
 	// Bot-gate and ~30-min dedup so bots and rapid repeat hits from the same
 	// visitor don't inflate the homepage counter. Uses the "homepage" sentinel
 	// target and the same daily-salted IP hash as access_logs.
-	if !services.ShouldCountView(GetUserAgent(e), GetIP(e), services.HomepageDedupTarget) {
+	// Internal SSR requests carry the frontend server's IP/UA, not the visitor's,
+	// so count those unconditionally (matching pre-change behavior); direct hits
+	// are bot-gated and ~30-min deduped.
+	if e.Request.Header.Get("X-Internal") != "true" &&
+		!services.ShouldCountView(GetUserAgent(e), GetIP(e), services.HomepageDedupTarget) {
 		return
 	}
 	services.SafeGo(pb, "homepage-view-count", func() {

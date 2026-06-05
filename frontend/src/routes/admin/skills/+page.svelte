@@ -658,7 +658,7 @@ async function loadCategoryOrder() {
 										class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
 										disabled={catIdx === 0}
 										onclick={(e) => moveCategoryOrder(catIdx, 'up', e.currentTarget)}
-										aria-label={$t('admin.view_editor.sections.move_up', { values: { section: cat.name } })}
+										aria-label={$t('admin.view_editor.sections.move_left', { values: { section: cat.name } })}
 									>
 										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -670,7 +670,7 @@ async function loadCategoryOrder() {
 										class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
 										disabled={catIdx === categoryOrder.length - 1}
 										onclick={(e) => moveCategoryOrder(catIdx, 'down', e.currentTarget)}
-										aria-label={$t('admin.view_editor.sections.move_down', { values: { section: cat.name } })}
+										aria-label={$t('admin.view_editor.sections.move_right', { values: { section: cat.name } })}
 									>
 										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
 											<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />

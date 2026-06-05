@@ -1690,6 +1690,8 @@
 				"drag_to_reorder": "Drag to reorder",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
 				"item_move_up": "{item} Dung vIH",
 				"item_move_down": "{item} bIng vIH",
 				"item_reorder_announce": "{item} Daq {position} vIHta', {total} naQ",

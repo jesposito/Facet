@@ -1690,6 +1690,8 @@
 				"drag_to_reorder": "Drag 2 reordr",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
 				"item_move_up": "Moov {item} up",
 				"item_move_down": "Moov {item} down",
 				"item_reorder_announce": "{item} nao at spot {position} ov {total}, k",

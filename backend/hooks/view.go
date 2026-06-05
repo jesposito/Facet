@@ -474,7 +474,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// Bot-gate and ~30-min dedup the raw view_count so bots and
 				// rapid repeat hits from the same visitor don't inflate it.
 				// Keyed per-view on the same daily-salted IP hash as access_logs.
-				if services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id) {
+				// Internal SSR requests carry the frontend server's IP/UA (the real
+				// visitor is not forwarded), so they can't be keyed on the visitor —
+				// count those unconditionally, matching pre-change behavior. Direct
+				// (non-internal) hits are bot-gated and ~30-min deduped.
+				if e.Request.Header.Get("X-Internal") == "true" ||
+					services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id) {
 					// Increment view count and last_viewed_at in the background
 					viewID := view.Id
 					collection := viewsCollection
@@ -2021,13 +2026,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// project page. Gating is applied inside fetchRelatedRecords so
 			// private/draft items are never leaked on this public endpoint.
 			if expIDs := relationIDs(project, "related_experience"); len(expIDs) > 0 {
-				response["related_experience"] = expIDs
 				if expanded := fetchRelatedRecords(app, "experience", expIDs, []string{"title", "company", "location"}); len(expanded) > 0 {
 					response["related_experience_expand"] = expanded
 				}
 			}
 			if eduIDs := relationIDs(project, "related_education"); len(eduIDs) > 0 {
-				response["related_education"] = eduIDs
 				if expanded := fetchRelatedRecords(app, "education", eduIDs, []string{"institution", "degree", "field"}); len(expanded) > 0 {
 					response["related_education_expand"] = expanded
 				}
