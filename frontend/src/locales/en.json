@@ -1511,7 +1511,19 @@
 				"toast_order_saved": "Order saved",
 				"toast_order_error": "Failed to save order",
 				"action_feature": "Feature",
-				"action_unfeature": "Unfeature"
+				"action_unfeature": "Unfeature",
+				"related_heading": "Related Experience & Education",
+				"related_help": "Link work experience and education records to display them on this project page.",
+				"related_experience_label": "Related Experience",
+				"related_experience_add": "Add experience",
+				"related_experience_edit": "Edit experience",
+				"related_experience_list": "Available experience",
+				"related_experience_empty": "No experience records yet",
+				"related_education_label": "Related Education",
+				"related_education_add": "Add education",
+				"related_education_edit": "Edit education",
+				"related_education_list": "Available education",
+				"related_education_empty": "No education records yet"
 			},
 			"education": {
 				"title": "Education",
@@ -1978,6 +1990,10 @@
 			"time_minutes_ago": "{count} minute(s) ago",
 			"time_hours_ago": "{count} hour(s) ago",
 			"time_days_ago": "{count} day(s) ago"
+		},
+		"related": {
+			"loading": "Loading...",
+			"remove_item": "Remove {name}"
 		},
 		"tags": {
 			"remove_tag": "Remove tag {name}",
@@ -2808,7 +2824,8 @@
 			"positions_count": "{count} positions"
 		},
 		"projects": {
-			"featured": "Featured"
+			"featured": "Featured",
+			"related_heading": "Related Experience & Education"
 		},
 		"certifications": {
 			"expired": "Expired",

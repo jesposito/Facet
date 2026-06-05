@@ -1336,7 +1336,19 @@
 				"toast_order_saved": "Reihenfolge gespeichert",
 				"toast_order_error": "Fehler beim Speichern der Reihenfolge",
 				"action_feature": "Hervorheben",
-				"action_unfeature": "Nicht hervorheben"
+				"action_unfeature": "Nicht hervorheben",
+				"related_heading": "Zugehörige Erfahrung & Ausbildung",
+				"related_help": "Verknüpfe Berufserfahrung und Ausbildung, um sie auf dieser Projektseite anzuzeigen.",
+				"related_experience_label": "Zugehörige Erfahrung",
+				"related_experience_add": "Erfahrung hinzufügen",
+				"related_experience_edit": "Erfahrung bearbeiten",
+				"related_experience_list": "Verfügbare Erfahrung",
+				"related_experience_empty": "Noch keine Erfahrungseinträge",
+				"related_education_label": "Zugehörige Ausbildung",
+				"related_education_add": "Ausbildung hinzufügen",
+				"related_education_edit": "Ausbildung bearbeiten",
+				"related_education_list": "Verfügbare Ausbildung",
+				"related_education_empty": "Noch keine Ausbildungseinträge"
 			},
 			"education": {
 				"title": "Ausbildung",
@@ -1803,6 +1815,10 @@
 			"time_minutes_ago": "vor {count} Minute(n)",
 			"time_hours_ago": "vor {count} Stunde(n)",
 			"time_days_ago": "vor {count} Tag(en)"
+		},
+		"related": {
+			"loading": "Wird geladen...",
+			"remove_item": "{name} entfernen"
 		},
 		"tags": {
 			"remove_tag": "Tag {name} entfernen",
@@ -2807,7 +2823,8 @@
 			"positions_count": "{count} Positionen"
 		},
 		"projects": {
-			"featured": "Empfohlen"
+			"featured": "Empfohlen",
+			"related_heading": "Zugehörige Erfahrung & Ausbildung"
 		},
 		"certifications": {
 			"expired": "Abgelaufen",

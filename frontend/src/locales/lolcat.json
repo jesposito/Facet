@@ -1336,7 +1336,19 @@
 				"toast_order_saved": "Ordr savd",
 				"toast_order_error": "Faild 2 save ordr",
 				"action_feature": "Featchur",
-				"action_unfeature": "Unfeatchur"
+				"action_unfeature": "Unfeatchur",
+				"related_heading": "Relaytd Werk & Skool",
+				"related_help": "Tie ur jobz an skoolin to show em on dis projek payj.",
+				"related_experience_label": "Relaytd Werk",
+				"related_experience_add": "Add werk",
+				"related_experience_edit": "Edit werk",
+				"related_experience_list": "Werk u can pik",
+				"related_experience_empty": "No werk yet :(",
+				"related_education_label": "Relaytd Skool",
+				"related_education_add": "Add skool",
+				"related_education_edit": "Edit skool",
+				"related_education_list": "Skool u can pik",
+				"related_education_empty": "No skool yet :("
 			},
 			"education": {
 				"title": "Educashun",
@@ -1803,6 +1815,10 @@
 			"time_minutes_ago": "{count} minit(z) ago",
 			"time_hours_ago": "{count} hr(z) ago",
 			"time_days_ago": "{count} day(z) ago"
+		},
+		"related": {
+			"loading": "Loadin...",
+			"remove_item": "Get rid of {name}"
 		},
 		"tags": {
 			"remove_tag": "Removez tag {name}",
@@ -2807,7 +2823,8 @@
 			"positions_count": "{count} pozishuns"
 		},
 		"projects": {
-			"featured": "Feechurd"
+			"featured": "Feechurd",
+			"related_heading": "Relaytd Werk & Skool"
 		},
 		"certifications": {
 			"expired": "Expird",

@@ -107,6 +107,82 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 	return out, nil
 }
 
+// fetchRelatedRecords loads experience/education records by ID, applying the
+// same public + non-draft visibility gating used elsewhere so private/draft
+// items are never leaked onto a public project page. Only display fields are
+// returned and ordering follows the supplied id list. fieldKeys lists the
+// record fields to expose (in addition to id, start_date, end_date).
+func fetchRelatedRecords(app core.App, collection string, ids []string, fieldKeys []string) []map[string]interface{} {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	filters := make([]string, 0, len(ids))
+	params := map[string]interface{}{}
+	for i, id := range ids {
+		key := fmt.Sprintf("id%d", i)
+		filters = append(filters, fmt.Sprintf("id={:%s}", key))
+		params[key] = id
+	}
+
+	// Gate to public, non-draft records only (mirrors homepage section filters).
+	filter := fmt.Sprintf("(%s) && visibility = 'public' && is_draft = false", strings.Join(filters, " || "))
+
+	records, err := app.FindRecordsByFilter(
+		getTableName(app, collection),
+		filter,
+		"",
+		len(ids),
+		0,
+		params,
+	)
+	if err != nil {
+		return nil
+	}
+
+	byID := make(map[string]*core.Record, len(records))
+	for _, r := range records {
+		byID[r.Id] = r
+	}
+
+	out := make([]map[string]interface{}, 0, len(records))
+	for _, id := range ids {
+		r, ok := byID[id]
+		if !ok {
+			continue
+		}
+		item := map[string]interface{}{
+			"id":         r.Id,
+			"start_date": r.GetString("start_date"),
+			"end_date":   r.GetString("end_date"),
+		}
+		for _, f := range fieldKeys {
+			item[f] = r.GetString(f)
+		}
+		out = append(out, item)
+	}
+
+	return out
+}
+
+// relationIDs extracts a relation field's id list from a record, handling both
+// the []string and []interface{} shapes PocketBase may return.
+func relationIDs(record *core.Record, field string) []string {
+	switch v := record.Get(field).(type) {
+	case []string:
+		return v
+	case []interface{}:
+		ids := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				ids = append(ids, s)
+			}
+		}
+		return ids
+	}
+	return nil
+}
+
 // Reserved slugs that cannot be used for views
 // These correspond to existing routes or system paths
 // SYNC WITH: frontend/src/params/slug.ts
@@ -1938,6 +2014,22 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
 					response["media_refs_expand"] = expanded
+				}
+			}
+
+			// Expand related experience/education records for display on the
+			// project page. Gating is applied inside fetchRelatedRecords so
+			// private/draft items are never leaked on this public endpoint.
+			if expIDs := relationIDs(project, "related_experience"); len(expIDs) > 0 {
+				response["related_experience"] = expIDs
+				if expanded := fetchRelatedRecords(app, "experience", expIDs, []string{"title", "company", "location"}); len(expanded) > 0 {
+					response["related_experience_expand"] = expanded
+				}
+			}
+			if eduIDs := relationIDs(project, "related_education"); len(eduIDs) > 0 {
+				response["related_education"] = eduIDs
+				if expanded := fetchRelatedRecords(app, "education", eduIDs, []string{"institution", "degree", "field"}); len(expanded) > 0 {
+					response["related_education_expand"] = expanded
 				}
 			}
 

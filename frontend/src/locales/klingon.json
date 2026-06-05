@@ -1336,7 +1336,19 @@
 				"toast_order_saved": "Order saved",
 				"toast_order_error": "Failed to save order",
 				"action_feature": "Feature",
-				"action_unfeature": "Unfeature"
+				"action_unfeature": "Unfeature",
+				"related_heading": "wIv wanI' je ghojmoq",
+				"related_help": "project De' Daq wanI' je ghojmoq cha'meH chol.",
+				"related_experience_label": "wIv wanI'",
+				"related_experience_add": "wanI' chel",
+				"related_experience_edit": "wanI' choH",
+				"related_experience_list": "wanI' lo'laH",
+				"related_experience_empty": "wanI' tu'lu'be'",
+				"related_education_label": "wIv ghojmoq",
+				"related_education_add": "ghojmoq chel",
+				"related_education_edit": "ghojmoq choH",
+				"related_education_list": "ghojmoq lo'laH",
+				"related_education_empty": "ghojmoq tu'lu'be'"
 			},
 			"education": {
 				"title": "Training",
@@ -1803,6 +1815,10 @@
 			"time_minutes_ago": "{count} minute(s) ago",
 			"time_hours_ago": "{count} hour(s) ago",
 			"time_days_ago": "{count} day(s) ago"
+		},
+		"related": {
+			"loading": "taghtaH...",
+			"remove_item": "{name} teq"
 		},
 		"tags": {
 			"remove_tag": "Remove classification {name}",
@@ -2807,7 +2823,8 @@
 			"positions_count": "{count} positions"
 		},
 		"projects": {
-			"featured": "Honored"
+			"featured": "Honored",
+			"related_heading": "wanI' je ghojmoq"
 		},
 		"certifications": {
 			"expired": "Expired",

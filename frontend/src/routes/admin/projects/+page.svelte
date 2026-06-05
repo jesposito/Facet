@@ -5,7 +5,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
-	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
+	import { pb, type Project, type Experience, type Education, getFileUrl } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -19,6 +19,7 @@
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
+	import AdminRecordSelector from '$components/admin/AdminRecordSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
@@ -52,6 +53,11 @@ let saving = $state(false);
 let commentsEnabled = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 let adminTagIds: string[] = $state([]);
+let relatedExperienceIds: string[] = $state([]);
+let relatedEducationIds: string[] = $state([]);
+let availableExperience: Experience[] = $state([]);
+let availableEducation: Education[] = $state([]);
+let relatedLoading = $state(true);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
@@ -79,7 +85,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl, commentsEnabled };
+	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl, commentsEnabled, relatedExperienceIds, relatedEducationIds };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -97,6 +103,8 @@ function restoreFromDraft(data: Record<string, any>) {
 	mediaRefs = data.mediaRefs || [];
 	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 	commentsEnabled = data.commentsEnabled === true;
+	relatedExperienceIds = data.relatedExperienceIds || [];
+	relatedEducationIds = data.relatedEducationIds || [];
 }
 
 function handleFormChange() {
@@ -123,6 +131,7 @@ afterNavigate(() => {
 
 onMount(loadProjects);
 onMount(loadAvailableTags);
+onMount(loadRelatedOptions);
 onMount(async () => {
 	if (browser) {
 		const { dndzone: dnd } = await import('svelte-dnd-action');
@@ -144,6 +153,38 @@ async function loadAvailableTags() {
 	} catch (err) {
 		console.error('Failed to load available tags:', err);
 	}
+}
+
+async function loadRelatedOptions() {
+	relatedLoading = true;
+	try {
+		const [expResp, eduResp] = await Promise.all([
+			collection('experience').getList(1, 200, { sort: '-sort_order,-start_date' }),
+			collection('education').getList(1, 200, { sort: '-sort_order,-end_date' })
+		]);
+		availableExperience = expResp.items as unknown as Experience[];
+		availableEducation = eduResp.items as unknown as Education[];
+	} catch (err) {
+		console.error('Failed to load related experience/education:', err);
+	} finally {
+		relatedLoading = false;
+	}
+}
+
+function formatDateRange(start?: string, end?: string): string {
+	const fmt = (d?: string) => (d ? String(d).slice(0, 7).replace(/-01$/, '') : '');
+	const startLabel = fmt(start);
+	const endLabel = end ? fmt(end) : $t('shared.time.present');
+	if (!startLabel && !end) return '';
+	return [startLabel, endLabel].filter(Boolean).join(' – ');
+}
+
+function experienceLabel(record: Experience): string {
+	return [record.title, record.company].filter(Boolean).join(' · ') || record.company;
+}
+
+function educationLabel(record: Education): string {
+	return [record.degree, record.institution].filter(Boolean).join(' · ') || record.institution;
 }
 
 let filteredProjects = $derived(
@@ -197,6 +238,8 @@ let filteredProjects = $derived(
 	mediaRefs = [];
 	adminTagIds = [];
 	commentsEnabled = false;
+	relatedExperienceIds = [];
+	relatedEducationIds = [];
 }
 
 	function openNewForm() {
@@ -243,6 +286,8 @@ let filteredProjects = $derived(
 	isFeatured = project.is_featured;
 	sortOrder = project.sort_order;
 	adminTagIds = project.admin_tags || [];
+	relatedExperienceIds = project.related_experience || [];
+	relatedEducationIds = project.related_education || [];
 	coverImageLibraryUrl = (project as any).cover_image_library_url || '';
 	clearCoverImage = false;
 	commentsEnabled = (project as any).comments_enabled ?? false;
@@ -308,6 +353,8 @@ let filteredProjects = $derived(
 			formData.append('is_featured', String(isFeatured));
 			formData.append('sort_order', String(sortOrder));
 			formData.append('admin_tags', JSON.stringify(adminTagIds));
+			formData.append('related_experience', JSON.stringify(relatedExperienceIds));
+			formData.append('related_education', JSON.stringify(relatedEducationIds));
 			formData.append('comments_enabled', String(commentsEnabled));
 
 			if (coverImageFile && coverImageFile.length > 0) {
@@ -783,6 +830,46 @@ let filteredProjects = $derived(
 						label={$t('admin.content.common.attached_media')}
 						helpText={$t('admin.content.projects.media_attach_help')}
 					/>
+				</div>
+			</AccordionSection>
+
+			<AccordionSection title={$t('admin.content.projects.related_heading')} open={false}>
+				<div class="space-y-4">
+					<p class="text-sm text-gray-500 dark:text-gray-400">
+						{$t('admin.content.projects.related_help')}
+					</p>
+					<div>
+						<span id="related-experience-label" class="label">{$t('admin.content.projects.related_experience_label')}</span>
+						<AdminRecordSelector
+							bind:selectedIds={relatedExperienceIds}
+							options={availableExperience}
+							loading={relatedLoading}
+							getLabel={experienceLabel}
+							getSubLabel={(record) => formatDateRange(record.start_date, record.end_date)}
+							addLabel={$t('admin.content.projects.related_experience_add')}
+							editLabel={$t('admin.content.projects.related_experience_edit')}
+							listLabel={$t('admin.content.projects.related_experience_list')}
+							emptyLabel={$t('admin.content.projects.related_experience_empty')}
+							labelledBy="related-experience-label"
+							onchange={handleFormChange}
+						/>
+					</div>
+					<div>
+						<span id="related-education-label" class="label">{$t('admin.content.projects.related_education_label')}</span>
+						<AdminRecordSelector
+							bind:selectedIds={relatedEducationIds}
+							options={availableEducation}
+							loading={relatedLoading}
+							getLabel={educationLabel}
+							getSubLabel={(record) => formatDateRange(record.start_date, record.end_date)}
+							addLabel={$t('admin.content.projects.related_education_add')}
+							editLabel={$t('admin.content.projects.related_education_edit')}
+							listLabel={$t('admin.content.projects.related_education_list')}
+							emptyLabel={$t('admin.content.projects.related_education_empty')}
+							labelledBy="related-education-label"
+							onchange={handleFormChange}
+						/>
+					</div>
 				</div>
 			</AccordionSection>
 

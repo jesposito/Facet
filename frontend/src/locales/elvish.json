@@ -1336,7 +1336,19 @@
 				"toast_order_saved": "Order preserved",
 				"toast_order_error": "Failed to preserve the order",
 				"action_feature": "Feature",
-				"action_unfeature": "Unfeature"
+				"action_unfeature": "Unfeature",
+				"related_heading": "Maw a Pelfamilarye",
+				"related_help": "Nuda i maw a i pelfamilarye an tirië ena i project-hen.",
+				"related_experience_label": "Maw Govanen",
+				"related_experience_add": "Anno maw",
+				"related_experience_edit": "Cened maw",
+				"related_experience_list": "Maw bain",
+				"related_experience_empty": "Ú-maw an sí",
+				"related_education_label": "Pelfamilarye Govanen",
+				"related_education_add": "Anno pelfamilarye",
+				"related_education_edit": "Cened pelfamilarye",
+				"related_education_list": "Pelfamilarye bain",
+				"related_education_empty": "Ú-pelfamilarye an sí"
 			},
 			"education": {
 				"title": "Learning",
@@ -1803,6 +1815,10 @@
 			"time_minutes_ago": "{count} minute(s) past",
 			"time_hours_ago": "{count} hour(s) past",
 			"time_days_ago": "{count} day(s) past"
+		},
+		"related": {
+			"loading": "Pelia...",
+			"remove_item": "Gwanno {name}"
 		},
 		"tags": {
 			"remove_tag": "Remove mark {name}",
@@ -2807,7 +2823,8 @@
 			"positions_count": "{count} positions"
 		},
 		"projects": {
-			"featured": "Honored"
+			"featured": "Honored",
+			"related_heading": "Maw a Pelfamilarye"
 		},
 		"certifications": {
 			"expired": "Expired",
