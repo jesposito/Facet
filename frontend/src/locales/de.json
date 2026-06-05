@@ -492,6 +492,9 @@
 			"period_30d": "30 Tage",
 			"period_90d": "90 Tage",
 			"total_views": "Gesamtaufrufe",
+			"total_views_help": "Alle gezählten Seitenaufrufe, einschließlich wiederholter Besuche.",
+			"unique_visitors": "Eindeutige Besucher",
+			"unique_visitors_help": "Eindeutige Besucher, geschätzt anhand täglich rotierender, anonymisierter IP-Signale.",
 			"views_over_time": "Aufrufe über Zeit",
 			"popular_views": "Beliebte Ansichten",
 			"top_referrers": "Top-Referrer",
@@ -1233,6 +1236,9 @@
 				"reorder_save": "Reihenfolge speichern",
 				"reorder_cancel": "Neuordnung abbrechen",
 				"reorder_saving": "Wird gespeichert...",
+				"reorder_move_up": "{item} nach oben verschieben",
+				"reorder_move_down": "{item} nach unten verschieben",
+				"reorder_announce": "{item} an Position {position} von {total} verschoben",
 				"details_section": "Details",
 				"settings_section": "Einstellungen",
 				"required_field": "*",
@@ -1333,7 +1339,19 @@
 				"toast_order_saved": "Reihenfolge gespeichert",
 				"toast_order_error": "Fehler beim Speichern der Reihenfolge",
 				"action_feature": "Hervorheben",
-				"action_unfeature": "Nicht hervorheben"
+				"action_unfeature": "Nicht hervorheben",
+				"related_heading": "Zugehörige Erfahrung & Ausbildung",
+				"related_help": "Verknüpfe Berufserfahrung und Ausbildung, um sie auf dieser Projektseite anzuzeigen.",
+				"related_experience_label": "Zugehörige Erfahrung",
+				"related_experience_add": "Erfahrung hinzufügen",
+				"related_experience_edit": "Erfahrung bearbeiten",
+				"related_experience_list": "Verfügbare Erfahrung",
+				"related_experience_empty": "Noch keine Erfahrungseinträge",
+				"related_education_label": "Zugehörige Ausbildung",
+				"related_education_add": "Ausbildung hinzufügen",
+				"related_education_edit": "Ausbildung bearbeiten",
+				"related_education_list": "Verfügbare Ausbildung",
+				"related_education_empty": "Noch keine Ausbildungseinträge"
 			},
 			"education": {
 				"title": "Ausbildung",
@@ -1440,6 +1458,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Video-URL (optional)",
 				"video_url_placeholder": "https://youtube.com/...",
+				"cover_image_label": "Titelbild",
+				"cover_image_help": "Wird als Bild des Vortrags angezeigt, wenn kein Video vorhanden ist",
 				"required_error": "Titel und Veranstaltung sind erforderlich"
 			},
 			"testimonials": {
@@ -1670,6 +1690,11 @@
 				"drag_to_reorder": "Zum Neuordnen ziehen",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
+				"item_move_up": "{item} nach oben verschieben",
+				"item_move_down": "{item} nach unten verschieben",
+				"item_reorder_announce": "{item} an Position {position} von {total} verschoben",
 				"toggle_section": "{section}-Bereich umschalten",
 				"selected": "ausgewählt",
 				"all_items": "alle Elemente ({count})",
@@ -1733,6 +1758,9 @@
 				"all_selected": "alle",
 				"none_selected_hint": "Alle Fähigkeiten werden angezeigt. Zum Anpassen auswählen.",
 				"drag_hint": "Ziehen zum Neuordnen der Fähigkeiten in dieser Kategorie.",
+				"skill_move_up": "{skill} nach oben verschieben",
+				"skill_move_down": "{skill} nach unten verschieben",
+				"skill_reorder_announce": "{skill} an Position {position} von {total} verschoben",
 				"no_skills": "Keine Fähigkeiten gefunden. Fügen Sie zuerst Fähigkeiten im Bereich Fähigkeiten hinzu.",
 				"display_mode_label": "Anzeigemodus für {category}",
 				"use_section_default": "Standard",
@@ -1787,8 +1815,31 @@
 				"hero_layout_label": "Hero-Layout-Auswahl"
 			}
 		},
+		"autosave_recovery": {
+			"title": "Entwurf verfügbar",
+			"message": "Du hast einen nicht gespeicherten {action} von {time}.",
+			"action_editing": "Bearbeitungssitzung",
+			"action_new": "neuen Eintragsentwurf",
+			"restore": "Entwurf wiederherstellen",
+			"dismiss": "Verwerfen",
+			"time_just_now": "gerade eben",
+			"time_minutes_ago": "vor {count} Minute(n)",
+			"time_hours_ago": "vor {count} Stunde(n)",
+			"time_days_ago": "vor {count} Tag(en)"
+		},
+		"related": {
+			"loading": "Wird geladen...",
+			"remove_item": "{name} entfernen"
+		},
 		"tags": {
 			"remove_tag": "Tag {name} entfernen",
+			"tag": "Tag",
+			"edit_tags": "Tags bearbeiten",
+			"add_tags": "Tags hinzufügen",
+			"loading": "Tags werden geladen …",
+			"no_tags": "Noch keine Tags",
+			"create_in_settings": "Tags in den Einstellungen erstellen",
+			"manage_tags": "Tags verwalten",
 			"add_tag": "Tag hinzufügen"
 		},
 		"views": {
@@ -2100,7 +2151,10 @@
 			"multi_picker_selected_count": "{count} ausgewählt",
 			"multi_picker_confirm": "Bestätigen ({count})",
 			"multi_picker_or": "oder",
-			"multi_picker_upload_new": "Neue Datei hochladen"
+			"multi_picker_upload_new": "Neue Datei hochladen",
+			"multi_picker_move_up": "{title} nach oben verschieben",
+			"multi_picker_move_down": "{title} nach unten verschieben",
+			"multi_picker_reorder_announce": "{title} an Position {position} von {total} verschoben"
 		},
 		"tokens": {
 			"page_title": "Freigabe-Token | Facet",
@@ -2233,7 +2287,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Wähle, welche Abschnitte angezeigt werden, und ziehe sie zum Neuanordnen. Aufklappen, um einzelne Einträge auszuwählen.",
+			"loading_sections": "Abschnitte werden geladen …",
+			"custom_content_note": "<strong>Hinweis:</strong> Hier erscheinen nur benutzerdefinierte Inhalte, die als <strong>öffentlich</strong> und <strong>nicht im Entwurf</strong> markiert sind. Um die Sichtbarkeit zu ändern, gehe zu <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Benutzerdefinierte Inhalte</a>.",
+			"section_width_title": "Abschnittsbreite",
+			"section_layout_title": "Abschnittslayout"
 		},
 		"import": {
 			"resume_dropzone_label": "Lebenslauf-Datei-Ablagebereich",
@@ -2294,7 +2353,18 @@
 			"aria_item_checkbox": "Eintrag {label} auswählen",
 			"show_technical": "Technische Details anzeigen",
 			"hide_technical": "Technische Details ausblenden",
-			"copy_technical": "Technische Details kopieren"
+			"copy_technical": "Technische Details kopieren",
+			"modal_title": "Lebenslauf importieren",
+			"modal_subtitle": "Lade deinen Lebenslauf hoch, um Erfahrung, Ausbildung und Fähigkeiten automatisch zu extrahieren.",
+			"modal_dropzone_hint": "PDF oder DOCX bis 5MB",
+			"modal_uploading": "Wird hochgeladen …",
+			"modal_upload_button": "Hochladen & importieren",
+			"modal_error_oversized": "Datei überschreitet das Limit von 5MB",
+			"modal_error_unsupported": "Bitte lade eine PDF- oder DOCX-Datei hoch",
+			"modal_error_no_file": "Bitte wähle eine Lebenslauf-Datei aus",
+			"modal_error_upload_failed": "Lebenslauf-Upload fehlgeschlagen",
+			"modal_error_unexpected": "Upload unerwartet fehlgeschlagen",
+			"modal_success_toast": "Lebenslauf importiert! Wähle Einträge für deine Facette aus."
 		},
 		"testimonials": {
 			"delete_request": "Anfrage löschen"
@@ -2755,6 +2825,7 @@
 		},
 		"lightbox": {
 			"close": "Lightbox schließen",
+			"label": "Bild-Lightbox",
 			"next_image": "Nächstes Bild",
 			"previous_image": "Vorheriges Bild"
 		},
@@ -2763,7 +2834,8 @@
 			"positions_count": "{count} Positionen"
 		},
 		"projects": {
-			"featured": "Empfohlen"
+			"featured": "Empfohlen",
+			"related_heading": "Zugehörige Erfahrung & Ausbildung"
 		},
 		"certifications": {
 			"expired": "Abgelaufen",

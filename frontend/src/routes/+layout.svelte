@@ -93,6 +93,7 @@
 	// admin-configured CSS on mount. Without this, the effect would call
 	// applyCustomCSS('') and wipe the <style id="custom-css"> element
 	// immediately after onMount injected it (regression in v2.21.15).
+	// svelte-ignore state_referenced_locally -- intentional one-time SSR seed (see above); reassigned later, so $derived is not an option
 	let customCSS = $state(data.customCSS ?? '');
 	let lastCustomCSS = $state('');
 	let mounted = $state(false);
@@ -107,7 +108,8 @@ let customPaletteLocked = false;
 // runs during SSR, so the server-rendered HTML would always fall back to
 // /favicon.png even when a custom favicon is configured. $state-with-initial
 // is writable, so onMount/event-handlers below can still reassign it.
-let faviconUrl = $state<string | null>(data.faviconUrl);
+// svelte-ignore state_referenced_locally -- intentional SSR seed (see above); must stay writable, so $derived is not an option
+	let faviconUrl = $state<string | null>(data.faviconUrl);
 
 function applyPaletteFromCSS(css: string) {
 	if (!browser || !css) return;

@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
 
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
-	import { pb, type Project, getFileUrl } from '$lib/pocketbase';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
+	import { pb, type Project, type Experience, type Education, getFileUrl } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { focusTrap } from '$lib/actions/focusTrap';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -18,6 +20,7 @@
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import AdminTagSelector from '$components/admin/AdminTagSelector.svelte';
+	import AdminRecordSelector from '$components/admin/AdminRecordSelector.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
@@ -51,6 +54,11 @@ let saving = $state(false);
 let commentsEnabled = $state(false);
 let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 let adminTagIds: string[] = $state([]);
+let relatedExperienceIds: string[] = $state([]);
+let relatedEducationIds: string[] = $state([]);
+let availableExperience: Experience[] = $state([]);
+let availableEducation: Education[] = $state([]);
+let relatedLoading = $state(true);
 
 let selectMode = $state(false);
 let selectedIds: Set<string> = $state(new Set());
@@ -59,6 +67,9 @@ let reorderMode = $state(false);
 let reorderItems: Array<{ id: string; title: string; is_featured: boolean; is_draft: boolean }> = $state([]);
 let savingOrder = $state(false);
 const flipDurationMs = 200;
+
+// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 let dndLoaded = $state(false);
@@ -78,7 +89,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl, commentsEnabled };
+	return { title, slug, summary, description, techStackText, links, categoriesText, visibility, isDraft, isFeatured, sortOrder, mediaRefs, coverImageLibraryUrl, commentsEnabled, relatedExperienceIds, relatedEducationIds };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -96,6 +107,8 @@ function restoreFromDraft(data: Record<string, any>) {
 	mediaRefs = data.mediaRefs || [];
 	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 	commentsEnabled = data.commentsEnabled === true;
+	relatedExperienceIds = data.relatedExperienceIds || [];
+	relatedEducationIds = data.relatedEducationIds || [];
 }
 
 function handleFormChange() {
@@ -122,6 +135,7 @@ afterNavigate(() => {
 
 onMount(loadProjects);
 onMount(loadAvailableTags);
+onMount(loadRelatedOptions);
 onMount(async () => {
 	if (browser) {
 		const { dndzone: dnd } = await import('svelte-dnd-action');
@@ -143,6 +157,38 @@ async function loadAvailableTags() {
 	} catch (err) {
 		console.error('Failed to load available tags:', err);
 	}
+}
+
+async function loadRelatedOptions() {
+	relatedLoading = true;
+	try {
+		const [expResp, eduResp] = await Promise.all([
+			collection('experience').getList(1, 200, { sort: '-sort_order,-start_date' }),
+			collection('education').getList(1, 200, { sort: '-sort_order,-end_date' })
+		]);
+		availableExperience = expResp.items as unknown as Experience[];
+		availableEducation = eduResp.items as unknown as Education[];
+	} catch (err) {
+		console.error('Failed to load related experience/education:', err);
+	} finally {
+		relatedLoading = false;
+	}
+}
+
+function formatDateRange(start?: string, end?: string): string {
+	const fmt = (d?: string) => (d ? String(d).slice(0, 7).replace(/-01$/, '') : '');
+	const startLabel = fmt(start);
+	const endLabel = end ? fmt(end) : $t('shared.time.present');
+	if (!startLabel && !end) return '';
+	return [startLabel, endLabel].filter(Boolean).join(' – ');
+}
+
+function experienceLabel(record: Experience): string {
+	return [record.title, record.company].filter(Boolean).join(' · ') || record.company;
+}
+
+function educationLabel(record: Education): string {
+	return [record.degree, record.institution].filter(Boolean).join(' · ') || record.institution;
 }
 
 let filteredProjects = $derived(
@@ -196,6 +242,8 @@ let filteredProjects = $derived(
 	mediaRefs = [];
 	adminTagIds = [];
 	commentsEnabled = false;
+	relatedExperienceIds = [];
+	relatedEducationIds = [];
 }
 
 	function openNewForm() {
@@ -242,6 +290,8 @@ let filteredProjects = $derived(
 	isFeatured = project.is_featured;
 	sortOrder = project.sort_order;
 	adminTagIds = project.admin_tags || [];
+	relatedExperienceIds = project.related_experience || [];
+	relatedEducationIds = project.related_education || [];
 	coverImageLibraryUrl = (project as any).cover_image_library_url || '';
 	clearCoverImage = false;
 	commentsEnabled = (project as any).comments_enabled ?? false;
@@ -307,6 +357,8 @@ let filteredProjects = $derived(
 			formData.append('is_featured', String(isFeatured));
 			formData.append('sort_order', String(sortOrder));
 			formData.append('admin_tags', JSON.stringify(adminTagIds));
+			formData.append('related_experience', JSON.stringify(relatedExperienceIds));
+			formData.append('related_education', JSON.stringify(relatedEducationIds));
 			formData.append('comments_enabled', String(commentsEnabled));
 
 			if (coverImageFile && coverImageFile.length > 0) {
@@ -476,8 +528,44 @@ let filteredProjects = $derived(
 		reorderItems = e.detail.items;
 	}
 
-	function handleReorderFinalize(e: CustomEvent<{ items: typeof reorderItems }>) {
+	function handleReorderFinalize(e: CustomEvent<{ items: typeof reorderItems; info?: { id?: string } }>) {
 		reorderItems = e.detail.items;
+		// Announce the dropped item's new position for screen-reader users.
+		const droppedId = e.detail.info?.id;
+		const droppedIdx = reorderItems.findIndex((i) => i.id === droppedId);
+		if (droppedIdx !== -1) {
+			announceReorder(reorderItems[droppedIdx].title, droppedIdx + 1, reorderItems.length);
+		}
+	}
+
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceReorder(title: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.content.common.reorder_announce', {
+				values: { item: title, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible reorder (complements drag). Swaps within reorderItems;
+	// saveReorder() persists the new index order as sort_order.
+	async function moveReorderItem(index: number, direction: 'up' | 'down', btn: HTMLButtonElement) {
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= reorderItems.length) return;
+		const moved = reorderItems[index];
+		const next = [...reorderItems];
+		[next[index], next[targetIdx]] = [next[targetIdx], next[index]];
+		reorderItems = next;
+		announceReorder(moved.title, targetIdx + 1, reorderItems.length);
+
+		// Keyed {#each} keeps focus on the moving button; redirect at a boundary.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
 	}
 
 	async function saveReorder() {
@@ -569,6 +657,8 @@ let filteredProjects = $derived(
 		</div>
 	{:else if reorderMode}
 		<div class="card p-6">
+			<!-- Polite live region for keyboard + drag reorder announcements -->
+			<ReorderAnnouncer bind:this={reorderAnnouncer} />
 			<div class="flex items-center justify-between mb-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.common.reorder_drag_hint')}</h2>
 				<div class="flex gap-2">
@@ -593,7 +683,7 @@ let filteredProjects = $derived(
 					onconsider={handleReorderConsider}
 					onfinalize={handleReorderFinalize}
 				>
-					{#each reorderItems as item (item.id)}
+					{#each reorderItems as item, itemIdx (item.id)}
 						<div
 							class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
 							animate:flip={{ duration: flipDurationMs }}
@@ -602,6 +692,33 @@ let filteredProjects = $derived(
 								<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 								</svg>
+							</div>
+							<!-- Keyboard-accessible reorder controls (complement drag) -->
+							<div class="flex flex-col flex-shrink-0">
+								<button
+									type="button"
+									data-move="up"
+									class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+									disabled={itemIdx === 0}
+									onclick={(e) => moveReorderItem(itemIdx, 'up', e.currentTarget)}
+									aria-label={$t('admin.content.common.reorder_move_up', { values: { item: item.title } })}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+									</svg>
+								</button>
+								<button
+									type="button"
+									data-move="down"
+									class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+									disabled={itemIdx === reorderItems.length - 1}
+									onclick={(e) => moveReorderItem(itemIdx, 'down', e.currentTarget)}
+									aria-label={$t('admin.content.common.reorder_move_down', { values: { item: item.title } })}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+									</svg>
+								</button>
 							</div>
 							<span class="flex-1 font-medium text-gray-900 dark:text-white">{item.title}</span>
 							{#if item.is_featured}
@@ -785,6 +902,46 @@ let filteredProjects = $derived(
 				</div>
 			</AccordionSection>
 
+			<AccordionSection title={$t('admin.content.projects.related_heading')} open={false}>
+				<div class="space-y-4">
+					<p class="text-sm text-gray-500 dark:text-gray-400">
+						{$t('admin.content.projects.related_help')}
+					</p>
+					<div>
+						<span id="related-experience-label" class="label">{$t('admin.content.projects.related_experience_label')}</span>
+						<AdminRecordSelector
+							bind:selectedIds={relatedExperienceIds}
+							options={availableExperience}
+							loading={relatedLoading}
+							getLabel={experienceLabel}
+							getSubLabel={(record) => formatDateRange(record.start_date, record.end_date)}
+							addLabel={$t('admin.content.projects.related_experience_add')}
+							editLabel={$t('admin.content.projects.related_experience_edit')}
+							listLabel={$t('admin.content.projects.related_experience_list')}
+							emptyLabel={$t('admin.content.projects.related_experience_empty')}
+							labelledBy="related-experience-label"
+							onchange={handleFormChange}
+						/>
+					</div>
+					<div>
+						<span id="related-education-label" class="label">{$t('admin.content.projects.related_education_label')}</span>
+						<AdminRecordSelector
+							bind:selectedIds={relatedEducationIds}
+							options={availableEducation}
+							loading={relatedLoading}
+							getLabel={educationLabel}
+							getSubLabel={(record) => formatDateRange(record.start_date, record.end_date)}
+							addLabel={$t('admin.content.projects.related_education_add')}
+							editLabel={$t('admin.content.projects.related_education_edit')}
+							listLabel={$t('admin.content.projects.related_education_list')}
+							emptyLabel={$t('admin.content.projects.related_education_empty')}
+							labelledBy="related-education-label"
+							onchange={handleFormChange}
+						/>
+					</div>
+				</div>
+			</AccordionSection>
+
 			<AccordionSection title={$t('admin.content.projects.publishing_heading')} open={false}>
 				<div class="space-y-4">
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -864,12 +1021,16 @@ let filteredProjects = $derived(
 		{#if showShortcodes}
 			<div
 				class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-				role="dialog"
-				aria-modal="true"
-				aria-labelledby="shortcodes-title"
-				onkeydown={(e) => e.key === 'Escape' && toggleShortcodes()}
+				role="presentation"
 			>
-				<div class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4">
+				<div
+					class="bg-white dark:bg-gray-900 rounded-lg shadow-lg max-w-2xl w-full p-6 space-y-4"
+					role="dialog"
+					aria-modal="true"
+					aria-labelledby="shortcodes-title"
+					tabindex="-1"
+					use:focusTrap={{ onEscape: toggleShortcodes }}
+				>
 					<div class="flex items-center justify-between">
 						<h3 id="shortcodes-title" class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.content.projects.shortcodes_title')}</h3>
 						<button class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>{$t('shared.actions.close')}</button>

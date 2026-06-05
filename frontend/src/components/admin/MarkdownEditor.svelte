@@ -542,6 +542,7 @@
 				role="dialog"
 				aria-modal="true"
 				aria-labelledby="editor-dialog-title"
+				tabindex="-1"
 				onkeydown={handleDialogKeydown}
 			>
 				<h3 id="editor-dialog-title" class="text-sm font-semibold text-gray-900 dark:text-white">

@@ -492,6 +492,9 @@
 			"period_30d": "30 days",
 			"period_90d": "90 days",
 			"total_views": "Total Incursions",
+			"total_views_help": "All incursions counted, including warriors who return to strike again.",
+			"unique_visitors": "Distinct Warriors",
+			"unique_visitors_help": "Distinct warriors, reckoned from daily-shifting, masked battle-marks.",
 			"views_over_time": "Invasion Timeline",
 			"popular_views": "Most Contested Positions",
 			"top_referrers": "Enemy Supply Lines",
@@ -1233,6 +1236,9 @@
 				"reorder_save": "Secure Order",
 				"reorder_cancel": "Abort Reorder",
 				"reorder_saving": "Securing...",
+				"reorder_move_up": "{item} Dung vIH",
+				"reorder_move_down": "{item} bIng vIH",
+				"reorder_announce": "{item} Daq {position} vIHta', {total} naQ",
 				"details_section": "Details",
 				"settings_section": "Configurations",
 				"required_field": "*",
@@ -1333,7 +1339,19 @@
 				"toast_order_saved": "Order saved",
 				"toast_order_error": "Failed to save order",
 				"action_feature": "Feature",
-				"action_unfeature": "Unfeature"
+				"action_unfeature": "Unfeature",
+				"related_heading": "wIv wanI' je ghojmoq",
+				"related_help": "project De' Daq wanI' je ghojmoq cha'meH chol.",
+				"related_experience_label": "wIv wanI'",
+				"related_experience_add": "wanI' chel",
+				"related_experience_edit": "wanI' choH",
+				"related_experience_list": "wanI' lo'laH",
+				"related_experience_empty": "wanI' tu'lu'be'",
+				"related_education_label": "wIv ghojmoq",
+				"related_education_add": "ghojmoq chel",
+				"related_education_edit": "ghojmoq choH",
+				"related_education_list": "ghojmoq lo'laH",
+				"related_education_empty": "ghojmoq tu'lu'be'"
 			},
 			"education": {
 				"title": "Training",
@@ -1440,6 +1458,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Recording URL (optional)",
 				"video_url_placeholder": "https://subspace.klingon/...",
+				"cover_image_label": "So'wI' mIllogh",
+				"cover_image_help": "video Hutlh qaSDI', mIllogh cha'lu'",
 				"required_error": "Title and event are required"
 			},
 			"testimonials": {
@@ -1670,6 +1690,11 @@
 				"drag_to_reorder": "Drag to reorder",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
+				"item_move_up": "{item} Dung vIH",
+				"item_move_down": "{item} bIng vIH",
+				"item_reorder_announce": "{item} Daq {position} vIHta', {total} naQ",
 				"toggle_section": "Toggle {section} sector",
 				"selected": "selected",
 				"all_items": "all items ({count})",
@@ -1733,6 +1758,9 @@
 				"all_selected": "all",
 				"none_selected_hint": "All skills shown. Select to customize.",
 				"drag_hint": "Drag to reorder skills within this category.",
+				"skill_move_up": "{skill} Dung vIH",
+				"skill_move_down": "{skill} bIng vIH",
+				"skill_reorder_announce": "{skill} Daq {position} vIHta', {total} naQ",
 				"no_skills": "No skills found. Add skills in the Skills section first.",
 				"display_mode_label": "Display mode for {category}",
 				"use_section_default": "Default",
@@ -1787,8 +1815,31 @@
 				"hero_layout_label": "Select battle banner formation"
 			}
 		},
+		"autosave_recovery": {
+			"title": "Draft stands ready",
+			"message": "An unsaved {action} from {time} remains.",
+			"action_editing": "record under revision",
+			"action_new": "new record draft",
+			"restore": "Reclaim the draft",
+			"dismiss": "Discard",
+			"time_just_now": "mere moments ago",
+			"time_minutes_ago": "{count} minute(s) ago",
+			"time_hours_ago": "{count} hour(s) ago",
+			"time_days_ago": "{count} day(s) ago"
+		},
+		"related": {
+			"loading": "taghtaH...",
+			"remove_item": "{name} teq"
+		},
 		"tags": {
 			"remove_tag": "Remove classification {name}",
+			"tag": "Classification",
+			"edit_tags": "Alter classifications",
+			"add_tags": "Add classifications",
+			"loading": "Retrieving classifications …",
+			"no_tags": "No classifications yet",
+			"create_in_settings": "Forge classifications in Settings",
+			"manage_tags": "Command the classifications",
 			"add_tag": "Add classification"
 		},
 		"views": {
@@ -2100,7 +2151,10 @@
 			"multi_picker_selected_count": "{count} acquired",
 			"multi_picker_confirm": "Confirm ({count})",
 			"multi_picker_or": "joq",
-			"multi_picker_upload_new": "ngoH chu'"
+			"multi_picker_upload_new": "ngoH chu'",
+			"multi_picker_move_up": "{title} Dung vIH",
+			"multi_picker_move_down": "{title} bIng vIH",
+			"multi_picker_reorder_announce": "{title} Daq {position} vIHta', {total} naQ"
 		},
 		"tokens": {
 			"page_title": "Access Codes | Facet",
@@ -2233,7 +2287,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Choose which divisions to display and drag to reorder. Expand to select individual records.",
+			"loading_sections": "Retrieving divisions …",
+			"custom_content_note": "<strong>Attend:</strong> Only custom records marked <strong>public</strong> and <strong>not in draft</strong> stand here. To change who may see them, advance to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Records</a>.",
+			"section_width_title": "Division breadth",
+			"section_layout_title": "Division formation"
 		},
 		"import": {
 			"resume_dropzone_label": "Battle record upload zone",
@@ -2294,7 +2353,18 @@
 			"aria_item_checkbox": "Select entry {label}",
 			"show_technical": "Show technical details",
 			"hide_technical": "Hide technical details",
-			"copy_technical": "Copy technical details"
+			"copy_technical": "Copy technical details",
+			"modal_title": "Import battle record",
+			"modal_subtitle": "Submit your record so your campaigns, training and weapons are extracted at once.",
+			"modal_dropzone_hint": "PDF or DOCX record, no larger than 5MB",
+			"modal_uploading": "Transmitting …",
+			"modal_upload_button": "Send for analysis",
+			"modal_error_oversized": "Record exceeds the 5MB limit",
+			"modal_error_unsupported": "Submit a PDF or DOCX record",
+			"modal_error_no_file": "Choose a record first",
+			"modal_error_upload_failed": "Record transmission failed",
+			"modal_error_unexpected": "Transmission failed without warning",
+			"modal_success_toast": "Record imported! Choose entries to deploy in your facet."
 		},
 		"testimonials": {
 			"delete_request": "Destroy request"
@@ -2755,6 +2825,7 @@
 		},
 		"lightbox": {
 			"close": "Close viewscreen",
+			"label": "Image viewscreen",
 			"next_image": "Next display",
 			"previous_image": "Previous display"
 		},
@@ -2763,7 +2834,8 @@
 			"positions_count": "{count} positions"
 		},
 		"projects": {
-			"featured": "Honored"
+			"featured": "Honored",
+			"related_heading": "wanI' je ghojmoq"
 		},
 		"certifications": {
 			"expired": "Expired",

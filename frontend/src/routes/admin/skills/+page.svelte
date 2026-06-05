@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
 
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
 	import { pb, type Skill } from '$lib/pocketbase';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
@@ -42,6 +43,9 @@ let reorderData: Map<string, Array<{ id: string; name: string }>> = $state(new M
 let categoryOrder: Array<{ id: string; name: string }> = $state([]);
 let savingOrder = $state(false);
 const flipDurationMs = 200;
+
+// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 let dndLoaded = $state(false);
@@ -397,16 +401,60 @@ async function loadCategoryOrder() {
 		categoryOrder = [];
 	}
 
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceSkillReorder(name: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.skills_categories.skill_reorder_announce', {
+				values: { skill: name, position, total }
+			})
+		);
+	}
+
+	function announceCategoryReorder(name: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.sections.item_reorder_announce', {
+				values: { item: name, position, total }
+			})
+		);
+	}
+
 	// Handlers for skill reordering within a category
 	function handleSkillReorderConsider(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
 		reorderData.set(cat, e.detail.items);
 		reorderData = new Map(reorderData);
 	}
 
-	function handleSkillReorderFinalize(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+	function handleSkillReorderFinalize(cat: string, e: CustomEvent<{ items: Array<{ id: string; name: string }>; info?: { id?: string } }>) {
 		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		reorderData.set(cat, filteredItems);
 		reorderData = new Map(reorderData);
+		// Announce the dropped skill's new position for screen-reader users.
+		const droppedId = e.detail.info?.id;
+		const droppedIdx = filteredItems.findIndex((i) => i.id === droppedId);
+		if (droppedIdx !== -1) {
+			announceSkillReorder(filteredItems[droppedIdx].name, droppedIdx + 1, filteredItems.length);
+		}
+	}
+
+	// Keyboard-accessible skill reordering within a category (complements drag).
+	async function moveSkillInCategory(cat: string, index: number, direction: 'up' | 'down', btn: HTMLButtonElement) {
+		const list = reorderData.get(cat) || [];
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= list.length) return;
+		const moved = list[index];
+		const next = [...list];
+		[next[index], next[targetIdx]] = [next[targetIdx], next[index]];
+		reorderData.set(cat, next);
+		reorderData = new Map(reorderData);
+		announceSkillReorder(moved.name, targetIdx + 1, list.length);
+
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
 	}
 
 	// Handlers for category reordering
@@ -414,7 +462,7 @@ async function loadCategoryOrder() {
 		categoryOrder = e.detail.items;
 	}
 
-	function handleCategoryOrderFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+	function handleCategoryOrderFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }>; info?: { id?: string } }>) {
 		// Filter out the shadow placeholder item
 		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		categoryOrder = filteredItems;
@@ -433,6 +481,33 @@ async function loadCategoryOrder() {
 			if (!reorderData.has(catName)) {
 				reorderData.set(catName, skills);
 			}
+		}
+
+		// Announce the dropped category's new position for screen-reader users.
+		const droppedId = e.detail.info?.id;
+		const droppedIdx = filteredItems.findIndex((c) => c.id === droppedId);
+		if (droppedIdx !== -1) {
+			announceCategoryReorder(filteredItems[droppedIdx].name, droppedIdx + 1, filteredItems.length);
+		}
+	}
+
+	// Keyboard-accessible category reordering (complements drag). Keeps reorderData
+	// keyed by name in sync with the new category order.
+	async function moveCategoryOrder(index: number, direction: 'up' | 'down', btn: HTMLButtonElement) {
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= categoryOrder.length) return;
+		const moved = categoryOrder[index];
+		const next = [...categoryOrder];
+		[next[index], next[targetIdx]] = [next[targetIdx], next[index]];
+		categoryOrder = next;
+		announceCategoryReorder(moved.name, targetIdx + 1, categoryOrder.length);
+
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
 		}
 	}
 
@@ -542,6 +617,8 @@ async function loadCategoryOrder() {
 		</div>
 	{:else if reorderMode}
 		<div class="space-y-6">
+			<!-- Polite live region for keyboard + drag reorder announcements -->
+			<ReorderAnnouncer bind:this={reorderAnnouncer} />
 			<!-- Category Order -->
 			<div class="card p-6">
 				<div class="flex items-center justify-between mb-4">
@@ -557,7 +634,7 @@ async function loadCategoryOrder() {
 						onconsider={(e: any) => handleCategoryOrderConsider(e)}
 						onfinalize={(e: any) => handleCategoryOrderFinalize(e)}
 					>
-						{#each categoryOrder as cat (cat.id)}
+						{#each categoryOrder as cat, catIdx (cat.id)}
 							<div
 								class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-grab active:cursor-grabbing"
 								animate:flip={{ duration: flipDurationMs }}
@@ -566,6 +643,40 @@ async function loadCategoryOrder() {
 									<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 								</svg>
 								<span class="font-medium text-gray-800 dark:text-gray-200">{cat.name}</span>
+								<!-- Keyboard-accessible reorder (complement drag). Stop pointer
+								     events so pressing a button never starts a drag. -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="flex items-center cursor-default"
+									onpointerdown={(e) => e.stopPropagation()}
+									onmousedown={(e) => e.stopPropagation()}
+									ontouchstart={(e) => e.stopPropagation()}
+								>
+									<button
+										type="button"
+										data-move="up"
+										class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+										disabled={catIdx === 0}
+										onclick={(e) => moveCategoryOrder(catIdx, 'up', e.currentTarget)}
+										aria-label={$t('admin.view_editor.sections.move_left', { values: { section: cat.name } })}
+									>
+										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+										</svg>
+									</button>
+									<button
+										type="button"
+										data-move="down"
+										class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+										disabled={catIdx === categoryOrder.length - 1}
+										onclick={(e) => moveCategoryOrder(catIdx, 'down', e.currentTarget)}
+										aria-label={$t('admin.view_editor.sections.move_right', { values: { section: cat.name } })}
+									>
+										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+											<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+										</svg>
+									</button>
+								</div>
 							</div>
 						{/each}
 					</div>
@@ -608,7 +719,7 @@ async function loadCategoryOrder() {
 									onconsider={(e: any) => handleSkillReorderConsider(cat.name, e)}
 									onfinalize={(e: any) => handleSkillReorderFinalize(cat.name, e)}
 							>
-								{#each categoryItems as item (item.id)}
+								{#each categoryItems as item, skillIdx (item.id)}
 									<div
 										class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
 										animate:flip={{ duration: flipDurationMs }}
@@ -617,6 +728,40 @@ async function loadCategoryOrder() {
 											<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 											</svg>
+										</div>
+										<!-- Keyboard-accessible reorder (complement drag). Stop pointer
+										     events so pressing a button never starts a drag. -->
+										<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<div
+											class="flex flex-col flex-shrink-0 cursor-default"
+											onpointerdown={(e) => e.stopPropagation()}
+											onmousedown={(e) => e.stopPropagation()}
+											ontouchstart={(e) => e.stopPropagation()}
+										>
+											<button
+												type="button"
+												data-move="up"
+												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+												disabled={skillIdx === 0}
+												onclick={(e) => moveSkillInCategory(cat.name, skillIdx, 'up', e.currentTarget)}
+												aria-label={$t('admin.view_editor.skills_categories.skill_move_up', { values: { skill: item.name } })}
+											>
+												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+												</svg>
+											</button>
+											<button
+												type="button"
+												data-move="down"
+												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+												disabled={skillIdx === categoryItems.length - 1}
+												onclick={(e) => moveSkillInCategory(cat.name, skillIdx, 'down', e.currentTarget)}
+												aria-label={$t('admin.view_editor.skills_categories.skill_move_down', { values: { skill: item.name } })}
+											>
+												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+												</svg>
+											</button>
 										</div>
 										<span class="flex-1 font-medium text-gray-900 dark:text-white">{item.name}</span>
 									</div>

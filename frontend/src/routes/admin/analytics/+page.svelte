@@ -10,6 +10,7 @@
 	let error = $state(false);
 	let period = $state('30d');
 	let totalViews = $state(0);
+	let uniqueVisitors = $state(0);
 	let viewsOverTime: Array<{ date: string; count: number }> = $state([]);
 	let popularViews: Array<{ view_id: string; view_slug: string; count: number }> = $state([]);
 	let topReferrers: Array<{ referrer: string; count: number }> = $state([]);
@@ -30,6 +31,7 @@
 			if (response.ok) {
 				const data = await response.json();
 				totalViews = data.total_views || 0;
+				uniqueVisitors = data.unique_visitors || 0;
 				viewsOverTime = data.views_over_time || [];
 				popularViews = data.popular_views || [];
 				topReferrers = data.top_referrers || [];
@@ -126,10 +128,32 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Total views stat -->
-		<div class="card p-6 mb-6">
-			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.total_views')}</p>
-			<p class="text-3xl font-bold text-gray-900 dark:text-white">{totalViews.toLocaleString()}</p>
+		<!-- Headline stats -->
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+			<div class="card p-6">
+				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.total_views')}</p>
+				<p
+					class="text-3xl font-bold text-gray-900 dark:text-white"
+					aria-describedby="total-views-help"
+				>
+					{totalViews.toLocaleString()}
+				</p>
+				<p id="total-views-help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+					{$t('admin.analytics_page.total_views_help')}
+				</p>
+			</div>
+			<div class="card p-6">
+				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.unique_visitors')}</p>
+				<p
+					class="text-3xl font-bold text-gray-900 dark:text-white"
+					aria-describedby="unique-visitors-help"
+				>
+					{uniqueVisitors.toLocaleString()}
+				</p>
+				<p id="unique-visitors-help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+					{$t('admin.analytics_page.unique_visitors_help')}
+				</p>
+			</div>
 		</div>
 
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

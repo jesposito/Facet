@@ -107,6 +107,82 @@ func fetchExternalMedia(app core.App, ids []string) ([]map[string]interface{}, e
 	return out, nil
 }
 
+// fetchRelatedRecords loads experience/education records by ID, applying the
+// same public + non-draft visibility gating used elsewhere so private/draft
+// items are never leaked onto a public project page. Only display fields are
+// returned and ordering follows the supplied id list. fieldKeys lists the
+// record fields to expose (in addition to id, start_date, end_date).
+func fetchRelatedRecords(app core.App, collection string, ids []string, fieldKeys []string) []map[string]interface{} {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	filters := make([]string, 0, len(ids))
+	params := map[string]interface{}{}
+	for i, id := range ids {
+		key := fmt.Sprintf("id%d", i)
+		filters = append(filters, fmt.Sprintf("id={:%s}", key))
+		params[key] = id
+	}
+
+	// Gate to public, non-draft records only (mirrors homepage section filters).
+	filter := fmt.Sprintf("(%s) && visibility = 'public' && is_draft = false", strings.Join(filters, " || "))
+
+	records, err := app.FindRecordsByFilter(
+		getTableName(app, collection),
+		filter,
+		"",
+		len(ids),
+		0,
+		params,
+	)
+	if err != nil {
+		return nil
+	}
+
+	byID := make(map[string]*core.Record, len(records))
+	for _, r := range records {
+		byID[r.Id] = r
+	}
+
+	out := make([]map[string]interface{}, 0, len(records))
+	for _, id := range ids {
+		r, ok := byID[id]
+		if !ok {
+			continue
+		}
+		item := map[string]interface{}{
+			"id":         r.Id,
+			"start_date": r.GetString("start_date"),
+			"end_date":   r.GetString("end_date"),
+		}
+		for _, f := range fieldKeys {
+			item[f] = r.GetString(f)
+		}
+		out = append(out, item)
+	}
+
+	return out
+}
+
+// relationIDs extracts a relation field's id list from a record, handling both
+// the []string and []interface{} shapes PocketBase may return.
+func relationIDs(record *core.Record, field string) []string {
+	switch v := record.Get(field).(type) {
+	case []string:
+		return v
+	case []interface{}:
+		ids := make([]string, 0, len(v))
+		for _, item := range v {
+			if s, ok := item.(string); ok && s != "" {
+				ids = append(ids, s)
+			}
+		}
+		return ids
+	}
+	return nil
+}
+
 // Reserved slugs that cannot be used for views
 // These correspond to existing routes or system paths
 // SYNC WITH: frontend/src/params/slug.ts
@@ -395,20 +471,33 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			if shouldCountView {
-				// Increment view count and last_viewed_at in the background
-				viewID := view.Id
-				collection := viewsCollection
-				services.SafeGo(app, "view-count-increment", func() {
-					record, err := app.FindRecordById(collection, viewID)
-					if err != nil {
-						return
-					}
-					record.Set("view_count", record.GetInt("view_count")+1)
-					record.Set("last_viewed_at", time.Now())
-					if err := app.Save(record); err != nil {
-						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
-					}
-				})
+				// Bot-gate and ~30-min dedup the raw view_count so bots and
+				// rapid repeat hits from the same visitor don't inflate it.
+				// Keyed per-view on the same daily-salted IP hash as access_logs.
+				// Internal SSR requests carry the frontend server's IP/UA (the real
+				// visitor is not forwarded), so they can't be keyed on the visitor —
+				// count those unconditionally, matching pre-change behavior. Direct
+				// (non-internal) hits are bot-gated and ~30-min deduped.
+				if e.Request.Header.Get("X-Internal") == "true" ||
+					services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id) {
+					// Increment view count and last_viewed_at in the background
+					viewID := view.Id
+					collection := viewsCollection
+					services.SafeGo(app, "view-count-increment", func() {
+						record, err := app.FindRecordById(collection, viewID)
+						if err != nil {
+							return
+						}
+						record.Set("view_count", record.GetInt("view_count")+1)
+						record.Set("last_viewed_at", time.Now())
+						if err := app.Save(record); err != nil {
+							app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
+						}
+					})
+				}
+				// access_logs is the analytics source of truth: it has its own
+				// bot filter and is intentionally NOT deduped (so unique-visitor
+				// counts stay accurate). Logged for every counted request.
 				LogViewAccess(app, e, view.Id, slug, "")
 			}
 
@@ -714,7 +803,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			if settings != nil && settings.HomepageEnabled {
-				incrementHomepageViewCount(app)
+				incrementHomepageViewCount(app, e)
 			}
 
 			// Find the default view (is_default = true, is_active = true, visibility = public)
@@ -869,9 +958,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if styleErr == nil && len(styleRecords) > 0 {
 					p := styleRecords[0]
 					response["profile"] = map[string]interface{}{
-						"accent_color":    p.GetString("accent_color"),
+						"accent_color":     p.GetString("accent_color"),
 						"custom_hex_color": p.GetString("custom_hex_color"),
-						"font_pack":       p.GetString("font_pack"),
+						"font_pack":        p.GetString("font_pack"),
 					}
 				}
 
@@ -1933,6 +2022,20 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
+			// Expand related experience/education records for display on the
+			// project page. Gating is applied inside fetchRelatedRecords so
+			// private/draft items are never leaked on this public endpoint.
+			if expIDs := relationIDs(project, "related_experience"); len(expIDs) > 0 {
+				if expanded := fetchRelatedRecords(app, "experience", expIDs, []string{"title", "company", "location"}); len(expanded) > 0 {
+					response["related_experience_expand"] = expanded
+				}
+			}
+			if eduIDs := relationIDs(project, "related_education"); len(eduIDs) > 0 {
+				if expanded := fetchRelatedRecords(app, "education", eduIDs, []string{"institution", "degree", "field"}); len(expanded) > 0 {
+					response["related_education_expand"] = expanded
+				}
+			}
+
 			// Resolve cover image URL - prefer library URL over direct upload
 			if libraryURL := project.GetString("cover_image_library_url"); libraryURL != "" {
 				response["cover_image_url"] = libraryURL
@@ -2033,22 +2136,23 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			response := map[string]interface{}{
-				"id":               talk.Id,
-				"title":            talk.GetString("title"),
-				"slug":             talk.GetString("slug"),
-				"event":            talk.GetString("event"),
-				"event_url":        talk.GetString("event_url"),
-				"date":             talk.GetDateTime("date"),
-				"location":         talk.GetString("location"),
-				"description":      talk.GetString("description"),
-				"slides_url":       talk.GetString("slides_url"),
-				"video_url":        talk.GetString("video_url"),
-				"created":          talk.GetDateTime("created"),
-				"updated":          talk.GetDateTime("updated"),
-				"visibility":       visibility,
-				"is_draft":         isDraft,
-				"is_authenticated": isAuthenticated,
-				"comments_enabled": talk.GetBool("comments_enabled"),
+				"id":                      talk.Id,
+				"title":                   talk.GetString("title"),
+				"slug":                    talk.GetString("slug"),
+				"event":                   talk.GetString("event"),
+				"event_url":               talk.GetString("event_url"),
+				"date":                    talk.GetDateTime("date"),
+				"location":                talk.GetString("location"),
+				"description":             talk.GetString("description"),
+				"slides_url":              talk.GetString("slides_url"),
+				"video_url":               talk.GetString("video_url"),
+				"cover_image_library_url": talk.GetString("cover_image_library_url"),
+				"created":                 talk.GetDateTime("created"),
+				"updated":                 talk.GetDateTime("updated"),
+				"visibility":              visibility,
+				"is_draft":                isDraft,
+				"is_authenticated":        isAuthenticated,
+				"comments_enabled":        talk.GetBool("comments_enabled"),
 			}
 			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs

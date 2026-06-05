@@ -564,7 +564,7 @@
 						</button>
 					</div>
 					<div class="mt-4 flex items-center justify-end">
-						<button type="button" class="btn btn-primary" onclick={dismissReveal} autofocus>
+						<button type="button" class="btn btn-primary" onclick={dismissReveal}>
 							{$t('admin.api_keys.reveal_done')}
 						</button>
 					</div>
