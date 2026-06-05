@@ -2,6 +2,7 @@
 	import { t } from 'svelte-i18n';
 	import type { CustomContent } from '$lib/pocketbase';
 	import { parseMarkdown, isFilename } from '$lib/utils';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	interface Props {
 		item: CustomContent;
@@ -48,7 +49,9 @@
 
 	function handleLightboxKeydown(e: KeyboardEvent) {
 		if (!lightboxOpen) return;
-		if (e.key === 'Escape') closeLightbox();
+		// Escape is handled by the focusTrap action on the lightbox container
+		// (it owns close + focus restoration). Arrow navigation stays here so it
+		// works regardless of which control inside the lightbox holds focus.
 		if (e.key === 'ArrowRight') nextImage();
 		if (e.key === 'ArrowLeft') prevImage();
 	}
@@ -282,8 +285,13 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
 	<div
 		class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+		role="dialog"
+		aria-modal="true"
+		aria-label={$t('public.lightbox.label')}
+		tabindex="-1"
 		onclick={closeLightbox}
 		oncontextmenu={(e) => e.preventDefault()}
+		use:focusTrap={{ onEscape: closeLightbox }}
 	>
 		<!-- Close button -->
 		<button

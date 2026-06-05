@@ -2,9 +2,10 @@
 	import { preventDefault, createBubbler, stopPropagation } from 'svelte/legacy';
 
 	const bubble = createBubbler();
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
@@ -20,6 +21,9 @@
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 	let SHADOW_PLACEHOLDER_ITEM_ID = '';
+
+	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	// Load DnD functionality when in browser
 	onMount(async () => {
@@ -339,10 +343,17 @@
 		sectionItems[sectionKey] = e.detail.items;
 	}
 
-	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }> }>) {
+	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info?: { id?: string } }>) {
 		sectionItems[sectionKey] = e.detail.items;
 		// Only commit order changes on finalize (drag complete)
 		updateItemsOrderFromDisplay(sectionKey);
+		// Announce the dropped item's new position for screen-reader users.
+		const droppedId = e.detail.info?.id;
+		const list = sectionItems[sectionKey] || [];
+		const droppedIdx = list.findIndex(i => i.id === droppedId);
+		if (droppedIdx !== -1) {
+			announceItemMove(list[droppedIdx].label, droppedIdx + 1, list.length);
+		}
 	}
 
 	function updateItemsOrderFromDisplay(sectionKey: string) {
@@ -350,6 +361,41 @@
 		const selectedSet = new Set(sections[sectionKey].items);
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
+	}
+
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceItemMove(label: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.sections.item_reorder_announce', {
+				values: { item: label, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible item reordering within a section (complements drag).
+	async function moveSectionItem(
+		sectionKey: string,
+		index: number,
+		direction: 'up' | 'down',
+		btn: HTMLButtonElement
+	) {
+		const list = sectionItems[sectionKey] || [];
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= list.length) return;
+		const moved = list[index];
+		const next = [...list];
+		[next[index], next[targetIdx]] = [next[targetIdx], next[index]];
+		sectionItems[sectionKey] = next;
+		updateItemsOrderFromDisplay(sectionKey);
+		announceItemMove(moved.label, targetIdx + 1, list.length);
+
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
 	}
 
 	// Apply imported items to sections after resume import
@@ -1027,6 +1073,8 @@
 
 			<!-- Sections -->
 			<div class="card p-4 sm:p-6 space-y-4">
+				<!-- Polite live region for keyboard + drag reorder announcements -->
+				<ReorderAnnouncer bind:this={reorderAnnouncer} />
 				<div class="flex items-center justify-between">
 					<div>
 						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
@@ -1213,7 +1261,7 @@
 										onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
 										onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 									>
-										{#each items as item (item.id)}
+										{#each items as item, itemIdx (item.id)}
 											{@const isSelected = sectionConfig.items.includes(item.id)}
 											<div
 												class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
@@ -1222,8 +1270,8 @@
 												<!-- Drag Handle for Items -->
 												<!-- svelte-ignore a11y_no_static_element_interactions -->
 												<!-- svelte-ignore a11y_click_events_have_key_events -->
-												<div 
-													class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700" 
+												<div
+													class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 													title="Drag to reorder"
 													role="presentation"
 													onclick={(e) => e.stopPropagation()}
@@ -1231,6 +1279,33 @@
 													<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 													</svg>
+												</div>
+												<!-- Keyboard-accessible reorder controls (complement drag) -->
+												<div class="flex flex-col flex-shrink-0">
+													<button
+														type="button"
+														data-move="up"
+														class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+														disabled={itemIdx === 0}
+														onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
+														aria-label={$t('admin.view_editor.sections.item_move_up', { values: { item: item.label } })}
+													>
+														<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+															<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+														</svg>
+													</button>
+													<button
+														type="button"
+														data-move="down"
+														class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+														disabled={itemIdx === items.length - 1}
+														onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
+														aria-label={$t('admin.view_editor.sections.item_move_down', { values: { item: item.label } })}
+													>
+														<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+															<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+														</svg>
+													</button>
 												</div>
 												<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 												<label

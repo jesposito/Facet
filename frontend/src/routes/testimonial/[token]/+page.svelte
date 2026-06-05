@@ -328,9 +328,9 @@
 
 					<!-- Profile Photo Upload -->
 					<div>
-						<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						<span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
 							{$t('public.testimonials.submit.profile_photo_label')}
-						</label>
+						</span>
 						{#if authorPhotoPreview}
 							<div class="flex items-center gap-4">
 								<img

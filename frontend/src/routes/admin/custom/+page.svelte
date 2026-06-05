@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { flip } from 'svelte/animate';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { pb, type CustomContent, getFileUrl } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { collection } from '$lib/stores/demo';
@@ -51,6 +52,9 @@
 	let reorderItems: Array<{ id: string; title: string; is_draft: boolean }> = $state([]);
 	let savingOrder = $state(false);
 	const flipDurationMs = 200;
+
+	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 	let dndLoaded = $state(false);
@@ -381,8 +385,44 @@
 		reorderItems = e.detail.items;
 	}
 
-	function handleDndFinalize(e: CustomEvent<{ items: typeof reorderItems }>) {
+	function handleDndFinalize(e: CustomEvent<{ items: typeof reorderItems; info?: { id?: string } }>) {
 		reorderItems = e.detail.items;
+		// Announce the dropped item's new position for screen-reader users.
+		const droppedId = e.detail.info?.id;
+		const droppedIdx = reorderItems.findIndex((i) => i.id === droppedId);
+		if (droppedIdx !== -1) {
+			announceReorder(reorderItems[droppedIdx].title, droppedIdx + 1, reorderItems.length);
+		}
+	}
+
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceReorder(title: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.content.common.reorder_announce', {
+				values: { item: title, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible reorder (complements drag). Swaps within reorderItems;
+	// saveOrder() persists the new index order as sort_order.
+	async function moveReorderItem(index: number, direction: 'up' | 'down', btn: HTMLButtonElement) {
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= reorderItems.length) return;
+		const moved = reorderItems[index];
+		const next = [...reorderItems];
+		[next[index], next[targetIdx]] = [next[targetIdx], next[index]];
+		reorderItems = next;
+		announceReorder(moved.title, targetIdx + 1, reorderItems.length);
+
+		// Keyed {#each} keeps focus on the moving button; redirect at a boundary.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
 	}
 
 	async function saveOrder() {
@@ -475,6 +515,8 @@
 	{:else if reorderMode}
 		<!-- Reorder Mode -->
 		<div class="card p-4">
+			<!-- Polite live region for keyboard + drag reorder announcements -->
+			<ReorderAnnouncer bind:this={reorderAnnouncer} />
 			<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
 				Drag and drop to reorder. Click "Save Order" when done.
 			</p>
@@ -485,7 +527,7 @@
 					onfinalize={handleDndFinalize}
 					class="space-y-2"
 				>
-					{#each reorderItems as item (item.id)}
+					{#each reorderItems as item, itemIdx (item.id)}
 						<div
 							animate:flip={{ duration: flipDurationMs }}
 							class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-grab active:cursor-grabbing"
@@ -498,6 +540,40 @@
 									d="M4 8h16M4 16h16"
 								/>
 							</svg>
+							<!-- Keyboard-accessible reorder controls (complement drag). Stop
+							     pointer/touch events so pressing a button never starts a drag. -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div
+								class="flex flex-col flex-shrink-0 cursor-default"
+								onpointerdown={(e) => e.stopPropagation()}
+								onmousedown={(e) => e.stopPropagation()}
+								ontouchstart={(e) => e.stopPropagation()}
+							>
+								<button
+									type="button"
+									data-move="up"
+									class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+									disabled={itemIdx === 0}
+									onclick={(e) => moveReorderItem(itemIdx, 'up', e.currentTarget)}
+									aria-label={$t('admin.content.common.reorder_move_up', { values: { item: item.title } })}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+									</svg>
+								</button>
+								<button
+									type="button"
+									data-move="down"
+									class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+									disabled={itemIdx === reorderItems.length - 1}
+									onclick={(e) => moveReorderItem(itemIdx, 'down', e.currentTarget)}
+									aria-label={$t('admin.content.common.reorder_move_down', { values: { item: item.title } })}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+									</svg>
+								</button>
+							</div>
 							<span class="font-medium text-gray-900 dark:text-white">{item.title}</span>
 							{#if item.is_draft}
 								<span

@@ -43,6 +43,30 @@ let mediaRefs = $derived(((data as any).media_refs as Array<RecordModel & {
 	provider?: string;
 }>) || []);
 
+interface RelatedItem {
+	id: string;
+	title?: string;
+	company?: string;
+	location?: string;
+	institution?: string;
+	degree?: string;
+	field?: string;
+	start_date?: string;
+	end_date?: string;
+}
+
+let relatedExperience = $derived(((data.project as any).related_experience as RelatedItem[]) || []);
+let relatedEducation = $derived(((data.project as any).related_education as RelatedItem[]) || []);
+let hasRelated = $derived(relatedExperience.length > 0 || relatedEducation.length > 0);
+
+function relatedDateRange(start?: string, end?: string): string {
+	const fmt = (d?: string) => (d ? String(d).slice(0, 7).replace(/-01$/, '') : '');
+	const startLabel = fmt(start);
+	const endLabel = end ? fmt(end) : $t('shared.time.present');
+	if (!startLabel && !end) return '';
+	return [startLabel, endLabel].filter(Boolean).join(' – ');
+}
+
 	// Lightbox state
 	let lightboxOpen = $state(false);
 	let lightboxIndex = $state(0);
@@ -308,6 +332,45 @@ const getFileName = (url?: string) => {
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h2>
 				<div class="prose prose-lg dark:prose-invert max-w-none">
 					{@html parseMarkdown(data.project.description)}
+				</div>
+			</section>
+		{/if}
+
+		<!-- Related experience / education -->
+		{#if hasRelated}
+			<section class="mb-10">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+					{$t('public.projects.related_heading')}
+				</h2>
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					{#each relatedExperience as item (item.id)}
+						<div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+							<p class="font-medium text-gray-900 dark:text-white">{item.title}</p>
+							{#if item.company}
+								<p class="text-sm text-gray-600 dark:text-gray-300">{item.company}</p>
+							{/if}
+							{#if relatedDateRange(item.start_date, item.end_date)}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+									{relatedDateRange(item.start_date, item.end_date)}
+								</p>
+							{/if}
+						</div>
+					{/each}
+					{#each relatedEducation as item (item.id)}
+						<div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+							<p class="font-medium text-gray-900 dark:text-white">
+								{item.degree || item.institution}
+							</p>
+							{#if item.degree && item.institution}
+								<p class="text-sm text-gray-600 dark:text-gray-300">{item.institution}</p>
+							{/if}
+							{#if relatedDateRange(item.start_date, item.end_date)}
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+									{relatedDateRange(item.start_date, item.end_date)}
+								</p>
+							{/if}
+						</div>
+					{/each}
 				</div>
 			</section>
 		{/if}

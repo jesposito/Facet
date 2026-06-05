@@ -492,6 +492,9 @@
 			"period_30d": "30 dayz",
 			"period_90d": "90 dayz",
 			"total_views": "Total Lookz",
+			"total_views_help": "All teh lookz countd, even wen same kitteh comez bak.",
+			"unique_visitors": "Uneek Kittehs",
+			"unique_visitors_help": "Diffrent kittehs, gessd frum day-flippin sekrit IP smellz.",
 			"views_over_time": "Lookz Ovr Tiem",
 			"popular_views": "Populr Stuffz",
 			"top_referrers": "Top Referrz",
@@ -1233,6 +1236,9 @@
 				"reorder_save": "Saev Ordr",
 				"reorder_cancel": "Cancl Reordr",
 				"reorder_saving": "Saevin...",
+				"reorder_move_up": "Moov {item} up",
+				"reorder_move_down": "Moov {item} down",
+				"reorder_announce": "{item} nao at spot {position} ov {total}, k",
 				"details_section": "Detailz",
 				"settings_section": "Settingz",
 				"required_field": "*",
@@ -1333,7 +1339,19 @@
 				"toast_order_saved": "Ordr savd",
 				"toast_order_error": "Faild 2 save ordr",
 				"action_feature": "Featchur",
-				"action_unfeature": "Unfeatchur"
+				"action_unfeature": "Unfeatchur",
+				"related_heading": "Relaytd Werk & Skool",
+				"related_help": "Tie ur jobz an skoolin to show em on dis projek payj.",
+				"related_experience_label": "Relaytd Werk",
+				"related_experience_add": "Add werk",
+				"related_experience_edit": "Edit werk",
+				"related_experience_list": "Werk u can pik",
+				"related_experience_empty": "No werk yet :(",
+				"related_education_label": "Relaytd Skool",
+				"related_education_add": "Add skool",
+				"related_education_edit": "Edit skool",
+				"related_education_list": "Skool u can pik",
+				"related_education_empty": "No skool yet :("
 			},
 			"education": {
 				"title": "Educashun",
@@ -1440,6 +1458,8 @@
 				"slides_url_placeholder": "https://slides.com/...",
 				"video_url_label": "Video URL (opshunl)",
 				"video_url_placeholder": "https://youtube.com/...",
+				"cover_image_label": "Kover Pikchur",
+				"cover_image_help": "Showd as teh tawk pikchur wen no video, k",
 				"required_error": "Tietl n event r requird"
 			},
 			"testimonials": {
@@ -1670,6 +1690,11 @@
 				"drag_to_reorder": "Drag 2 reordr",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
+				"item_move_up": "Moov {item} up",
+				"item_move_down": "Moov {item} down",
+				"item_reorder_announce": "{item} nao at spot {position} ov {total}, k",
 				"toggle_section": "Toggl {section} sekshun",
 				"selected": "selectd",
 				"all_items": "all itemz ({count})",
@@ -1733,6 +1758,9 @@
 				"all_selected": "all",
 				"none_selected_hint": "All skillz shown. Select 2 customiz.",
 				"drag_hint": "Drag 2 reordr skillz within dis category.",
+				"skill_move_up": "Moov {skill} up",
+				"skill_move_down": "Moov {skill} down",
+				"skill_reorder_announce": "{skill} nao at spot {position} ov {total}, k",
 				"no_skills": "No skillz fownd. Add skillz in teh Skillz secshun first.",
 				"display_mode_label": "Display moad 4 {category}",
 				"use_section_default": "Default",
@@ -1787,8 +1815,31 @@
 				"hero_layout_label": "Pick ur hero layout"
 			}
 		},
+		"autosave_recovery": {
+			"title": "Draft Availabul",
+			"message": "U haz an unsaved {action} from {time}.",
+			"action_editing": "editin sesshun",
+			"action_new": "new item draft",
+			"restore": "Restorez Draft",
+			"dismiss": "Dismiss kthx",
+			"time_just_now": "just nao",
+			"time_minutes_ago": "{count} minit(z) ago",
+			"time_hours_ago": "{count} hr(z) ago",
+			"time_days_ago": "{count} day(z) ago"
+		},
+		"related": {
+			"loading": "Loadin...",
+			"remove_item": "Get rid of {name}"
+		},
 		"tags": {
 			"remove_tag": "Removez tag {name}",
+			"tag": "Tag",
+			"edit_tags": "Edit tagz",
+			"add_tags": "Add tagz",
+			"loading": "Loadin tagz...",
+			"no_tags": "No tagz yet :(",
+			"create_in_settings": "Makez tagz in Settingz",
+			"manage_tags": "Boss teh tagz",
 			"add_tag": "Add tag"
 		},
 		"views": {
@@ -2100,7 +2151,10 @@
 			"multi_picker_selected_count": "{count} pikked",
 			"multi_picker_confirm": "Okai ({count})",
 			"multi_picker_or": "or",
-			"multi_picker_upload_new": "Uplodz Noo"
+			"multi_picker_upload_new": "Uplodz Noo",
+			"multi_picker_move_up": "Moov {title} up",
+			"multi_picker_move_down": "Moov {title} down",
+			"multi_picker_reorder_announce": "{title} nao at spot {position} ov {total}, k"
 		},
 		"tokens": {
 			"page_title": "Shaer Tokenz | Facet",
@@ -2233,7 +2287,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Pik wich sekshunz to show an drag to reorder. Unfold to pik speshul itemz.",
+			"loading_sections": "Loadin sekshunz...",
+			"custom_content_note": "<strong>Note:</strong> Only custom stuffz markd <strong>public</strong> an <strong>not in draft</strong> showz here. To chanj who can haz, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
+			"section_width_title": "Sekshun wideness",
+			"section_layout_title": "Sekshun layout"
 		},
 		"import": {
 			"resume_dropzone_label": "Rezume file drop zone",
@@ -2294,7 +2353,18 @@
 			"aria_item_checkbox": "Chek item {label}",
 			"show_technical": "Show teknikl bitz",
 			"hide_technical": "Hide teknikl bitz",
-			"copy_technical": "Copy teknikl bitz"
+			"copy_technical": "Copy teknikl bitz",
+			"modal_title": "Importz Rezoom",
+			"modal_subtitle": "Upload ur rezoom an we yoink ur experiens, skool an skillz automajically.",
+			"modal_dropzone_hint": "PDF or DOCX up 2 5MB",
+			"modal_uploading": "Uploadin...",
+			"modal_upload_button": "Upload & Importz",
+			"modal_error_oversized": "Fil 2 big. Max iz 5MB.",
+			"modal_error_unsupported": "Plz upload a PDF or DOCX fil",
+			"modal_error_no_file": "Plz pik a rezoom fil",
+			"modal_error_upload_failed": "Rezoom upload went splat",
+			"modal_error_unexpected": "Upload borked unexpectedly",
+			"modal_success_toast": "Rezoom importd! Pik itemz 2 put in ur facet."
 		},
 		"testimonials": {
 			"delete_request": "Deleet request"
@@ -2755,6 +2825,7 @@
 		},
 		"lightbox": {
 			"close": "Cloze litebox",
+			"label": "Pictur litebox",
 			"next_image": "Nekst pictur",
 			"previous_image": "Previus pictur"
 		},
@@ -2763,7 +2834,8 @@
 			"positions_count": "{count} pozishuns"
 		},
 		"projects": {
-			"featured": "Feechurd"
+			"featured": "Feechurd",
+			"related_heading": "Relaytd Werk & Skool"
 		},
 		"certifications": {
 			"expired": "Expird",

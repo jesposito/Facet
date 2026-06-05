@@ -1,8 +1,6 @@
 package hooks
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -78,6 +76,16 @@ func RegisterAnalyticsHooks(app *pocketbase.PocketBase, planConfig *services.Pla
 				Bind(map[string]any{"cutoff": cutoff}).
 				Row(&totalViews)
 
+			// Unique visitors in period (distinct daily-salted IP hashes).
+			// Note: ip_hash is re-salted each UTC day, so a visitor active on
+			// multiple days counts once per day — this is a privacy-preserving
+			// approximation, consistent with how access_logs stores IPs.
+			var uniqueVisitors int
+			app.DB().
+				NewQuery("SELECT COUNT(DISTINCT ip_hash) FROM access_logs WHERE created >= {:cutoff} AND ip_hash != ''").
+				Bind(map[string]any{"cutoff": cutoff}).
+				Row(&uniqueVisitors)
+
 			// Popular views
 			type viewStat struct {
 				ViewID   string `json:"view_id"`
@@ -129,6 +137,7 @@ func RegisterAnalyticsHooks(app *pocketbase.PocketBase, planConfig *services.Pla
 			result := map[string]any{
 				"period":          period,
 				"total_views":     totalViews,
+				"unique_visitors": uniqueVisitors,
 				"views_over_time": viewsOverTime,
 				"popular_views":   popularViews,
 				"token_stats":     tokenStats,
@@ -292,13 +301,9 @@ func LogViewAccess(app *pocketbase.PocketBase, e *core.RequestEvent, viewID, vie
 	utmCampaign := e.Request.URL.Query().Get("utm_campaign")
 
 	path := e.Request.URL.Path
-	ip := GetIP(e)
-	ipHash := ""
-	if ip != "" {
-		// GDPR: use daily salt so IP hashes rotate daily and cannot be tracked across days
-		dailySalt := time.Now().UTC().Format("2006-01-02")
-		ipHash = fmt.Sprintf("%x", sha256.Sum256([]byte(ip+dailySalt)))
-	}
+	// GDPR: daily-salted hash rotates daily and cannot be tracked across days.
+	// Shared helper keeps this identical to the view dedup cache key.
+	ipHash := services.HashIP(GetIP(e))
 
 	// Write asynchronously
 	go func() {

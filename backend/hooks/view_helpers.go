@@ -503,9 +503,19 @@ func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedIt
 	return result
 }
 
-func incrementHomepageViewCount(app core.App) {
+func incrementHomepageViewCount(app core.App, e *core.RequestEvent) {
 	pb, ok := app.(*pocketbase.PocketBase)
 	if !ok {
+		return
+	}
+	// Bot-gate and ~30-min dedup so bots and rapid repeat hits from the same
+	// visitor don't inflate the homepage counter. Uses the "homepage" sentinel
+	// target and the same daily-salted IP hash as access_logs.
+	// Internal SSR requests carry the frontend server's IP/UA, not the visitor's,
+	// so count those unconditionally (matching pre-change behavior); direct hits
+	// are bot-gated and ~30-min deduped.
+	if e.Request.Header.Get("X-Internal") != "true" &&
+		!services.ShouldCountView(GetUserAgent(e), GetIP(e), services.HomepageDedupTarget) {
 		return
 	}
 	services.SafeGo(pb, "homepage-view-count", func() {

@@ -7,9 +7,13 @@
 	 * - Skill-level (when expanded): checkboxes to include/exclude, drag to reorder
 	 */
 	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { t } from 'svelte-i18n';
+
+	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -264,7 +268,7 @@
 		items = [...otherCategorySkills, ...reorderedSkills];
 	}
 
-	function handleSkillDndFinalize(category: string, e: CustomEvent<{ items: SkillItem[]; info: { trigger: string } }>) {
+	function handleSkillDndFinalize(category: string, e: CustomEvent<{ items: SkillItem[]; info: { trigger: string; id?: string } }>) {
 		const trigger = e.detail.info?.trigger;
 		const finalSkills = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 
@@ -280,6 +284,64 @@
 			const otherSelected = _selectedItems.filter(id => !displayOrder.includes(id));
 			selectedItems = [...otherSelected, ...categorySelectedInOrder];
 			onUpdate();
+
+			// Announce the dropped skill's new position for screen-reader users.
+			const droppedId = e.detail.info?.id;
+			const droppedIdx = finalSkills.findIndex(s => s.id === droppedId);
+			if (droppedIdx !== -1) {
+				announceSkillMove(finalSkills[droppedIdx].label, droppedIdx + 1, finalSkills.length);
+			}
+		}
+	}
+
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceSkillMove(label: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.skills_categories.skill_reorder_announce', {
+				values: { skill: label, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible skill reordering within a category (complements drag).
+	// Mirrors handleSkillDndFinalize's persistence exactly: reorder the displayed
+	// (selectable) skills, rebuild `items`, and sync `selectedItems` order.
+	async function moveSkill(
+		category: string,
+		index: number,
+		direction: 'up' | 'down',
+		btn: HTMLButtonElement
+	) {
+		const displayed = getSelectableCategorySkills(category);
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= displayed.length) return;
+
+		const moved = displayed[index];
+		const reordered = [...displayed];
+		[reordered[index], reordered[targetIdx]] = [reordered[targetIdx], reordered[index]];
+
+		// Rebuild items in the same way the drag finalize handler does.
+		const otherCategorySkills = items.filter(s => (s.data.category || 'Other') !== category);
+		items = [...otherCategorySkills, ...reordered];
+
+		// Sync selected items order to match the new display order.
+		const displayOrder = reordered.map(s => s.id);
+		const selectedSet = new Set(_selectedItems);
+		const categorySelectedInOrder = displayOrder.filter(id => selectedSet.has(id));
+		const otherSelected = _selectedItems.filter(id => !displayOrder.includes(id));
+		selectedItems = [...otherSelected, ...categorySelectedInOrder];
+		onUpdate();
+
+		announceSkillMove(moved.label, targetIdx + 1, displayed.length);
+
+		// Keyed {#each} keeps focus on the moving button; redirect at a boundary
+		// where the pressed button becomes disabled and would blur to <body>.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
 		}
 	}
 
@@ -299,6 +361,8 @@
 </script>
 
 <div class="space-y-2">
+	<!-- Polite live region for keyboard + drag reorder announcements -->
+	<ReorderAnnouncer bind:this={reorderAnnouncer} />
 	<div class="flex items-center justify-between mb-3">
 		<p class="text-sm text-gray-600 dark:text-gray-400">
 			{$t('admin.view_editor.skills_categories.description')}
@@ -468,7 +532,7 @@
 								onconsider={(e: any) => handleSkillDndConsider(category, e)}
 								onfinalize={(e: any) => handleSkillDndFinalize(category, e)}
 							>
-								{#each categorySkills as skill (skill.id)}
+								{#each categorySkills as skill, skillIdx (skill.id)}
 									{@const isSelected = _selectedItems.includes(skill.id)}
 									<div
 										class="flex items-center gap-2 p-2 rounded bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -482,6 +546,34 @@
 											<svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 											</svg>
+										</div>
+
+										<!-- Keyboard-accessible reorder controls (complement drag) -->
+										<div class="flex flex-col flex-shrink-0">
+											<button
+												type="button"
+												data-move="up"
+												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+												disabled={skillIdx === 0}
+												onclick={(e) => moveSkill(category, skillIdx, 'up', e.currentTarget)}
+												aria-label={$t('admin.view_editor.skills_categories.skill_move_up', { values: { skill: skill.label } })}
+											>
+												<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+												</svg>
+											</button>
+											<button
+												type="button"
+												data-move="down"
+												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+												disabled={skillIdx === categorySkills.length - 1}
+												onclick={(e) => moveSkill(category, skillIdx, 'down', e.currentTarget)}
+												aria-label={$t('admin.view_editor.skills_categories.skill_move_down', { values: { skill: skill.label } })}
+											>
+												<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+												</svg>
+											</button>
 										</div>
 
 										<!-- Checkbox + Label -->

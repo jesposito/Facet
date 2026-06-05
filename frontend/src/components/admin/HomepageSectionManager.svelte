@@ -9,13 +9,17 @@
 	 * - Drag-and-drop reordering of items within sections
 	 */
 	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import type { CustomContent } from '$lib/pocketbase';
 	import { VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { t } from 'svelte-i18n';
+
+	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -36,18 +40,18 @@
 
 	const flipDurationMs = 200;
 
-	// Section definitions - same as ViewSectionManager
-	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
-		experience: { label: 'Experience', collection: 'experience' },
-		projects: { label: 'Projects', collection: 'projects' },
-		education: { label: 'Education', collection: 'education' },
-		certifications: { label: 'Certifications', collection: 'certifications' },
-		awards: { label: 'Awards', collection: 'awards' },
-		skills: { label: 'Skills', collection: 'skills' },
-		posts: { label: 'Posts', collection: 'posts' },
-		talks: { label: 'Talks', collection: 'talks' },
-		contacts: { label: 'Contact Methods', collection: 'contact_methods' },
-		testimonials: { label: 'Testimonials', collection: 'testimonials' }
+	// Section definitions - same as ViewSectionManager (label keys map to admin.view_editor.sections.*)
+	const SECTION_DEFS: Record<string, { labelKey: string; collection: string }> = {
+		experience: { labelKey: 'admin.view_editor.sections.experience', collection: 'experience' },
+		projects: { labelKey: 'admin.view_editor.sections.projects', collection: 'projects' },
+		education: { labelKey: 'admin.view_editor.sections.education', collection: 'education' },
+		certifications: { labelKey: 'admin.view_editor.sections.certifications', collection: 'certifications' },
+		awards: { labelKey: 'admin.view_editor.sections.awards', collection: 'awards' },
+		skills: { labelKey: 'admin.view_editor.sections.skills', collection: 'skills' },
+		posts: { labelKey: 'admin.view_editor.sections.posts', collection: 'posts' },
+		talks: { labelKey: 'admin.view_editor.sections.talks', collection: 'talks' },
+		contacts: { labelKey: 'admin.view_editor.sections.contacts', collection: 'contact_methods' },
+		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' }
 	};
 
 	// Props
@@ -131,13 +135,19 @@
 		return sectionKey.startsWith('custom:');
 	}
 
-	function getSectionLabel(sectionKey: string): string {
+	// Get display label key for a section (returns null for custom content, which uses its title)
+	function getSectionLabelKey(sectionKey: string): string | null {
 		if (isCustomSection(sectionKey)) {
-			const customId = sectionKey.replace('custom:', '');
-			const title = customContentTitleMap.get(customId);
-			return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
+			return null;
 		}
-		return SECTION_DEFS[sectionKey]?.label || sectionKey;
+		return SECTION_DEFS[sectionKey]?.labelKey || null;
+	}
+
+	// Get custom section title (custom content uses its title directly)
+	function getCustomSectionTitle(sectionKey: string): string {
+		const customId = sectionKey.replace('custom:', '');
+		const title = customContentTitleMap.get(customId);
+		return title ? `Custom: ${title}` : `Custom: ${customId.slice(0, 8)}...`;
 	}
 
 	function toggleSection(key: string) {
@@ -218,7 +228,7 @@
 		updateSectionItems();
 	}
 
-	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
+	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string; id?: string } }>) {
 		const trigger = e.detail.info?.trigger;
 		const finalPublicItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		// Non-public items = private, unlisted, or draft - keep them at the end (not shown in UI)
@@ -228,6 +238,12 @@
 
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
 			updateItemsOrderFromDisplay(sectionKey);
+			// Announce the dropped item's new position for screen-reader users.
+			const droppedId = e.detail.info?.id;
+			const droppedIdx = finalPublicItems.findIndex(i => i.id === droppedId);
+			if (droppedIdx !== -1) {
+				announceItemMove(finalPublicItems[droppedIdx].label, droppedIdx + 1, finalPublicItems.length);
+			}
 		}
 	}
 
@@ -239,27 +255,75 @@
 		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
 		updateSections();
 	}
+
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceItemMove(label: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.sections.item_reorder_announce', {
+				values: { item: label, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible item reordering within a section (complements drag).
+	// Swaps the item with its adjacent neighbor in the displayed public list and
+	// reuses the existing drag persistence path (updateItemsOrderFromDisplay).
+	async function moveSectionItem(
+		sectionKey: string,
+		index: number,
+		direction: 'up' | 'down',
+		btn: HTMLButtonElement
+	) {
+		const allItems = sectionItems[sectionKey] || [];
+		const publicItems = allItems.filter(i => i.visibility === 'public' && !i.is_draft);
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= publicItems.length) return;
+
+		const moved = publicItems[index];
+		const newPublic = [...publicItems];
+		[newPublic[index], newPublic[targetIdx]] = [newPublic[targetIdx], newPublic[index]];
+
+		// Rebuild sectionItems as [reordered public, ...non-public] (same shape the
+		// drag handlers maintain) then persist selection order via the shared path.
+		const nonPublicItems = allItems.filter(i => i.visibility !== 'public' || i.is_draft);
+		sectionItems[sectionKey] = [...newPublic, ...nonPublicItems];
+		updateSectionItems();
+		updateItemsOrderFromDisplay(sectionKey);
+
+		announceItemMove(moved.label, targetIdx + 1, publicItems.length);
+
+		// Keyed {#each} keeps focus on the moving button; redirect at a boundary
+		// where the pressed button becomes disabled and would blur to <body>.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
+	}
 </script>
 
 <div class="space-y-4">
+	<!-- Polite live region for keyboard + drag reorder announcements -->
+	<ReorderAnnouncer bind:this={reorderAnnouncer} />
 	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
-			<p class="text-sm text-gray-500">Choose which sections to show and drag to reorder. Expand to select specific items.</p>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.sections.title')}</h2>
+			<p class="text-sm text-gray-500">{$t('admin.homepage.sections_description')}</p>
 		</div>
 	</div>
 
 	{#if customContentItems.length > 0}
 		<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
 			<p class="text-sm text-blue-700 dark:text-blue-300">
-				<strong>Note:</strong> Only custom content marked as <strong>public</strong> and <strong>not in draft</strong> appears here.
-				To change visibility, go to <a href="/admin/custom" class="underline hover:no-underline">Custom Content</a>.
+				{@html $t('admin.homepage.custom_content_note')}
 			</p>
 		</div>
 	{/if}
 
 	{#if loading}
-		<div class="animate-pulse text-center py-8">Loading sections...</div>
+		<div class="animate-pulse text-center py-8">{$t('admin.homepage.loading_sections')}</div>
 	{:else}
 		{#key dndLoaded}
 		<div
@@ -272,7 +336,8 @@
 					{@const sectionIdx = sectionOrder.findIndex(s => s.id === sectionItem.id)}
 				{@const sectionKey = sectionItem.key}
 				{@const isCustom = isCustomSection(sectionKey)}
-				{@const sectionLabel = getSectionLabel(sectionKey)}
+				{@const sectionLabelKey = getSectionLabelKey(sectionKey)}
+				{@const sectionLabel = sectionLabelKey ? $t(sectionLabelKey) : getCustomSectionTitle(sectionKey)}
 				{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, layout: 'default', width: 'full' }}
 				{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
 				{@const publicItems = items.filter(i => i.visibility === 'public' && !i.is_draft)}
@@ -289,7 +354,7 @@
 						<div class="flex items-center gap-3">
 							<!-- Drag Handle + Keyboard reorder -->
 							<div class="flex items-center gap-1">
-								<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
+								<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title={$t('admin.view_editor.sections.drag_to_reorder')}>
 									<svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 									</svg>
@@ -329,11 +394,11 @@
 							{#if !isCustom}
 								<span class="text-xs text-gray-500">
 									{#if selectedPublicCount > 0}
-										{selectedPublicCount} selected
+										{selectedPublicCount} {$t('admin.view_editor.sections.selected')}
 									{:else if sectionConfig.enabled}
-										all items ({publicItems.length})
+										{$t('admin.view_editor.sections.all_items', { values: { count: publicItems.length } })}
 									{:else}
-										{publicItems.length} available
+										{publicItems.length} {$t('admin.view_editor.sections.available')}
 									{/if}
 								</span>
 							{/if}
@@ -345,7 +410,7 @@
 								{#if sectionConfig.enabled}
 									{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
 									{#if validWidths.length > 1}
-										<div class="flex items-center gap-1" title="Section width">
+										<div class="flex items-center gap-1" title={$t('admin.homepage.section_width_title')}>
 											<select
 												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 												value={sectionConfig.width}
@@ -367,7 +432,7 @@
 										value={sectionConfig.layout}
 										onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
 										onclick={(e) => e.stopPropagation()}
-										title="Section layout"
+										title={$t('admin.homepage.section_layout_title')}
 									>
 										{#each layoutConfig.layouts as layoutOption}
 											<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
@@ -405,7 +470,7 @@
 									{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
 									{#if validWidths.length > 1}
 										<div>
-											<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Width</label>
+											<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">{$t('admin.view_editor.sections.width_label')}</label>
 											<div class="flex items-center gap-2">
 												<div class="flex gap-0.5">
 													{#if sectionConfig.width === 'half'}
@@ -436,7 +501,7 @@
 									{#if VALID_LAYOUTS[layoutKey]}
 										{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
 										<div>
-											<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">Layout</label>
+											<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">{$t('admin.view_editor.sections.layout_label')}</label>
 											<select
 												id="layout-mobile-{sectionKey}"
 												class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
@@ -468,8 +533,8 @@
 								<div class="flex items-center justify-between mb-2">
 									<p class="text-xs text-gray-500">
 										{selectedPublicCount === 0
-											? 'All public items will be shown. Select items to customize.'
-											: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
+											? $t('admin.view_editor.sections.select_all_hint')
+											: $t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
 									</p>
 									<div class="flex gap-2">
 										<button
@@ -477,14 +542,14 @@
 											class="text-xs text-primary-600 hover:underline"
 											onclick={() => selectAllItems(sectionKey)}
 										>
-											Select All
+											{$t('admin.view_editor.sections.select_all')}
 										</button>
 										<button
 											type="button"
 											class="text-xs text-gray-500 hover:underline"
 											onclick={() => clearAllItems(sectionKey)}
 										>
-											Clear
+											{$t('admin.view_editor.sections.clear')}
 										</button>
 									</div>
 								</div>
@@ -501,7 +566,7 @@
 									onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
 									onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
 								>
-									{#each publicItems as item (item.id)}
+									{#each publicItems as item, itemIdx (item.id)}
 										{@const isSelected = sectionConfig.items.includes(item.id)}
 										<div
 											class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
@@ -509,11 +574,38 @@
 										>
 											<div
 												class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-												title="Drag to reorder"
+												title={$t('admin.view_editor.sections.drag_to_reorder')}
 											>
 												<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 													<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 												</svg>
+											</div>
+											<!-- Keyboard-accessible reorder controls (complement drag) -->
+											<div class="flex flex-col flex-shrink-0">
+												<button
+													type="button"
+													data-move="up"
+													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+													disabled={itemIdx === 0}
+													onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
+													aria-label={$t('admin.view_editor.sections.item_move_up', { values: { item: item.label } })}
+												>
+													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+													</svg>
+												</button>
+												<button
+													type="button"
+													data-move="down"
+													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+													disabled={itemIdx === publicItems.length - 1}
+													onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
+													aria-label={$t('admin.view_editor.sections.item_move_down', { values: { item: item.label } })}
+												>
+													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+													</svg>
+												</button>
 											</div>
 											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 											<label
@@ -551,7 +643,7 @@
 									{#if selectedTestimonials.length > 0}
 										<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 											<label for="homepage-featured-testimonial" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-												{sectionConfig.layout === 'featured' ? 'Featured Testimonial' : 'Primary Testimonial (shown first in carousel)'}
+												{sectionConfig.layout === 'featured' ? $t('admin.view_editor.sections.featured_testimonial_label') : $t('admin.view_editor.sections.primary_testimonial_label')}
 											</label>
 											<select
 												id="homepage-featured-testimonial"
@@ -562,7 +654,7 @@
 													updateSections();
 												}}
 											>
-												<option value="">Use global featured (or first)</option>
+												<option value="">{$t('admin.view_editor.sections.use_global_featured')}</option>
 												{#each selectedTestimonials as testimonial}
 													<option value={testimonial.id}>{testimonial.label}</option>
 												{/each}

@@ -19,19 +19,21 @@
 		dismiss: void;
 	}>();
 
-	function formatTimeAgo(timestamp: number): string {
+	function formatTimeAgo(timestamp: number, translate: (key: string, options?: Record<string, unknown>) => string): string {
 		const seconds = Math.floor((Date.now() - timestamp) / 1000);
-		if (seconds < 60) return 'just now';
+		if (seconds < 60) return translate('admin.autosave_recovery.time_just_now');
 		const minutes = Math.floor(seconds / 60);
-		if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+		if (minutes < 60) return translate('admin.autosave_recovery.time_minutes_ago', { values: { count: minutes } });
 		const hours = Math.floor(minutes / 60);
-		if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+		if (hours < 24) return translate('admin.autosave_recovery.time_hours_ago', { values: { count: hours } });
 		const days = Math.floor(hours / 24);
-		return `${days} day${days === 1 ? '' : 's'} ago`;
+		return translate('admin.autosave_recovery.time_days_ago', { values: { count: days } });
 	}
 
-	const timeAgo = $derived(formatTimeAgo(savedAt));
-	const actionText = $derived(isEditing ? 'editing session' : 'new item draft');
+	const timeAgo = $derived(formatTimeAgo(savedAt, $t));
+	const actionText = $derived(
+		isEditing ? $t('admin.autosave_recovery.action_editing') : $t('admin.autosave_recovery.action_new')
+	);
 </script>
 
 {#if visible}
@@ -44,10 +46,10 @@
 			</div>
 			<div class="ml-3 flex-1">
 				<h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
-					Draft Available
+					{$t('admin.autosave_recovery.title')}
 				</h3>
 				<div class="mt-1 text-sm text-blue-700 dark:text-blue-300">
-					You have an unsaved {actionText} from {timeAgo}.
+					{$t('admin.autosave_recovery.message', { values: { action: actionText, time: timeAgo } })}
 				</div>
 				<div class="mt-3 flex space-x-3">
 					<button
@@ -55,14 +57,14 @@
 						class="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
 						onclick={() => dispatch('restore')}
 					>
-						Restore Draft
+						{$t('admin.autosave_recovery.restore')}
 					</button>
 					<button
 						type="button"
 						class="text-blue-800 dark:text-blue-200 text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
 						onclick={() => dispatch('dismiss')}
 					>
-						Dismiss
+						{$t('admin.autosave_recovery.dismiss')}
 					</button>
 				</div>
 			</div>

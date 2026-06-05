@@ -14,6 +14,7 @@
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
 	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
@@ -36,6 +37,7 @@ let location = $state('');
 let description = $state('');
 let slidesUrl = $state('');
 let videoUrl = $state('');
+let coverImageLibraryUrl = $state('');
 let visibility = $state('public');
 let isDraft = $state(false);
 let sortOrder = $state(0);
@@ -71,7 +73,7 @@ let showRecoveryBanner = $state(false);
 let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
 function getFormData() {
-	return { title, slug, event, eventUrl, date, location, description, slidesUrl, videoUrl, visibility, isDraft, sortOrder, mediaRefs };
+	return { title, slug, event, eventUrl, date, location, description, slidesUrl, videoUrl, coverImageLibraryUrl, visibility, isDraft, sortOrder, mediaRefs };
 }
 
 function restoreFromDraft(data: Record<string, any>) {
@@ -84,6 +86,7 @@ function restoreFromDraft(data: Record<string, any>) {
 	description = data.description || '';
 	slidesUrl = data.slidesUrl || '';
 	videoUrl = data.videoUrl || '';
+	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
 	visibility = data.visibility || 'public';
 	isDraft = data.isDraft || false;
 	sortOrder = data.sortOrder || 0;
@@ -162,6 +165,7 @@ afterNavigate(() => {
 		description = '';
 		slidesUrl = '';
 		videoUrl = '';
+		coverImageLibraryUrl = '';
 		visibility = 'public';
 		isDraft = false;
 		sortOrder = 0;
@@ -209,6 +213,7 @@ afterNavigate(() => {
 		description = talk.description || '';
 		slidesUrl = talk.slides_url || '';
 		videoUrl = talk.video_url || '';
+		coverImageLibraryUrl = talk.cover_image_library_url || '';
 		visibility = talk.visibility;
 		isDraft = talk.is_draft;
 		sortOrder = talk.sort_order;
@@ -241,6 +246,7 @@ afterNavigate(() => {
 				description: description,
 				slides_url: slidesUrl.trim(),
 				video_url: videoUrl.trim(),
+				cover_image_library_url: coverImageLibraryUrl.trim(),
 				media_refs: resolvedRefs,
 				visibility,
 				is_draft: isDraft,
@@ -546,6 +552,12 @@ afterNavigate(() => {
 							placeholder="https://speakerdeck.com/... or https://slides.com/..."
 						/>
 					</div>
+
+					<SingleMediaPicker
+						bind:value={coverImageLibraryUrl}
+						label={$t('admin.content.talks.cover_image_label')}
+						helpText={$t('admin.content.talks.cover_image_help')}
+					/>
 
 					<MultiMediaPicker
 						bind:this={mediaPickerRef}

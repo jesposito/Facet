@@ -492,6 +492,9 @@
 			"period_30d": "30 suns",
 			"period_90d": "90 suns",
 			"total_views": "Total Wayfarers",
+			"total_views_help": "All wayfarers counted, even those who tread the path anew.",
+			"unique_visitors": "Singular Wayfarers",
+			"unique_visitors_help": "Distinct travelers, divined from day-rotated, veiled marks of passage.",
 			"views_over_time": "Journeys Through Time",
 			"popular_views": "Most Visited Halls",
 			"top_referrers": "Paths of Arrival",
@@ -1233,6 +1236,9 @@
 				"reorder_save": "Preserve Order",
 				"reorder_cancel": "Withdraw Reorder",
 				"reorder_saving": "Preserving...",
+				"reorder_move_up": "Ortha {item} amrûn",
+				"reorder_move_down": "Ortha {item} dad",
+				"reorder_announce": "{item} gwennen na had {position} o {total}",
 				"details_section": "Details",
 				"settings_section": "Inscriptions",
 				"required_field": "*",
@@ -1333,7 +1339,19 @@
 				"toast_order_saved": "Order preserved",
 				"toast_order_error": "Failed to preserve the order",
 				"action_feature": "Feature",
-				"action_unfeature": "Unfeature"
+				"action_unfeature": "Unfeature",
+				"related_heading": "Maw a Pelfamilarye",
+				"related_help": "Nuda i maw a i pelfamilarye an tirië ena i project-hen.",
+				"related_experience_label": "Maw Govanen",
+				"related_experience_add": "Anno maw",
+				"related_experience_edit": "Cened maw",
+				"related_experience_list": "Maw bain",
+				"related_experience_empty": "Ú-maw an sí",
+				"related_education_label": "Pelfamilarye Govanen",
+				"related_education_add": "Anno pelfamilarye",
+				"related_education_edit": "Cened pelfamilarye",
+				"related_education_list": "Pelfamilarye bain",
+				"related_education_empty": "Ú-pelfamilarye an sí"
 			},
 			"education": {
 				"title": "Learning",
@@ -1440,6 +1458,8 @@
 				"slides_url_placeholder": "https://scrolls.me/...",
 				"video_url_label": "Recording Path (optional)",
 				"video_url_placeholder": "https://palantir.com/...",
+				"cover_image_label": "Emma Orchal",
+				"cover_image_help": "Tannen sui emma i-narn ir' video u-ea",
 				"required_error": "Title and gathering are required"
 			},
 			"testimonials": {
@@ -1670,6 +1690,11 @@
 				"drag_to_reorder": "Draw to reorder",
 				"move_up": "Move {section} up",
 				"move_down": "Move {section} down",
+				"move_left": "Move {section} left",
+				"move_right": "Move {section} right",
+				"item_move_up": "Ortha {item} amrûn",
+				"item_move_down": "Ortha {item} dad",
+				"item_reorder_announce": "{item} gwennen na had {position} o {total}",
 				"toggle_section": "Toggle {section} realm",
 				"selected": "chosen",
 				"all_items": "all items ({count})",
@@ -1733,6 +1758,9 @@
 				"all_selected": "all",
 				"none_selected_hint": "All crafts shown. Select to tailor.",
 				"drag_hint": "Draw to reorder crafts within this category.",
+				"skill_move_up": "Ortha {skill} amrûn",
+				"skill_move_down": "Ortha {skill} dad",
+				"skill_reorder_announce": "{skill} gwennen na had {position} o {total}",
 				"no_skills": "No crafts found. Add crafts in the Crafts section first.",
 				"display_mode_label": "Display manner for {category}",
 				"use_section_default": "Default",
@@ -1787,8 +1815,31 @@
 				"hero_layout_label": "Choose banner arrangement"
 			}
 		},
+		"autosave_recovery": {
+			"title": "A Draft Awaits",
+			"message": "An unsaved {action} from {time} lingers still.",
+			"action_editing": "tale being reshaped",
+			"action_new": "newborn draft",
+			"restore": "Reclaim the draft",
+			"dismiss": "Let it fade",
+			"time_just_now": "but a moment ago",
+			"time_minutes_ago": "{count} minute(s) past",
+			"time_hours_ago": "{count} hour(s) past",
+			"time_days_ago": "{count} day(s) past"
+		},
+		"related": {
+			"loading": "Pelia...",
+			"remove_item": "Gwanno {name}"
+		},
 		"tags": {
 			"remove_tag": "Remove mark {name}",
+			"tag": "Mark",
+			"edit_tags": "Reshape marks",
+			"add_tags": "Add marks",
+			"loading": "Summoning marks …",
+			"no_tags": "No marks yet",
+			"create_in_settings": "Forge marks in the Settings hall",
+			"manage_tags": "Tend the marks",
 			"add_tag": "Add mark"
 		},
 		"views": {
@@ -2100,7 +2151,10 @@
 			"multi_picker_selected_count": "{count} chosen",
 			"multi_picker_confirm": "Affirm ({count})",
 			"multi_picker_or": "egor",
-			"multi_picker_upload_new": "Onlod Celair"
+			"multi_picker_upload_new": "Onlod Celair",
+			"multi_picker_move_up": "Ortha {title} amrûn",
+			"multi_picker_move_down": "Penna {title} dadben",
+			"multi_picker_reorder_announce": "{title} gwennen na had {position} o {total}"
 		},
 		"tokens": {
 			"page_title": "Tokens of Passage | Facet",
@@ -2233,7 +2287,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Choose which chapters to reveal and drag to reorder them. Unfold a chapter to choose its tales.",
+			"loading_sections": "Summoning chapters …",
+			"custom_content_note": "<strong>Heed:</strong> Only wrought tales marked <strong>open to all</strong> and <strong>not yet a draft</strong> appear here. To change who may behold them, journey to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Wrought Tales</a>.",
+			"section_width_title": "Breadth of the chapter",
+			"section_layout_title": "Weave of the chapter"
 		},
 		"import": {
 			"resume_dropzone_label": "Chronicle scroll waypoint",
@@ -2294,7 +2353,18 @@
 			"aria_item_checkbox": "Mark entry {label}",
 			"show_technical": "Show technical runes",
 			"hide_technical": "Hide technical runes",
-			"copy_technical": "Copy technical runes"
+			"copy_technical": "Copy technical runes",
+			"modal_title": "Bring in a Life-Scroll",
+			"modal_subtitle": "Offer your life-scroll and its deeds, learnings and crafts shall be drawn forth.",
+			"modal_dropzone_hint": "A PDF or DOCX scroll, no heavier than 5MB",
+			"modal_uploading": "Sending forth …",
+			"modal_upload_button": "Send & gather",
+			"modal_error_oversized": "The scroll exceeds the weight of 5MB",
+			"modal_error_unsupported": "Pray offer a PDF or DOCX scroll",
+			"modal_error_no_file": "Pray choose a life-scroll first",
+			"modal_error_upload_failed": "The life-scroll could not be received",
+			"modal_error_unexpected": "The sending faltered unexpectedly",
+			"modal_success_toast": "Life-scroll gathered! Choose the tales to weave into your facet."
 		},
 		"testimonials": {
 			"delete_request": "Remove petition"
@@ -2755,6 +2825,7 @@
 		},
 		"lightbox": {
 			"close": "Close vision",
+			"label": "Image vision",
 			"next_image": "Next vision",
 			"previous_image": "Previous vision"
 		},
@@ -2763,7 +2834,8 @@
 			"positions_count": "{count} positions"
 		},
 		"projects": {
-			"featured": "Honored"
+			"featured": "Honored",
+			"related_heading": "Maw a Pelfamilarye"
 		},
 		"certifications": {
 			"expired": "Expired",

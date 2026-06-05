@@ -45,7 +45,9 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				cover_image_url: project.cover_image_url || null,
 				media_urls: project.media_urls || [],
 				visibility: project.visibility || 'public',
-				is_draft: project.is_draft || false
+				is_draft: project.is_draft || false,
+				related_experience: project.related_experience_expand || [],
+				related_education: project.related_education_expand || []
 			},
 			media_refs: mediaRefs,
 			profile: project.profile || null,

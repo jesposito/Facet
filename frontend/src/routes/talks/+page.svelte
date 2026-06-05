@@ -155,6 +155,12 @@
 												alt=""
 												class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 											/>
+										{:else if talk.cover_image_library_url}
+											<img
+												src={talk.cover_image_library_url}
+												alt=""
+												class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+											/>
 										{:else if talk.video_url}
 											<div class="w-full h-full bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center">
 												<svg class="w-12 h-12 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -177,6 +183,12 @@
 												src={thumbnail}
 												alt=""
 												class="w-full h-full object-cover"
+											/>
+										{:else if talk.cover_image_library_url}
+											<img
+												src={talk.cover_image_library_url}
+												alt=""
+												class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
 											/>
 										{:else if talk.video_url}
 											<div class="w-full h-full bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center">

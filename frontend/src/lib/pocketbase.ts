@@ -138,9 +138,23 @@ export interface Project {
 	source_id?: string;
 	field_locks?: Record<string, boolean>;
 	admin_tags?: string[];
+	related_experience?: string[];
+	related_education?: string[];
 	expand?: {
 		admin_tags?: AdminTag[];
 	};
+}
+
+export interface RelatedRecordSummary {
+	id: string;
+	title?: string;
+	company?: string;
+	location?: string;
+	institution?: string;
+	degree?: string;
+	field?: string;
+	start_date?: string;
+	end_date?: string;
 }
 
 export interface ProjectLink {
@@ -216,6 +230,7 @@ export interface Talk {
 	description?: string;
 	slides_url?: string;
 	video_url?: string;
+	cover_image_library_url?: string;
 	media_refs?: string[];
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
 	import { browser } from '$app/environment';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { icon } from '$lib/icons';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import {
 		OVERRIDABLE_FIELDS,
 		VALID_LAYOUTS,
@@ -23,6 +24,9 @@
 	let TRIGGERS: any = $state({});
 	let SHADOW_PLACEHOLDER_ITEM_ID: string = $state('');
 	let dndLoaded = $state(false);
+
+	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	// Load DnD functionality when in browser
 	onMount(async () => {
@@ -372,15 +376,21 @@
 		updateSectionItems();
 	}
 
-	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
+	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string; id?: string } }>) {
 		const trigger = e.detail.info?.trigger;
 		const finalItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		sectionItems[sectionKey] = finalItems;
 		updateSectionItems();
-		
+
 		// Only update selection order if this was an actual drag operation, not just a click
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
 			updateItemsOrderFromDisplay(sectionKey);
+			// Announce the dropped item's new position for screen-reader users.
+			const droppedId = e.detail.info?.id;
+			const droppedIdx = finalItems.findIndex(i => i.id === droppedId);
+			if (droppedIdx !== -1) {
+				announceItemMove(finalItems[droppedIdx].label, droppedIdx + 1, finalItems.length);
+			}
 		}
 	}
 
@@ -393,10 +403,54 @@
 		updateSections();
 	}
 
+	// Announce a reorder change for screen-reader users (position is 1-based).
+	function announceItemMove(label: string, position: number, total: number) {
+		reorderAnnouncer?.announce(
+			$t('admin.view_editor.sections.item_reorder_announce', {
+				values: { item: label, position, total }
+			})
+		);
+	}
+
+	// Keyboard-accessible item reordering within a section (complements drag).
+	// Operates on the full sectionItems list (matches the non-filtered drag path)
+	// and reuses updateItemsOrderFromDisplay for persistence.
+	async function moveSectionItem(
+		sectionKey: string,
+		index: number,
+		direction: 'up' | 'down',
+		btn: HTMLButtonElement
+	) {
+		const list = sectionItems[sectionKey] || [];
+		const targetIdx = direction === 'up' ? index - 1 : index + 1;
+		if (targetIdx < 0 || targetIdx >= list.length) return;
+
+		const moved = list[index];
+		const next = [...list];
+		[next[index], next[targetIdx]] = [next[targetIdx], next[index]];
+		sectionItems[sectionKey] = next;
+		updateSectionItems();
+		updateItemsOrderFromDisplay(sectionKey);
+
+		announceItemMove(moved.label, targetIdx + 1, list.length);
+
+		// Keyed {#each} keeps focus on the moving button; redirect at a boundary
+		// where the pressed button becomes disabled and would blur to <body>.
+		await tick();
+		if (btn.disabled) {
+			const opposite = direction === 'up' ? 'down' : 'up';
+			btn.parentElement
+				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
+				?.focus();
+		}
+	}
+
 </script>
 
 <!-- Sections -->
 <div class="card p-4 sm:p-6 space-y-4">
+	<!-- Polite live region for keyboard + drag reorder announcements -->
+	<ReorderAnnouncer bind:this={reorderAnnouncer} />
 	<div class="flex items-center justify-between">
 		<div>
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.sections.title')}</h2>
@@ -737,7 +791,7 @@
 								onconsider={(e: any) => { if (!isFiltering) handleItemDndConsider(sectionKey, e); }}
 								onfinalize={(e: any) => { if (!isFiltering) handleItemDndFinalize(sectionKey, e); }}
 							>
-								{#each isFiltering ? filteredItems : items as item (item.id)}
+								{#each isFiltering ? filteredItems : items as item, itemIdx (item.id)}
 									{@const isSelected = sectionConfig.items.includes(item.id)}
 									{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
 									{@const overrideCount = getOverrideCount(sectionKey, item.id)}
@@ -756,6 +810,33 @@
 											<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 											</svg>
+										</div>
+										<!-- Keyboard-accessible reorder controls (complement drag; disabled while filtering, like drag) -->
+										<div class="flex flex-col flex-shrink-0">
+											<button
+												type="button"
+												data-move="up"
+												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+												disabled={isFiltering || itemIdx === 0}
+												onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
+												aria-label={$t('admin.view_editor.sections.item_move_up', { values: { item: item.label } })}
+											>
+												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+												</svg>
+											</button>
+											<button
+												type="button"
+												data-move="down"
+												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+												disabled={isFiltering || itemIdx === (isFiltering ? filteredItems : items).length - 1}
+												onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
+												aria-label={$t('admin.view_editor.sections.item_move_down', { values: { item: item.label } })}
+											>
+												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+												</svg>
+											</button>
 										</div>
 										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 										<label
