@@ -395,20 +395,28 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			if shouldCountView {
-				// Increment view count and last_viewed_at in the background
-				viewID := view.Id
-				collection := viewsCollection
-				services.SafeGo(app, "view-count-increment", func() {
-					record, err := app.FindRecordById(collection, viewID)
-					if err != nil {
-						return
-					}
-					record.Set("view_count", record.GetInt("view_count")+1)
-					record.Set("last_viewed_at", time.Now())
-					if err := app.Save(record); err != nil {
-						app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
-					}
-				})
+				// Bot-gate and ~30-min dedup the raw view_count so bots and
+				// rapid repeat hits from the same visitor don't inflate it.
+				// Keyed per-view on the same daily-salted IP hash as access_logs.
+				if services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id) {
+					// Increment view count and last_viewed_at in the background
+					viewID := view.Id
+					collection := viewsCollection
+					services.SafeGo(app, "view-count-increment", func() {
+						record, err := app.FindRecordById(collection, viewID)
+						if err != nil {
+							return
+						}
+						record.Set("view_count", record.GetInt("view_count")+1)
+						record.Set("last_viewed_at", time.Now())
+						if err := app.Save(record); err != nil {
+							app.Logger().Warn("Failed to update view metrics", "error", err, "view_id", viewID)
+						}
+					})
+				}
+				// access_logs is the analytics source of truth: it has its own
+				// bot filter and is intentionally NOT deduped (so unique-visitor
+				// counts stay accurate). Logged for every counted request.
 				LogViewAccess(app, e, view.Id, slug, "")
 			}
 
@@ -714,7 +722,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			if settings != nil && settings.HomepageEnabled {
-				incrementHomepageViewCount(app)
+				incrementHomepageViewCount(app, e)
 			}
 
 			// Find the default view (is_default = true, is_active = true, visibility = public)
