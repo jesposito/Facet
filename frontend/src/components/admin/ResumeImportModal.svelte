@@ -45,20 +45,20 @@
 			selectedFile.name.endsWith('.docx')
 		) {
 			if (selectedFile.size > 5 * 1024 * 1024) {
-				error = 'File size exceeds 5MB limit';
+				error = $t('admin.import.modal_error_oversized');
 				file = null;
 			} else {
 				file = selectedFile;
 				error = '';
 			}
 		} else {
-			error = 'Please upload a PDF or DOCX file';
+			error = $t('admin.import.modal_error_unsupported');
 		}
 	}
 
 	async function handleSubmit() {
 		if (!file) {
-			error = 'Please select a resume file';
+			error = $t('admin.import.modal_error_no_file');
 			return;
 		}
 
@@ -84,14 +84,14 @@
 				if (data.error && typeof data.error === 'object' && data.error.message) {
 					throw new Error(data.error.message);
 				} else {
-					throw new Error(data.error || 'Resume upload failed');
+					throw new Error(data.error || $t('admin.import.modal_error_upload_failed'));
 				}
 			}
 
-			toasts.add('success', 'Resume imported! Select items to include in your facet.');
+			toasts.add('success', $t('admin.import.modal_success_toast'));
 			onSuccess(data.imported);
 		} catch (err: any) {
-			error = err.message || 'Upload failed unexpectedly';
+			error = err.message || $t('admin.import.modal_error_unexpected');
 		} finally {
 			uploading = false;
 		}
@@ -126,9 +126,9 @@
 	>
 		<div class="flex justify-between items-start mb-6">
 			<div>
-				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Import Resume</h2>
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('admin.import.modal_title')}</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Upload your resume to automatically extract experience, education, and skills.
+					{$t('admin.import.modal_subtitle')}
 				</p>
 			</div>
 			<button
@@ -205,7 +205,7 @@
 						<p class="font-medium text-gray-900 dark:text-white">{file.name}</p>
 						<p class="text-sm text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
 						<button class="btn btn-sm btn-secondary mt-2" onclick={() => (file = null)}>
-							Change File
+							{$t('admin.import.resume_change_file')}
 						</button>
 					</div>
 				{:else}
@@ -227,11 +227,11 @@
 								for="resumeFileModal"
 								class="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
 							>
-								Choose a file
+								{$t('admin.import.resume_choose_file')}
 							</label>
-							or drag and drop
+							{$t('admin.import.resume_or_drag')}
 						</p>
-						<p class="text-sm text-gray-500">PDF or DOCX up to 5MB</p>
+						<p class="text-sm text-gray-500">{$t('admin.import.modal_dropzone_hint')}</p>
 						<input
 							type="file"
 							id="resumeFileModal"
@@ -244,7 +244,7 @@
 			</div>
 
 			<fieldset class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-				<legend class="label mb-2">Import visibility</legend>
+				<legend class="label mb-2">{$t('admin.import.visibility_label')}</legend>
 				<div class="flex flex-wrap gap-4">
 					<label class="flex items-center gap-2 cursor-pointer">
 						<input
@@ -253,8 +253,8 @@
 							value="private"
 							class="text-primary-600"
 						/>
-						<span class="text-sm text-gray-700 dark:text-gray-300">Private</span>
-						<span class="text-xs text-gray-500">(recommended)</span>
+						<span class="text-sm text-gray-700 dark:text-gray-300">{$t('admin.import.visibility_private')}</span>
+						<span class="text-xs text-gray-500">{$t('admin.import.visibility_private_hint')}</span>
 					</label>
 					<label class="flex items-center gap-2 cursor-pointer">
 						<input
@@ -263,8 +263,8 @@
 							value="unlisted"
 							class="text-primary-600"
 						/>
-						<span class="text-sm text-gray-700 dark:text-gray-300">Unlisted</span>
-						<span class="text-xs text-gray-500">(hidden but shareable)</span>
+						<span class="text-sm text-gray-700 dark:text-gray-300">{$t('admin.import.visibility_unlisted')}</span>
+						<span class="text-xs text-gray-500">{$t('admin.import.visibility_unlisted_hint')}</span>
 					</label>
 					<label class="flex items-center gap-2 cursor-pointer">
 						<input
@@ -273,18 +273,18 @@
 							value="public"
 							class="text-primary-600"
 						/>
-						<span class="text-sm text-gray-700 dark:text-gray-300">Public</span>
-						<span class="text-xs text-gray-500">(visible immediately)</span>
+						<span class="text-sm text-gray-700 dark:text-gray-300">{$t('admin.import.visibility_public')}</span>
+						<span class="text-xs text-gray-500">{$t('admin.import.visibility_public_hint')}</span>
 					</label>
 				</div>
 				<p class="text-xs text-gray-500 mt-2">
-					Private items can be made visible per-view when you add them to a view.
+					{$t('admin.import.visibility_note')}
 				</p>
 			</fieldset>
 
 			<div class="flex gap-3 justify-end pt-2">
 				<button class="btn btn-secondary" onclick={onClose} disabled={uploading}>
-					Cancel
+					{$t('shared.actions.cancel')}
 				</button>
 				<button
 					class="btn btn-primary"
@@ -307,9 +307,9 @@
 								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 							></path>
 						</svg>
-						Uploading...
+						{$t('admin.import.modal_uploading')}
 					{:else}
-						Upload & Import
+						{$t('admin.import.modal_upload_button')}
 					{/if}
 				</button>
 			</div>

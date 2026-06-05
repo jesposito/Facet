@@ -1789,8 +1789,27 @@
 				"hero_layout_label": "Choose banner arrangement"
 			}
 		},
+		"autosave_recovery": {
+			"title": "A Draft Awaits",
+			"message": "An unsaved {action} from {time} lingers still.",
+			"action_editing": "tale being reshaped",
+			"action_new": "newborn draft",
+			"restore": "Reclaim the draft",
+			"dismiss": "Let it fade",
+			"time_just_now": "but a moment ago",
+			"time_minutes_ago": "{count} minute(s) past",
+			"time_hours_ago": "{count} hour(s) past",
+			"time_days_ago": "{count} day(s) past"
+		},
 		"tags": {
 			"remove_tag": "Remove mark {name}",
+			"tag": "Mark",
+			"edit_tags": "Reshape marks",
+			"add_tags": "Add marks",
+			"loading": "Summoning marks …",
+			"no_tags": "No marks yet",
+			"create_in_settings": "Forge marks in the Settings hall",
+			"manage_tags": "Tend the marks",
 			"add_tag": "Add mark"
 		},
 		"views": {
@@ -2238,7 +2257,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Choose which chapters to reveal and drag to reorder them. Unfold a chapter to choose its tales.",
+			"loading_sections": "Summoning chapters …",
+			"custom_content_note": "<strong>Heed:</strong> Only wrought tales marked <strong>open to all</strong> and <strong>not yet a draft</strong> appear here. To change who may behold them, journey to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Wrought Tales</a>.",
+			"section_width_title": "Breadth of the chapter",
+			"section_layout_title": "Weave of the chapter"
 		},
 		"import": {
 			"resume_dropzone_label": "Chronicle scroll waypoint",
@@ -2299,7 +2323,18 @@
 			"aria_item_checkbox": "Mark entry {label}",
 			"show_technical": "Show technical runes",
 			"hide_technical": "Hide technical runes",
-			"copy_technical": "Copy technical runes"
+			"copy_technical": "Copy technical runes",
+			"modal_title": "Bring in a Life-Scroll",
+			"modal_subtitle": "Offer your life-scroll and its deeds, learnings and crafts shall be drawn forth.",
+			"modal_dropzone_hint": "A PDF or DOCX scroll, no heavier than 5MB",
+			"modal_uploading": "Sending forth …",
+			"modal_upload_button": "Send & gather",
+			"modal_error_oversized": "The scroll exceeds the weight of 5MB",
+			"modal_error_unsupported": "Pray offer a PDF or DOCX scroll",
+			"modal_error_no_file": "Pray choose a life-scroll first",
+			"modal_error_upload_failed": "The life-scroll could not be received",
+			"modal_error_unexpected": "The sending faltered unexpectedly",
+			"modal_success_toast": "Life-scroll gathered! Choose the tales to weave into your facet."
 		},
 		"testimonials": {
 			"delete_request": "Remove petition"

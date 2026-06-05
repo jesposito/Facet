@@ -1789,8 +1789,27 @@
 				"hero_layout_label": "Pick ur hero layout"
 			}
 		},
+		"autosave_recovery": {
+			"title": "Draft Availabul",
+			"message": "U haz an unsaved {action} from {time}.",
+			"action_editing": "editin sesshun",
+			"action_new": "new item draft",
+			"restore": "Restorez Draft",
+			"dismiss": "Dismiss kthx",
+			"time_just_now": "just nao",
+			"time_minutes_ago": "{count} minit(z) ago",
+			"time_hours_ago": "{count} hr(z) ago",
+			"time_days_ago": "{count} day(z) ago"
+		},
 		"tags": {
 			"remove_tag": "Removez tag {name}",
+			"tag": "Tag",
+			"edit_tags": "Edit tagz",
+			"add_tags": "Add tagz",
+			"loading": "Loadin tagz...",
+			"no_tags": "No tagz yet :(",
+			"create_in_settings": "Makez tagz in Settingz",
+			"manage_tags": "Boss teh tagz",
 			"add_tag": "Add tag"
 		},
 		"views": {
@@ -2238,7 +2257,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Pik wich sekshunz to show an drag to reorder. Unfold to pik speshul itemz.",
+			"loading_sections": "Loadin sekshunz...",
+			"custom_content_note": "<strong>Note:</strong> Only custom stuffz markd <strong>public</strong> an <strong>not in draft</strong> showz here. To chanj who can haz, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
+			"section_width_title": "Sekshun wideness",
+			"section_layout_title": "Sekshun layout"
 		},
 		"import": {
 			"resume_dropzone_label": "Rezume file drop zone",
@@ -2299,7 +2323,18 @@
 			"aria_item_checkbox": "Chek item {label}",
 			"show_technical": "Show teknikl bitz",
 			"hide_technical": "Hide teknikl bitz",
-			"copy_technical": "Copy teknikl bitz"
+			"copy_technical": "Copy teknikl bitz",
+			"modal_title": "Importz Rezoom",
+			"modal_subtitle": "Upload ur rezoom an we yoink ur experiens, skool an skillz automajically.",
+			"modal_dropzone_hint": "PDF or DOCX up 2 5MB",
+			"modal_uploading": "Uploadin...",
+			"modal_upload_button": "Upload & Importz",
+			"modal_error_oversized": "Fil 2 big. Max iz 5MB.",
+			"modal_error_unsupported": "Plz upload a PDF or DOCX fil",
+			"modal_error_no_file": "Plz pik a rezoom fil",
+			"modal_error_upload_failed": "Rezoom upload went splat",
+			"modal_error_unexpected": "Upload borked unexpectedly",
+			"modal_success_toast": "Rezoom importd! Pik itemz 2 put in ur facet."
 		},
 		"testimonials": {
 			"delete_request": "Deleet request"

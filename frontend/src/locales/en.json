@@ -1964,8 +1964,27 @@
 				"hero_layout_label": "Hero layout selection"
 			}
 		},
+		"autosave_recovery": {
+			"title": "Draft Available",
+			"message": "You have an unsaved {action} from {time}.",
+			"action_editing": "editing session",
+			"action_new": "new item draft",
+			"restore": "Restore Draft",
+			"dismiss": "Dismiss",
+			"time_just_now": "just now",
+			"time_minutes_ago": "{count} minute(s) ago",
+			"time_hours_ago": "{count} hour(s) ago",
+			"time_days_ago": "{count} day(s) ago"
+		},
 		"tags": {
 			"remove_tag": "Remove tag {name}",
+			"tag": "Tag",
+			"edit_tags": "Edit Tags",
+			"add_tags": "Add Tags",
+			"loading": "Loading tags...",
+			"no_tags": "No tags yet",
+			"create_in_settings": "Create tags in Settings",
+			"manage_tags": "Manage tags",
 			"add_tag": "Add tag"
 		},
 		"views": {
@@ -2386,7 +2405,12 @@
 			"hero_bg_color_description": "A custom hex color applied to the hero when no hero image is set. Leave blank to use the default gradient.",
 			"show_avatar_title": "Show profile photo",
 			"show_avatar_on": "Your profile photo is displayed in the hero section.",
-			"show_avatar_off": "Profile photo is hidden across all public pages."
+			"show_avatar_off": "Profile photo is hidden across all public pages.",
+			"sections_description": "Choose which sections to show and drag to reorder. Expand to select specific items.",
+			"loading_sections": "Loading sections...",
+			"custom_content_note": "<strong>Note:</strong> Only custom content marked as <strong>public</strong> and <strong>not in draft</strong> appears here. To change visibility, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
+			"section_width_title": "Section width",
+			"section_layout_title": "Section layout"
 		},
 		"import": {
 			"resume_dropzone_label": "Resume file drop zone",
@@ -2447,7 +2471,18 @@
 			"aria_item_checkbox": "Select item {label}",
 			"show_technical": "Show technical details",
 			"hide_technical": "Hide technical details",
-			"copy_technical": "Copy technical details"
+			"copy_technical": "Copy technical details",
+			"modal_title": "Import Resume",
+			"modal_subtitle": "Upload your resume to automatically extract experience, education, and skills.",
+			"modal_dropzone_hint": "PDF or DOCX up to 5MB",
+			"modal_uploading": "Uploading...",
+			"modal_upload_button": "Upload & Import",
+			"modal_error_oversized": "File size exceeds 5MB limit",
+			"modal_error_unsupported": "Please upload a PDF or DOCX file",
+			"modal_error_no_file": "Please select a resume file",
+			"modal_error_upload_failed": "Resume upload failed",
+			"modal_error_unexpected": "Upload failed unexpectedly",
+			"modal_success_toast": "Resume imported! Select items to include in your facet."
 		},
 		"testimonials": {
 			"delete_request": "Delete request"

@@ -91,7 +91,7 @@
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 				</svg>
-				Tag
+				{$t('admin.tags.tag')}
 			</button>
 		</div>
 	{:else}
@@ -113,7 +113,7 @@
 			aria-labelledby={labelledBy}
 			aria-expanded={showDropdown}
 		>
-			{selectedTags.length > 0 ? 'Edit Tags' : 'Add Tags'}
+			{selectedTags.length > 0 ? $t('admin.tags.edit_tags') : $t('admin.tags.add_tags')}
 		</button>
 	{/if}
 
@@ -122,12 +122,12 @@
 			class="absolute z-50 mt-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 min-w-[200px]"
 		>
 			{#if loading}
-				<p class="text-sm text-gray-500 dark:text-gray-400 p-2">Loading tags...</p>
+				<p class="text-sm text-gray-500 dark:text-gray-400 p-2">{$t('admin.tags.loading')}</p>
 			{:else if availableTags.length === 0}
 				<div class="p-2 text-center">
-					<p class="text-sm text-gray-500 dark:text-gray-400 mb-2">No tags yet</p>
+					<p class="text-sm text-gray-500 dark:text-gray-400 mb-2">{$t('admin.tags.no_tags')}</p>
 					<a href="/admin/settings/tags" class="text-xs text-primary-600 hover:underline">
-						Create tags in Settings
+						{$t('admin.tags.create_in_settings')}
 					</a>
 				</div>
 			{:else}
@@ -158,7 +158,7 @@
 						href="/admin/settings/tags"
 						class="block text-xs text-center text-gray-500 dark:text-gray-400 hover:text-primary-600"
 					>
-						Manage tags
+						{$t('admin.tags.manage_tags')}
 					</a>
 				</div>
 			{/if}
