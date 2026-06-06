@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.22.1 - June 06, 2026
+
+**Other Changes:**
+- serialize runs + resilient CHANGELOG push
+
+**Pull Requests:** [#446](https://github.com/jesposito/Facet/pull/446),
+
+---
+
+
 ## v2.22.0 - June 06, 2026
 
 **Bugs Fixed:**
