@@ -85,6 +85,30 @@ func TestShouldRestore(t *testing.T) {
 	}
 }
 
+func TestShouldRestoreJSONArray(t *testing.T) {
+	tests := []struct {
+		name    string
+		current string
+		backup  string
+		want    bool
+	}{
+		{"flattened bullets restored", `["a b c"]`, `["a","b","c"]`, true},
+		{"genuine re-edit left alone", `["totally new bullet"]`, `["a","b","c"]`, false},
+		{"identical is skipped", `["a","b"]`, `["a","b"]`, false},
+		{"backup not more structured is skipped", `["a","b","c"]`, `["a b c"]`, false},
+		{"non-json current is skipped", `not json at all`, `["a","b"]`, false},
+		{"empty current is skipped", `[]`, `["a","b"]`, false},
+		{"whitespace-only elements skipped", `[" "]`, `["a","b"]`, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := shouldRestoreJSONArray(tc.current, tc.backup); got != tc.want {
+				t.Errorf("shouldRestoreJSONArray(%q, %q) = %v, want %v", tc.current, tc.backup, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestSafeIdent(t *testing.T) {
 	good := []string{"posts", "hero_summary", "content", "_x", "a1"}
 	bad := []string{"", "1abc", "drop table", "a-b", "a;b", "a.b", "a b"}

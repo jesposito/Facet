@@ -17,6 +17,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -71,6 +72,32 @@ func shouldRestore(current, backup string) bool {
 	return collapseWS(current) == collapseWS(backup)
 }
 
+// shouldRestoreJSONArray applies the same collapse-match safety to a JSON string
+// array stored as line-joined markdown (e.g. experience.bullets, where #443 turns
+// ["a","b","c"] into ["a b c"]). It restores the backup array only when both parse
+// as []string, the backup has more elements (more structure), and joining each
+// with newlines yields the same collapsed text (same words, only structure lost).
+func shouldRestoreJSONArray(currentRaw, backupRaw string) bool {
+	if currentRaw == backupRaw {
+		return false
+	}
+	var cur, bak []string
+	if json.Unmarshal([]byte(currentRaw), &cur) != nil {
+		return false
+	}
+	if json.Unmarshal([]byte(backupRaw), &bak) != nil {
+		return false
+	}
+	if len(bak) <= len(cur) {
+		return false
+	}
+	curJoined := collapseWS(strings.Join(cur, "\n"))
+	if curJoined == "" {
+		return false
+	}
+	return curJoined == collapseWS(strings.Join(bak, "\n"))
+}
+
 // RestoreItem records a single planned/applied field restoration.
 type RestoreItem struct {
 	Collection string
@@ -90,7 +117,18 @@ type RecoveryReport struct {
 	Items      []RestoreItem
 }
 
-type fieldTarget struct{ collection, field string }
+type fieldTarget struct {
+	collection string
+	field      string
+	isJSON     bool // line-joined JSON string array (e.g. experience.bullets) vs plain editor/text
+}
+
+// jsonArrayTargets are JSON fields edited via MarkdownEditor as line-joined text.
+// #443 can flatten e.g. ["a","b","c"] into ["a b c"]. They are type `json`, so the
+// editor/text sweep skips them; they need array-aware comparison.
+var jsonArrayTargets = []fieldTarget{
+	{collection: "experience", field: "bullets", isJSON: true},
+}
 
 type idVal struct {
 	ID  string `db:"id"`
@@ -146,8 +184,8 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 		}
 		planned := scanBackup(app, b.Filename, targets, candidates)
 		for _, item := range planned {
+			// scanBackup already removed satisfied ids from the shared candidate map.
 			report.Items = append(report.Items, item)
-			delete(candidates[fieldTarget{item.Collection, item.Field}], item.RecordID)
 			remaining--
 		}
 	}
@@ -167,6 +205,7 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 		app.Logger().Warn("content-recovery: pre-recovery backup failed; proceeding", "error", err)
 	}
 
+	restoreFailed := false
 	for _, item := range report.Items {
 		// Surgical + race-safe: set only the field, and only if it STILL holds the
 		// exact value we scanned. The `AND field = {:cur}` guard means that if an
@@ -176,6 +215,9 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 		q := fmt.Sprintf("UPDATE %s SET %s = {:v} WHERE id = {:id} AND %s = {:cur}", item.Collection, item.Field, item.Field)
 		res, err := app.DB().NewQuery(q).Bind(dbx.Params{"v": item.FromBackup, "id": item.RecordID, "cur": item.Current}).Execute()
 		if err != nil {
+			// e.g. SQLite busy during a concurrent backup/write. Don't write the
+			// completion marker this pass so the record is retried next boot.
+			restoreFailed = true
 			app.Logger().Error("content-recovery: restore failed", "collection", item.Collection, "field", item.Field, "id", item.RecordID, "error", err)
 			continue
 		}
@@ -186,6 +228,9 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 		report.Restored++
 	}
 
+	if restoreFailed {
+		return report, fmt.Errorf("content-recovery: %d restored, %d skipped, but some updates failed; marker withheld for retry", report.Restored, report.Skipped)
+	}
 	return report, nil
 }
 
@@ -212,6 +257,7 @@ func editorTextTargets(app *pocketbase.PocketBase) ([]fieldTarget, error) {
 			targets = append(targets, fieldTarget{collection: c.Name, field: name})
 		}
 	}
+	targets = append(targets, jsonArrayTargets...)
 	return targets, nil
 }
 
@@ -253,7 +299,13 @@ func scanBackup(app *pocketbase.PocketBase, name string, targets []fieldTarget, 
 				if !ok || !val.Valid {
 					continue
 				}
-				if shouldRestore(cand.current, val.String) {
+				var match bool
+				if t.isJSON {
+					match = shouldRestoreJSONArray(cand.current, val.String)
+				} else {
+					match = shouldRestore(cand.current, val.String)
+				}
+				if match {
 					planned = append(planned, RestoreItem{
 						Collection: t.collection,
 						Field:      t.field,
