@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.22.0 - June 06, 2026
+
+**Bugs Fixed:**
+- preserve paragraph spacing on markdown round-trip (#443)
+
+**New Features:**
+- one-time restore of editor-flattened content (#443)
+
+**Pull Requests:** [#444](https://github.com/jesposito/Facet/pull/444),[#445](https://github.com/jesposito/Facet/pull/445),
+
+---
+
+
 ## v2.21.18 - June 05, 2026
 
 **Other Changes:**
