@@ -117,7 +117,11 @@
 		const initialContent = markdownText || value || '';
 		if (initialContent) {
 			isUpdatingFromProp = true;
-			editor.commands.setContent(initialContent, false, { preserveWhitespace: 'full' });
+			// TipTap v3: pass content as a string with `contentType: 'markdown'` so the
+			// Markdown extension parses it (preserving blank-line/paragraph spacing).
+			// The old v2 3-arg form `(content, false, { preserveWhitespace })` silently
+			// fell back to HTML parsing, collapsing spacing on edit-load (#443).
+			editor.commands.setContent(initialContent, { contentType: 'markdown', emitUpdate: false });
 			isUpdatingFromProp = false;
 		}
 	}
@@ -135,7 +139,7 @@
 		// Normalize both values to avoid false positives from whitespace differences
 		if (currentValue?.trim() !== editorMd?.trim()) {
 			isUpdatingFromProp = true;
-			editor.commands.setContent(currentValue || '', false, { preserveWhitespace: 'full' });
+			editor.commands.setContent(currentValue || '', { contentType: 'markdown', emitUpdate: false });
 			markdownText = currentValue || '';
 			isUpdatingFromProp = false;
 		}
