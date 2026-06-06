@@ -53,10 +53,11 @@ func runContentRecoveryOnce(app *pocketbase.PocketBase) {
 		app.Logger().Info("content-recovery: restored flattened content (#443)",
 			"restored", report.Restored,
 			"scanned", report.Scanned,
+			"skipped_live_edits", report.Skipped,
 			"safety_backup", report.BackupUsed,
 		)
 	} else {
-		app.Logger().Info("content-recovery: nothing to restore", "scanned", report.Scanned)
+		app.Logger().Info("content-recovery: nothing to restore", "scanned", report.Scanned, "skipped_live_edits", report.Skipped)
 	}
 
 	if err := os.WriteFile(marker, []byte(time.Now().UTC().Format(time.RFC3339)+"\n"), 0o600); err != nil {

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -77,6 +76,7 @@ type RestoreItem struct {
 	Collection string
 	Field      string
 	RecordID   string
+	Current    string // value scanned from the live DB; used as an optimistic-update guard
 	FromBackup string
 }
 
@@ -85,6 +85,7 @@ type RecoveryReport struct {
 	Applied    bool
 	Scanned    int // candidate (flattened) values examined
 	Restored   int
+	Skipped    int // planned but skipped because the field changed under us (live edit)
 	BackupUsed string // safety backup taken before applying, if any
 	Items      []RestoreItem
 }
@@ -167,11 +168,19 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 	}
 
 	for _, item := range report.Items {
-		// Surgical: set only the field, leave `updated` untouched (this is a
-		// restoration, not a user edit).
-		q := fmt.Sprintf("UPDATE %s SET %s = {:v} WHERE id = {:id}", item.Collection, item.Field)
-		if _, err := app.DB().NewQuery(q).Bind(dbx.Params{"v": item.FromBackup, "id": item.RecordID}).Execute(); err != nil {
+		// Surgical + race-safe: set only the field, and only if it STILL holds the
+		// exact value we scanned. The `AND field = {:cur}` guard means that if an
+		// admin edited this field during the background pass, the UPDATE matches no
+		// rows and we skip it — a live edit is never clobbered. `updated` is left
+		// untouched (this is a restoration, not a user edit).
+		q := fmt.Sprintf("UPDATE %s SET %s = {:v} WHERE id = {:id} AND %s = {:cur}", item.Collection, item.Field, item.Field)
+		res, err := app.DB().NewQuery(q).Bind(dbx.Params{"v": item.FromBackup, "id": item.RecordID, "cur": item.Current}).Execute()
+		if err != nil {
 			app.Logger().Error("content-recovery: restore failed", "collection", item.Collection, "field", item.Field, "id", item.RecordID, "error", err)
+			continue
+		}
+		if n, _ := res.RowsAffected(); n == 0 {
+			report.Skipped++ // field changed since scan (live edit) — leave it intact
 			continue
 		}
 		report.Restored++
@@ -249,6 +258,7 @@ func scanBackup(app *pocketbase.PocketBase, name string, targets []fieldTarget, 
 						Collection: t.collection,
 						Field:      t.field,
 						RecordID:   id,
+						Current:    cand.current,
 						FromBackup: val.String,
 					})
 					delete(pending, id) // satisfied by this (newest) backup
@@ -288,7 +298,10 @@ func extractBackupDB(app *pocketbase.PocketBase, name string) (string, func(), e
 
 	var entry *zip.File
 	for _, f := range zr.File {
-		if filepath.Base(f.Name) == "data.db" {
+		// Match the archive-root data.db exactly. A PocketBase backup places the
+		// primary DB at the zip root; matching on basename could pick up a nested
+		// remnant (e.g. pb_data/data.db) and scan a stale snapshot.
+		if f.Name == "data.db" {
 			entry = f
 			break
 		}
