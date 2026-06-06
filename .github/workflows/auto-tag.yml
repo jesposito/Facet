@@ -26,6 +26,13 @@ on:
           - minor
           - major
 
+# Serialize tag runs so two PRs merged close together never push main
+# concurrently (which caused non-fast-forward rejections). Queue, never cancel:
+# each merged PR must still get its changelog entry + tag.
+concurrency:
+  group: auto-tag-main
+  cancel-in-progress: false
+
 jobs:
   tag:
     # Only run if PR was merged (not just closed)
@@ -420,7 +427,21 @@ jobs:
             echo "No changelog changes to commit"
           else
             git commit -m "docs: update CHANGELOG for $NEW_TAG"
-            git push origin main
+            # Resilient push: if another run pushed main between our checkout and
+            # now, rebase onto it and retry. concurrency:group serializes runs so
+            # this should rarely fire, but it guards against any stray push.
+            for attempt in 1 2 3; do
+              if git push origin main; then
+                echo "Pushed CHANGELOG on attempt $attempt"
+                break
+              fi
+              if [ "$attempt" -eq 3 ]; then
+                echo "::error::Failed to push CHANGELOG after 3 attempts"
+                exit 1
+              fi
+              echo "Push rejected, rebasing onto latest main (attempt $attempt)..."
+              git pull --rebase origin main
+            done
             echo "## Changelog Updated" >> $GITHUB_STEP_SUMMARY
             if [ "$AI_SUCCESS" = true ]; then
               echo "Generated with AI assistance" >> $GITHUB_STEP_SUMMARY
