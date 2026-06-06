@@ -73,7 +73,8 @@ func main() {
 	hooks.RegisterCustomContentHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
 	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
-	hooks.RegisterBackupHooks(app)  // Automated database backup system
+	hooks.RegisterBackupHooks(app)     // Automated database backup system
+	hooks.RegisterContentRecovery(app) // One-time recovery of editor-flattened content (#443)
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
 	hooks.RegisterCommentHooks(app, planConfig)
 	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
