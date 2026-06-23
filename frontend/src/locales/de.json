@@ -2739,7 +2739,9 @@
 	"public": {
 		"footer": {
 			"all_rights_reserved": "Alle Rechte vorbehalten.",
-			"powered_by": "Unterstützt von {link}"
+			"powered_by": "Unterstützt von {link}",
+			"cta_headline": "Lass uns zusammenarbeiten",
+			"cta_link": "Kontakt aufnehmen"
 		},
 		"hero": {
 			"location_label": "Standort:",
