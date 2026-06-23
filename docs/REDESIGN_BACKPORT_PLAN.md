@@ -130,7 +130,7 @@ Cloud-only dirs never to mine (from `BACKPORT_PLAN.md §7`): `backend/hooks/cour
 | ID | Item | Risk | Status |
 |----|------|------|--------|
 | B0 | Opt-in `design` switch (site_settings field + backend + hooks.server `data-design` + admin toggle) | med | **DONE** — PR #448. Certified: go test, svelte-check 0/0, i18n 100%, accessibility-lead 16/16, `design-switch.spec.ts` 5/5 through real /admin. |
-| B1 | Token/foundation layer: warm stone ramp + Soft Premium surface vocab + radius/shadow/motion/focus tokens (scoped to `[data-design=soft-premium]`) | **high** | TODO |
+| B1 | Token/foundation layer: warm stone ramp + Soft Premium surface vocab + radius/shadow/motion/focus tokens (scoped to `[data-design=soft-premium]`) | **high** | **DONE** — PR #450 (stacked on #448). Gray→stone luminance-matched (zero contrast regression); classic byte-identical. Certified via soft-premium-tokens.spec.ts (7/7 with B0). |
 | B2 | AAA accent clamp in `generatePaletteFromHex` (MIN_CONTRAST 7.0, dual clamp) + unit tests | **high** | TODO |
 | B3 | Default font pack → Hanken/Newsreader + font-link/CSP update (keep Lora selectable) | med-high | TODO |
 | B4 | Default accent → terracotta (code default only) | low | TODO |
@@ -241,6 +241,7 @@ Docker compose dev is broken on this box (`dev-backend.sh: no such file`, and on
 - `go` is 1.23.4 vs go.mod 1.25; tests/build run fine anyway.
 
 ## 12. Progress Log
+- 2026-06-23 — **B1 DONE** (PR #450, `feat/soft-premium-tokens` stacked on #448). Tailwind `gray` var-backed; classic = stock gray (byte-identical), soft-premium = luminance-matched warm stone ramp + semantic surface/radius/shadow/motion/focus tokens. Contrast-validated by accessibility-lead/contrast-master (luminance match = zero contrast regression by construction). Product-tested: classic stock / soft-premium warm on real elements; B0+B1 7/7. **Also: Cloud fix shipped** (facetcloud PR #771, @testing-library/svelte ^5.4.2, 25 admin tests green). **Next:** B2 (universal AAA accent clamp in colors.ts — note: deepens existing users' accents, needs CHANGELOG; no vitest in repo so certify via product/contrast test or add a runner), then B3-B5, Track C, remaining Track A (A2/A9/A11/A12).
 - 2026-06-23 — **Track A PR #449** (`fix/track-a-backport-corrections`): A4 (analytics zero-fill +3 tests), A7 (toast persistence), A8 (dvh). Certified: go test green, svelte-check 0/0. Remaining Track A: A2 (courses keys), A9 (ICU plurals ×5 locales), A11 (title normalization), A12 (admin sans + tabular-nums). **Facet Cloud fix** (user request) delegated: admin vitest broken by @testing-library/svelte 5.4.1 under forced runes — agent applying dep/config fix + PR.
 - 2026-06-23 — Plan created from 4-agent analysis (cloud redesign characterization, self-hosted UI map, non-aesthetic UX intent, component behavioral diff). No code changed. Status: all items TODO.
 - 2026-06-23 — Execution approved. Decisions locked (hybrid opt-in, full A+B+C, automated+visual cert). Added opt-in `design`-switch architecture (B0) from settings/SSR exploration. Started **P0** on branch `fix/backport-test-harness`: parametrized `backport-qa.spec.ts` host/creds to env (`PLAYWRIGHT_BASE_URL`/`ADMIN_EMAIL`/`ADMIN_PASSWORD`), removed committed live credentials (history still contains them — flagged for optional scrub).
