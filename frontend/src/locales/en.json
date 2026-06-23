@@ -2771,13 +2771,13 @@
       "profile_photo_generic": "Profile photo",
       "profile_initial_alt": "{name}'s profile initial",
       "contact_links_label": "Contact links",
-      "opens_new_tab": "{label} (opens in new tab)",
-      "rail_sidebar_label": "Profile sidebar"
+      "opens_new_tab": "{label} (opens in new tab)"
     },
     "nav": {
       "home": "Home",
       "back_to": "Back to {page}",
-      "open_main_menu": "Open main menu"
+      "open_main_menu": "Open main menu",
+      "sections_label": "Section navigation"
     },
     "password": {
       "title": "Password Protected",

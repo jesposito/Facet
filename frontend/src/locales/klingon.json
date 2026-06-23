@@ -2771,13 +2771,13 @@
       "profile_photo_generic": "Profile image",
       "profile_initial_alt": "{name}'s insignia",
       "contact_links_label": "Communication channels",
-      "opens_new_tab": "{label} (opens new window)",
-      "rail_sidebar_label": "Warrior's flank banner"
+      "opens_new_tab": "{label} (opens new window)"
     },
     "nav": {
       "home": "Home",
       "back_to": "Return to {page}",
-      "open_main_menu": "Open main command menu"
+      "open_main_menu": "Open main command menu",
+      "sections_label": "Battle section navigation"
     },
     "password": {
       "title": "Defended Access",

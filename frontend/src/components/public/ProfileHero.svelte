@@ -241,11 +241,12 @@
 
 {:else if layout === 'rail'}
 <!-- Rail: sticky warm sidebar ~320px + main content column (wired by the
-     page route via a 2-col grid). Mobile collapses to a top strip. -->
-<aside
+     page route via a 2-col grid). Mobile collapses to a top strip.
+     Uses <header> (banner landmark) like the other five layouts — it carries
+     the page's primary <h1>/identity, so <aside>/complementary would be wrong. -->
+<header
 	class="rail-hero relative {effectiveBgColor !== '' ? '' : 'bg-[var(--surface-2)]'} text-[var(--ink)] border-b md:border-b-0 md:border-r border-[var(--border)] md:sticky md:top-0 md:h-screen md:overflow-y-auto"
 	style={headerBgStyle}
-	aria-label={$t('public.hero.rail_sidebar_label')}
 	itemscope
 	itemtype="https://schema.org/Person"
 >
@@ -309,7 +310,7 @@
 			</nav>
 		{/if}
 	</div>
-</aside>
+</header>
 
 {:else if layout === 'stacked'}
 <!-- Stacked: Headline at top, full-width image below -->

@@ -2771,13 +2771,13 @@
       "profile_photo_generic": "Visage",
       "profile_initial_alt": "Seal of {name}",
       "contact_links_label": "Paths of contact",
-      "opens_new_tab": "{label} (opens new window)",
-      "rail_sidebar_label": "Pillar of the wanderer"
+      "opens_new_tab": "{label} (opens new window)"
     },
     "nav": {
       "home": "Home",
       "back_to": "Return to {page}",
-      "open_main_menu": "Open main paths"
+      "open_main_menu": "Open main paths",
+      "sections_label": "Paths through the tale"
     },
     "password": {
       "title": "Warded Content",
