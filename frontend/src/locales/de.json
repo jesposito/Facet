@@ -835,6 +835,8 @@
 			"lesson_preview": "Vorschaulektion (vor dem Kauf verfuegbar)",
 			"reorder_modules": "Module neu ordnen",
 			"reorder_lessons": "Lektionen neu ordnen",
+			"module_moved_announce": "Modul {title} an Position {position} von {total} verschoben",
+			"lesson_moved_announce": "Lektion {title} an Position {position} von {total} verschoben",
 			"select": "Auswaehlen",
 			"section_publishing": "Veroeffentlichung",
 			"section_details": "Kursdetails",

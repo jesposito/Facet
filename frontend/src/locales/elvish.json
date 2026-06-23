@@ -835,6 +835,8 @@
 			"lesson_preview": "Cenie lektiona (cen ere manca)",
 			"reorder_modules": "Satya Rannar",
 			"reorder_lessons": "Satya Lektionar",
+			"module_moved_announce": "Ranna {title} mennen na nan {position} o {total}",
+			"lesson_moved_announce": "Lektion {title} mennen na nan {position} o {total}",
 			"select": "Cire",
 			"section_publishing": "Vistala",
 			"section_details": "Tirelya Entar",

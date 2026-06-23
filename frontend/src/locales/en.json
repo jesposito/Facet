@@ -983,6 +983,8 @@
 			"lesson_preview": "Preview lesson (available before purchase)",
 			"reorder_modules": "Reorder Modules",
 			"reorder_lessons": "Reorder Lessons",
+			"module_moved_announce": "Moved module {title} to position {position} of {total}",
+			"lesson_moved_announce": "Moved lesson {title} to position {position} of {total}",
 			"select": "Select",
 			"section_publishing": "Publishing",
 			"section_details": "Course Details",

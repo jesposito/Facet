@@ -835,6 +835,8 @@
 			"lesson_preview": "legh paQDI'norgh (je' pagh poQ)",
 			"reorder_modules": "bobcho' tlhej mIw",
 			"reorder_lessons": "paQDI'norgh tlhej mIw",
+			"module_moved_announce": "bobcho' {title} Daq {position} vo' {total} vIHpu'",
+			"lesson_moved_announce": "paQDI'norgh {title} Daq {position} vo' {total} vIHpu'",
 			"select": "wIv",
 			"section_publishing": "ngeH",
 			"section_details": "ghojmeH Segh",
