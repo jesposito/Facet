@@ -20,7 +20,17 @@ async function setDesign(page: Page, label: 'Classic' | 'Soft Premium') {
 	await page.waitForSelector('[aria-labelledby="design-style-heading"]', { timeout: 10_000 });
 	const radio = page.locator('[role="radio"]', { hasText: label }).first();
 	if ((await radio.getAttribute('aria-checked')) === 'false') {
+		// Wait for the server PUT to persist before returning — a following
+		// page.goto() reads design from the server (SSR) and would otherwise
+		// race the not-yet-saved change, contaminating cross-file batch runs.
+		const saved = page.waitForResponse(
+			(r) =>
+				r.url().includes('/api/site-settings') &&
+				r.request().method() === 'PUT' &&
+				r.ok()
+		);
 		await radio.click();
+		await saved;
 		await expect(radio).toHaveAttribute('aria-checked', 'true');
 	}
 }

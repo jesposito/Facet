@@ -11,6 +11,13 @@ export default defineConfig({
 	expect: {
 		timeout: 5_000
 	},
+	// These E2E specs drive ONE single-tenant instance with shared global state
+	// (the site_settings.design mode, nav mode, etc.). Parallel workers mutating
+	// that single record interleave and contaminate each other — e.g. one spec
+	// sets soft-premium while another asserts classic. Run serially so each test
+	// owns the instance state for its duration.
+	fullyParallel: false,
+	workers: 1,
 	retries: process.env.CI ? 2 : 0,
 	use: {
 		baseURL: uiBaseURL,

@@ -34,11 +34,19 @@ test.describe('Visual Design switch (/admin product)', () => {
 	});
 
 	test.afterEach(async ({ page }) => {
-		// Always restore Classic so the instance is left in its default state.
+		// Always restore Classic AND wait for the server to persist it, so the
+		// next spec file (sharing this instance) starts from a clean classic
+		// state instead of racing an unsaved change.
 		const classic = page.locator('[role="radio"]', { hasText: 'Classic' }).first();
 		if ((await classic.getAttribute('aria-checked')) === 'false') {
+			const saved = page.waitForResponse(
+				(r) =>
+					r.url().includes('/api/site-settings') &&
+					r.request().method() === 'PUT' &&
+					r.ok()
+			);
 			await classic.click();
-			await page.waitForTimeout(500);
+			await saved;
 		}
 	});
 
