@@ -1923,7 +1923,9 @@
 			"keyboard_shortcut_prev_row": "Prev row",
 			"keyboard_shortcut_open_row": "Opin teh row",
 			"keyboard_shortcut_delete_row": "Eat teh row",
-			"keyboard_shortcut_help": "Show dis halp"
+			"keyboard_shortcut_help": "Show dis halp",
+			"create_page_title": "Makez a Faycet",
+			"edit_page_title": "Edit Faycet"
 		},
 		"media": {
 			"page_title": "Pikchur Box | Facet Admin",
@@ -2292,7 +2294,8 @@
 			"loading_sections": "Loadin sekshunz...",
 			"custom_content_note": "<strong>Note:</strong> Only custom stuffz markd <strong>public</strong> an <strong>not in draft</strong> showz here. To chanj who can haz, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
 			"section_width_title": "Sekshun wideness",
-			"section_layout_title": "Sekshun layout"
+			"section_layout_title": "Sekshun layout",
+			"page_title": "Homepaej"
 		},
 		"import": {
 			"resume_dropzone_label": "Rezume file drop zone",
@@ -2367,7 +2370,8 @@
 			"modal_success_toast": "Rezoom importd! Pik itemz 2 put in ur facet."
 		},
 		"testimonials": {
-			"delete_request": "Deleet request"
+			"delete_request": "Deleet request",
+			"requests_page_title": "Rekwest Linx"
 		},
 		"comments": {
 			"title": "Commentz",
@@ -2725,6 +2729,9 @@
 			"loading": "Lodin…",
 			"empty": "No litterz yet, srsly.",
 			"footer_unlimited": "Unlimitd litterz. {count} in use."
+		},
+		"review": {
+			"page_title": "Reviuu Import"
 		}
 	},
 	"public": {

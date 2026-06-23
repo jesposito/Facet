@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { hasFeature } from '$lib/stores/plan';
 
 	const hasAdvancedAnalytics = hasFeature('analytics');
@@ -80,7 +81,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.analytics_page.title')} | Facet</title>
+	<title>{$t('admin.analytics_page.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

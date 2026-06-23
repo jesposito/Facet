@@ -1923,7 +1923,9 @@
 			"keyboard_shortcut_prev_row": "Previous position",
 			"keyboard_shortcut_open_row": "Engage focused position",
 			"keyboard_shortcut_delete_row": "Destroy focused position",
-			"keyboard_shortcut_help": "Display this briefing"
+			"keyboard_shortcut_help": "Display this briefing",
+			"create_page_title": "Forge Facet",
+			"edit_page_title": "Edit Facet"
 		},
 		"media": {
 			"page_title": "War Archive | Facet Command",
@@ -2292,7 +2294,8 @@
 			"loading_sections": "Retrieving divisions …",
 			"custom_content_note": "<strong>Attend:</strong> Only custom records marked <strong>public</strong> and <strong>not in draft</strong> stand here. To change who may see them, advance to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Records</a>.",
 			"section_width_title": "Division breadth",
-			"section_layout_title": "Division formation"
+			"section_layout_title": "Division formation",
+			"page_title": "Homepage"
 		},
 		"import": {
 			"resume_dropzone_label": "Battle record upload zone",
@@ -2367,7 +2370,8 @@
 			"modal_success_toast": "Record imported! Choose entries to deploy in your facet."
 		},
 		"testimonials": {
-			"delete_request": "Destroy request"
+			"delete_request": "Destroy request",
+			"requests_page_title": "Request Links"
 		},
 		"comments": {
 			"title": "Battle Reports",
@@ -2725,6 +2729,9 @@
 			"loading": "Summoning…",
 			"empty": "No war squads yet.",
 			"footer_unlimited": "Unlimited war squads. {count} mustered."
+		},
+		"review": {
+			"page_title": "Review Import"
 		}
 	},
 	"public": {

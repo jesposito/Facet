@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 
@@ -213,7 +214,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.alerts_page.title')}</title>
+	<title>{$t('admin.alerts_page.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{liveMessage}</div>

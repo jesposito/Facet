@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { get } from 'svelte/store';
 	import type { PageData } from './$types';
 
@@ -172,7 +173,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.login.title')} | Facet</title>
+	<title>{$t('admin.login.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
