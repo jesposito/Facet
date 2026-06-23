@@ -34,35 +34,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	} catch { /* silent - fallback to client-side application */ }
 
-	// Fetch the opt-in visual design mode. "classic" (the default for every
-	// existing instance) emits no attribute, so the rendered HTML is byte-identical
-	// to before; only "soft-premium" adds data-design so the warm token layer applies.
-	let design = 'classic';
-	try {
-		const settingsRes = await fetch(`${pbUrl}/api/site-settings`, {
-			headers: { 'X-Internal': 'true' }
-		});
-		if (settingsRes.ok) {
-			const settings = await settingsRes.json();
-			if (settings.design === 'soft-premium') design = 'soft-premium';
-		}
-	} catch { /* silent - fallback to classic */ }
+	// Soft Premium is the only design — always on. The warm token layer keys off
+	// the data-design attribute, hardcoded where the <html> tag is composed below
+	// (no site setting, no branching).
 
-	// Soft Premium ships its own font pack (Hanken Grotesk + Newsreader) as the
-	// default, but an operator who explicitly picked a pack keeps it — the classic
-	// escape hatch. Emitted inline below, which (unlike a :root[data-design] rule)
-	// correctly overrides the static defaults.
-	const effectiveFontPack =
-		design === 'soft-premium' && (!operatorFontPack || operatorFontPack === DEFAULT_FONT_PACK)
-			? 'soft-premium'
-			: operatorFontPack;
+	// Fonts are fully governed by the operator's font-pack pick. Whatever they
+	// selected is used; if they never chose one, fall back to the Soft Premium
+	// default pack (DEFAULT_FONT_PACK). Emitted inline below, which (unlike a
+	// :root rule) correctly overrides the static defaults in app.css.
+	const effectiveFontPack = operatorFontPack || DEFAULT_FONT_PACK;
 	fontCSSVars = generateFontCSSVars(effectiveFontPack);
 	fontPack = effectiveFontPack;
 
 	// Accent: Soft Premium defaults to a warm terracotta when the operator hasn't
 	// set an accent, so the accent harmonizes with the stone surfaces. An operator
-	// accent (named or custom hex) always wins; classic keeps the static default.
-	if (design === 'soft-premium' && !operatorAccent && !operatorCustomHex) {
+	// accent (named or custom hex) always wins.
+	if (!operatorAccent && !operatorCustomHex) {
 		accentCSSVars = generateAccentCSSVars(null, SOFT_PREMIUM_DEFAULT_ACCENT);
 	} else {
 		accentCSSVars = generateAccentCSSVars(operatorAccent, operatorCustomHex);
@@ -96,20 +83,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 			let result = html;
 
 			// Compose all <html> attributes into a single replace so the design
-			// attribute and the inline style vars both land. classic => no attribute.
-			const htmlAttrs: string[] = [];
-			if (design === 'soft-premium') {
-				htmlAttrs.push('data-design="soft-premium"');
-			}
+			// attribute and the inline style vars both land. Soft Premium is always
+			// on, so data-design is always emitted.
+			const htmlAttrs: string[] = ['data-design="soft-premium"'];
 			if (varParts.length > 0) {
 				htmlAttrs.push(`style="${varParts.join(' ')}"`);
 			}
-			if (htmlAttrs.length > 0) {
-				result = result.replace('<html lang="en">', `<html lang="en" ${htmlAttrs.join(' ')}>`);
-			}
+			result = result.replace('<html lang="en">', `<html lang="en" ${htmlAttrs.join(' ')}>`);
 
-			// Inject Google Fonts link for non-default font packs
-			if (fontPack && fontPack !== DEFAULT_FONT_PACK) {
+			// Inject the Google Fonts link for the resolved pack. app.html statically
+			// loads only the editorial pack, so the chosen pack's fonts (including the
+			// Soft Premium default — Hanken/Newsreader) must always be loaded here or
+			// they'd be missing.
+			if (fontPack) {
 				const fontsUrl = getGoogleFontsUrl(fontPack);
 				result = result.replace(
 					'</head>',

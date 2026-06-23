@@ -11,6 +11,10 @@ export default defineConfig({
 	expect: {
 		timeout: 5_000
 	},
+	// The soft-premium specs mutate shared single-tenant state (site settings,
+	// profile font_pack). Run serially with a single worker so they don't race.
+	fullyParallel: false,
+	workers: 1,
 	retries: process.env.CI ? 2 : 0,
 	use: {
 		baseURL: uiBaseURL,
