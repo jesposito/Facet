@@ -1550,6 +1550,32 @@
       "announced_custom": "ACCENT COLOR SET 2 {hex}",
       "announced_curated": "ACCENT COLOR SET 2 {name}"
     },
+    "text_color_picker": {
+      "label": "Werdz Culah",
+      "description": "Maek ur big werdz an lil werdz on ur public payj haz culah. We fix teh shaed so it can reedz gud (WCAG AAA) in brite mode an dark mode.",
+      "suggestions_label": "Sugjestd werdz culahs",
+      "suggestion_slate": "Slaet",
+      "suggestion_graphite": "Pensil",
+      "suggestion_umber": "Brown",
+      "suggestion_navy": "Bloo",
+      "suggestion_forest": "Treez",
+      "suggestion_plum": "Plum",
+      "custom_label": "Or pik ur own hex culah",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "Six hex letterz (0-9, A-F), wif optshunal # in frunt. Leev emptee for defalt ink.",
+      "invalid": "Givs a reel hex culah plz (liek #1f2937)",
+      "reset": "Bak to defalt",
+      "preview_label": "Liv peek (auto-fixd)",
+      "preview_light": "Brite mode",
+      "preview_dark": "Dark mode",
+      "preview_heading": "Big Werdz",
+      "preview_body": "Lil werdz go heer for reedin.",
+      "aaa_note": "Teh shaed u see iz wut showz on ur payj. We awtomatiklee skootch it til it haz 7:1 contrast (WCAG AAA) wif teh bakgrund in each mode.",
+      "announced": "Werdz culah iz now {hex}",
+      "announced_reset": "Werdz culah bak to defalt",
+      "updated": "Werdz culah chanjd",
+      "error": "Cudnt chanj werdz culah"
+    },
     "view_editor": {
       "page": {
         "title_edit": "Edit Facet",

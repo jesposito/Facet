@@ -1550,6 +1550,32 @@
       "announced_custom": "Accent color set to {hex}",
       "announced_curated": "Accent color set to {name}"
     },
+    "text_color_picker": {
+      "label": "ngutlh rItlh",
+      "description": "publicHom Daq nargh ngutlh 'ej porgh ngutlh yIrItlhmoH. rItlh wIchoHmoH 'e' wIlaDlaHchugh reH (WCAG AAA) wovbe' 'ej wovqu'.",
+      "suggestions_label": "ngutlh rItlh chuvmey",
+      "suggestion_slate": "nagh SuD",
+      "suggestion_graphite": "qIj",
+      "suggestion_umber": "Doq qIj",
+      "suggestion_navy": "SuD'a'",
+      "suggestion_forest": "ngem SuD",
+      "suggestion_plum": "naH Doq",
+      "custom_label": "pagh hex rItlh DawIv",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "jav hex mIllogh (0-9, A-F), # tlhItlh DaH. rItlh motlh chovnatlhlu' chugh chImmoH.",
+      "invalid": "lugh hex rItlh yIghItlh (#1f2937 rur)",
+      "reset": "rItlh motlh Daq yIchegh",
+      "preview_label": "ral leghlu' (choHlu')",
+      "preview_light": "wovbe'",
+      "preview_dark": "wovqu'",
+      "preview_heading": "ngutlh nIvbogh",
+      "preview_body": "naDev porgh ngutlh laDlu'.",
+      "aaa_note": "rItlh leghlu'bogh 'oH publicHomDaq nargh'e'. reH 7:1 (WCAG AAA) Hutlhmey DuvDaq choHchu'lu' Hoch Daq.",
+      "announced": "{hex} ngutlh rItlh",
+      "announced_reset": "rItlh motlh Daq ngutlh rItlh chegh",
+      "updated": "ngutlh rItlh choHlu'",
+      "error": "ngutlh rItlh choHlaHbe'"
+    },
     "view_editor": {
       "page": {
         "title_edit": "Modify Facet",

@@ -111,6 +111,65 @@
 	color: var(--ink);
 }
 
+/* ==========================================================================
+   Operator text (font) color — enhanced contrast (WCAG 2.2 SC 1.4.6, Level AAA)
+   by construction.
+
+   Scope of the AAA claim: this guarantees SC 1.4.6 (Contrast Enhanced, 7:1) for
+   the tinted heading + body text only. It does NOT assert full-page Level AAA
+   (e.g. 1.4.8 Visual Presentation, 2.4.13 Focus Appearance are out of scope and
+   untouched here).
+
+   The operator picks a hue; hooks.server.ts derives a per-mode, hue-preserved,
+   7:1-clamped ink (deriveTextInk in colors.ts) and injects it as --text-ink
+   (light) and --text-ink-dark (dark). These rules tint HEADINGS + BODY text on
+   the PUBLIC profile only, and leave surfaces / borders / icons / muted chrome
+   neutral for hierarchy.
+
+   WHY this mechanism (vs retinting the --gray-N ramp): gray-700/800/900 also
+   back some dark-mode surfaces, borders and icon fills, so warming the ramp
+   would bleed the hue into non-text chrome. Instead we override only the TEXT
+   utilities used for headings + body, scoped to public content.
+
+   Specificity: a plain `body { color }` loses to Tailwind's `.text-gray-900`.
+   These selectors compound a public-scope class with the utility class (and the
+   block is UNLAYERED, so it also beats @layer utilities), so they reliably win
+   on real text elements.
+
+   Gating + no-op default: the ENTIRE block is scoped under `:root[data-text-ink]`,
+   an attribute hooks.server.ts adds to <html> ONLY when the operator set a color.
+   When no color is set, the attribute is absent and NONE of these rules exist in
+   the cascade — so each declaration's bare `color: var(--text-ink)` is never
+   reached and the default render is byte-identical to today (no fallback-value
+   drift on headings like .section-title). The attribute and the --text-ink vars
+   are always injected together.
+
+   Scope: applies to the public document body but NEVER inside `.admin-shell`
+   (admin chrome stays on its own neutral palette).
+   ========================================================================== */
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) :is(h1, h2, h3, h4, h5, h6),
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-900,
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-800,
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-700 {
+	color: var(--text-ink);
+}
+
+/* Dark mode: headings use `dark:text-white`, body uses `dark:text-gray-300/200`.
+   Override those to the lightened dark ink. Only present when the attribute is
+   set, so an un-set color is a no-op. */
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) :is(h1, h2, h3, h4, h5, h6),
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-white,
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-gray-200,
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-gray-300 {
+	color: var(--text-ink-dark);
+}
+
+/* MUTED text (gray-500/600 light, gray-400/500 dark) is intentionally LEFT
+   NEUTRAL — see PR notes / contrast review. Keeping muted neutral preserves the
+   visual hierarchy (primary text takes the hue, secondary text recedes) and
+   avoids muted+hue combinations drifting toward the 7:1 floor. The absence of a
+   rule here is deliberate. */
+
 @layer base {
 	/* ==========================================================================
 	   Accent Color CSS Custom Properties
@@ -189,7 +248,7 @@
 		--chip: #ece4de;
 		--ink: #2a2522;
 		--muted: #5a524d;
-		--border: #988e85; /* load-bearing (>=3:1) */
+		--border: #8f857c; /* load-bearing: 3.20:1 vs --surface-2 #faf4f0, 3.50:1 vs #ffffff */
 		--border-hairline: #ddd1ca; /* decorative only */
 		--border-interactive: #988e85;
 		/* Accent surfaces (creator accent, contrast-clamped by B2). */

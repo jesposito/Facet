@@ -1724,6 +1724,32 @@
       "announced_custom": "Accent color set to {hex}",
       "announced_curated": "Accent color set to {name}"
     },
+    "text_color_picker": {
+      "label": "Text color",
+      "description": "Tint headings and body text on your public page. We auto-adjust the shade so it always stays highly readable (WCAG AAA) in both light and dark mode.",
+      "suggestions_label": "Suggested text colors",
+      "suggestion_slate": "Slate",
+      "suggestion_graphite": "Graphite",
+      "suggestion_umber": "Umber",
+      "suggestion_navy": "Navy",
+      "suggestion_forest": "Forest",
+      "suggestion_plum": "Plum",
+      "custom_label": "Or pick a custom hex color",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "Six hexadecimal characters (0-9, A-F), with optional leading #. Leave empty for the default ink.",
+      "invalid": "Enter a valid hex color (e.g. #1f2937)",
+      "reset": "Reset to default",
+      "preview_label": "Live preview (auto-adjusted)",
+      "preview_light": "Light mode",
+      "preview_dark": "Dark mode",
+      "preview_heading": "Heading text",
+      "preview_body": "Body paragraph text reads here.",
+      "aaa_note": "The shade shown is what renders on your page. It is automatically clamped to clear 7:1 contrast (WCAG AAA) against the background in each mode.",
+      "announced": "Text color set to {hex}",
+      "announced_reset": "Text color reset to default",
+      "updated": "Text color updated",
+      "error": "Failed to update text color"
+    },
     "view_editor": {
       "page": {
         "title_edit": "Edit Facet",
