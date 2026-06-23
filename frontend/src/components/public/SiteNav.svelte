@@ -198,7 +198,7 @@
 		</nav>
 	{:else}
 		<!-- Bar mode (default): full-width colored bar with pill links -->
-		<nav aria-label="Site navigation" class="bg-primary-600 text-white">
+		<nav aria-label="Site navigation" class="sp-masthead grain bg-primary-600 text-white">
 			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 				<!-- Desktop Navigation -->
 				<div class="hidden md:flex items-center justify-between py-3">
@@ -336,3 +336,73 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* ──────────────────────────────────────────────────────────────────────
+	   Soft Premium "grain masthead" treatment for the bar-mode site nav.
+	   ENTIRELY gated behind :global([data-design='soft-premium']) so the
+	   classic design renders byte-identical (no overrides emitted).
+	   Visual-only: structure, behavior, a11y, and i18n are untouched.
+
+	   Contrast: bar background is --ink (#2a2522). White link text on that
+	   ground is ~14.5:1 (AAA); --gray-200 (#ece6e0) inactive text is ~12:1.
+	   Hover/active overlays are translucent white over the dark ground so
+	   text contrast only ever increases. Focus ring is handled globally by
+	   --focus-ring (amber) under soft-premium.
+	   ────────────────────────────────────────────────────────────────────── */
+
+	/* Warm the bar to the editorial ink ground and let .grain paint over it.
+	   The grain texture (.grain::after) is defined in app.css and only renders
+	   under soft-premium, so this stays in lockstep with classic = no-op. */
+	:global([data-design='soft-premium']) .sp-masthead {
+		background-color: var(--ink);
+		/* Hairline keeps the masthead anchored against the page below it. */
+		border-bottom: 1px solid var(--border-hairline);
+	}
+
+	/* Keep the nav content above the grain texture overlay (which is an
+	   absolutely-positioned ::after with no z-index of its own). */
+	:global([data-design='soft-premium']) .sp-masthead > div {
+		position: relative;
+		z-index: 1;
+	}
+
+	/* Links + hamburger: AAA white on the ink ground. Covers home, items,
+	   and the mobile dropdown links in both rest and active states. */
+	:global([data-design='soft-premium']) .sp-masthead a:not(.btn),
+	:global([data-design='soft-premium']) .sp-masthead button {
+		color: #ffffff;
+	}
+
+	/* Inactive items get a touch of warmth but stay >=12:1 (well past AAA). */
+	:global([data-design='soft-premium']) .sp-masthead a:not(.btn):not([aria-current='page']) {
+		color: rgb(var(--gray-200-rgb));
+	}
+
+	/* Hover/focus on inactive links: translucent warm wash (raises contrast). */
+	:global([data-design='soft-premium']) .sp-masthead a:not(.btn):not([aria-current='page']):hover,
+	:global([data-design='soft-premium']) .sp-masthead button:hover {
+		background-color: rgb(255 255 255 / 0.1);
+		color: #ffffff;
+	}
+
+	/* Active (aria-current) link reads as a solid accent-warm chip. */
+	:global([data-design='soft-premium']) .sp-masthead a:not(.btn)[aria-current='page'] {
+		background-color: rgb(255 255 255 / 0.16);
+		color: #ffffff;
+	}
+
+	/* CTA pill: invert to the ink-on-cream editorial button. */
+	:global([data-design='soft-premium']) .sp-masthead a.btn {
+		background-color: rgb(var(--gray-50-rgb));
+		color: var(--ink);
+	}
+	:global([data-design='soft-premium']) .sp-masthead a.btn:hover {
+		background-color: rgb(var(--gray-200-rgb));
+	}
+
+	/* Mobile dropdown divider → warm hairline to match the masthead. */
+	:global([data-design='soft-premium']) .sp-masthead #mobile-menu {
+		border-top-color: var(--border-hairline);
+	}
+</style>
