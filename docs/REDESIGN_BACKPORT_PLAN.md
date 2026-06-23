@@ -1,6 +1,6 @@
 # Soft Premium Redesign Backport Plan (Cloud → Self-Hosted Facet)
 
-> **Status:** IN PROGRESS · **Created:** 2026-06-23 · **Owner:** Jed
+> **Status:** IMPLEMENTED (19 PRs; A2/A9 finishing; C7 deferred) · **Created:** 2026-06-23 · **Owner:** Jed
 > **Source product:** Facet Cloud (`/home/jed/dev/facets-sh`, `jesposito/facetcloud`, ~v3.68.x)
 > **Target product:** self-hosted Facet (`/home/jed/dev/Facet`, `jesposito/Facet`, ~v2.22.1)
 > **Supersedes (for design scope only):** `BACKPORT_PLAN.md` (2026-05-15) — that doc covers a11y/component polish predating this redesign. Tier-2/Tier-3 API/webhook notes there remain valid.
@@ -239,6 +239,32 @@ Docker compose dev is broken on this box (`dev-backend.sh: no such file`, and on
 - App admin login (users collection): `admin@example.com`. Dev seed password is `changeme123` but the app forces a first-login password change; complete it once via `POST /api/auth/change-password` `{currentPassword,newPassword}` (sets `password_changed_from_default=true`). PB superuser for `/_/`: `admin@localhost.dev` / `admin123`.
 - Playwright product tests take `PLAYWRIGHT_BASE_URL` + `ADMIN_EMAIL`/`ADMIN_PASSWORD` env. Reset `site_settings.design` to classic between manual experiments (superuser PATCH) — tests' afterEach restores it but manual flips can contaminate.
 - `go` is 1.23.4 vs go.mod 1.25; tests/build run fine anyway.
+
+## 11c. COMPLETION SUMMARY (2026-06-23)
+
+The Soft Premium redesign backport is implemented as **19 PRs** (18 on `Facet` + 1 on `facetcloud`), each independently certified (build + svelte-check + i18n + accessibility-lead for UI + live Playwright on the real product). Two accessibility-lead review passes over the Track C surfaces caught and fixed 2 real AA contrast failures (Footer dark CTA, WelcomePage gradient headline) + a latent `.text-gradient` utility issue; minor ProfileNav dark-underline polish applied.
+
+### Foundation (Track B) — COMPLETE
+- #447 P0 test harness/secret · #448 B0 opt-in `design` switch · #450 B1 warm token layer · #451 B2 AAA accent clamp · #452 B3 Soft Premium fonts · #453 B5 editorial utilities · #457 B4 terracotta default.
+
+### Track A — COMPLETE (real items)
+- #449 A4 (analytics zero-fill) / A7 (toast persistence) / A8 (dvh) / A12 (admin sans) · #464 A11 (title normalization) · A2/A9 in flight. A1/A3 N/A; A6 already present; A10 intentional brand voice (skipped).
+
+### Track C — 9/10 surfaces ported (gated, classic byte-identical, a11y-certified)
+- #454 ProfileNav underline · #455 ProfileHero grain masthead · #456 Footer CTA band (a11y-fixed) · #458 SiteNav grain masthead · #459 resume section serif headings · #460 Projects/Talks card plates (+pre-existing XSS hardened) · #461 AdminHeader glass · #462 WelcomePage editorial (a11y-fixed) · #463 dashboard composition.
+- **C7 AccentPicker: DEFERRED** (intentional). Self-hosted's picker is already a11y-complete (radiogroup, i18n, reset, live-region); B2 makes every accent contrast-safe. Cloud's merge only adds hue-collision *warnings* — low value, high risk against a different data model. Left as a documented optional enhancement.
+
+### Cloud (user request) — DONE
+- facetcloud #771: admin vitest unblocked (@testing-library/svelte ^5.4.2).
+
+### Stacking / merge note
+Foundation chain: #448 ← #450 ← #452 ← #453, with all Track C PRs based on #453 (the B5 tip). #451 (B2), #457 (B4), #449/#464 (Track A), #447 (P0) are independent of that chain. Merge order: P0/B2/B4/Track-A independently; then the B0→B1→B3→B5 chain; then the Track C PRs (all based on #453). Each is CI-green and revertable.
+
+### Known follow-ups (non-blocking)
+- Pre-existing duplicate i18n key `admin.sidebar.analytics` in en.json (flagged by A11 agent).
+- WelcomePage feature-card icon SVGs lack `aria-hidden` (pre-existing, verbosity-only).
+- B2 accent clamp deepens existing custom-hex accents (CHANGELOG'd).
+- Credentials remain in git history on main (flagged in #447; rotate + optional scrub).
 
 ## 12. Progress Log
 - 2026-06-23 (resumed) — **B5 DONE** (PR #453, `feat/soft-premium-utils` stacked on #452): editorial utilities. Gotcha: authored `@layer utilities` rules are purged by Tailwind when unused → authored them UNLAYERED so they ship before Track C references them (verified in build). **Track B core complete: B0/B1/B2/B3/B5 all shipped + certified.** Remaining: B4 (terracotta default accent — SSR+client plumbing, lowest-value B item), **Track C (10 surface ports — the bulk, now fully unblocked: tokens+fonts+utils all in place)**, A2/A9/A11. Stack chain: B0(#448)<-B1(#450)<-B3(#452)<-B5(#453); B2(#451)+TrackA(#449,incl A12) independent.
