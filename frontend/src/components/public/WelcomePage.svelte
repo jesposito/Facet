@@ -2,21 +2,21 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+<div class="sp-page min-h-screen bg-gradient-to-br from-primary-50 via-white to-accent-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
 	<!-- Theme toggle -->
 	<div class="fixed top-4 right-4 z-40">
 		<ThemeToggle />
 	</div>
 
-	<div class="max-w-4xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 md:p-12 space-y-10">
+	<div class="sp-card grain max-w-4xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8 md:p-12 space-y-10">
 		<!-- Header -->
-		<div class="text-center space-y-4">
-			<div class="inline-block p-4 bg-primary-100 dark:bg-primary-900/30 rounded-full">
+		<div class="sp-hero text-center space-y-4">
+			<div class="sp-icon-ring inline-block p-4 bg-primary-100 dark:bg-primary-900/30 rounded-full">
 				<svg class="w-16 h-16 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
 				</svg>
 			</div>
-			<h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+			<h1 class="sp-title text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
 				Welcome to Facet
 			</h1>
 			<p class="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
@@ -38,15 +38,18 @@
 			</div>
 		</div>
 
+		<!-- Editorial divider (soft-premium only; decorative) -->
+		<hr class="sp-divider divider-editorial" aria-hidden="true" />
+
 		<!-- Features Grid -->
 		<div class="space-y-6">
-			<h2 class="text-2xl font-semibold text-gray-900 dark:text-white text-center">
+			<h2 class="sp-section-title text-2xl font-semibold text-gray-900 dark:text-white text-center">
 				What can you do with Facet?
 			</h2>
 
-			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<div class="sp-feature-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				<!-- Feature 1: Multiple Views -->
-				<div class="flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+				<div class="sp-feature flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
 					<div class="flex-shrink-0">
 						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -60,7 +63,7 @@
 				</div>
 
 				<!-- Feature 2: Privacy Controls -->
-				<div class="flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+				<div class="sp-feature flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
 					<div class="flex-shrink-0">
 						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -73,7 +76,7 @@
 				</div>
 
 				<!-- Feature 3: Own Your Data -->
-				<div class="flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+				<div class="sp-feature flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
 					<div class="flex-shrink-0">
 						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
@@ -86,7 +89,7 @@
 				</div>
 
 				<!-- Feature 4: GitHub Import -->
-				<div class="flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+				<div class="sp-feature flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
 					<div class="flex-shrink-0">
 						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.866-.013-1.7-2.782.603-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.268 2.75 1.026A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.026 2.747-1.026.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
@@ -99,7 +102,7 @@
 				</div>
 
 				<!-- Feature 5: Resume Parsing -->
-				<div class="flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+				<div class="sp-feature flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
 					<div class="flex-shrink-0">
 						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -112,7 +115,7 @@
 				</div>
 
 				<!-- Feature 6: AI Writing -->
-				<div class="flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+				<div class="sp-feature flex gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
 					<div class="flex-shrink-0">
 						<svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -126,9 +129,12 @@
 			</div>
 		</div>
 
+		<!-- Editorial divider (soft-premium only; decorative) -->
+		<hr class="sp-divider divider-editorial" aria-hidden="true" />
+
 		<!-- Why Self-Host -->
 		<div class="space-y-4 pt-4">
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white text-center">
+			<h2 class="sp-section-title text-xl font-semibold text-gray-900 dark:text-white text-center">
 				Why self-host your profile?
 			</h2>
 			<div class="flex flex-wrap justify-center gap-6 text-sm text-gray-600 dark:text-gray-300">
@@ -154,8 +160,8 @@
 		</div>
 
 		<!-- Get Involved -->
-		<div class="pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white text-center">
+		<div class="sp-getinvolved pt-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
+			<h2 class="sp-section-title text-lg font-semibold text-gray-900 dark:text-white text-center">
 				Open Source & Community Driven
 			</h2>
 			<p class="text-sm text-gray-600 dark:text-gray-300 text-center max-w-xl mx-auto">
@@ -213,3 +219,114 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	/*
+	  Soft Premium editorial treatment. EVERY rule below is gated under
+	  :global([data-design='soft-premium']) so the classic surface renders
+	  byte-identically (no attribute => none of these match). The marker
+	  classes (.sp-*) carry the flourishes; .grain/.divider-editorial are
+	  self-gating utilities from app.css. Decorative dividers are
+	  aria-hidden in markup and non-focusable.
+	*/
+
+	/* Warm editorial page wash behind the card. */
+	:global([data-design='soft-premium']) .sp-page {
+		background-image:
+			radial-gradient(60% 50% at 50% 0%, rgb(var(--color-primary-500-rgb) / 0.08), transparent 70%),
+			linear-gradient(180deg, var(--bg, transparent), var(--surface-2, transparent));
+	}
+
+	/* Refined card: warm surface, softer hairline border, deeper editorial shadow. */
+	:global([data-design='soft-premium']) .sp-card {
+		background-color: var(--surface);
+		border-color: var(--border);
+		box-shadow:
+			0 1px 2px rgb(0 0 0 / 0.04),
+			0 18px 50px -20px rgb(0 0 0 / 0.22);
+	}
+
+	/* Generous editorial breathing room in the hero. */
+	:global([data-design='soft-premium']) .sp-hero {
+		padding-block: 0.5rem 0.25rem;
+	}
+
+	/* Icon ring: subtle ring + warm halo instead of a flat fill. */
+	:global([data-design='soft-premium']) .sp-icon-ring {
+		background-image: radial-gradient(
+			closest-side,
+			rgb(var(--color-primary-500-rgb) / 0.18),
+			rgb(var(--color-primary-500-rgb) / 0.04)
+		);
+		box-shadow: 0 0 0 1px rgb(var(--color-primary-500-rgb) / 0.18) inset;
+	}
+
+	/*
+	  Headline: gradient ink + accent serif via the marker (NOT a bare
+	  .font-accent class, which would italicize classic). The accent font
+	  falls back to --font-heading; under soft-premium --font-accent is set.
+	*/
+	:global([data-design='soft-premium']) .sp-title {
+		font-family: var(--font-accent, var(--font-heading));
+		font-style: italic;
+		letter-spacing: -0.02em;
+		background-image: linear-gradient(
+			135deg,
+			rgb(var(--color-primary-600-rgb)),
+			rgb(var(--color-primary-400-rgb))
+		);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
+	}
+
+	/* Section titles get the accent serif for editorial rhythm. */
+	:global([data-design='soft-premium']) .sp-section-title {
+		font-family: var(--font-accent, var(--font-heading));
+		font-style: italic;
+		letter-spacing: -0.01em;
+	}
+
+	/* Editorial dividers: a touch more vertical air than default spacing. */
+	:global([data-design='soft-premium']) .sp-divider {
+		margin-block: 0.5rem;
+	}
+
+	/* Feature cards: warmer surface + hairline + gentle lift on hover. */
+	:global([data-design='soft-premium']) .sp-feature {
+		background-color: var(--surface-2);
+		border: 1px solid var(--border);
+		transition:
+			transform 0.18s ease,
+			box-shadow 0.18s ease,
+			border-color 0.18s ease;
+	}
+	:global([data-design='soft-premium']) .sp-feature:hover {
+		transform: translateY(-2px);
+		border-color: rgb(var(--color-primary-500-rgb) / 0.4);
+		box-shadow: 0 10px 24px -16px rgb(0 0 0 / 0.35);
+	}
+
+	/* Replace the hard top border with the editorial accent ramp. */
+	:global([data-design='soft-premium']) .sp-getinvolved {
+		border-top: 0;
+		border-image: linear-gradient(
+				90deg,
+				transparent,
+				rgb(var(--color-primary-500-rgb) / 0.35),
+				transparent
+			)
+			1;
+		border-top-width: 1px;
+		border-top-style: solid;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global([data-design='soft-premium']) .sp-feature {
+			transition: none;
+		}
+		:global([data-design='soft-premium']) .sp-feature:hover {
+			transform: none;
+		}
+	}
+</style>
