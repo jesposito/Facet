@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v2.23.0 - June 23, 2026
+
+**New Features:**
+- Soft Premium redesign backport (full — redesign + Track A + harness)
+
+**Pull Requests:** [#467](https://github.com/jesposito/Facet/pull/467),
+
+---
+
+
 ## v2.22.1 - June 06, 2026
 
 **Other Changes:**
