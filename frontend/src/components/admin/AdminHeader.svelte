@@ -23,7 +23,9 @@
 	}
 </script>
 
-<header class="fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-40">
+<header
+	class="admin-header fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-40"
+>
 	<div class="flex items-center justify-between h-full px-4">
 		<div class="flex items-center gap-4">
 			<button
@@ -81,3 +83,23 @@
 		</div>
 	</div>
 </header>
+
+<style>
+	/* Soft Premium ONLY: turn the admin top bar into a refined translucent glass
+	   surface. Classic receives no rule here, so its bg-white/dark:bg-gray-800 +
+	   gray borders render byte-identical to today. The [data-design] attribute
+	   lives on <html>, outside this component, so the selector is wrapped in
+	   :global(). The translucent fill is derived from the warm --surface token
+	   (auto light/dark) via color-mix; --border-hairline supplies a soft warm
+	   bottom edge. Contrast of header text/icons is unchanged: --ink (#2a2522 on
+	   light, #f4eee4 on dark) stays well above 4.5:1 against the ~80%-opaque warm
+	   surface, and a hard fallback keeps a solid surface where backdrop-filter is
+	   unsupported. */
+	:global([data-design='soft-premium']) .admin-header {
+		background-color: var(--surface);
+		background-color: color-mix(in srgb, var(--surface) 80%, transparent);
+		border-bottom-color: var(--border-hairline);
+		-webkit-backdrop-filter: blur(20px) saturate(1.4);
+		backdrop-filter: blur(20px) saturate(1.4);
+	}
+</style>

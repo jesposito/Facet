@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 	import { hasFeature } from '$lib/stores/plan';
@@ -255,7 +256,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.comments.title')} | Facet</title>
+	<title>{$t('admin.comments.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto space-y-6">

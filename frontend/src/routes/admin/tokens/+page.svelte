@@ -8,6 +8,7 @@
 	import { icon } from '$lib/icons';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	let loading = $state(true);
 	let tokens: ShareToken[] = $state([]);
@@ -303,7 +304,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.tokens.page_title')}</title>
+	<title>{$t('admin.tokens.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

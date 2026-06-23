@@ -389,7 +389,7 @@
 		border-radius: 0.5rem;
 		overflow: hidden;
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-		max-height: calc(100vh - 200px);
+		max-height: calc(100dvh - 200px);
 		overflow-y: auto;
 		transition: max-width 0.2s ease-in-out;
 	}

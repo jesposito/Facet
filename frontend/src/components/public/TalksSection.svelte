@@ -12,6 +12,20 @@
 
 	let { items, layout = 'default', viewSlug = '', showHeader = true }: Props = $props();
 
+	// Validate operator-supplied URLs against a scheme allowlist before rendering
+	// them as hrefs, so a javascript:/data: URI can never become a clickable link.
+	// Returns undefined for disallowed/unparseable values (link renders inert).
+	const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+	const safeHref = (url: string | undefined | null): string | undefined => {
+		if (!url || typeof url !== 'string') return undefined;
+		try {
+			const parsed = new URL(url.trim());
+			return ALLOWED_SCHEMES.has(parsed.protocol) ? url : undefined;
+		} catch {
+			return undefined;
+		}
+	};
+
 	function getTalkUrl(slug: string): string {
 		if (viewSlug) {
 			return `/talks/${slug}?from=${encodeURIComponent(viewSlug)}`;
@@ -47,7 +61,7 @@
 
 <section id="talks" class="mb-16">
 	{#if showHeader}
-		<h2 class="section-title">{$t('public.sections.talks')}</h2>
+		<h2 class="section-title sp-title">{$t('public.sections.talks')}</h2>
 	{/if}
 
 	{#if layout === 'list'}
@@ -75,13 +89,13 @@
 							</div>
 							<div class="mt-2 flex flex-wrap gap-3">
 								{#if talk.video_url}
-									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.watch_video_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
+									<a href={safeHref(talk.video_url)} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.watch_video_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
 										{$t('public.talks.video')}
 									</a>
 								{/if}
 								{#if talk.slides_url}
-									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.view_slides_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
+									<a href={safeHref(talk.slides_url)} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.view_slides_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
 										{$t('public.talks.slides')}
 									</a>
@@ -115,7 +129,7 @@
 							</div>
 						{:else}
 							<div class="aspect-video bg-gradient-to-br from-purple-600 to-indigo-800 flex items-center justify-center">
-								<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-2 text-white hover:opacity-80">
+								<a href={safeHref(talk.video_url)} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-2 text-white hover:opacity-80">
 									<svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 									<span class="text-sm font-medium">{$t('public.talks.watch_video')}</span>
 								</a>
@@ -134,10 +148,10 @@
 						</div>
 						<div class="mt-3 flex gap-3">
 							{#if talk.video_url}
-								<a href={talk.video_url} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.watch_video_for', { values: { title: talk.title } })} class="text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">{$t('public.talks.video')}</a>
+								<a href={safeHref(talk.video_url)} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.watch_video_for', { values: { title: talk.title } })} class="text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">{$t('public.talks.video')}</a>
 							{/if}
 							{#if talk.slides_url}
-								<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.view_slides_for', { values: { title: talk.title } })} class="text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">{$t('public.talks.slides')}</a>
+								<a href={safeHref(talk.slides_url)} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.view_slides_for', { values: { title: talk.title } })} class="text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">{$t('public.talks.slides')}</a>
 							{/if}
 							{#if talk.slug}
 								<a href={getTalkUrl(talk.slug)} aria-label={$t('public.talks.view_details_for', { values: { title: talk.title } })} class="text-sm text-primary-600 dark:text-primary-400 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">{$t('public.talks.view_details')}</a>
@@ -165,7 +179,7 @@
 								</div>
 							{:else}
 								<div class="lg:w-2/5 aspect-video bg-gradient-to-br from-purple-600 to-indigo-800 flex-shrink-0 flex items-center justify-center">
-									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-3 text-white hover:opacity-80 transition-opacity">
+									<a href={safeHref(talk.video_url)} target="_blank" rel="noopener noreferrer" class="flex flex-col items-center gap-3 text-white hover:opacity-80 transition-opacity">
 										<svg class="w-16 h-16" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 										<span class="text-sm font-medium">{$t('public.talks.watch_video')}</span>
 									</a>
@@ -184,7 +198,7 @@
 									<span class="flex items-center gap-1.5">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
 										{#if talk.event_url}
-											<a href={talk.event_url} target="_blank" rel="noopener noreferrer" class="hover:text-primary-600 dark:hover:text-primary-400">{talk.event}</a>
+											<a href={safeHref(talk.event_url)} target="_blank" rel="noopener noreferrer" class="hover:text-primary-600 dark:hover:text-primary-400">{talk.event}</a>
 										{:else}
 											{talk.event}
 										{/if}
@@ -210,13 +224,13 @@
 							{/if}
 							<div class="mt-4 flex flex-wrap gap-3">
 								{#if talk.video_url}
-									<a href={talk.video_url} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.watch_video_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
+									<a href={safeHref(talk.video_url)} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.watch_video_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 										{$t('public.talks.watch_video')}
 									</a>
 								{/if}
 								{#if talk.slides_url}
-									<a href={talk.slides_url} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.view_slides_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
+									<a href={safeHref(talk.slides_url)} target="_blank" rel="noopener noreferrer" aria-label={$t('public.talks.view_slides_for', { values: { title: talk.title } })} class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
 										{$t('public.talks.view_slides')}
 									</a>
@@ -235,3 +249,14 @@
 		</div>
 	{/if}
 </section>
+
+<style>
+	/* Soft Premium only: editorial serif accent on the section title. Gated by
+	   [data-design='soft-premium'] so the classic look stays byte-identical. */
+	:global([data-design='soft-premium']) .sp-title {
+		font-family: var(--font-accent);
+		font-style: italic;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+</style>

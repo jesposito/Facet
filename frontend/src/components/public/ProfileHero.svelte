@@ -58,10 +58,10 @@
 
 {#if layout === 'centered'}
 <!-- Centered: Bold headline centered, gradient/solid background, no image dependency -->
-<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
+<header class="grain relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass} text-center">
 		{#if profile?.name}
-			<h1 class="text-4xl sm:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight leading-[1.08]" itemprop="name">
+			<h1 class="hero-name text-4xl sm:text-5xl lg:text-6xl font-semibold mb-4 tracking-tight leading-[1.08]" itemprop="name">
 				{profile.name}
 			</h1>
 		{/if}
@@ -111,12 +111,12 @@
 
 {:else if layout === 'split'}
 <!-- Split: Text left, avatar/image right -->
-<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
+<header class="grain relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		<div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-12 items-center">
 			<div class="md:col-span-3">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-3 tracking-tight leading-[1.08]" itemprop="name">
+					<h1 class="hero-name text-3xl sm:text-4xl lg:text-5xl font-semibold mb-3 tracking-tight leading-[1.08]" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
@@ -188,10 +188,10 @@
 
 {:else if layout === 'minimal'}
 <!-- Minimal: Large typography, no image, maximum whitespace -->
-<header class="relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white" itemscope itemtype="https://schema.org/Person">
+<header class="grain relative bg-white dark:bg-gray-900 text-gray-900 dark:text-white" itemscope itemtype="https://schema.org/Person">
 	<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 		{#if profile?.name}
-			<h1 class="text-display-lg sm:text-display-xl font-semibold mb-6 tracking-tight leading-[1.06]" itemprop="name">
+			<h1 class="hero-name text-display-lg sm:text-display-xl font-semibold mb-6 tracking-tight leading-[1.06]" itemprop="name">
 				{profile.name}
 			</h1>
 		{/if}
@@ -242,7 +242,7 @@
 {:else if layout === 'stacked'}
 <!-- Stacked: Headline at top, full-width image below -->
 <header class="relative" itemscope itemtype="https://schema.org/Person">
-	<div class="{headerBgClass} {textColorClass}" style={headerBgStyle}>
+	<div class="grain {headerBgClass} {textColorClass}" style={headerBgStyle}>
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 {heroSpacingClass}">
 			<div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
 				{#if avatarUrl}
@@ -259,7 +259,7 @@
 
 				<div class="text-center sm:text-left flex-1">
 					{#if profile?.name}
-						<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.06]" itemprop="name">
+						<h1 class="hero-name text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.06]" itemprop="name">
 							{profile.name}
 						</h1>
 					{/if}
@@ -322,7 +322,7 @@
 
 {:else}
 <!-- Standard (default): Image with gradient overlay, avatar left, text right -->
-<header class="relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
+<header class="grain relative {headerBgClass} {textColorClass}" style={headerBgStyle} itemscope itemtype="https://schema.org/Person">
 	{#if heroImageUrl}
 		<div class="absolute inset-0" aria-hidden="true">
 			<img
@@ -350,7 +350,7 @@
 
 			<div class="text-center sm:text-left flex-1">
 				{#if profile?.name}
-					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.08]" itemprop="name">
+					<h1 class="hero-name text-3xl sm:text-4xl lg:text-5xl font-semibold mb-2 tracking-tight leading-[1.08]" itemprop="name">
 						{profile.name}
 					</h1>
 				{/if}
@@ -420,3 +420,22 @@
 		</svg>
 	{/if}
 {/snippet}
+
+<style>
+	/*
+	  Soft Premium editorial flourish — gated so classic mode is byte-identical.
+	  The `.grain` paper texture is self-gating in app.css (only paints under
+	  [data-design='soft-premium']) and is applied directly in the markup.
+
+	  Here we give the hero name a Newsreader serif-accent treatment, but ONLY
+	  under soft-premium. In classic mode `.hero-name` is an inert marker class
+	  that carries no styles, so the heading renders exactly as before (Lora,
+	  upright, via the existing Tailwind utilities).
+	*/
+	:global([data-design='soft-premium']) .hero-name {
+		font-family: var(--font-accent);
+		font-style: italic;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+</style>

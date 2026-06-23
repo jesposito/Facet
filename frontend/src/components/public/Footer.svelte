@@ -9,10 +9,69 @@
 	let { profile }: Props = $props();
 
 	const year = new Date().getFullYear();
+
+	// Pick a primary contact link for the Soft Premium CTA band.
+	// Prefer an explicit email link, then fall back to the first contact link.
+	// Only these schemes may be used as an href — blocks javascript:/data: etc.
+	// from an operator-supplied (or imported) contact URL becoming an XSS vector.
+	const SAFE_CTA_SCHEMES = ['http:', 'https:', 'mailto:', 'tel:'];
+	const ctaLink = $derived.by(() => {
+		const links = profile?.contact_links ?? [];
+		if (links.length === 0) return null;
+		const email = links.find((l) => l.type === 'email');
+		const chosen = email ?? links[0];
+		if (!chosen?.url) return null;
+		const raw =
+			chosen.type === 'email' && !chosen.url.startsWith('mailto:')
+				? `mailto:${chosen.url}`
+				: chosen.url;
+		let parsed: URL;
+		try {
+			// base handles scheme-relative/relative inputs deterministically.
+			parsed = new URL(raw, 'https://localhost');
+		} catch {
+			return null;
+		}
+		if (!SAFE_CTA_SCHEMES.includes(parsed.protocol)) return null;
+		const external = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+		return { href: raw, external };
+	});
 </script>
 
 <footer class="border-t border-stone-200/60 dark:border-stone-700/40 bg-stone-50/80 dark:bg-stone-900/50 backdrop-blur-sm">
 	<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+		<!-- Soft Premium CTA band: warm editorial card above the brand row.
+		     Gated to soft-premium via scoped CSS (hidden in classic so the
+		     classic footer is byte-identical). Decorative-only; the CTA itself
+		     is a real link with discernible text. -->
+		{#if ctaLink}
+			<section class="cta-band" aria-labelledby="footer-cta-headline">
+				<span class="cta-band__grain grain" aria-hidden="true"></span>
+				<div class="cta-band__inner">
+					<h2 id="footer-cta-headline" class="cta-band__headline font-accent">
+						{$t('public.footer.cta_headline')}
+					</h2>
+					<a
+						class="cta-band__link"
+						href={ctaLink.href}
+						target={ctaLink.external ? '_blank' : undefined}
+						rel={ctaLink.external ? 'noopener noreferrer' : undefined}
+					>
+						{$t('public.footer.cta_link')}
+						<svg
+							class="cta-band__arrow"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M13 6l6 6-6 6" />
+						</svg>
+					</a>
+				</div>
+			</section>
+		{/if}
+
 		<div class="flex flex-col sm:flex-row items-center justify-between gap-5">
 			<!-- Brand text with serif treatment -->
 			<div class="text-center sm:text-start">
@@ -61,3 +120,117 @@
 		</div>
 	</div>
 </footer>
+
+<style>
+	/* Classic mode: the CTA band renders no visible chrome (byte-identical
+	   classic footer). It only appears under the opt-in Soft Premium design. */
+	.cta-band {
+		display: none;
+	}
+
+	:global([data-design='soft-premium']) .cta-band {
+		position: relative;
+		display: block;
+		overflow: hidden;
+		margin-bottom: 2rem;
+		padding: 1.75rem 1.5rem;
+		border-radius: var(--r-5, 1.5rem);
+		/* Dark editorial card built from the warm ink token. */
+		background:
+			radial-gradient(
+				120% 140% at 100% 0%,
+				rgb(var(--color-primary-900-rgb) / 0.55),
+				transparent 60%
+			),
+			var(--ink, #2a2522);
+		color: var(--surface, #ffffff);
+	}
+
+	/* Dark mode: --ink flips to a LIGHT value with dark text, so the darkening
+	   radial overlay would push the card toward a mid-tone and drop body text
+	   below 4.5:1 (WCAG 1.4.3) on some accents. Use the flat ink surface in dark
+	   mode so dark-on-light contrast stays ~14:1. */
+	:global([data-design='soft-premium'].dark) .cta-band {
+		background: var(--ink, #221e1a);
+	}
+
+	:global([data-design='soft-premium']) .cta-band__grain {
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		opacity: 0.5;
+		pointer-events: none;
+	}
+
+	:global([data-design='soft-premium']) .cta-band__inner {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1rem;
+	}
+
+	@media (min-width: 640px) {
+		:global([data-design='soft-premium']) .cta-band__inner {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1.5rem;
+		}
+	}
+
+	:global([data-design='soft-premium']) .cta-band__headline {
+		margin: 0;
+		font-size: clamp(1.375rem, 2.5vw, 1.875rem);
+		font-weight: 600;
+		line-height: 1.15;
+		letter-spacing: -0.01em;
+		color: var(--surface, #ffffff);
+	}
+
+	:global([data-design='soft-premium']) .cta-band__link {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-shrink: 0;
+		padding: 0.6875rem 1.25rem;
+		border-radius: var(--r-full, 9999px);
+		background: var(--surface, #ffffff);
+		color: var(--ink, #2a2522);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		text-decoration: none;
+		transition:
+			transform 0.18s ease,
+			box-shadow 0.18s ease,
+			opacity 0.18s ease;
+	}
+
+	:global([data-design='soft-premium']) .cta-band__link:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+		opacity: 0.96;
+	}
+
+	:global([data-design='soft-premium']) .cta-band__link:focus-visible {
+		outline: 2px solid var(--surface, #ffffff);
+		outline-offset: 2px;
+	}
+
+	:global([data-design='soft-premium']) .cta-band__arrow {
+		width: 1.125rem;
+		height: 1.125rem;
+		transition: transform 0.18s ease;
+	}
+
+	:global([data-design='soft-premium']) .cta-band__link:hover .cta-band__arrow {
+		transform: translateX(2px);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		:global([data-design='soft-premium']) .cta-band__link,
+		:global([data-design='soft-premium']) .cta-band__arrow {
+			transition: none;
+		}
+	}
+</style>

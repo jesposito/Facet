@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import {
 		latestVersion,
@@ -242,7 +243,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.about_page.page_title')}</title>
+	<title>{$t('admin.about_page.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto p-6">

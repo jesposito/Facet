@@ -280,6 +280,13 @@ export const ACCENT_COLORS: Record<AccentColor, AccentColorInfo> = {
 export const DEFAULT_ACCENT_COLOR: AccentColor = 'sky';
 
 /**
+ * Default accent for the Soft Premium design when the operator hasn't chosen
+ * one — a warm terracotta that harmonizes with the stone surfaces. Operators
+ * who set an accent keep it; classic is unaffected.
+ */
+export const SOFT_PREMIUM_DEFAULT_ACCENT = '#c2410c';
+
+/**
  * List of available accent colors for UI iteration
  */
 export const ACCENT_COLOR_LIST: AccentColor[] = ['sky', 'indigo', 'emerald', 'rose', 'amber', 'slate'];
@@ -402,6 +409,29 @@ export function hexLuminance(hex: string): number {
 }
 
 /**
+ * Relative luminance from 0-255 channels (WCAG 2.x), without a hex round-trip.
+ */
+function channelLuminance(r: number, g: number, b: number): number {
+	const [rs, gs, bs] = [r, g, b].map((c) => {
+		const cc = c / 255;
+		return cc <= 0.03928 ? cc / 12.92 : Math.pow((cc + 0.055) / 1.055, 2.4);
+	});
+	return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+}
+
+/** Contrast ratio of white (#fff) text on a given color luminance. */
+function whiteOnColorContrast(luminance: number): number {
+	return 1.05 / (luminance + 0.05);
+}
+
+/**
+ * AAA accent contrast target for the 600 shade. The 600 shade carries white
+ * text on primary buttons/links/CTAs (`.btn-primary`, accent links), so white
+ * on it must clear 7:1. Pale accents (yellow/cyan) otherwise fail badly.
+ */
+export const ACCENT_MIN_CONTRAST = 7;
+
+/**
  * WCAG luminance crossover (0.179) — backgrounds above this need dark text;
  * backgrounds at or below need light text. Derived from the 4.5:1 contrast
  * inflection between white (L=1.0) and black (L=0.0) text.
@@ -430,6 +460,28 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 		return '#' + [red, green, blue].map(c => c.toString(16).padStart(2, '0')).join('');
 	}
 
+	// AAA clamp for the 600 shade: darken (mix toward black, which preserves hue
+	// because all channels scale toward 0 equally) until white text on it clears
+	// 7:1. Starts at the nominal 0.15 darkening and only ever goes darker, so the
+	// accent hue is preserved and the change is strictly more accessible. Black
+	// always passes, so the search terminates.
+	function clamp600(): string {
+		const baseAmount = 0.15;
+		const lum = (amount: number) =>
+			channelLuminance(mix(r, 0, amount), mix(g, 0, amount), mix(b, 0, amount));
+		if (whiteOnColorContrast(lum(baseAmount)) >= ACCENT_MIN_CONTRAST) {
+			return toHex(mix(r, 0, baseAmount), mix(g, 0, baseAmount), mix(b, 0, baseAmount));
+		}
+		let lo = baseAmount;
+		let hi = 1;
+		for (let i = 0; i < 24; i++) {
+			const m = (lo + hi) / 2;
+			if (whiteOnColorContrast(lum(m)) >= ACCENT_MIN_CONTRAST) hi = m;
+			else lo = m;
+		}
+		return toHex(mix(r, 0, hi), mix(g, 0, hi), mix(b, 0, hi));
+	}
+
 	return {
 		50:  toHex(mix(r, 255, 0.95), mix(g, 255, 0.95), mix(b, 255, 0.95)),
 		100: toHex(mix(r, 255, 0.88), mix(g, 255, 0.88), mix(b, 255, 0.88)),
@@ -437,7 +489,7 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 		300: toHex(mix(r, 255, 0.55), mix(g, 255, 0.55), mix(b, 255, 0.55)),
 		400: toHex(mix(r, 255, 0.30), mix(g, 255, 0.30), mix(b, 255, 0.30)),
 		500: hex,
-		600: toHex(mix(r, 0, 0.15), mix(g, 0, 0.15), mix(b, 0, 0.15)),
+		600: clamp600(),
 		700: toHex(mix(r, 0, 0.30), mix(g, 0, 0.30), mix(b, 0, 0.30)),
 		800: toHex(mix(r, 0, 0.45), mix(g, 0, 0.45), mix(b, 0, 0.45)),
 		900: toHex(mix(r, 0, 0.60), mix(g, 0, 0.60), mix(b, 0, 0.60)),

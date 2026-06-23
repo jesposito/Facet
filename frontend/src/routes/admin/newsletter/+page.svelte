@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 
 	type Stats = {
@@ -65,7 +66,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.newsletter.hub_title')} | Facet</title>
+	<title>{$t('admin.newsletter.hub_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto space-y-6">

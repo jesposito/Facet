@@ -5,6 +5,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Education } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -362,7 +363,7 @@ afterNavigate(() => {
 </script>
 
 <svelte:head>
-	<title>{$t('admin.content.education.title')} {$t('admin.content.common.page_title_suffix')}</title>
+	<title>{$t('admin.content.education.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

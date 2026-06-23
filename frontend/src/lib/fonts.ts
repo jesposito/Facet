@@ -6,7 +6,7 @@
  * pre-built Google Fonts URLs for performance.
  */
 
-export type FontPack = 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric';
+export type FontPack = 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | 'soft-premium';
 
 export interface FontPackInfo {
   name: FontPack;
@@ -105,12 +105,25 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
     code: 'DM Mono',
     codeFallback: 'monospace',
     googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap'
+  },
+  'soft-premium': {
+    name: 'soft-premium',
+    label: 'Soft Premium',
+    description: 'Warm geometric sans with a serif accent — the redesign pairing',
+    heading: 'Hanken Grotesk',
+    headingFallback: "'Plus Jakarta Sans', system-ui, sans-serif",
+    body: 'Hanken Grotesk',
+    bodyFallback: "'Plus Jakarta Sans', system-ui, sans-serif",
+    code: 'JetBrains Mono',
+    codeFallback: 'monospace',
+    // Includes Newsreader for the --font-accent editorial flourishes.
+    googleFontsUrl: 'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap'
   }
 };
 
 export const DEFAULT_FONT_PACK: FontPack = 'editorial';
 
-export const FONT_PACK_LIST: FontPack[] = ['editorial', 'modern', 'classic', 'technical', 'editorial-bold', 'humanist', 'geometric'];
+export const FONT_PACK_LIST: FontPack[] = ['editorial', 'modern', 'classic', 'technical', 'editorial-bold', 'humanist', 'geometric', 'soft-premium'];
 
 export function getFontPack(name?: string | null): FontPackInfo {
   if (name && name in FONT_PACKS) {

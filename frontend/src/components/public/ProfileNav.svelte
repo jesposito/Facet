@@ -161,7 +161,8 @@
 					{#if item.href}
 						<a
 							href={item.href}
-							class="flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
+							aria-current={activeSection === item.id ? 'page' : undefined}
+							class="nav-item flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
 									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
 									: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
@@ -175,7 +176,8 @@
 						<button
 							type="button"
 							onclick={() => scrollToSection(item.id)}
-							class="flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
+							aria-current={activeSection === item.id ? 'page' : undefined}
+							class="nav-item flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
 									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
 									: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
@@ -196,5 +198,48 @@
 	}
 	.scrollbar-hide::-webkit-scrollbar {
 		display: none;
+	}
+
+	/*
+	 * Soft Premium only: replace the filled active pill with a warm-bar
+	 * accent underline. Classic is untouched - these rules never match
+	 * without [data-design='soft-premium'] on the document root, so the
+	 * Tailwind pill classes render exactly as today in classic.
+	 *
+	 * The accessible state stays the aria-current="page" attribute the
+	 * markup sets; the underline is purely decorative.
+	 */
+	:global([data-design='soft-premium']) .nav-item {
+		position: relative;
+		/* Square off the corners so the pill shape reads as classic. */
+		border-radius: 0;
+	}
+
+	/* Neutralize the filled active pill (Tailwind bg-primary utilities). */
+	:global([data-design='soft-premium']) .nav-item[aria-current='page'] {
+		background-color: transparent;
+		color: var(--color-primary-700);
+	}
+
+	:global([data-design='soft-premium'].dark) .nav-item[aria-current='page'] {
+		color: var(--color-primary-300);
+	}
+
+	/* 2px accent underline bar on the active item. */
+	:global([data-design='soft-premium']) .nav-item[aria-current='page']::after {
+		content: '';
+		position: absolute;
+		left: 0.75rem;
+		right: 0.75rem;
+		bottom: -0.25rem;
+		height: 2px;
+		border-radius: 1px;
+		background-color: var(--color-primary-600);
+	}
+
+	/* On dark surfaces the 600 underline is too dim for some accents; the lighter
+	   400 reads clearly. (Decorative — aria-current carries the active state.) */
+	:global([data-design='soft-premium'].dark) .nav-item[aria-current='page']::after {
+		background-color: var(--color-primary-400);
 	}
 </style>

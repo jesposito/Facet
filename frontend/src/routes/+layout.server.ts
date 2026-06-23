@@ -10,6 +10,7 @@
 import type { LayoutServerLoad } from './$types';
 import type { PlanConfig } from '$lib/stores/plan';
 import { logger } from '$lib/logger';
+import { SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
 
 export const load: LayoutServerLoad = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
@@ -20,6 +21,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 	let defaultLocale: string | null = null;
 	let showAvatar = true;
 	let defaultThemeMode = 'system';
+	let design = 'classic';
 	try {
 		const siteSettingsResponse = await fetch(`${pbUrl}/api/site-settings`, {
 			headers: { 'X-Internal': 'true' }
@@ -31,6 +33,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 			defaultLocale = siteSettings.default_locale || null;
 			showAvatar = siteSettings.show_avatar !== false;
 			defaultThemeMode = siteSettings.default_theme_mode || 'system';
+			if (siteSettings.design === 'soft-premium') design = 'soft-premium';
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load site settings:', error);
@@ -92,6 +95,13 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		logger.debug('[LAYOUT SSR] Failed to load accent color:', error);
 	}
 
+	// Soft Premium defaults the accent to a warm terracotta when the operator
+	// hasn't chosen one (mirrors hooks.server.ts so the client matches SSR). An
+	// operator accent always wins; classic is unaffected.
+	if (design === 'soft-premium' && !accentColor && !customHexColor) {
+		customHexColor = SOFT_PREMIUM_DEFAULT_ACCENT;
+	}
+
 	return {
 		faviconUrl,
 		planConfig,
@@ -103,6 +113,7 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		customCSS,
 		defaultLocale,
 		showAvatar,
-		defaultThemeMode
+		defaultThemeMode,
+		design
 	};
 };
