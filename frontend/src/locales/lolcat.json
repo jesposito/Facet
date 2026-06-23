@@ -835,6 +835,8 @@
 			"lesson_preview": "Peek lesson (can see b4 buyin)",
 			"reorder_modules": "Move Chapterz Around",
 			"reorder_lessons": "Move Lessonz Around",
+			"module_moved_announce": "Movd chapter {title} 2 spot {position} ov {total}",
+			"lesson_moved_announce": "Movd lesson {title} 2 spot {position} ov {total}",
 			"select": "Pik",
 			"section_publishing": "Publishin",
 			"section_details": "Lernin Deetailz",
