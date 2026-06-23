@@ -35,9 +35,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	} catch { /* silent - fallback to client-side application */ }
 
 	// Soft Premium is the only design — always on. The warm token layer keys off
-	// the data-design attribute (injected below), so it is hardcoded here rather
-	// than fetched/branched on a site setting.
-	const design = 'soft-premium';
+	// the data-design attribute, hardcoded where the <html> tag is composed below
+	// (no site setting, no branching).
 
 	// Fonts are fully governed by the operator's font-pack pick. Whatever they
 	// selected is used; if they never chose one, fall back to the Soft Premium
