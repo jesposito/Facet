@@ -2739,7 +2739,9 @@
 	"public": {
 		"footer": {
 			"all_rights_reserved": "All rights defended.",
-			"powered_by": "Powered by {link}"
+			"powered_by": "Powered by {link}",
+			"cta_headline": "maHvaD wo' wIchen",
+			"cta_link": "HIqIH"
 		},
 		"hero": {
 			"location_label": "Station:",

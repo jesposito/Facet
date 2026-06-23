@@ -2739,7 +2739,9 @@
 	"public": {
 		"footer": {
 			"all_rights_reserved": "All rights preserved.",
-			"powered_by": "Wrought by {link}"
+			"powered_by": "Wrought by {link}",
+			"cta_headline": "Let us labour as one",
+			"cta_link": "Send word"
 		},
 		"hero": {
 			"location_label": "Realm:",

@@ -2740,7 +2740,9 @@
 	"public": {
 		"footer": {
 			"all_rights_reserved": "All rights reserved.",
-			"powered_by": "Powered by {link}"
+			"powered_by": "Powered by {link}",
+			"cta_headline": "Let's work together",
+			"cta_link": "Get in touch"
 		},
 		"hero": {
 			"location_label": "Location:",

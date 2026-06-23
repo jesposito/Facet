@@ -2739,7 +2739,9 @@
 	"public": {
 		"footer": {
 			"all_rights_reserved": "All ritz reservd.",
-			"powered_by": "Powerd by {link}"
+			"powered_by": "Powerd by {link}",
+			"cta_headline": "letz werk togethr",
+			"cta_link": "sez hai 2 me"
 		},
 		"hero": {
 			"location_label": "Locashun:",
