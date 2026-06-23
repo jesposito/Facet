@@ -146,6 +146,14 @@
 		color: var(--surface, #ffffff);
 	}
 
+	/* Dark mode: --ink flips to a LIGHT value with dark text, so the darkening
+	   radial overlay would push the card toward a mid-tone and drop body text
+	   below 4.5:1 (WCAG 1.4.3) on some accents. Use the flat ink surface in dark
+	   mode so dark-on-light contrast stays ~14:1. */
+	:global([data-design='soft-premium'].dark) .cta-band {
+		background: var(--ink, #221e1a);
+	}
+
 	:global([data-design='soft-premium']) .cta-band__grain {
 		position: absolute;
 		inset: 0;
