@@ -1063,7 +1063,11 @@
       "demo": "Demo",
       "demo_on": "ON",
       "toggle_demo_mode": "Toggle demonstration",
-      "opens_new_tab": "{label} (opens in new window)"
+      "opens_new_tab": "{label} (opens in new window)",
+      "live_preview_toggle": "Toggle the living glimpse",
+      "live_preview_label": "Glimpse",
+      "live_preview_on": "Lit",
+      "live_preview_off": "Dimmed"
     },
     "settings": {
       "favicon": {
@@ -2754,6 +2758,13 @@
         "title": "Panod",
         "description": "Estel, nost, gonathra a tegil curu."
       }
+    },
+    "site_preview": {
+      "heading": "Living glimpse",
+      "iframe_title": "A living glimpse of your public realm",
+      "readonly_note": "This glimpse is for the eyes only, not the hand. Dim it to hide it away.",
+      "ready_announce": "Living glimpse made ready",
+      "error_announce": "The living glimpse is veiled"
     }
   },
   "public": {
