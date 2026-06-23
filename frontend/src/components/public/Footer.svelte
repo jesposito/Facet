@@ -12,18 +12,29 @@
 
 	// Pick a primary contact link for the Soft Premium CTA band.
 	// Prefer an explicit email link, then fall back to the first contact link.
+	// Only these schemes may be used as an href — blocks javascript:/data: etc.
+	// from an operator-supplied (or imported) contact URL becoming an XSS vector.
+	const SAFE_CTA_SCHEMES = ['http:', 'https:', 'mailto:', 'tel:'];
 	const ctaLink = $derived.by(() => {
 		const links = profile?.contact_links ?? [];
 		if (links.length === 0) return null;
 		const email = links.find((l) => l.type === 'email');
 		const chosen = email ?? links[0];
 		if (!chosen?.url) return null;
-		const href =
+		const raw =
 			chosen.type === 'email' && !chosen.url.startsWith('mailto:')
 				? `mailto:${chosen.url}`
 				: chosen.url;
-		const external = href.startsWith('http://') || href.startsWith('https://');
-		return { href, external };
+		let parsed: URL;
+		try {
+			// base handles scheme-relative/relative inputs deterministically.
+			parsed = new URL(raw, 'https://localhost');
+		} catch {
+			return null;
+		}
+		if (!SAFE_CTA_SCHEMES.includes(parsed.protocol)) return null;
+		const external = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+		return { href: raw, external };
 	});
 </script>
 
