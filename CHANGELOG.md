@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.0.0 - June 23, 2026
+
+**New Features:**
+- make Soft Premium the only design; font selector governs fonts
+
+**Pull Requests:** [#470](https://github.com/jesposito/Facet/pull/470),
+
+---
+
+
 ## v2.23.0 - June 23, 2026
 
 **New Features:**
