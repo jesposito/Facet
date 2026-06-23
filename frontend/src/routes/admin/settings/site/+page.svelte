@@ -4,6 +4,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { pb, type Profile } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -510,7 +511,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.settings_page.title')} - {$t('admin.settings_page.page_title_suffix')}</title>
+	<title>{$t('admin.settings_page.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

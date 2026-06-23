@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { toasts, confirm } from '$lib/stores';
 	import { TAG_COLORS, TAG_COLOR_LIST, type TagColor } from '$lib/colors';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
@@ -115,7 +116,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.tags_page.title')} {$t('admin.tags_page.page_title_suffix')}</title>
+	<title>{$t('admin.tags_page.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">

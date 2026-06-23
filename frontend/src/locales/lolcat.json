@@ -844,6 +844,8 @@
 			"lesson_preview": "Peek lesson (can see b4 buyin)",
 			"reorder_modules": "Move Chapterz Around",
 			"reorder_lessons": "Move Lessonz Around",
+			"module_moved_announce": "Movd chapter {title} 2 spot {position} ov {total}",
+			"lesson_moved_announce": "Movd lesson {title} 2 spot {position} ov {total}",
 			"select": "Pik",
 			"section_publishing": "Publishin",
 			"section_details": "Lernin Deetailz",
@@ -916,7 +918,7 @@
 			"filter_all_tiers": "All tierz",
 			"filter_free": "Free only",
 			"filter_paid": "Paid only",
-			"item_count": "{count} thingz",
+			"item_count": "{count, plural, one {# thing} other {# thingz}}",
 			"selected_count": "{count} pikd",
 			"set_paid": "Mak Paid",
 			"set_free": "Mak Free",
@@ -1238,7 +1240,7 @@
 				"confirm_delete_button": "Delet",
 				"confirm_bulk_delete_button": "Delet All",
 				"bulk_updated": "Updatd {count} itemz 2 {visibility}",
-				"bulk_deleted": "Deletd {count} itemz",
+				"bulk_deleted": "{count, plural, one {Deletd # item} other {Deletd # itemz}}",
 				"bulk_error": "Faild 2 updat itemz",
 				"reorder_title": "Reordr {type}",
 				"reorder_drag_hint": "Drag 2 reordr",
@@ -1932,7 +1934,9 @@
 			"keyboard_shortcut_prev_row": "Prev row",
 			"keyboard_shortcut_open_row": "Opin teh row",
 			"keyboard_shortcut_delete_row": "Eat teh row",
-			"keyboard_shortcut_help": "Show dis halp"
+			"keyboard_shortcut_help": "Show dis halp",
+			"create_page_title": "Makez a Faycet",
+			"edit_page_title": "Edit Faycet"
 		},
 		"media": {
 			"page_title": "Pikchur Box | Facet Admin",
@@ -1982,7 +1986,7 @@
 			"edit_tags_label": "Tagz",
 			"edit_tags_help": "Put tagz on ur stuffz so u can find dem",
 			"remove_item": "Removez",
-			"selected_items": "{count} thingz picked",
+			"selected_items": "{count, plural, one {# thing picked} other {# thingz picked}}",
 			"select_visible": "Pick da visible wunz",
 			"bulk_tag_button": "Tagz all da thingz",
 			"bulk_tag_title": "Tag {count} thingz",
@@ -2301,7 +2305,8 @@
 			"loading_sections": "Loadin sekshunz...",
 			"custom_content_note": "<strong>Note:</strong> Only custom stuffz markd <strong>public</strong> an <strong>not in draft</strong> showz here. To chanj who can haz, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
 			"section_width_title": "Sekshun wideness",
-			"section_layout_title": "Sekshun layout"
+			"section_layout_title": "Sekshun layout",
+			"page_title": "Homepaej"
 		},
 		"import": {
 			"resume_dropzone_label": "Rezume file drop zone",
@@ -2376,7 +2381,8 @@
 			"modal_success_toast": "Rezoom importd! Pik itemz 2 put in ur facet."
 		},
 		"testimonials": {
-			"delete_request": "Deleet request"
+			"delete_request": "Deleet request",
+			"requests_page_title": "Rekwest Linx"
 		},
 		"comments": {
 			"title": "Commentz",
@@ -2734,6 +2740,9 @@
 			"loading": "Lodin…",
 			"empty": "No litterz yet, srsly.",
 			"footer_unlimited": "Unlimitd litterz. {count} in use."
+		},
+		"review": {
+			"page_title": "Reviuu Import"
 		}
 	},
 	"public": {

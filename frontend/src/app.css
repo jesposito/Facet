@@ -214,6 +214,23 @@
 		font-family: var(--font-heading);
 	}
 
+	/* Admin uses the sans body font for headings, not the public editorial serif
+	   (Lora). Without this, admin H1/H2/H3 inherit whatever heading font the
+	   public profile uses — e.g. a serif pack bleeds Playfair/Lora into the admin
+	   chrome. Scoped to the admin shell so the public site is unaffected. */
+	.admin-shell h1,
+	.admin-shell h2,
+	.admin-shell h3 {
+		font-family: var(--font-body);
+	}
+
+	/* Tabular figures in admin data tables so columns of numbers align. Harmless
+	   on text cells (only affects digit advance width). */
+	.admin-shell td,
+	.admin-shell th {
+		font-variant-numeric: tabular-nums;
+	}
+
 	/* Focus styles for accessibility */
 	:focus-visible {
 		@apply outline-2 outline-offset-2 outline-primary-500;

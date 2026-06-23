@@ -844,6 +844,8 @@
 			"lesson_preview": "Cenie lektiona (cen ere manca)",
 			"reorder_modules": "Satya Rannar",
 			"reorder_lessons": "Satya Lektionar",
+			"module_moved_announce": "Ranna {title} mennen na nan {position} o {total}",
+			"lesson_moved_announce": "Lektion {title} mennen na nan {position} o {total}",
 			"select": "Cire",
 			"section_publishing": "Vistala",
 			"section_details": "Tirelya Entar",
@@ -916,7 +918,7 @@
 			"filter_all_tiers": "Ilye rendar",
 			"filter_free": "Er lerya",
 			"filter_paid": "Er tyalie",
-			"item_count": "{count} quettar",
+			"item_count": "{count, plural, one {# quetta} other {# quettar}}",
 			"selected_count": "{count} cirine",
 			"set_paid": "Panya tyalie-na",
 			"set_free": "Panya lerya-na",
@@ -1238,7 +1240,7 @@
 				"confirm_delete_button": "Unmake",
 				"confirm_bulk_delete_button": "Unmake All",
 				"bulk_updated": "Renewed {count} items to {visibility}",
-				"bulk_deleted": "Unmade {count} items",
+				"bulk_deleted": "{count, plural, one {Unmade # item} other {Unmade # items}}",
 				"bulk_error": "Items could not be renewed",
 				"reorder_title": "Reorder {type}",
 				"reorder_drag_hint": "Draw to reorder",
@@ -1932,7 +1934,9 @@
 			"keyboard_shortcut_prev_row": "Former row",
 			"keyboard_shortcut_open_row": "Behold the row",
 			"keyboard_shortcut_delete_row": "Unmake the row",
-			"keyboard_shortcut_help": "Reveal this counsel"
+			"keyboard_shortcut_help": "Reveal this counsel",
+			"create_page_title": "Forge a Facet",
+			"edit_page_title": "Reshape a Facet"
 		},
 		"media": {
 			"page_title": "Archives of Memory | Facet Admin",
@@ -1982,7 +1986,7 @@
 			"edit_tags_label": "Marks",
 			"edit_tags_help": "Arrange treasures by marks for easier seeking",
 			"remove_item": "Remove",
-			"selected_items": "{count} treasures chosen",
+			"selected_items": "{count, plural, one {# treasure chosen} other {# treasures chosen}}",
 			"select_visible": "Choose visible",
 			"bulk_tag_button": "Mark many",
 			"bulk_tag_title": "Mark {count} treasures",
@@ -2301,7 +2305,8 @@
 			"loading_sections": "Summoning chapters …",
 			"custom_content_note": "<strong>Heed:</strong> Only wrought tales marked <strong>open to all</strong> and <strong>not yet a draft</strong> appear here. To change who may behold them, journey to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Wrought Tales</a>.",
 			"section_width_title": "Breadth of the chapter",
-			"section_layout_title": "Weave of the chapter"
+			"section_layout_title": "Weave of the chapter",
+			"page_title": "Homepage"
 		},
 		"import": {
 			"resume_dropzone_label": "Chronicle scroll waypoint",
@@ -2376,7 +2381,8 @@
 			"modal_success_toast": "Life-scroll gathered! Choose the tales to weave into your facet."
 		},
 		"testimonials": {
-			"delete_request": "Remove petition"
+			"delete_request": "Remove petition",
+			"requests_page_title": "Request Links"
 		},
 		"comments": {
 			"title": "Quettar Formen",
@@ -2734,6 +2740,9 @@
 			"loading": "Hentho…",
 			"empty": "Lestath Postar û peren.",
 			"footer_unlimited": "Lestath Postar pen-bandor. {count} mil."
+		},
+		"review": {
+			"page_title": "Review Import"
 		}
 	},
 	"public": {

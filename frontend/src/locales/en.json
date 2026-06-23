@@ -992,6 +992,8 @@
 			"lesson_preview": "Preview lesson (available before purchase)",
 			"reorder_modules": "Reorder Modules",
 			"reorder_lessons": "Reorder Lessons",
+			"module_moved_announce": "Moved module {title} to position {position} of {total}",
+			"lesson_moved_announce": "Moved lesson {title} to position {position} of {total}",
 			"select": "Select",
 			"section_publishing": "Publishing",
 			"section_details": "Course Details",
@@ -1064,7 +1066,7 @@
 			"filter_all_tiers": "All tiers",
 			"filter_free": "Free only",
 			"filter_paid": "Paid only",
-			"item_count": "{count} items",
+			"item_count": "{count, plural, one {# item} other {# items}}",
 			"selected_count": "{count} selected",
 			"set_paid": "Set to Paid",
 			"set_free": "Set to Free",
@@ -1413,7 +1415,7 @@
 				"confirm_delete_button": "Delete",
 				"confirm_bulk_delete_button": "Delete All",
 				"bulk_updated": "Updated {count} items to {visibility}",
-				"bulk_deleted": "Deleted {count} items",
+				"bulk_deleted": "{count, plural, one {Deleted # item} other {Deleted # items}}",
 				"bulk_error": "Failed to update items",
 				"reorder_title": "Reorder {type}",
 				"reorder_drag_hint": "Drag to reorder",
@@ -2107,7 +2109,9 @@
 			"keyboard_shortcut_prev_row": "Previous row",
 			"keyboard_shortcut_open_row": "Open focused row",
 			"keyboard_shortcut_delete_row": "Delete focused row",
-			"keyboard_shortcut_help": "Show this help"
+			"keyboard_shortcut_help": "Show this help",
+			"create_page_title": "Create Facet",
+			"edit_page_title": "Edit Facet"
 		},
 		"media": {
 			"page_title": "Media Library | Facet Admin",
@@ -2157,7 +2161,7 @@
 			"edit_tags_label": "Tags",
 			"edit_tags_help": "Organize media with tags for easier filtering",
 			"remove_item": "Remove",
-			"selected_items": "{count} items selected",
+			"selected_items": "{count, plural, one {# item selected} other {# items selected}}",
 			"select_visible": "Select visible",
 			"bulk_tag_button": "Bulk tag",
 			"bulk_tag_title": "Tag {count} items",
@@ -2449,7 +2453,8 @@
 			"loading_sections": "Loading sections...",
 			"custom_content_note": "<strong>Note:</strong> Only custom content marked as <strong>public</strong> and <strong>not in draft</strong> appears here. To change visibility, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
 			"section_width_title": "Section width",
-			"section_layout_title": "Section layout"
+			"section_layout_title": "Section layout",
+			"page_title": "Homepage"
 		},
 		"import": {
 			"resume_dropzone_label": "Resume file drop zone",
@@ -2524,7 +2529,8 @@
 			"modal_success_toast": "Resume imported! Select items to include in your facet."
 		},
 		"testimonials": {
-			"delete_request": "Delete request"
+			"delete_request": "Delete request",
+			"requests_page_title": "Request Links"
 		},
 		"comments": {
 			"title": "Comments",
@@ -2735,6 +2741,9 @@
 			"loading": "Loading...",
 			"empty": "No newsletter lists yet.",
 			"footer_unlimited": "Unlimited newsletter lists. {count} in use."
+		},
+		"review": {
+			"page_title": "Review Import"
 		}
 	},
 	"public": {
