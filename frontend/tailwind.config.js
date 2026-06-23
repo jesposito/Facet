@@ -23,6 +23,24 @@ export default {
 					800: 'rgb(var(--color-primary-800-rgb) / <alpha-value>)',
 					900: 'rgb(var(--color-primary-900-rgb) / <alpha-value>)',
 					950: 'rgb(var(--color-primary-950-rgb) / <alpha-value>)'
+				},
+				// Neutral gray is CSS-var-backed so the opt-in "soft-premium" design
+				// can warm the whole ramp (cool gray -> warm stone) via a single
+				// :root[data-design] override, with no per-component changes. The
+				// classic default values in app.css equal Tailwind's stock gray, so
+				// classic renders byte-identical.
+				gray: {
+					50: 'rgb(var(--gray-50-rgb) / <alpha-value>)',
+					100: 'rgb(var(--gray-100-rgb) / <alpha-value>)',
+					200: 'rgb(var(--gray-200-rgb) / <alpha-value>)',
+					300: 'rgb(var(--gray-300-rgb) / <alpha-value>)',
+					400: 'rgb(var(--gray-400-rgb) / <alpha-value>)',
+					500: 'rgb(var(--gray-500-rgb) / <alpha-value>)',
+					600: 'rgb(var(--gray-600-rgb) / <alpha-value>)',
+					700: 'rgb(var(--gray-700-rgb) / <alpha-value>)',
+					800: 'rgb(var(--gray-800-rgb) / <alpha-value>)',
+					900: 'rgb(var(--gray-900-rgb) / <alpha-value>)',
+					950: 'rgb(var(--gray-950-rgb) / <alpha-value>)'
 				}
 			},
 			fontFamily: {

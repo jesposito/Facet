@@ -33,10 +33,90 @@
 		--color-primary-800-rgb: 7 89 133;
 		--color-primary-900-rgb: 12 74 110;
 		--color-primary-950-rgb: 8 47 73;
+		/* Neutral gray ramp as RGB channels (classic = Tailwind v3.4 stock gray).
+		   Var-backed so the opt-in soft-premium design can warm it wholesale.
+		   These exact values mean classic renders identically to before. */
+		--gray-50-rgb: 249 250 251;
+		--gray-100-rgb: 243 244 246;
+		--gray-200-rgb: 229 231 235;
+		--gray-300-rgb: 209 213 219;
+		--gray-400-rgb: 156 163 175;
+		--gray-500-rgb: 107 114 128;
+		--gray-600-rgb: 75 85 99;
+		--gray-700-rgb: 55 65 81;
+		--gray-800-rgb: 31 41 55;
+		--gray-900-rgb: 17 24 39;
+		--gray-950-rgb: 3 7 18;
 		/* Typography CSS Custom Properties - default to editorial pack */
 		--font-heading: 'Lora', Georgia, 'Times New Roman', serif;
 		--font-body: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
 		--font-code: 'JetBrains Mono', monospace;
+	}
+
+	/* ── Soft Premium (opt-in) ─────────────────────────────────────────────
+	   Warm editorial theme, applied only when site_settings.design = soft-premium
+	   (data-design on <html>, set SSR-side in hooks.server.ts). Every value below
+	   was contrast-validated; the stone ramp is luminance-matched to the gray it
+	   replaces (within ±0.5%), so existing gray contrast pairs are preserved by
+	   construction. classic defines no overrides → byte-identical to today. */
+	:root[data-design='soft-premium'] {
+		/* Cool gray → warm stone (luminance-matched). */
+		--gray-50-rgb: 254 249 246;
+		--gray-100-rgb: 246 244 237;
+		--gray-200-rgb: 236 230 224;
+		--gray-300-rgb: 215 214 190;
+		--gray-400-rgb: 173 161 143;
+		--gray-500-rgb: 123 112 100;
+		--gray-600-rgb: 104 79 63;
+		--gray-700-rgb: 70 63 59;
+		--gray-800-rgb: 42 40 40;
+		--gray-900-rgb: 25 24 23;
+		--gray-950-rgb: 8 7 5;
+
+		/* Semantic surface vocabulary (for adopting components in Track C). */
+		--bg: #fbf8f4;
+		--surface: #ffffff;
+		--surface-2: #faf4f0;
+		--chip: #ece4de;
+		--ink: #2a2522;
+		--muted: #5a524d;
+		--border: #988e85; /* load-bearing (>=3:1) */
+		--border-hairline: #ddd1ca; /* decorative only */
+		--border-interactive: #988e85;
+
+		/* Radius / shadow / motion. */
+		--r-1: 0.25rem;
+		--r-2: 0.5rem;
+		--r-3: 0.75rem;
+		--r-4: 1rem;
+		--r-5: 1.5rem;
+		--r-full: 9999px;
+		--sh-1: 0 1px 2px rgba(42, 37, 34, 0.05), 0 1px 3px rgba(42, 37, 34, 0.08);
+		--sh-2: 0 2px 6px rgba(42, 37, 34, 0.06), 0 8px 24px rgba(42, 37, 34, 0.08);
+		--sh-3: 0 8px 24px rgba(42, 37, 34, 0.08), 0 32px 64px rgba(42, 37, 34, 0.12);
+		--t-fast: 150ms;
+		--t-norm: 200ms;
+		--t-slow: 300ms;
+		--e-out: cubic-bezier(0.16, 1, 0.3, 1);
+		/* Accent-independent focus ring (WCAG 2.4.13 / 1.4.11). */
+		--focus-ring: #b45309;
+	}
+
+	/* Dark soft-premium: authored warm browns (consumed via semantic vars). */
+	:root[data-design='soft-premium'].dark {
+		--bg: #1a1613;
+		--surface: #221e1a;
+		--surface-2: #2a2522;
+		--chip: #463f3b;
+		--ink: #f4eee4;
+		--muted: #ada199;
+		--border: #7a6d64;
+		--border-hairline: #463f3b;
+		--border-interactive: #7a6d64;
+		--sh-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+		--sh-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55);
+		--sh-3: 0 8px 24px rgba(0, 0, 0, 0.55), 0 32px 64px rgba(0, 0, 0, 0.65);
+		--focus-ring: #f59e0b;
 	}
 
 	body {
@@ -74,6 +154,12 @@
 	/* Focus styles for accessibility */
 	:focus-visible {
 		@apply outline-2 outline-offset-2 outline-primary-500;
+	}
+
+	/* Soft Premium uses an accent-independent ring (the dynamic accent can't be
+	   trusted to hit 3:1); amber-700 light / amber-500 dark both clear it. */
+	:root[data-design='soft-premium'] :focus-visible {
+		outline-color: var(--focus-ring);
 	}
 
 	/* ==========================================================================
