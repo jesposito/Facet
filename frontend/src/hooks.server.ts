@@ -19,6 +19,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let accentCSSVars = '';
 	let fontCSSVars = '';
 	let fontPack = '';
+	let operatorFontPack = '';
 	try {
 		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
 			headers: { 'X-Internal': 'true' }
@@ -29,8 +30,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 				homepage.profile?.accent_color,
 				homepage.profile?.custom_hex_color
 			);
-			fontCSSVars = generateFontCSSVars(homepage.profile?.font_pack);
-			fontPack = homepage.profile?.font_pack || '';
+			operatorFontPack = homepage.profile?.font_pack || '';
 		}
 	} catch { /* silent - fallback to client-side application */ }
 
@@ -47,6 +47,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 			if (settings.design === 'soft-premium') design = 'soft-premium';
 		}
 	} catch { /* silent - fallback to classic */ }
+
+	// Soft Premium ships its own font pack (Hanken Grotesk + Newsreader) as the
+	// default, but an operator who explicitly picked a pack keeps it — the classic
+	// escape hatch. Emitted inline below, which (unlike a :root[data-design] rule)
+	// correctly overrides the static defaults.
+	const effectiveFontPack =
+		design === 'soft-premium' && (!operatorFontPack || operatorFontPack === DEFAULT_FONT_PACK)
+			? 'soft-premium'
+			: operatorFontPack;
+	fontCSSVars = generateFontCSSVars(effectiveFontPack);
+	fontPack = effectiveFontPack;
 
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => {

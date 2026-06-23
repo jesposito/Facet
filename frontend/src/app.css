@@ -100,6 +100,12 @@
 		--e-out: cubic-bezier(0.16, 1, 0.3, 1);
 		/* Accent-independent focus ring (WCAG 2.4.13 / 1.4.11). */
 		--focus-ring: #b45309;
+
+		/* Soft Premium editorial accent face. --font-heading/--font-body come from
+		   the 'soft-premium' font pack injected inline by hooks.server.ts (inline
+		   wins over this attribute rule); --font-accent is not part of the pack, so
+		   it is safe to set here. Newsreader loads via the pack's font URL. */
+		--font-accent: 'Newsreader', Georgia, 'Times New Roman', serif;
 	}
 
 	/* Dark soft-premium: authored warm browns (consumed via semantic vars). */
