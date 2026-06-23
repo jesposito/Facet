@@ -121,7 +121,10 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
   }
 };
 
-export const DEFAULT_FONT_PACK: FontPack = 'editorial';
+// Soft Premium is the default pairing for unconfigured instances. Any operator
+// pick in the font selector overrides it (handled in hooks.server.ts), so this is
+// purely the fallback for instances that never chose a pack.
+export const DEFAULT_FONT_PACK: FontPack = 'soft-premium';
 
 export const FONT_PACK_LIST: FontPack[] = ['editorial', 'modern', 'classic', 'technical', 'editorial-bold', 'humanist', 'geometric', 'soft-premium'];
 
