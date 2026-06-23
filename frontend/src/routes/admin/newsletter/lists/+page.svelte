@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 
@@ -270,7 +271,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.newsletter_lists.page_title')} | Facet</title>
+	<title>{$t('admin.newsletter_lists.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl space-y-6">

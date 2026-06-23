@@ -76,7 +76,7 @@
 {#if slotMatches && navEnabled && navItems.length > 0}
 	{#if navMode === 'chips'}
 		<!-- Chips mode: light surface with rounded-full pill links -->
-		<nav aria-label="Site navigation" class="bg-white border-b border-stone-200 dark:bg-stone-900 dark:border-stone-700">
+		<nav aria-label="Site navigation" class="bg-white border-b border-stone-200 dark:bg-stone-900 dark:border-stone-700 sp:bg-[var(--bg)] sp:border-[var(--border-hairline)]">
 			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 				<!-- Desktop Navigation -->
 				<div class="hidden md:flex items-center justify-between py-3">
@@ -90,8 +90,8 @@
 								focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400
 								focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
 								{isHome()
-									? 'bg-primary-600 text-white shadow-sm'
-									: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white'}"
+									? 'bg-primary-600 text-white shadow-sm sp:bg-[var(--accent)] sp:text-white'
+									: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]'}"
 						>
 							{$t('public.nav.home')}
 						</a>
@@ -106,8 +106,8 @@
 									focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400
 									focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900
 									{isActive(item.slug)
-										? 'bg-primary-600 text-white shadow-sm'
-										: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white'}"
+										? 'bg-primary-600 text-white shadow-sm sp:bg-[var(--accent)] sp:text-white'
+										: 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]'}"
 							>
 								{item.label}
 							</a>
@@ -120,7 +120,7 @@
 							href={ctaUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="inline-flex items-center min-h-11 px-4 rounded-full bg-primary-600 text-white hover:bg-primary-700 text-sm font-medium
+							class="inline-flex items-center min-h-11 px-4 rounded-full bg-primary-600 text-white hover:bg-primary-700 text-sm font-medium sp:bg-[var(--accent)] sp:hover:opacity-90
 								focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
 								focus-visible:ring-primary-600 focus-visible:ring-offset-white dark:focus-visible:ring-offset-stone-900"
 						>
@@ -133,7 +133,7 @@
 				<div class="md:hidden flex items-center justify-between py-3">
 					<button
 						type="button"
-						class="p-2 rounded-md text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white
+						class="p-2 rounded-md text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-300 dark:hover:bg-stone-800 dark:hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]
 							focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400"
 						onclick={toggleMobileMenu}
 						aria-expanded={mobileMenuOpen}
@@ -156,7 +156,7 @@
 							href={ctaUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="inline-flex items-center min-h-11 px-4 rounded-full bg-primary-600 text-white hover:bg-primary-700 text-sm font-medium"
+							class="inline-flex items-center min-h-11 px-4 rounded-full bg-primary-600 text-white hover:bg-primary-700 text-sm font-medium sp:bg-[var(--accent)] sp:hover:opacity-90"
 						>
 							{ctaButtonText}
 						</a>
@@ -166,7 +166,7 @@
 
 			<!-- Mobile menu dropdown (chips) -->
 			{#if mobileMenuOpen}
-				<div class="md:hidden border-t border-stone-200 dark:border-stone-700" id="mobile-menu-chips">
+				<div class="md:hidden border-t border-stone-200 dark:border-stone-700 sp:border-[var(--border)]" id="mobile-menu-chips">
 					<div class="px-2 pt-2 pb-3 space-y-1">
 						<a
 							href="/"
@@ -175,7 +175,7 @@
 							class="block px-3 py-2 rounded-md text-base font-medium
 								{isHome()
 									? 'bg-primary-600 text-white'
-									: 'text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800'}"
+									: 'text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
 						>
 							{$t('public.nav.home')}
 						</a>
@@ -186,8 +186,8 @@
 								aria-current={isActive(item.slug) ? 'page' : undefined}
 								class="block px-3 py-2 rounded-md text-base font-medium
 									{isActive(item.slug)
-										? 'bg-primary-600 text-white'
-										: 'text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800'}"
+										? 'bg-primary-600 text-white sp:bg-[var(--accent)] sp:text-white'
+										: 'text-stone-700 hover:bg-stone-100 dark:text-stone-200 dark:hover:bg-stone-800 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
 							>
 								{item.label}
 							</a>
@@ -198,7 +198,7 @@
 		</nav>
 	{:else}
 		<!-- Bar mode (default): full-width colored bar with pill links -->
-		<nav aria-label="Site navigation" class="bg-primary-600 text-white">
+		<nav aria-label="Site navigation" class="bg-primary-600 text-white sp:bg-[var(--bg)] sp:text-[var(--ink)] sp:border-b sp:border-[var(--border-hairline)]">
 			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 				<!-- Desktop Navigation -->
 				<div class="hidden md:flex items-center justify-between py-3">
@@ -208,10 +208,10 @@
 							href="/"
 							aria-current={isHome() ? 'page' : undefined}
 							class="px-3 py-2 rounded-md text-sm font-medium transition-colors
-								focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600
+								focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600 sp:focus-visible:ring-[var(--accent)] sp:focus-visible:ring-offset-[var(--bg)]
 								{isHome()
-									? 'bg-primary-700 text-white'
-									: 'text-primary-100 hover:bg-primary-500 hover:text-white'}"
+									? 'bg-primary-700 text-white sp:bg-[var(--accent)] sp:text-white'
+									: 'text-primary-100 hover:bg-primary-500 hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]'}"
 						>
 							{$t('public.nav.home')}
 						</a>
@@ -222,10 +222,10 @@
 								href="/{item.slug}"
 								aria-current={isActive(item.slug) ? 'page' : undefined}
 								class="px-3 py-2 rounded-md text-sm font-medium transition-colors
-									focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600
+									focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary-600 sp:focus-visible:ring-[var(--accent)] sp:focus-visible:ring-offset-[var(--bg)]
 									{isActive(item.slug)
-										? 'bg-primary-700 text-white'
-										: 'text-primary-100 hover:bg-primary-500 hover:text-white'}"
+										? 'bg-primary-700 text-white sp:bg-[var(--accent)] sp:text-white'
+										: 'text-primary-100 hover:bg-primary-500 hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]'}"
 							>
 								{item.label}
 							</a>
@@ -238,7 +238,7 @@
 							href={ctaUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm"
+							class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
 						>
 							{ctaButtonText}
 						</a>
@@ -250,7 +250,7 @@
 					<!-- Hamburger button -->
 					<button
 						type="button"
-						class="p-2 rounded-md text-primary-100 hover:bg-primary-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+						class="p-2 rounded-md text-primary-100 hover:bg-primary-500 hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
 						onclick={toggleMobileMenu}
 						aria-expanded={mobileMenuOpen}
 						aria-controls="mobile-menu"
@@ -275,7 +275,7 @@
 							href={ctaUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm"
+							class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
 						>
 							{ctaButtonText}
 						</a>
@@ -285,7 +285,7 @@
 
 			<!-- Mobile menu dropdown -->
 			{#if mobileMenuOpen}
-				<div class="md:hidden border-t border-primary-500" id="mobile-menu">
+				<div class="md:hidden border-t border-primary-500 sp:border-[var(--border)]" id="mobile-menu">
 					<div class="px-2 pt-2 pb-3 space-y-1">
 						<!-- Home button -->
 						<a
@@ -294,8 +294,8 @@
 							aria-current={isHome() ? 'page' : undefined}
 							class="block px-3 py-2 rounded-md text-base font-medium
 								{isHome()
-									? 'bg-primary-700 text-white'
-									: 'text-primary-100 hover:bg-primary-500 hover:text-white'}"
+									? 'bg-primary-700 text-white sp:bg-[var(--accent)] sp:text-white'
+									: 'text-primary-100 hover:bg-primary-500 hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]'}"
 						>
 							{$t('public.nav.home')}
 						</a>
@@ -308,8 +308,8 @@
 								aria-current={isActive(item.slug) ? 'page' : undefined}
 								class="block px-3 py-2 rounded-md text-base font-medium
 									{isActive(item.slug)
-										? 'bg-primary-700 text-white'
-										: 'text-primary-100 hover:bg-primary-500 hover:text-white'}"
+										? 'bg-primary-700 text-white sp:bg-[var(--accent)] sp:text-white'
+										: 'text-primary-100 hover:bg-primary-500 hover:text-white sp:text-[var(--muted)] sp:hover:bg-[var(--chip)] sp:hover:text-[var(--ink)]'}"
 							>
 								{item.label}
 							</a>
@@ -322,17 +322,18 @@
 	{/if}
 {:else if slot === 'below' && ($siteNavStore.loaded || ssrNavEnabled === false) && ctaUrl && ctaText && ctaEnabled}
 	<!-- Fallback to traditional CTA banner when nav is disabled. Only render in 'below' slot to avoid double rendering. -->
-	<div class="bg-primary-600 text-white py-4">
+	<div class="bg-primary-600 text-white py-4 sp:bg-[var(--bg)] sp:text-[var(--ink)] sp:border-y sp:border-[var(--border-hairline)]">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
 			<span class="font-medium">{ctaText}</span>
 			<a
 				href={ctaUrl}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="btn bg-white text-primary-600 hover:bg-stone-100"
+				class="btn bg-white text-primary-600 hover:bg-stone-100 sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
 			>
 				{ctaButtonText}
 			</a>
 		</div>
 	</div>
 {/if}
+

@@ -5,6 +5,7 @@
 	import { afterNavigate } from '$app/navigation';
 import { pb, type Post, getFileUrl } from '$lib/pocketbase';
 import { t } from 'svelte-i18n';
+import { brandName } from '$lib/stores/plan';
 import { collection } from '$lib/stores/demo';
 import { toasts, confirm } from '$lib/stores';
 import { createAutosave } from '$lib/stores/autosave';
@@ -400,7 +401,7 @@ function openEditForm(post: Post) {
 </script>
 
 <svelte:head>
-	<title>{$t('admin.content.posts.title')} {$t('admin.content.common.page_title_suffix')}</title>
+	<title>{$t('admin.content.posts.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

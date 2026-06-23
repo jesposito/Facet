@@ -4,6 +4,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	interface TestimonialRequest {
 		id: string;
@@ -175,7 +176,7 @@
 </script>
 
 <svelte:head>
-	<title>Request Links | Testimonials | Admin</title>
+	<title>{$t('admin.testimonials.requests_page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

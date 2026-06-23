@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 
@@ -247,7 +248,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.api_keys.title')}</title>
+	<title>{$t('admin.api_keys.title')} | {$brandName}</title>
 </svelte:head>
 
 <!-- Live region for clipboard announcements -->

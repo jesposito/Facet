@@ -4,6 +4,7 @@
 	import { toasts } from '$lib/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	let stats = $state({
 		projects: 0,
@@ -123,7 +124,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.dashboard.title')} | Facet</title>
+	<title>{$t('admin.dashboard.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
@@ -208,15 +209,15 @@
 	{:else}
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">{$t('admin.dashboard.title')}</h1>
 
-		<!-- Stats grid -->
-		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-			<div class="card p-6">
+		<!-- Stats grid (overview band under soft-premium: flat, typographic) -->
+		<dl class="stat-band grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+			<div class="stat-cell card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_projects')}</p>
-						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.projects}</p>
+						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_projects')}</dt>
+						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">{stats.projects}</dd>
 					</div>
-					<div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+					<div class="stat-icon w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
 						<svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
 						</svg>
@@ -224,13 +225,13 @@
 				</div>
 			</div>
 
-			<div class="card p-6">
+			<div class="stat-cell card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_experience')}</p>
-						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.experience}</p>
+						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_experience')}</dt>
+						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">{stats.experience}</dd>
 					</div>
-					<div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
+					<div class="stat-icon w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center">
 						<svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 						</svg>
@@ -238,13 +239,13 @@
 				</div>
 			</div>
 
-			<div class="card p-6">
+			<div class="stat-cell card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_total_visitors')}</p>
-						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalVisitors.toLocaleString()}</p>
+						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.stats_total_visitors')}</dt>
+						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">{stats.totalVisitors.toLocaleString()}</dd>
 					</div>
-					<div class="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+					<div class="stat-icon w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
 						<svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
 						</svg>
@@ -252,20 +253,20 @@
 				</div>
 			</div>
 
-			<div class="card p-6">
+			<div class="stat-cell card p-6">
 				<div class="flex items-center justify-between">
 					<div>
-						<p class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.pending_reviews')}</p>
-						<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.pendingProposals}</p>
+						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">{$t('admin.dashboard.pending_reviews')}</dt>
+						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">{stats.pendingProposals}</dd>
 					</div>
-					<div class="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+					<div class="stat-icon w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
 						<svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 						</svg>
 					</div>
 				</div>
 			</div>
-		</div>
+		</dl>
 	{/if}
 
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -429,3 +430,65 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	/* ── Soft Premium dashboard composition ──────────────────────────────────
+	   Composition principle: chrome is an affordance, not a grouping device.
+	   The top stats are display-only data, so under soft-premium they read as a
+	   flat "overview band" (typography + whitespace + a hairline) instead of four
+	   identical bordered cards. The clickable quick-action / activity cards keep
+	   their card chrome (they ARE affordances). Classic renders these styles never
+	   (every rule is gated on [data-design='soft-premium']) so it stays byte-identical.
+
+	   :global(...) is required: .card / .stat-* live on elements Svelte does not
+	   scope-hash (utility classes), and the gate lives on <html>. */
+
+	/* Flatten the stat cells: strip card border/background/shadow/padding so the
+	   figures sit in open space. Specificity (attribute + two classes) beats the
+	   global .card utility without !important. */
+	:global([data-design='soft-premium'] .stat-band .stat-cell.card) {
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+		padding: 0.25rem 0;
+	}
+
+	/* Hairline rhythm between cells on the wide (single-row) layout — one quiet
+	   divider, not four boxes. Vertical rule on lg, horizontal on the stacked
+	   layouts so the band still reads as one grouping. */
+	:global([data-design='soft-premium'] .stat-band .stat-cell + .stat-cell) {
+		border-top: 1px solid var(--border-hairline);
+		padding-top: 0.75rem;
+		margin-top: 0.25rem;
+	}
+	@media (min-width: 1024px) {
+		:global([data-design='soft-premium'] .stat-band .stat-cell + .stat-cell) {
+			border-top: 0;
+			border-left: 1px solid var(--border-hairline);
+			padding-top: 0.25rem;
+			padding-left: 1.5rem;
+			margin-top: 0;
+		}
+	}
+
+	/* Warm editorial typography for label + figure. */
+	:global([data-design='soft-premium'] .stat-band .stat-label) {
+		color: var(--muted);
+		letter-spacing: 0.02em;
+	}
+	:global([data-design='soft-premium'] .stat-band .stat-figure) {
+		color: var(--ink);
+		font-family: var(--font-accent);
+		font-variant-numeric: tabular-nums;
+		font-weight: 600;
+		font-size: 2rem;
+		line-height: 1.1;
+		margin-top: 0.125rem;
+	}
+
+	/* The colored icon tiles are decorative chrome; one anchor per screen means
+	   the overview band stays quiet. Hide them under soft-premium only. */
+	:global([data-design='soft-premium'] .stat-band .stat-icon) {
+		display: none;
+	}
+</style>

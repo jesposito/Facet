@@ -4,6 +4,7 @@
 	import { browser } from '$app/environment';
 	import { onMount, onDestroy } from 'svelte';
 import { t } from 'svelte-i18n';
+import { brandName } from '$lib/stores/plan';
 	import { flip } from 'svelte/animate';
 	import { pb, type View, type CustomContent, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -897,7 +898,7 @@ import { t } from 'svelte-i18n';
 </script>
 
 <svelte:head>
-	<title>Homepage | Facet</title>
+	<title>{$t('admin.homepage.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">

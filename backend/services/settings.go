@@ -171,6 +171,7 @@ type SiteSettings struct {
 	Favicon               string
 	DefaultLocale         string
 	DefaultThemeMode      string
+	Design                string
 	HomepageViewCount     int
 	HomepageLastViewedAt  string
 	EnabledFeatures       map[string]bool
@@ -194,6 +195,24 @@ func loadDefaultThemeMode(record *core.Record) string {
 	return mode
 }
 
+// loadDesign returns the design field, falling back to "classic" when the field
+// isn't present (pre-migration records) or is empty. Valid values: "classic",
+// "soft-premium". "classic" preserves the existing look for every instance that
+// hasn't explicitly opted into the redesign.
+func loadDesign(record *core.Record) string {
+	if record == nil {
+		return "classic"
+	}
+	if record.Collection() != nil && record.Collection().Fields.GetByName("design") == nil {
+		return "classic"
+	}
+	design := record.GetString("design")
+	if design != "soft-premium" {
+		return "classic"
+	}
+	return design
+}
+
 // loadShowAvatar returns the show_avatar field as bool, defaulting to true when
 // the field isn't present (pre-migration records) so existing sites keep their avatars.
 func loadShowAvatar(record *core.Record) bool {
@@ -215,6 +234,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		return &SiteSettings{
 			HomepageEnabled:    true,
 			LandingPageMessage: "",
+			Design:             "classic",
 			Record:             nil,
 		}, nil
 	}
@@ -317,6 +337,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		Favicon:               faviconURL,
 		DefaultLocale:         record.GetString("default_locale"),
 		DefaultThemeMode:      loadDefaultThemeMode(record),
+		Design:                loadDesign(record),
 		HomepageViewCount:     record.GetInt("homepage_view_count"),
 		HomepageLastViewedAt:  record.GetString("homepage_last_viewed_at"),
 		EnabledFeatures:       enabledFeatures,
@@ -444,6 +465,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("default_locale", locale)
 		} else if logger != nil {
 			logger.Warn("default_locale field missing on site_settings, skipping update")
+		}
+	}
+	if design, ok := updates["design"].(string); ok {
+		if settings.Record.Collection().Fields.GetByName("design") != nil {
+			settings.Record.Set("design", design)
+		} else if logger != nil {
+			logger.Warn("design field missing on site_settings, skipping update")
 		}
 	}
 	if mode, ok := updates["default_theme_mode"].(string); ok {

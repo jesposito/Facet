@@ -11,6 +11,30 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// DailyViewCount is one day's view count in the analytics time series.
+type DailyViewCount struct {
+	Date  string `json:"date"`
+	Count int    `json:"count"`
+}
+
+// fillDailyViewCounts returns a complete ascending daily series covering the
+// last `days` calendar days ending today (UTC). `counts` holds the days that
+// actually had views (keyed "YYYY-MM-DD"); every other day is emitted with
+// count 0. Without this, `GROUP BY DATE(created)` silently omits zero-view days
+// and the chart renders fewer bars than the selected period.
+func fillDailyViewCounts(counts map[string]int, days int, now time.Time) []DailyViewCount {
+	if days < 1 {
+		return []DailyViewCount{}
+	}
+	series := make([]DailyViewCount, 0, days)
+	today := now.UTC()
+	for i := days - 1; i >= 0; i-- {
+		d := today.AddDate(0, 0, -i).Format("2006-01-02")
+		series = append(series, DailyViewCount{Date: d, Count: counts[d]})
+	}
+	return series
+}
+
 // RegisterAnalyticsHooks registers analytics event logging, the analytics API, and cleanup.
 func RegisterAnalyticsHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig) {
 	// Analytics API endpoint
@@ -46,12 +70,9 @@ func RegisterAnalyticsHooks(app *pocketbase.PocketBase, planConfig *services.Pla
 
 			cutoff := time.Now().UTC().AddDate(0, 0, -days).Format("2006-01-02 15:04:05.000Z")
 
-			// Views over time (daily counts)
-			type dailyCount struct {
-				Date  string `json:"date"`
-				Count int    `json:"count"`
-			}
-			var viewsOverTime []dailyCount
+			// Views over time (daily counts). GROUP BY DATE omits zero-view days,
+			// so collect the present days into a map and zero-fill the full window.
+			dailyCounts := make(map[string]int)
 
 			rows, err := app.DB().
 				NewQuery("SELECT DATE(created) as date, COUNT(*) as count FROM access_logs WHERE created >= {:cutoff} GROUP BY DATE(created) ORDER BY date ASC").
@@ -62,12 +83,14 @@ func RegisterAnalyticsHooks(app *pocketbase.PocketBase, planConfig *services.Pla
 			} else {
 				defer rows.Close()
 				for rows.Next() {
-					var dc dailyCount
-					if err := rows.Scan(&dc.Date, &dc.Count); err == nil {
-						viewsOverTime = append(viewsOverTime, dc)
+					var date string
+					var count int
+					if err := rows.Scan(&date, &count); err == nil {
+						dailyCounts[date] = count
 					}
 				}
 			}
+			viewsOverTime := fillDailyViewCounts(dailyCounts, days, time.Now())
 
 			// Total views in period
 			var totalViews int

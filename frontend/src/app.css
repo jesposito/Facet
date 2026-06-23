@@ -2,6 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Soft Premium editorial utilities (UNLAYERED on purpose).
+   These are authored semantic classes consumed by the redesigned public
+   surfaces. They live outside @layer utilities so Tailwind's content-based
+   purge never strips them before a Track C component references them.
+   Degrade gracefully in classic: .font-accent falls back to the heading font
+   (--font-accent is only defined under soft-premium), .text-gradient/.divider
+   use the accent ramp (present in both modes), and .grain only paints under
+   [data-design="soft-premium"] so classic is never touched.
+   ========================================================================== */
+.font-accent {
+	font-family: var(--font-accent, var(--font-heading));
+	font-style: italic;
+	letter-spacing: -0.01em;
+}
+.text-gradient {
+	/* Light surface: dark accent stops (700/600) so clipped text clears 3:1
+	   large-text on white (the 400 stop was only ~2.1:1). */
+	background-image: linear-gradient(
+		135deg,
+		rgb(var(--color-primary-700-rgb)),
+		rgb(var(--color-primary-600-rgb))
+	);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+}
+/* Dark surface: flip to light accent stops so the text stays legible on dark. */
+.dark .text-gradient {
+	background-image: linear-gradient(
+		135deg,
+		rgb(var(--color-primary-400-rgb)),
+		rgb(var(--color-primary-300-rgb))
+	);
+}
+.divider-editorial {
+	height: 1px;
+	border: 0;
+	background-image: linear-gradient(
+		90deg,
+		transparent,
+		rgb(var(--color-primary-500-rgb) / 0.35),
+		transparent
+	);
+}
+:root[data-design='soft-premium'] .grain {
+	position: relative;
+}
+:root[data-design='soft-premium'] .grain::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0.025;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ==========================================================================
+   Soft Premium editorial treatment for the SHARED component classes.
+   Unlayered so it overrides the @layer components utilities. This is what makes
+   cards/buttons/inputs across the whole app read as the warm editorial redesign
+   (soft hairline borders, warm shadows, accent buttons, muted labels) rather
+   than a recolor. Classic is untouched (no [data-design] match).
+   ========================================================================== */
+:root[data-design='soft-premium'] .card {
+	background-color: var(--surface);
+	border-color: var(--border-hairline);
+	box-shadow: var(--sh-1);
+}
+:root[data-design='soft-premium'] .btn-primary {
+	background-color: var(--accent);
+	color: #fff;
+	box-shadow: var(--sh-1);
+}
+:root[data-design='soft-premium'] .btn-primary:hover {
+	background-color: var(--accent);
+	opacity: 0.92;
+}
+:root[data-design='soft-premium'] .btn-primary:active {
+	background-color: var(--accent);
+	opacity: 0.85;
+}
+:root[data-design='soft-premium'] .btn-secondary {
+	background-color: var(--surface-2);
+	color: var(--ink);
+	border-color: var(--border-hairline);
+}
+:root[data-design='soft-premium'] .btn-secondary:hover {
+	background-color: var(--chip);
+}
+:root[data-design='soft-premium'] .btn-ghost {
+	border-color: var(--border-hairline);
+	color: var(--ink);
+}
+:root[data-design='soft-premium'] .btn-ghost:hover {
+	background-color: var(--chip);
+}
+:root[data-design='soft-premium'] .input {
+	background-color: var(--surface);
+	border-color: var(--border-interactive);
+	color: var(--ink);
+}
+:root[data-design='soft-premium'] .label {
+	color: var(--muted);
+}
+:root[data-design='soft-premium'] .section-title {
+	color: var(--ink);
+}
+
 @layer base {
 	/* ==========================================================================
 	   Accent Color CSS Custom Properties
@@ -33,10 +142,102 @@
 		--color-primary-800-rgb: 7 89 133;
 		--color-primary-900-rgb: 12 74 110;
 		--color-primary-950-rgb: 8 47 73;
+		/* Neutral gray ramp as RGB channels (classic = Tailwind v3.4 stock gray).
+		   Var-backed so the opt-in soft-premium design can warm it wholesale.
+		   These exact values mean classic renders identically to before. */
+		--gray-50-rgb: 249 250 251;
+		--gray-100-rgb: 243 244 246;
+		--gray-200-rgb: 229 231 235;
+		--gray-300-rgb: 209 213 219;
+		--gray-400-rgb: 156 163 175;
+		--gray-500-rgb: 107 114 128;
+		--gray-600-rgb: 75 85 99;
+		--gray-700-rgb: 55 65 81;
+		--gray-800-rgb: 31 41 55;
+		--gray-900-rgb: 17 24 39;
+		--gray-950-rgb: 3 7 18;
 		/* Typography CSS Custom Properties - default to editorial pack */
 		--font-heading: 'Lora', Georgia, 'Times New Roman', serif;
 		--font-body: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
 		--font-code: 'JetBrains Mono', monospace;
+	}
+
+	/* ── Soft Premium (opt-in) ─────────────────────────────────────────────
+	   Warm editorial theme, applied only when site_settings.design = soft-premium
+	   (data-design on <html>, set SSR-side in hooks.server.ts). Every value below
+	   was contrast-validated; the stone ramp is luminance-matched to the gray it
+	   replaces (within ±0.5%), so existing gray contrast pairs are preserved by
+	   construction. classic defines no overrides → byte-identical to today. */
+	:root[data-design='soft-premium'] {
+		/* Cool gray → warm stone (luminance-matched). */
+		--gray-50-rgb: 254 249 246;
+		--gray-100-rgb: 246 244 237;
+		--gray-200-rgb: 236 230 224;
+		--gray-300-rgb: 215 214 190;
+		--gray-400-rgb: 173 161 143;
+		--gray-500-rgb: 123 112 100;
+		--gray-600-rgb: 104 79 63;
+		--gray-700-rgb: 70 63 59;
+		--gray-800-rgb: 42 40 40;
+		--gray-900-rgb: 25 24 23;
+		--gray-950-rgb: 8 7 5;
+
+		/* Semantic surface vocabulary (for adopting components in Track C). */
+		--bg: #fbf8f4;
+		--surface: #ffffff;
+		--surface-2: #faf4f0;
+		--chip: #ece4de;
+		--ink: #2a2522;
+		--muted: #5a524d;
+		--border: #988e85; /* load-bearing (>=3:1) */
+		--border-hairline: #ddd1ca; /* decorative only */
+		--border-interactive: #988e85;
+		/* Accent surfaces (creator accent, contrast-clamped by B2). */
+		--accent: rgb(var(--color-primary-600-rgb));
+		--accent-soft: rgb(var(--color-primary-100-rgb));
+
+		/* Radius / shadow / motion. */
+		--r-1: 0.25rem;
+		--r-2: 0.5rem;
+		--r-3: 0.75rem;
+		--r-4: 1rem;
+		--r-5: 1.5rem;
+		--r-full: 9999px;
+		--sh-1: 0 1px 2px rgba(42, 37, 34, 0.05), 0 1px 3px rgba(42, 37, 34, 0.08);
+		--sh-2: 0 2px 6px rgba(42, 37, 34, 0.06), 0 8px 24px rgba(42, 37, 34, 0.08);
+		--sh-3: 0 8px 24px rgba(42, 37, 34, 0.08), 0 32px 64px rgba(42, 37, 34, 0.12);
+		--t-fast: 150ms;
+		--t-norm: 200ms;
+		--t-slow: 300ms;
+		--e-out: cubic-bezier(0.16, 1, 0.3, 1);
+		/* Accent-independent focus ring (WCAG 2.4.13 / 1.4.11). */
+		--focus-ring: #b45309;
+
+		/* Soft Premium editorial accent face. --font-heading/--font-body come from
+		   the 'soft-premium' font pack injected inline by hooks.server.ts (inline
+		   wins over this attribute rule); --font-accent is not part of the pack, so
+		   it is safe to set here. Newsreader loads via the pack's font URL. */
+		--font-accent: 'Newsreader', Georgia, 'Times New Roman', serif;
+	}
+
+	/* Dark soft-premium: authored warm browns (consumed via semantic vars). */
+	:root[data-design='soft-premium'].dark {
+		--bg: #1a1613;
+		--surface: #221e1a;
+		--surface-2: #2a2522;
+		--chip: #463f3b;
+		--ink: #f4eee4;
+		--muted: #ada199;
+		--border: #7a6d64;
+		--border-hairline: #463f3b;
+		--border-interactive: #7a6d64;
+		/* Accent bg carries white text, so stays the dark clamped 600 in dark mode. */
+		--accent: rgb(var(--color-primary-600-rgb));
+		--accent-soft: rgb(var(--color-primary-900-rgb));
+		--sh-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
+		--sh-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55);
+		--sh-3: 0 8px 24px rgba(0, 0, 0, 0.55), 0 32px 64px rgba(0, 0, 0, 0.65);
+		--focus-ring: #f59e0b;
 	}
 
 	body {
@@ -71,9 +272,32 @@
 		font-family: var(--font-heading);
 	}
 
+	/* Admin uses the sans body font for headings, not the public editorial serif
+	   (Lora). Without this, admin H1/H2/H3 inherit whatever heading font the
+	   public profile uses — e.g. a serif pack bleeds Playfair/Lora into the admin
+	   chrome. Scoped to the admin shell so the public site is unaffected. */
+	.admin-shell h1,
+	.admin-shell h2,
+	.admin-shell h3 {
+		font-family: var(--font-body);
+	}
+
+	/* Tabular figures in admin data tables so columns of numbers align. Harmless
+	   on text cells (only affects digit advance width). */
+	.admin-shell td,
+	.admin-shell th {
+		font-variant-numeric: tabular-nums;
+	}
+
 	/* Focus styles for accessibility */
 	:focus-visible {
 		@apply outline-2 outline-offset-2 outline-primary-500;
+	}
+
+	/* Soft Premium uses an accent-independent ring (the dynamic accent can't be
+	   trusted to hit 3:1); amber-700 light / amber-500 dark both clear it. */
+	:root[data-design='soft-premium'] :focus-visible {
+		outline-color: var(--focus-ring);
 	}
 
 	/* ==========================================================================

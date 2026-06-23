@@ -5,6 +5,7 @@
 	import { icon } from '$lib/icons';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	// ---------- Resume upload + review state ----------
 	let resumeFile: File | null = $state(null);
@@ -429,7 +430,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.import.page_title')} | Facet</title>
+	<title>{$t('admin.import.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">

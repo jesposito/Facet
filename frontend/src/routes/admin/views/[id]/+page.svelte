@@ -20,6 +20,7 @@
 	import ViewSectionManager from '$components/admin/view-editor/ViewSectionManager.svelte';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import type { OverrideEditorState, ResumeGenerationConfig, ExportRecord } from '$lib/view-editor/types';
 
 	// Default section definitions - used to initialize and provide labels
@@ -1014,7 +1015,7 @@
 </script>
 
 <svelte:head>
-	<title>Edit Facet | Facet</title>
+	<title>{$t('admin.views.edit_page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="view-editor-container">

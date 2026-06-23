@@ -17,9 +17,13 @@
 	import Toggle from '$components/admin/Toggle.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 	import AccessTierSelect from '$components/admin/AccessTierSelect.svelte';
+	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { pb } from '$lib/pocketbase';
 
 	const hasCourses = hasFeature('courses');
+
+	// Shared screen-reader announcer for keyboard curriculum reorder (modules + lessons).
+	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
 	type Course = {
 		id: string;
@@ -778,6 +782,12 @@
 				pb.collection('modules').update(targetModule.id, { sort_order: module.sort_order })
 			]);
 			await loadCurriculum(editingCourse.id);
+			// Announce the new position (1-based) for screen-reader users.
+			reorderAnnouncer?.announce(
+				$t('admin.courses.module_moved_announce', {
+					values: { title: module.title, position: targetIndex + 1, total: courseModules.length }
+				})
+			);
 		} catch (err) {
 			console.error('Failed to reorder modules:', err);
 			toasts.add('error', $t('admin.courses.error_reorder_modules'));
@@ -1082,6 +1092,12 @@
 				pb.collection('lessons').update(targetLesson.id, { sort_order: lesson.sort_order })
 			]);
 			await loadCurriculum(editingCourse.id);
+			// Announce the new position (1-based) for screen-reader users.
+			reorderAnnouncer?.announce(
+				$t('admin.courses.lesson_moved_announce', {
+					values: { title: lesson.title, position: targetIndex + 1, total: moduleLessons.length }
+				})
+			);
 		} catch (err) {
 			console.error('Failed to reorder lessons:', err);
 			toasts.add('error', $t('admin.courses.error_reorder_lessons'));
@@ -1304,6 +1320,8 @@
 			<!-- Curriculum tab -->
 			{#if activeTab === 'curriculum'}
 			<div class="card rounded-t-none border-t border-gray-200 dark:border-gray-700 p-6 space-y-4">
+				<!-- Polite live region for keyboard module/lesson reorder announcements -->
+				<ReorderAnnouncer bind:this={reorderAnnouncer} />
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.courses.tab_curriculum')}</h2>
 					{#if editingCourse}
@@ -1402,7 +1420,7 @@
 						</div>
 					{:else}
 						<div class="space-y-4">
-							{#each courseModules as module, moduleIndex}
+							{#each courseModules as module, moduleIndex (module.id)}
 								<div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
 									<!-- Module Header -->
 									<div class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800/50">
@@ -1457,7 +1475,7 @@
 											{/if}
 
 											<!-- Lesson List -->
-											{#each courseLessons[module.id] || [] as lesson, lessonIndex}
+											{#each courseLessons[module.id] || [] as lesson, lessonIndex (lesson.id)}
 												<div class="border border-gray-100 dark:border-gray-700 rounded-lg">
 													<!-- Lesson Header -->
 													<div class="flex items-center gap-3 px-3 py-2">

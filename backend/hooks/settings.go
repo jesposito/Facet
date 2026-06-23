@@ -63,6 +63,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
 				"default_theme_mode":      settings.DefaultThemeMode,
+				"design":                  settings.Design,
 				"homepage_view_count":     settings.HomepageViewCount,
 				"homepage_last_viewed_at": settings.HomepageLastViewedAt,
 				"enabled_features":        settings.EnabledFeatures,
@@ -94,6 +95,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
 				DefaultLocale         *string                                   `json:"default_locale"`
 				DefaultThemeMode      *string                                   `json:"default_theme_mode"`
+				Design                *string                                   `json:"design"`
 				EnabledFeatures       map[string]bool                           `json:"enabled_features"`
 			}
 
@@ -182,6 +184,13 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				}
 				updates["default_theme_mode"] = mode
 			}
+			if req.Design != nil {
+				design := strings.TrimSpace(*req.Design)
+				if design != "soft-premium" {
+					design = "classic"
+				}
+				updates["design"] = design
+			}
 			if req.EnabledFeatures != nil {
 				updates["enabled_features"] = req.EnabledFeatures
 			}
@@ -211,6 +220,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
 				"default_theme_mode":      settings.DefaultThemeMode,
+				"design":                  settings.Design,
 				"enabled_features":        settings.EnabledFeatures,
 			})
 		})

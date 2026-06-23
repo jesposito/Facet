@@ -16,6 +16,7 @@
 	import { ACCENT_COLORS, ACCENT_COLOR_LIST, type AccentColor } from '$lib/colors';
 	import { FONT_PACKS, FONT_PACK_LIST, type FontPack } from '$lib/fonts';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	// Import DnD safely - only in browser
@@ -591,7 +592,7 @@
 </script>
 
 <svelte:head>
-	<title>Create Facet | Facet</title>
+	<title>{$t('admin.views.create_page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="view-editor-container">

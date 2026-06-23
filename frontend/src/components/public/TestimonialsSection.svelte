@@ -105,7 +105,8 @@
 </script>
 
 <section id="testimonials" class="mb-16">
-	<h2 class="section-title">{$t('public.sections.testimonials')}</h2>
+	<h2 class="section-title section-heading">{$t('public.sections.testimonials')}</h2>
+	<hr class="divider-editorial section-divider" aria-hidden="true" />
 
 	{#if layout === 'wall'}
 		<div class="columns-1 md:columns-2 gap-4 space-y-4">
@@ -264,5 +265,18 @@
 	}
 	.scrollbar-hide::-webkit-scrollbar {
 		display: none;
+	}
+	/* Soft Premium only: editorial serif heading + divider. Classic untouched. */
+	:global([data-design='soft-premium']) .section-heading {
+		font-family: var(--font-accent);
+		font-style: italic;
+	}
+	.section-divider {
+		display: none;
+	}
+	:global([data-design='soft-premium']) .section-divider {
+		display: block;
+		margin-top: -1rem;
+		margin-bottom: 1.5rem;
 	}
 </style>

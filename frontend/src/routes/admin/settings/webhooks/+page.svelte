@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { toasts, confirm } from '$lib/stores';
 
 	type Webhook = {
@@ -355,7 +356,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.webhooks.page_title')}</title>
+	<title>{$t('admin.webhooks.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto px-4 py-6">

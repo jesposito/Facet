@@ -373,7 +373,7 @@
 	<!-- Login page renders without admin chrome -->
 	{@render children?.()}
 {:else if authorized}
-	<div class="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-clip">
+	<div class="admin-shell min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-clip">
 		<AdminHeader />
 
 		<div class="flex min-w-0 overflow-x-clip">

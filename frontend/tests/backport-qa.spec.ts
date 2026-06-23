@@ -1,10 +1,19 @@
 import { test, expect, type Page } from '@playwright/test';
 
-const BASE_URL = 'http://192.168.50.214:8551';
-const LOGIN_EMAIL = 'egerthe@gmail.com';
-const LOGIN_PASSWORD = 'Kara82!!!';
+// Target + credentials come from the environment so no secrets live in the repo.
+// Defaults point at a local dev instance (`make dev` / `make seed-dev`).
+const BASE_URL =
+	process.env.PLAYWRIGHT_BASE_URL ?? process.env.VITE_POCKETBASE_URL ?? 'http://localhost:5173';
+const LOGIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
+const LOGIN_PASSWORD = process.env.ADMIN_PASSWORD ?? '';
 
 async function login(page: Page) {
+	if (!LOGIN_EMAIL || !LOGIN_PASSWORD) {
+		throw new Error(
+			'backport-qa.spec.ts requires ADMIN_EMAIL and ADMIN_PASSWORD env vars (and optionally PLAYWRIGHT_BASE_URL). ' +
+				'Set them to a seeded instance before running this suite.'
+		);
+	}
 	await page.goto(`${BASE_URL}/admin/login`);
 	await page.waitForSelector('input[type="email"]', { timeout: 10_000 });
 	await page.fill('input[type="email"]', LOGIN_EMAIL);

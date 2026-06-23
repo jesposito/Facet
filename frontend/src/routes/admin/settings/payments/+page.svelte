@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { toasts } from '$lib/stores';
 	import { hasFeature } from '$lib/stores/plan';
 
@@ -174,7 +175,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.settings_page.payments.title')} - {$t('admin.settings_page.page_title_suffix')}</title>
+	<title>{$t('admin.settings_page.payments.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

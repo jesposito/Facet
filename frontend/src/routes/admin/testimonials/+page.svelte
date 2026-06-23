@@ -4,6 +4,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { scheduleTestimonialsRefresh } from '$lib/stores/testimonials';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	interface Testimonial {
 		id: string;
@@ -217,7 +218,7 @@
 </script>
 
 <svelte:head>
-	<title>Testimonials | Admin</title>
+	<title>{$t('admin.content.testimonials.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

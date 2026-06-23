@@ -381,289 +381,111 @@
 
 <aside
 	id="admin-sidebar"
-	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
+	class="fixed top-16 h-[calc(100dvh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
 		{isMobile
 			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
 			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')
 		}"
 	aria-label={$t('shared.aria.admin_navigation')}
 >
-	<nav class="p-3 space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label={$t('shared.aria.main_menu')}>
-		<!-- Dashboard and Profile - always visible -->
-		<div class="space-y-1">
+	<nav class="p-3 space-y-1 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label={$t('shared.aria.main_menu')}>
 			<a
 				href="/admin"
 				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
 				title={!$adminSidebarOpen ? $t('admin.sidebar.dashboard') : undefined}
 				aria-current={isActive('/admin') ? 'page' : undefined}
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-				</svg>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
 				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.dashboard')}</span>
 			</a>
 			<a
 				href="/admin/homepage"
 				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/homepage')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
 				title={!$adminSidebarOpen ? $t('admin.sidebar.homepage') : undefined}
 				aria-current={isActive('/admin/homepage') ? 'page' : undefined}
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-				</svg>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
 				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.homepage')}</span>
 			</a>
 			<a
-				href="/admin/media"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/media')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.media_library') : undefined}
-				aria-current={isActive('/admin/media') ? 'page' : undefined}
+				href="/admin/profile"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/profile')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.profile') : undefined}
+				aria-current={isActive('/admin/profile') ? 'page' : undefined}
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2" />
-					<circle cx="9" cy="9" r="2" stroke-width="2" />
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 15-4-4a3 3 0 0 0-4.24 0L3 21" />
-				</svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.media_library')}</span>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.profile')}</span>
 			</a>
-		</div>
-
-		<!-- Facets - single pinned link with count badge (no accordion) -->
-		<div>
+			<a
+				href="/admin/content"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/content')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.content') : undefined}
+				aria-current={isActive('/admin/content') ? 'page' : undefined}
+			>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.content')}</span>
+				{#if contentBadge > 0}
+					<span class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen ? '' : 'sr-only'}" aria-hidden="true">{contentBadge}</span>
+				{/if}
+			</a>
 			<a
 				href="/admin/views"
 				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
 				title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
 				aria-current={isActive('/admin/views') ? 'page' : undefined}
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" />
-				</svg>
-				<span class="flex items-center gap-1.5 min-w-0 overflow-hidden {$adminSidebarOpen ? '' : 'sr-only'}">
-					<span class="truncate">{$t('admin.sidebar.facets')}</span>
-					{#if facetsTotalCount > 0}
-						<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{facetsTotalCount} facets">
-							{facetsTotalCount}
-						</span>
-					{/if}
-				</span>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" /></svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.facets')}</span>
+				{#if facetsTotalCount > 0}
+					<span class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen ? '' : 'sr-only'}" aria-hidden="true">{facetsTotalCount}</span>
+				{/if}
 			</a>
-		</div>
-
-		<!-- Content Section (merged Portfolio + Content) -->
-		<div class="space-y-2">
-			<div class="relative flex items-center">
-				<button
-					type="button"
-					onclick={() => sidebarSectionStates.toggle(SECTION_IDS.content)}
-					class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-					aria-expanded={isSectionExpanded(SECTION_IDS.content)}
-					aria-controls="sidebar-content-items"
-				>
-					<span class="flex items-center gap-1.5">
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-						</svg>
-						{$t('admin.sidebar.content')}
-						{#if contentBadge > 0}
-							<span class="inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5" aria-label="{contentBadge} drafts">
-								{contentBadge}
-							</span>
-						{/if}
-					</span>
-					<svg
-						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.content) ? 'rotate-0' : '-rotate-90'}"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-					</svg>
-				</button>
-				{#if $adminSidebarOpen}
-					<button
-						type="button"
-						data-quick-create-trigger
-						onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'content'); }}
-						class="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
-						aria-label={$t('admin.sidebar.new_content')}
-						aria-expanded={contentMenuOpen}
-						aria-haspopup="menu"
-					>
-						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-						</svg>
-					</button>
-				{/if}
-			</div>
-			{#if isSectionExpanded(SECTION_IDS.content)}
-				<div id="sidebar-content-items" class="space-y-0 animate-slide-in-down">
-					{#each contentItems as entry, i}
-						{#if isSubGroup(entry)}
-							<div class="text-[10px] font-semibold tracking-wider text-gray-500 dark:text-gray-400 uppercase {i === 0 ? '' : 'mt-5'} mb-1 px-3 {$adminSidebarOpen ? '' : 'sr-only'}">
-								{$t(entry.labelKey)}
-							</div>
-						{:else}
-							{@const item = entry}
-							<a
-								href={item.href}
-								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(item.href)
-									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? $t(item.labelKey) : undefined}
-								aria-current={isActive(item.href) ? 'page' : undefined}
-							>
-								{@render navIcon(item.icon)}
-								<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t(item.labelKey)}</span>
-							</a>
-						{/if}
-					{/each}
-				</div>
-			{:else}
-				<div id="sidebar-content-items" hidden></div>
-			{/if}
-		</div>
-
-		<!-- Audience Section -->
-		<div class="space-y-2">
-			<div class="relative flex items-center">
-				<button
-					type="button"
-					onclick={() => sidebarSectionStates.toggle(SECTION_IDS.audience)}
-					class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-					aria-expanded={isSectionExpanded(SECTION_IDS.audience)}
-					aria-controls="sidebar-audience-items"
-				>
-					<span class="flex items-center gap-1.5">
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-						</svg>
-						{$t('admin.sidebar.audience')}
-						{#if audienceBadge > 0}
-							<span
-								class="inline-flex items-center justify-center text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 {audienceBadgeAmber ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-gray-700 text-gray-300'}"
-								aria-label={audienceBadgeAmber ? $t('admin.sidebar.testimonials') : $t('admin.sidebar.subscribers')}
-							>
-								{audienceBadge}
-							</span>
-						{/if}
-					</span>
-					<svg
-						class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.audience) ? 'rotate-0' : '-rotate-90'}"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						aria-hidden="true"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-					</svg>
-				</button>
-				{#if $adminSidebarOpen}
-					<button
-						type="button"
-						data-quick-create-trigger
-						onclick={(e) => { e.stopPropagation(); openQuickCreate(e, 'audience'); }}
-						class="absolute right-6 top-1/2 -translate-y-1/2 inline-flex items-center justify-center w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded"
-						aria-label={$t('admin.sidebar.quick_create')}
-						aria-expanded={audienceMenuOpen}
-						aria-haspopup="menu"
-					>
-						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
-						</svg>
-					</button>
-				{/if}
-			</div>
-			{#if isSectionExpanded(SECTION_IDS.audience)}
-				<div id="sidebar-audience-items" class="space-y-0 animate-slide-in-down">
-					{#each audienceItems as entry, i}
-						{#if isSubGroup(entry)}
-							<div class="text-[10px] font-semibold tracking-wider text-gray-500 dark:text-gray-400 uppercase {i === 0 ? '' : 'mt-5'} mb-1 px-3 {$adminSidebarOpen ? '' : 'sr-only'}">
-								{$t(entry.labelKey)}
-							</div>
-						{:else}
-							{@const item = entry}
-							<a
-								href={item.href}
-								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(item.href)
-									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? $t(item.labelKey) : undefined}
-								aria-current={isActive(item.href) ? 'page' : undefined}
-							>
-								{@render navIcon(item.icon)}
-								<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t(item.labelKey)}</span>
-							</a>
-						{/if}
-					{/each}
-				</div>
-			{:else}
-				<div id="sidebar-audience-items" hidden></div>
-			{/if}
-		</div>
-
-		<!-- Settings Section -->
-		<div class="space-y-2">
-			<button
-				type="button"
-				onclick={() => sidebarSectionStates.toggle(SECTION_IDS.settings)}
-				class="flex items-center justify-between w-full text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors {$adminSidebarOpen ? '' : 'sr-only'}"
-				aria-expanded={isSectionExpanded(SECTION_IDS.settings)}
-				aria-controls="sidebar-settings-items"
+			<a
+				href="/admin/audience"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/audience')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.audience') : undefined}
+				aria-current={isActive('/admin/audience') ? 'page' : undefined}
 			>
-				<span class="flex items-center gap-1.5">
-					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-					</svg>
-					{$t('admin.sidebar.settings')}
-				</span>
-				<svg
-					class="w-4 h-4 transition-transform duration-200 {isSectionExpanded(SECTION_IDS.settings) ? 'rotate-0' : '-rotate-90'}"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
-				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-				</svg>
-			</button>
-			{#if isSectionExpanded(SECTION_IDS.settings)}
-				<div id="sidebar-settings-items" class="space-y-1 animate-slide-in-down">
-					{#each settingsItems as entry}
-						{#if isSubGroup(entry)}
-							<div class="text-[10px] font-semibold tracking-wider text-gray-500 dark:text-gray-400 uppercase mt-3 mb-1 px-3 {$adminSidebarOpen ? '' : 'sr-only'}">
-								{$t(entry.labelKey)}
-							</div>
-						{:else}
-							{@const item = entry}
-							<a
-								href={item.href}
-								class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(item.href)
-									? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-									: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}"
-								title={!$adminSidebarOpen ? `${$t('admin.sidebar.settings')}: ${$t(item.labelKey)}` : undefined}
-								aria-current={isActive(item.href) ? 'page' : undefined}
-							>
-								{@render navIcon(item.icon)}
-								<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t(item.labelKey)}</span>
-							</a>
-						{/if}
-					{/each}
-				</div>
-			{:else}
-				<div id="sidebar-settings-items" hidden></div>
-			{/if}
-		</div>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.audience')}</span>
+				{#if audienceBadge > 0}
+					<span class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen ? '' : 'sr-only'}" aria-hidden="true">{audienceBadge}</span>
+				{/if}
+			</a>
+			<a
+				href="/admin/settings"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/settings')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.settings') : undefined}
+				aria-current={isActive('/admin/settings') ? 'page' : undefined}
+			>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.settings')}</span>
+			</a>
+			<a
+				href="/admin/help"
+				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/help')
+					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+				title={!$adminSidebarOpen ? $t('admin.sidebar.help') : undefined}
+				aria-current={isActive('/admin/help') ? 'page' : undefined}
+			>
+				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.help')}</span>
+			</a>
 	</nav>
 
 	<!-- Version -->

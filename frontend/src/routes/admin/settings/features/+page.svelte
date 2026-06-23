@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { toasts } from '$lib/stores';
 
 	let loading = $state(true);
@@ -86,7 +87,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.settings.features.title')} - Facet</title>
+	<title>{$t('admin.settings.features.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-3xl mx-auto">

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
@@ -171,7 +173,7 @@
 </script>
 
 <svelte:head>
-	<title>Review Import | Facet</title>
+	<title>{$t('admin.review.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { toasts, confirm } from '$lib/stores';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import { icon } from '$lib/icons';
@@ -248,7 +249,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.settings_page.integrations.section_title')} - {$t('admin.settings_page.page_title_suffix')}</title>
+	<title>{$t('admin.settings_page.integrations.section_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">

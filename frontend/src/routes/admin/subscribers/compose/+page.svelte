@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 	import { marked } from 'marked';
@@ -318,7 +319,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.newsletter.compose_title')} | Facet</title>
+	<title>{$t('admin.newsletter.compose_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto space-y-6">

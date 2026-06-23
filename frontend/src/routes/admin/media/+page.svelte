@@ -14,6 +14,7 @@
 	import DropZone from '$lib/components/admin/DropZone.svelte';
 	import MediaPreviewModal from '$lib/components/admin/MediaPreviewModal.svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	type MediaUsageItem = {
 		collection: string;
@@ -1055,7 +1056,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.media.page_title')}</title>
+	<title>{$t('admin.media.page_title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">

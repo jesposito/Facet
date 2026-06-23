@@ -11,6 +11,29 @@
 
 	let { items, layout = 'grid-3', viewSlug = '' }: Props = $props();
 
+	// Soft Premium opt-in detection. SSR always renders the classic branch (the
+	// server injects data-design on <html> *after* component render, so it is not
+	// observable here), keeping classic output byte-identical. After mount we read
+	// the attribute and, only under soft-premium, swap in the refined serif initial
+	// plate. The post-mount swap touches the cover-less fallback only.
+	// Code-point-safe first character (emoji/multibyte titles are not split mid
+	// surrogate-pair, unlike charAt(0)). Used only for the soft-premium serif plate.
+	const initial = (title: string) => [...(title ?? '')][0] ?? '';
+
+	// Validate operator-supplied URLs against a scheme allowlist before rendering
+	// them as hrefs, so a javascript:/data: URI can never become a clickable link.
+	// Returns undefined for disallowed/unparseable values (link renders inert).
+	const ALLOWED_SCHEMES = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+	const safeHref = (url: string | undefined | null): string | undefined => {
+		if (!url || typeof url !== 'string') return undefined;
+		try {
+			const parsed = new URL(url.trim());
+			return ALLOWED_SCHEMES.has(parsed.protocol) ? url : undefined;
+		} catch {
+			return undefined;
+		}
+	};
+
 const isLinkable = (project: Project) => {
 	const visibility = (project as unknown as Record<string, string>).visibility;
 	// Public projects are always linkable. Unlisted projects are linkable when shown on a view (viewSlug present)
@@ -54,7 +77,7 @@ const projectHref = (project: Project) => {
 </script>
 
 <section id="projects" class="mb-16">
-	<h2 class="section-title">{$t('public.sections.projects')}</h2>
+	<h2 class="section-title sp-title">{$t('public.sections.projects')}</h2>
 
 	{#if layout === 'featured' && items.length > 0}
 		<!-- Featured Layout: First item large, rest in grid -->
@@ -85,9 +108,9 @@ const projectHref = (project: Project) => {
 							</div>
 						{/if}
 					{:else}
-						<div class="aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-							<span class="text-6xl font-bold text-white/50">
-								{featuredItem.title.charAt(0)}
+						<div class="sp-plate aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+							<span class="sp-plate__initial text-6xl font-bold text-white/50" style="font-size:clamp(3.5rem,8vw,6rem)">
+								{initial(featuredItem.title)}
 							</span>
 						</div>
 					{/if}
@@ -128,7 +151,7 @@ const projectHref = (project: Project) => {
 							<div class="mt-4 flex items-center gap-4">
 								{#each featuredItem.links as link}
 									<a
-										href={link.url}
+										href={safeHref(link.url)}
 										target="_blank"
 										rel="noopener noreferrer"
 										class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
@@ -171,10 +194,8 @@ const projectHref = (project: Project) => {
 									</div>
 								{/if}
 							{:else}
-								<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-									<span class="text-4xl font-bold text-white/50">
-										{project.title.charAt(0)}
-									</span>
+								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+									<span class="sp-plate__initial text-5xl font-bold text-white/50">{initial(project.title)}</span>
 								</div>
 							{/if}
 
@@ -290,7 +311,7 @@ const projectHref = (project: Project) => {
 									<div class="flex items-center gap-3 ml-auto">
 										{#each project.links as link}
 											<a
-												href={link.url}
+												href={safeHref(link.url)}
 												target="_blank"
 												rel="noopener noreferrer"
 												class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
@@ -336,12 +357,10 @@ const projectHref = (project: Project) => {
 							</div>
 						{/if}
 					{:else}
-						<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-							<span class="text-5xl font-bold text-white/50">
-								{project.title.charAt(0)}
-							</span>
-						</div>
-					{/if}
+								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+									<span class="sp-plate__initial text-6xl font-bold text-white/50">{initial(project.title)}</span>
+								</div>
+							{/if}
 
 					<div class="p-6">
 						<div class="flex items-start justify-between gap-2">
@@ -386,7 +405,7 @@ const projectHref = (project: Project) => {
 							<div class="mt-4 flex items-center gap-4">
 								{#each project.links as link}
 									<a
-										href={link.url}
+										href={safeHref(link.url)}
 										target="_blank"
 										rel="noopener noreferrer"
 										class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
@@ -430,12 +449,10 @@ const projectHref = (project: Project) => {
 							</div>
 						{/if}
 					{:else}
-						<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-							<span class="text-4xl font-bold text-white/50">
-								{project.title.charAt(0)}
-							</span>
-						</div>
-					{/if}
+								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+									<span class="sp-plate__initial text-5xl font-bold text-white/50">{initial(project.title)}</span>
+								</div>
+							{/if}
 
 					<div class="p-5">
 						<div class="flex items-start justify-between gap-2">
@@ -480,7 +497,7 @@ const projectHref = (project: Project) => {
 							<div class="mt-4 flex items-center gap-3">
 								{#each project.links as link}
 									<a
-										href={link.url}
+										href={safeHref(link.url)}
 										target="_blank"
 										rel="noopener noreferrer"
 										class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
@@ -497,3 +514,40 @@ const projectHref = (project: Project) => {
 		</div>
 	{/if}
 </section>
+
+<style>
+	/* Soft Premium only: refined serif initial plate replacing the cover-less
+	   giant-letter fallback, plus an editorial serif accent on the section title.
+	   Every selector is gated by [data-design='soft-premium'] so the classic
+	   look is untouched. */
+	:global([data-design='soft-premium']) .sp-plate {
+		background:
+			radial-gradient(120% 120% at 30% 20%, var(--surface-2) 0%, var(--chip) 55%, var(--bg) 100%);
+		border-radius: var(--r-4);
+		position: relative;
+		overflow: hidden;
+	}
+	:global([data-design='soft-premium']) .sp-plate::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		box-shadow: inset 0 0 0 1px var(--border-hairline);
+		border-radius: inherit;
+		pointer-events: none;
+	}
+	:global([data-design='soft-premium']) .sp-plate__initial {
+		color: var(--ink);
+		opacity: 0.82;
+		line-height: 1;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		font-style: italic;
+		user-select: none;
+	}
+	:global([data-design='soft-premium']) .sp-title {
+		font-family: var(--font-accent);
+		font-style: italic;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+	}
+</style>

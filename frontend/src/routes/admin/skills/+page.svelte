@@ -8,6 +8,7 @@
 	import { pb, type Skill } from '$lib/pocketbase';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -552,7 +553,7 @@ async function loadCategoryOrder() {
 </script>
 
 <svelte:head>
-	<title>{$t('admin.content.skills.title')} {$t('admin.content.common.page_title_suffix')}</title>
+	<title>{$t('admin.content.skills.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
