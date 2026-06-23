@@ -6,7 +6,7 @@ Thank you for helping make Facet accessible to more people around the world! Thi
 
 **Join our Discord community!** If you have questions about translating, need clarification on what a phrase means, or want to coordinate with other translators, come chat with us:
 
-- **Discord**: [Join the Facet Discord](https://discord.gg/eKg4MhMkVJ) (ask in #translations channel)
+- **Discord**: [Join the Facet Discord](https://discord.gg/XD8eUudnmf) (ask in #translations channel)
 - **GitHub Issues**: [Open an issue](https://github.com/jesposito/Facet/issues/new) with the `i18n` label
 
 ---

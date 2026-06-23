@@ -53,7 +53,7 @@ Recognizes providers and builds `provider`, `embed_url`, `thumbnail_url`, `mime`
 ## Common failure modes & how to avoid them
 - **Missing external_media collection**: migrations must run; deleting `pb_data` and reseeding applies all migrations.
 - **/api/media 400s**: usually due to missing collections or bad paths. Keep `collectMediaItems` and `collectExternalMediaItems` tolerant; avoid early `BadRequest` when scans partially fail.
-- **Auth failures**: `/api/media` requires a valid user token (`users` collection). Use seeded creds (`egerthe@gmail.com` / `changeme123`) in dev.
+- **Auth failures**: `/api/media` requires a valid user token (`users` collection). Use seeded creds (`admin@example.com` / `changeme123`) in dev.
 - **Stale data after schema changes**: clear `pb_data` and rerun `SEED_DATA=dev make seed-dev`.
 
 ## When changing media code

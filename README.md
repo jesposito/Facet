@@ -193,7 +193,7 @@ Each view can show/hide sections, include/exclude specific items, override your 
 ### 3. **Developers** (Contributing to Facet or customizing it)
 
 The codebase is:
-- **Backend**: Go 1.24 with PocketBase (a lightweight backend framework)
+- **Backend**: Go 1.25 with PocketBase (a lightweight backend framework)
 - **Frontend**: SvelteKit 2.0 with TypeScript and Tailwind CSS
 - **Database**: SQLite (embedded, single file)
 - **Deployment**: Docker with Caddy reverse proxy
@@ -363,7 +363,7 @@ It won't rewrite for you, just tells you what's weak. Good for when you want to 
 - No em-dashes (we're not writing a novel)
 - Prefer active voice, specific details, quantification
 
-Works on mobile. Context-aware (uses your form data for better results). Supports streaming responses so you see text as it generates.
+Works on mobile. Context-aware (uses your form data for better results).
 
 **Bring-your-own-key only.** Self-hosted Facet has no managed AI credits, no monthly token quotas, no platform-provided providers. You add your own OpenAI / Anthropic / Ollama key in `/admin/settings/integrations` and the backend calls those providers directly. Your API keys are encrypted at rest with AES-256-GCM. You see exactly what you're spending on whose meter.
 
@@ -553,7 +553,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 ## Tech Stack (For Developers)
 
 **Backend:**
-- **Go 1.24** (backend language)
+- **Go 1.25** (backend language)
 - **PocketBase v0.23.4** (lightweight backend framework built on SQLite and Fiber)
 - **SQLite** (embedded database, single file)
 - **AES-256-GCM** (encryption for API keys and tokens)
@@ -730,7 +730,7 @@ Full security docs: [docs/SECURITY.md](docs/SECURITY.md)
 ### Local Development
 
 **Prerequisites:**
-- Go 1.24+
+- Go 1.25+
 - Node.js 20+
 - [Air](https://github.com/air-verse/air) for Go hot reload (install: `go install github.com/air-verse/air@v1.61.7`)
 
