@@ -75,4 +75,77 @@ test.describe('Soft Premium fonts (font selector governs)', () => {
 		const font = await bodyFont(page);
 		expect(font).toContain('hanken');
 	});
+
+	// Regression guard: applying the DEFAULT pack (soft-premium) on the client must
+	// KEEP the Google Fonts link. The live admin font picker drives applyFontPack via
+	// the 'font-pack-changed' window event; the regression special-cased the default
+	// pack and *removed* the dynamic link, so a creator who previews soft-premium (or
+	// switches back to it) lost Hanken/Newsreader and the body fell back to Plus
+	// Jakarta. We exercise the exact event the picker uses, then confirm a Hanken
+	// dynamic link is present and the resolved --font-body is Hanken. This is the
+	// discriminating assertion: the buggy code produced no soft-premium dynamic link.
+	const applyDefaultPackOnClient = (page: Page) =>
+		page.evaluate(
+			() =>
+				new Promise<void>((resolve) => {
+					window.dispatchEvent(new CustomEvent('font-pack-changed', { detail: 'soft-premium' }));
+					// let the layout's handler + Svelte effect flush
+					requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+				})
+		);
+
+	const dynamicLinkState = (page: Page) =>
+		page.evaluate(() => {
+			const link = document.querySelector('link#dynamic-google-fonts') as HTMLLinkElement | null;
+			return {
+				dynamicHasHanken: !!link && /Hanken/i.test(link.href),
+				fontBody: getComputedStyle(document.body).fontFamily.toLowerCase(),
+				sameDoc: (window as unknown as Record<string, boolean>).__spaMarker === true
+			};
+		});
+
+	test('applying the default pack on the client keeps the Hanken link, and it survives SPA nav', async ({ page, request }) => {
+		const token = await adminToken(request);
+		await setFontPack(request, token, '');
+
+		await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
+		// Tag the live document so we can prove the next navigation is client-side.
+		await page.evaluate(() => ((window as unknown as Record<string, boolean>).__spaMarker = true));
+
+		// Drive the real admin live-preview event for the DEFAULT pack.
+		await applyDefaultPackOnClient(page);
+
+		const applied = await dynamicLinkState(page);
+		expect(
+			applied.dynamicHasHanken,
+			'applying soft-premium on the client must create/keep #dynamic-google-fonts pointing at Hanken (regression removed it)'
+		).toBeTruthy();
+		expect(applied.fontBody).toContain('hanken');
+
+		// Now navigate client-side; the SvelteKit font $effect re-runs applyFontPack
+		// and must not drop the default pack's link.
+		const inAppHref = await page.evaluate(() => {
+			const a = Array.from(document.querySelectorAll('a[href]')).find((el) => {
+				const href = (el as HTMLAnchorElement).getAttribute('href') || '';
+				return href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/#');
+			}) as HTMLAnchorElement | undefined;
+			return a ? a.getAttribute('href') : null;
+		});
+
+		if (inAppHref) {
+			await Promise.all([
+				page.waitForURL((url) => url.pathname === inAppHref, { timeout: 10_000 }),
+				page.click(`a[href="${inAppHref}"]`)
+			]);
+			// Re-apply (as the picker would on the new page) and assert persistence.
+			await applyDefaultPackOnClient(page);
+			const afterNav = await dynamicLinkState(page);
+			expect(afterNav.sameDoc, 'navigation should be client-side (SPA)').toBeTruthy();
+			expect(
+				afterNav.dynamicHasHanken,
+				'dynamic Hanken link must remain after SPA nav with the default pack'
+			).toBeTruthy();
+			expect(afterNav.fontBody).toContain('hanken');
+		}
+	});
 });

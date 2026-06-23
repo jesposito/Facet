@@ -67,7 +67,7 @@ export interface Profile {
 	visibility: 'public' | 'unlisted' | 'private';
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
 	custom_hex_color?: string;
-	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric';
+	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | 'soft-premium';
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
 	hero_spacing?: 'compact' | 'default' | 'spacious';
 	hero_bg_color?: string;
@@ -429,7 +429,7 @@ export interface View {
 	is_active: boolean;
 	is_default?: boolean;
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
-	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | null;
+	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | 'soft-premium' | null;
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | null;
 	hero_spacing?: 'compact' | 'default' | 'spacious' | null;
 	hero_bg_color?: string | null;

@@ -464,13 +464,14 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 	// because all channels scale toward 0 equally) until white text on it clears
 	// 7:1. Starts at the nominal 0.15 darkening and only ever goes darker, so the
 	// accent hue is preserved and the change is strictly more accessible. Black
-	// always passes, so the search terminates.
-	function clamp600(): string {
+	// always passes, so the search terminates. Returns the resolved mix-toward-black
+	// AMOUNT (not the hex) so the darker shades can be floored above it (see below).
+	function clamp600Amount(): number {
 		const baseAmount = 0.15;
 		const lum = (amount: number) =>
 			channelLuminance(mix(r, 0, amount), mix(g, 0, amount), mix(b, 0, amount));
 		if (whiteOnColorContrast(lum(baseAmount)) >= ACCENT_MIN_CONTRAST) {
-			return toHex(mix(r, 0, baseAmount), mix(g, 0, baseAmount), mix(b, 0, baseAmount));
+			return baseAmount;
 		}
 		let lo = baseAmount;
 		let hi = 1;
@@ -479,8 +480,22 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 			if (whiteOnColorContrast(lum(m)) >= ACCENT_MIN_CONTRAST) hi = m;
 			else lo = m;
 		}
-		return toHex(mix(r, 0, hi), mix(g, 0, hi), mix(b, 0, hi));
+		return hi;
 	}
+
+	// For a PALE custom accent (e.g. #ffe066), the AAA clamp above can drive 600's
+	// darkening amount well past the nominal 0.30 used for 700. Left unguarded, that
+	// makes 600 DARKER than 700, a non-monotonic (inverted) ramp. Floor each darker
+	// shade strictly above the clamped 600 amount so the scale stays monotonic from
+	// 600 through 950 regardless of how deep the clamp had to go. The nominal mixes
+	// (0.30/0.45/0.60/0.80) are preserved for normal accents where 600's amount sits
+	// at or below 0.30.
+	const a600 = clamp600Amount();
+	const a700 = Math.max(0.30, a600 + 0.07);
+	const a800 = Math.max(0.45, a700 + 0.10);
+	const a900 = Math.max(0.60, a800 + 0.12);
+	const a950 = Math.max(0.80, a900 + 0.10);
+	const mixBlack = (amount: number) => toHex(mix(r, 0, amount), mix(g, 0, amount), mix(b, 0, amount));
 
 	return {
 		50:  toHex(mix(r, 255, 0.95), mix(g, 255, 0.95), mix(b, 255, 0.95)),
@@ -489,11 +504,11 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 		300: toHex(mix(r, 255, 0.55), mix(g, 255, 0.55), mix(b, 255, 0.55)),
 		400: toHex(mix(r, 255, 0.30), mix(g, 255, 0.30), mix(b, 255, 0.30)),
 		500: hex,
-		600: clamp600(),
-		700: toHex(mix(r, 0, 0.30), mix(g, 0, 0.30), mix(b, 0, 0.30)),
-		800: toHex(mix(r, 0, 0.45), mix(g, 0, 0.45), mix(b, 0, 0.45)),
-		900: toHex(mix(r, 0, 0.60), mix(g, 0, 0.60), mix(b, 0, 0.60)),
-		950: toHex(mix(r, 0, 0.80), mix(g, 0, 0.80), mix(b, 0, 0.80)),
+		600: mixBlack(a600),
+		700: mixBlack(a700),
+		800: mixBlack(a800),
+		900: mixBlack(a900),
+		950: mixBlack(a950),
 	};
 }
 

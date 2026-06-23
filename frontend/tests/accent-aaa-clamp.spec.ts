@@ -48,6 +48,48 @@ test('generatePaletteFromHex clamps white-on-600 to AAA (7:1), preserving hue', 
 	}
 });
 
+// Relative luminance (WCAG) of a #rrggbb hex, used to assert a monotonic ramp.
+function relLuminance(hex: string) {
+	const h = hex.trim().replace('#', '');
+	const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+	const f = (c: number) => {
+		const cc = c / 255;
+		return cc <= 0.03928 ? cc / 12.92 : Math.pow((cc + 0.055) / 1.055, 2.4);
+	};
+	return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+test('palette ramp is monotonic from 600 to 950 even for pale accents whose 600 clamps deep', async ({ page }) => {
+	await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+	const palettes = await page.evaluate(async (modUrl) => {
+		const mod = (await import(/* @vite-ignore */ modUrl)) as {
+			generatePaletteFromHex: (hex: string) => Record<string, string>;
+		};
+		const hexes = [
+			'#ffe066', // pale yellow: clamp600 drives 600 well past the nominal 700 mix
+			'#22d3ee', // pale cyan
+			'#ffe600', // worst-case pale yellow
+			'#a3e635', // lime
+			'#c2410c', // Soft Premium default terracotta (must not regress)
+			'#1e3a8a' // deep blue (600 stays at nominal)
+		];
+		return hexes.map((h) => ({ h, scale: mod.generatePaletteFromHex(h) }));
+	}, COLORS_MOD);
+
+	for (const { h, scale } of palettes) {
+		const steps = ['500', '600', '700', '800', '900', '950'] as const;
+		const lums = steps.map((s) => relLuminance(scale[s]));
+		// Each darker step must be strictly darker (lower luminance) than the
+		// previous one (no inversion). Epsilon covers 8-bit rounding.
+		for (let i = 1; i < steps.length; i++) {
+			expect(
+				lums[i],
+				`${h}: ${steps[i]}=${scale[steps[i]]} (L=${lums[i].toFixed(4)}) must be darker than ${steps[i - 1]}=${scale[steps[i - 1]]} (L=${lums[i - 1].toFixed(4)})`
+			).toBeLessThan(lums[i - 1] + 1e-9);
+		}
+	}
+});
+
 test('clamp only deepens — a hue already dark enough is left at its nominal 600', async ({ page }) => {
 	await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
 	const { darkSix, paleSix } = await page.evaluate(async (modUrl) => {

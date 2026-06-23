@@ -241,6 +241,13 @@
 	}
 
 	body {
+		/* Light-mode body background follows the warm Soft Premium surface token
+		   (--bg, #fbf8f4) instead of a hardcoded pure white, so overscroll / glow
+		   and ultra-wide gutters show the warm canvas rather than a jarring #fff.
+		   Dark mode keeps its var-backed `dark:bg-gray-900` utility (warm under
+		   Soft Premium) from app.html, and the @media print rule below overrides
+		   this to #fff for clean printing. */
+		background-color: var(--bg, #fff);
 		/* overflow-x: clip — modern equivalent of `hidden` that does NOT create
 		   a scroll container, so `position: sticky` inside still anchors to the
 		   viewport. With `hidden`, descendants like the sticky save header on
