@@ -167,7 +167,9 @@
         "css_help_components": "Elements",
         "css_help_tip": "Wisdom: Keep weaving spare; avoid hiding structural elements that power accessibility and form.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Wayside",
+        "hero_layout_rail_desc": "Steadfast pillar to the left, tale to the right"
       },
       "general": {
         "section_title": "Common Matters",
@@ -2769,7 +2771,8 @@
       "profile_photo_generic": "Visage",
       "profile_initial_alt": "Seal of {name}",
       "contact_links_label": "Paths of contact",
-      "opens_new_tab": "{label} (opens new window)"
+      "opens_new_tab": "{label} (opens new window)",
+      "rail_sidebar_label": "Pillar of the wanderer"
     },
     "nav": {
       "home": "Home",

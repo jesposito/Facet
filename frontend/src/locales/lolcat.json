@@ -167,7 +167,9 @@
         "css_help_components": "Componentz",
         "css_help_tip": "Tip: Keep CSS smol; avoid hidin struktural elementz dat powr aksessibility n layout.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Rail",
+        "hero_layout_rail_desc": "Sticky sidebar on teh left, stuffz on teh right"
       },
       "general": {
         "section_title": "Jeneral",
@@ -2769,7 +2771,8 @@
       "profile_photo_generic": "Profile foto",
       "profile_initial_alt": "{name}'z profile initial",
       "contact_links_label": "Contact linkz",
-      "opens_new_tab": "{label} (openz in new tab)"
+      "opens_new_tab": "{label} (openz in new tab)",
+      "rail_sidebar_label": "Profile sidebar"
     },
     "nav": {
       "home": "Hoem",

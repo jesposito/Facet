@@ -4,7 +4,7 @@
 	import { parseMarkdown } from '$lib/utils';
 	import { hexLuminance, DARK_TEXT_THRESHOLD, isValidHexColor } from '$lib/colors';
 
-	type HeroLayout = 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
+	type HeroLayout = 'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | 'rail';
 	type HeroSpacing = 'compact' | 'default' | 'spacious' | '';
 
 	interface Props {
@@ -238,6 +238,78 @@
 		{/if}
 	</div>
 </header>
+
+{:else if layout === 'rail'}
+<!-- Rail: sticky warm sidebar ~320px + main content column (wired by the
+     page route via a 2-col grid). Mobile collapses to a top strip. -->
+<aside
+	class="rail-hero relative {effectiveBgColor !== '' ? '' : 'bg-[var(--surface-2)]'} text-[var(--ink)] border-b md:border-b-0 md:border-r border-[var(--border)] md:sticky md:top-0 md:h-screen md:overflow-y-auto"
+	style={headerBgStyle}
+	aria-label={$t('public.hero.rail_sidebar_label')}
+	itemscope
+	itemtype="https://schema.org/Person"
+>
+	<div class="px-6 sm:px-7 py-8 md:py-10">
+		{#if avatarUrl}
+			<img
+				src={avatarUrl}
+				alt={profile?.name ? $t('public.hero.profile_photo_alt', { values: { name: profile.name } }) : $t('public.hero.profile_photo_generic')}
+				class="w-[72px] h-[72px] rounded-full object-cover mb-5 shadow-[var(--sh-2)]"
+			/>
+		{:else if showAvatar && profile?.name}
+			<div class="w-[72px] h-[72px] rounded-full bg-[var(--accent)] text-white flex items-center justify-center text-2xl font-bold mb-5" role="img" aria-label={$t('public.hero.profile_initial_alt', { values: { name: profile.name } })}>
+				{profile.name.charAt(0)}
+			</div>
+		{/if}
+
+		{#if profile?.name}
+			<h1 class="hero-name text-[26px] font-extrabold tracking-tight mb-2 text-[var(--ink)]" style="line-height: 1.1; letter-spacing: -0.02em;" itemprop="name">
+				{profile.name}
+			</h1>
+		{/if}
+
+		{#if profile?.headline}
+			<p class="text-sm text-[var(--muted)] mb-4 leading-snug" itemprop="jobTitle">
+				{profile.headline}
+			</p>
+		{/if}
+
+		{#if profile?.location}
+			<p class="flex items-center gap-1.5 text-xs text-[var(--muted)] mb-5" itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+				<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+				</svg>
+				<span class="sr-only">{$t('public.hero.location_label')}</span>
+				<span itemprop="addressLocality">{profile.location}</span>
+			</p>
+		{/if}
+
+		{#if profile?.summary}
+			<div class="prose prose-sm max-w-none mb-6 text-[var(--muted)]" itemprop="description">
+				{@html parseMarkdown(profile.summary)}
+			</div>
+		{/if}
+
+		{#if contactLinks.length > 0}
+			<nav class="flex flex-col gap-2" aria-label={$t('public.hero.contact_links_label')}>
+				{#each contactLinks as link}
+					<a
+						href={link.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex items-center gap-2 px-3 py-2 rounded-[9px] text-sm bg-[var(--surface)] border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--chip)] transition-colors"
+						aria-label={$t('public.hero.opens_new_tab', { values: { label: link.label || link.type } })}
+						itemprop={link.type === 'email' ? 'email' : 'sameAs'}
+					>
+						{@render contactIcon(link.type)}
+						<span>{link.label || link.type}</span>
+					</a>
+				{/each}
+			</nav>
+		{/if}
+	</div>
+</aside>
 
 {:else if layout === 'stacked'}
 <!-- Stacked: Headline at top, full-width image below -->

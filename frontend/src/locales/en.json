@@ -167,7 +167,9 @@
         "css_help_description": "These selectors match the public site (not the admin UI). Start small and test on mobile.",
         "css_help_base": "Base",
         "css_help_components": "Components",
-        "css_help_tip": "Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout."
+        "css_help_tip": "Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout.",
+        "hero_layout_rail": "Rail",
+        "hero_layout_rail_desc": "Sticky sidebar on the left, content on the right"
       },
       "general": {
         "section_title": "General",
@@ -2769,7 +2771,8 @@
       "profile_photo_generic": "Profile photo",
       "profile_initial_alt": "{name}'s profile initial",
       "contact_links_label": "Contact links",
-      "opens_new_tab": "{label} (opens in new tab)"
+      "opens_new_tab": "{label} (opens in new tab)",
+      "rail_sidebar_label": "Profile sidebar"
     },
     "nav": {
       "home": "Home",
