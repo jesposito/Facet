@@ -1923,7 +1923,9 @@
 			"keyboard_shortcut_prev_row": "Vorherige Zeile",
 			"keyboard_shortcut_open_row": "Fokussierte Zeile öffnen",
 			"keyboard_shortcut_delete_row": "Fokussierte Zeile löschen",
-			"keyboard_shortcut_help": "Diese Hilfe anzeigen"
+			"keyboard_shortcut_help": "Diese Hilfe anzeigen",
+			"create_page_title": "Facette erstellen",
+			"edit_page_title": "Facette bearbeiten"
 		},
 		"media": {
 			"page_title": "Medienbibliothek | Facet Admin",
@@ -2292,7 +2294,8 @@
 			"loading_sections": "Abschnitte werden geladen …",
 			"custom_content_note": "<strong>Hinweis:</strong> Hier erscheinen nur benutzerdefinierte Inhalte, die als <strong>öffentlich</strong> und <strong>nicht im Entwurf</strong> markiert sind. Um die Sichtbarkeit zu ändern, gehe zu <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Benutzerdefinierte Inhalte</a>.",
 			"section_width_title": "Abschnittsbreite",
-			"section_layout_title": "Abschnittslayout"
+			"section_layout_title": "Abschnittslayout",
+			"page_title": "Startseite"
 		},
 		"import": {
 			"resume_dropzone_label": "Lebenslauf-Datei-Ablagebereich",
@@ -2367,7 +2370,8 @@
 			"modal_success_toast": "Lebenslauf importiert! Wähle Einträge für deine Facette aus."
 		},
 		"testimonials": {
-			"delete_request": "Anfrage löschen"
+			"delete_request": "Anfrage löschen",
+			"requests_page_title": "Anfrage-Links"
 		},
 		"comments": {
 			"title": "Kommentare",
@@ -2725,6 +2729,9 @@
 			"loading": "Lädt…",
 			"empty": "Noch keine Newsletter-Listen.",
 			"footer_unlimited": "Unbegrenzte Newsletter-Listen. {count} in Verwendung."
+		},
+		"review": {
+			"page_title": "Import überprüfen"
 		}
 	},
 	"public": {

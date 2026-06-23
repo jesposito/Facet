@@ -1923,7 +1923,9 @@
 			"keyboard_shortcut_prev_row": "Former row",
 			"keyboard_shortcut_open_row": "Behold the row",
 			"keyboard_shortcut_delete_row": "Unmake the row",
-			"keyboard_shortcut_help": "Reveal this counsel"
+			"keyboard_shortcut_help": "Reveal this counsel",
+			"create_page_title": "Forge a Facet",
+			"edit_page_title": "Reshape a Facet"
 		},
 		"media": {
 			"page_title": "Archives of Memory | Facet Admin",
@@ -2292,7 +2294,8 @@
 			"loading_sections": "Summoning chapters …",
 			"custom_content_note": "<strong>Heed:</strong> Only wrought tales marked <strong>open to all</strong> and <strong>not yet a draft</strong> appear here. To change who may behold them, journey to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Wrought Tales</a>.",
 			"section_width_title": "Breadth of the chapter",
-			"section_layout_title": "Weave of the chapter"
+			"section_layout_title": "Weave of the chapter",
+			"page_title": "Homepage"
 		},
 		"import": {
 			"resume_dropzone_label": "Chronicle scroll waypoint",
@@ -2367,7 +2370,8 @@
 			"modal_success_toast": "Life-scroll gathered! Choose the tales to weave into your facet."
 		},
 		"testimonials": {
-			"delete_request": "Remove petition"
+			"delete_request": "Remove petition",
+			"requests_page_title": "Request Links"
 		},
 		"comments": {
 			"title": "Quettar Formen",
@@ -2725,6 +2729,9 @@
 			"loading": "Hentho…",
 			"empty": "Lestath Postar û peren.",
 			"footer_unlimited": "Lestath Postar pen-bandor. {count} mil."
+		},
+		"review": {
+			"page_title": "Review Import"
 		}
 	},
 	"public": {

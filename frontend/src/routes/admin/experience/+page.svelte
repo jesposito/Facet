@@ -5,6 +5,7 @@
 	import { afterNavigate } from '$app/navigation';
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { t, locale } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
@@ -463,7 +464,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.content.experience.title')} {$t('admin.content.common.page_title_suffix')}</title>
+	<title>{$t('admin.content.experience.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">

@@ -4,6 +4,7 @@
 	import { toasts } from '$lib/stores';
 	import { onMount, onDestroy } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 
 	let stats = $state({
 		projects: 0,
@@ -123,7 +124,7 @@
 </script>
 
 <svelte:head>
-	<title>{$t('admin.dashboard.title')} | Facet</title>
+	<title>{$t('admin.dashboard.title')} | {$brandName}</title>
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
