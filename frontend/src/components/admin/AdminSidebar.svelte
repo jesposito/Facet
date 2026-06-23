@@ -381,7 +381,7 @@
 
 <aside
 	id="admin-sidebar"
-	class="fixed top-16 h-[calc(100vh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
+	class="fixed top-16 h-[calc(100dvh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
 		{isMobile
 			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
 			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')

@@ -63,13 +63,17 @@ export interface Toast {
 function createToastStore() {
 	const { subscribe, update } = writable<Toast[]>([]);
 
-	const add = (type: Toast['type'], message: string, duration = 5000) => {
+	const add = (type: Toast['type'], message: string, duration?: number) => {
 		const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-		update((toasts) => [...toasts, { id, type, message, duration }]);
-		if (duration > 0) {
+		// Errors and warnings persist until dismissed — auto-dismissing a message
+		// the user may need to read or act on is a WCAG 2.2.1 (Timing Adjustable)
+		// hazard. Success/info still auto-dismiss after 5s. Callers can override.
+		const effectiveDuration = duration ?? (type === 'error' || type === 'warning' ? 0 : 5000);
+		update((toasts) => [...toasts, { id, type, message, duration: effectiveDuration }]);
+		if (effectiveDuration > 0) {
 			setTimeout(() => {
 				update((toasts) => toasts.filter((t) => t.id !== id));
-			}, duration);
+			}, effectiveDuration);
 		}
 		return id;
 	};
