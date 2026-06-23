@@ -59,6 +59,58 @@
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* ==========================================================================
+   Soft Premium editorial treatment for the SHARED component classes.
+   Unlayered so it overrides the @layer components utilities. This is what makes
+   cards/buttons/inputs across the whole app read as the warm editorial redesign
+   (soft hairline borders, warm shadows, accent buttons, muted labels) rather
+   than a recolor. Classic is untouched (no [data-design] match).
+   ========================================================================== */
+:root[data-design='soft-premium'] .card {
+	background-color: var(--surface);
+	border-color: var(--border-hairline);
+	box-shadow: var(--sh-1);
+}
+:root[data-design='soft-premium'] .btn-primary {
+	background-color: var(--accent);
+	color: #fff;
+	box-shadow: var(--sh-1);
+}
+:root[data-design='soft-premium'] .btn-primary:hover {
+	background-color: var(--accent);
+	opacity: 0.92;
+}
+:root[data-design='soft-premium'] .btn-primary:active {
+	background-color: var(--accent);
+	opacity: 0.85;
+}
+:root[data-design='soft-premium'] .btn-secondary {
+	background-color: var(--surface-2);
+	color: var(--ink);
+	border-color: var(--border-hairline);
+}
+:root[data-design='soft-premium'] .btn-secondary:hover {
+	background-color: var(--chip);
+}
+:root[data-design='soft-premium'] .btn-ghost {
+	border-color: var(--border-hairline);
+	color: var(--ink);
+}
+:root[data-design='soft-premium'] .btn-ghost:hover {
+	background-color: var(--chip);
+}
+:root[data-design='soft-premium'] .input {
+	background-color: var(--surface);
+	border-color: var(--border-interactive);
+	color: var(--ink);
+}
+:root[data-design='soft-premium'] .label {
+	color: var(--muted);
+}
+:root[data-design='soft-premium'] .section-title {
+	color: var(--ink);
+}
+
 @layer base {
 	/* ==========================================================================
 	   Accent Color CSS Custom Properties
@@ -140,6 +192,9 @@
 		--border: #988e85; /* load-bearing (>=3:1) */
 		--border-hairline: #ddd1ca; /* decorative only */
 		--border-interactive: #988e85;
+		/* Accent surfaces (creator accent, contrast-clamped by B2). */
+		--accent: rgb(var(--color-primary-600-rgb));
+		--accent-soft: rgb(var(--color-primary-100-rgb));
 
 		/* Radius / shadow / motion. */
 		--r-1: 0.25rem;
@@ -176,6 +231,9 @@
 		--border: #7a6d64;
 		--border-hairline: #463f3b;
 		--border-interactive: #7a6d64;
+		/* Accent bg carries white text, so stays the dark clamped 600 in dark mode. */
+		--accent: rgb(var(--color-primary-600-rgb));
+		--accent-soft: rgb(var(--color-primary-900-rgb));
 		--sh-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.5);
 		--sh-2: 0 2px 6px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(0, 0, 0, 0.55);
 		--sh-3: 0 8px 24px rgba(0, 0, 0, 0.55), 0 32px 64px rgba(0, 0, 0, 0.65);

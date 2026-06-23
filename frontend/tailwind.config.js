@@ -1,3 +1,5 @@
+import plugin from 'tailwindcss/plugin';
+
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ['./src/**/*.{html,js,svelte,ts}'],
@@ -74,5 +76,14 @@ export default {
 			}
 		}
 	},
-	plugins: [require('@tailwindcss/typography')]
+	plugins: [
+		require('@tailwindcss/typography'),
+		// `sp:` applies only under the opt-in Soft Premium design, so surfaces can
+		// keep their classic classes and add `sp:bg-[var(--bg)]`-style token classes
+		// that only take effect when data-design="soft-premium". Classic untouched.
+		plugin(({ addVariant }) => {
+			addVariant('sp', ':root[data-design="soft-premium"] &');
+			addVariant('sp-dark', ':root[data-design="soft-premium"].dark &');
+		})
+	]
 };

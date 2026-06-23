@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import type { Project } from '$lib/pocketbase';
 	import { truncate, parseMarkdown } from '$lib/utils';
@@ -17,11 +16,6 @@
 	// observable here), keeping classic output byte-identical. After mount we read
 	// the attribute and, only under soft-premium, swap in the refined serif initial
 	// plate. The post-mount swap touches the cover-less fallback only.
-	let isSoftPremium = $state(false);
-	onMount(() => {
-		isSoftPremium = document.documentElement.getAttribute('data-design') === 'soft-premium';
-	});
-
 	// Code-point-safe first character (emoji/multibyte titles are not split mid
 	// surrogate-pair, unlike charAt(0)). Used only for the soft-premium serif plate.
 	const initial = (title: string) => [...(title ?? '')][0] ?? '';
@@ -113,16 +107,10 @@ const projectHref = (project: Project) => {
 								/>
 							</div>
 						{/if}
-					{:else if isSoftPremium}
-						<div class="sp-plate aspect-video md:aspect-auto md:h-full flex items-center justify-center" aria-hidden="true">
-							<span class="sp-plate__initial font-accent" style="font-size:clamp(3.5rem,8vw,6rem)">
-								{initial(featuredItem.title)}
-							</span>
-						</div>
 					{:else}
-						<div class="aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-							<span class="text-6xl font-bold text-white/50">
-								{featuredItem.title.charAt(0)}
+						<div class="sp-plate aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+							<span class="sp-plate__initial text-6xl font-bold text-white/50" style="font-size:clamp(3.5rem,8vw,6rem)">
+								{initial(featuredItem.title)}
 							</span>
 						</div>
 					{/if}
@@ -205,17 +193,9 @@ const projectHref = (project: Project) => {
 										/>
 									</div>
 								{/if}
-							{:else if isSoftPremium}
-								<div class="sp-plate aspect-video flex items-center justify-center" aria-hidden="true">
-									<span class="sp-plate__initial font-accent text-5xl">
-										{initial(project.title)}
-									</span>
-								</div>
 							{:else}
-								<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-									<span class="text-4xl font-bold text-white/50">
-										{project.title.charAt(0)}
-									</span>
+								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+									<span class="sp-plate__initial text-5xl font-bold text-white/50">{initial(project.title)}</span>
 								</div>
 							{/if}
 
@@ -376,19 +356,11 @@ const projectHref = (project: Project) => {
 								/>
 							</div>
 						{/if}
-					{:else if isSoftPremium}
-						<div class="sp-plate aspect-video flex items-center justify-center" aria-hidden="true">
-							<span class="sp-plate__initial font-accent text-6xl">
-								{initial(project.title)}
-							</span>
-						</div>
 					{:else}
-						<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-							<span class="text-5xl font-bold text-white/50">
-								{project.title.charAt(0)}
-							</span>
-						</div>
-					{/if}
+								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+									<span class="sp-plate__initial text-6xl font-bold text-white/50">{initial(project.title)}</span>
+								</div>
+							{/if}
 
 					<div class="p-6">
 						<div class="flex items-start justify-between gap-2">
@@ -476,19 +448,11 @@ const projectHref = (project: Project) => {
 								/>
 							</div>
 						{/if}
-					{:else if isSoftPremium}
-						<div class="sp-plate aspect-video flex items-center justify-center" aria-hidden="true">
-							<span class="sp-plate__initial font-accent text-5xl">
-								{initial(project.title)}
-							</span>
-						</div>
 					{:else}
-						<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-							<span class="text-4xl font-bold text-white/50">
-								{project.title.charAt(0)}
-							</span>
-						</div>
-					{/if}
+								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
+									<span class="sp-plate__initial text-5xl font-bold text-white/50">{initial(project.title)}</span>
+								</div>
+							{/if}
 
 					<div class="p-5">
 						<div class="flex items-start justify-between gap-2">
