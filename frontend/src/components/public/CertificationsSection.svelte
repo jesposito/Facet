@@ -44,7 +44,8 @@
 </script>
 
 <section id="certifications" class="mb-16">
-	<h2 class="section-title">{$t('public.sections.certifications')}</h2>
+	<h2 class="section-title section-heading">{$t('public.sections.certifications')}</h2>
+	<hr class="divider-editorial section-divider" aria-hidden="true" />
 
 	{#if layout === 'timeline'}
 		<div class="relative">
@@ -185,3 +186,19 @@
 		</div>
 	{/if}
 </section>
+
+<style>
+	/* Soft Premium only: editorial serif heading + divider. Classic untouched. */
+	:global([data-design='soft-premium']) .section-heading {
+		font-family: var(--font-accent);
+		font-style: italic;
+	}
+	.section-divider {
+		display: none;
+	}
+	:global([data-design='soft-premium']) .section-divider {
+		display: block;
+		margin-top: -1rem;
+		margin-bottom: 1.5rem;
+	}
+</style>
