@@ -123,7 +123,7 @@ Cloud-only dirs never to mine (from `BACKPORT_PLAN.md §7`): `backend/hooks/cour
 ### Phase 0 — test harness prep
 | ID | Item | Risk | Status |
 |----|------|------|--------|
-| P0 | Parametrize `backport-qa.spec.ts` host+creds → env, remove committed secret, local run path | low | IN_PROGRESS (branch `fix/backport-test-harness`) |
+| P0 | Parametrize `backport-qa.spec.ts` host+creds → env, remove committed secret, local run path | low | **DONE** — PR #447 (`fix/backport-test-harness`). 13 tests collect; creds via env. History scrub + password rotation flagged to maintainer. |
 
 ### Track B — Foundation + accent engine (gates Track C)
 | ID | Item | Risk | Status |
