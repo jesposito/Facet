@@ -236,4 +236,10 @@
 		border-radius: 1px;
 		background-color: var(--color-primary-600);
 	}
+
+	/* On dark surfaces the 600 underline is too dim for some accents; the lighter
+	   400 reads clearly. (Decorative — aria-current carries the active state.) */
+	:global([data-design='soft-premium'].dark) .nav-item[aria-current='page']::after {
+		background-color: var(--color-primary-400);
+	}
 </style>
