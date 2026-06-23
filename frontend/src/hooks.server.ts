@@ -1,7 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 import { PB_COOKIE_NAME } from '$lib/pocketbase';
-import { generateAccentCSSVars } from '$lib/colors';
+import { generateAccentCSSVars, SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
 import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -20,16 +20,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let fontCSSVars = '';
 	let fontPack = '';
 	let operatorFontPack = '';
+	let operatorAccent = '';
+	let operatorCustomHex = '';
 	try {
 		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
 			headers: { 'X-Internal': 'true' }
 		});
 		if (homepageRes.ok) {
 			const homepage = await homepageRes.json();
-			accentCSSVars = generateAccentCSSVars(
-				homepage.profile?.accent_color,
-				homepage.profile?.custom_hex_color
-			);
+			operatorAccent = homepage.profile?.accent_color || '';
+			operatorCustomHex = homepage.profile?.custom_hex_color || '';
 			operatorFontPack = homepage.profile?.font_pack || '';
 		}
 	} catch { /* silent - fallback to client-side application */ }
@@ -58,6 +58,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 			: operatorFontPack;
 	fontCSSVars = generateFontCSSVars(effectiveFontPack);
 	fontPack = effectiveFontPack;
+
+	// Accent: Soft Premium defaults to a warm terracotta when the operator hasn't
+	// set an accent, so the accent harmonizes with the stone surfaces. An operator
+	// accent (named or custom hex) always wins; classic keeps the static default.
+	if (design === 'soft-premium' && !operatorAccent && !operatorCustomHex) {
+		accentCSSVars = generateAccentCSSVars(null, SOFT_PREMIUM_DEFAULT_ACCENT);
+	} else {
+		accentCSSVars = generateAccentCSSVars(operatorAccent, operatorCustomHex);
+	}
 
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => {

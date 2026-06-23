@@ -280,6 +280,13 @@ export const ACCENT_COLORS: Record<AccentColor, AccentColorInfo> = {
 export const DEFAULT_ACCENT_COLOR: AccentColor = 'sky';
 
 /**
+ * Default accent for the Soft Premium design when the operator hasn't chosen
+ * one — a warm terracotta that harmonizes with the stone surfaces. Operators
+ * who set an accent keep it; classic is unaffected.
+ */
+export const SOFT_PREMIUM_DEFAULT_ACCENT = '#c2410c';
+
+/**
  * List of available accent colors for UI iteration
  */
 export const ACCENT_COLOR_LIST: AccentColor[] = ['sky', 'indigo', 'emerald', 'rose', 'amber', 'slate'];
