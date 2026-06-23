@@ -107,18 +107,19 @@ Cloud-only dirs never to mine (from `BACKPORT_PLAN.md §7`): `backend/hooks/cour
 ### Track A — Fixes & hardening (no dependencies)
 | ID | Item | Risk | Status |
 |----|------|------|--------|
-| A1 | Keyboard reorder commits on Tab/blur (SectionManager) | low | TODO |
-| A2 | Keyed list/curriculum rows + move announce (wrong-record-delete bug) | low | TODO |
-| A3 | Reorder autosave superset/subset tolerance (backend Go) | low | TODO |
-| A4 | Sparkline zero-fill 7 days + bar-height fix | low | TODO |
-| A5 | Shared `PageHeader` + responsive reflow (320px) | low-med | TODO |
-| A6 | Setup-wizard no-nag gate + persistent/announced success | low | TODO |
-| A7 | Focus/announce discipline (persistent live region, role=alert, no auto-dismiss) | low | TODO |
-| A8 | Touch-target 44px floors + `100vh`→`svh` | low | TODO |
-| A9 | ICU plurals + microcopy fixes ("1 lessons", double-prefix) | low | TODO |
-| A10 | Remove joke 404 from admin (professional error copy) | low | TODO |
-| A11 | `<title>` normalization `"{Page} \| {brand}"` for route announcer | low | TODO |
-| A12 | Admin font pinned to sans (not public pack) + tabular-nums on data | low | TODO |
+> **Audit done 2026-06-23** (verified against current self-hosted code). Skip N/A + already-present; only the TODO rows are real work.
+| A1 | Keyboard reorder commits on Tab/blur | — | **N/A** — self-hosted persists synchronously on click (no deferred drop to lose). |
+| A2 | Keyed rows + move announce (wrong-record-delete) | low | **TODO (scoped)** — only `admin/courses/+page.svelte` curriculum `{#each}` (lines ~1405/1460) unkeyed + no ReorderAnnouncer. Everywhere else already correct. |
+| A3 | Reorder autosave superset/subset tolerance | — | **N/A** — self-hosted has no permutation rejection; just persists the array. |
+| A4 | Sparkline zero-fill 7 days | low | **TODO** — `backend/hooks/analytics.go:57` GROUP BY DATE drops zero-view days; zero-fill server-side. (Bar height already fine.) |
+| A5 | Shared `PageHeader` + responsive reflow (320px) | low-med | **TODO** — no PageHeader exists; admin list headers `flex justify-between` no wrap (e.g. experience:488, projects:624) overflow at 320px. |
+| A6 | Setup-wizard no-nag + announced success | — | **ALREADY PRESENT** — `setupWizard.ts:201` gates; success is toast not fast-unmount. |
+| A7 | Focus/announce discipline | low | **TODO (scoped)** — only the error-toast auto-dismiss: `stores.ts:66` applies 5s timeout to errors too. Make error/warning duration 0. (Live region + role=alert already correct; Toast role branch shipped in B0.) |
+| A8 | Touch-target 44px + `100vh`→`svh` | low | **TODO (scoped)** — targets already 44px; just swap `100vh`/`min-h-screen` leftovers to `svh`/`dvh` (AdminSidebar.svelte:384, ViewPreview.svelte:392, layouts). |
+| A9 | ICU plurals + microcopy | low | **TODO** — en.json count strings ("{count} lessons" etc., lines 932/934/1058/1407/2151) → ICU plural; propagate all 5 locales. |
+| A10 | Remove joke 404 from admin | — | **DEFER/OPTIONAL** — self-hosted's joke 404 is intentional brand voice (`+error.svelte`, en.json:3086). Cloud removed it for SaaS trust; self-hosted may keep. Not porting unless requested. |
+| A11 | `<title>` normalization `"{Page} \| {brand}"` | low | **TODO** — admin titles inconsistent (4 formats); standardize on `{$t(page)} \| {$brandName}`; optional route announcer in +layout. |
+| A12 | Admin sans pin + tabular-nums | low | **TODO** — `app.css:70` global `h1,h2,h3 { font: var(--font-heading) }` leaks Lora into admin; add admin-scoped sans + tabular-nums on data cells. |
 
 ### Phase 0 — test harness prep
 | ID | Item | Risk | Status |
@@ -128,7 +129,7 @@ Cloud-only dirs never to mine (from `BACKPORT_PLAN.md §7`): `backend/hooks/cour
 ### Track B — Foundation + accent engine (gates Track C)
 | ID | Item | Risk | Status |
 |----|------|------|--------|
-| B0 | Opt-in `design` switch (site_settings field + backend + hooks.server `data-design` + admin toggle) | med | TODO |
+| B0 | Opt-in `design` switch (site_settings field + backend + hooks.server `data-design` + admin toggle) | med | **DONE** — PR #448. Certified: go test, svelte-check 0/0, i18n 100%, accessibility-lead 16/16, `design-switch.spec.ts` 5/5 through real /admin. |
 | B1 | Token/foundation layer: warm stone ramp + Soft Premium surface vocab + radius/shadow/motion/focus tokens (scoped to `[data-design=soft-premium]`) | **high** | TODO |
 | B2 | AAA accent clamp in `generatePaletteFromHex` (MIN_CONTRAST 7.0, dual clamp) + unit tests | **high** | TODO |
 | B3 | Default font pack → Hanken/Newsreader + font-link/CSP update (keep Lora selectable) | med-high | TODO |
@@ -230,6 +231,16 @@ Reference (read at implementation): `facets-sh/frontend/src/app-tokens.css`, `fa
 
 ---
 
+## 11b. Live test environment (for visual/Playwright certification)
+
+Docker compose dev is broken on this box (`dev-backend.sh: no such file`, and only `docker-compose` v1 is installed). Use **native**:
+- Backend: `cd backend && ENCRYPTION_KEY=<32+ hex> SEED_DATA=dev APP_URL=http://localhost:5173 go run . serve --http=0.0.0.0:8090 --dir=<scratch pb_data>` (automigrate seeds the "Jedidiah Esposito" profile + views).
+- Frontend: `cd frontend && POCKETBASE_URL=http://localhost:8090 npm run dev` (Vite :5173 proxies /api).
+- App admin login (users collection): `admin@example.com`. Dev seed password is `changeme123` but the app forces a first-login password change; complete it once via `POST /api/auth/change-password` `{currentPassword,newPassword}` (sets `password_changed_from_default=true`). PB superuser for `/_/`: `admin@localhost.dev` / `admin123`.
+- Playwright product tests take `PLAYWRIGHT_BASE_URL` + `ADMIN_EMAIL`/`ADMIN_PASSWORD` env. Reset `site_settings.design` to classic between manual experiments (superuser PATCH) — tests' afterEach restores it but manual flips can contaminate.
+- `go` is 1.23.4 vs go.mod 1.25; tests/build run fine anyway.
+
 ## 12. Progress Log
 - 2026-06-23 — Plan created from 4-agent analysis (cloud redesign characterization, self-hosted UI map, non-aesthetic UX intent, component behavioral diff). No code changed. Status: all items TODO.
-- 2026-06-23 — Execution approved. Decisions locked (hybrid opt-in, full A+B+C, automated+visual cert). Added opt-in `design`-switch architecture (B0) from settings/SSR exploration. Started **P0** on branch `fix/backport-test-harness`: parametrized `backport-qa.spec.ts` host/creds to env (`PLAYWRIGHT_BASE_URL`/`ADMIN_EMAIL`/`ADMIN_PASSWORD`), removed committed live credentials (history still contains them — flagged for optional scrub). Next: lint/format check, commit, open PR.
+- 2026-06-23 — Execution approved. Decisions locked (hybrid opt-in, full A+B+C, automated+visual cert). Added opt-in `design`-switch architecture (B0) from settings/SSR exploration. Started **P0** on branch `fix/backport-test-harness`: parametrized `backport-qa.spec.ts` host/creds to env (`PLAYWRIGHT_BASE_URL`/`ADMIN_EMAIL`/`ADMIN_PASSWORD`), removed committed live credentials (history still contains them — flagged for optional scrub).
+- 2026-06-23 — **P0 DONE** (PR #447). **Track A audited** against real code — A1/A3 N/A, A6 already present, A10 defer (intentional brand voice); rest are scoped TODOs (see dashboard). **B0 DONE** (PR #448, branch `feat/design-switch`): backend field+API+migration, SSR `data-design` injection (classic=no attribute=byte-identical), accessible admin radiogroup (accessibility-lead 16/16), Toast role fix, i18n ×5, `design-switch.spec.ts` 5/5 through real /admin. Live native dev instance stood up (see §11b). **Next ready:** B1 (warm tokens under `[data-design=soft-premium]` — makes the switch visible, gates C) then B2 (universal AAA clamp), and the scoped Track A TODOs (A4/A5/A7/A8/A9/A11/A12 + A2-courses). Also pending: audit/fix breakage in Facet Cloud (facets-sh) per user request.
