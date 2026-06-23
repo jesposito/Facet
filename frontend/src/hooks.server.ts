@@ -34,6 +34,20 @@ export const handle: Handle = async ({ event, resolve }) => {
 		}
 	} catch { /* silent - fallback to client-side application */ }
 
+	// Fetch the opt-in visual design mode. "classic" (the default for every
+	// existing instance) emits no attribute, so the rendered HTML is byte-identical
+	// to before; only "soft-premium" adds data-design so the warm token layer applies.
+	let design = 'classic';
+	try {
+		const settingsRes = await fetch(`${pbUrl}/api/site-settings`, {
+			headers: { 'X-Internal': 'true' }
+		});
+		if (settingsRes.ok) {
+			const settings = await settingsRes.json();
+			if (settings.design === 'soft-premium') design = 'soft-premium';
+		}
+	} catch { /* silent - fallback to classic */ }
+
 	const response = await resolve(event, {
 		transformPageChunk: ({ html }) => {
 			// Combine accent and font CSS vars into a single inline style on <html>
@@ -61,9 +75,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 			let result = html;
 
+			// Compose all <html> attributes into a single replace so the design
+			// attribute and the inline style vars both land. classic => no attribute.
+			const htmlAttrs: string[] = [];
+			if (design === 'soft-premium') {
+				htmlAttrs.push('data-design="soft-premium"');
+			}
 			if (varParts.length > 0) {
-				const combinedVars = varParts.join(' ');
-				result = result.replace('<html lang="en">', `<html lang="en" style="${combinedVars}">`);
+				htmlAttrs.push(`style="${varParts.join(' ')}"`);
+			}
+			if (htmlAttrs.length > 0) {
+				result = result.replace('<html lang="en">', `<html lang="en" ${htmlAttrs.join(' ')}>`);
 			}
 
 			// Inject Google Fonts link for non-default font packs
