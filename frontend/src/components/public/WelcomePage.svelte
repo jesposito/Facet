@@ -270,14 +270,26 @@
 		font-family: var(--font-accent, var(--font-heading));
 		font-style: italic;
 		letter-spacing: -0.02em;
+		/* Light surface: use the dark accent stops (600/700) so the whole gradient
+		   clears 3:1 large-text on white — the 400 stop was only ~2.1:1. */
 		background-image: linear-gradient(
 			135deg,
-			rgb(var(--color-primary-600-rgb)),
-			rgb(var(--color-primary-400-rgb))
+			rgb(var(--color-primary-700-rgb)),
+			rgb(var(--color-primary-600-rgb))
 		);
 		-webkit-background-clip: text;
 		background-clip: text;
 		color: transparent;
+	}
+
+	/* Dark surface: flip to the light accent stops so the gradient stays legible
+	   on the dark card. */
+	:global([data-design='soft-premium'].dark) .sp-title {
+		background-image: linear-gradient(
+			135deg,
+			rgb(var(--color-primary-400-rgb)),
+			rgb(var(--color-primary-300-rgb))
+		);
 	}
 
 	/* Section titles get the accent serif for editorial rhythm. */
