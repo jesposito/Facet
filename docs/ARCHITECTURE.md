@@ -4,6 +4,21 @@
 
 ## Technical Architecture
 
+### Technology Stack
+
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Backend | Go + PocketBase | Go 1.25.0, PocketBase v0.23.4 |
+| Frontend | SvelteKit + Svelte | SvelteKit 2.5, Svelte 5.55 |
+| Styling | Tailwind CSS | 3.4 |
+| Build | Vite + TypeScript | Vite 7.3, TypeScript 5.5 |
+| Reverse proxy | Caddy (internal) | — |
+| Database | SQLite (via PocketBase) | — |
+
+Current Facet version: **v2.22.1**. Default admin login (self-hosted): `admin@example.com` / `changeme123` (change on first login).
+
+A managed/hosted version of Facet is available at [get-facet.com](https://get-facet.com); this repository and document focus on the **self-hosted** deployment.
+
 ### System Diagram
 
 ```
@@ -26,24 +41,29 @@
 │  │    SvelteKit        │    │         PocketBase (Go)              ││
 │  │    :3000            │    │         :8090                        ││
 │  │                     │    │                                      ││
-│  │  Public Pages:      │    │  Collections (28 total):             ││
+│  │  Public Pages:      │    │  Collections:                        ││
 │  │  ├── /              │◄───┤  ├── profile, experience, projects   ││
 │  │  ├── /:slug         │    │  ├── education, certifications       ││
 │  │  ├── /s/:token      │    │  ├── awards, skills, posts, talks    ││
-│  │  ├── /projects/:slug│    │  ├── custom_content                  ││
-│  │  ├── /posts/:slug   │    │  ├── contact_methods                 ││
-│  │  ├── /talks/:slug   │    │  ├── views, share_tokens             ││
-│  │  └── /testimonial/* │    │  ├── testimonials, testimonial_reqs  ││
+│  │  ├── /projects/:slug│    │  ├── custom_content, contact_methods ││
+│  │  ├── /posts/:slug   │    │  ├── views, share_tokens             ││
+│  │  ├── /talks/:slug   │    │  ├── testimonials, testimonial_reqs  ││
+│  │  └── /testimonial/* │    │  ├── comments, comment_reports       ││
 │  │                     │    │  ├── sources, ai_providers           ││
 │  │  Admin Pages:       │    │  ├── import_proposals, resume_imports││
 │  │  ├── /admin/*       │───►│  ├── media, external_media           ││
-│  │  └── 30+ routes     │    │  └── site_settings, admin_tags       ││
-│  │                     │    │                                      ││
-│  └─────────────────────┘    │  Custom Go Hooks:                    ││
+│  │  ├── /admin/alerts  │    │  ├── api_keys, webhooks, deliveries  ││
+│  │  └── 30+ routes     │    │  ├── system_alerts, audit_logs       ││
+│  │                     │    │  ├── newsletter_lists, subscribers   ││
+│  │                     │    │  └── site_settings, admin_tags       ││
+│  └─────────────────────┘    │                                      ││
+│                             │  Custom Go Hooks:                    ││
 │                             │  ├── /api/github/* (import/refresh)  ││
 │                             │  ├── /api/ai/* (test/enrich/write)   ││
 │                             │  ├── /api/view/* (access/data/gen)   ││
 │                             │  ├── /api/testimonials/* (14 routes) ││
+│                             │  ├── /api/v1/* (public REST + keys)  ││
+│                             │  ├── /api/admin/webhooks, alerts     ││
 │                             │  ├── /api/demo/* (enable/disable)    ││
 │                             │  └── /api/resume/parse               ││
 │                             │                                      ││
@@ -445,7 +465,136 @@ admin_tags {
   created            DATETIME
   updated            DATETIME
 }
+
+-- API Keys (scoped access to the public REST API at /api/v1/*)
+api_keys {
+  id                 TEXT PRIMARY KEY
+  label              TEXT
+  key_prefix         TEXT           -- Indexed lookup prefix
+  key_hash           TEXT           -- HMAC hash; raw key shown once
+  scopes             JSON           -- ["read:profile", "write:posts", ...]
+  allowed_origins    JSON           -- Optional CORS allowlist
+  expires_at         DATETIME
+  last_used_at       DATETIME
+  is_active          BOOLEAN
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Webhooks (outbound event notifications)
+webhooks {
+  id                 TEXT PRIMARY KEY
+  label              TEXT
+  url                TEXT           -- SSRF-protected target
+  secret             TEXT           -- HMAC-SHA256 signing secret (auto-generated)
+  events             JSON           -- Subscribed event names
+  is_active          BOOLEAN
+  failure_count      INTEGER        -- Auto-disabled after repeated failures
+  last_delivered_at  DATETIME
+  last_failure_at    DATETIME
+  last_error         TEXT
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Webhook Deliveries (delivery log for each attempt)
+webhook_deliveries {
+  id                 TEXT PRIMARY KEY
+  webhook_id         RELATION -> webhooks
+  event_name         TEXT
+  request_body       TEXT
+  response_status    INTEGER
+  response_body      TEXT
+  attempt_count      INTEGER
+  succeeded          BOOLEAN
+  created            DATETIME
+}
+
+-- System Alerts (admin inbox surfaced at /admin/alerts)
+system_alerts {
+  id                 TEXT PRIMARY KEY
+  severity           TEXT           -- "info" | "warning" | "error"
+  event              TEXT
+  title              TEXT
+  details            TEXT
+  metadata           JSON
+  acknowledged_at    DATETIME
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Comments (threaded, with moderation queue)
+comments {
+  id                 TEXT PRIMARY KEY
+  content_type       TEXT           -- "post" | "project" | etc.
+  content_id         TEXT
+  parent_id          TEXT           -- For threaded replies
+  author_name        TEXT
+  author_email       TEXT
+  body               TEXT
+  status             TEXT           -- "pending" | "approved" | "spam" | "rejected"
+  is_pinned          BOOLEAN
+  is_admin_reply     BOOLEAN
+  ip_hash            TEXT
+  user_agent         TEXT
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Comment Reports (user-flagged comments)
+comment_reports {
+  id                 TEXT PRIMARY KEY
+  comment            RELATION -> comments
+  reason             TEXT
+  detail             TEXT
+  reporter_ip_hash   TEXT
+  status             TEXT
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Newsletter Lists (multi-list / segments)
+newsletter_lists {
+  id                 TEXT PRIMARY KEY
+  name               TEXT NOT NULL
+  slug               TEXT NOT NULL
+  description        TEXT
+  sender_name        TEXT
+  reply_to           TEXT
+  welcome_subject    TEXT
+  welcome_html       TEXT
+  is_default         BOOLEAN
+  is_active          BOOLEAN
+  subscriber_count   INTEGER
+  created            DATETIME
+  updated            DATETIME
+}
+
+-- Subscribers + list memberships
+subscribers {
+  id                 TEXT PRIMARY KEY
+  email              TEXT
+  status             TEXT
+  -- ... confirmation / unsubscribe tracking
+}
+
+subscriber_list_memberships {
+  id                 TEXT PRIMARY KEY
+  subscriber_id      RELATION -> subscribers
+  list_id            RELATION -> newsletter_lists
+  created            DATETIME
+}
+
+-- Audit Logs (access / admin action history)
+audit_logs {
+  id                 TEXT PRIMARY KEY
+  event              TEXT
+  metadata           JSON
+  created            DATETIME
+}
 ```
+
+> The schema above covers the self-hosted profile platform. The codebase also pins the PocketBase database version and runs **automigrate on boot** so a fresh self-hosted container provisions all collections automatically.
 
 ### Route Map
 
@@ -474,6 +623,7 @@ admin_tags {
 | Route | Description | Auth |
 |-------|-------------|------|
 | `GET /admin` | Admin dashboard | OAuth required |
+| `GET /admin/alerts` | System alerts inbox | OAuth required |
 | `GET /admin/homepage` | Homepage configuration | OAuth required |
 | `GET /admin/contacts` | Contact methods | OAuth required |
 | `GET /admin/experience` | Manage experience | OAuth required |
@@ -564,6 +714,35 @@ admin_tags {
 | `/api/demo/enable` | POST | Enable demo mode | OAuth |
 | `/api/demo/disable` | POST | Disable demo mode | OAuth |
 | `/api/demo/status` | GET | Check demo status | OAuth |
+
+**Public REST API (v1):**
+
+Versioned, read/write API authenticated with scoped API keys (`Authorization: Bearer <key>`). Scopes are `read:*` and `write:*` for `profile`, `posts`, `projects`, `skills`, and `experience`.
+
+| Route | Method | Description | Scope |
+|-------|--------|-------------|-------|
+| `/api/v1/profile` | GET | Read profile | `read:profile` |
+| `/api/v1/posts` | GET / POST | List / create posts | `read:posts` / `write:posts` |
+| `/api/v1/posts/:id` | PATCH / DELETE | Update / delete post | `write:posts` |
+| `/api/v1/projects` | GET / POST | List / create projects | `read:projects` / `write:projects` |
+| `/api/v1/projects/:id` | PATCH / DELETE | Update / delete project | `write:projects` |
+| `/api/v1/skills` | GET / POST | List / create skills | `read:skills` / `write:skills` |
+| `/api/v1/skills/:id` | PATCH / DELETE | Update / delete skill | `write:skills` |
+| `/api/v1/experience` | GET / POST | List / create experience | `read:experience` / `write:experience` |
+| `/api/v1/experience/:id` | PATCH / DELETE | Update / delete experience | `write:experience` |
+
+**Webhooks & System Alerts (admin):**
+
+| Route | Method | Description | Auth |
+|-------|--------|-------------|------|
+| `/api/admin/webhooks` | GET / POST | List / create webhook (auto HMAC secret) | OAuth |
+| `/api/admin/webhooks/:id` | PATCH / DELETE | Update / delete webhook | OAuth |
+| `/api/admin/system-alerts` | GET | List alerts (filterable) | OAuth |
+| `/api/admin/system-alerts/:id/acknowledge` | POST | Acknowledge one alert | OAuth |
+| `/api/admin/system-alerts/acknowledge-all` | POST | Acknowledge all | OAuth |
+| `/api/admin/system-alerts/:id` | DELETE | Remove alert | OAuth |
+
+Webhooks sign each delivery with **HMAC-SHA256**, validate targets against **SSRF** protections, retry on failure, auto-disable after repeated failures, and record every attempt in `webhook_deliveries`.
 
 ### Security Model
 

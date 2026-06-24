@@ -1,6 +1,6 @@
 # Facet Roadmap
 
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-06-23
 
 This roadmap reflects current implementation status and planned work, ordered chronologically by phase. Completed items remain for context; upcoming items are listed under each phase.
 
@@ -38,7 +38,9 @@ This roadmap reflects current implementation status and planned work, ordered ch
 - ✅ **TOTP Two-Factor Authentication:** Optional 2FA using any authenticator app. Recovery codes, CLI reset, 24-hour sessions.
 - ✅ **Email Notification System:** SMTP-based admin notifications on testimonial submissions with i18n support (5 locales). Email verification for testimonial submitters.
 - ✅ **Admin Settings Refactor:** Settings page split into Account, Site Settings (with SMTP config), and Integrations sub-pages.
-- 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, Phase 19 Developer Platform.
+- ✅ **Developer Platform (Phase 19):** Public REST API (`/api/v1/*`) with scoped keys, webhooks (HMAC, SSRF, retry/auto-disable, delivery log, test event picker).
+- ✅ **Newsletter, Comments, System Alerts, Multi-language UI:** Multi-list newsletter with compose UI, threaded comments with moderation, operator alerts inbox, 5-locale UI with CI parity.
+- 🔜 **Next Up:** Phase 18.2 View Analytics Dashboard, Phase 18.3 QR Codes, CAPTCHA contact protection, scheduled GitHub sync.
 
 ---
 
@@ -358,25 +360,20 @@ Generate QR codes for any view or share link.
 
 ---
 
-## Phase 19: Developer Platform (🔜 Planned)
+## Phase 19: Developer Platform (✅ Complete)
 **Purpose:** Enable integrations and extensibility
 
-### 19.1 Webhooks
+### 19.1 Webhooks (✅ Complete)
 **Priority:** Medium | **Effort:** Medium
 
 Notify external services when events occur.
 
-**Events to support:**
-- `view.accessed` - Someone viewed a profile
-- `share_token.used` - Share link was used
-- `content.published` - New post/project published
-- `profile.updated` - Profile changed
-
-**Implementation:**
-- New collection: `webhooks` (url, events[], secret, active)
-- Admin page: `/admin/settings/webhooks`
-- Backend: Hook into PocketBase events, POST to registered URLs
-- Include HMAC signature for verification
+**Implemented:**
+- ✅ `webhooks` collection (url, events[], secret, active) with admin CRUD
+- ✅ HMAC-SHA256 signing of every delivery for verification
+- ✅ SSRF protection (rejects private/loopback/link-local/CGNAT/metadata IPs)
+- ✅ Retry with auto-disable after repeated failures; per-delivery log
+- ✅ Dispatch test event picker (fire synthetic payloads to matching subscribers)
 
 **Payload example:**
 ```json
@@ -390,22 +387,16 @@ Notify external services when events occur.
 }
 ```
 
-### 19.2 Public API
+### 19.2 Public REST API (✅ Complete)
 **Priority:** Medium | **Effort:** Medium
 
-Documented REST API for integrations.
+Documented REST API for integrations under `/api/v1/*`.
 
-**Endpoints to document:**
-- `GET /api/view/{slug}/data` - Get view data (respects visibility)
-- `GET /api/posts` - List public posts
-- `GET /api/projects` - List public projects
-- `GET /api/profile` - Get basic profile info
-
-**Implementation:**
-- OpenAPI/Swagger spec in `docs/api/`
-- Auto-generated from PocketBase schema + custom endpoints
-- Rate limiting for public API access
-- Optional API key for higher limits
+**Implemented:**
+- ✅ Read endpoints for views, posts, projects, and profile
+- ✅ Write endpoints for managed content
+- ✅ Scoped API keys (`read:*` / `write:*`), stored as SHA-256 hash
+- ✅ Rate limiting for API access
 
 ### 19.3 Offline PWA Support
 **Priority:** Low | **Effort:** High
@@ -541,14 +532,18 @@ When clicked:
 
 ### Medium Priority
 - 🔜 **QR Codes** (Phase 18.3) - Quick win for sharing
-- 🔜 **Webhooks** (Phase 19.1) - Enable integrations
+- 🔜 **CAPTCHA contact protection** - Cloudflare Turnstile integration
+- 🔜 **Scheduled GitHub sync** - Auto-refresh projects
 
 ### Lower Priority
-- 🔜 **Public API** (Phase 19.2) - Developer platform
 - 🔜 **Offline PWA** (Phase 19.3) - Complex, niche use case
 - 🔜 **Apply with Facet** (Phase 20.2) - Requires ecosystem adoption
 - 🔜 **Theme System** - Pre-built visual themes
-- 🔜 **Scheduled Publishing** - Content calendar
+- 🔜 **Newsletter drip sequences** - Multi-step automated send chains
+- 🔜 **Full Liquid templating** - Per-subscriber newsletter personalization at send time
+- 🔜 **System alert emitters** - Wire into backup, SMTP, and webhook delivery failure paths
+- 🔜 **Content Security Policy headers**
+- 🔜 **Lucide icon migration** - Consolidate inline SVGs into a single icon set
 
 ### Already Complete (Removed from Backlog)
 - ✅ **Guided Setup Wizard** (Phase 17.1) - 3-step onboarding for new users
@@ -559,6 +554,14 @@ When clicked:
 - ✅ **Custom Domain** - Works via reverse proxy (self-hosted)
 - ✅ **Resume Upload & AI Parsing** - Both directions supported
 - ✅ **Admin UX** - Dialogs, navigation, visibility badges
+- ✅ **Webhooks** (Phase 19.1) - HMAC signing, SSRF protection, retry/auto-disable, delivery log, test event picker
+- ✅ **Public REST API** (Phase 19.2) - `/api/v1/*` with scoped read/write API keys
+- ✅ **System Alerts Inbox** - Operator-facing event log
+- ✅ **Newsletter** - Multi-list/segments with per-list sender + welcome email; compose UI with list picker, preview, test send
+- ✅ **Threaded Comments** - Moderation queue, reports, per-item enable toggle (DOMPurify-sanitized)
+- ✅ **Multi-language UI** - 5 locales (en/de/elvish/klingon/lolcat) with CI-enforced key parity
+- ✅ **External Media Expanded** - Loom, CodePen, Figma, SoundCloud, Spotify, Immich providers
+- ✅ **Automigrate on Boot** - Schema changes apply on pull + restart
 
 ---
 
@@ -567,8 +570,8 @@ When clicked:
 - ✅ iCal export for talks
 - ✅ Google Analytics (opt-in)
 - ✅ GitHub import
-- 🔜 Webhook notifications
-- 🔜 Zapier/IFTTT support (via webhooks)
+- ✅ Webhook notifications (HMAC-signed, SSRF-protected, retry/auto-disable)
+- ✅ Zapier/IFTTT support (via webhooks)
 
 ---
 
@@ -591,6 +594,16 @@ When clicked:
 ---
 
 ## Recent Changes Log
+
+### 2026-06-23 (Developer Platform & Engagement - v2.22.1)
+- Completed Phase 19: Public REST API (`/api/v1/*`) with scoped (read:*/write:*) API keys stored as SHA-256 hash
+- Webhooks: HMAC-SHA256 signing, SSRF protection (rejects private/loopback/link-local/CGNAT/metadata IPs), retry + auto-disable, per-delivery log, dispatch test event picker
+- System alerts inbox (operator-facing event log)
+- Newsletter: multi-list/segments with per-list sender + welcome email; compose UI with list picker, preview, test send
+- Threaded comments with moderation queue, reports, per-item enable toggle (DOMPurify-sanitized)
+- Multi-language UI expanded to 5 locales (en/de/elvish/klingon/lolcat) with CI-enforced key parity (`npm run i18n:validate`)
+- External media expanded: Loom, CodePen, Figma, SoundCloud, Spotify, Immich providers
+- Automigrate on boot for self-hosted (schema changes apply on pull + restart)
 
 ### 2026-02-15 (Email Notifications & Bug Fixes - v2.18.0)
 - Added SMTP-based email notifications to admins when testimonials are submitted

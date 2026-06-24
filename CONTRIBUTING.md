@@ -10,7 +10,7 @@ Thanks for your interest in contributing! This document covers how to get starte
 
 ```bash
 # Install prerequisites
-# - Go 1.24+
+# - Go 1.25+
 # - Node.js 20+
 # - Air (go install github.com/air-verse/air@v1.61.7)
 

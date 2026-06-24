@@ -24,7 +24,7 @@ If credentials don't work, reset the database: `rm -rf pb_data && ./scripts/star
 
 ### Prerequisites
 
-- Go 1.24+
+- Go 1.25+
 - Node.js 20+
 - [Air](https://github.com/air-verse/air) for Go hot reload
 
@@ -683,10 +683,11 @@ Available tasks:
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| SvelteKit | ^2.0.0 | Frontend framework |
-| Svelte | ^5.0.0 | Component framework |
-| Vite | ^7.3.0 | Build tool |
-| Tailwind CSS | ^3.4.0 | Styling |
+| SvelteKit | 2.5 | Frontend framework |
+| Svelte | 5.55 | Component framework |
+| Vite | 7.3 | Build tool |
+| Tailwind CSS | 3.4 | Styling |
+| TypeScript | 5.5 | Type checking |
 
 ## Environment Variables
 
@@ -702,8 +703,9 @@ Key variables:
 |----------|---------|-------------|
 | `ENCRYPTION_KEY` | Auto-generated | AES-256-GCM key for AI tokens. Auto-generated and saved to `/data/.encryption_key` if not set |
 | `SEED_DATA` | — | Seed mode: `dev` for dev profile, unset for no seeding |
-| `DATA_DIR` | `./pb_data` | PocketBase data directory |
-| `LOG_LEVEL` | `info` | Logging verbosity |
+| `DATA_PATH` | `./data` | Database and config directory |
+| `UPLOADS_PATH` | `./uploads` | Upload file storage directory |
+| `APP_URL` | `http://localhost:8080` | Public URL (OAuth callbacks, link generation) |
 
 ## Seed Data
 

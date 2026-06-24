@@ -28,9 +28,12 @@ This document provides comprehensive documentation for all AI-powered features i
 Facet includes optional AI-powered features that enhance content creation and resume generation. All AI features:
 
 - Are **completely optional** - Facet works fully without any AI configuration
+- Are **bring-your-own-key** - You supply your own provider credentials. There are no managed AI credits, monthly token quotas, or platform-provided providers. Use OpenAI, Anthropic Claude, or a local Ollama instance.
 - Support **multiple providers** - OpenAI, Anthropic Claude, Ollama (local), or custom OpenAI-compatible APIs
 - Use **encrypted API key storage** - Keys are encrypted at rest using AES-256-GCM
 - Follow **privacy-conscious prompts** - AI prompts emphasize factual content without inventing information
+
+> **Bring your own key:** Self-hosted Facet does not include any hosted or managed AI. Add your own provider key under **Admin > Settings > Integrations** (`/admin/settings/integrations`) before AI features become available.
 
 ### Supported AI Providers
 
@@ -47,7 +50,7 @@ Facet includes optional AI-powered features that enhance content creation and re
 
 ### Admin UI Configuration
 
-Navigate to **Admin > Settings > AI Providers** to configure providers through the UI.
+Navigate to **Admin > Settings > Integrations** (`/admin/settings/integrations`) to configure providers through the UI.
 
 **Adding a Provider:**
 
@@ -288,7 +291,7 @@ Upload PDF or DOCX resume files and have AI automatically extract structured dat
 
 **How It Works:**
 1. Navigate to **Admin > Import & AI**
-2. Upload resume file (PDF/DOCX, max 5MB)
+2. Upload resume file (PDF/DOCX, max 10MB)
 3. AI parses and extracts structured data
 4. Review extracted data in proposal view
 5. Accept, modify, or reject each extracted item
@@ -486,8 +489,8 @@ go run -e 'import "crypto/rand"; import "encoding/base64"; b := make([]byte, 32)
 **Cause:** No active AI providers exist in the database.
 
 **Solution:**
-1. Go to Admin > Settings > AI Providers
-2. Add a provider with your API key
+1. Go to Admin > Settings > Integrations (`/admin/settings/integrations`)
+2. Add a provider with your own API key
 3. Ensure the provider is marked as "Active"
 
 Or set environment variables for auto-configuration:

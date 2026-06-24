@@ -60,9 +60,14 @@ docker-compose down
 rm -rf ./data/*
 tar -xzvf facet-backup-YYYYMMDD.tar.gz
 
-# Start with old version (if you have it)
-# Or: checkout previous git tag and rebuild
-git checkout v1.0.0
+# Start with the previous version.
+# If using pre-built images, pin the previous tag in docker-compose.yml
+# (e.g. ghcr.io/jesposito/facet:v2.21.0) and re-pull:
+docker-compose pull
+docker-compose up -d
+
+# Or, if building from source, check out the previous tag and rebuild:
+git checkout v2.21.0
 docker-compose build
 docker-compose up -d
 ```
@@ -71,7 +76,7 @@ docker-compose up -d
 
 ## Major Version Upgrades
 
-Major versions (1.x → 2.x) may include breaking changes. Always:
+Facet is currently on the 2.x line (latest: v2.22.1). Minor releases within a major version are designed to upgrade in place with `docker compose pull` and a restart. A future major bump (2.x → 3.x) may include breaking changes — when that happens, always:
 
 1. Read the full changelog
 2. Test in a staging environment first
@@ -82,17 +87,13 @@ Major versions (1.x → 2.x) may include breaking changes. Always:
 
 ## Database Migrations
 
-PocketBase handles schema migrations automatically. When you upgrade:
+Facet runs migrations automatically on boot (PocketBase automigrate is enabled). You do **not** need to run any manual migration command. When you pull a new version and restart:
 
-1. New collections/fields are added automatically
+1. New collections and fields are applied on startup
 2. Existing data is preserved
-3. Migrations run on first startup
+3. No manual `migrate up` step is required — just `docker compose pull` then restart
 
-If you need to run migrations manually:
-
-```bash
-docker-compose exec facet ./facet migrate up
-```
+Because migrations apply on boot, the safe upgrade flow is simply: back up `./data`, pull the new image, and restart the container.
 
 ---
 

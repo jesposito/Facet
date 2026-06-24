@@ -1,7 +1,7 @@
 # Technical Specification: Testimonials Feature
 
 ## Overview
-The Testimonials feature allows Facet users to collect, manage, and display professional endorsements on their profile. It includes a frictionless public submission flow, verification options (Email, GitHub, Twitter), an admin review workflow, and integration with the Views system for curated display.
+The Testimonials feature allows Facet users to collect, manage, and display professional endorsements on their profile. It includes a frictionless public submission flow, email magic-link verification (GitHub/Twitter OAuth verification is specified but deferred), an admin review workflow, and integration with the Views system for curated display.
 
 ## Goals
 1. **Low Friction**: Easy for people to leave testimonials without creating an account.
@@ -85,20 +85,23 @@ Ephemeral tokens for the magic link flow.
 ### Admin APIs (Auth Required)
 - `POST   /api/testimonials/requests` - Create new request link
 - `GET    /api/testimonials/requests` - List all request links
-- `PATCH  /api/testimonials/requests/:id` - Update request
 - `DELETE /api/testimonials/requests/:id` - Delete request link
+- `POST   /api/testimonials/requests/:id/regenerate` - Regenerate request link token
 - `GET    /api/testimonials` - List all testimonials (with status filters)
 - `PATCH  /api/testimonials/:id` - Update testimonial (status, featured, content)
 - `POST   /api/testimonials/:id/approve` - Approve testimonial
 - `POST   /api/testimonials/:id/reject` - Reject testimonial
+- `DELETE /api/testimonials/:id` - Delete testimonial
+- `GET    /api/testimonials/pending-count` - Get count of pending testimonials
 
 ### Public APIs (No Auth)
 - `GET    /api/testimonials/request/:token` - Validate request token, get profile context
 - `POST   /api/testimonials/submit` - Submit new testimonial
 - `POST   /api/testimonials/verify/email` - Trigger magic link
 - `GET    /api/testimonials/verify/email/:token` - Verify via magic link
-- `GET    /api/testimonials/verify/:provider` - OAuth initiate (github, twitter)
-- `GET    /api/testimonials/verify/:provider/callback` - OAuth callback
+- `GET    /api/public/testimonials` - List approved testimonials for public display
+
+> **Note:** GitHub/Twitter OAuth verification routes are specified below but **deferred** — email magic-link verification is the only verification method currently shipped.
 
 ---
 

@@ -167,10 +167,10 @@ The AI automatically uses context from other fields:
 
 ### Setup
 
-AI Writing Assistant requires an active AI provider configured in Settings:
+AI Writing Assistant requires an active AI provider configured in Settings. Facet is bring-your-own-key: you supply your own provider credentials, and there are no managed AI credits or token quotas.
 
-1. Go to **Settings > AI Providers**
-2. Add a provider:
+1. Go to **Settings > Integrations** (`/admin/settings/integrations`)
+2. Add a provider with your own credentials:
    - **OpenAI:** Requires API key, uses `gpt-4o` or `gpt-4o-mini`
    - **Anthropic:** Requires API key, uses `claude-sonnet-4-20250514`
    - **Ollama:** Local installation, no API key needed
@@ -333,14 +333,14 @@ Get inline feedback on content.
 3. JavaScript error in component
 
 **Solutions:**
-1. Check Settings > AI Providers
+1. Check Settings > Integrations (`/admin/settings/integrations`)
 2. Ensure at least one provider is active and marked as default
 3. Check browser console for errors
 
 ### "AI request failed" Error
 
 **Common Issues:**
-1. **Invalid API Key** - Verify key in Settings > AI Providers
+1. **Invalid API Key** - Verify key in Settings > Integrations (`/admin/settings/integrations`)
 2. **Rate Limit** - Wait a few minutes, then retry
 3. **Network Error** - Check internet connection
 4. **Model Not Available** - Update model name in provider settings
@@ -390,7 +390,7 @@ Get inline feedback on content.
 ### API Key Security
 
 **Storage:**
-- API keys are encrypted at rest using AES-256
+- API keys are encrypted at rest using AES-256-GCM
 - Keys never sent to frontend
 - Decrypted only during AI API calls
 

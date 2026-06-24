@@ -60,22 +60,22 @@ For development, a default admin account is created automatically:
 
 ```bash
 # From your Docker container
-docker exec -it facet /app/backend/facet reset-admin-password
+docker exec -it facet /app/facet reset-admin-password
 
 # Or specify a different email
-docker exec -it facet /app/backend/facet reset-admin-password admin@yourdomain.com
+docker exec -it facet /app/facet reset-admin-password admin@yourdomain.com
 ```
 
 This resets the password to `changeme123` and the user will be prompted to change it on next login.
 
 ### 6. Try Demo Mode (Optional)
 
-Not sure where to start? After logging in, toggle **Demo Mode** ON at the top of the admin panel to instantly load The Doctor's hilarious profile showcasing all features:
+Not sure where to start? After logging in, load **Demo Data** from **Admin → Settings → Demo Data** to instantly load Merlin Ambrosius's Arthurian-themed profile showcasing all features:
 
-- 5 different views (recruiter, conference, consulting, personal, academic)
-- 4 extensive blog posts with technical humor
-- Projects, experience, talks, certifications, and more
-- All features demonstrated: media embeds, different layouts, privacy controls
+- Multiple views for different audiences (recruiter, conference, consulting, personal, academic)
+- Blog posts and talks
+- Projects, experience, certifications, testimonials, and more
+- Features demonstrated: media embeds, different layouts, privacy controls
 
 **Your data is safe:** When you toggle demo mode ON, your original data is backed up. Toggle it OFF to restore your data exactly as it was (or keep the demo data as your starting point if you prefer).
 
@@ -197,6 +197,43 @@ SMTP_SENDER_ADDRESS=noreply@yourdomain.com
 - **Verification emails**: When a testimonial submitter opts to verify their email address (15-minute expiry link)
 
 Emails support i18n — the language matches your site's configured locale (Settings → Site Settings → Default Locale).
+
+---
+
+## AI Providers (Bring Your Own Key)
+
+Facet's AI features (resume parsing, the writing assistant, GitHub project enrichment, AI Print) are **bring-your-own-key**. Nothing is metered or billed by Facet — you supply your own credentials for OpenAI, Anthropic, or any OpenAI-compatible endpoint (including a local Ollama instance).
+
+Configure providers in the admin UI at **Admin → Settings → Integrations**, or pre-seed one at startup via environment variables:
+
+```env
+# Anthropic Claude
+ANTHROPIC_API_KEY=sk-ant-...
+
+# OpenAI
+OPENAI_API_KEY=sk-...
+
+# Ollama (local, no API key needed)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+```
+
+If you skip this entirely, the AI panels simply don't appear. Facet works fully without AI. Provider keys are encrypted at rest with AES-256-GCM.
+
+---
+
+## More Integrations
+
+These features are configured entirely from the admin UI once Facet is running:
+
+- **Public REST API + API keys** — `/admin/api` (build scripts against `/api/v1/*`)
+- **Webhooks** — `/admin/settings/webhooks` (POST a JSON envelope on post/comment/newsletter events)
+- **Newsletter** — `/admin/newsletter` (lists, broadcasts, subscribe flow)
+- **Comments moderation** — `/admin/comments`
+- **System alerts** — `/admin/alerts`
+- **TOTP 2FA** — `/admin/settings/account`
+
+See the [Self-Hosting Guide](SELF-HOSTING-GUIDE.md) for worked examples of the API and webhooks.
 
 ---
 
