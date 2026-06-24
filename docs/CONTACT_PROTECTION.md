@@ -1,14 +1,25 @@
 # Contact Protection & Social Links Feature
 
-**Status:** Designed, Ready for Implementation
-**Priority:** High
-**Estimated Effort:** 2-3 weeks
+**Status:** Implemented (CAPTCHA/Turnstile tier planned, not yet shipped)
 
 ---
 
 ## Overview
 
-Add granular per-view control over contact information and social links with anti-scraping protection to prevent bot harvesting while maintaining accessibility.
+Facet provides granular per-view control over contact information and social links with anti-scraping protection to prevent bot harvesting while maintaining accessibility.
+
+Contact methods are stored in the `contact_methods` collection and managed from **Admin > Contacts** (`/admin/contacts`). Each method has a protection tier and per-view visibility.
+
+### Protection Tiers
+
+Four protection tiers are available per contact method:
+
+1. **None** - Display the value directly (use for public profiles like GitHub).
+2. **CSS Obfuscation** - Hide the value from basic scrapers using CSS tricks and decoy characters.
+3. **Click-to-Reveal** - Require user interaction before revealing the value.
+4. **CAPTCHA** - Cloudflare Turnstile verification. **Planned: this tier is defined but not yet shipped.** Treat the Turnstile sections below as the design for that work.
+
+Per-view visibility lets you choose which contact methods appear on each view.
 
 ## Business Requirements
 
@@ -126,7 +137,7 @@ const ProtectionLevels = [
 <button aria-label="Copy email">Copy</button>
 ```
 
-#### Level 3: Turnstile CAPTCHA
+#### Level 3: Turnstile CAPTCHA (Planned, not yet shipped)
 **Use case:** Primary email on high-traffic sites
 **Effectiveness:** ⭐⭐⭐⭐⭐ Blocks all bots
 **Accessibility:** ✅ Invisible challenge, fully accessible
@@ -461,10 +472,11 @@ type ContactReveal struct {
 - Based on device fingerprint + IP
 - Doesn't affect normal users
 
-**Layer 5: Turnstile (Optional)**
+**Layer 5: Turnstile (Optional, planned)**
 - Strongest protection
 - Cloudflare's invisible CAPTCHA
 - Use sparingly (high-value contacts only)
+- Not yet shipped; planned enhancement
 
 ### Privacy Considerations
 
@@ -635,6 +647,5 @@ Tip: Start with "Click to Reveal" for emails and "None" for social profiles.
 
 ---
 
-**Last Updated:** 2026-01-03
-**Status:** Design complete, awaiting implementation approval
-**Next Steps:** Review with stakeholders, prioritize phases, begin Phase 1 implementation
+**Last Updated:** 2026-06-23
+**Status:** Implemented — `contact_methods` collection, per-view visibility, and the None / CSS Obfuscation / Click-to-Reveal tiers ship today. The CAPTCHA (Cloudflare Turnstile) tier is planned and not yet shipped; sections describing Turnstile describe the intended design.

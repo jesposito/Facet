@@ -1,8 +1,9 @@
 # Facet Design Document
 
-**Version:** 1.1
+**Version:** 1.2
 **Status:** Active
-**Last Updated:** 2026-02-15
+**Last Updated:** 2026-06-23
+**Applies to:** Facet v2.22.1 (self-hosted)
 
 ---
 
@@ -42,7 +43,7 @@ Facet is a **self-hosted, privacy-respecting, single-owner personal profile plat
 | **Fully owned data** | All data lives in SQLite. Export, backup, delete at will. |
 | **Quiet and intentional** | No notifications, no feeds, no engagement metrics. |
 | **Powerful but not loud** | Rich features that stay out of the way until needed. |
-| **Not social** | No comments, likes, follows, or messaging. |
+| **Not social** | No feeds, likes, or follows. Comments exist only as an opt-in, per-item, fully moderated feature — off by default. |
 | **Privacy first** | Explicit sharing, no accidental disclosure, zero tracking. |
 
 ### 1.3 Mental Model
@@ -66,12 +67,13 @@ This is something a thoughtful adult would host for themselves, not a SaaS produ
 
 Facet will **never** include:
 
-- Social features (feeds, likes, comments, follows)
-- Messaging (email notifications for testimonials are functional, not social)
+- Engagement-driven social features (feeds, likes, follows, infinite scroll)
+- Messaging or DMs (email — testimonial verification, newsletter, webhook delivery — is functional, not social)
 - Multi-tenant SaaS features
-- Analytics dashboards or engagement metrics
 - Advertising or growth loops
 - User tracking beyond basic access logging
+
+> **Note:** Threaded comments do exist, but as an opt-in, per-item moderated feature (off by default, with an approval queue and spam reporting) — not as an open social network. Likewise, lightweight analytics/access logs exist for the owner's own use; there are no third-party trackers.
 
 ---
 
@@ -145,12 +147,14 @@ Views are the core differentiator of Facet. They enable:
 
 ### 2.6 AI Providers (Optional)
 
-**AI Providers** are user-supplied credentials for optional enrichment:
+**AI Providers** are user-supplied credentials for optional enrichment. Self-hosted Facet is **bring-your-own-key only** — there are no managed AI credits; you connect your own OpenAI, Anthropic, or Ollama account.
 
 - Support for OpenAI, Anthropic, Ollama, custom endpoints
 - API keys encrypted at rest (AES-256-GCM)
 - Never auto-publish — all AI output goes through review
 - Privacy modes: full README, summary only, none
+
+AI powers several optional features beyond GitHub enrichment: resume parsing (PDF/DOCX upload → structured data), AI resume generation (export to PDF/DOCX), and a writing assistant (five tones plus a critique mode). All of these require a configured provider and route their output through review.
 
 ---
 
@@ -276,21 +280,67 @@ email_verification_tokens
 ├── testimonial_id (FK→testimonials)
 ├── email, token_hash
 ├── expires_at, verified_at
+
+comments
+├── content_type, content_id (target item)
+├── parent_id (threaded replies)
+├── author_name, author_email, body
+├── status (pending|approved|spam|rejected)
+├── is_pinned, is_admin_reply
+└── ip_hash, user_agent
+   (comment_reports: comment FK, reason, detail, status)
+
+api_keys
+├── label, key_prefix (indexed), key_hash (HMAC)
+├── scopes (JSON: read:*/write:* for profile,posts,projects,skills,experience)
+├── allowed_origins, expires_at, last_used_at
+└── is_active
+
+webhooks
+├── label, url (SSRF-checked)
+├── secret (HMAC-SHA256, auto-generated), events (JSON)
+├── is_active, failure_count (auto-disable)
+└── last_delivered_at, last_failure_at, last_error
+   (webhook_deliveries: webhook_id FK, event_name, request/response, succeeded)
+
+system_alerts
+├── severity, event, title
+├── details, metadata
+└── acknowledged_at
+
+newsletter_lists
+├── name, slug, description
+├── sender_name, reply_to, welcome_subject, welcome_html
+├── is_default, is_active, subscriber_count
+   (subscribers + subscriber_list_memberships for multi-list/segments)
+
+audit_logs / access_logs
+├── event, metadata, created
+└── (owner-facing access history, not third-party tracking)
+
+external_media
+├── url, provider (youtube|vimeo|loom|soundcloud|
+│   spotify|codepen|figma|immich|image|...)
+└── title, mime_type, thumbnail_url
 ```
 
-### 3.2 Proposed Schema Extensions
+> Self-hosted Facet runs **automigrate on boot**, so every collection above is provisioned automatically on first start of a fresh container.
 
-**Phase 1: Profile Completeness**
+### 3.2 Shipped & Proposed Schema Extensions
+
+**Shipped** (already in the schema):
+- ✅ `awards` collection: title, issuer, date, description, visibility
+- ✅ `custom_content` collection: title, slug, content (Markdown), icon, sort_order, visibility — arbitrary content sections without schema changes
+- ✅ `experience.company_logo`: file upload for logos
+- ✅ `contact_methods` with tiered protection (none / obfuscated / click-reveal / captcha)
+
+**Still proposed:**
 
 Add to `profile`:
 - `pronouns`: Optional, displayed with name
 - `tagline`: Short one-liner (distinct from headline)
-- `resume_pdf`: Auto-generated or uploaded resume
-
-**Phase 2: Enhanced Experience/Projects**
 
 Add to `experience`:
-- `company_logo`: File upload for logos
 - `employment_type`: Full-time, part-time, contract, etc.
 
 Add to `projects`:
@@ -298,18 +348,8 @@ Add to `projects`:
 - `year_started`, `year_ended`: Simplified date display
 - `collaborators`: JSON array of names
 
-**Phase 3: Awards & Publications**
-
-New collections:
-- `awards`: name, issuer, date, description, visibility
-- `publications`: title, venue, date, url, type (paper|book|article), visibility
-
-**Phase 4: Custom Sections**
-
 New collection:
-- `custom_sections`: name, slug, content (Markdown), sort_order, visibility
-
-This allows users to add arbitrary content sections without schema changes.
+- `publications`: title, venue, date, url, type (paper|book|article), visibility
 
 ---
 
@@ -821,6 +861,9 @@ For password-protected views:
 | **API keys encrypted at rest** | AES-256-GCM with derived key |
 | **No public collection access** | All collections require auth for direct API |
 | **Rate limiting on auth endpoints** | Strict tier (5/min) on password check |
+| **Optional 2FA** | TOTP with recovery codes for admin login |
+| **Webhook egress is hardened** | HMAC-SHA256 signed payloads + SSRF protection on target URLs |
+| **API keys are scoped & hashed** | `read:*`/`write:*` scopes; only HMAC hash stored, raw key shown once |
 
 ### 10.2 Collection Access Model
 
@@ -930,6 +973,20 @@ Based on codebase analysis, these features are incomplete or missing:
 | ~~**Custom content**~~ | ~~Not implemented~~ | ✅ Complete: User-defined content sections |
 | ~~**Contact protection**~~ | ~~Not implemented~~ | ✅ Complete: 4-tier protection, per-view visibility |
 | ~~**Version notifications**~~ | ~~Not implemented~~ | ✅ Complete: Check GitHub for updates |
+| ~~**Webhooks**~~ | ~~Not implemented~~ | ✅ Complete: HMAC-SHA256 signing, SSRF protection, retry + auto-disable, delivery log |
+| ~~**Public REST API**~~ | ~~Not implemented~~ | ✅ Complete: `/api/v1/*` with scoped API keys (`read:*`/`write:*`) |
+| ~~**System alerts inbox**~~ | ~~Not implemented~~ | ✅ Complete: `/admin/alerts` |
+| ~~**Newsletter**~~ | ~~Not implemented~~ | ✅ Complete: Multi-list/segments + compose UI |
+| ~~**Comments**~~ | ~~Not implemented~~ | ✅ Complete: Threaded, moderation queue, per-item toggle |
+| ~~**Resume parsing / generation**~~ | ~~Not implemented~~ | ✅ Complete: AI parse (PDF/DOCX) + AI generate (PDF/DOCX) |
+| ~~**Writing assistant**~~ | ~~Not implemented~~ | ✅ Complete: 5 tones + critique mode |
+| ~~**2FA**~~ | ~~Not implemented~~ | ✅ Complete: Optional TOTP with recovery codes |
+| ~~**Multi-language UI**~~ | ~~Not implemented~~ | ✅ Complete: en/de/elvish/klingon/lolcat, CI-enforced parity |
+| ~~**External media embeds**~~ | ~~Not implemented~~ | ✅ Complete: YouTube, Vimeo, Loom, SoundCloud, Spotify, CodePen, Figma, Immich |
+| ~~**Data export**~~ | ~~Deferred~~ | ✅ Complete: JSON/YAML export, RSS feed, iCal |
+| ~~**View Analytics**~~ | ~~Not implemented~~ | ✅ Complete: Owner-facing access/view metrics |
+| **Scheduled GitHub sync** | Not implemented | Manual refresh only |
+| **QR codes** | Not implemented | Generate for views/share links |
 
 ### 13.2 Proposed Priority Order
 
@@ -945,9 +1002,9 @@ Based on codebase analysis, these features are incomplete or missing:
 10. **Audit log**: Access history for share tokens (minimal currently)
 11. ~~**Testimonials**: Social proof collection~~ ✅ Complete
 12. ~~**Contact protection**: Per-view contact visibility~~ ✅ Complete
-13. 🔜 **View Analytics Dashboard**: Surface existing usage data
+13. ~~**View Analytics Dashboard**: Surface existing usage data~~ ✅ Complete (owner-facing metrics)
 14. 🔜 **QR Codes**: Generate for views/share links
-15. 🔜 **Webhooks**: Notify external services on events
+15. ~~**Webhooks**: Notify external services on events~~ ✅ Complete (HMAC-SHA256, SSRF protection, retry/auto-disable, delivery log)
 
 ---
 
@@ -1029,9 +1086,10 @@ These export features are planned for later phases:
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| **Server-side PDF** | Deferred | Would require headless browser or Go PDF library |
-| **Data export (JSON)** | Deferred | Export all profile data for backup |
-| **Data export (YAML)** | Deferred | Export in Facet format |
+| **Server-side PDF (resume)** | ✅ Complete | AI resume generation exports to PDF and DOCX |
+| **Data export (JSON)** | ✅ Complete | Export all profile data for backup |
+| **Data export (YAML)** | ✅ Complete | Export in Facet format |
+| **RSS feed / iCal** | ✅ Complete | `/rss.xml` for posts, `/talks.ics` for talks |
 | **Static HTML snapshot** | Deferred | Self-contained offline version |
 
 ---
@@ -1077,6 +1135,33 @@ These export features are planned for later phases:
 | POST | `/api/testimonials/{id}/approve` | Approve testimonial |
 | POST | `/api/testimonials/{id}/reject` | Reject testimonial |
 | GET | `/api/testimonials/pending-count` | Get pending testimonial count |
+
+### Public REST API (v1)
+
+Authenticated with scoped API keys via `Authorization: Bearer <key>`. Self-hosted exposes `read:*` and `write:*` scopes for `profile`, `posts`, `projects`, `skills`, and `experience` only.
+
+| Method | Path | Scope |
+|--------|------|-------|
+| GET | `/api/v1/profile` | `read:profile` |
+| GET / POST | `/api/v1/posts` | `read:posts` / `write:posts` |
+| PATCH / DELETE | `/api/v1/posts/{id}` | `write:posts` |
+| GET / POST | `/api/v1/projects` | `read:projects` / `write:projects` |
+| PATCH / DELETE | `/api/v1/projects/{id}` | `write:projects` |
+| GET / POST | `/api/v1/skills` | `read:skills` / `write:skills` |
+| PATCH / DELETE | `/api/v1/skills/{id}` | `write:skills` |
+| GET / POST | `/api/v1/experience` | `read:experience` / `write:experience` |
+| PATCH / DELETE | `/api/v1/experience/{id}` | `write:experience` |
+
+### Webhooks & System Alerts (admin)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET / POST | `/api/admin/webhooks` | List / create webhook (auto-generates HMAC secret) |
+| PATCH / DELETE | `/api/admin/webhooks/{id}` | Update / delete webhook |
+| GET | `/api/admin/system-alerts` | List system alerts (filterable) |
+| POST | `/api/admin/system-alerts/{id}/acknowledge` | Acknowledge one alert |
+| POST | `/api/admin/system-alerts/acknowledge-all` | Acknowledge all |
+| DELETE | `/api/admin/system-alerts/{id}` | Remove alert |
 
 ---
 

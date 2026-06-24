@@ -144,7 +144,7 @@ Location: `/frontend/src/routes/admin/experience/+page.svelte`
 </div>
 ```
 
-### Projects Page (TODO)
+### Projects Page (DONE ✅)
 
 Location: `/frontend/src/routes/admin/projects/+page.svelte`
 
@@ -228,7 +228,7 @@ Location: `/frontend/src/routes/admin/profile/+page.svelte`
 </div>
 ```
 
-### Posts/Blog Page (TODO)
+### Posts/Blog Page (DONE ✅)
 
 Location: `/frontend/src/routes/admin/posts/+page.svelte`
 
@@ -269,7 +269,7 @@ Location: `/frontend/src/routes/admin/posts/+page.svelte`
 </div>
 ```
 
-### Education Page (TODO)
+### Education Page (DONE ✅)
 
 Location: `/frontend/src/routes/admin/education/+page.svelte`
 
@@ -294,7 +294,7 @@ Location: `/frontend/src/routes/admin/education/+page.svelte`
 </div>
 ```
 
-### Talks Page (TODO)
+### Talks Page (DONE ✅)
 
 Location: `/frontend/src/routes/admin/talks/+page.svelte`
 
@@ -399,7 +399,7 @@ When integrating AI Assistant into a new form:
 ### Button Doesn't Appear
 
 **Check:**
-1. Is an AI provider configured and active? (Settings > AI Providers)
+1. Is an AI provider configured and active? (Settings > Integrations, `/admin/settings/integrations`)
 2. Is the import correct? `import AIContentHelper from '$components/admin/AIContentHelper.svelte'`
 3. Browser console for errors?
 
@@ -446,17 +446,17 @@ When integrating AI Assistant into a new form:
 - [x] Experience: description, bullets
 
 ### Phase 2: Projects & Profile
-- [ ] Projects: summary, description
+- [x] Projects: summary, description
 - [ ] Profile: headline, summary
 
 ### Phase 3: Secondary Content
-- [ ] Education: description
-- [ ] Talks: description
-- [ ] Posts: excerpt, content
+- [x] Education: description
+- [x] Talks: description
+- [x] Posts: excerpt, content
+- [x] Custom sections / homepage / courses
 
 ### Phase 4: Advanced
 - [ ] View overrides
-- [ ] Custom sections
 - [ ] Bulk operations
 
 ---
@@ -476,5 +476,5 @@ When integrating AI Assistant into a new form:
 
 ---
 
-**Last Updated:** 2026-01-03
-**Status:** In Progress - Phase 1 Complete
+**Last Updated:** 2026-06-23
+**Status:** Integrated across Experience, Projects, Education, Posts, Talks, and Custom sections. Profile fields and view-override integration remain outstanding.

@@ -38,7 +38,9 @@ Admin users authenticate via:
 1. **OAuth2** (Google, GitHub) - preferred
 2. **Password** - fallback
 
-Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated list).
+Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated list, acting as an OAuth allowlist).
+
+**Password storage:** Admin passwords are hashed with **bcrypt (cost 12)**. On first login with the default credentials, a password change is forced before access is granted.
 
 ### Two-Factor Authentication (TOTP)
 
@@ -317,8 +319,8 @@ These endpoints use server-side database calls that bypass collection rules, all
 
 | Category | Collections | Direct Access |
 |----------|-------------|---------------|
-| Content | profile, experience, projects, education, certifications, skills, posts, talks, views | Auth required |
-| Sensitive | share_tokens, sources, ai_providers, import_proposals, settings | Auth required |
+| Content | profile, experience, projects, education, certifications, skills, posts, talks, views, comments | Auth required |
+| Sensitive | share_tokens, sources, ai_providers, import_proposals, settings, api_keys, webhooks, testimonial_requests, email_verification_tokens | Auth required |
 | Auth | users | Managed by PocketBase |
 
 ### Why This Matters
@@ -346,6 +348,66 @@ Authenticated users (admin OAuth allowlist) can still:
 - Use the admin dashboard to manage content
 - Access collections directly via PocketBase API
 - Use the `/_/` admin UI (if enabled)
+
+## Public REST API & Scoped API Keys
+
+Facet exposes a documented public REST API under `/api/v1/*` for read and write integrations. Access is gated by API keys.
+
+### Key Properties
+
+| Property | Implementation |
+|----------|----------------|
+| Storage | Raw key never stored; only the **SHA-256 hash** is persisted |
+| Display | Raw key returned **once** at creation time — store it securely |
+| Scopes | Granular scopes (`read:*` / `write:*`), e.g. `read:posts`, `write:projects` |
+| Scope independence | Write scopes do **not** imply read scopes — callers needing both must request both |
+| Revocation | Keys can be deactivated/deleted by an admin at any time |
+
+**Valid scopes:** `read:profile`, `read:posts`, `read:projects`, `read:skills`, `read:experience`, `write:profile`, `write:posts`, `write:projects`, `write:skills`, `write:experience`.
+
+### Security Properties
+
+- **Hash-only storage:** A DB leak does not reveal usable keys (SHA-256, no reversibility)
+- **Least privilege:** Each key carries only the scopes it was granted
+- **Rate limited:** API requests are subject to per-IP rate limiting (see below)
+
+## Webhooks & SSRF Protection
+
+Facet can POST event payloads to user-registered webhook URLs. Because the target URL is attacker-influenced (admin-supplied), webhook dispatch is hardened against Server-Side Request Forgery (SSRF).
+
+### Signing
+
+- Every delivery is signed with **HMAC-SHA256** over the JSON body
+- Signature is sent in the `X-Facet-Signature` header as `sha256=<hex>`
+- Receivers verify the signature using the per-webhook secret
+
+### SSRF Protection
+
+Before dispatching, the resolved destination IP is validated. Requests to the following are **rejected**:
+
+- Loopback (`127.0.0.0/8`, `::1`, `localhost`)
+- Private RFC1918 ranges
+- Link-local (`169.254.0.0/16`) and link-local/interface-local multicast
+- CGNAT (`100.64.0.0/10`)
+- Cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`)
+- Unspecified / multicast addresses
+
+### Reliability Controls
+
+- **Retry with backoff** on transient delivery failures
+- **Auto-disable** after repeated consecutive failures
+- **Per-delivery log** for auditing dispatches and responses
+- **Test event picker:** Admins can fire synthetic payloads to matching subscribers
+
+## Comments Moderation
+
+Threaded comments support a moderation workflow with abuse controls.
+
+- **XSS prevention:** Comment content is sanitized with **DOMPurify** before rendering
+- **Moderation queue:** Submitted comments enter a pending state for admin approval
+- **Reports:** Visitors can report comments; reported items surface for review
+- **Per-item toggle:** Comments can be enabled/disabled per content item
+- **Rate limiting:** Public submission endpoints are rate limited
 
 ## API Security
 
