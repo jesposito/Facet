@@ -15,6 +15,7 @@ import { brandName } from '$lib/stores/plan';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 	import HomepageSectionManager from '$components/admin/HomepageSectionManager.svelte';
 	import AccentPicker from '$components/admin/AccentPicker.svelte';
+	import TextColorPicker from '$components/admin/TextColorPicker.svelte';
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 	import { DEFAULT_ACCENT_COLOR, type AccentColor } from '$lib/colors';
 	import { FONT_PACKS, FONT_PACK_LIST, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
@@ -154,6 +155,7 @@ import { brandName } from '$lib/stores/plan';
 	let heroBgError = $state('');
 	let accentColor: AccentColor = $state(DEFAULT_ACCENT_COLOR);
 	let customHexColor: string = $state('');
+	let textColor: string = $state('');
 	let fontPack: FontPack = $state(DEFAULT_FONT_PACK);
 
 	const heroLayoutOptions = [
@@ -161,7 +163,8 @@ import { brandName } from '$lib/stores/plan';
 		{ id: 'centered', labelKey: 'admin.settings_page.appearance.hero_layout_centered' },
 		{ id: 'split', labelKey: 'admin.settings_page.appearance.hero_layout_split' },
 		{ id: 'minimal', labelKey: 'admin.settings_page.appearance.hero_layout_minimal' },
-		{ id: 'stacked', labelKey: 'admin.settings_page.appearance.hero_layout_stacked' }
+		{ id: 'stacked', labelKey: 'admin.settings_page.appearance.hero_layout_stacked' },
+		{ id: 'rail', labelKey: 'admin.settings_page.appearance.hero_layout_rail' }
 	];
 
 	const heroSpacingOptions = [
@@ -459,6 +462,7 @@ import { brandName } from '$lib/stores/plan';
 				heroBgColor = ((profile as unknown as { hero_bg_color?: string }).hero_bg_color) || '';
 				accentColor = ((profile as unknown as { accent_color?: string }).accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
 				customHexColor = (profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
+				textColor = (profile as unknown as { text_color?: string }).text_color || '';
 				fontPack = ((profile as unknown as { font_pack?: string }).font_pack as FontPack) || DEFAULT_FONT_PACK;
 
 				if (profile.avatar) {
@@ -512,6 +516,22 @@ import { brandName } from '$lib/stores/plan';
 		} catch (err) {
 			console.error('Failed to save custom hex color:', err);
 			toasts.add('error', $t('admin.settings_page.appearance.accent_color_error'));
+		}
+	}
+
+	// Text (font) color autosave. Empty string clears it back to the default ink.
+	// The derived AAA-clamped ink is computed SSR-side (deriveTextInk), so saving
+	// the raw hue is all that's needed; the public page re-derives on next load.
+	async function saveTextColor(hex: string) {
+		if (!profile) return;
+		try {
+			await collection('profile').update(profile.id as string, { text_color: hex });
+			textColor = hex;
+			toasts.add('success', $t('admin.text_color_picker.updated'));
+			window.dispatchEvent(new CustomEvent('text-color-changed', { detail: hex }));
+		} catch (err) {
+			console.error('Failed to save text color:', err);
+			toasts.add('error', $t('admin.text_color_picker.error'));
 		}
 	}
 
@@ -1157,6 +1177,12 @@ import { brandName } from '$lib/stores/plan';
 							onchange={(color) => saveAccentColor(color)}
 							onhexchange={(hex) => saveCustomHexColor(hex)}
 						/>
+						<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+							<TextColorPicker
+								value={textColor}
+								onchange={(hex) => saveTextColor(hex)}
+							/>
+						</div>
 						<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
 							<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.homepage.font_pack_title')}</span>
 							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.font_pack_description')}</p>

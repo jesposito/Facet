@@ -167,7 +167,9 @@
         "css_help_components": "Components",
         "css_help_tip": "Tactical note: Keep code minimal; do not hide structural elements that power accessibility and layout.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Battle Rail",
+        "hero_layout_rail_desc": "Fixed war-banner at the left, conquest to the right"
       },
       "general": {
         "section_title": "General Operations",
@@ -1063,7 +1065,11 @@
       "demo": "Training",
       "demo_on": "ON",
       "toggle_demo_mode": "Toggle training mode",
-      "opens_new_tab": "{label} (opens in new viewport)"
+      "opens_new_tab": "{label} (opens in new viewport)",
+      "live_preview_toggle": "Toggle live battle preview",
+      "live_preview_label": "Preview",
+      "live_preview_on": "On",
+      "live_preview_off": "Off"
     },
     "settings": {
       "favicon": {
@@ -1549,6 +1555,32 @@
       "reset": "Reset to default",
       "announced_custom": "Accent color set to {hex}",
       "announced_curated": "Accent color set to {name}"
+    },
+    "text_color_picker": {
+      "label": "ngutlh rItlh",
+      "description": "publicHom Daq nargh ngutlh 'ej porgh ngutlh yIrItlhmoH. rItlh wIchoHmoH 'e' wIlaDlaHchugh reH (WCAG AAA) wovbe' 'ej wovqu'.",
+      "suggestions_label": "ngutlh rItlh chuvmey",
+      "suggestion_slate": "nagh SuD",
+      "suggestion_graphite": "qIj",
+      "suggestion_umber": "Doq qIj",
+      "suggestion_navy": "SuD'a'",
+      "suggestion_forest": "ngem SuD",
+      "suggestion_plum": "naH Doq",
+      "custom_label": "pagh hex rItlh DawIv",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "jav hex mIllogh (0-9, A-F), # tlhItlh DaH. rItlh motlh chovnatlhlu' chugh chImmoH.",
+      "invalid": "lugh hex rItlh yIghItlh (#1f2937 rur)",
+      "reset": "rItlh motlh Daq yIchegh",
+      "preview_label": "ral leghlu' (choHlu')",
+      "preview_light": "wovbe'",
+      "preview_dark": "wovqu'",
+      "preview_heading": "ngutlh nIvbogh",
+      "preview_body": "naDev porgh ngutlh laDlu'.",
+      "aaa_note": "rItlh leghlu'bogh 'oH publicHomDaq nargh'e'. reH 7:1 (WCAG AAA) Hutlhmey DuvDaq choHchu'lu' Hoch Daq.",
+      "announced": "{hex} ngutlh rItlh",
+      "announced_reset": "rItlh motlh Daq ngutlh rItlh chegh",
+      "updated": "ngutlh rItlh choHlu'",
+      "error": "ngutlh rItlh choHlaHbe'"
     },
     "view_editor": {
       "page": {
@@ -2754,6 +2786,13 @@
         "title": "choH",
         "description": "SeH, qach, rar, je chenmoHwI' jan."
       }
+    },
+    "site_preview": {
+      "heading": "Live battle preview",
+      "iframe_title": "Live preview of your public site",
+      "readonly_note": "This preview is read-only and not keyboard accessible. Toggle off to hide it. Qapla'!",
+      "ready_announce": "Live preview ready! Qapla'!",
+      "error_announce": "Live preview unavailable. Dishonorable!"
     }
   },
   "public": {
@@ -2774,7 +2813,8 @@
     "nav": {
       "home": "Home",
       "back_to": "Return to {page}",
-      "open_main_menu": "Open main command menu"
+      "open_main_menu": "Open main command menu",
+      "sections_label": "Battle section navigation"
     },
     "password": {
       "title": "Defended Access",

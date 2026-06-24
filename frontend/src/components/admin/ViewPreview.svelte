@@ -58,6 +58,7 @@
 		// Props from parent editor
 		profile?: Profile | null;
 		accentColor?: AccentColor | null; // View-specific accent color
+		heroLayout?: string | null; // View hero layout (null = inherit from profile)
 		heroHeadline?: string;
 		heroSummary?: string;
 		ctaText?: string;
@@ -105,6 +106,7 @@
 	let {
 		profile = null,
 		accentColor = null,
+		heroLayout = null,
 		heroHeadline = '',
 		heroSummary = '',
 		ctaText = '',
@@ -214,6 +216,14 @@
 				summary: heroSummary || profile.summary
 			}
 		: null);
+
+	// Effective hero layout (view override > profile default > standard) and the
+	// rail flag that drives the 2-col grid in the mini-preview.
+	let effectiveHeroLayout = $derived(
+		(heroLayout || (profile as Profile | null)?.hero_layout || 'standard') as
+			'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | 'rail'
+	);
+	let useRailLayout = $derived(effectiveHeroLayout === 'rail');
 	// Reactive computation of all section data - ensures updates when props change
 	let computedSections = $derived(computeAllSections(sections, sectionItems));
 	// Reactive count of visible sections for empty state check (includes custom content)
@@ -262,10 +272,14 @@
 </script>
 
 <div class="preview-container" class:preview-mobile={previewMode === 'mobile'} style={accentStyles}>
+	<!-- Rail layout: 2-col grid wraps the hero (col 1) + CTA/content (col 2)
+	     so the rail sidebar previews correctly. Other layouts fall back to
+	     display:contents (no structural change). -->
+	<div class={useRailLayout ? 'preview-rail-grid' : 'contents'}>
 	<!-- Mini Hero -->
 	{#if effectiveProfile}
 		<div class="preview-hero">
-			<ProfileHero profile={effectiveProfile} />
+			<ProfileHero profile={effectiveProfile} layout={effectiveHeroLayout} />
 		</div>
 	{:else}
 		<div class="preview-hero-placeholder">
@@ -278,6 +292,7 @@
 		</div>
 	{/if}
 
+	<div class={useRailLayout ? 'min-w-0' : 'contents'}>
 	<!-- CTA Banner Preview -->
 	{#if ctaText && ctaUrl}
 		<div class="bg-primary-600 text-white py-2 px-4">
@@ -381,9 +396,17 @@
 			</div>
 		{/if}
 	</div>
+	</div><!-- /content column (rail col 2) -->
+	</div><!-- /rail grid wrapper -->
 </div>
 
 <style>
+	.preview-rail-grid {
+		display: grid;
+		grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
+		align-items: start;
+	}
+
 	.preview-container {
 		background: var(--color-bg-primary, white);
 		border-radius: 0.5rem;

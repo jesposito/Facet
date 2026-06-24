@@ -11,6 +11,8 @@
 	import { demoMode, initDemoMode, collection } from '$lib/stores/demo';
 	import AdminSidebar from '$components/admin/AdminSidebar.svelte';
 	import AdminHeader from '$components/admin/AdminHeader.svelte';
+	import LivePreview from '$components/admin/LivePreview.svelte';
+	import { userPreferences } from '$lib/stores/userPreferences';
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
 	import TwoFactorModal from '$components/admin/TwoFactorModal.svelte';
 	import SetupWizard from '$components/admin/SetupWizard.svelte';
@@ -397,14 +399,20 @@
 
 			<AdminSidebar {isMobile} />
 
-			<!-- Main content: 
+			<!-- Main content:
 				- Mobile: full width (no margin)
 				- Desktop: margin-left based on sidebar state (preserves current behavior)
+				- When live preview is ON, allow main to shrink so the preview
+				  column gets reserved space at lg+. Below lg the preview is
+				  hidden via its own `lg:` gate so main stays full.
 			-->
 			<main
 				id="main-content"
 				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-clip w-full max-w-full
-					{isMobile ? '' : ($adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16')}"
+					{isMobile ? '' : ($adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16')}
+					{!isMobile && $userPreferences.livePreviewEnabled
+						? 'lg:max-w-[calc(50%-1rem)] xl:max-w-[calc(50%-1.5rem)]'
+						: ''}"
 			>
 				{#if showEncryptionWarning}
 					<div class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4" role="status">
@@ -431,6 +439,18 @@
 				{/if}
 				{@render children?.()}
 			</main>
+
+			<!-- Live site preview column.
+			     - Hidden via Tailwind `hidden lg:block` so mobile + tablet
+			       never render the iframe (no value on small screens; saves
+			       bandwidth + CPU on touch devices).
+			     - Mounted only when the toggle is ON. When OFF nothing renders
+			       (regression-safe). -->
+			{#if !isMobile && $userPreferences.livePreviewEnabled}
+				<div class="hidden lg:block flex-1 min-w-0 p-4 lg:p-6 mt-16">
+					<LivePreview />
+				</div>
+			{/if}
 		</div>
 
 			<SetupWizard />
