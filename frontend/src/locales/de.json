@@ -2331,7 +2331,10 @@
       "custom_content_note": "<strong>Hinweis:</strong> Hier erscheinen nur benutzerdefinierte Inhalte, die als <strong>öffentlich</strong> und <strong>nicht im Entwurf</strong> markiert sind. Um die Sichtbarkeit zu ändern, gehe zu <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Benutzerdefinierte Inhalte</a>.",
       "section_width_title": "Abschnittsbreite",
       "section_layout_title": "Abschnittslayout",
-      "page_title": "Startseite"
+      "page_title": "Startseite",
+      "testimonial_list_label": "Testimonial-Liste",
+      "testimonial_list_placeholder": "z. B. Kunden",
+      "testimonial_list_help": "Zeigt freigegebene Testimonials aus dieser Liste. Leer lassen, um alle anzuzeigen."
     },
     "import": {
       "resume_dropzone_label": "Lebenslauf-Datei-Ablagebereich",

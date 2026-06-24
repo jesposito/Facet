@@ -8,6 +8,7 @@
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import {
+		pb,
 		OVERRIDABLE_FIELDS,
 		VALID_LAYOUTS,
 		VALID_WIDTHS,
@@ -28,15 +29,32 @@
 	// Shared screen-reader announcer for keyboard + drag reorder (DRY).
 	let reorderAnnouncer = $state<ReorderAnnouncer | undefined>(undefined);
 
+	// Distinct testimonial list labels in use, for the section list autocomplete (#283).
+	let existingLists = $state<string[]>([]);
+	async function loadTestimonialLists() {
+		try {
+			const res = await fetch('/api/testimonials/lists', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : undefined
+			});
+			if (res.ok) {
+				const data = await res.json();
+				existingLists = Array.isArray(data.lists) ? data.lists : [];
+			}
+		} catch {
+			/* non-fatal: autocomplete is a convenience */
+		}
+	}
+
 	// Load DnD functionality when in browser
 	onMount(async () => {
+		loadTestimonialLists();
 		if (browser) {
 			const { dndzone: dnd, TRIGGERS: trig, SHADOW_PLACEHOLDER_ITEM_ID: shadow } = await import('svelte-dnd-action');
 			dndzone = dnd;
 			TRIGGERS = trig;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
 			dndLoaded = true;
-			
+
 			// Apply saved item order after dndzone is loaded
 			// This ensures selected items appear at top in saved order
 			applySavedItemOrder();
@@ -255,6 +273,7 @@
 			disabledCategories?: string[];
 			categoryDisplayModes?: Record<string, string>;
 			featuredId?: string;
+			list?: string;
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{
@@ -912,6 +931,33 @@
 									</div>
 								{/each}
 							</div>
+							{/if}
+
+							{#if sectionKey === 'testimonials'}
+								<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+									<label for="view-list-{sectionKey}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+										{$t('admin.homepage.testimonial_list_label')}
+									</label>
+									<input
+										id="view-list-{sectionKey}"
+										type="text"
+										value={sectionConfig.list || ''}
+										list="view-testimonial-lists-{sectionKey}"
+										placeholder={$t('admin.homepage.testimonial_list_placeholder')}
+										aria-describedby="view-list-help-{sectionKey}"
+										class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+										onchange={(e) => {
+											sections['testimonials'].list = e.currentTarget.value.trim() || undefined;
+											updateSections();
+										}}
+									/>
+									<datalist id="view-testimonial-lists-{sectionKey}">
+										{#each existingLists as l (l)}<option value={l}></option>{/each}
+									</datalist>
+									<p id="view-list-help-{sectionKey}" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+										{$t('admin.homepage.testimonial_list_help')}
+									</p>
+								</div>
 							{/if}
 
 							{#if sectionKey === 'testimonials' && (sectionConfig.layout === 'featured' || sectionConfig.layout === 'carousel')}

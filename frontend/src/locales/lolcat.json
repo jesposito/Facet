@@ -2331,7 +2331,10 @@
       "custom_content_note": "<strong>Note:</strong> Only custom stuffz markd <strong>public</strong> an <strong>not in draft</strong> showz here. To chanj who can haz, go to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Content</a>.",
       "section_width_title": "Sekshun wideness",
       "section_layout_title": "Sekshun layout",
-      "page_title": "Homepaej"
+      "page_title": "Homepaej",
+      "testimonial_list_label": "Testimonyal lizt",
+      "testimonial_list_placeholder": "liek, Klientz",
+      "testimonial_list_help": "Showz approovd testimonyals frm dis lizt. Leevz empty 2 show all kthx."
     },
     "import": {
       "resume_dropzone_label": "Rezume file drop zone",

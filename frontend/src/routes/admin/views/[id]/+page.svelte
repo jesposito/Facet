@@ -129,6 +129,7 @@
 		disabledCategories?: string[];
 		categoryDisplayModes?: Record<string, string>;
 		featuredId?: string;
+		list?: string;
 	}> = $state({});
 
 	// Section order for drag-drop (array of section keys with unique ids for dndzone)
@@ -708,6 +709,7 @@
 					sections[vs.section].disabledCategories = vs.disabledCategories;
 					sections[vs.section].categoryDisplayModes = vs.categoryDisplayModes;
 					sections[vs.section].featuredId = vs.featuredId;
+					sections[vs.section].list = vs.list;
 				}
 			}
 		} else {
@@ -872,6 +874,9 @@
 						}
 					}
 					// Include testimonials section settings if set
+					if (key === 'testimonials' && sectionConfig?.list) {
+						sectionData.list = sectionConfig.list;
+					}
 					if (key === 'testimonials' && sectionConfig?.featuredId) {
 						sectionData.featuredId = sectionConfig.featuredId;
 					}
