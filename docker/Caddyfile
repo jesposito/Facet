@@ -16,8 +16,6 @@
         # admin live-preview pane can embed this instance's own public site.
         # (DENY blocked even same-origin frames, breaking the preview.)
         X-Frame-Options "SAMEORIGIN"
-        # Modern equivalent; 'self' = only this origin may frame us.
-        Content-Security-Policy "frame-ancestors 'self'"
 
         # Control referrer information - safe default per OWASP
         Referrer-Policy "strict-origin-when-cross-origin"
@@ -34,7 +32,7 @@
         # Content Security Policy (enforcing)
         # Restricts script/style/frame sources to mitigate XSS.
         # 'unsafe-inline' kept for scripts/styles due to Svelte's inline injection pattern.
-        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://w.soundcloud.com https://open.spotify.com https://codepen.io https://www.figma.com; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://www.loom.com https://w.soundcloud.com https://open.spotify.com https://codepen.io https://www.figma.com; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 
         # INTENTIONALLY OMITTED:
         # - X-XSS-Protection: Deprecated since 2023, can cause vulnerabilities
