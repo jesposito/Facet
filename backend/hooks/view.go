@@ -681,6 +681,26 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 
+				// Testimonials list filter (#283): if this view's testimonials section
+				// points at a list, auto-include approved testimonials from that list
+				// (parity with the homepage facet), rather than explicit per-item picks.
+				if sectionName == "testimonials" {
+					if listVal, ok := section["list"].(string); ok && listVal != "" {
+						recs, err := app.FindRecordsByFilter(
+							collectionName,
+							"status = 'approved' && (visibility = 'public' || visibility = '') && list = {:list}",
+							"-featured,-sort_order",
+							100,
+							0,
+							dbx.Params{"list": listVal},
+						)
+						if err == nil {
+							sectionData[sectionName] = serializeRecordsWithOverrides(app, recs, itemConfig, sectionName)
+						}
+						continue
+					}
+				}
+
 				// Only show items that are explicitly selected
 				// If no items are selected, the section is empty (nothing shown)
 				if ok && len(items) > 0 {
