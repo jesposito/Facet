@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.3.0 - June 24, 2026
+
+**New Features:**
+- replace a library image and propagate everywhere (#348)
+
+**Pull Requests:** [#480](https://github.com/jesposito/Facet/pull/480),
+
+---
+
+
 ## v3.2.0 - June 24, 2026
 
 **New Features:**
