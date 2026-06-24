@@ -167,7 +167,9 @@
         "css_help_components": "Elements",
         "css_help_tip": "Wisdom: Keep weaving spare; avoid hiding structural elements that power accessibility and form.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Wayside",
+        "hero_layout_rail_desc": "Steadfast pillar to the left, tale to the right"
       },
       "general": {
         "section_title": "Common Matters",
@@ -2785,7 +2787,8 @@
     "nav": {
       "home": "Home",
       "back_to": "Return to {page}",
-      "open_main_menu": "Open main paths"
+      "open_main_menu": "Open main paths",
+      "sections_label": "Paths through the tale"
     },
     "password": {
       "title": "Warded Content",

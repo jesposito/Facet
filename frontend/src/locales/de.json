@@ -167,7 +167,9 @@
         "css_help_components": "Komponenten",
         "css_help_tip": "Tipp: Halten Sie CSS klein; vermeiden Sie das Ausblenden struktureller Elemente, die für Barrierefreiheit und Layout wichtig sind.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Seitenleiste",
+        "hero_layout_rail_desc": "Fixierte Seitenleiste links, Inhalt rechts"
       },
       "general": {
         "section_title": "Allgemein",
@@ -2785,7 +2787,8 @@
     "nav": {
       "home": "Startseite",
       "back_to": "Zurück zu {page}",
-      "open_main_menu": "Hauptmenü öffnen"
+      "open_main_menu": "Hauptmenü öffnen",
+      "sections_label": "Abschnittsnavigation"
     },
     "password": {
       "title": "Passwortgeschützt",

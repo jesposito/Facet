@@ -189,7 +189,7 @@
 		--chip: #ece4de;
 		--ink: #2a2522;
 		--muted: #5a524d;
-		--border: #988e85; /* load-bearing (>=3:1) */
+		--border: #8f857c; /* load-bearing: 3.20:1 vs --surface-2 #faf4f0, 3.50:1 vs #ffffff */
 		--border-hairline: #ddd1ca; /* decorative only */
 		--border-interactive: #988e85;
 		/* Accent surfaces (creator accent, contrast-clamped by B2). */

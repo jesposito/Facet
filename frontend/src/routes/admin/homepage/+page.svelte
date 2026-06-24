@@ -161,7 +161,8 @@ import { brandName } from '$lib/stores/plan';
 		{ id: 'centered', labelKey: 'admin.settings_page.appearance.hero_layout_centered' },
 		{ id: 'split', labelKey: 'admin.settings_page.appearance.hero_layout_split' },
 		{ id: 'minimal', labelKey: 'admin.settings_page.appearance.hero_layout_minimal' },
-		{ id: 'stacked', labelKey: 'admin.settings_page.appearance.hero_layout_stacked' }
+		{ id: 'stacked', labelKey: 'admin.settings_page.appearance.hero_layout_stacked' },
+		{ id: 'rail', labelKey: 'admin.settings_page.appearance.hero_layout_rail' }
 	];
 
 	const heroSpacingOptions = [

@@ -167,7 +167,9 @@
         "css_help_components": "Components",
         "css_help_tip": "Tactical note: Keep code minimal; do not hide structural elements that power accessibility and layout.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Battle Rail",
+        "hero_layout_rail_desc": "Fixed war-banner at the left, conquest to the right"
       },
       "general": {
         "section_title": "General Operations",
@@ -2785,7 +2787,8 @@
     "nav": {
       "home": "Home",
       "back_to": "Return to {page}",
-      "open_main_menu": "Open main command menu"
+      "open_main_menu": "Open main command menu",
+      "sections_label": "Battle section navigation"
     },
     "password": {
       "title": "Defended Access",

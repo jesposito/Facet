@@ -167,7 +167,9 @@
         "css_help_components": "Componentz",
         "css_help_tip": "Tip: Keep CSS smol; avoid hidin struktural elementz dat powr aksessibility n layout.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Rail",
+        "hero_layout_rail_desc": "Sticky sidebar on teh left, stuffz on teh right"
       },
       "general": {
         "section_title": "Jeneral",
@@ -2785,7 +2787,8 @@
     "nav": {
       "home": "Hoem",
       "back_to": "Bak 2 {page}",
-      "open_main_menu": "Open main menu"
+      "open_main_menu": "Open main menu",
+      "sections_label": "Sekshun naviashun"
     },
     "password": {
       "title": "Passwurd Protektd",

@@ -167,7 +167,9 @@
         "css_help_description": "These selectors match the public site (not the admin UI). Start small and test on mobile.",
         "css_help_base": "Base",
         "css_help_components": "Components",
-        "css_help_tip": "Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout."
+        "css_help_tip": "Tip: Keep CSS small; avoid hiding structural elements that power accessibility and layout.",
+        "hero_layout_rail": "Rail",
+        "hero_layout_rail_desc": "Sticky sidebar on the left, content on the right"
       },
       "general": {
         "section_title": "General",
@@ -2785,7 +2787,8 @@
     "nav": {
       "home": "Home",
       "back_to": "Back to {page}",
-      "open_main_menu": "Open main menu"
+      "open_main_menu": "Open main menu",
+      "sections_label": "Section navigation"
     },
     "password": {
       "title": "Password Protected",

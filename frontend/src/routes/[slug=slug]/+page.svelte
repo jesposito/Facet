@@ -66,6 +66,15 @@
 	let navPinned = $state(false);
 	let sentinelEl: HTMLDivElement | null = $state(null);
 
+	// Rail layout: 2-column desktop with a sticky left sidebar. The hero
+	// renders as col 1 (the <aside>), page content flows in col 2. Non-rail
+	// layouts fall back to display:contents so they render byte-identically.
+	let effectiveHeroLayout = $derived(
+		(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as
+			'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | 'rail'
+	);
+	let useRailLayout = $derived(effectiveHeroLayout === 'rail');
+
 	// Apply view-specific accent color (or profile default)
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -369,6 +378,44 @@
 			/>
 		{/if}
 
+		<!-- For rail layout, the below-hero SiteNav / CTA banner is lifted ABOVE
+		     the rail grid so it spans full width instead of being trapped in
+		     the content column. -->
+		{#if useRailLayout}
+			{#if data.isPublicView}
+				<SiteNav
+					slot="below"
+					ctaUrl={data.view?.cta_url || ''}
+					ctaButtonText={data.view?.cta_button_text || 'Learn More'}
+					ctaText={data.view?.cta_text || ''}
+					ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+					ssrNavEnabled={data.siteNav?.enabled}
+					ssrNavMode={data.siteNav?.mode}
+					ssrNavPosition={data.siteNav?.position}
+					ssrNavItems={data.siteNav?.items}
+				/>
+			{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+				<!-- Fallback CTA for non-public views (no site nav) -->
+				<div class="bg-primary-600 text-white py-4">
+					<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+						<span class="font-medium">{data.view.cta_text}</span>
+						<a
+							href={data.view.cta_url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="btn bg-white text-primary-600 hover:bg-stone-100"
+						>
+							{data.view.cta_button_text || 'Learn More'}
+						</a>
+					</div>
+				</div>
+			{/if}
+		{/if}
+
+		<!-- Rail layout: 2-col grid wraps the hero (aside, col 1) + main flow
+		     (col 2). Other layouts fall back to display:contents (no structural
+		     change, so they render byte-identically to before). -->
+		<div class={useRailLayout ? 'md:grid md:grid-cols-[320px_minmax(0,1fr)] md:items-start' : 'contents'}>
 		<!-- Modified hero with view overrides -->
 		<ProfileHero
 			profile={{
@@ -378,40 +425,44 @@
 				location: data.view?.hero_location || data.profile?.location,
 				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
 			}}
-			layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
+			layout={effectiveHeroLayout}
 			spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
 			heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
 			showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
 		/>
+		<div class={useRailLayout ? 'min-w-0' : 'contents'}>
 
-		<!-- Site Navigation (below hero) / CTA banner - only on public views -->
-		{#if data.isPublicView}
-			<SiteNav
-				slot="below"
-				ctaUrl={data.view?.cta_url || ''}
-				ctaButtonText={data.view?.cta_button_text || 'Learn More'}
-				ctaText={data.view?.cta_text || ''}
-				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-				ssrNavEnabled={data.siteNav?.enabled}
-				ssrNavMode={data.siteNav?.mode}
-				ssrNavPosition={data.siteNav?.position}
-				ssrNavItems={data.siteNav?.items}
-			/>
-		{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-			<!-- Fallback CTA for non-public views (no site nav) -->
-			<div class="bg-primary-600 text-white py-4">
-				<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-					<span class="font-medium">{data.view.cta_text}</span>
-					<a
-						href={data.view.cta_url}
-						target="_blank"
-						rel="noopener noreferrer"
-						class="btn bg-white text-primary-600 hover:bg-stone-100"
-					>
-						{data.view.cta_button_text || 'Learn More'}
-					</a>
+		<!-- Site Navigation (below hero) / CTA banner - only renders here for
+		     non-rail layouts (rail lifts it above the grid). -->
+		{#if !useRailLayout}
+			{#if data.isPublicView}
+				<SiteNav
+					slot="below"
+					ctaUrl={data.view?.cta_url || ''}
+					ctaButtonText={data.view?.cta_button_text || 'Learn More'}
+					ctaText={data.view?.cta_text || ''}
+					ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+					ssrNavEnabled={data.siteNav?.enabled}
+					ssrNavMode={data.siteNav?.mode}
+					ssrNavPosition={data.siteNav?.position}
+					ssrNavItems={data.siteNav?.items}
+				/>
+			{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+				<!-- Fallback CTA for non-public views (no site nav) -->
+				<div class="bg-primary-600 text-white py-4">
+					<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+						<span class="font-medium">{data.view.cta_text}</span>
+						<a
+							href={data.view.cta_url}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="btn bg-white text-primary-600 hover:bg-stone-100"
+						>
+							{data.view.cta_button_text || 'Learn More'}
+						</a>
+					</div>
 				</div>
-			</div>
+			{/if}
 		{/if}
 
 		<!-- Sentinel to detect when ProfileNav becomes sticky -->
@@ -534,6 +585,8 @@
 				{/each}
 			</div>
 		</main>
+		</div><!-- /content column (rail col 2) -->
+		</div><!-- /rail grid wrapper -->
 
 		<Footer profile={data.profile} />
 
