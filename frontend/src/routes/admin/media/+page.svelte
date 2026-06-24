@@ -105,6 +105,13 @@
 		return !item.orphan;
 	}
 
+	// Check if item supports in-place replacement. Only uploads-collection library
+	// files have a stable library URL that content records reference, so only those
+	// can be replaced-and-repointed everywhere they are used in one step.
+	function isReplaceable(item: MediaItem): boolean {
+		return !item.orphan && !item.external && item.collection === 'uploads';
+	}
+
 	type MediaStats = {
 		referencedFiles: number;
 		referencedSize: number;
@@ -201,6 +208,11 @@
 	let previewItem: MediaItem | null = $state(null);
 	let editItem: MediaItem | null = $state(null);
 	let editModalMouseDownTarget: EventTarget | null = $state(null);
+	// Replace-image modal state
+	let replaceItem: MediaItem | null = $state(null);
+	let replaceFile: File | null = $state(null);
+	let replaceModalMouseDownTarget: EventTarget | null = $state(null);
+	let replacing = $state(false);
 	let editForm = $state({
 		title: '',
 		alt_text: '',
@@ -242,6 +254,59 @@
 	function closeEdit() {
 		editItem = null;
 		editForm = { title: '', alt_text: '', description: '', url: '', mime: '', thumbnail_url: '', tag_ids: [], saving: false };
+	}
+
+	function openReplace(item: MediaItem) {
+		replaceItem = item;
+		replaceFile = null;
+	}
+
+	function closeReplace() {
+		replaceItem = null;
+		replaceFile = null;
+	}
+
+	function handleReplaceFileChange(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		replaceFile = target.files?.[0] ?? null;
+	}
+
+	// Upload a replacement file and repoint every content reference from the old
+	// library URL to the new file's URL in one step (handled server-side).
+	async function replaceMedia() {
+		if (!replaceItem || !replaceItem.url) return;
+		if (!replaceFile) {
+			toasts.add('error', $t('admin.media.toast_replace_choose_file'));
+			return;
+		}
+		replacing = true;
+		try {
+			const form = new FormData();
+			form.append('old_url', replaceItem.url);
+			form.append('file', replaceFile);
+			if (replaceItem.display_name || replaceFile.name) {
+				form.append('title', replaceItem.display_name || replaceFile.name);
+			}
+			const res = await fetch('/api/media/replace', {
+				method: 'POST',
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
+				body: form
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => ({}));
+				throw new Error(body.message || 'Failed to replace image');
+			}
+			const data = await res.json();
+			const count = data.updated_references ?? 0;
+			toasts.add('success', $t('admin.media.toast_replace_success', { values: { count } }));
+			closeReplace();
+			await loadMedia();
+		} catch (err) {
+			console.error(err);
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_replace_failed'));
+		} finally {
+			replacing = false;
+		}
 	}
 
 	async function saveEdit() {
@@ -1525,6 +1590,11 @@
 												{@html icon('edit')}
 											</button>
 										{/if}
+										{#if isReplaceable(item)}
+											<button class="btn btn-ghost btn-sm" onclick={() => openReplace(item)} title={$t('admin.media.replace_button')} aria-label={$t('admin.media.replace_button')}>
+												{@html icon('swap')}
+											</button>
+										{/if}
 										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)} title={$t('admin.media.copy_url_button')}>
 											{@html icon('copy')}
 										</button>
@@ -1714,6 +1784,94 @@
 							</span>
 						{:else}
 							{$t('shared.actions.save')}
+						{/if}
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+{#if replaceItem}
+	<div
+		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+		onmousedown={(e) => replaceModalMouseDownTarget = e.target}
+		onclick={(e) => {
+			if (e.target === e.currentTarget && replaceModalMouseDownTarget === e.currentTarget) {
+				closeReplace();
+			}
+			replaceModalMouseDownTarget = null;
+		}}
+		onkeydown={(e) => e.key === 'Escape' && closeReplace()}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="replace-modal-title"
+		aria-describedby="replace-modal-desc"
+		tabindex="-1"
+	>
+		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+				<h2 id="replace-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
+					{$t('admin.media.replace_modal_title')}
+				</h2>
+				<button
+					class="btn btn-ghost btn-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+					onclick={closeReplace}
+					aria-label={$t('shared.actions.close')}
+				>
+					{@html icon('x')}
+				</button>
+			</div>
+
+			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); replaceMedia(); }}>
+				<p id="replace-modal-desc" class="text-sm text-gray-600 dark:text-gray-300">
+					{$t('admin.media.replace_modal_help')}
+				</p>
+				{#if replaceItem.mime?.startsWith('image/') && replaceItem.url}
+					<div class="flex justify-center">
+						<div class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+							<img
+								src={replaceItem.url}
+								alt={$t('admin.media.replace_current_image_alt')}
+								class="w-full h-full object-cover"
+								loading="lazy"
+							/>
+						</div>
+					</div>
+				{/if}
+				<div>
+					<label class="label" for="replace-file">{$t('admin.media.replace_file_label')}</label>
+					<input
+						id="replace-file"
+						type="file"
+						accept="image/*"
+						class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+						onchange={handleReplaceFileChange}
+					/>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.replace_file_help')}</p>
+				</div>
+				{#if (replaceItem.usage_count ?? 0) > 0}
+					<p class="text-xs text-gray-500 dark:text-gray-400">
+						{$t('admin.media.replace_usage_note', { values: { count: replaceItem.usage_count } })}
+					</p>
+				{/if}
+				<div class="flex justify-end gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+					<button type="button" class="btn btn-secondary" onclick={closeReplace}>
+						{$t('shared.actions.cancel')}
+					</button>
+					<button
+						type="submit"
+						class="btn btn-primary transition-transform active:scale-95"
+						aria-busy={replacing}
+						disabled={replacing || !replaceFile}
+					>
+						{#if replacing}
+							<span class="inline-flex items-center gap-2">
+								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								{$t('admin.media.replacing')}
+							</span>
+						{:else}
+							{$t('admin.media.replace_submit')}
 						{/if}
 					</button>
 				</div>
