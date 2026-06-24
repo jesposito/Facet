@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.1.2 - June 24, 2026
+
+**Other Changes:**
+- refresh repository documentation; remove obsolete files
+
+**Pull Requests:** [#477](https://github.com/jesposito/Facet/pull/477),
+
+---
+
+
 ## v3.1.1 - June 24, 2026
 
 **Bugs Fixed:**
