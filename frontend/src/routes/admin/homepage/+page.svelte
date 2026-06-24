@@ -96,6 +96,7 @@ import { brandName } from '$lib/stores/plan';
 	let siteNavMode = $state('bar');
 	let siteNavPosition = $state('below');
 	let siteCtaEnabled = $state(true); // Global CTA toggle (defaults to true for existing behavior)
+	let footerCtaEnabled = $state(true); // Footer CTA band toggle (defaults to true for existing behavior)
 	let siteNavItems: Array<{ viewId: string; enabled: boolean; label: string }> = $state([]);
 	let enabledNavCount = $derived(siteNavItems.filter((i) => i.enabled).length);
 	let publicViews: View[] = $state([]);
@@ -228,6 +229,7 @@ import { brandName } from '$lib/stores/plan';
 				siteNavMode = data.site_nav_mode || 'bar';
 				siteNavPosition = data.site_nav_position || 'below';
 				siteCtaEnabled = data.site_cta_enabled !== false; // Default to true
+				footerCtaEnabled = data.footer_cta_enabled !== false; // Default to true
 				siteNavItems = data.site_nav_items || [];
 
 				// Initialize sections from homepage_sections or default
@@ -417,6 +419,7 @@ import { brandName } from '$lib/stores/plan';
 					site_nav_mode: siteNavMode,
 					site_nav_position: siteNavPosition,
 					site_cta_enabled: siteCtaEnabled,
+					footer_cta_enabled: footerCtaEnabled,
 					site_nav_items: siteNavItems
 				})
 			});
@@ -435,6 +438,7 @@ import { brandName } from '$lib/stores/plan';
 			siteNavMode = result.site_nav_mode || 'bar';
 			siteNavPosition = result.site_nav_position || 'below';
 			siteCtaEnabled = result.site_cta_enabled !== false;
+			footerCtaEnabled = result.footer_cta_enabled !== false;
 			siteNavItems = result.site_nav_items || [];
 			toasts.add('success', 'Homepage settings saved');
 		} catch (err) {
@@ -669,6 +673,7 @@ import { brandName } from '$lib/stores/plan';
 					site_nav_mode: siteNavMode,
 					site_nav_position: siteNavPosition,
 					site_cta_enabled: siteCtaEnabled,
+					footer_cta_enabled: footerCtaEnabled,
 					site_nav_items: siteNavItems
 				})
 			});
@@ -878,6 +883,7 @@ import { brandName } from '$lib/stores/plan';
 					site_nav_mode: siteNavMode,
 					site_nav_position: siteNavPosition,
 					site_cta_enabled: siteCtaEnabled,
+					footer_cta_enabled: footerCtaEnabled,
 					site_nav_items: siteNavItems
 				})
 			});
@@ -899,6 +905,11 @@ import { brandName } from '$lib/stores/plan';
 
 	async function toggleSiteCtaEnabled() {
 		siteCtaEnabled = !siteCtaEnabled;
+		await saveSiteNavSettings();
+	}
+
+	async function toggleFooterCtaEnabled() {
+		footerCtaEnabled = !footerCtaEnabled;
 		await saveSiteNavSettings();
 	}
 
@@ -1124,6 +1135,34 @@ import { brandName } from '$lib/stores/plan';
 									/>
 									<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
 								</label>
+							</div>
+
+							<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+								<div class="flex items-start justify-between gap-4">
+									<div class="flex-1">
+										<h4 id="footer-cta-label" class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+											{$t('admin.homepage.footer_cta_title')}
+										</h4>
+										<p class="text-sm text-gray-600 dark:text-gray-400">
+											{#if footerCtaEnabled}
+												{$t('admin.homepage.footer_cta_on')}
+											{:else}
+												{$t('admin.homepage.footer_cta_off')}
+											{/if}
+										</p>
+									</div>
+									<label class="relative inline-flex items-center cursor-pointer">
+										<input
+											type="checkbox"
+											class="sr-only peer"
+											checked={footerCtaEnabled}
+											onchange={toggleFooterCtaEnabled}
+											disabled={settingsLoading}
+											aria-labelledby="footer-cta-label"
+										/>
+										<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+									</label>
+								</div>
 							</div>
 
 							{#if siteCtaEnabled}

@@ -796,8 +796,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			settings, settingsErr := services.LoadSiteSettings(app)
 			if settingsErr == nil && settings != nil {
 				response["site_cta_enabled"] = settings.SiteCtaEnabled
+				response["footer_cta_enabled"] = settings.FooterCtaEnabled
 			} else {
-				response["site_cta_enabled"] = true // Default to true
+				response["site_cta_enabled"] = true   // Default to true
+				response["footer_cta_enabled"] = true // Default to true
 			}
 
 			return e.JSON(http.StatusOK, response)
@@ -820,6 +822,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"landing_page_message": settings.LandingPageMessage,
 					"hide_login_button":    settings.HideLoginButton,
 					"site_cta_enabled":     settings.SiteCtaEnabled,
+					"footer_cta_enabled":   settings.FooterCtaEnabled,
 				})
 			}
 
@@ -867,6 +870,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"landing_page_message": settings.LandingPageMessage,
 				"hide_login_button":    settings.HideLoginButton,
 				"site_cta_enabled":     settings.SiteCtaEnabled,
+				"footer_cta_enabled":   settings.FooterCtaEnabled,
 			})
 		}))
 
@@ -965,6 +969,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["landing_page_message"] = settings.LandingPageMessage
 				response["hide_login_button"] = settings.HideLoginButton
 				response["site_cta_enabled"] = settings.SiteCtaEnabled
+				response["footer_cta_enabled"] = settings.FooterCtaEnabled
 
 				// Always include styling data for SSR (font pack, accent color)
 				// even when homepage content is disabled
@@ -1364,6 +1369,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if settings != nil {
 				response["hide_login_button"] = settings.HideLoginButton
 				response["site_cta_enabled"] = settings.SiteCtaEnabled
+				response["footer_cta_enabled"] = settings.FooterCtaEnabled
 				response["homepage_custom_content"] = settings.HomepageCustomContent
 				response["homepage_section_order"] = settings.HomepageSectionOrder
 				response["homepage_sections"] = settings.HomepageSections

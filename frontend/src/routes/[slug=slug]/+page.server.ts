@@ -191,6 +191,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			shareToken: effectiveShareToken || null,
 			isPublicView: accessInfo.visibility === 'public',
 			siteCtaEnabled: viewData.site_cta_enabled !== false,
+			footerCtaEnabled: viewData.footer_cta_enabled !== false,
 			siteNavEnabled: viewData.site_nav_enabled === true,
 			siteNav: (await parent()).siteNav
 		};

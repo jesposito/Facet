@@ -169,6 +169,7 @@ type SiteSettings struct {
 	ShowAvatar            bool
 	SkillsCategoryOrder   []string
 	SiteCtaEnabled        bool
+	FooterCtaEnabled      bool
 	Favicon               string
 	DefaultLocale         string
 	DefaultThemeMode      string
@@ -312,6 +313,18 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		}
 	}
 
+	// For footer_cta_enabled, default to true if field doesn't exist or is not
+	// explicitly set. This preserves existing behavior: the Soft Premium footer
+	// CTA band shows whenever the profile has a contact link.
+	footerCtaEnabled := true
+	if record.Collection().Fields.GetByName("footer_cta_enabled") != nil {
+		// Field exists - use its value (but default to true if never set)
+		// GetBool returns false for unset fields, so we check if it was explicitly set to false
+		if record.Get("footer_cta_enabled") != nil {
+			footerCtaEnabled = record.GetBool("footer_cta_enabled")
+		}
+	}
+
 	// Build favicon URL if set - use /api/favicon endpoint which serves with no-cache headers
 	var faviconURL string
 	if faviconFile := record.GetString("favicon"); faviconFile != "" {
@@ -335,6 +348,7 @@ func LoadSiteSettings(app core.App) (*SiteSettings, error) {
 		ShowAvatar:            loadShowAvatar(record),
 		SkillsCategoryOrder:   skillsCategoryOrder,
 		SiteCtaEnabled:        siteCtaEnabled,
+		FooterCtaEnabled:      footerCtaEnabled,
 		Favicon:               faviconURL,
 		DefaultLocale:         record.GetString("default_locale"),
 		DefaultThemeMode:      loadDefaultThemeMode(record),
@@ -459,6 +473,13 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			settings.Record.Set("site_cta_enabled", enabled)
 		} else if logger != nil {
 			logger.Warn("site_cta_enabled field missing on site_settings, skipping update")
+		}
+	}
+	if enabled, ok := updates["footer_cta_enabled"].(bool); ok {
+		if settings.Record.Collection().Fields.GetByName("footer_cta_enabled") != nil {
+			settings.Record.Set("footer_cta_enabled", enabled)
+		} else if logger != nil {
+			logger.Warn("footer_cta_enabled field missing on site_settings, skipping update")
 		}
 	}
 	if locale, ok := updates["default_locale"].(string); ok {

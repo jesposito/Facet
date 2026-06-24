@@ -69,7 +69,8 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				homepageDisabled: false,
 				landingPageMessage: '',
 				hideLoginButton: false,
-				siteCtaEnabled: true
+				siteCtaEnabled: true,
+				footerCtaEnabled: true
 			};
 		}
 
@@ -80,6 +81,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				landingPageMessage: data.landing_page_message || '',
 				hideLoginButton: data.hide_login_button || false,
 				siteCtaEnabled: data.site_cta_enabled !== false,
+				footerCtaEnabled: data.footer_cta_enabled !== false,
 				profile: null,
 				experience: [],
 				projects: [],
@@ -118,6 +120,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 				isDefaultView: false,
 				hideLoginButton: data.hide_login_button || false,
 				siteCtaEnabled: data.site_cta_enabled !== false,
+				footerCtaEnabled: data.footer_cta_enabled !== false,
 				sectionFeaturedIds: {} as Record<string, string>,
 				sectionCategoryOrders: {} as Record<string, string[]>,
 				sectionDisabledCategories: {} as Record<string, string[]>,
@@ -175,6 +178,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			isDefaultView: false,
 			hideLoginButton: data.hide_login_button || false,
 			siteCtaEnabled: data.site_cta_enabled !== false,
+			footerCtaEnabled: data.footer_cta_enabled !== false,
 			siteNav: parentData.siteNav
 		};
 	} catch (error) {
@@ -202,7 +206,8 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 			error: 'Failed to load profile',
 			isDefaultView: false,
 			hideLoginButton: false,
-			siteCtaEnabled: true
+			siteCtaEnabled: true,
+			footerCtaEnabled: true
 		};
 	}
 };
