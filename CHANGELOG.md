@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.2.0 - June 24, 2026
+
+**New Features:**
+- testimonial lists — funnel testimonials to facets (#283)
+
+**Pull Requests:** [#479](https://github.com/jesposito/Facet/pull/479),
+
+---
+
+
 ## v3.1.3 - June 24, 2026
 
 **Bugs Fixed:**
