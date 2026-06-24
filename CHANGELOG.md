@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.1.3 - June 24, 2026
+
+**Bugs Fixed:**
+- allow same-origin iframes in CSP frame-src
+
+**Pull Requests:** [#478](https://github.com/jesposito/Facet/pull/478),
+
+---
+
+
 ## v3.1.2 - June 24, 2026
 
 **Other Changes:**
