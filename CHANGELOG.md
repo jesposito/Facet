@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.1.0 - June 24, 2026
+
+**New Features:**
+- redesign parity bundle — live preview, rail layout, AAA text color + regression fixes
+
+**Pull Requests:** [#475](https://github.com/jesposito/Facet/pull/475),
+
+---
+
+
 ## v3.0.0 - June 23, 2026
 
 **New Features:**
