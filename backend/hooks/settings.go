@@ -60,6 +60,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"show_avatar":             settings.ShowAvatar,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
+				"footer_cta_enabled":      settings.FooterCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
 				"default_theme_mode":      settings.DefaultThemeMode,
@@ -93,6 +94,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				ShowAvatar            *bool                                     `json:"show_avatar"`
 				SkillsCategoryOrder   []string                                  `json:"skills_category_order"`
 				SiteCtaEnabled        *bool                                     `json:"site_cta_enabled"`
+				FooterCtaEnabled      *bool                                     `json:"footer_cta_enabled"`
 				DefaultLocale         *string                                   `json:"default_locale"`
 				DefaultThemeMode      *string                                   `json:"default_theme_mode"`
 				Design                *string                                   `json:"design"`
@@ -170,6 +172,9 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			if req.SiteCtaEnabled != nil {
 				updates["site_cta_enabled"] = *req.SiteCtaEnabled
 			}
+			if req.FooterCtaEnabled != nil {
+				updates["footer_cta_enabled"] = *req.FooterCtaEnabled
+			}
 			if req.ShowAvatar != nil {
 				updates["show_avatar"] = *req.ShowAvatar
 			}
@@ -217,6 +222,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"show_avatar":             settings.ShowAvatar,
 				"skills_category_order":   settings.SkillsCategoryOrder,
 				"site_cta_enabled":        settings.SiteCtaEnabled,
+				"footer_cta_enabled":      settings.FooterCtaEnabled,
 				"favicon":                 settings.Favicon,
 				"default_locale":          settings.DefaultLocale,
 				"default_theme_mode":      settings.DefaultThemeMode,

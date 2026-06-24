@@ -588,7 +588,7 @@
 		</div><!-- /content column (rail col 2) -->
 		</div><!-- /rail grid wrapper -->
 
-		<Footer profile={data.profile} />
+		<Footer profile={data.profile} footerCtaEnabled={data.footerCtaEnabled} />
 
 		<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
 		<ATSContent
