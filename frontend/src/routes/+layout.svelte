@@ -7,7 +7,7 @@
 	import Toast from '$components/shared/Toast.svelte';
 	import ConfirmDialog from '$components/shared/ConfirmDialog.svelte';
 	import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, type AccentColor, generatePaletteFromHex, hexToRgbChannels, buildPaletteRootBlock } from '$lib/colors';
-	import { getFontPack, DEFAULT_FONT_PACK, type FontPack } from '$lib/fonts';
+	import { getFontPack, type FontPack } from '$lib/fonts';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
 	import { initPlan, initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
@@ -193,19 +193,21 @@ function applyFlatAccent(color: string) {
   --font-code: '${pack.code}', ${pack.codeFallback};
 }`;
 
-		// Load Google Fonts for non-default packs
-		if (packName !== DEFAULT_FONT_PACK) {
-			if (!fontLinkEl) {
-				fontLinkEl = document.createElement('link');
-				fontLinkEl.id = 'dynamic-google-fonts';
-				fontLinkEl.rel = 'stylesheet';
-				document.head.appendChild(fontLinkEl);
-			}
-			fontLinkEl.href = pack.googleFontsUrl;
-		} else if (fontLinkEl) {
-			fontLinkEl.remove();
-			fontLinkEl = null;
+		// Ensure the resolved pack's Google Fonts are loaded, including the DEFAULT
+		// pack (soft-premium = Hanken Grotesk + Newsreader). app.html only statically
+		// loads the editorial fonts, and SSR (hooks.server.ts) injects the resolved
+		// pack's link on first paint; but this client applier re-runs on every SPA
+		// navigation. If the default pack special-cased *removing* the link, the
+		// default pack's fonts would drop on client nav and the page would fall back
+		// to Plus Jakarta. So we always (re)create/point the link at the resolved
+		// pack's URL, for the default pack too.
+		if (!fontLinkEl) {
+			fontLinkEl = document.createElement('link');
+			fontLinkEl.id = 'dynamic-google-fonts';
+			fontLinkEl.rel = 'stylesheet';
+			document.head.appendChild(fontLinkEl);
 		}
+		fontLinkEl.href = pack.googleFontsUrl;
 	}
 
 	async function loadAccentColor() {

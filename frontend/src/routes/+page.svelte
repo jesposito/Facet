@@ -241,6 +241,15 @@
 	let navPinned = $state(false);
 	let sentinelEl: HTMLDivElement | null = $state(null);
 
+	// Rail layout: 2-column desktop with a sticky left sidebar. The hero
+	// renders as col 1 (the <aside>), page content flows in col 2. Non-rail
+	// layouts fall back to display:contents so they render byte-identically.
+	let effectiveHeroLayout = $derived(
+		(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as
+			'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | 'rail'
+	);
+	let useRailLayout = $derived(effectiveHeroLayout === 'rail');
+
 	// Apply view-specific accent color if default view has one
 	function applyAccentColor(colorName: AccentColor) {
 		if (!browser) return;
@@ -473,6 +482,26 @@
 		ssrNavItems={data.siteNav?.items}
 	/>
 
+	<!-- For rail layout, the below-hero SiteNav is lifted ABOVE the rail grid so
+	     it spans full width instead of getting trapped in the content column. -->
+	{#if useRailLayout}
+		<SiteNav
+			slot="below"
+			ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+			ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+			ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+			ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+			ssrNavEnabled={data.siteNav?.enabled}
+			ssrNavMode={data.siteNav?.mode}
+			ssrNavPosition={data.siteNav?.position}
+			ssrNavItems={data.siteNav?.items}
+		/>
+	{/if}
+
+	<!-- Rail layout: 2-col grid wraps the hero (aside, col 1) + main flow
+	     (col 2). Other layouts fall back to display:contents (no structural
+	     change, so they render byte-identically to before). -->
+	<div class={useRailLayout ? 'md:grid md:grid-cols-[320px_minmax(0,1fr)] md:items-start' : 'contents'}>
 	<!-- Hero section with possible view overrides -->
 	<ProfileHero
 		profile={{
@@ -481,24 +510,28 @@
 			summary,
 			location
 		}}
-		layout={(data.view?.hero_layout || data.profile?.hero_layout || 'standard') as 'standard' | 'centered' | 'split' | 'minimal' | 'stacked'}
+		layout={effectiveHeroLayout}
 		spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
 		heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
 		showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
 	/>
+	<div class={useRailLayout ? 'min-w-0' : 'contents'}>
 
-	<!-- Site Navigation (below hero) / CTA Banner - only renders when position='below' (default) -->
-	<SiteNav
-		slot="below"
-		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
-		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
-		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
-		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-		ssrNavEnabled={data.siteNav?.enabled}
-		ssrNavMode={data.siteNav?.mode}
-		ssrNavPosition={data.siteNav?.position}
-		ssrNavItems={data.siteNav?.items}
-	/>
+	<!-- Site Navigation (below hero) / CTA Banner - only renders here for
+	     non-rail layouts (rail lifts it above the grid). -->
+	{#if !useRailLayout}
+		<SiteNav
+			slot="below"
+			ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+			ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+			ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+			ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+			ssrNavEnabled={data.siteNav?.enabled}
+			ssrNavMode={data.siteNav?.mode}
+			ssrNavPosition={data.siteNav?.position}
+			ssrNavItems={data.siteNav?.items}
+		/>
+	{/if}
 
 	<div
 		aria-hidden="true"
@@ -637,6 +670,8 @@
 			{/if}
 		{/if}
 	</main>
+	</div><!-- /content column (rail col 2) -->
+	</div><!-- /rail grid wrapper -->
 
 	<Footer profile={data.profile} />
 

@@ -11,13 +11,14 @@
 
 	let { items, layout = 'grid-3', viewSlug = '' }: Props = $props();
 
-	// Soft Premium opt-in detection. SSR always renders the classic branch (the
-	// server injects data-design on <html> *after* component render, so it is not
-	// observable here), keeping classic output byte-identical. After mount we read
-	// the attribute and, only under soft-premium, swap in the refined serif initial
-	// plate. The post-mount swap touches the cover-less fallback only.
+	// Soft Premium is always on, so data-design="soft-premium" is present on the
+	// document root at SSR time (injected by hooks.server.ts). The cover-less
+	// fallback plate therefore renders the warm sp-plate directly in the markup;
+	// every plate selector is gated by [data-design='soft-premium'] in the style
+	// block, so the refined serif initial plate paints on first paint with no
+	// post-mount swap and no flash.
 	// Code-point-safe first character (emoji/multibyte titles are not split mid
-	// surrogate-pair, unlike charAt(0)). Used only for the soft-premium serif plate.
+	// surrogate-pair, unlike charAt(0)). Used for the soft-premium serif plate.
 	const initial = (title: string) => [...(title ?? '')][0] ?? '';
 
 	// Validate operator-supplied URLs against a scheme allowlist before rendering

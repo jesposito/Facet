@@ -167,7 +167,9 @@
         "css_help_components": "Componentz",
         "css_help_tip": "Tip: Keep CSS smol; avoid hidin struktural elementz dat powr aksessibility n layout.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Rail",
+        "hero_layout_rail_desc": "Sticky sidebar on teh left, stuffz on teh right"
       },
       "general": {
         "section_title": "Jeneral",
@@ -1063,7 +1065,11 @@
       "demo": "Demo",
       "demo_on": "ON",
       "toggle_demo_mode": "Toggl demo moed",
-      "opens_new_tab": "{label} (openz in noo windoe)"
+      "opens_new_tab": "{label} (openz in noo windoe)",
+      "live_preview_toggle": "Toggle liv preview",
+      "live_preview_label": "Lookz",
+      "live_preview_on": "On",
+      "live_preview_off": "Off"
     },
     "settings": {
       "favicon": {
@@ -1549,6 +1555,32 @@
       "reset": "RESET 2 DEFAULT",
       "announced_custom": "ACCENT COLOR SET 2 {hex}",
       "announced_curated": "ACCENT COLOR SET 2 {name}"
+    },
+    "text_color_picker": {
+      "label": "Werdz Culah",
+      "description": "Maek ur big werdz an lil werdz on ur public payj haz culah. We fix teh shaed so it can reedz gud (WCAG AAA) in brite mode an dark mode.",
+      "suggestions_label": "Sugjestd werdz culahs",
+      "suggestion_slate": "Slaet",
+      "suggestion_graphite": "Pensil",
+      "suggestion_umber": "Brown",
+      "suggestion_navy": "Bloo",
+      "suggestion_forest": "Treez",
+      "suggestion_plum": "Plum",
+      "custom_label": "Or pik ur own hex culah",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "Six hex letterz (0-9, A-F), wif optshunal # in frunt. Leev emptee for defalt ink.",
+      "invalid": "Givs a reel hex culah plz (liek #1f2937)",
+      "reset": "Bak to defalt",
+      "preview_label": "Liv peek (auto-fixd)",
+      "preview_light": "Brite mode",
+      "preview_dark": "Dark mode",
+      "preview_heading": "Big Werdz",
+      "preview_body": "Lil werdz go heer for reedin.",
+      "aaa_note": "Teh shaed u see iz wut showz on ur payj. We awtomatiklee skootch it til it haz 7:1 contrast (WCAG AAA) wif teh bakgrund in each mode.",
+      "announced": "Werdz culah iz now {hex}",
+      "announced_reset": "Werdz culah bak to defalt",
+      "updated": "Werdz culah chanjd",
+      "error": "Cudnt chanj werdz culah"
     },
     "view_editor": {
       "page": {
@@ -2754,6 +2786,13 @@
         "title": "Settingz",
         "description": "Akkount, sait, hookupz, an nerd toolz."
       }
+    },
+    "site_preview": {
+      "heading": "Liv preview",
+      "iframe_title": "Liv lookz at ur publik sait",
+      "readonly_note": "Dis preview iz lookz-only, no keyboardz. Toggle off 2 hide it.",
+      "ready_announce": "Liv preview redy!",
+      "error_announce": "Liv preview no can has. Sad kitteh."
     }
   },
   "public": {
@@ -2774,7 +2813,8 @@
     "nav": {
       "home": "Hoem",
       "back_to": "Bak 2 {page}",
-      "open_main_menu": "Open main menu"
+      "open_main_menu": "Open main menu",
+      "sections_label": "Sekshun naviashun"
     },
     "password": {
       "title": "Passwurd Protektd",

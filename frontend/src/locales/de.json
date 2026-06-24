@@ -167,7 +167,9 @@
         "css_help_components": "Komponenten",
         "css_help_tip": "Tipp: Halten Sie CSS klein; vermeiden Sie das Ausblenden struktureller Elemente, die für Barrierefreiheit und Layout wichtig sind.",
         "font_pack_updated": "Typography updated",
-        "font_pack_error": "Failed to update typography"
+        "font_pack_error": "Failed to update typography",
+        "hero_layout_rail": "Seitenleiste",
+        "hero_layout_rail_desc": "Fixierte Seitenleiste links, Inhalt rechts"
       },
       "general": {
         "section_title": "Allgemein",
@@ -1063,7 +1065,11 @@
       "demo": "Demo",
       "demo_on": "AN",
       "toggle_demo_mode": "Demo-Modus umschalten",
-      "opens_new_tab": "{label} (öffnet in neuem Tab)"
+      "opens_new_tab": "{label} (öffnet in neuem Tab)",
+      "live_preview_toggle": "Live-Vorschau umschalten",
+      "live_preview_label": "Vorschau",
+      "live_preview_on": "An",
+      "live_preview_off": "Aus"
     },
     "settings": {
       "favicon": {
@@ -1549,6 +1555,32 @@
       "reset": "Auf Standard zurücksetzen",
       "announced_custom": "Akzentfarbe auf {hex} gesetzt",
       "announced_curated": "Akzentfarbe auf {name} gesetzt"
+    },
+    "text_color_picker": {
+      "label": "Textfarbe",
+      "description": "Färbe Überschriften und Fließtext auf deiner öffentlichen Seite. Wir passen den Farbton automatisch an, damit er in hellem und dunklem Modus stets gut lesbar bleibt (WCAG AAA).",
+      "suggestions_label": "Vorgeschlagene Textfarben",
+      "suggestion_slate": "Schiefer",
+      "suggestion_graphite": "Graphit",
+      "suggestion_umber": "Umbra",
+      "suggestion_navy": "Marineblau",
+      "suggestion_forest": "Waldgrün",
+      "suggestion_plum": "Pflaume",
+      "custom_label": "Oder wähle eine eigene Hex-Farbe",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "Sechs hexadezimale Zeichen (0-9, A-F), mit optionalem führenden #. Leer lassen für die Standardfarbe.",
+      "invalid": "Gib eine gültige Hex-Farbe ein (z. B. #1f2937)",
+      "reset": "Auf Standard zurücksetzen",
+      "preview_label": "Live-Vorschau (automatisch angepasst)",
+      "preview_light": "Heller Modus",
+      "preview_dark": "Dunkler Modus",
+      "preview_heading": "Überschrift",
+      "preview_body": "Hier steht ein Absatz Fließtext.",
+      "aaa_note": "Der angezeigte Farbton ist genau das, was auf deiner Seite erscheint. Er wird automatisch so begrenzt, dass er in jedem Modus einen Kontrast von 7:1 (WCAG AAA) zum Hintergrund erreicht.",
+      "announced": "Textfarbe auf {hex} gesetzt",
+      "announced_reset": "Textfarbe auf Standard zurückgesetzt",
+      "updated": "Textfarbe aktualisiert",
+      "error": "Textfarbe konnte nicht aktualisiert werden"
     },
     "view_editor": {
       "page": {
@@ -2754,6 +2786,13 @@
         "title": "Einstellungen",
         "description": "Konto, Website, Integrationen und Entwicklertools."
       }
+    },
+    "site_preview": {
+      "heading": "Live-Vorschau",
+      "iframe_title": "Live-Vorschau Ihrer öffentlichen Seite",
+      "readonly_note": "Diese Vorschau ist schreibgeschützt und nicht per Tastatur bedienbar. Zum Ausblenden ausschalten.",
+      "ready_announce": "Live-Vorschau bereit",
+      "error_announce": "Live-Vorschau nicht verfügbar"
     }
   },
   "public": {
@@ -2774,7 +2813,8 @@
     "nav": {
       "home": "Startseite",
       "back_to": "Zurück zu {page}",
-      "open_main_menu": "Hauptmenü öffnen"
+      "open_main_menu": "Hauptmenü öffnen",
+      "sections_label": "Abschnittsnavigation"
     },
     "password": {
       "title": "Passwortgeschützt",

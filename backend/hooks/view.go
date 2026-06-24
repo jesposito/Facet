@@ -751,6 +751,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"contact_links":   profile.Get("contact_links"),
 					"visibility":      profile.GetString("visibility"),
 					"accent_color":    profile.GetString("accent_color"),
+					"text_color":      profile.GetString("text_color"),
 					"font_pack":       profile.GetString("font_pack"),
 					"hero_layout":     profile.GetString("hero_layout"),
 					"hero_spacing":    profile.GetString("hero_spacing"),
@@ -961,6 +962,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						"accent_color":     p.GetString("accent_color"),
 						"custom_hex_color": p.GetString("custom_hex_color"),
 						"font_pack":        p.GetString("font_pack"),
+						"text_color":       p.GetString("text_color"),
 					}
 				}
 
@@ -989,6 +991,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					"contact_links":   profile.Get("contact_links"),
 					"visibility":      profile.GetString("visibility"),
 					"accent_color":    profile.GetString("accent_color"),
+					"text_color":      profile.GetString("text_color"),
 					"font_pack":       profile.GetString("font_pack"),
 					"hero_layout":     profile.GetString("hero_layout"),
 					"hero_spacing":    profile.GetString("hero_spacing"),

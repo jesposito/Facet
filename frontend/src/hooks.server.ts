@@ -1,7 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 import { PB_COOKIE_NAME } from '$lib/pocketbase';
-import { generateAccentCSSVars, SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
+import { generateAccentCSSVars, generateTextInkCSSVars, SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
 import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -22,6 +22,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let operatorFontPack = '';
 	let operatorAccent = '';
 	let operatorCustomHex = '';
+	let operatorTextColor = '';
 	try {
 		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
 			headers: { 'X-Internal': 'true' }
@@ -31,8 +32,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 			operatorAccent = homepage.profile?.accent_color || '';
 			operatorCustomHex = homepage.profile?.custom_hex_color || '';
 			operatorFontPack = homepage.profile?.font_pack || '';
+			operatorTextColor = homepage.profile?.text_color || '';
 		}
 	} catch { /* silent - fallback to client-side application */ }
+
+	// Text (font) color: derive a per-mode AAA-clamped ink from the operator's
+	// chosen hue and inject --text-ink (light) + --text-ink-dark (dark). Empty ⇒
+	// '' ⇒ nothing injected ⇒ default render unchanged. The clamp lives in
+	// colors.ts (deriveTextInk) and is exercised by the AAA proof test.
+	const textInkCSSVars = generateTextInkCSSVars(operatorTextColor);
 
 	// Soft Premium is the only design — always on. The warm token layer keys off
 	// the data-design attribute, hardcoded where the <html> tag is composed below
@@ -79,6 +87,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/;?\s*$/, ';')
 				);
 			}
+			if (textInkCSSVars) {
+				varParts.push(
+					textInkCSSVars
+						.replace(/^:root\s*\{/, '')
+						.replace(/\}\s*$/, '')
+						.trim()
+						.replace(/\s+/g, ' ')
+						.replace(/;?\s*$/, ';')
+				);
+			}
 
 			let result = html;
 
@@ -86,6 +104,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 			// attribute and the inline style vars both land. Soft Premium is always
 			// on, so data-design is always emitted.
 			const htmlAttrs: string[] = ['data-design="soft-premium"'];
+			// data-text-ink gates the scoped text-color rules in app.css. Present
+			// ONLY when the operator set a color, so the default render carries no
+			// text-ink rules at all (byte-identical to today).
+			if (textInkCSSVars) {
+				htmlAttrs.push('data-text-ink');
+			}
 			if (varParts.length > 0) {
 				htmlAttrs.push(`style="${varParts.join(' ')}"`);
 			}

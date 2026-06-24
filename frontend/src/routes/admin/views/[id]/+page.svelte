@@ -1602,7 +1602,8 @@
 							{ id: 'centered', label: 'Centered' },
 							{ id: 'split', label: 'Split' },
 							{ id: 'minimal', label: 'Minimal' },
-							{ id: 'stacked', label: 'Stacked' }
+							{ id: 'stacked', label: 'Stacked' },
+							{ id: 'rail', label: 'Rail' }
 						] as layoutOption}
 							<button
 								type="button"
@@ -1813,6 +1814,7 @@
 						</div>
 						<ViewPreview
 							{profile}
+							{heroLayout}
 							{heroHeadline}
 							{heroSummary}
 							{ctaText}

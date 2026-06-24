@@ -3,7 +3,12 @@
 	import { t } from 'svelte-i18n';
 	import { pb, currentUser, performLogout } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
+	import { userPreferences } from '$lib/stores/userPreferences';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+
+	function toggleLivePreview() {
+		userPreferences.setPref('livePreviewEnabled', !$userPreferences.livePreviewEnabled);
+	}
 
 	function toggleSidebar() {
 		adminSidebarOpen.update((v) => {
@@ -60,6 +65,32 @@
 				<span class="hidden sm:inline">{$t('admin.header.view_site')}</span>
 				<span class="sr-only">(opens in new tab)</span>
 			</a>
+
+			<!-- Live site preview toggle. Hidden on screens <lg because the
+			     right-column iframe is hidden at that breakpoint anyway —
+			     no value in toggling something invisible. -->
+			<button
+				type="button"
+				role="switch"
+				aria-checked={$userPreferences.livePreviewEnabled}
+				aria-label={$t('admin.header.live_preview_toggle')}
+				onclick={toggleLivePreview}
+				class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors {$userPreferences.livePreviewEnabled
+					? 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-900/60'
+					: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'}"
+				title={$t('admin.header.live_preview_toggle')}
+			>
+				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+				</svg>
+				<span class="hidden xl:inline">{$t('admin.header.live_preview_label')}</span>
+				<span aria-hidden="true" class="hidden xl:inline text-xs"
+					>{$userPreferences.livePreviewEnabled
+						? $t('admin.header.live_preview_on')
+						: $t('admin.header.live_preview_off')}</span
+				>
+			</button>
 
 			<ThemeToggle />
 
