@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.0 - June 24, 2026
+
+**New Features:**
+- operator toggle for the "Let's work together" CTA band
+
+**Pull Requests:** [#481](https://github.com/jesposito/Facet/pull/481),
+
+---
+
+
 ## v3.3.0 - June 24, 2026
 
 **New Features:**
