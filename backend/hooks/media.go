@@ -20,6 +20,7 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 // Path validation errors
@@ -30,6 +31,29 @@ var (
 	ErrAbsolutePath = errors.New("absolute paths not allowed")
 	ErrIsDirectory  = errors.New("refusing to delete directories")
 )
+
+// libraryURLFields is the authoritative map of every collection + field that
+// references library media via a *_library_url field. It is the single source
+// of truth used both for reporting media usage (findLibraryURLUsage) and for
+// propagating a media replacement to every referencing record (replaceMedia).
+//
+// Each *_library_url field has a corresponding cached file field obtained by
+// stripping the "_library_url" suffix (e.g. cover_image_library_url ->
+// cover_image). The render path prefers the *_library_url value over the file
+// field, so repointing the URL is what actually moves the reference; the stale
+// cached file field is cleared so it can no longer shadow the new image.
+var libraryURLFields = map[string][]string{
+	"experience":     {"company_logo_library_url"},
+	"education":      {"institution_logo_library_url"},
+	"projects":       {"cover_image_library_url"},
+	"posts":          {"cover_image_library_url"},
+	"talks":          {"cover_image_library_url"},
+	"profile":        {"hero_image_library_url", "avatar_library_url"},
+	"views":          {"hero_image_library_url"},
+	"site_settings":  {"favicon_library_url"},
+	"custom_content": {"cover_image_library_url"},
+	"testimonials":   {"author_photo_library_url"},
+}
 
 // collectionsWithImageFields lists collections that have image file fields
 // and should have thumbnails generated automatically.
@@ -110,12 +134,12 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			search := strings.TrimSpace(strings.ToLower(query.Get("q")))
-			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type")))       // "image", "video", "audio", "document", or ""
+			typeFilter := strings.ToLower(strings.TrimSpace(query.Get("type"))) // "image", "video", "audio", "document", or ""
 			collectionFilter := strings.TrimSpace(strings.ToLower(query.Get("collection")))
-			tagsFilter := strings.TrimSpace(query.Get("tags"))                        // comma-separated tag IDs
-			usageFilter := strings.ToLower(strings.TrimSpace(query.Get("usage")))     // "in_use", "not_in_use", or "" for all
-			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))        // "date", "name", "size"
-			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))       // "asc", "desc"
+			tagsFilter := strings.TrimSpace(query.Get("tags"))                    // comma-separated tag IDs
+			usageFilter := strings.ToLower(strings.TrimSpace(query.Get("usage"))) // "in_use", "not_in_use", or "" for all
+			sortField := strings.ToLower(strings.TrimSpace(query.Get("sort")))    // "date", "name", "size"
+			sortOrder := strings.ToLower(strings.TrimSpace(query.Get("order")))   // "asc", "desc"
 			if sortOrder == "" {
 				sortOrder = "desc"
 			}
@@ -533,6 +557,68 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
+		}).Bind(apis.RequireAuth())
+
+		// Replace an existing library media file with a newly uploaded version and
+		// repoint every referencing record from the old URL to the new file's URL.
+		//
+		// Multipart form fields:
+		//   old_url  - the existing library media URL (e.g. /api/files/<col>/<rec>/<file>)
+		//   file     - the replacement file
+		//   title    - optional title for the new uploads record
+		//
+		// The old upload is left in place (non-destructive; orphan cleanup handles
+		// it later); only references are repointed. Returns the new URL and the
+		// number of content references updated.
+		se.Router.POST("/api/media/replace", func(e *core.RequestEvent) error {
+			oldURL := strings.TrimSpace(e.Request.FormValue("old_url"))
+			if oldURL == "" {
+				return apis.NewBadRequestError("old_url is required", nil)
+			}
+
+			_, fileHeader, err := e.Request.FormFile("file")
+			if err != nil || fileHeader == nil {
+				return apis.NewBadRequestError("file is required", err)
+			}
+
+			// Store the new file as an uploads-collection record, mirroring the
+			// media library's direct-upload path.
+			uploadsCollection, err := app.FindCollectionByNameOrId("uploads")
+			if err != nil {
+				return apis.NewBadRequestError("uploads collection not configured", err)
+			}
+
+			fsFile, err := filesystem.NewFileFromMultipart(fileHeader)
+			if err != nil {
+				return apis.NewBadRequestError("failed to read uploaded file", err)
+			}
+
+			newRecord := core.NewRecord(uploadsCollection)
+			newRecord.Set("file", fsFile)
+			if title := strings.TrimSpace(e.Request.FormValue("title")); title != "" {
+				newRecord.Set("title", title)
+			}
+			if mimeType := fileHeader.Header.Get("Content-Type"); mimeType != "" {
+				newRecord.Set("mime", mimeType)
+			}
+			if err := app.Save(newRecord); err != nil {
+				return apis.NewBadRequestError("failed to save replacement file", err)
+			}
+
+			// Build the canonical URL for the stored file (matches BuildMediaItem).
+			storedFilename := newRecord.GetString("file")
+			newURL := fmt.Sprintf("/api/files/%s/%s/%s", uploadsCollection.Id, newRecord.Id, storedFilename)
+
+			updated := replaceLibraryURLReferences(app, oldURL, newURL)
+
+			app.Logger().Info("media replace: repointed references",
+				"old_url", oldURL, "new_url", newURL, "updated", updated)
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"status":             "replaced",
+				"new_url":            newURL,
+				"updated_references": updated,
+			})
 		}).Bind(apis.RequireAuth())
 
 		se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
@@ -1112,6 +1198,62 @@ func fetchMediaTags(app *pocketbase.PocketBase, record *core.Record) []services.
 	return tags
 }
 
+// replaceLibraryURLReferences repoints every record that references oldURL via a
+// *_library_url field to newURL, using the shared libraryURLFields map. For each
+// matching record it also clears the corresponding cached file field (e.g.
+// cover_image for cover_image_library_url) so the stale upload can no longer
+// shadow the new image. It returns the number of records updated.
+//
+// The render path (see view_helpers.go) prefers the *_library_url value over the
+// file field, so setting the URL is what actually moves the reference; clearing
+// the file field keeps the record consistent and avoids a dangling cache.
+func replaceLibraryURLReferences(app *pocketbase.PocketBase, oldURL, newURL string) int {
+	if oldURL == "" || oldURL == newURL {
+		return 0
+	}
+
+	updated := 0
+	for collName, fields := range libraryURLFields {
+		collection, err := app.FindCollectionByNameOrId(collName)
+		if err != nil {
+			continue
+		}
+
+		for _, fieldName := range fields {
+			if collection.Fields.GetByName(fieldName) == nil {
+				continue
+			}
+
+			filter := fmt.Sprintf("%s = {:url}", fieldName)
+			records, err := app.FindRecordsByFilter(collName, filter, "", 500, 0, dbx.Params{"url": oldURL})
+			if err != nil {
+				app.Logger().Warn("media replace: query failed",
+					"collection", collName, "field", fieldName, "error", err)
+				continue
+			}
+
+			// The cached file field is the library_url field minus the suffix.
+			fileField := strings.TrimSuffix(fieldName, "_library_url")
+
+			for _, record := range records {
+				record.Set(fieldName, newURL)
+				// Clear the stale cached upload if the field exists on this record.
+				if fileField != fieldName && collection.Fields.GetByName(fileField) != nil {
+					record.Set(fileField, nil)
+				}
+				if err := app.Save(record); err != nil {
+					app.Logger().Warn("media replace: failed to save record",
+						"collection", collName, "record", record.Id, "error", err)
+					continue
+				}
+				updated++
+			}
+		}
+	}
+
+	return updated
+}
+
 // findLibraryURLUsage checks all *_library_url fields across collections to find
 // content that references the given URL (for uploads collection files).
 // It also finds usage via media_refs by looking for external_media mirrors of this upload.
@@ -1124,20 +1266,8 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 	// Track already-added records to avoid duplicates
 	seen := make(map[string]bool)
 
-	// Collections and their library URL fields
-	libraryURLFields := map[string][]string{
-		"experience":     {"company_logo_library_url"},
-		"education":      {"institution_logo_library_url"},
-		"projects":       {"cover_image_library_url"},
-		"posts":          {"cover_image_library_url"},
-		"talks":          {"cover_image_library_url"},
-		"profile":        {"hero_image_library_url", "avatar_library_url"},
-		"views":          {"hero_image_library_url"},
-		"site_settings":  {"favicon_library_url"},
-		"custom_content": {"cover_image_library_url"},
-		"testimonials":   {"author_photo_library_url"},
-	}
-
+	// Collections and their library URL fields (shared package-level map, also
+	// used by replaceMedia for repointing references).
 	for collName, fields := range libraryURLFields {
 		collection, err := app.FindCollectionByNameOrId(collName)
 		if err != nil {
