@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.1.1 - June 24, 2026
+
+**Bugs Fixed:**
+- allow same-origin framing so live preview renders (X-Frame-Options)
+
+**Pull Requests:** [#476](https://github.com/jesposito/Facet/pull/476),
+
+---
+
+
 ## v3.1.0 - June 24, 2026
 
 **New Features:**
