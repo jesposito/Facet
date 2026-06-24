@@ -1210,7 +1210,11 @@
       "demo": "Demo",
       "demo_on": "ON",
       "toggle_demo_mode": "Toggle demo mode",
-      "opens_new_tab": "{label} (opens in new tab)"
+      "opens_new_tab": "{label} (opens in new tab)",
+      "live_preview_toggle": "Toggle live preview",
+      "live_preview_label": "Preview",
+      "live_preview_on": "On",
+      "live_preview_off": "Off"
     },
     "password_modal": {
       "title": "Change Password",
@@ -2754,6 +2758,13 @@
         "title": "Settings",
         "description": "Account, site, integrations, and developer tools."
       }
+    },
+    "site_preview": {
+      "heading": "Live preview",
+      "iframe_title": "Live preview of your public site",
+      "readonly_note": "This preview is read-only and not keyboard accessible. Toggle off to hide it.",
+      "ready_announce": "Live preview ready",
+      "error_announce": "Live preview unavailable"
     }
   },
   "public": {

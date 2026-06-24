@@ -1063,7 +1063,11 @@
       "demo": "Demo",
       "demo_on": "AN",
       "toggle_demo_mode": "Demo-Modus umschalten",
-      "opens_new_tab": "{label} (öffnet in neuem Tab)"
+      "opens_new_tab": "{label} (öffnet in neuem Tab)",
+      "live_preview_toggle": "Live-Vorschau umschalten",
+      "live_preview_label": "Vorschau",
+      "live_preview_on": "An",
+      "live_preview_off": "Aus"
     },
     "settings": {
       "favicon": {
@@ -2754,6 +2758,13 @@
         "title": "Einstellungen",
         "description": "Konto, Website, Integrationen und Entwicklertools."
       }
+    },
+    "site_preview": {
+      "heading": "Live-Vorschau",
+      "iframe_title": "Live-Vorschau Ihrer öffentlichen Seite",
+      "readonly_note": "Diese Vorschau ist schreibgeschützt und nicht per Tastatur bedienbar. Zum Ausblenden ausschalten.",
+      "ready_announce": "Live-Vorschau bereit",
+      "error_announce": "Live-Vorschau nicht verfügbar"
     }
   },
   "public": {
