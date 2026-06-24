@@ -942,19 +942,19 @@
 										id="view-list-{sectionKey}"
 										type="text"
 										value={sectionConfig.list || ''}
-										list="view-testimonial-lists"
+										list="view-testimonial-lists-{sectionKey}"
 										placeholder={$t('admin.homepage.testimonial_list_placeholder')}
-										aria-describedby="view-list-help"
+										aria-describedby="view-list-help-{sectionKey}"
 										class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 										onchange={(e) => {
 											sections['testimonials'].list = e.currentTarget.value.trim() || undefined;
 											updateSections();
 										}}
 									/>
-									<datalist id="view-testimonial-lists">
+									<datalist id="view-testimonial-lists-{sectionKey}">
 										{#each existingLists as l (l)}<option value={l}></option>{/each}
 									</datalist>
-									<p id="view-list-help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+									<p id="view-list-help-{sectionKey}" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 										{$t('admin.homepage.testimonial_list_help')}
 									</p>
 								</div>

@@ -1317,9 +1317,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// approved testimonials collected under it are eligible. Empty => all.
 				testimonialsFilter := "status = 'approved' && (visibility = 'public' || visibility = '')"
 				var testimonialsParams dbx.Params
-				if list := getSectionList(settings, "testimonials"); list != "" {
+				testimonialsList := getSectionList(settings, "testimonials")
+				if testimonialsList != "" {
 					testimonialsFilter += " && list = {:list}"
-					testimonialsParams = dbx.Params{"list": list}
+					testimonialsParams = dbx.Params{"list": testimonialsList}
 				}
 				testimonialRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "testimonials"),
@@ -1331,7 +1332,14 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					testimonials := serializeRecords(testimonialRecords)
-					response["testimonials"] = filterBySelectedItemsWithDefault(testimonials, testimonialsSelectedItems, testimonialsConfigured)
+					// With a list set and no explicit picks, auto-show every approved
+					// testimonial from that list (#283: show automatically once approved).
+					// Once specific items are picked, those drive display (deselect-to-hide).
+					if testimonialsList != "" && len(testimonialsSelectedItems) == 0 {
+						response["testimonials"] = testimonials
+					} else {
+						response["testimonials"] = filterBySelectedItemsWithDefault(testimonials, testimonialsSelectedItems, testimonialsConfigured)
+					}
 				}
 			}
 
