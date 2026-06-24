@@ -1556,6 +1556,32 @@
       "announced_custom": "Akzentfarbe auf {hex} gesetzt",
       "announced_curated": "Akzentfarbe auf {name} gesetzt"
     },
+    "text_color_picker": {
+      "label": "Textfarbe",
+      "description": "Färbe Überschriften und Fließtext auf deiner öffentlichen Seite. Wir passen den Farbton automatisch an, damit er in hellem und dunklem Modus stets gut lesbar bleibt (WCAG AAA).",
+      "suggestions_label": "Vorgeschlagene Textfarben",
+      "suggestion_slate": "Schiefer",
+      "suggestion_graphite": "Graphit",
+      "suggestion_umber": "Umbra",
+      "suggestion_navy": "Marineblau",
+      "suggestion_forest": "Waldgrün",
+      "suggestion_plum": "Pflaume",
+      "custom_label": "Oder wähle eine eigene Hex-Farbe",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "Sechs hexadezimale Zeichen (0-9, A-F), mit optionalem führenden #. Leer lassen für die Standardfarbe.",
+      "invalid": "Gib eine gültige Hex-Farbe ein (z. B. #1f2937)",
+      "reset": "Auf Standard zurücksetzen",
+      "preview_label": "Live-Vorschau (automatisch angepasst)",
+      "preview_light": "Heller Modus",
+      "preview_dark": "Dunkler Modus",
+      "preview_heading": "Überschrift",
+      "preview_body": "Hier steht ein Absatz Fließtext.",
+      "aaa_note": "Der angezeigte Farbton ist genau das, was auf deiner Seite erscheint. Er wird automatisch so begrenzt, dass er in jedem Modus einen Kontrast von 7:1 (WCAG AAA) zum Hintergrund erreicht.",
+      "announced": "Textfarbe auf {hex} gesetzt",
+      "announced_reset": "Textfarbe auf Standard zurückgesetzt",
+      "updated": "Textfarbe aktualisiert",
+      "error": "Textfarbe konnte nicht aktualisiert werden"
+    },
     "view_editor": {
       "page": {
         "title_edit": "Facette bearbeiten",

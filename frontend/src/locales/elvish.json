@@ -1556,6 +1556,32 @@
       "announced_custom": "Accent color set to {hex}",
       "announced_curated": "Accent color set to {name}"
     },
+    "text_color_picker": {
+      "label": "Gwath i phith",
+      "description": "Maetho i tîw beleg a phith na i barth lîn. Cenim i gwath an i phith bain a thand (WCAG AAA) vi galad a vi dúath.",
+      "suggestions_label": "Gwaith i phith iestannen",
+      "suggestion_slate": "Gond Luin",
+      "suggestion_graphite": "Morn-glân",
+      "suggestion_umber": "Baran",
+      "suggestion_navy": "Luin-dûr",
+      "suggestion_forest": "Taur-laeg",
+      "suggestion_plum": "Gwaloth",
+      "custom_label": "Egor ceno gwath hej veleg",
+      "custom_placeholder": "#1f2937",
+      "custom_help": "Eneg tengw hex (0-9, A-F), na # ned-ohtar. Awartha an i gwath iaur.",
+      "invalid": "Anno gwath hex mae (sui #1f2937)",
+      "reset": "Danna an i gwath iaur",
+      "preview_label": "Tirith cuin (cennen)",
+      "preview_light": "Galad",
+      "preview_dark": "Dúath",
+      "preview_heading": "Têw beleg",
+      "preview_body": "Si nostach i phith o i barth.",
+      "aaa_note": "I gwath i cenich nan i gwath i thiâ nan i barth. Tortha cuin an i thand 7:1 (WCAG AAA) na i mbar vi pân lû.",
+      "announced": "Gwath i phith nan {hex}",
+      "announced_reset": "Gwath i phith danna an i gwath iaur",
+      "updated": "Gwath i phith cennen",
+      "error": "Ú-bell anno i gwath i phith"
+    },
     "view_editor": {
       "page": {
         "title_edit": "Shape Facet",

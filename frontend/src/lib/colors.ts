@@ -513,6 +513,129 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 }
 
 /**
+ * AAA text-ink targets and reference surfaces.
+ *
+ * Body/heading text on the public profile can land on any of several surfaces in
+ * each mode. We clamp the operator's hue against the WORST-CASE surface — the one
+ * that yields the LOWEST contrast for that ink — so clearing 7:1 there guarantees
+ * AAA on every other surface text can land on, by construction.
+ *
+ * The worst case differs by mode because of which side of the surface the ink is:
+ *
+ *  - Light mode (ink is DARKER than the surface): contrast = (L_surf+0.05)/(L_ink+0.05),
+ *    which INCREASES with surface luminance. So the DARKEST light surface is the
+ *    worst case. Text lands on `--surface` (#ffffff), but also directly on the warm
+ *    `--bg` (#fbf8f4) and soft-premium `--bg` (#fef9f6), which are DARKER than white
+ *    and therefore LOWER-contrast for dark ink. The darkest of these is #fbf8f4
+ *    (L≈0.9418), so we clamp against it; clearing 7:1 on #fbf8f4 also clears the
+ *    lighter #fef9f6 and #ffffff automatically.
+ *  - Dark mode (ink is LIGHTER than the surface): contrast = (L_ink+0.05)/(L_surf+0.05),
+ *    which DECREASES with surface luminance. So the LIGHTEST dark surface is the
+ *    worst case. Text lands on `--surface` (#221e1a, L≈0.0134) and the darker `--bg`
+ *    (#1a1613, L≈0.0084); #221e1a is the lighter (higher-L) → worst case. Clearing
+ *    7:1 on #221e1a also clears it on the darker #1a1613.
+ *
+ * NOTE: if a future design token introduces a light-mode text surface DARKER than
+ * #fbf8f4, or a dark-mode surface LIGHTER than #221e1a, these constants must be
+ * updated — the guarantee is only as strong as "clamp against the worst-case
+ * surface." See tests/text-color-aaa.spec.ts for the regression proof.
+ */
+export const TEXT_INK_MIN_CONTRAST = 7;
+// Worst-case (lowest-contrast) surface per mode — see block comment above.
+// Light: darkest surface tinted text lands on (warm --bg), NOT white.
+const TEXT_INK_LIGHT_SURFACE = '#fbf8f4';
+// Dark: lightest dark surface tinted text lands on (dark --surface).
+const TEXT_INK_DARK_SURFACE = '#221e1a';
+
+/** Contrast ratio between two relative luminances (WCAG 2.x), order-independent. */
+function contrastRatio(l1: number, l2: number): number {
+	const hi = Math.max(l1, l2);
+	const lo = Math.min(l1, l2);
+	return (hi + 0.05) / (lo + 0.05);
+}
+
+/**
+ * Derive a per-mode, hue-preserved, AAA-clamped text ink from an operator's hue.
+ *
+ * Returns `{ light, dark }` hex strings, both guaranteed to clear 7:1 against the
+ * WORST-CASE (lowest-contrast) surface text sits on in their respective modes (the
+ * warm `--bg` #fbf8f4 in light mode, the dark `--surface` #221e1a in dark mode).
+ *
+ * Mechanism (mirrors `clamp600`'s binary search): we only ever move lightness in
+ * the AAA-safe direction while keeping hue:
+ *  - Light ink: mix the hue toward BLACK (all channels scale toward 0 equally →
+ *    hue preserved) until contrast vs the warm --bg ≥ 7:1.
+ *  - Dark ink: mix the hue toward WHITE (all channels scale toward 255 equally →
+ *    hue preserved) until contrast vs the dark surface ≥ 7:1.
+ *
+ * Black (light) and white (dark) always satisfy 7:1, so each search terminates.
+ * Invalid input falls back to a neutral readable ink so the default never breaks.
+ */
+export function deriveTextInk(hex: string): { light: string; dark: string } {
+	if (!isValidHexColor(hex)) {
+		// Neutral, AAA-safe defaults (near-black on light, near-white on dark).
+		return { light: '#1a1613', dark: '#f4eee4' };
+	}
+	const r = parseInt(hex.slice(1, 3), 16);
+	const g = parseInt(hex.slice(3, 5), 16);
+	const b = parseInt(hex.slice(5, 7), 16);
+
+	const mix = (base: number, target: number, amount: number): number =>
+		Math.round(base + (target - base) * amount);
+	const toHex = (red: number, green: number, blue: number): string =>
+		'#' + [red, green, blue].map((c) => c.toString(16).padStart(2, '0')).join('');
+
+	const surfaceLum = (surface: string): number => {
+		const sr = parseInt(surface.slice(1, 3), 16);
+		const sg = parseInt(surface.slice(3, 5), 16);
+		const sb = parseInt(surface.slice(5, 7), 16);
+		return channelLuminance(sr, sg, sb);
+	};
+
+	// Binary-search the smallest mix `amount` (toward `target`) whose resulting ink
+	// clears 7:1 against `surface`. amount=0 is the raw hue; amount=1 is the target
+	// (black or white), which always passes — so the bracket [0,1] always contains
+	// a solution and the search converges.
+	const clamp = (target: number, surface: string): string => {
+		const surfL = surfaceLum(surface);
+		const inkLum = (amount: number): number =>
+			channelLuminance(mix(r, target, amount), mix(g, target, amount), mix(b, target, amount));
+		// Already AAA at the raw hue? Honor it exactly.
+		if (contrastRatio(inkLum(0), surfL) >= TEXT_INK_MIN_CONTRAST) {
+			return toHex(r, g, b);
+		}
+		let lo = 0;
+		let hi = 1;
+		for (let i = 0; i < 24; i++) {
+			const mAmt = (lo + hi) / 2;
+			if (contrastRatio(inkLum(mAmt), surfL) >= TEXT_INK_MIN_CONTRAST) hi = mAmt;
+			else lo = mAmt;
+		}
+		return toHex(mix(r, target, hi), mix(g, target, hi), mix(b, target, hi));
+	};
+
+	return {
+		light: clamp(0, TEXT_INK_LIGHT_SURFACE), // darken toward black
+		dark: clamp(255, TEXT_INK_DARK_SURFACE) // lighten toward white
+	};
+}
+
+/**
+ * Build the SSR `<style>`/inline CSS-var declarations for the operator's text
+ * color. Returns `--text-ink` (light value) and `--text-ink-dark` (dark value)
+ * as a `:root { ... }` block, or '' when no color is set (so the default render
+ * is byte-identical to today — nothing is injected, the scoped rule no-ops).
+ */
+export function generateTextInkCSSVars(textColor?: string | null): string {
+	if (!textColor || !isValidHexColor(textColor)) return '';
+	const { light, dark } = deriveTextInk(textColor);
+	return `:root {
+		--text-ink: ${light};
+		--text-ink-dark: ${dark};
+	}`;
+}
+
+/**
  * Generate CSS custom properties for accent color (works server-side, no DOM needed).
  * Returns a CSS string that can be injected into <style> tags for SSR.
  */
