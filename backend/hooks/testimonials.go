@@ -24,6 +24,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				RecipientEmail string  `json:"recipient_email"`
 				ExpiresAt      *string `json:"expires_at"`
 				MaxUses        int     `json:"max_uses"`
+				List           string  `json:"list"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -50,6 +51,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			record.Set("custom_message", req.CustomMessage)
 			record.Set("recipient_name", req.RecipientName)
 			record.Set("recipient_email", req.RecipientEmail)
+			record.Set("list", req.List)
 			record.Set("is_active", true)
 			record.Set("use_count", 0)
 
@@ -79,6 +81,26 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			})
 		}).Bind(apis.RequireAuth())
 
+		se.Router.GET("/api/testimonials/lists", func(e *core.RequestEvent) error {
+			// Distinct, non-empty list labels across requests and testimonials, so
+			// the admin can offer an autocomplete of lists already in use (#283).
+			seen := map[string]bool{}
+			lists := []string{}
+			for _, table := range []string{"testimonial_requests", "testimonials"} {
+				records, err := app.FindRecordsByFilter(table, "list != ''", "list", 500, 0)
+				if err != nil {
+					continue
+				}
+				for _, r := range records {
+					if l := r.GetString("list"); l != "" && !seen[l] {
+						seen[l] = true
+						lists = append(lists, l)
+					}
+				}
+			}
+			return e.JSON(http.StatusOK, map[string]interface{}{"lists": lists})
+		}).Bind(apis.RequireAuth())
+
 		se.Router.GET("/api/testimonials/requests", func(e *core.RequestEvent) error {
 			records, err := app.FindRecordsByFilter(
 				"testimonial_requests",
@@ -99,6 +121,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 					"custom_message":  r.GetString("custom_message"),
 					"recipient_name":  r.GetString("recipient_name"),
 					"recipient_email": r.GetString("recipient_email"),
+					"list":            r.GetString("list"),
 					"expires_at":      r.GetDateTime("expires_at"),
 					"max_uses":        r.GetInt("max_uses"),
 					"use_count":       r.GetInt("use_count"),
@@ -301,6 +324,9 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 
 			if requestRecord != nil {
 				record.Set("request_id", requestRecord.Id)
+				// Inherit the list the request was created under (#283), so approved
+				// testimonials surface automatically on facets pointed at that list.
+				record.Set("list", requestRecord.GetString("list"))
 
 				requestRecord.Set("use_count", requestRecord.GetInt("use_count")+1)
 				app.Save(requestRecord)

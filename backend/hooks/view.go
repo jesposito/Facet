@@ -1293,13 +1293,21 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Fetch testimonials - only approved and public/empty visibility appear on homepage
 			testimonialsEnabled, testimonialsSelectedItems, testimonialsConfigured := getSectionConfig(settings, "testimonials")
 			if testimonialsEnabled {
+				// Optional per-section list filter (#283): when a list is set, only
+				// approved testimonials collected under it are eligible. Empty => all.
+				testimonialsFilter := "status = 'approved' && (visibility = 'public' || visibility = '')"
+				var testimonialsParams dbx.Params
+				if list := getSectionList(settings, "testimonials"); list != "" {
+					testimonialsFilter += " && list = {:list}"
+					testimonialsParams = dbx.Params{"list": list}
+				}
 				testimonialRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "testimonials"),
-					"status = 'approved' && (visibility = 'public' || visibility = '')",
+					testimonialsFilter,
 					"-featured,-sort_order",
 					100,
 					0,
-					nil,
+					testimonialsParams,
 				)
 				if err == nil {
 					testimonials := serializeRecords(testimonialRecords)

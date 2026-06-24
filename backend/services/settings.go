@@ -141,6 +141,7 @@ type HomepageSectionConfig struct {
 	Width         string         `json:"width,omitempty"`         // Section width
 	CategoryOrder []string       `json:"categoryOrder,omitempty"` // For skills: custom category order
 	ItemConfig    map[string]any `json:"itemConfig,omitempty"`    // Per-item overrides
+	List          string         `json:"list,omitempty"`          // For testimonials: auto-include approved testimonials in this list
 }
 
 // SiteNavItem represents a navigation button configuration
