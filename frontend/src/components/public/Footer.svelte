@@ -4,9 +4,13 @@
 
 	interface Props {
 		profile: Profile | null;
+		// Operator toggle for the Soft Premium footer CTA band. Defaults to true
+		// so omitting the prop preserves today's behavior (band shows when a
+		// contact link exists). Set false to hide the band site-wide.
+		footerCtaEnabled?: boolean;
 	}
 
-	let { profile }: Props = $props();
+	let { profile, footerCtaEnabled = true }: Props = $props();
 
 	const year = new Date().getFullYear();
 
@@ -44,7 +48,7 @@
 		     Gated to soft-premium via scoped CSS (hidden in classic so the
 		     classic footer is byte-identical). Decorative-only; the CTA itself
 		     is a real link with discernible text. -->
-		{#if ctaLink}
+		{#if footerCtaEnabled !== false && ctaLink}
 			<section class="cta-band" aria-labelledby="footer-cta-headline">
 				<span class="cta-band__grain grain" aria-hidden="true"></span>
 				<div class="cta-band__inner">
