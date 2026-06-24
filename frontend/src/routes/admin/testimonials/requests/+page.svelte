@@ -12,6 +12,7 @@
 		custom_message: string;
 		recipient_name: string;
 		recipient_email: string;
+		list: string;
 		expires_at: string;
 		max_uses: number;
 		use_count: number;
@@ -24,11 +25,14 @@
 	let showForm = $state(false);
 	let saving = $state(false);
 	let newToken = $state<string | null>(null);
+	// Distinct list labels already in use, for the list autocomplete (#283).
+	let existingLists = $state<string[]>([]);
 
 	let label = $state('');
 	let customMessage = $state('');
 	let recipientName = $state('');
 	let recipientEmail = $state('');
+	let listName = $state('');
 	let expiresAt = $state('');
 	let maxUses = $state(0);
 
@@ -38,7 +42,25 @@
 		showForm = false;
 	});
 
-	onMount(loadRequests);
+	onMount(() => {
+		loadRequests();
+		loadLists();
+	});
+
+	async function loadLists() {
+		try {
+			const headers = pb.authStore.isValid
+				? { Authorization: `Bearer ${pb.authStore.token}` }
+				: undefined;
+			const res = await fetch('/api/testimonials/lists', { headers });
+			if (res.ok) {
+				const data = await res.json();
+				existingLists = Array.isArray(data.lists) ? data.lists : [];
+			}
+		} catch {
+			/* non-fatal: autocomplete is a convenience */
+		}
+	}
 
 	async function loadRequests() {
 		loading = true;
@@ -75,6 +97,7 @@
 					custom_message: customMessage,
 					recipient_name: recipientName,
 					recipient_email: recipientEmail,
+					list: listName.trim(),
 					expires_at: expiresAt || null,
 					max_uses: maxUses
 				})
@@ -86,6 +109,7 @@
 				toasts.success('Request link created');
 				resetForm();
 				await loadRequests();
+				await loadLists();
 			} else {
 				toasts.error('Failed to create request link');
 			}
@@ -157,6 +181,7 @@
 		customMessage = '';
 		recipientName = '';
 		recipientEmail = '';
+		listName = '';
 		expiresAt = '';
 		maxUses = 0;
 	}
@@ -261,6 +286,29 @@
 						placeholder="e.g., Project X Clients"
 						class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
 					/>
+				</div>
+				<div>
+					<label for="listName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+						List (auto-publish to a facet)
+					</label>
+					<input
+						id="listName"
+						type="text"
+						bind:value={listName}
+						list="existing-lists"
+						placeholder="e.g., Clients"
+						aria-describedby="listName-help"
+						class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+					/>
+					<datalist id="existing-lists">
+						{#each existingLists as l (l)}
+							<option value={l}></option>
+						{/each}
+					</datalist>
+					<p id="listName-help" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+						Testimonials from this link join this list. A facet's testimonials section set to the
+						same list publishes them automatically once approved.
+					</p>
 				</div>
 				<div>
 					<label for="customMessage" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

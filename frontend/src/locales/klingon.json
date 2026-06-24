@@ -2331,7 +2331,10 @@
       "custom_content_note": "<strong>Attend:</strong> Only custom records marked <strong>public</strong> and <strong>not in draft</strong> stand here. To change who may see them, advance to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Custom Records</a>.",
       "section_width_title": "Division breadth",
       "section_layout_title": "Division formation",
-      "page_title": "Homepage"
+      "page_title": "Homepage",
+      "testimonial_list_label": "tlhIngan testimonial tetlh",
+      "testimonial_list_placeholder": "jagh:客 (customers)",
+      "testimonial_list_help": "tetlhvam Daq testimonials lutamlu'pu'bogh 'ang. pagh chugh Hoch 'ang."
     },
     "import": {
       "resume_dropzone_label": "Battle record upload zone",

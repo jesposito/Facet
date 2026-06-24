@@ -115,6 +115,8 @@ import { brandName } from '$lib/stores/plan';
 		categoryOrder?: string[];
 		disabledCategories?: string[];
 		categoryDisplayModes?: Record<string, string>;
+		// Testimonials-specific: auto-include approved testimonials from this list (#283)
+		list?: string;
 	}> = $state({});
 
 	// Available items for each section
@@ -295,7 +297,8 @@ import { brandName } from '$lib/stores/plan';
 					// Skills-specific settings
 					categoryOrder: (config as any).categoryOrder || undefined,
 					disabledCategories: (config as any).disabledCategories || undefined,
-					categoryDisplayModes: (config as any).categoryDisplayModes || undefined
+					categoryDisplayModes: (config as any).categoryDisplayModes || undefined,
+					list: (config as any).list || undefined
 				};
 			}
 		}
@@ -619,6 +622,7 @@ import { brandName } from '$lib/stores/plan';
 				categoryOrder?: string[];
 				disabledCategories?: string[];
 				categoryDisplayModes?: Record<string, string>;
+				list?: string;
 			}> = {};
 			for (const [key, config] of Object.entries(sections)) {
 				homepageSections[key] = {
@@ -627,6 +631,10 @@ import { brandName } from '$lib/stores/plan';
 					layout: config.layout,
 					width: config.width
 				};
+				// Testimonials list filter (#283)
+				if (config.list) {
+					homepageSections[key].list = config.list;
+				}
 				// Include skills-specific settings if present
 				if (config.categoryOrder?.length) {
 					homepageSections[key].categoryOrder = config.categoryOrder;

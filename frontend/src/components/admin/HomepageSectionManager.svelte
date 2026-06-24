@@ -12,7 +12,7 @@
 	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import type { CustomContent } from '$lib/pocketbase';
-	import { VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
+	import { pb, VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
@@ -36,6 +36,7 @@
 			dndLoaded = true;
 			applySavedItemOrder();
 		}
+		loadTestimonialLists();
 	});
 
 	const flipDurationMs = 200;
@@ -72,6 +73,7 @@
 			disabledCategories?: string[];
 			categoryDisplayModes?: Record<string, string>;
 			featuredId?: string;
+			list?: string;
 		}>;
 		sectionOrder: Array<{ id: string; key: string }>;
 		sectionItems: Record<string, Array<{
@@ -184,6 +186,27 @@
 
 	function updateSectionWidth(sectionKey: string, width: string) {
 		sections[sectionKey].width = width;
+		updateSections();
+	}
+
+	// Distinct testimonial list labels in use, for the section list autocomplete (#283).
+	let existingLists = $state<string[]>([]);
+	async function loadTestimonialLists() {
+		try {
+			const res = await fetch('/api/testimonials/lists', {
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : undefined
+			});
+			if (res.ok) {
+				const data = await res.json();
+				existingLists = Array.isArray(data.lists) ? data.lists : [];
+			}
+		} catch {
+			/* non-fatal: autocomplete is a convenience */
+		}
+	}
+
+	function updateSectionList(sectionKey: string, list: string) {
+		sections[sectionKey].list = list.trim();
 		updateSections();
 	}
 
@@ -464,6 +487,32 @@
 					<!-- Section Items (expanded) -->
 					{#if sectionConfig.enabled && sectionConfig.expanded && publicItems.length > 0 && !isCustom}
 						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
+							{#if sectionKey === 'testimonials'}
+								<div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
+									<label for="list-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">
+										{$t('admin.homepage.testimonial_list_label')}
+									</label>
+									<input
+										id="list-{sectionKey}"
+										type="text"
+										value={sectionConfig.list || ''}
+										list="testimonial-lists-{sectionKey}"
+										placeholder={$t('admin.homepage.testimonial_list_placeholder')}
+										aria-describedby="list-help-{sectionKey}"
+										class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+										onchange={(e) => updateSectionList(sectionKey, e.currentTarget.value)}
+										onclick={(e) => e.stopPropagation()}
+									/>
+									<datalist id="testimonial-lists-{sectionKey}">
+										{#each existingLists as l (l)}
+											<option value={l}></option>
+										{/each}
+									</datalist>
+									<p id="list-help-{sectionKey}" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+										{$t('admin.homepage.testimonial_list_help')}
+									</p>
+								</div>
+							{/if}
 							<!-- Mobile Layout/Width Controls -->
 							<div class="lg:hidden grid grid-cols-1 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
 								{#if sectionConfig.enabled}

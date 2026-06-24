@@ -543,3 +543,16 @@ func getSectionConfig(settings *services.SiteSettings, sectionKey string) (enabl
 
 	return config.Enabled, config.Items, true
 }
+
+// getSectionList returns the optional "list" filter configured for a section
+// (currently only testimonials). Empty string ⇒ no list filter (show all).
+func getSectionList(settings *services.SiteSettings, sectionKey string) string {
+	if settings == nil || settings.HomepageSections == nil {
+		return ""
+	}
+	config, exists := settings.HomepageSections[sectionKey]
+	if !exists {
+		return ""
+	}
+	return config.List
+}

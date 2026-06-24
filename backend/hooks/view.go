@@ -681,6 +681,26 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 
+				// Testimonials list filter (#283): if this view's testimonials section
+				// points at a list, auto-include approved testimonials from that list
+				// (parity with the homepage facet), rather than explicit per-item picks.
+				if sectionName == "testimonials" {
+					if listVal, ok := section["list"].(string); ok && listVal != "" {
+						recs, err := app.FindRecordsByFilter(
+							collectionName,
+							"status = 'approved' && (visibility = 'public' || visibility = '') && list = {:list}",
+							"-featured,-sort_order",
+							100,
+							0,
+							dbx.Params{"list": listVal},
+						)
+						if err == nil {
+							sectionData[sectionName] = serializeRecordsWithOverrides(app, recs, itemConfig, sectionName)
+						}
+						continue
+					}
+				}
+
 				// Only show items that are explicitly selected
 				// If no items are selected, the section is empty (nothing shown)
 				if ok && len(items) > 0 {
@@ -1293,17 +1313,33 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			// Fetch testimonials - only approved and public/empty visibility appear on homepage
 			testimonialsEnabled, testimonialsSelectedItems, testimonialsConfigured := getSectionConfig(settings, "testimonials")
 			if testimonialsEnabled {
+				// Optional per-section list filter (#283): when a list is set, only
+				// approved testimonials collected under it are eligible. Empty => all.
+				testimonialsFilter := "status = 'approved' && (visibility = 'public' || visibility = '')"
+				var testimonialsParams dbx.Params
+				testimonialsList := getSectionList(settings, "testimonials")
+				if testimonialsList != "" {
+					testimonialsFilter += " && list = {:list}"
+					testimonialsParams = dbx.Params{"list": testimonialsList}
+				}
 				testimonialRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "testimonials"),
-					"status = 'approved' && (visibility = 'public' || visibility = '')",
+					testimonialsFilter,
 					"-featured,-sort_order",
 					100,
 					0,
-					nil,
+					testimonialsParams,
 				)
 				if err == nil {
 					testimonials := serializeRecords(testimonialRecords)
-					response["testimonials"] = filterBySelectedItemsWithDefault(testimonials, testimonialsSelectedItems, testimonialsConfigured)
+					// With a list set and no explicit picks, auto-show every approved
+					// testimonial from that list (#283: show automatically once approved).
+					// Once specific items are picked, those drive display (deselect-to-hide).
+					if testimonialsList != "" && len(testimonialsSelectedItems) == 0 {
+						response["testimonials"] = testimonials
+					} else {
+						response["testimonials"] = filterBySelectedItemsWithDefault(testimonials, testimonialsSelectedItems, testimonialsConfigured)
+					}
 				}
 			}
 
