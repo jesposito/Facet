@@ -2331,7 +2331,10 @@
       "custom_content_note": "<strong>Heed:</strong> Only wrought tales marked <strong>open to all</strong> and <strong>not yet a draft</strong> appear here. To change who may behold them, journey to <a href=\"/admin/custom\" class=\"underline hover:no-underline\">Wrought Tales</a>.",
       "section_width_title": "Breadth of the chapter",
       "section_layout_title": "Weave of the chapter",
-      "page_title": "Homepage"
+      "page_title": "Homepage",
+      "testimonial_list_label": "Pedthû o thelsignel",
+      "testimonial_list_placeholder": "ned, Mýl",
+      "testimonial_list_help": "Tiro i thelsignel o i thaud hin. Awartho an tirad pân."
     },
     "import": {
       "resume_dropzone_label": "Chronicle scroll waypoint",
