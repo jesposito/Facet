@@ -12,8 +12,12 @@
         # Prevent MIME type sniffing (universal, no risk)
         X-Content-Type-Options "nosniff"
 
-        # Prevent clickjacking (will migrate to CSP frame-ancestors in Phase 5B)
-        X-Frame-Options "DENY"
+        # Prevent cross-origin clickjacking, but allow SAMEORIGIN framing so the
+        # admin live-preview pane can embed this instance's own public site.
+        # (DENY blocked even same-origin frames, breaking the preview.)
+        X-Frame-Options "SAMEORIGIN"
+        # Modern equivalent; 'self' = only this origin may frame us.
+        Content-Security-Policy "frame-ancestors 'self'"
 
         # Control referrer information - safe default per OWASP
         Referrer-Policy "strict-origin-when-cross-origin"
