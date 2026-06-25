@@ -587,31 +587,9 @@ Search engines can index your public content. Unlisted and private stuff stays h
 
 ## Architecture (The 10,000-Foot View)
 
-```
-┌──────────────────────────────────────────────┐
-│         Docker Container (port 8080)         │
-│                                              │
-│  ┌────────────────────────────────────────┐ │
-│  │  Caddy (Reverse Proxy)                 │ │
-│  │  /api/*  → PocketBase :8090            │ │
-│  │  /*      → SvelteKit :3000             │ │
-│  └────────────────────────────────────────┘ │
-│                                              │
-│  ┌──────────────┐      ┌─────────────────┐ │
-│  │  SvelteKit   │      │   PocketBase    │ │
-│  │  :3000       │◄────►│   :8090         │ │
-│  │  (Frontend)  │      │   (Backend)     │ │
-│  └──────────────┘      └─────────────────┘ │
-│                              │               │
-│                        ┌─────▼────────┐     │
-│                        │  /data       │     │
-│                        │  (Volume)    │     │
-│                        │              │     │
-│                        │  data.db     │     │
-│                        │  uploads/    │     │
-│                        └──────────────┘     │
-└──────────────────────────────────────────────┘
-```
+![Facet single-tenant architecture: a Cloudflare tunnel fronts one Docker container running Caddy (reverse proxy, port 8080), SvelteKit (:3000) and Go/PocketBase (:8090) over a SQLite data volume, with Stripe, AI providers, GitHub and SMTP as external integrations.](docs/diagrams/facet-architecture.png)
+
+[Editable source: `docs/diagrams/facet-architecture.drawio`](docs/diagrams/facet-architecture.drawio) (open in draw.io, diagrams.net, or the VS Code Draw.io extension)
 
 **What happens when someone visits `/recruiter`:**
 
