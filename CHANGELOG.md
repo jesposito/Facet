@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.1 - June 25, 2026
+
+**Other Changes:**
+- architecture and data-model diagrams
+
+**Pull Requests:** [#482](https://github.com/jesposito/Facet/pull/482),
+
+---
+
+
 ## v3.4.0 - June 24, 2026
 
 **New Features:**
