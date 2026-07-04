@@ -72,7 +72,7 @@ func main() {
 	hooks.RegisterExperienceHooks(app)
 	hooks.RegisterCustomContentHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
-	hooks.RegisterCleanupHooks(app) // Background cleanup of expired tokens and failed exports
+	hooks.RegisterCleanupHooks(app)    // Background cleanup of expired tokens and failed exports
 	hooks.RegisterBackupHooks(app)     // Automated database backup system
 	hooks.RegisterContentRecovery(app) // One-time recovery of editor-flattened content (#443)
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
@@ -85,9 +85,9 @@ func main() {
 	hooks.RegisterCourseHooks(app, planConfig, cryptoService, rateLimitService)
 	hooks.RegisterQuizHooks(app, planConfig, cryptoService, rateLimitService)
 	hooks.RegisterWebhookHooks(app, rateLimitService)
-	hooks.RegisterAPIKeyHooks(app)      // Public read-only API + admin key management
-	hooks.RegisterSystemAlertHooks(app) // Operator-facing system event inbox
-	hooks.RegisterAPIV1WriteHooks(app)  // POST/PATCH/DELETE on /api/v1/* (write scopes)
+	hooks.RegisterAPIKeyHooks(app, cryptoService)     // Public read-only API + admin key management
+	hooks.RegisterSystemAlertHooks(app)               // Operator-facing system event inbox
+	hooks.RegisterAPIV1WriteHooks(app, cryptoService) // POST/PATCH/DELETE on /api/v1/* (write scopes)
 
 	// Security enhancements
 	// hooks.RegisterSecurityHeaders(app)
