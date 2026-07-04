@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.2 - July 04, 2026
+
+**Bugs Fixed:**
+- [codex] Preserve AI writing language and fix security alerts
+
+**Pull Requests:** [#483](https://github.com/jesposito/Facet/pull/483),
+
+---
+
+
 ## v3.4.1 - June 25, 2026
 
 **Other Changes:**
