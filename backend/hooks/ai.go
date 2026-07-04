@@ -18,6 +18,15 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+const aiPromptLanguageRules = `LANGUAGE RULES:
+- Detect the primary language from the user's current content first.
+- If current content is empty, use the primary language from the provided context.
+- Keep the response in that same language. Do not translate to English unless the source content/context is English or the user explicitly asks for English.
+- Preserve names, company names, product names, URLs, code, and technical terms in their original language.
+- Apply all writing rules in the response language; English examples are illustrative only.
+
+`
+
 // RegisterAIHooks registers AI-related API endpoints
 func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto *services.CryptoService) {
 	// Register API endpoints on serve
@@ -489,6 +498,7 @@ IMPORTANT WRITING STYLE RULES:
 - Start sentences with action verbs, not "I" or "This"
 
 `)
+	sb.WriteString(aiPromptLanguageRules)
 
 	// Add context
 	if len(ctx) > 0 {
@@ -580,6 +590,7 @@ CRITICAL STYLE RULES - NEVER VIOLATE:
 - Be specific and concrete, not vague and abstract
 
 `)
+	sb.WriteString(aiPromptLanguageRules)
 
 	// Add tone-specific instructions
 	switch tone {
@@ -673,6 +684,9 @@ func buildCritiquePrompt(content, fieldType string, ctx map[string]string) strin
 
 Your task: Return the EXACT original text with constructive feedback inserted in [square brackets].
 
+`)
+	sb.WriteString(aiPromptLanguageRules)
+	sb.WriteString(`
 FEEDBACK GUIDELINES:
 - Be specific and actionable
 - Point out vague language: [Too generic - what specific technology/approach?]

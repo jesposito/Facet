@@ -2,13 +2,14 @@ package hooks
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -58,7 +59,7 @@ var validScopes = map[string]bool{
 }
 
 // generateAPIKey returns a freshly-minted key like "facet_<64 hex chars>".
-// The full key is returned ONCE to the caller; only the sha256 hash is stored.
+// The full key is returned ONCE to the caller; only the HMAC hash is stored.
 func generateAPIKey() (string, error) {
 	buf := make([]byte, apiKeyRandBytes)
 	if _, err := rand.Read(buf); err != nil {
@@ -67,11 +68,10 @@ func generateAPIKey() (string, error) {
 	return APIKeyPrefix + hex.EncodeToString(buf), nil
 }
 
-// hashAPIKey returns the lowercase hex sha256 of the full key. This is what we
-// store in the `key_hash` column.
-func hashAPIKey(fullKey string) string {
-	sum := sha256.Sum256([]byte(fullKey))
-	return hex.EncodeToString(sum[:])
+// hashAPIKey returns the keyed HMAC of the full key. This is what we store in
+// the `key_hash` column.
+func hashAPIKey(crypto *services.CryptoService, fullKey string) string {
+	return crypto.HMACToken(fullKey)
 }
 
 // extractKeyPrefix returns the first `keyDisplayPrefixLen` characters of a key,
@@ -139,7 +139,7 @@ func updateLastUsedAsync(app core.App, keyID string) {
 //
 // Self-hosted is single-tenant, so there's no per-tenant rate limit or member
 // tier — just the scope check.
-func APIKeyMiddleware(app core.App, requiredScope string) func(func(*core.RequestEvent) error) func(*core.RequestEvent) error {
+func APIKeyMiddleware(app core.App, crypto *services.CryptoService, requiredScope string) func(func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 	return func(handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 		return func(e *core.RequestEvent) error {
 			authHeader := e.Request.Header.Get("Authorization")
@@ -153,7 +153,7 @@ func APIKeyMiddleware(app core.App, requiredScope string) func(func(*core.Reques
 
 			// Hash and look up. We index on key_prefix so this is O(1) typically,
 			// but in case of prefix collisions we filter further on key_hash.
-			hash := hashAPIKey(fullKey)
+			hash := hashAPIKey(crypto, fullKey)
 			prefix := extractKeyPrefix(fullKey)
 
 			records, err := app.FindRecordsByFilter(
@@ -193,7 +193,7 @@ func APIKeyMiddleware(app core.App, requiredScope string) func(func(*core.Reques
 
 // RegisterAPIKeyHooks wires up the admin CRUD endpoints for managing API keys
 // and the public read-only v1 endpoints that consume them.
-func RegisterAPIKeyHooks(app *pocketbase.PocketBase) {
+func RegisterAPIKeyHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// ---------------------------------------------------------------
 		// Admin endpoints (require superuser)
@@ -243,7 +243,7 @@ func RegisterAPIKeyHooks(app *pocketbase.PocketBase) {
 			record := core.NewRecord(collection)
 			record.Set("label", req.Label)
 			record.Set("key_prefix", extractKeyPrefix(fullKey))
-			record.Set("key_hash", hashAPIKey(fullKey))
+			record.Set("key_hash", hashAPIKey(crypto, fullKey))
 			record.Set("scopes", req.Scopes)
 			record.Set("is_active", true)
 			if len(req.AllowedOrigins) > 0 {
@@ -323,7 +323,7 @@ func RegisterAPIKeyHooks(app *pocketbase.PocketBase) {
 		// ---------------------------------------------------------------
 
 		readAuth := func(scope string, handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
-			return APIKeyMiddleware(app, scope)(handler)
+			return APIKeyMiddleware(app, crypto, scope)(handler)
 		}
 
 		// GET /api/v1/profile
