@@ -10,7 +10,7 @@ import (
 // Schema (self-hosted, single-tenant):
 //   - label            string, required, indexed       -- human label set by admin
 //   - key_prefix       string, required, indexed       -- first 12 chars of the issued key for display/lookup
-//   - key_hash         string, required                -- sha256 hex of the full key (never the raw key)
+//   - key_hash         string, required                -- HMAC of the full key (never the raw key)
 //   - scopes           json                            -- []string of granted scopes (read:profile, etc.)
 //   - allowed_origins  json                            -- []string of CORS origins (optional, [] = any)
 //   - expires_at       datetime, nullable
@@ -20,7 +20,7 @@ import (
 // Access rules:
 //   - List/View/Create/Update/Delete are all superuser-only via the admin
 //     endpoints in `hooks/api_keys.go`. The PocketBase rules here are
-//     `@request.auth.id != ''` so the dashboard admin UI can read it too if
+//     `@request.auth.id != ”` so the dashboard admin UI can read it too if
 //     ever needed, but the actual mutation paths go through hooks.
 func init() {
 	m.Register(func(app core.App) error {

@@ -3,12 +3,18 @@ package services
 import (
 	"fmt"
 	"image"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
-	"github.com/disintegration/imaging"
+	_ "golang.org/x/image/bmp"
+	"golang.org/x/image/draw"
+	_ "golang.org/x/image/webp"
 )
 
 // ThumbnailSize is the default size for generated thumbnails.
@@ -71,21 +77,50 @@ func (ts *ThumbnailService) GenerateThumbnail(collectionID, recordID, filename s
 		defer os.Remove(tempFile)
 	}
 
-	// Open and decode the source image
-	srcImage, err := imaging.Open(imagePath)
+	f, err := os.Open(imagePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open image: %w", err)
 	}
+	defer f.Close()
+
+	srcImage, _, err := image.Decode(f)
+	if err != nil {
+		return "", fmt.Errorf("failed to decode image: %w", err)
+	}
 
 	// Resize to fit within size x size while preserving aspect ratio
-	thumb := imaging.Fit(srcImage, size, size, imaging.Lanczos)
+	thumb := resizeToFit(srcImage, size)
 
 	// Save the thumbnail as JPEG
-	if err := imaging.Save(thumb, dstPath); err != nil {
+	out, err := os.Create(dstPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create thumbnail: %w", err)
+	}
+	defer out.Close()
+	if err := jpeg.Encode(out, thumb, &jpeg.Options{Quality: 85}); err != nil {
 		return "", fmt.Errorf("failed to save thumbnail: %w", err)
 	}
 
 	return thumbFilename, nil
+}
+
+func resizeToFit(src image.Image, maxSize int) image.Image {
+	bounds := src.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	if width <= 0 || height <= 0 || maxSize <= 0 {
+		return src
+	}
+
+	scale := math.Min(float64(maxSize)/float64(width), float64(maxSize)/float64(height))
+	if scale > 1 {
+		scale = 1
+	}
+	dstWidth := max(1, int(math.Round(float64(width)*scale)))
+	dstHeight := max(1, int(math.Round(float64(height)*scale)))
+	dst := image.NewRGBA(image.Rect(0, 0, dstWidth, dstHeight))
+	draw.CatmullRom.Scale(dst, dst.Bounds(), src, bounds, draw.Over, nil)
+	return dst
 }
 
 // GetThumbnailPath returns the expected thumbnail filename for a given original filename.
@@ -122,7 +157,6 @@ func IsSupportedFormat(mimeType string) bool {
 		"image/gif":  true,
 		"image/webp": true,
 		"image/bmp":  true,
-		"image/tiff": true,
 		"image/heic": true,
 		"image/heif": true,
 	}

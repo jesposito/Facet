@@ -3,6 +3,8 @@ package hooks
 import (
 	"strings"
 	"testing"
+
+	"facet/services"
 )
 
 func TestApiKeyGenerate(t *testing.T) {
@@ -30,26 +32,32 @@ func TestApiKeyGenerate(t *testing.T) {
 }
 
 func TestApiKeyHashRoundtrip(t *testing.T) {
+	crypto := services.NewCryptoService("test-encryption-key-32-chars-ok!")
 	key, err := generateAPIKey()
 	if err != nil {
 		t.Fatalf("generateAPIKey returned error: %v", err)
 	}
 
-	h1 := hashAPIKey(key)
-	h2 := hashAPIKey(key)
+	h1 := hashAPIKey(crypto, key)
+	h2 := hashAPIKey(crypto, key)
 	if h1 != h2 {
 		t.Fatalf("hashAPIKey is not deterministic: %q != %q", h1, h2)
 	}
 
-	// sha256 hex is always 64 chars.
-	if len(h1) != 64 {
-		t.Fatalf("expected hash length 64, got %d", len(h1))
+	// HMAC-SHA256 base64 is always 44 chars with the current CryptoService helper.
+	if len(h1) != 44 {
+		t.Fatalf("expected hash length 44, got %d", len(h1))
 	}
 
 	// Mutating the key must change the hash (no truncation collisions).
 	tampered := key + "x"
-	if hashAPIKey(tampered) == h1 {
+	if hashAPIKey(crypto, tampered) == h1 {
 		t.Fatalf("hash collision between %q and %q", key, tampered)
+	}
+
+	otherCrypto := services.NewCryptoService("other-encryption-key-32-chars-ok")
+	if hashAPIKey(otherCrypto, key) == h1 {
+		t.Fatalf("hash should be keyed to this instance's encryption key")
 	}
 
 	// The hash must NEVER equal the raw key (defensive — protects against

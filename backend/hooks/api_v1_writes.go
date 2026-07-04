@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"facet/services"
+
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -57,10 +59,10 @@ var apiV1WriteFields = map[string][]string{
 // RegisterAPIV1WriteHooks wires up the POST/PATCH/DELETE endpoints that
 // complement the read-only `/api/v1/*` surface registered in
 // RegisterAPIKeyHooks.
-func RegisterAPIV1WriteHooks(app *pocketbase.PocketBase) {
+func RegisterAPIV1WriteHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		writeAuth := func(scope string, handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
-			return APIKeyMiddleware(app, scope)(handler)
+			return APIKeyMiddleware(app, crypto, scope)(handler)
 		}
 
 		// -----------------------------------------------------------------
@@ -204,7 +206,7 @@ func apiV1Delete(app core.App, e *core.RequestEvent, collection string) error {
 }
 
 // apiV1UpdateProfile patches the singleton profile record. Self-hosted has
-// exactly one profile, so we find it by "id != ''" rather than by id path
+// exactly one profile, so we find it by "id != ”" rather than by id path
 // param, and there is no POST/DELETE counterpart.
 func apiV1UpdateProfile(app core.App, e *core.RequestEvent) error {
 	records, err := app.FindRecordsByFilter("profile", "id != ''", "", 1, 0)
