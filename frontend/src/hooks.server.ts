@@ -11,6 +11,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const cookie = event.request.headers.get('cookie') || '';
 	event.locals.pb.authStore.loadFromCookie(cookie, PB_COOKIE_NAME);
+	event.locals.siteSettings = {
+		faviconUrl: null,
+		customCSS: null,
+		defaultLocale: null,
+		showAvatar: true,
+		defaultThemeMode: 'system',
+		design: 'classic',
+	};
 
 	// Snapshot the token so we can detect if auth changed during request handling
 	const initialToken = event.locals.pb.authStore.token;
@@ -23,9 +31,30 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let operatorAccent = '';
 	let operatorCustomHex = '';
 	let operatorTextColor = '';
+	let design: App.SiteSettings['design'] = 'classic';
+	try {
+		const settingsRes = await fetch(`${pbUrl}/api/site-settings`, {
+			headers: { 'X-Internal': 'true' },
+		});
+		if (settingsRes.ok) {
+			const settings = await settingsRes.json();
+			design = settings.design === 'soft-premium' ? 'soft-premium' : 'classic';
+			event.locals.siteSettings = {
+				faviconUrl: settings.favicon || null,
+				customCSS: settings.custom_css || null,
+				defaultLocale: settings.default_locale || null,
+				showAvatar: settings.show_avatar !== false,
+				defaultThemeMode: settings.default_theme_mode || 'system',
+				design,
+			};
+		}
+	} catch {
+		/* silent - default to classic */
+	}
+
 	try {
 		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
-			headers: { 'X-Internal': 'true' }
+			headers: { 'X-Internal': 'true' },
 		});
 		if (homepageRes.ok) {
 			const homepage = await homepageRes.json();
@@ -34,7 +63,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 			operatorFontPack = homepage.profile?.font_pack || '';
 			operatorTextColor = homepage.profile?.text_color || '';
 		}
-	} catch { /* silent - fallback to client-side application */ }
+	} catch {
+		/* silent - fallback to client-side application */
+	}
 
 	// Text (font) color: derive a per-mode AAA-clamped ink from the operator's
 	// chosen hue and inject --text-ink (light) + --text-ink-dark (dark). Empty ⇒
@@ -42,22 +73,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// colors.ts (deriveTextInk) and is exercised by the AAA proof test.
 	const textInkCSSVars = generateTextInkCSSVars(operatorTextColor);
 
-	// Soft Premium is the only design — always on. The warm token layer keys off
-	// the data-design attribute, hardcoded where the <html> tag is composed below
-	// (no site setting, no branching).
-
 	// Fonts are fully governed by the operator's font-pack pick. Whatever they
-	// selected is used; if they never chose one, fall back to the Soft Premium
-	// default pack (DEFAULT_FONT_PACK). Emitted inline below, which (unlike a
-	// :root rule) correctly overrides the static defaults in app.css.
-	const effectiveFontPack = operatorFontPack || DEFAULT_FONT_PACK;
-	fontCSSVars = generateFontCSSVars(effectiveFontPack);
-	fontPack = effectiveFontPack;
+	// selected is used. If they never chose one, Classic keeps the static
+	// Lora/Jakarta defaults from app.css; Soft Premium gets the redesigned default.
+	const effectiveFontPack = operatorFontPack || (design === 'soft-premium' ? DEFAULT_FONT_PACK : '');
+	if (effectiveFontPack) {
+		fontCSSVars = generateFontCSSVars(effectiveFontPack);
+		fontPack = effectiveFontPack;
+	}
 
-	// Accent: Soft Premium defaults to a warm terracotta when the operator hasn't
-	// set an accent, so the accent harmonizes with the stone surfaces. An operator
-	// accent (named or custom hex) always wins.
-	if (!operatorAccent && !operatorCustomHex) {
+	// Accent: Soft Premium defaults to warm terracotta only when the operator has
+	// not set an accent. Classic keeps the stock sky palette from app.css.
+	if (design === 'soft-premium' && !operatorAccent && !operatorCustomHex) {
 		accentCSSVars = generateAccentCSSVars(null, SOFT_PREMIUM_DEFAULT_ACCENT);
 	} else {
 		accentCSSVars = generateAccentCSSVars(operatorAccent, operatorCustomHex);
@@ -74,7 +101,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
-						.replace(/;?\s*$/, ';')
+						.replace(/;?\s*$/, ';'),
 				);
 			}
 			if (fontCSSVars) {
@@ -84,7 +111,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
-						.replace(/;?\s*$/, ';')
+						.replace(/;?\s*$/, ';'),
 				);
 			}
 			if (textInkCSSVars) {
@@ -94,16 +121,18 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
-						.replace(/;?\s*$/, ';')
+						.replace(/;?\s*$/, ';'),
 				);
 			}
 
 			let result = html;
 
 			// Compose all <html> attributes into a single replace so the design
-			// attribute and the inline style vars both land. Soft Premium is always
-			// on, so data-design is always emitted.
-			const htmlAttrs: string[] = ['data-design="soft-premium"'];
+			// attribute and the inline style vars both land.
+			const htmlAttrs: string[] = [];
+			if (design === 'soft-premium') {
+				htmlAttrs.push('data-design="soft-premium"');
+			}
 			// data-text-ink gates the scoped text-color rules in app.css. Present
 			// ONLY when the operator set a color, so the default render carries no
 			// text-ink rules at all (byte-identical to today).
@@ -121,14 +150,11 @@ export const handle: Handle = async ({ event, resolve }) => {
 			// they'd be missing.
 			if (fontPack) {
 				const fontsUrl = getGoogleFontsUrl(fontPack);
-				result = result.replace(
-					'</head>',
-					`<link rel="stylesheet" href="${fontsUrl}">\n</head>`
-				);
+				result = result.replace('</head>', `<link rel="stylesheet" href="${fontsUrl}">\n</head>`);
 			}
 
 			return result;
-		}
+		},
 	});
 
 	// Strip oversized Link headers from HTML responses to prevent proxy failures.
@@ -154,15 +180,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// otherwise it defaults to 'https:'. We set PROTOCOL_HEADER in the Dockerfile,
 		// but X-Forwarded-Proto is the most reliable signal.
 		const forwardedProto = event.request.headers.get('x-forwarded-proto');
-		const isSecure = forwardedProto
-			? forwardedProto === 'https'
-			: event.url.protocol === 'https:';
-		const exportedCookie = event.locals.pb.authStore.exportToCookie({
-			httpOnly: false,
-			secure: isSecure,
-			sameSite: 'Lax',
-			path: '/'
-		}, PB_COOKIE_NAME);
+		const isSecure = forwardedProto ? forwardedProto === 'https' : event.url.protocol === 'https:';
+		const exportedCookie = event.locals.pb.authStore.exportToCookie(
+			{
+				httpOnly: false,
+				secure: isSecure,
+				sameSite: 'Lax',
+				path: '/',
+			},
+			PB_COOKIE_NAME,
+		);
 
 		response.headers.append('set-cookie', exportedCookie);
 	}

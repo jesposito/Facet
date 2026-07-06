@@ -111,6 +111,19 @@
 	color: var(--ink);
 }
 
+:root[data-text-ink] {
+	--ink: var(--text-ink);
+}
+:root[data-text-ink].dark {
+	--ink: var(--text-ink-dark);
+}
+:root[data-design='soft-premium'][data-text-ink] {
+	--ink: var(--text-ink);
+}
+:root[data-design='soft-premium'][data-text-ink].dark {
+	--ink: var(--text-ink-dark);
+}
+
 /* ==========================================================================
    Operator text (font) color — enhanced contrast (WCAG 2.2 SC 1.4.6, Level AAA)
    by construction.
@@ -150,7 +163,11 @@
 :root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) :is(h1, h2, h3, h4, h5, h6),
 :root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-900,
 :root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-800,
-:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-700 {
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-gray-700,
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-stone-900,
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-stone-800,
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-stone-700,
+:root[data-text-ink] body:not(.admin-shell *):not(.admin-shell) .text-stone-600 {
 	color: var(--text-ink);
 }
 
@@ -160,7 +177,11 @@
 :root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) :is(h1, h2, h3, h4, h5, h6),
 :root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-white,
 :root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-gray-200,
-:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-gray-300 {
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-gray-300,
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-stone-100,
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-stone-200,
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-stone-300,
+:root[data-text-ink].dark body:not(.admin-shell *):not(.admin-shell) .dark\:text-stone-400 {
 	color: var(--text-ink-dark);
 }
 
@@ -272,10 +293,8 @@
 		/* Accent-independent focus ring (WCAG 2.4.13 / 1.4.11). */
 		--focus-ring: #b45309;
 
-		/* Soft Premium editorial accent face. --font-heading/--font-body come from
-		   the 'soft-premium' font pack injected inline by hooks.server.ts (inline
-		   wins over this attribute rule); --font-accent is not part of the pack, so
-		   it is safe to set here. Newsreader loads via the pack's font URL. */
+		/* Default editorial accent face. The selected font pack injects
+		   --font-accent inline, so user typography choices win over this. */
 		--font-accent: 'Newsreader', Georgia, 'Times New Roman', serif;
 	}
 

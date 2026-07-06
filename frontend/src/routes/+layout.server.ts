@@ -11,40 +11,32 @@ import type { LayoutServerLoad } from './$types';
 import type { PlanConfig } from '$lib/stores/plan';
 import { logger } from '$lib/logger';
 import { SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
+import { DEFAULT_FONT_PACK } from '$lib/fonts';
 
-export const load: LayoutServerLoad = async ({ fetch }) => {
+export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
-	// Fetch site settings server-side (favicon, custom CSS, locale, show_avatar, default theme)
-	let faviconUrl: string | null = null;
-	let customCSS: string | null = null;
-	let defaultLocale: string | null = null;
-	let showAvatar = true;
-	let defaultThemeMode = 'system';
-	// Soft Premium is the only design now — always on. Kept in the returned data
-	// for any downstream consumer that still reads it, but no longer fetched.
-	const design = 'soft-premium';
-	try {
-		const siteSettingsResponse = await fetch(`${pbUrl}/api/site-settings`, {
-			headers: { 'X-Internal': 'true' }
-		});
-		if (siteSettingsResponse.ok) {
-			const siteSettings = await siteSettingsResponse.json();
-			faviconUrl = siteSettings.favicon || null;
-			customCSS = siteSettings.custom_css || null;
-			defaultLocale = siteSettings.default_locale || null;
-			showAvatar = siteSettings.show_avatar !== false;
-			defaultThemeMode = siteSettings.default_theme_mode || 'system';
-		}
-	} catch (error) {
-		logger.debug('[LAYOUT SSR] Failed to load site settings:', error);
-	}
+	const {
+		faviconUrl,
+		customCSS,
+		defaultLocale,
+		showAvatar,
+		defaultThemeMode,
+		design,
+	} = locals.siteSettings ?? {
+		faviconUrl: null,
+		customCSS: null,
+		defaultLocale: null,
+		showAvatar: true,
+		defaultThemeMode: 'system',
+		design: 'classic' as const,
+	};
 
 	// Fetch plan config server-side (new functionality - FOUC fix)
 	let planConfig: PlanConfig | null = null;
 	try {
 		const planResponse = await fetch(`${pbUrl}/api/plan`, {
-			headers: { 'X-Internal': 'true' }
+			headers: { 'X-Internal': 'true' },
 		});
 		if (planResponse.ok) {
 			planConfig = await planResponse.json();
@@ -62,14 +54,29 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 	const appUrl = process.env.APP_URL || '';
 
 	// Fetch site-nav server-side to eliminate nav pop-in on page load
-	let siteNav = { enabled: false, mode: 'bar', position: 'below', items: [] as Array<{ viewId: string; slug: string; label: string; name: string }> };
+	let siteNav = {
+		enabled: false,
+		mode: 'bar',
+		position: 'below',
+		items: [] as Array<{
+			viewId: string;
+			slug: string;
+			label: string;
+			name: string;
+		}>,
+	};
 	try {
 		const navResponse = await fetch(`${pbUrl}/api/site-nav`, {
-			headers: { 'X-Internal': 'true' }
+			headers: { 'X-Internal': 'true' },
 		});
 		if (navResponse.ok) {
 			const navData = await navResponse.json();
-			siteNav = { enabled: navData.enabled === true, mode: navData.mode || 'bar', position: navData.position || 'below', items: navData.items || [] };
+			siteNav = {
+				enabled: navData.enabled === true,
+				mode: navData.mode || 'bar',
+				position: navData.position || 'below',
+				items: navData.items || [],
+			};
 			logger.debug('[LAYOUT SSR] Loaded site nav:', siteNav.enabled, siteNav.items.length, 'items');
 		} else {
 			logger.debug('[LAYOUT SSR] Site nav API returned:', navResponse.status);
@@ -82,25 +89,31 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 	let accentColor: string | null = null;
 	let customHexColor: string | null = null;
 	let fontPack: string | null = null;
+	let accentExplicit = false;
+	let fontPackExplicit = false;
 	try {
 		const homepageResponse = await fetch(`${pbUrl}/api/homepage`, {
-			headers: { 'X-Internal': 'true' }
+			headers: { 'X-Internal': 'true' },
 		});
 		if (homepageResponse.ok) {
 			const homepage = await homepageResponse.json();
 			accentColor = homepage.profile?.accent_color || null;
 			customHexColor = homepage.profile?.custom_hex_color || null;
 			fontPack = homepage.profile?.font_pack || null;
+			accentExplicit = !!(accentColor || customHexColor);
+			fontPackExplicit = !!fontPack;
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load accent color:', error);
 	}
 
-	// Soft Premium defaults the accent to a warm terracotta when the operator
-	// hasn't chosen one (mirrors hooks.server.ts so the client matches SSR). An
-	// operator accent always wins.
-	if (!accentColor && !customHexColor) {
+	// Soft Premium defaults to warm terracotta and Hanken/Newsreader only when the
+	// operator has not chosen an accent/font. Classic keeps the static defaults.
+	if (design === 'soft-premium' && !accentColor && !customHexColor) {
 		customHexColor = SOFT_PREMIUM_DEFAULT_ACCENT;
+	}
+	if (design === 'soft-premium' && !fontPack) {
+		fontPack = DEFAULT_FONT_PACK;
 	}
 
 	return {
@@ -110,11 +123,13 @@ export const load: LayoutServerLoad = async ({ fetch }) => {
 		siteNav,
 		accentColor,
 		customHexColor,
+		accentExplicit,
 		fontPack,
+		fontPackExplicit,
 		customCSS,
 		defaultLocale,
 		showAvatar,
 		defaultThemeMode,
-		design
+		design,
 	};
 };
