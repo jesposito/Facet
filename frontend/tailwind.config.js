@@ -43,7 +43,24 @@ export default {
 					800: 'rgb(var(--gray-800-rgb) / <alpha-value>)',
 					900: 'rgb(var(--gray-900-rgb) / <alpha-value>)',
 					950: 'rgb(var(--gray-950-rgb) / <alpha-value>)'
-				}
+				},
+				// Treat `stone-*` as the same neutral design ramp. Several public
+				// surfaces use stone utilities for the redesigned look; mapping them
+				// through the var-backed ramp keeps Classic cool-gray and Soft Premium
+				// warm-stone without per-component conditionals.
+				stone: {
+					50: 'rgb(var(--gray-50-rgb) / <alpha-value>)',
+					100: 'rgb(var(--gray-100-rgb) / <alpha-value>)',
+					200: 'rgb(var(--gray-200-rgb) / <alpha-value>)',
+					300: 'rgb(var(--gray-300-rgb) / <alpha-value>)',
+					400: 'rgb(var(--gray-400-rgb) / <alpha-value>)',
+					500: 'rgb(var(--gray-500-rgb) / <alpha-value>)',
+					600: 'rgb(var(--gray-600-rgb) / <alpha-value>)',
+					700: 'rgb(var(--gray-700-rgb) / <alpha-value>)',
+					800: 'rgb(var(--gray-800-rgb) / <alpha-value>)',
+					900: 'rgb(var(--gray-900-rgb) / <alpha-value>)',
+					950: 'rgb(var(--gray-950-rgb) / <alpha-value>)',
+				},
 			},
 			fontFamily: {
 				sans: ['var(--font-body)'],
