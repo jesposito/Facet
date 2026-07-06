@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { pb, type Profile } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
@@ -17,12 +17,48 @@
 	let gaMeasurementId = $state('');
 	let defaultThemeMode = $state<'system' | 'light' | 'dark'>('system');
 	let savingThemeMode = $state(false);
+	let design = $state<'classic' | 'soft-premium'>('classic');
+	let savingDesign = $state(false);
 	let showCSSHelp = $state(false);
+	let designOptionRefs: HTMLButtonElement[] = $state([]);
 
-	const THEME_MODE_OPTIONS: Array<{ id: 'system' | 'light' | 'dark'; labelKey: string; descKey: string }> = [
-		{ id: 'system', labelKey: 'admin.settings_page.appearance.default_theme_system', descKey: 'admin.settings_page.appearance.default_theme_system_desc' },
-		{ id: 'light', labelKey: 'admin.settings_page.appearance.default_theme_light', descKey: 'admin.settings_page.appearance.default_theme_light_desc' },
-		{ id: 'dark', labelKey: 'admin.settings_page.appearance.default_theme_dark', descKey: 'admin.settings_page.appearance.default_theme_dark_desc' }
+	const THEME_MODE_OPTIONS: Array<{
+		id: 'system' | 'light' | 'dark';
+		labelKey: string;
+		descKey: string;
+	}> = [
+		{
+			id: 'system',
+			labelKey: 'admin.settings_page.appearance.default_theme_system',
+			descKey: 'admin.settings_page.appearance.default_theme_system_desc',
+		},
+		{
+			id: 'light',
+			labelKey: 'admin.settings_page.appearance.default_theme_light',
+			descKey: 'admin.settings_page.appearance.default_theme_light_desc',
+		},
+		{
+			id: 'dark',
+			labelKey: 'admin.settings_page.appearance.default_theme_dark',
+			descKey: 'admin.settings_page.appearance.default_theme_dark_desc',
+		},
+	];
+
+	const DESIGN_OPTIONS: Array<{
+		id: 'classic' | 'soft-premium';
+		labelKey: string;
+		descKey: string;
+	}> = [
+		{
+			id: 'classic',
+			labelKey: 'admin.settings_page.appearance.design_classic',
+			descKey: 'admin.settings_page.appearance.design_classic_desc',
+		},
+		{
+			id: 'soft-premium',
+			labelKey: 'admin.settings_page.appearance.design_soft_premium',
+			descKey: 'admin.settings_page.appearance.design_soft_premium_desc',
+		},
 	];
 
 	// Favicon state
@@ -45,7 +81,7 @@
 		auth_method: 'PLAIN',
 		tls: true,
 		sender_name: '',
-		sender_address: ''
+		sender_address: '',
 	});
 	let smtpTestRecipient = $state('');
 
@@ -84,12 +120,68 @@
 				if (mode === 'system' || mode === 'light' || mode === 'dark') {
 					defaultThemeMode = mode;
 				}
+				design = data.design === 'soft-premium' ? 'soft-premium' : 'classic';
 			}
 		} catch (err) {
 			console.error('Failed to load site settings:', err);
 		} finally {
 			siteSettingsLoading = false;
 		}
+	}
+
+	async function saveDesign(nextDesign: 'classic' | 'soft-premium') {
+		if (nextDesign === design) return;
+		savingDesign = true;
+		try {
+			const response = await fetch('/api/site-settings', {
+				method: 'PUT',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: pb.authStore.token || '',
+				},
+				body: JSON.stringify({ design: nextDesign }),
+			});
+			const result = await response.json();
+			if (!response.ok) {
+				toasts.add('error', result.error || $t('admin.settings_page.appearance.design_error'));
+				return;
+			}
+			design = result.design === 'soft-premium' ? 'soft-premium' : 'classic';
+			window.dispatchEvent(new CustomEvent('design-changed', { detail: design }));
+			toasts.add('success', $t('admin.settings_page.appearance.design_updated'));
+		} catch (err) {
+			console.error('Failed to save design style:', err);
+			toasts.add('error', $t('admin.settings_page.appearance.design_error'));
+		} finally {
+			savingDesign = false;
+		}
+	}
+
+	async function handleDesignKeydown(event: KeyboardEvent, index: number) {
+		const last = DESIGN_OPTIONS.length - 1;
+		let next = index;
+		switch (event.key) {
+			case 'ArrowRight':
+			case 'ArrowDown':
+				next = index >= last ? 0 : index + 1;
+				break;
+			case 'ArrowLeft':
+			case 'ArrowUp':
+				next = index <= 0 ? last : index - 1;
+				break;
+			case 'Home':
+				next = 0;
+				break;
+			case 'End':
+				next = last;
+				break;
+			default:
+				return;
+		}
+		event.preventDefault();
+		await saveDesign(DESIGN_OPTIONS[next].id);
+		await tick();
+		designOptionRefs[next]?.focus();
 	}
 
 	async function saveDefaultThemeMode(mode: 'system' | 'light' | 'dark') {
@@ -100,9 +192,9 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
+					Authorization: pb.authStore.token || '',
 				},
-				body: JSON.stringify({ default_theme_mode: mode })
+				body: JSON.stringify({ default_theme_mode: mode }),
 			});
 			const result = await response.json();
 			if (!response.ok) {
@@ -131,12 +223,12 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || ''
+					Authorization: pb.authStore.token || '',
 				},
 				body: JSON.stringify({
 					custom_css: customCSS,
-					ga_measurement_id: gaMeasurementId
-				})
+					ga_measurement_id: gaMeasurementId,
+				}),
 			});
 
 			const result = await response.json();
@@ -166,7 +258,12 @@
 
 		// Validate file size
 		if (file.size > MAX_FAVICON_SIZE) {
-			toasts.add('error', $t('admin.settings_page.appearance.favicon_size_error', { values: { size: Math.round(file.size / 1024) } }));
+			toasts.add(
+				'error',
+				$t('admin.settings_page.appearance.favicon_size_error', {
+					values: { size: Math.round(file.size / 1024) },
+				}),
+			);
 			input.value = ''; // Reset input
 			return;
 		}
@@ -198,9 +295,9 @@
 			const response = await fetch('/api/site-settings/favicon', {
 				method: 'POST',
 				headers: {
-					Authorization: pb.authStore.token || ''
+					Authorization: pb.authStore.token || '',
 				},
-				body: formData
+				body: formData,
 			});
 
 			const result = await response.json();
@@ -241,7 +338,7 @@
 			title: $t('admin.settings_page.appearance.favicon_remove_title'),
 			message: $t('admin.settings_page.appearance.favicon_remove_message'),
 			confirmText: $t('admin.settings_page.appearance.favicon_remove_button'),
-			danger: true
+			danger: true,
 		});
 		if (!confirmed) return;
 
@@ -250,8 +347,8 @@
 			const response = await fetch('/api/site-settings/favicon', {
 				method: 'DELETE',
 				headers: {
-					Authorization: pb.authStore.token || ''
-				}
+					Authorization: pb.authStore.token || '',
+				},
 			});
 
 			if (!response.ok) {
@@ -282,7 +379,7 @@
 	async function loadSMTPSettings() {
 		try {
 			const response = await fetch('/api/smtp-settings', {
-				headers: { Authorization: pb.authStore.token }
+				headers: { Authorization: pb.authStore.token },
 			});
 			if (response.ok) {
 				const data = await response.json();
@@ -296,7 +393,7 @@
 					auth_method: data.auth_method || 'PLAIN',
 					tls: data.tls !== undefined ? data.tls : true,
 					sender_name: data.sender_name || '',
-					sender_address: data.sender_address || ''
+					sender_address: data.sender_address || '',
 				};
 			}
 		} catch (err) {
@@ -317,7 +414,7 @@
 				auth_method: smtpSettings.auth_method,
 				tls: smtpSettings.tls,
 				sender_name: smtpSettings.sender_name,
-				sender_address: smtpSettings.sender_address
+				sender_address: smtpSettings.sender_address,
 			};
 			// Only send password if the user typed something
 			if (smtpSettings.password) {
@@ -328,9 +425,9 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token
+					Authorization: pb.authStore.token,
 				},
-				body: JSON.stringify(payload)
+				body: JSON.stringify(payload),
 			});
 
 			const result = await response.json();
@@ -357,20 +454,30 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token
+					Authorization: pb.authStore.token,
 				},
-				body: JSON.stringify({ recipient: smtpTestRecipient })
+				body: JSON.stringify({ recipient: smtpTestRecipient }),
 			});
 
 			const result = await response.json();
 			if (result.success) {
 				toasts.add('success', $t('admin.settings_page.email.test_success_toast'));
 			} else {
-				toasts.add('error', $t('admin.settings_page.email.test_error_toast', { values: { error: result.error } }));
+				toasts.add(
+					'error',
+					$t('admin.settings_page.email.test_error_toast', {
+						values: { error: result.error },
+					}),
+				);
 			}
 		} catch (err) {
 			console.error('Failed to send test email:', err);
-			toasts.add('error', $t('admin.settings_page.email.test_error_toast', { values: { error: 'Network error' } }));
+			toasts.add(
+				'error',
+				$t('admin.settings_page.email.test_error_toast', {
+					values: { error: 'Network error' },
+				}),
+			);
 		} finally {
 			smtpTesting = false;
 		}
@@ -380,7 +487,7 @@
 		exporting = format;
 		try {
 			const response = await fetch(`/api/export?format=${format}`, {
-				headers: { Authorization: pb.authStore.token }
+				headers: { Authorization: pb.authStore.token },
 			});
 
 			if (!response.ok) {
@@ -407,7 +514,12 @@
 			document.body.removeChild(a);
 			URL.revokeObjectURL(url);
 
-			toasts.add('success', $t('admin.settings_page.general.export_downloaded', { values: { filename } }));
+			toasts.add(
+				'success',
+				$t('admin.settings_page.general.export_downloaded', {
+					values: { filename },
+				}),
+			);
 		} catch (err) {
 			console.error('Export failed:', err);
 			toasts.add('error', err instanceof Error ? err.message : $t('admin.settings_page.general.export_error'));
@@ -425,8 +537,12 @@
 	<!-- Appearance section -->
 	<div id="appearance" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.appearance.section_title')}</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.appearance.section_description')}</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+				{$t('admin.settings_page.appearance.section_title')}
+			</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				{$t('admin.settings_page.appearance.section_description')}
+			</p>
 		</div>
 
 		<!-- Brand deep link — accent color, typography, and hero layout now live
@@ -439,18 +555,90 @@
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.appearance.brand_card_description')}
 			</p>
-			<a
-				href="/admin/homepage#brand-section"
-				class="btn btn-secondary inline-flex items-center gap-2"
-			>
+			<a href="/admin/homepage#brand-section" class="btn btn-secondary inline-flex items-center gap-2">
 				{$t('admin.settings_page.appearance.brand_card_cta')}
 				<span aria-hidden="true">→</span>
 			</a>
 		</div>
 
+		<!-- Design Style -->
+		<div class="card p-6">
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.settings_page.appearance.design_title')}
+			</h2>
+			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+				{$t('admin.settings_page.appearance.design_description')}
+			</p>
+
+			<div
+				role="radiogroup"
+				aria-label={$t('admin.settings_page.appearance.design_title')}
+				class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+			>
+				{#each DESIGN_OPTIONS as option, i}
+					{@const isSelected = design === option.id}
+					<button
+						type="button"
+						role="radio"
+						aria-checked={isSelected}
+						tabindex={isSelected ? 0 : -1}
+						bind:this={designOptionRefs[i]}
+						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900
+							{isSelected
+							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
+							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
+							disabled:opacity-50 disabled:cursor-not-allowed"
+						onclick={() => saveDesign(option.id)}
+						onkeydown={(event) => handleDesignKeydown(event, i)}
+						disabled={savingDesign || siteSettingsLoading}
+					>
+						{#if isSelected}
+							<div class="absolute top-3 right-3">
+								<svg
+									class="w-5 h-5 text-primary-500"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="3"
+									aria-hidden="true"
+								>
+									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+								</svg>
+							</div>
+						{/if}
+						{#if option.id === 'classic'}
+							<div class="mb-3 h-16 rounded-lg border border-gray-200 bg-white p-3" aria-hidden="true">
+								<div class="h-2 w-16 rounded-full bg-sky-600"></div>
+								<div class="mt-3 h-2 w-full rounded-full bg-gray-200"></div>
+								<div class="mt-2 h-2 w-2/3 rounded-full bg-gray-100"></div>
+							</div>
+						{:else}
+							<div class="mb-3 h-16 rounded-lg border border-[#ddd1ca] bg-[#fbf8f4] p-3" aria-hidden="true">
+								<div class="h-2 w-16 rounded-full bg-[#c2410c]"></div>
+								<div class="mt-3 h-2 w-full rounded-full bg-[#ece4de]"></div>
+								<div class="mt-2 h-2 w-2/3 rounded-full bg-[#ddd1ca]"></div>
+							</div>
+						{/if}
+						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+							{$t(option.labelKey)}
+						</span>
+						<span class="block text-xs text-gray-500 dark:text-gray-400">
+							{$t(option.descKey)}
+						</span>
+					</button>
+				{/each}
+			</div>
+
+			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+				{$t('admin.settings_page.appearance.design_help')}
+			</p>
+		</div>
+
 		<!-- Default Theme Mode -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.appearance.default_theme_title')}</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.settings_page.appearance.default_theme_title')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.appearance.default_theme_description')}
 			</p>
@@ -476,7 +664,14 @@
 					>
 						{#if isSelected}
 							<div class="absolute top-3 right-3">
-								<svg class="w-5 h-5 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" aria-hidden="true">
+								<svg
+									class="w-5 h-5 text-primary-500"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="3"
+									aria-hidden="true"
+								>
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 								</svg>
 							</div>
@@ -498,7 +693,9 @@
 
 		<!-- Favicon -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.appearance.favicon_title')}</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.settings_page.appearance.favicon_title')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.appearance.favicon_description')}
 			</p>
@@ -539,22 +736,25 @@
 					/>
 					<label
 						for="favicon"
-						class="btn btn-secondary btn-sm cursor-pointer {siteSettingsLoading || faviconSaving ? 'opacity-50 pointer-events-none' : ''}"
+						class="btn btn-secondary btn-sm cursor-pointer {siteSettingsLoading || faviconSaving
+							? 'opacity-50 pointer-events-none'
+							: ''}"
 					>
-						{faviconUrl ? $t('admin.settings_page.appearance.favicon_change_button') : $t('admin.settings_page.appearance.favicon_upload_button')}
+						{faviconUrl
+							? $t('admin.settings_page.appearance.favicon_change_button')
+							: $t('admin.settings_page.appearance.favicon_upload_button')}
 					</label>
 					{#if faviconFile}
 						<div class="flex gap-2">
-							<button
-								type="button"
-								class="btn btn-primary btn-sm"
-								onclick={saveFavicon}
-								disabled={faviconSaving}
-							>
+							<button type="button" class="btn btn-primary btn-sm" onclick={saveFavicon} disabled={faviconSaving}>
 								{#if faviconSaving}
 									<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
 										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										<path
+											class="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
 									</svg>
 									{$t('admin.settings_page.appearance.favicon_saving')}
 								{:else}
@@ -583,13 +783,19 @@
 		<div class="card p-6">
 			<div class="flex items-start justify-between gap-3">
 				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.appearance.custom_css_title')}</h2>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+						{$t('admin.settings_page.appearance.custom_css_title')}
+					</h2>
 					<p class="text-gray-600 dark:text-gray-400 text-sm">
 						{$t('admin.settings_page.appearance.custom_css_description')}
 					</p>
 				</div>
 				<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-					<span>{$t('admin.settings_page.appearance.custom_css_char_count', { values: { count: customCSS.length } })}</span>
+					<span
+						>{$t('admin.settings_page.appearance.custom_css_char_count', {
+							values: { count: customCSS.length },
+						})}</span
+					>
 					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
 						{@html icon('info', 'w-4 h-4 mr-1')}
 						<span class="align-middle">{$t('admin.settings_page.appearance.custom_css_selectors')}</span>
@@ -606,8 +812,14 @@
 					maxlength="20000"
 				></textarea>
 				<div class="flex justify-end">
-					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-						{siteSettingsSaving ? $t('admin.settings_page.appearance.custom_css_saving') : $t('admin.settings_page.appearance.custom_css_save')}
+					<button
+						class="btn btn-primary"
+						onclick={saveSiteSettings}
+						disabled={siteSettingsSaving || siteSettingsLoading}
+					>
+						{siteSettingsSaving
+							? $t('admin.settings_page.appearance.custom_css_saving')
+							: $t('admin.settings_page.appearance.custom_css_save')}
 					</button>
 				</div>
 			</div>
@@ -616,10 +828,14 @@
 
 	{#if showCSSHelp}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-			<div class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700">
+			<div
+				class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700"
+			>
 				<div class="flex items-start justify-between gap-3 mb-4">
 					<div>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.appearance.css_help_title')}</h3>
+						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+							{$t('admin.settings_page.appearance.css_help_title')}
+						</h3>
 						<p class="text-sm text-gray-600 dark:text-gray-400">
 							{$t('admin.settings_page.appearance.css_help_description')}
 						</p>
@@ -631,26 +847,46 @@
 
 				<div class="space-y-3 text-sm text-gray-800 dark:text-gray-200">
 					<div>
-						<p class="font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.appearance.css_help_base')}</p>
+						<p class="font-semibold text-gray-900 dark:text-white">
+							{$t('admin.settings_page.appearance.css_help_base')}
+						</p>
 						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
-							<li><code>:root</code> — accent palette vars <code>--color-primary-50..950</code></li>
-							<li><code>body</code>, <code>main</code>, <code>header</code>, <code>footer</code></li>
-							<li><code>h1</code>–<code>h4</code>, <code>p</code>, <code>a</code>, <code>ul</code>/<code>ol</code>, <code>li</code></li>
+							<li>
+								<code>:root</code> — accent palette vars
+								<code>--color-primary-50..950</code>
+							</li>
+							<li>
+								<code>body</code>, <code>main</code>, <code>header</code>,
+								<code>footer</code>
+							</li>
+							<li>
+								<code>h1</code>–<code>h4</code>, <code>p</code>, <code>a</code>,
+								<code>ul</code>/<code>ol</code>, <code>li</code>
+							</li>
 						</ul>
 					</div>
 
 					<div>
-						<p class="font-semibold text-gray-900 dark:text-white">{$t('admin.settings_page.appearance.css_help_components')}</p>
+						<p class="font-semibold text-gray-900 dark:text-white">
+							{$t('admin.settings_page.appearance.css_help_components')}
+						</p>
 						<ul class="list-disc list-inside text-gray-700 dark:text-gray-300">
 							<li><code>.card</code> — section cards</li>
 							<li><code>.section-title</code> — section headings</li>
-							<li><code>.prose-custom</code> — rich text blocks (posts/talks)</li>
-							<li><code>.btn</code>, <code>.btn-primary</code>, <code>.btn-secondary</code></li>
+							<li>
+								<code>.prose-custom</code> — rich text blocks (posts/talks)
+							</li>
+							<li>
+								<code>.btn</code>, <code>.btn-primary</code>,
+								<code>.btn-secondary</code>
+							</li>
 							<li><code>.input</code>, <code>.label</code></li>
 						</ul>
 					</div>
 
-					<div class="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200">
+					<div
+						class="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200"
+					>
 						<pre class="whitespace-pre-wrap">{`:root { --color-primary-500: #6366f1; } /* swap accent */
 body { font-family: 'Inter', sans-serif; }
 .card { border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
@@ -669,13 +905,19 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- General section -->
 	<div id="general" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.general.section_title')}</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.general.section_description')}</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+				{$t('admin.settings_page.general.section_title')}
+			</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				{$t('admin.settings_page.general.section_description')}
+			</p>
 		</div>
 
 		<!-- Language Switcher -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.language.section_title')}</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.settings_page.language.section_title')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.language.section_description')}
 			</p>
@@ -687,7 +929,9 @@ body { font-family: 'Inter', sans-serif; }
 
 		<!-- Data Export -->
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.settings_page.general.export_title')}</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+				{$t('admin.settings_page.general.export_title')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.general.export_description')}
 			</p>
@@ -700,7 +944,11 @@ body { font-family: 'Inter', sans-serif; }
 					{#if exporting === 'yaml'}
 						<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{:else}
 						{@html icon('download')}
@@ -715,7 +963,11 @@ body { font-family: 'Inter', sans-serif; }
 					{#if exporting === 'json'}
 						<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{:else}
 						{@html icon('download')}
@@ -732,12 +984,18 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- Analytics section -->
 	<div id="analytics" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.analytics.section_title')}</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.analytics.section_description')}</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+				{$t('admin.settings_page.analytics.section_title')}
+			</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				{$t('admin.settings_page.analytics.section_description')}
+			</p>
 		</div>
 
 		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.settings_page.analytics.ga_title')}</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.settings_page.analytics.ga_title')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.analytics.ga_description')}
 			</p>
@@ -756,8 +1014,14 @@ body { font-family: 'Inter', sans-serif; }
 					{$t('admin.settings_page.analytics.ga_help')}
 				</p>
 				<div class="flex justify-end">
-					<button class="btn btn-primary" onclick={saveSiteSettings} disabled={siteSettingsSaving || siteSettingsLoading}>
-						{siteSettingsSaving ? $t('admin.settings_page.analytics.ga_saving') : $t('admin.settings_page.analytics.ga_save')}
+					<button
+						class="btn btn-primary"
+						onclick={saveSiteSettings}
+						disabled={siteSettingsSaving || siteSettingsLoading}
+					>
+						{siteSettingsSaving
+							? $t('admin.settings_page.analytics.ga_saving')
+							: $t('admin.settings_page.analytics.ga_save')}
 					</button>
 				</div>
 			</div>
@@ -767,19 +1031,26 @@ body { font-family: 'Inter', sans-serif; }
 	<!-- Email / SMTP section -->
 	<div id="email" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.email.section_title')}</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.email.section_description')}</p>
+			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+				{$t('admin.settings_page.email.section_title')}
+			</p>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				{$t('admin.settings_page.email.section_description')}
+			</p>
 		</div>
 
 		<div class="card p-6">
 			{#if smtpLoading}
-				<div class="animate-pulse text-center py-4 text-gray-500 dark:text-gray-400">{$t('admin.settings_page.email.loading')}</div>
+				<div class="animate-pulse text-center py-4 text-gray-500 dark:text-gray-400">
+					{$t('admin.settings_page.email.loading')}
+				</div>
 			{:else}
 				<div class="space-y-4">
 					<!-- Enable toggle -->
 					<label class="flex items-center gap-3">
 						<input type="checkbox" bind:checked={smtpSettings.enabled} class="w-4 h-4" disabled={smtpSaving} />
-						<span class="font-medium text-gray-900 dark:text-white">{$t('admin.settings_page.email.enable_label')}</span>
+						<span class="font-medium text-gray-900 dark:text-white">{$t('admin.settings_page.email.enable_label')}</span
+						>
 					</label>
 
 					{#if smtpSettings.enabled}
@@ -829,7 +1100,9 @@ body { font-family: 'Inter', sans-serif; }
 									id="smtp-password"
 									bind:value={smtpSettings.password}
 									class="input"
-									placeholder={smtpSettings.password_set ? $t('admin.settings_page.email.password_placeholder_set') : $t('admin.settings_page.email.password_placeholder')}
+									placeholder={smtpSettings.password_set
+										? $t('admin.settings_page.email.password_placeholder_set')
+										: $t('admin.settings_page.email.password_placeholder')}
 									disabled={smtpSaving}
 								/>
 							</div>
@@ -864,7 +1137,9 @@ body { font-family: 'Inter', sans-serif; }
 								/>
 							</div>
 							<div>
-								<label for="smtp-sender-address" class="label">{$t('admin.settings_page.email.sender_address_label')}</label>
+								<label for="smtp-sender-address" class="label"
+									>{$t('admin.settings_page.email.sender_address_label')}</label
+								>
 								<input
 									type="email"
 									id="smtp-sender-address"
@@ -879,12 +1154,16 @@ body { font-family: 'Inter', sans-serif; }
 						<!-- Save + Test -->
 						<div class="flex flex-wrap items-end gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
 							<button class="btn btn-primary" onclick={saveSMTPSettings} disabled={smtpSaving}>
-								{smtpSaving ? $t('admin.settings_page.email.saving_button') : $t('admin.settings_page.email.save_button')}
+								{smtpSaving
+									? $t('admin.settings_page.email.saving_button')
+									: $t('admin.settings_page.email.save_button')}
 							</button>
 
 							<div class="flex items-end gap-2">
 								<div>
-									<label for="smtp-test-recipient" class="label text-xs">{$t('admin.settings_page.email.test_recipient_label')}</label>
+									<label for="smtp-test-recipient" class="label text-xs"
+										>{$t('admin.settings_page.email.test_recipient_label')}</label
+									>
 									<input
 										type="email"
 										id="smtp-test-recipient"
@@ -902,7 +1181,11 @@ body { font-family: 'Inter', sans-serif; }
 									{#if smtpTesting}
 										<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-											<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
 										</svg>
 										{$t('admin.settings_page.email.testing_button')}
 									{:else}
@@ -923,5 +1206,4 @@ body { font-family: 'Inter', sans-serif; }
 			{/if}
 		</div>
 	</div>
-
 </div>

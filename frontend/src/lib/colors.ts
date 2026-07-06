@@ -531,12 +531,13 @@ export function generatePaletteFromHex(hex: string): ColorScale {
  *    lighter #fef9f6 and #ffffff automatically.
  *  - Dark mode (ink is LIGHTER than the surface): contrast = (L_ink+0.05)/(L_surf+0.05),
  *    which DECREASES with surface luminance. So the LIGHTEST dark surface is the
- *    worst case. Text lands on `--surface` (#221e1a, L≈0.0134) and the darker `--bg`
- *    (#1a1613, L≈0.0084); #221e1a is the lighter (higher-L) → worst case. Clearing
- *    7:1 on #221e1a also clears it on the darker #1a1613.
+ *    worst case. Text lands on Soft Premium `--surface` (#221e1a, L≈0.0134) and
+ *    `--bg` (#1a1613, L≈0.0084), but Classic cards use Tailwind gray-800
+ *    (#1f2937, L≈0.0210), which is lighter still. Clearing 7:1 on #1f2937 clears
+ *    it on the darker Soft Premium surfaces automatically.
  *
  * NOTE: if a future design token introduces a light-mode text surface DARKER than
- * #fbf8f4, or a dark-mode surface LIGHTER than #221e1a, these constants must be
+ * #fbf8f4, or a dark-mode surface LIGHTER than #1f2937, these constants must be
  * updated — the guarantee is only as strong as "clamp against the worst-case
  * surface." See tests/text-color-aaa.spec.ts for the regression proof.
  */
@@ -544,8 +545,8 @@ export const TEXT_INK_MIN_CONTRAST = 7;
 // Worst-case (lowest-contrast) surface per mode — see block comment above.
 // Light: darkest surface tinted text lands on (warm --bg), NOT white.
 const TEXT_INK_LIGHT_SURFACE = '#fbf8f4';
-// Dark: lightest dark surface tinted text lands on (dark --surface).
-const TEXT_INK_DARK_SURFACE = '#221e1a';
+// Dark: lightest dark surface tinted text lands on (classic gray-800 card).
+const TEXT_INK_DARK_SURFACE = '#1f2937';
 
 /** Contrast ratio between two relative luminances (WCAG 2.x), order-independent. */
 function contrastRatio(l1: number, l2: number): number {
@@ -559,14 +560,14 @@ function contrastRatio(l1: number, l2: number): number {
  *
  * Returns `{ light, dark }` hex strings, both guaranteed to clear 7:1 against the
  * WORST-CASE (lowest-contrast) surface text sits on in their respective modes (the
- * warm `--bg` #fbf8f4 in light mode, the dark `--surface` #221e1a in dark mode).
+ * warm `--bg` #fbf8f4 in light mode, the classic dark card #1f2937 in dark mode).
  *
  * Mechanism (mirrors `clamp600`'s binary search): we only ever move lightness in
  * the AAA-safe direction while keeping hue:
  *  - Light ink: mix the hue toward BLACK (all channels scale toward 0 equally →
  *    hue preserved) until contrast vs the warm --bg ≥ 7:1.
  *  - Dark ink: mix the hue toward WHITE (all channels scale toward 255 equally →
- *    hue preserved) until contrast vs the dark surface ≥ 7:1.
+ *    hue preserved) until contrast vs the lightest dark surface ≥ 7:1.
  *
  * Black (light) and white (dark) always satisfy 7:1, so each search terminates.
  * Invalid input falls back to a neutral readable ink so the default never breaks.
