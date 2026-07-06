@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.3 - July 06, 2026
+
+**Other Changes:**
+- [codex] restore theme controls
+
+**Pull Requests:** [#484](https://github.com/jesposito/Facet/pull/484),
+
+---
+
+
 ## v3.4.2 - July 04, 2026
 
 **Bugs Fixed:**
