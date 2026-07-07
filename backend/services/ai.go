@@ -119,6 +119,8 @@ func (a *AIService) ImproveContentWithTokens(ctx context.Context, provider *AIPr
 func (a *AIService) buildPrompt(req *EnrichmentRequest) string {
 	var sb strings.Builder
 
+	lang := DetectContentLanguage(req.Description, req.README, req.Title)
+	sb.WriteString(LanguagePromptDirective(lang))
 	sb.WriteString(`You are helping create a professional portfolio entry for a software project. Generate content that is:
 - Factual and based only on provided information
 - Professional and neutral in tone
@@ -180,6 +182,9 @@ Generate a JSON response with the following structure:
 }
 
 IMPORTANT: Only include information that can be derived from the provided data. Do not invent features, metrics, or claims.`)
+	if lang != "" {
+		sb.WriteString(fmt.Sprintf("\nWrite every JSON string value in %s. Keep the JSON keys in English.", lang))
+	}
 
 	return sb.String()
 }
@@ -371,6 +376,12 @@ func (a *AIService) callOllamaRaw(ctx context.Context, provider *AIProvider, pro
 		"model":  model,
 		"prompt": prompt,
 		"stream": false,
+		// Ollama's default context window (2048-4096 tokens depending on
+		// version) silently truncates longer prompts, dropping the
+		// instructions at the top. Resume and enrichment prompts exceed it.
+		"options": map[string]interface{}{
+			"num_ctx": 8192, // ponytail: covers all current prompt builders; raise if resume profiles outgrow it
+		},
 	}
 
 	body, err := json.Marshal(reqBody)

@@ -82,6 +82,13 @@ func (r *ResumeService) GenerateResume(
 func (r *ResumeService) buildResumePrompt(viewData *ViewData, config *GenerationConfig) string {
 	var sb strings.Builder
 
+	var profileSummary, profileHeadline string
+	if viewData.Profile != nil {
+		profileSummary, _ = viewData.Profile["summary"].(string)
+		profileHeadline, _ = viewData.Profile["headline"].(string)
+	}
+	lang := DetectContentLanguage(viewData.HeroSummary, profileSummary, viewData.HeroHeadline, profileHeadline)
+	sb.WriteString(LanguagePromptDirective(lang))
 	sb.WriteString(`You are an expert resume writer. Generate a professional resume in clean Markdown format.
 
 IMPORTANT WRITING STYLE RULES:
@@ -167,6 +174,9 @@ OUTPUT REQUIREMENTS:
 9. For Contact Info: list email, phone, location, LinkedIn, etc. as plain text on one line separated by pipes (|)
 
 Return ONLY the Markdown content for the resume.`)
+	if lang != "" {
+		sb.WriteString(fmt.Sprintf(" Write the entire resume, including section headers, in %s.", lang))
+	}
 
 	return sb.String()
 }

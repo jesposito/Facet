@@ -336,7 +336,11 @@ func (rp *ResumeParser) ParseResume(ctx context.Context, provider *AIProvider, r
 
 // buildParsingPrompt creates the AI prompt for resume parsing
 func (rp *ResumeParser) buildParsingPrompt(resumeText string) string {
-	return fmt.Sprintf(`You are an expert resume parser. Extract structured data from the resume text below.
+	langNote := ""
+	if lang := DetectContentLanguage(resumeText); lang != "" {
+		langNote = fmt.Sprintf("CRITICAL: The resume is written in %s. Keep every extracted text value (summary, descriptions, bullets) in %s. Do NOT translate to English.\n\n", lang, lang)
+	}
+	return langNote + fmt.Sprintf(`You are an expert resume parser. Extract structured data from the resume text below.
 
 Resume text:
 """
