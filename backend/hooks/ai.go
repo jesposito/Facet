@@ -482,10 +482,22 @@ func getProviderFromRecord(record *core.Record, crypto *services.CryptoService) 
 	}, nil
 }
 
+// promptLanguage detects the response language for a prompt from the user's
+// content, falling back to context values when the content is empty.
+func promptLanguage(content string, ctx map[string]string) string {
+	fallback := make([]string, 0, len(ctx))
+	for _, v := range ctx {
+		fallback = append(fallback, v)
+	}
+	return services.DetectContentLanguage(content, strings.Join(fallback, " "))
+}
+
 // buildImprovementPrompt creates a prompt for content improvement based on type and action
 func buildImprovementPrompt(contentType, content string, ctx map[string]string, action string) string {
 	var sb strings.Builder
 
+	lang := promptLanguage(content, ctx)
+	sb.WriteString(services.LanguagePromptDirective(lang))
 	sb.WriteString(`You are helping improve professional portfolio content.
 Be concise, professional, and factual. Do not invent information not provided.
 
@@ -559,6 +571,7 @@ IMPORTANT WRITING STYLE RULES:
 	}
 
 	sb.WriteString("\nRespond with only the improved content, no explanations.")
+	sb.WriteString(services.LanguagePromptReminder(lang))
 
 	return sb.String()
 }
@@ -576,6 +589,8 @@ func getMapKeys(m map[string]any) []string {
 func buildRewritePrompt(content, fieldType string, ctx map[string]string, tone string) string {
 	var sb strings.Builder
 
+	lang := promptLanguage(content, ctx)
+	sb.WriteString(services.LanguagePromptDirective(lang))
 	sb.WriteString(`You are a professional writing assistant helping to rewrite portfolio content.
 
 CRITICAL STYLE RULES - NEVER VIOLATE:
@@ -672,6 +687,7 @@ CRITICAL STYLE RULES - NEVER VIOLATE:
 
 	sb.WriteString(content)
 	sb.WriteString("\n\nReturn ONLY the rewritten content with no explanations, no preamble, no meta-commentary.")
+	sb.WriteString(services.LanguagePromptReminder(lang))
 
 	return sb.String()
 }
@@ -680,6 +696,8 @@ CRITICAL STYLE RULES - NEVER VIOLATE:
 func buildCritiquePrompt(content, fieldType string, ctx map[string]string) string {
 	var sb strings.Builder
 
+	lang := promptLanguage(content, ctx)
+	sb.WriteString(services.LanguagePromptDirective(lang))
 	sb.WriteString(`You are a professional writing coach providing inline feedback on portfolio content.
 
 Your task: Return the EXACT original text with constructive feedback inserted in [square brackets].
@@ -722,6 +740,9 @@ DO NOT:
 	sb.WriteString("Content to critique:\n\n")
 	sb.WriteString(content)
 	sb.WriteString("\n\nReturn the original text with inline [feedback in brackets].")
+	if lang != "" {
+		sb.WriteString(fmt.Sprintf(" Write all bracketed feedback in %s.", lang))
+	}
 
 	return sb.String()
 }
