@@ -20,7 +20,7 @@
 		type: 'openai' as 'openai' | 'anthropic' | 'ollama' | 'custom',
 		api_key: '',
 		base_url: '',
-		model: '',
+		model: 'gpt-4o-mini',
 		is_active: true,
 		is_default: false
 	});
@@ -44,6 +44,7 @@
 	let fetchedModels = $state<string[]>([]);
 	let fetchingModels = $state(false);
 	let modelFetchError = $state('');
+	let lastProviderType: typeof newProvider.type = 'openai';
 
 	// Computed: use fetched models if available, otherwise fallback
 	let modelOptions = $derived.by(() => {
@@ -105,17 +106,15 @@
 		}
 	}
 
-	// Reset model and fetch when provider type changes
+	// Reset model options only when provider type changes.
 	run(() => {
-		if (newProvider.type) {
-			const options = fallbackModelOptions[newProvider.type] || [];
-			if (!options.includes(newProvider.model)) {
-				newProvider.model = defaultModels[newProvider.type] || '';
-			}
-			// Reset fetched models when type changes
-			fetchedModels = [];
-			modelFetchError = '';
-		}
+		const type = newProvider.type;
+		if (type === lastProviderType) return;
+
+		lastProviderType = type;
+		newProvider.model = defaultModels[type] || '';
+		fetchedModels = [];
+		modelFetchError = '';
 	});
 
 	onMount(async () => {
@@ -158,7 +157,7 @@
 				type: 'openai',
 				api_key: '',
 				base_url: '',
-				model: '',
+				model: 'gpt-4o-mini',
 				is_active: true,
 				is_default: false
 			};
