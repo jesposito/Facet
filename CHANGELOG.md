@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.6 - July 07, 2026
+
+**Other Changes:**
+- [codex] localize formatted month names
+
+**Pull Requests:** [#487](https://github.com/jesposito/Facet/pull/487),
+
+---
+
+
 ## v3.4.5 - July 07, 2026
 
 **Bugs Fixed:**
