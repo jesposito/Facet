@@ -18,7 +18,7 @@
 		type SectionWidth,
 		type ItemConfig
 	} from '$lib/pocketbase';
-	import { t } from 'svelte-i18n';
+	import { locale, t } from 'svelte-i18n';
 
 	// Import DnD safely - only in browser
 	let dndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -177,7 +177,7 @@
 		try {
 			const date = new Date(dateStr);
 			if (isNaN(date.getTime())) return dateStr;
-			return new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' }).format(date);
+			return new Intl.DateTimeFormat($locale || 'en', { month: 'short', year: 'numeric' }).format(date);
 		} catch {
 			return dateStr;
 		}

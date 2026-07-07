@@ -1,5 +1,7 @@
 import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
+import { get } from 'svelte/store';
+import { locale } from 'svelte-i18n';
 
 type EmbedMatch = {
 	provider: string;
@@ -67,16 +69,21 @@ DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
 	}
 });
 
+function currentLocale(): string {
+	return get(locale) || 'en';
+}
+
 export function formatDate(dateString: string | undefined, options?: Intl.DateTimeFormatOptions): string {
 	if (!dateString) return '';
 	if (/^\d{4}$/.test(dateString)) return dateString;
+	const formatOptions = options || { month: 'short', year: 'numeric' };
 	if (/^\d{4}-\d{2}$/.test(dateString)) {
 		const [year, month] = dateString.split('-');
 		const date = new Date(parseInt(year), parseInt(month) - 1);
-		return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+		return date.toLocaleDateString(currentLocale(), formatOptions);
 	}
 	const date = new Date(dateString);
-	return date.toLocaleDateString('en-US', options || { month: 'short', year: 'numeric' });
+	return date.toLocaleDateString(currentLocale(), formatOptions);
 }
 
 export function formatDateRange(startDate?: string, endDate?: string, presentText: string = 'Present'): string {
