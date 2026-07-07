@@ -3,6 +3,7 @@ module facet
 go 1.25.0
 
 require (
+	github.com/abadojack/whatlanggo v1.0.1
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
 	github.com/gen2brain/go-fitz v1.23.7
 	github.com/golang-jwt/jwt/v4 v4.5.2
