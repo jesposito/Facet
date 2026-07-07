@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.4 - July 07, 2026
+
+**Bugs Fixed:**
+- preserve content language on small Ollama models
+
+**Pull Requests:** [#485](https://github.com/jesposito/Facet/pull/485),
+
+---
+
+
 ## v3.4.3 - July 06, 2026
 
 **Other Changes:**
