@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.5 - July 07, 2026
+
+**Bugs Fixed:**
+- [codex] fix Ollama model sync
+
+**Pull Requests:** [#486](https://github.com/jesposito/Facet/pull/486),
+
+---
+
+
 ## v3.4.4 - July 07, 2026
 
 **Bugs Fixed:**
