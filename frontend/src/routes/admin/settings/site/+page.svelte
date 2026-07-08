@@ -6,6 +6,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import { analyzeCustomCSSContrast } from '$lib/a11y/custom-css-contrast';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
@@ -21,6 +22,7 @@
 	let savingDesign = $state(false);
 	let showCSSHelp = $state(false);
 	let designOptionRefs: HTMLButtonElement[] = $state([]);
+	let customCSSContrastWarning = $derived(analyzeCustomCSSContrast(customCSS).shouldWarn);
 
 	const THEME_MODE_OPTIONS: Array<{
 		id: 'system' | 'light' | 'dark';
@@ -810,7 +812,17 @@
 					bind:value={customCSS}
 					disabled={siteSettingsLoading || siteSettingsSaving}
 					maxlength="20000"
+					aria-describedby={customCSSContrastWarning ? 'custom-css-contrast-warning' : undefined}
 				></textarea>
+				{#if customCSSContrastWarning}
+					<p
+						id="custom-css-contrast-warning"
+						class="flex items-start gap-2 p-3 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-sm"
+					>
+						<span class="shrink-0 mt-0.5" aria-hidden="true">{@html icon('warning')}</span>
+						<span>{$t('admin.settings_page.appearance.custom_css_contrast_warning')}</span>
+					</p>
+				{/if}
 				<div class="flex justify-end">
 					<button
 						class="btn btn-primary"

@@ -17,7 +17,7 @@
     "test:debug": "playwright test --debug",
     "test:public": "playwright test tests/public-api.spec.ts tests/seo-and-errors.spec.ts",
     "test:admin": "playwright test tests/admin-flows.spec.ts tests/media-management.spec.ts",
-    "i18n:validate": "node ../scripts/validate-translations.js"
+    "i18n:validate": "node ../scripts/validate-translations.js && node ../scripts/check-i18n-values-params.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

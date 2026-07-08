@@ -142,7 +142,7 @@
 				class="w-full px-3 py-2 text-sm border border-stone-300 dark:border-stone-600 rounded-lg bg-white dark:bg-stone-700 text-stone-900 dark:text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
 				placeholder={$t('comments.email')}
 			/>
-			<p id="comment-email-hint{suffix}" class="mt-1 text-xs text-stone-500 dark:text-stone-400">{$t('comments.email_hint')}</p>
+			<p id="comment-email-hint{suffix}" class="mt-1 text-xs text-stone-600 dark:text-stone-300">{$t('comments.email_hint')}</p>
 		</div>
 	</div>
 
@@ -163,7 +163,7 @@
 		></textarea>
 		<p
 			id="comment-chars{suffix}"
-			class="mt-1 text-xs {charsRemaining < 200 ? 'text-amber-500' : 'text-stone-500 dark:text-stone-400'}"
+			class="mt-1 text-xs {charsRemaining < 200 ? 'text-amber-500' : 'text-stone-600 dark:text-stone-300'}"
 			aria-live="polite"
 		>
 			{$t('comments.chars_remaining', { values: { count: charsRemaining } })}

@@ -139,7 +139,7 @@
 								{/if}
 							</div>
 							{#if item.author_title || item.author_company}
-								<p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+								<p class="text-sm text-gray-600 dark:text-gray-300 truncate">
 									{item.author_title}{item.author_title && item.author_company ? ` ${$t('public.testimonials.at')} ` : ''}{item.author_company}
 								</p>
 							{/if}
@@ -205,7 +205,7 @@
 								<div>
 									<span class="font-medium text-gray-900 dark:text-white">{item.author_name}</span>
 									{#if item.author_title || item.author_company}
-										<p class="text-sm text-gray-500 dark:text-gray-400">
+										<p class="text-sm text-gray-600 dark:text-gray-300">
 											{item.author_title}{item.author_title && item.author_company ? ', ' : ''}{item.author_company}
 										</p>
 									{/if}

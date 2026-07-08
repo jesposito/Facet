@@ -3,6 +3,7 @@ package hooks
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -56,4 +57,18 @@ func requireSuperuser(e *core.RequestEvent) error {
 		return respondUnauthorized(e, "unauthorized")
 	}
 	return nil
+}
+
+func parsePositiveInt(raw string, def, max int) int {
+	if raw == "" {
+		return def
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed <= 0 {
+		return def
+	}
+	if max > 0 && parsed > max {
+		return max
+	}
+	return parsed
 }

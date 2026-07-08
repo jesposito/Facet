@@ -82,7 +82,7 @@
 				<p class="text-stone-800 dark:text-stone-200 text-sm font-medium">
 					<span class="font-serif text-base">{profile?.name || 'Facet'}</span>
 				</p>
-				<p class="text-stone-500 dark:text-stone-400 text-xs mt-0.5">
+				<p class="text-stone-600 dark:text-stone-300 text-xs mt-0.5">
 					&copy; {year} {$t('public.footer.all_rights_reserved')}
 				</p>
 			</div>
@@ -95,7 +95,7 @@
 							href={link.url}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="inline-flex items-center justify-center w-11 h-11 rounded-xl text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/60 dark:hover:bg-stone-700/40 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 dark:focus-visible:ring-offset-stone-900"
+							class="inline-flex items-center justify-center w-11 h-11 rounded-xl text-stone-600 dark:text-stone-300 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-stone-200/60 dark:hover:bg-stone-700/40 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 dark:focus-visible:ring-offset-stone-900"
 							aria-label={link.type}
 						>
 							{#if link.type === 'github'}
@@ -118,7 +118,7 @@
 		</div>
 
 		<div class="mt-6 text-center">
-			<p class="text-xs text-stone-500 dark:text-stone-300">
+			<p class="text-xs text-stone-600 dark:text-stone-300">
 				{@html $t('public.footer.powered_by', { values: { link: '<a href="https://github.com/jesposito/Facet" class="hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400 rounded-sm">Facet</a>' } })}
 			</p>
 		</div>

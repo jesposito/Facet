@@ -2,9 +2,11 @@ package hooks
 
 import (
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	"facet/buildinfo"
 	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
@@ -40,13 +42,33 @@ func (c *versionCache) set(v string) {
 	c.fetchedAt = time.Now()
 }
 
-// RegisterVersionHooks exposes a backend-proxied version-check endpoint.
+func versionIdentityPayload() map[string]string {
+	facetVersion := os.Getenv("FACET_VERSION")
+	buildDate := os.Getenv("BUILD_DATE")
+	gitCommit := os.Getenv("GIT_COMMIT")
+
+	return map[string]string{
+		"version":        buildinfo.Version,
+		"sha":            buildinfo.ShortSHA(),
+		"build_date":     buildinfo.BuildDate,
+		"env":            facetVersion,
+		"env_version":    facetVersion,
+		"env_build_date": buildDate,
+		"env_git_commit": gitCommit,
+	}
+}
+
+// RegisterVersionHooks exposes local build identity and a proxied version-check endpoint.
 // The frontend hits /api/version-check (same-origin, CSP-friendly) and the
 // backend handles the upstream GitHub fetch with a 1-hour in-memory cache.
 func RegisterVersionHooks(app *pocketbase.PocketBase, github *services.GitHubService) {
 	cache := &versionCache{ttl: 1 * time.Hour}
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		se.Router.GET("/api/version", func(e *core.RequestEvent) error {
+			return e.JSON(http.StatusOK, versionIdentityPayload())
+		})
+
 		se.Router.GET("/api/version-check", func(e *core.RequestEvent) error {
 			// Serve from cache when fresh
 			if v, ok := cache.get(); ok {

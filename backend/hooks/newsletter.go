@@ -11,7 +11,6 @@ import (
 	"net/mail"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -242,14 +241,8 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			pageStr := e.Request.URL.Query().Get("page")
 			perPageStr := e.Request.URL.Query().Get("perPage")
 
-			page := 1
-			perPage := 50
-			if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
-				page = p
-			}
-			if pp, err := strconv.Atoi(perPageStr); err == nil && pp > 0 && pp <= 200 {
-				perPage = pp
-			}
+			page := parsePositiveInt(pageStr, 1, 0)
+			perPage := parsePositiveInt(perPageStr, 50, 200)
 
 			filter := "id != ''"
 			params := map[string]interface{}{}
@@ -453,22 +446,38 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			}
 
 			deleted := 0
-			for _, id := range req.IDs {
-				record, err := app.FindRecordById("subscribers", id)
-				if err != nil {
-					continue
-				}
-				if err := app.Delete(record); err == nil {
+			missing := 0
+			err := app.RunInTransaction(func(txApp core.App) error {
+				for _, id := range req.IDs {
+					record, err := txApp.FindRecordById("subscribers", id)
+					if err != nil {
+						missing++
+						continue
+					}
+					if err := txApp.Delete(record); err != nil {
+						return fmt.Errorf("delete subscriber %s: %w", id, err)
+					}
 					deleted++
 				}
+				return nil
+			})
+			if err != nil {
+				app.Logger().Error("bulk subscriber delete failed; transaction rolled back", "requested", len(req.IDs), "error", err)
+				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"error":   "bulk delete failed; no subscribers were removed",
+					"message": err.Error(),
+				})
 			}
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"status":  "deleted",
 				"deleted": deleted,
-				"message": fmt.Sprintf("Deleted %d of %d subscribers", deleted, len(req.IDs)),
+				"missing": missing,
+				"message": fmt.Sprintf("Deleted %d of %d subscribers (%d already absent)", deleted, len(req.IDs), missing),
 			})
 		})
+
+		registerNewsletterSubscriberImportRoute(se, app, planConfig)
 
 		// ========================================
 		// Newsletter Compose & Send Endpoints
@@ -659,8 +668,8 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create send record"})
 			}
 
-			// Spawn goroutine for actual sending (pass IDs, not pointers)
-			go sendNewsletter(app, crypto, sendRecord.Id, req.Subject, bodyHTML, req.Template, subscriberIDs)
+			// Spawn bounded background sender (pass IDs, not mutable pointers).
+			goSendNewsletter(app, crypto, sendRecord.Id, req.Subject, bodyHTML, req.Template, subscriberIDs)
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"status":          "sending",
@@ -1020,13 +1029,28 @@ func recordNewsletterEvent(app core.App, crypto *services.CryptoService, sendID,
 		return
 	}
 
-	// Atomically increment the aggregate count on the send record
-	countField := eventType + "_count"
-	_, err = app.DB().NewQuery("UPDATE newsletter_sends SET "+countField+" = "+countField+" + 1 WHERE id = {:id}").
+	// Atomically increment the aggregate count on the send record.
+	countField, ok := newsletterCountFieldFor(eventType)
+	if !ok {
+		log.Printf("[newsletter] Refusing to update count for invalid event type: %s", eventType)
+		return
+	}
+	_, err = app.DB().NewQuery("UPDATE newsletter_sends SET " + countField + " = " + countField + " + 1 WHERE id = {:id}").
 		Bind(dbx.Params{"id": sendID}).
 		Execute()
 	if err != nil {
 		log.Printf("[newsletter] Failed to update send %s count: %v", countField, err)
+	}
+}
+
+func newsletterCountFieldFor(eventType string) (string, bool) {
+	switch eventType {
+	case "open":
+		return "open_count", true
+	case "click":
+		return "click_count", true
+	default:
+		return "", false
 	}
 }
 

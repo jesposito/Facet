@@ -61,7 +61,7 @@
 										{[item.degree, item.field].filter(Boolean).join(' in ')}
 									</p>
 								{/if}
-								<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+								<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
 									{formatDateRange(item.start_date, item.end_date, presentText)}
 								</p>
 
@@ -112,7 +112,7 @@
 									</span>
 								</p>
 							{/if}
-							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+							<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
 								<meta itemprop="startDate" content={item.start_date || ''} />
 								<meta itemprop="endDate" content={item.end_date || ''} />
 								{formatDateRange(item.start_date, item.end_date, presentText)}

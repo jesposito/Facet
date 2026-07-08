@@ -376,7 +376,7 @@
 		<div class="max-w-2xl w-full bg-white dark:bg-stone-800 rounded-2xl shadow-lg border border-stone-200 dark:border-stone-700 p-8 text-center space-y-4">
 			<h1 class="text-2xl font-semibold text-stone-900 dark:text-white">{$t('public.homepage.profile_private')}</h1>
 			<p class="text-stone-600 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
-			<p class="text-sm text-stone-500 dark:text-stone-400">
+			<p class="text-sm text-stone-600 dark:text-stone-300">
 				{$t('public.homepage.views_accessible')}
 			</p>
 		</div>
@@ -561,7 +561,7 @@
 		{#if !data.profile?.name && data.experience.length === 0 && data.projects.length === 0}
 			<!-- Empty profile state -->
 			<div class="text-center py-16">
-				<p class="text-stone-500 dark:text-stone-400 text-lg">
+				<p class="text-stone-600 dark:text-stone-300 text-lg">
 					{$t('public.homepage.profile_setup')}
 				</p>
 			</div>

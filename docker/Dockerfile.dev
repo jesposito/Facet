@@ -1,6 +1,10 @@
 # Facet Development Dockerfile
 # Includes hot-reload for both backend and frontend
 
+# This image is not used for CI or published releases; keep local dev on the
+# Go/Alpine patch stream without opening digest-refresh PRs for development-only
+# tooling. Production base images are digest-pinned in docker/Dockerfile.
+# supply-chain: allow-floating-base dev-only
 FROM golang:1.24-alpine
 
 # Install dependencies

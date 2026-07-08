@@ -1,0 +1,64 @@
+name: Supply Chain
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/go.mod'
+      - 'backend/go.sum'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'docker/Dockerfile'
+      - 'docker/Dockerfile.dev'
+      - 'scripts/check-docker-base-pins.sh'
+      - '.github/workflows/supply-chain.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/go.mod'
+      - 'backend/go.sum'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
+      - 'docker/Dockerfile'
+      - 'docker/Dockerfile.dev'
+      - 'scripts/check-docker-base-pins.sh'
+      - '.github/workflows/supply-chain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift-and-pins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Verify Go module files are tidy
+        run: |
+          cd backend
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Verify npm lockfile matches package manifest
+        run: cd frontend && npm ci --ignore-scripts
+
+      - name: Verify npm lockfile is reproducible
+        run: |
+          cd frontend
+          npm install --package-lock-only --ignore-scripts
+          git diff --exit-code -- package-lock.json
+
+      - name: Verify Docker base image pins
+        run: bash scripts/check-docker-base-pins.sh

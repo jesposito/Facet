@@ -5,7 +5,11 @@ on:
     paths:
       - 'frontend/src/locales/**'
       - 'frontend/src/lib/i18n/**'
+      - 'frontend/src/**/*.svelte'
+      - 'frontend/src/**/*.ts'
+      - 'frontend/package.json'
       - 'scripts/validate-translations.js'
+      - 'scripts/check-i18n-values-params.mjs'
 
 permissions:
   contents: read
@@ -26,3 +30,6 @@ jobs:
 
       - name: Validate translation files
         run: node scripts/validate-translations.js --ci
+
+      - name: Check translation interpolation callsites
+        run: node scripts/check-i18n-values-params.mjs

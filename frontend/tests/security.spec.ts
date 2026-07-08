@@ -59,7 +59,9 @@ test.describe('Security: XSS Prevention', () => {
 			'soundcloud.com',
 			'spotify.com',
 			'codepen.io',
-			'figma.com'
+			'figma.com',
+			'calendly.com',
+			'cal.com'
 		];
 
 		for (const iframe of iframes) {

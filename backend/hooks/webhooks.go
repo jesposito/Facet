@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"facet/services"
 
@@ -377,14 +376,8 @@ func RegisterWebhookHooks(app *pocketbase.PocketBase, rl *services.RateLimitServ
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "not found"})
 			}
 
-			perPage := 25
-			page := 1
-			if p, err := strconv.Atoi(e.Request.URL.Query().Get("page")); err == nil && p > 0 {
-				page = p
-			}
-			if pp, err := strconv.Atoi(e.Request.URL.Query().Get("per_page")); err == nil && pp > 0 && pp <= 100 {
-				perPage = pp
-			}
+			page := parsePositiveInt(e.Request.URL.Query().Get("page"), 1, 0)
+			perPage := parsePositiveInt(e.Request.URL.Query().Get("per_page"), 25, 100)
 			offset := (page - 1) * perPage
 
 			recs, err := app.FindRecordsByFilter(

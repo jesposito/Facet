@@ -43,6 +43,20 @@ make dev
 - Meaningful commit messages
 - Update docs if you change behavior
 
+### Supply Chain Maintenance
+
+Production Docker base images in `docker/Dockerfile` are pinned as `tag@sha256:digest`.
+When refreshing a base image, update the tag and digest together from the image
+registry, then run:
+
+```bash
+bash scripts/check-docker-base-pins.sh
+```
+
+`docker/Dockerfile.dev` is development-only and may use the explicit
+`supply-chain: allow-floating-base` marker. Do not add that marker to published
+release images.
+
 ### Testing
 
 ```bash

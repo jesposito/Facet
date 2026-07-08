@@ -205,7 +205,7 @@
 		</div>
 
 		<!-- Footer -->
-		<div class="pt-4 text-center text-sm text-gray-500 dark:text-gray-400 space-y-2">
+		<div class="pt-4 text-center text-sm text-gray-600 dark:text-gray-300 space-y-2">
 			<p>No tracking. No ads. Just your profile, your way.</p>
 			<p class="text-xs">
 				<a href="https://github.com/jesposito/Facet#readme" target="_blank" rel="noopener noreferrer" class="hover:text-primary-600 dark:hover:text-primary-400">

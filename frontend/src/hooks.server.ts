@@ -1,8 +1,9 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleFetch } from '@sveltejs/kit';
 import PocketBase from 'pocketbase';
 import { PB_COOKIE_NAME } from '$lib/pocketbase';
 import { generateAccentCSSVars, generateTextInkCSSVars, SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
 import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
+import { fetchWith503Retry } from '$lib/server/internal-api-retry';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
@@ -156,13 +157,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 			return result;
 		},
 	});
+	const headers = new Headers(response.headers);
 
 	// Strip oversized Link headers from HTML responses to prevent proxy failures.
 	// Only for HTML - API endpoints may use Link for pagination (rel="next").
 	// See: https://github.com/sveltejs/kit/issues/6819
-	const contentType = response.headers.get('content-type') || '';
+	const contentType = headers.get('content-type') || '';
 	if (contentType.includes('text/html')) {
-		response.headers.delete('link');
+		headers.delete('link');
 	}
 
 	// Only set the auth cookie if auth state changed during this request.
@@ -191,8 +193,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 			PB_COOKIE_NAME,
 		);
 
-		response.headers.append('set-cookie', exportedCookie);
+		headers.append('set-cookie', exportedCookie);
 	}
 
-	return response;
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
+};
+
+export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
+	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
+	return fetchWith503Retry(request, fetch, {
+		apiOrigins: [event.url.origin, pbUrl],
+	});
 };

@@ -80,7 +80,7 @@
 					<!-- Metadata -->
 					<div class="p-6 sm:p-8 flex flex-col justify-center">
 						{#if featuredPost.published_at}
-							<time datetime={featuredPost.published_at} class="text-sm text-stone-500 dark:text-stone-400">
+							<time datetime={featuredPost.published_at} class="text-sm text-stone-600 dark:text-stone-300">
 								{formatDate(featuredPost.published_at, { month: 'long', day: 'numeric', year: 'numeric' })}
 							</time>
 						{/if}
@@ -187,7 +187,7 @@
 			</div>
 
 			{#if post.published_at}
-				<time datetime={post.published_at} class="mt-1 text-sm text-gray-500 dark:text-gray-400 block">
+				<time datetime={post.published_at} class="mt-1 text-sm text-gray-600 dark:text-gray-300 block">
 					{formatDate(post.published_at, { month: 'long', day: 'numeric', year: 'numeric' })}
 				</time>
 			{/if}

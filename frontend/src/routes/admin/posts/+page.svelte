@@ -11,6 +11,7 @@ import { toasts, confirm } from '$lib/stores';
 import { createAutosave } from '$lib/stores/autosave';
 import { createFilterState } from '$lib/admin/filterState.svelte';
 import { formatDate, toDateInputValue } from '$lib/utils';
+import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
 import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -328,9 +329,15 @@ function openEditForm(post: Post) {
 		}
 
 		try {
+			const deletedIndex = filteredPosts.findIndex((p) => p.id === post.id);
 			await await collection('posts').delete(post.id);
 			toasts.add('success', 'Post deleted');
 			await loadPosts();
+			focusAfterRemove({
+				deletedIndex,
+				remainingIds: filteredPosts.map((p) => p.id),
+				selectRow: (id) => document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)
+			});
 		} catch (err) {
 			console.error('Failed to delete post:', err);
 			toasts.add('error', 'Failed to delete post');
@@ -433,9 +440,9 @@ function openEditForm(post: Post) {
 		/>
 	{/if}
 
-	<div class="flex items-center justify-between mb-6">
+	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.posts.title')}</h1>
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 			{#if posts.length > 0}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
@@ -738,7 +745,7 @@ function openEditForm(post: Post) {
 		<!-- Posts List -->
 		<div class="space-y-4">
 			{#each filteredPosts as post (post.id)}
-				<div class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id) ? 'ring-2 ring-primary-500' : ''}">
+				<div class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id) ? 'ring-2 ring-primary-500' : ''}" data-row-id={post.id} tabindex="-1">
 					<div class="flex items-start gap-4">
 						{#if selectMode}
 							<input

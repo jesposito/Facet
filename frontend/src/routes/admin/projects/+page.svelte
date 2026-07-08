@@ -13,6 +13,7 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
 	import { focusTrap } from '$lib/actions/focusTrap';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
@@ -406,9 +407,15 @@ let filteredProjects = $derived(
 		}
 
 		try {
+			const deletedIndex = filteredProjects.findIndex((p) => p.id === project.id);
 			await await collection('projects').delete(project.id);
 			toasts.add('success', $t('admin.content.common.toast_deleted', { values: { type: $t('admin.content.projects.title').slice(0, -1) } }));
 			await loadProjects();
+			focusAfterRemove({
+				deletedIndex,
+				remainingIds: filteredProjects.map((p) => p.id),
+				selectRow: (id) => document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)
+			});
 		} catch (err) {
 			console.error('Failed to delete project:', err);
 			toasts.add('error', $t('admin.content.common.toast_delete_error', { values: { type: $t('admin.content.projects.title').slice(0, -1).toLowerCase() } }));
@@ -622,9 +629,9 @@ let filteredProjects = $derived(
 		/>
 	{/if}
 
-	<div class="flex items-center justify-between mb-6">
+	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.projects.title')}</h1>
-		<div class="flex items-center gap-2">
+		<div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 			{#if projects.length > 0 && !reorderMode}
 				<button
 					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
@@ -1077,6 +1084,15 @@ let filteredProjects = $derived(
 								<li><code>{'{{embed:https://any-link}}'}</code></li>
 							</ul>
 						</div>
+						<div>
+							<p class="font-semibold">{$t('admin.content.projects.shortcodes_booking')}</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{calendly:https://calendly.com/user/event}}'}</code></li>
+								<li><code>{'{{calcom:https://cal.com/user/event}}'}</code></li>
+								<li><code>{'{{googlecal:https://calendar.app.google/...}}'}</code></li>
+								<li><code>{'{{booking:https://example.com/book}}'}</code></li>
+							</ul>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -1116,7 +1132,7 @@ let filteredProjects = $derived(
 		<!-- Projects Grid -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 			{#each filteredProjects as project (project.id)}
-				<div class="card overflow-hidden {selectMode && selectedIds.has(project.id) ? 'ring-2 ring-primary-500' : ''}">
+				<div class="card overflow-hidden {selectMode && selectedIds.has(project.id) ? 'ring-2 ring-primary-500' : ''}" data-row-id={project.id} tabindex="-1">
 					{#if hasCoverImage(project)}
 						<div class="h-32 bg-gray-100 dark:bg-gray-800">
 							<img

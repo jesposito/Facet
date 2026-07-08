@@ -15,6 +15,12 @@
 	import MediaPreviewModal from '$lib/components/admin/MediaPreviewModal.svelte';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
+	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
+	import {
+		MEDIA_UPLOAD_LIMIT_BYTES,
+		isOversizedMediaUpload,
+		oversizedMediaUploadMessageKey
+	} from '$lib/media-upload-guidance';
 
 	type MediaUsageItem = {
 		collection: string;
@@ -495,6 +501,7 @@
 	}
 
 	async function deleteFile(item: MediaItem, force = false) {
+		const deletedIndex = items.findIndex((it) => (it.record_id || it.relative_path) === (item.record_id || item.relative_path));
 		// Check if item is external media (either by flag or by collection name)
 		const isExternal = item.external || item.collection === 'external_media';
 
@@ -608,6 +615,11 @@
 					toasts.add('success', $t('admin.media.toast_external_deleted'));
 				}
 				await loadMedia();
+				focusAfterRemove({
+					deletedIndex,
+					remainingIds: items.map((it) => it.record_id || it.relative_path || ''),
+					selectRow: (id) => document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)
+				});
 				return;
 			}
 			const body =
@@ -638,6 +650,11 @@
 			}
 			toasts.add('success', $t('admin.media.toast_file_deleted'));
 			await loadMedia();
+			focusAfterRemove({
+				deletedIndex,
+				remainingIds: items.map((it) => it.record_id || it.relative_path || ''),
+				selectRow: (id) => document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)
+			});
 		} catch (err) {
 			console.error(err);
 			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_delete_failed'));
@@ -983,6 +1000,14 @@
 			toasts.add('error', $t('admin.media.toast_choose_file'));
 			return;
 		}
+		if (isOversizedMediaUpload(uploadFile)) {
+			const message = $t(oversizedMediaUploadMessageKey(uploadFile), {
+				values: { name: uploadFile.name, limit: '20MB' }
+			});
+			toasts.add('error', message);
+			error = message;
+			return;
+		}
 		uploading = true;
 		error = '';
 		try {
@@ -1082,6 +1107,13 @@
 			// Mark file as uploading
 			fileProgresses[i] = { ...fileProgresses[i], status: 'uploading' };
 
+			if (file.size > MEDIA_UPLOAD_LIMIT_BYTES) {
+				failCount++;
+				fileProgresses[i] = { ...fileProgresses[i], status: 'error' };
+				toasts.add('error', $t(oversizedMediaUploadMessageKey(file), { values: { name: file.name, limit: '20MB' } }));
+				continue;
+			}
+
 			const success = await uploadFileWithProgress(file, (loaded, total) => {
 				fileProgresses[i] = { ...fileProgresses[i], loaded, total };
 			});
@@ -1131,12 +1163,12 @@
 		<p>{@html $t('admin.media.help_tip')}</p>
 	</PageHelp>
 
-	<div class="flex items-center justify-between mb-6">
+	<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.media.title')}</h1>
 			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.media.subtitle')}</p>
 		</div>
-		<button class="btn btn-secondary" onclick={loadMedia} aria-busy={loading}>
+		<button class="btn btn-secondary w-full sm:w-auto" onclick={loadMedia} aria-busy={loading}>
 			{loading ? $t('admin.media.loading') : $t('admin.media.refresh')}
 		</button>
 	</div>
@@ -1460,7 +1492,7 @@
 						</thead>
 						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 							{#each items as item}
-								<tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+								<tr class="hover:bg-gray-50 dark:hover:bg-gray-800" data-row-id={item.record_id || item.relative_path} tabindex="-1">
 									<td class="px-2 py-2">
 										{#if item.orphan && item.relative_path}
 											<input

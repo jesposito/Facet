@@ -85,13 +85,13 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
-	<div class="flex items-center justify-between mb-6">
+	<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.analytics_page.title')}</h1>
 			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.description')}</p>
 		</div>
 
-		<div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1" role="group" aria-label={$t('admin.analytics_page.title')}>
+		<div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto" role="group" aria-label={$t('admin.analytics_page.title')}>
 			{#each ['7d', '30d', '90d'] as p}
 				<button
 					type="button"

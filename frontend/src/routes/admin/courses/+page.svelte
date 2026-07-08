@@ -1147,7 +1147,7 @@
 	<div class="flex items-center justify-between mb-8">
 		<div>
 			<h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{$t('admin.courses.list_title')}</h1>
-			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{courses.length} {courses.length === 1 ? $t('admin.courses.course_count_singular') : $t('admin.courses.course_count_plural')}</p>
+			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{$t('admin.courses.course_count', { values: { count: courses.length } })}</p>
 		</div>
 		<div class="flex items-center gap-2">
 			{#if courses.length > 0 && !showForm}

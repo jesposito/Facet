@@ -1,4 +1,4 @@
-import { waitLocale } from '$lib/i18n';
+import { initI18n, waitLocale } from '$lib/i18n';
 import type { LayoutLoad } from './$types';
 
 /**
@@ -12,6 +12,7 @@ import type { LayoutLoad } from './$types';
  * even though the server fetched the correct `/api/favicon` URL.
  */
 export const load: LayoutLoad = async ({ data }) => {
+	initI18n(data.defaultLocale || undefined);
 	await waitLocale();
 	return { ...data };
 };

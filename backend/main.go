@@ -71,6 +71,7 @@ func main() {
 	hooks.RegisterDuplicateHooks(app)
 	hooks.RegisterExperienceHooks(app)
 	hooks.RegisterCustomContentHooks(app)
+	hooks.RegisterFeaturedValidationHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
 	hooks.RegisterCleanupHooks(app)    // Background cleanup of expired tokens and failed exports
 	hooks.RegisterBackupHooks(app)     // Automated database backup system

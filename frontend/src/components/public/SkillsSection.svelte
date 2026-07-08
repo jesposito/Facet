@@ -168,7 +168,7 @@
 											{skill.name}
 										</span>
 										{#if skill.proficiency}
-											<span class="text-xs text-stone-500 dark:text-stone-400 capitalize">
+											<span class="text-xs text-stone-600 dark:text-stone-300 capitalize">
 												{skill.proficiency}
 											</span>
 										{/if}

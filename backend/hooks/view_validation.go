@@ -18,7 +18,7 @@ func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.Crypto
 		}
 
 		password := e.Record.GetString("password")
-		app.Logger().Info("OnRecordCreate views hook", "slug", slug, "password_len", len(password), "visibility", e.Record.GetString("visibility"))
+		app.Logger().Info("OnRecordCreate views hook", "slug", slug, "visibility", e.Record.GetString("visibility"))
 		if password != "" {
 			hash, err := crypto.HashPassword(password)
 			if err != nil {
@@ -26,7 +26,7 @@ func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.Crypto
 			}
 			e.Record.Set("password_hash", hash)
 			e.Record.Set("password", "")
-			app.Logger().Info("Password hashed successfully", "slug", slug, "hash_len", len(hash))
+			app.Logger().Info("Password hashed successfully", "slug", slug)
 		} else if e.Record.GetString("visibility") == "password" {
 			app.Logger().Warn("Password visibility set but no password provided", "slug", slug)
 		}

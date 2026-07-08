@@ -6,10 +6,18 @@ ARG FACET_VERSION=dev
 ARG BUILD_DATE=unknown
 ARG GIT_COMMIT=unknown
 
+# Base images are pinned to multi-arch index digests so a repushed tag cannot
+# change build inputs silently. Refresh the tag+digest pairs together; see
+# CONTRIBUTING.md for the update process.
+
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.25-bookworm AS backend-builder
+FROM golang:1.25.11-bookworm@sha256:b96f24a8d7d010ea0acb9c3ba99064740f02b6b984612b28bd3c9c5ab9453e38 AS backend-builder
+
+ARG FACET_VERSION=dev
+ARG BUILD_DATE=unknown
+ARG GIT_COMMIT=unknown
 
 WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,12 +29,14 @@ COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
 COPY backend/ ./
-RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o /facet .
+RUN CGO_ENABLED=1 GOOS=linux go build \
+    -ldflags="-s -w -X facet/buildinfo.Version=${FACET_VERSION} -X facet/buildinfo.SHA=${GIT_COMMIT} -X facet/buildinfo.BuildDate=${BUILD_DATE}" \
+    -o /facet .
 
 # ============================================
 # Stage 2: Build SvelteKit frontend
 # ============================================
-FROM node:20-alpine AS frontend-builder
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS frontend-builder
 
 ARG FACET_VERSION=dev
 
@@ -43,7 +53,7 @@ RUN npm run build
 # ============================================
 # Stage 3: Final runtime image
 # ============================================
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -64,9 +74,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && groupadd -g 1000 facet \
     && useradd -u 1000 -g facet -s /bin/bash -m facet
 
-# Install Node.js 20 from NodeSource
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
+# Install Node.js 20 from NodeSource using an explicit signed apt repo.
+RUN set -eux; \
+    mkdir -p /etc/apt/keyrings; \
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /etc/apt/keyrings/nodesource.asc; \
+    echo "b42e0321dabdc24e892115da705cf061167eac12a317f23d329862d0aa0a271d  /etc/apt/keyrings/nodesource.asc" | sha256sum -c -; \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list; \
+    apt-get update; \
+    apt-get install -y nodejs; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -113,9 +128,9 @@ ENV DATA_DIR=/data \
 # Single exposed port
 EXPOSE 8080
 
-# Health check via Caddy
+# Health check via Caddy and SvelteKit, with a backend probe
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 VOLUME ["/data", "/uploads"]
 CMD ["./start.sh"]
