@@ -340,13 +340,13 @@
 				{$t('admin.comments.selected_count', { values: { count: selectedIds.size } })}
 			</span>
 			<div class="flex items-center gap-2 ml-auto">
-				<button type="button" class="btn btn-sm bg-green-600 hover:bg-green-700 text-white" onclick={() => bulkAction('approve')}>
+				<button type="button" class="btn btn-sm bg-green-700 hover:bg-green-800 text-white" onclick={() => bulkAction('approve')}>
 					{$t('admin.comments.bulk_approve')}
 				</button>
 				<button type="button" class="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white" onclick={() => bulkAction('reject')}>
 					{$t('admin.comments.bulk_reject')}
 				</button>
-				<button type="button" class="btn btn-sm bg-orange-600 hover:bg-orange-700 text-white" onclick={() => bulkAction('spam')}>
+				<button type="button" class="btn btn-sm bg-orange-700 hover:bg-orange-800 text-white" onclick={() => bulkAction('spam')}>
 					{$t('admin.comments.bulk_spam')}
 				</button>
 				<button type="button" class="btn btn-danger btn-sm" onclick={() => bulkAction('delete')}>

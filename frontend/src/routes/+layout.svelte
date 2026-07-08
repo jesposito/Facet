@@ -557,6 +557,7 @@
 
 <svelte:head>
 	<meta name="theme-color" content={themeColor} />
+	<link rel="manifest" href="/manifest.webmanifest" />
 	<link rel="alternate" type="application/rss+xml" title="RSS Feed" href="/rss.xml" />
 	<!-- Use {#key} to force browser to fetch new favicon when URL changes -->
 	{#key faviconUrl}

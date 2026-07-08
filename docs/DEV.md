@@ -664,15 +664,15 @@ Available tasks:
 
 | Component | Version | Notes |
 |-----------|---------|-------|
-| Backend (Go) | PocketBase v0.23.4 | Set in `backend/go.mod` |
+| Backend (Go) | PocketBase v0.37.4 | Set in `backend/go.mod` |
 | Frontend SDK | pocketbase ^0.21.0 | Set in `frontend/package.json` |
 
 **Why this matters:**
 - SDK v0.22+ renamed `authStore.model` → `authStore.record`
-- SDK v0.26+ is designed for PocketBase v0.34+ and uses incompatible request formats
+- SDK v0.21.5 is verified with the current PocketBase backend in this repo
 - Using mismatched versions causes 400 errors on authenticated requests
 
-**If upgrading PocketBase backend:**
+**If upgrading PocketBase or the frontend SDK:**
 1. Check the [PocketBase JS SDK releases](https://github.com/pocketbase/js-sdk/releases) for compatible SDK version
 2. Update `frontend/package.json` to match
 3. If upgrading past v0.22, change `authStore.model` → `authStore.record` in:

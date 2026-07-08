@@ -2,6 +2,11 @@
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { toasts } from '$lib/stores';
+	import {
+		MEDIA_UPLOAD_LIMIT_BYTES,
+		isOversizedMediaUpload,
+		oversizedMediaUploadMessageKey
+	} from '$lib/media-upload-guidance';
 
 	export type MediaOption = {
 		id: string;
@@ -53,8 +58,6 @@
 		onchange,
 		contextHint = ''
 	}: Props = $props();
-
-	const MAX_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
 
 	let mediaOptions: MediaOption[] = $state([]);
 	let mediaSearch = $state('');
@@ -223,8 +226,8 @@
 		target.value = '';
 
 		// Validate file size
-		if (file.size > MAX_UPLOAD_SIZE) {
-			toasts.add('error', $t('admin.media.toast_file_too_large', { values: { name: file.name, limit: '20MB' } }));
+		if (isOversizedMediaUpload(file)) {
+			toasts.add('error', $t(oversizedMediaUploadMessageKey(file), { values: { name: file.name, limit: '20MB' } }));
 			return;
 		}
 

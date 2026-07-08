@@ -79,7 +79,7 @@
 									<span class="text-base font-bold text-gray-900 dark:text-white" itemprop="name">
 										{entry.company}
 									</span>
-									<div class="text-sm text-gray-500 dark:text-gray-400">
+									<div class="text-sm text-gray-600 dark:text-gray-300">
 										{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
 										&nbsp;· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}
 									</div>
@@ -97,7 +97,7 @@
 											<h3 class="experience-group-title text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
 												{pos.title}
 											</h3>
-											<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+											<div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-600 dark:text-gray-300 mt-0.5">
 												<span class="font-medium">{formatDateRange(pos.start_date, pos.end_date, presentText)}</span>
 												{#if pos.location}
 													<span>• {pos.location}</span>
@@ -161,7 +161,7 @@
 										<span class="text-primary-600 dark:text-primary-400 font-medium">
 											{entry.company}
 										</span>
-										<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400 mt-1">
+										<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-300 mt-1">
 											<span class="font-medium">{formatDateRange(entry.start_date, entry.end_date, presentText)}</span>
 											{#if entry.location}
 												<span>• {entry.location}</span>
@@ -225,7 +225,7 @@
 								</span>
 								<span class="text-xs text-gray-400 dark:text-gray-500">· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}</span>
 							</div>
-							<span class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+							<span class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
 								{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
 							</span>
 						</div>
@@ -242,12 +242,12 @@
 												{pos.title}
 											</h3>
 										</div>
-										<span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+										<span class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
 											{formatDateRange(pos.start_date, pos.end_date, presentText)}
 										</span>
 									</div>
 									{#if pos.location}
-										<p class="text-xs text-gray-500 dark:text-gray-400">{pos.location}</p>
+										<p class="text-xs text-gray-600 dark:text-gray-300">{pos.location}</p>
 									{/if}
 									{#if pos.description}
 										<div class="mt-1 prose-custom text-gray-600 dark:text-gray-300 text-sm" itemprop="description">
@@ -276,18 +276,18 @@
 										{entry.title}
 									</h3>
 								</div>
-								<span class="text-gray-500 dark:text-gray-400">{$t('public.experience.at')}</span>
+								<span class="text-gray-600 dark:text-gray-300">{$t('public.experience.at')}</span>
 								<span class="text-primary-600 dark:text-primary-400 font-medium">
 									{entry.company}
 								</span>
 							</div>
-							<span class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+							<span class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
 								{formatDateRange(entry.start_date, entry.end_date, presentText)}
 							</span>
 						</div>
 
 						{#if entry.location}
-							<p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{entry.location}</p>
+							<p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{entry.location}</p>
 						{/if}
 
 						{#if entry.description}
@@ -322,7 +322,7 @@
 								<h3 class="experience-group-company text-xl font-bold text-gray-900 dark:text-white" itemprop="name">
 									{entry.company}
 								</h3>
-								<div class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+								<div class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-300">
 									<span>{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}</span>
 									<span>· {$t('public.experience.positions_count', { values: { count: entry.positions.length } })}</span>
 								</div>
@@ -341,7 +341,7 @@
 									<h4 class="experience-group-title text-base font-semibold text-gray-900 dark:text-white" itemprop="name">
 										{pos.title}
 									</h4>
-									<div class="experience-group-date flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+									<div class="experience-group-date flex flex-wrap items-center gap-x-4 gap-y-1 mt-0.5 text-sm text-gray-600 dark:text-gray-300">
 										<span>
 											<meta itemprop="startDate" content={pos.start_date || ''} />
 											<meta itemprop="endDate" content={pos.end_date || ''} />
@@ -408,7 +408,7 @@
 								<p class="text-lg text-primary-600 dark:text-primary-400 font-medium" itemprop="occupationLocation" itemscope itemtype="https://schema.org/Organization">
 									<span itemprop="name">{entry.company}</span>
 								</p>
-								<div class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+								<div class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-300">
 									<span>
 										<meta itemprop="startDate" content={entry.start_date || ''} />
 										<meta itemprop="endDate" content={entry.end_date || ''} />

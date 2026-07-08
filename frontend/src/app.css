@@ -472,6 +472,19 @@
 		@apply prose-headings:font-semibold prose-a:text-primary-600 dark:prose-a:text-primary-400;
 		@apply prose-img:rounded-lg;
 	}
+
+	.prose-custom .embed.booking {
+		@apply my-6;
+	}
+
+	.prose-custom .embed.booking iframe {
+		@apply w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900;
+		min-height: 700px;
+	}
+
+	.prose-custom .embed.booking.link {
+		@apply flex;
+	}
 }
 
 @layer utilities {

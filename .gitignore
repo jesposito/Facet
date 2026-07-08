@@ -123,3 +123,8 @@ unraid-docker-templates/
 .gstack/
 .gstack/
 .serena/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

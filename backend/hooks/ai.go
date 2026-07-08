@@ -869,11 +869,30 @@ func fetchOpenAIModels(client *http.Client, apiKey, baseURL string) ([]string, e
 
 // fetchOllamaModels fetches locally available models from Ollama
 func fetchOllamaModels(client *http.Client, baseURL string) ([]string, error) {
-	url := "http://localhost:11434/api/tags"
-	if baseURL != "" {
-		url = strings.TrimSuffix(baseURL, "/") + "/api/tags"
+	var lastErr error
+	for _, url := range ollamaTagURLs(baseURL) {
+		models, err := fetchOllamaModelsFromURL(client, url)
+		if err == nil {
+			return models, nil
+		}
+		lastErr = err
 	}
 
+	return nil, lastErr
+}
+
+func ollamaTagURLs(baseURL string) []string {
+	if baseURL != "" {
+		return []string{strings.TrimSuffix(baseURL, "/") + "/api/tags"}
+	}
+
+	return []string{
+		"http://localhost:11434/api/tags",
+		"http://ollama:11434/api/tags",
+	}
+}
+
+func fetchOllamaModelsFromURL(client *http.Client, url string) ([]string, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to Ollama: %w", err)
