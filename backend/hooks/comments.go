@@ -3,11 +3,11 @@ package hooks
 import (
 	"crypto/md5"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -46,6 +46,8 @@ var validCommentStatuses = map[string]bool{
 	"rejected": true,
 	"spam":     true,
 }
+
+var errCommentNotFound = errors.New("comment not found")
 
 // gravatarURL computes a Gravatar URL from an email address.
 // Returns empty string if email is empty.
@@ -115,17 +117,8 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			}
 
 			// Pagination
-			page := 1
-			perPage := 50
-			if p, err := strconv.Atoi(e.Request.URL.Query().Get("page")); err == nil && p > 0 {
-				page = p
-			}
-			if pp, err := strconv.Atoi(e.Request.URL.Query().Get("per_page")); err == nil && pp > 0 {
-				perPage = pp
-			}
-			if perPage > 100 {
-				perPage = 100
-			}
+			page := parsePositiveInt(e.Request.URL.Query().Get("page"), 1, 0)
+			perPage := parsePositiveInt(e.Request.URL.Query().Get("per_page"), 50, 100)
 			offset := (page - 1) * perPage
 
 			// Query approved comments
@@ -452,14 +445,8 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			statusFilter := strings.TrimSpace(e.Request.URL.Query().Get("status"))
 			contentTypeFilter := strings.TrimSpace(e.Request.URL.Query().Get("content_type"))
 
-			page := 1
-			perPage := 50
-			if p, err := strconv.Atoi(e.Request.URL.Query().Get("page")); err == nil && p > 0 {
-				page = p
-			}
-			if pp, err := strconv.Atoi(e.Request.URL.Query().Get("per_page")); err == nil && pp > 0 && pp <= 100 {
-				perPage = pp
-			}
+			page := parsePositiveInt(e.Request.URL.Query().Get("page"), 1, 0)
+			perPage := parsePositiveInt(e.Request.URL.Query().Get("per_page"), 50, 100)
 			offset := (page - 1) * perPage
 
 			filter := "id != ''"
@@ -582,57 +569,14 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			}
 
 			id := e.Request.PathValue("id")
-			record, err := app.FindRecordById("comments", id)
-			if err != nil {
+			err := app.RunInTransaction(func(txApp core.App) error {
+				return deleteCommentCascade(txApp, id)
+			})
+			if errors.Is(err, errCommentNotFound) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "comment not found"})
 			}
-
-			// Delete all replies (where parent_id = this comment)
-			replies, _ := app.FindRecordsByFilter(
-				"comments",
-				"parent_id = {:parent_id}",
-				"",
-				0,
-				0,
-				map[string]interface{}{"parent_id": id},
-			)
-			for _, reply := range replies {
-				// Delete reports for the reply
-				replyReports, _ := app.FindRecordsByFilter(
-					"comment_reports",
-					"comment = {:cid}",
-					"",
-					0,
-					0,
-					map[string]interface{}{"cid": reply.Id},
-				)
-				for _, rr := range replyReports {
-					if err := app.Delete(rr); err != nil {
-						app.Logger().Warn("comments: failed to delete reply report", "id", rr.Id, "error", err)
-					}
-				}
-				if err := app.Delete(reply); err != nil {
-					app.Logger().Warn("comments: failed to delete reply", "id", reply.Id, "error", err)
-				}
-			}
-
-			// Delete reports for the comment itself
-			reports, _ := app.FindRecordsByFilter(
-				"comment_reports",
-				"comment = {:cid}",
-				"",
-				0,
-				0,
-				map[string]interface{}{"cid": id},
-			)
-			for _, rpt := range reports {
-				if err := app.Delete(rpt); err != nil {
-					app.Logger().Warn("comments: failed to delete report", "id", rpt.Id, "error", err)
-				}
-			}
-
-			// Delete the comment
-			if err := app.Delete(record); err != nil {
+			if err != nil {
+				app.Logger().Error("comments: delete cascade failed; transaction rolled back", "id", id, "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete comment"})
 			}
 
@@ -745,14 +689,8 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 				statusFilter = "open"
 			}
 
-			page := 1
-			perPage := 50
-			if p, err := strconv.Atoi(e.Request.URL.Query().Get("page")); err == nil && p > 0 {
-				page = p
-			}
-			if pp, err := strconv.Atoi(e.Request.URL.Query().Get("per_page")); err == nil && pp > 0 && pp <= 100 {
-				perPage = pp
-			}
+			page := parsePositiveInt(e.Request.URL.Query().Get("page"), 1, 0)
+			perPage := parsePositiveInt(e.Request.URL.Query().Get("per_page"), 50, 100)
 			offset := (page - 1) * perPage
 
 			filter := "status = {:status}"
@@ -865,55 +803,40 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			}
 
 			affected := 0
-			for _, id := range req.IDs {
-				record, err := app.FindRecordById("comments", id)
-				if err != nil {
-					continue
-				}
+			err := app.RunInTransaction(func(txApp core.App) error {
+				for _, id := range req.IDs {
+					record, err := txApp.FindRecordById("comments", id)
+					if err != nil {
+						continue
+					}
 
-				if req.Action == "delete" {
-					// Delete replies
-					replies, _ := app.FindRecordsByFilter(
-						"comments",
-						"parent_id = {:parent_id}",
-						"",
-						0,
-						0,
-						map[string]interface{}{"parent_id": id},
-					)
-					for _, reply := range replies {
-						if err := app.Delete(reply); err != nil {
-							app.Logger().Warn("comments: bulk delete reply failed", "id", reply.Id, "error", err)
+					if req.Action == "delete" {
+						if err := deleteCommentCascade(txApp, id); err != nil {
+							return fmt.Errorf("delete comment %s: %w", id, err)
 						}
-					}
-					// Delete reports
-					reports, _ := app.FindRecordsByFilter(
-						"comment_reports",
-						"comment = {:cid}",
-						"",
-						0,
-						0,
-						map[string]interface{}{"cid": id},
-					)
-					for _, rpt := range reports {
-						if err := app.Delete(rpt); err != nil {
-							app.Logger().Warn("comments: bulk delete report failed", "id", rpt.Id, "error", err)
-						}
-					}
-					if err := app.Delete(record); err == nil {
 						affected++
+						continue
 					}
-				} else {
+
 					statusMap := map[string]string{
 						"approve": "approved",
 						"reject":  "rejected",
 						"spam":    "spam",
 					}
 					record.Set("status", statusMap[req.Action])
-					if err := app.Save(record); err == nil {
-						affected++
+					if err := txApp.Save(record); err != nil {
+						return fmt.Errorf("save comment %s status=%s: %w", id, req.Action, err)
 					}
+					affected++
 				}
+				return nil
+			})
+			if err != nil {
+				app.Logger().Error("bulk comment action failed; transaction rolled back", "action", req.Action, "requested", len(req.IDs), "error", err)
+				return e.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"error":   "bulk action failed; no comments were modified",
+					"message": err.Error(),
+				})
 			}
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
@@ -925,4 +848,59 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 
 		return se.Next()
 	})
+}
+
+func deleteCommentCascade(app core.App, id string) error {
+	record, err := app.FindRecordById("comments", id)
+	if err != nil {
+		return errCommentNotFound
+	}
+
+	replies, err := app.FindRecordsByFilter(
+		"comments",
+		"parent_id = {:parent_id}",
+		"",
+		0,
+		0,
+		map[string]interface{}{"parent_id": id},
+	)
+	if err != nil {
+		return fmt.Errorf("list replies: %w", err)
+	}
+	for _, reply := range replies {
+		if err := deleteCommentReports(app, reply.Id); err != nil {
+			return fmt.Errorf("delete reply reports %s: %w", reply.Id, err)
+		}
+		if err := app.Delete(reply); err != nil {
+			return fmt.Errorf("delete reply %s: %w", reply.Id, err)
+		}
+	}
+
+	if err := deleteCommentReports(app, id); err != nil {
+		return fmt.Errorf("delete reports: %w", err)
+	}
+	if err := app.Delete(record); err != nil {
+		return fmt.Errorf("delete comment: %w", err)
+	}
+	return nil
+}
+
+func deleteCommentReports(app core.App, commentID string) error {
+	reports, err := app.FindRecordsByFilter(
+		"comment_reports",
+		"comment = {:cid}",
+		"",
+		0,
+		0,
+		map[string]interface{}{"cid": commentID},
+	)
+	if err != nil {
+		return err
+	}
+	for _, rpt := range reports {
+		if err := app.Delete(rpt); err != nil {
+			return fmt.Errorf("delete report %s: %w", rpt.Id, err)
+		}
+	}
+	return nil
 }

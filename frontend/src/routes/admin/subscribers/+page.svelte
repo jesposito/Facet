@@ -4,6 +4,7 @@
 	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
+	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
 
 	type Subscriber = {
 		id: string;
@@ -27,6 +28,16 @@
 		growth: { date: string; count: number }[];
 	};
 
+	type ImportResult = {
+		created: number;
+		updated: number;
+		skipped_cap: number;
+		failed: number;
+		errors: { row: number; email: string; error: string }[];
+		created_tags: string[];
+		unknown_tags: string[];
+	};
+
 	let subscribers: Subscriber[] = $state([]);
 	let loading = $state(true);
 	let stats: SubscriberStats | null = $state(null);
@@ -37,6 +48,12 @@
 	let totalItems = $state(0);
 	let selectedIds: Set<string> = $state(new Set());
 	let selectAll = $state(false);
+	let showImport = $state(false);
+	let importFile = $state<File | null>(null);
+	let importFileInput: HTMLInputElement | undefined = $state();
+	let importing = $state(false);
+	let importFileError = $state('');
+	let importResult: ImportResult | null = $state(null);
 
 	const perPage = 50;
 
@@ -167,6 +184,7 @@
 		if (!confirmed) return;
 
 		try {
+			const deletedIndex = subscribers.findIndex((s) => s.id === sub.id);
 			const response = await fetch(`/api/admin/subscribers/${sub.id}`, {
 				method: 'DELETE',
 				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
@@ -174,6 +192,11 @@
 			if (!response.ok) throw new Error('Failed to delete subscriber');
 			toasts.add('success', $t('admin.subscribers.deleted'));
 			await loadSubscribers();
+			focusAfterRemove({
+				deletedIndex,
+				remainingIds: subscribers.map((s) => s.id),
+				selectRow: (id) => document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)
+			});
 		} catch (err) {
 			console.error('Failed to delete subscriber:', err);
 			toasts.add('error', $t('admin.subscribers.error_delete'));
@@ -243,6 +266,71 @@
 		}
 	}
 
+	function onImportFileChange(event: Event) {
+		importFile = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
+		importFileError = '';
+		importResult = null;
+	}
+
+	async function submitImport() {
+		if (!importFile) {
+			importFileError = $t('admin.subscribers.import_error_no_file');
+			importFileInput?.focus();
+			return;
+		}
+		if (!/\.csv$/i.test(importFile.name)) {
+			importFileError = $t('admin.subscribers.import_error_wrong_type');
+			importFileInput?.focus();
+			return;
+		}
+
+		importing = true;
+		importFileError = '';
+		importResult = null;
+		try {
+			const form = new FormData();
+			form.append('file', importFile);
+			const response = await fetch('/api/admin/subscribers/import', {
+				method: 'POST',
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {},
+				body: form
+			});
+			const data = await response.json().catch(() => null);
+			if (!response.ok || !data) {
+				throw new Error(data?.error || $t('admin.subscribers.import_failed_all'));
+			}
+
+			importResult = {
+				created: data.created ?? 0,
+				updated: data.updated ?? 0,
+				skipped_cap: data.skipped_cap ?? 0,
+				failed: data.failed ?? 0,
+				errors: data.errors ?? [],
+				created_tags: data.created_tags ?? [],
+				unknown_tags: data.unknown_tags ?? []
+			};
+
+			toasts.add(
+				importResult.created + importResult.updated > 0 ? 'success' : 'info',
+				$t('admin.subscribers.import_result_summary', {
+					values: {
+						created: importResult.created,
+						updated: importResult.updated,
+						skipped: importResult.skipped_cap,
+						failed: importResult.failed
+					}
+				})
+			);
+			await Promise.all([loadSubscribers(), loadStats()]);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : $t('admin.subscribers.import_failed_all');
+			importFileError = message;
+			toasts.add('error', message);
+		} finally {
+			importing = false;
+		}
+	}
+
 	// Status badge colors including bounced
 	function getStatusClass(status: string): string {
 		if (status === 'active')
@@ -265,7 +353,7 @@
 
 <div class="max-w-5xl mx-auto space-y-6">
 	<!-- Header -->
-	<div class="flex items-center justify-between">
+	<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
 		<div>
 			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
 				{$t('admin.subscribers.page_title')}
@@ -274,15 +362,106 @@
 				{$t('admin.subscribers.description')}
 			</p>
 		</div>
-		<div class="flex items-center gap-2">
-			<a href="/admin/subscribers/compose" class="btn btn-primary">
+		<div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+			<a href="/admin/subscribers/compose" class="btn btn-primary w-full sm:w-auto">
 				{$t('admin.subscribers.compose')}
 			</a>
-			<button type="button" class="btn btn-secondary" onclick={exportCSV}>
+			<button type="button" class="btn btn-secondary w-full sm:w-auto" onclick={() => (showImport = !showImport)}>
+				{$t('admin.subscribers.import')}
+			</button>
+			<button type="button" class="btn btn-secondary w-full sm:w-auto" onclick={exportCSV}>
 				{$t('admin.subscribers.export')}
 			</button>
 		</div>
 	</div>
+
+	{#if showImport}
+		<div class="card p-4 space-y-4">
+			<div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+				<div class="flex-1">
+					<label for="csv-import-file" class="label">
+						{$t('admin.subscribers.import_file_label')}
+					</label>
+					<input
+						bind:this={importFileInput}
+						id="csv-import-file"
+						type="file"
+						accept=".csv,text/csv"
+						onchange={onImportFileChange}
+						class="input text-sm w-full"
+						aria-invalid={importFileError ? 'true' : undefined}
+					/>
+					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+						{$t('admin.subscribers.import_file_hint')}
+					</p>
+				</div>
+				<button
+					type="button"
+					class="btn btn-primary"
+					onclick={submitImport}
+					disabled={importing}
+					aria-busy={importing ? 'true' : undefined}
+				>
+					{importing
+						? $t('admin.subscribers.import_button_importing')
+						: $t('admin.subscribers.import_submit')}
+				</button>
+			</div>
+
+			{#if importFileError}
+				<p class="text-sm text-red-600 dark:text-red-400">{importFileError}</p>
+			{/if}
+
+			{#if importResult}
+				<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-sm">
+					<p class="font-medium text-gray-900 dark:text-white">
+						{$t('admin.subscribers.import_result_summary', {
+							values: {
+								created: importResult.created,
+								updated: importResult.updated,
+								skipped: importResult.skipped_cap,
+								failed: importResult.failed
+							}
+						})}
+					</p>
+					{#if importResult.created_tags.length > 0}
+						<p class="mt-2 text-gray-600 dark:text-gray-300">
+							{$t('admin.subscribers.import_created_tags', {
+								values: { tags: importResult.created_tags.join(', ') }
+							})}
+						</p>
+					{/if}
+					{#if importResult.unknown_tags.length > 0}
+						<p class="mt-2 text-gray-600 dark:text-gray-300">
+							{$t('admin.subscribers.import_unknown_tags', {
+								values: { tags: importResult.unknown_tags.join(', ') }
+							})}
+						</p>
+					{/if}
+					{#if importResult.errors.length > 0}
+						<p class="mt-3 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
+							{$t('admin.subscribers.import_errors_heading', {
+								values: { count: importResult.errors.length }
+							})}
+						</p>
+						<ul class="mt-1 max-h-32 overflow-y-auto text-xs text-gray-600 dark:text-gray-300">
+							{#each importResult.errors as rowError (rowError.row)}
+								<li>
+									{$t('admin.subscribers.import_error_row', {
+										values: {
+											row: rowError.row,
+											error: rowError.error,
+											email: rowError.email
+										}
+									})}
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Stats Overview -->
 	{#if stats}
@@ -513,6 +692,8 @@
 						{#each subscribers as sub (sub.id)}
 							<tr
 								class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+								data-row-id={sub.id}
+								tabindex="-1"
 							>
 								<td class="py-3 px-4">
 									<input

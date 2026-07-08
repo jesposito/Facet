@@ -32,7 +32,9 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
 			{ hostname: 'open.spotify.com', pathPrefix: '/embed/' },
 			{ hostname: 'codepen.io', pathPrefix: '/embed/' },
 			// Figma's embed endpoint is `/embed?embed_host=...` (no trailing slash).
-			{ hostname: 'www.figma.com', pathPrefix: '/embed' }
+			{ hostname: 'www.figma.com', pathPrefix: '/embed' },
+			{ hostname: 'calendly.com', pathPrefix: '/' },
+			{ hostname: 'cal.com', pathPrefix: '/' }
 		];
 
 		let isAllowed = false;
@@ -68,6 +70,39 @@ DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
 			.join('; ');
 	}
 });
+
+const RICH_ADD_TAGS = [
+	'iframe',
+	'video',
+	'audio',
+	'figure',
+	'figcaption',
+	'picture',
+	'source'
+] as const;
+
+const RICH_ADD_ATTR = [
+	'allowfullscreen',
+	'loading',
+	'controls',
+	'target',
+	'rel',
+	'allow',
+	'title',
+	'name',
+	'poster',
+	'sandbox'
+] as const;
+
+export function sanitizeRichHtml(html: string): string {
+	if (!html) return '';
+	return DOMPurify.sanitize(html, {
+		ADD_TAGS: [...RICH_ADD_TAGS],
+		ADD_ATTR: [...RICH_ADD_ATTR],
+		ALLOW_DATA_ATTR: true,
+		ALLOW_ARIA_ATTR: true
+	});
+}
 
 function currentLocale(): string {
 	return get(locale) || 'en';
@@ -115,37 +150,13 @@ export function parseMarkdown(content: string): string {
 	// Step 2: Convert markdown to HTML
 	const html = marked.parse(withEmbeds, { async: false }) as string;
 
-	// Step 3: Sanitize HTML to prevent XSS attacks
-	// This protects against malicious content in markdown (scripts, dangerous attributes, etc.)
-	// Accessibility-driven attribute set: dropped deprecated HTML4 `frameborder`
-	// and `scrolling`; added `title`/`name` for screen-reader iframe labelling
-	// (WCAG 4.1.2) and `poster` for `<video>` preview frames.
-	return DOMPurify.sanitize(html, {
-		// Extend default safe tags with media/embed elements
-		ADD_TAGS: ['iframe', 'video', 'audio', 'figure', 'figcaption', 'picture', 'source'],
-
-		// Add attributes needed for media embeds and accessibility
-		ADD_ATTR: [
-			'allowfullscreen', // YouTube/Vimeo fullscreen capability
-			'loading',         // lazy loading for performance
-			'controls',        // video/audio playback controls
-			'target',          // open links in new tab
-			'rel',             // link security (noopener, noreferrer)
-			'allow',           // iframe permissions (encrypted-media); autoplay stripped post-sanitize
-			'title',           // accessible name for iframe (WCAG 4.1.2)
-			'name',
-			'poster'           // <video> preview frame
-		],
-
-		// Keep data-* and aria-* attributes for accessibility and functionality
-		ALLOW_DATA_ATTR: true,
-		ALLOW_ARIA_ATTR: true
-	});
+	return sanitizeRichHtml(html);
 }
 
 // Media shortcodes -> embed HTML
 // Usage: {{youtube:https://www.youtube.com/watch?v=...}}
-// Supported providers: youtube, vimeo, loom, soundcloud, spotify, codepen, figma, image, video, pdf, immich, embed
+// Supported providers: youtube, vimeo, loom, soundcloud, spotify, codepen,
+// figma, image, video, pdf, immich, embed, calendly, calcom, googlecal, booking.
 function applyShortcodes(content: string): string {
 	return content.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*:\s*([^}]+?)\s*\}\}/g, (_, rawProvider, rawUrl) => {
 		const match: EmbedMatch = {
@@ -201,9 +212,50 @@ function buildEmbed(match: EmbedMatch): string | null {
 			return `<div class="embed video"><video src="${url}" controls></video></div>`;
 		case 'pdf':
 			return `<div class="embed document"><iframe src="${url}" title="PDF document" loading="lazy"></iframe></div>`;
+		case 'calendly': {
+			const inlineUrl = toCalendlyEmbedUrl(url);
+			if (!inlineUrl) return null;
+			return `<section class="embed booking calendly" aria-label="Book a meeting via Calendly"><iframe src="${inlineUrl}" title="Calendly booking calendar" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe></section>`;
+		}
+		case 'cal':
+		case 'calcom': {
+			const embedUrl = toCalcomEmbedUrl(url);
+			if (!embedUrl) return null;
+			return `<section class="embed booking calcom" aria-label="Book a meeting via Cal.com"><iframe src="${embedUrl}" title="Cal.com booking calendar" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe></section>`;
+		}
+		case 'googlecal':
+		case 'googlecalendar':
+		case 'booking':
+			return `<div class="embed booking link"><a href="${url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Book a time <span class="sr-only">(opens in new tab)</span></a></div>`;
 		case 'embed':
 		default:
 			return `<div class="embed link"><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></div>`;
+	}
+}
+
+function toCalendlyEmbedUrl(raw: string): string | null {
+	try {
+		const u = new URL(raw);
+		if (u.protocol !== 'https:' || u.hostname !== 'calendly.com') return null;
+		if (!u.searchParams.has('embed_type')) {
+			u.searchParams.set('embed_type', 'Inline');
+		}
+		return u.toString();
+	} catch {
+		return null;
+	}
+}
+
+function toCalcomEmbedUrl(raw: string): string | null {
+	try {
+		const u = new URL(raw);
+		if (u.protocol !== 'https:' || u.hostname !== 'cal.com') return null;
+		if (!u.pathname.endsWith('/embed')) {
+			u.pathname = u.pathname.replace(/\/$/, '') + '/embed';
+		}
+		return u.toString();
+	} catch {
+		return null;
 	}
 }
 

@@ -70,7 +70,7 @@
 								{/if}
 							</div>
 							<p class="text-primary-600 dark:text-primary-400">{cert.issuer || $t('public.certifications.unknown_issuer')}</p>
-							<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+							<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
 								{#if cert.issue_date}
 									{$t('public.certifications.issued')} {formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
 								{/if}
@@ -116,7 +116,7 @@
 							</div>
 							<p class="text-sm text-gray-600 dark:text-gray-400">{cert.issuer || $t('public.certifications.unknown')}</p>
 							{#if cert.issue_date}
-								<p class="text-xs text-gray-500 dark:text-gray-300 mt-1">
+								<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">
 									{formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
 								</p>
 							{/if}
@@ -161,11 +161,11 @@
 											</span>
 										{:else if cert.issue_date}
 											<span class="text-gray-400 dark:text-gray-500"> - </span>
-											<span class="text-green-600 dark:text-green-400">{$t('public.certifications.no_expiration')}</span>
+											<span class="text-green-700 dark:text-green-300">{$t('public.certifications.no_expiration')}</span>
 										{/if}
 									</div>
 									{#if cert.credential_id}
-										<div class="mt-1 text-xs text-gray-500 dark:text-gray-300">
+										<div class="mt-1 text-xs text-gray-600 dark:text-gray-300">
 											{$t('public.certifications.credential_id')}: {cert.credential_id}
 										</div>
 									{/if}

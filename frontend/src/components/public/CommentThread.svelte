@@ -98,7 +98,7 @@
 						</span>
 					{/if}
 					<time
-						class="text-xs text-stone-500 dark:text-stone-400"
+						class="text-xs text-stone-600 dark:text-stone-300"
 						datetime={comment.created}
 					>
 						{relativeTime(comment.created)}
@@ -109,14 +109,14 @@
 					<button
 						type="button"
 						onclick={() => onStartReply(comment.id)}
-						class="text-xs text-stone-500 dark:text-stone-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+						class="text-xs text-stone-600 dark:text-stone-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
 					>
 						{$t('comments.reply')}
 					</button>
 					<button
 						type="button"
 						onclick={() => onReport(comment.id)}
-						class="text-xs text-stone-500 dark:text-stone-400 hover:text-red-500 dark:hover:text-red-400 transition-colors inline-flex items-center gap-1"
+						class="text-xs text-stone-600 dark:text-stone-300 hover:text-red-500 dark:hover:text-red-400 transition-colors inline-flex items-center gap-1"
 						aria-label={$t('comments.report')}
 					>
 						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -168,7 +168,7 @@
 										</span>
 									{/if}
 									<time
-										class="text-xs text-stone-500 dark:text-stone-400"
+										class="text-xs text-stone-600 dark:text-stone-300"
 										datetime={reply.created}
 									>
 										{relativeTime(reply.created)}
@@ -179,7 +179,7 @@
 									<button
 										type="button"
 										onclick={() => onReport(reply.id)}
-										class="text-xs text-stone-500 dark:text-stone-400 hover:text-red-500 dark:hover:text-red-400 transition-colors inline-flex items-center gap-1"
+										class="text-xs text-stone-600 dark:text-stone-300 hover:text-red-500 dark:hover:text-red-400 transition-colors inline-flex items-center gap-1"
 										aria-label={$t('comments.report')}
 									>
 										<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">

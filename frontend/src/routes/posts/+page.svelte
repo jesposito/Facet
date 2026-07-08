@@ -162,7 +162,7 @@
 							{#if post.published_at}
 								<time
 									datetime={post.published_at}
-									class="block mt-2 text-sm text-gray-500 dark:text-gray-400"
+									class="block mt-2 text-sm text-gray-600 dark:text-gray-300"
 								>
 									{formatDate(post.published_at, { month: 'long', day: 'numeric', year: 'numeric' })}
 								</time>
@@ -182,7 +182,7 @@
 										</span>
 									{/each}
 									{#if post.tags.length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-300">
+										<span class="px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300">
 											+{post.tags.length - 3}
 										</span>
 									{/if}
@@ -198,7 +198,7 @@
 				<svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
 				</svg>
-				<p class="text-gray-500 dark:text-gray-400 text-lg">
+				<p class="text-gray-600 dark:text-gray-300 text-lg">
 					{#if data.selectedTag}
 						No posts found with tag "{data.selectedTag}"
 					{:else}

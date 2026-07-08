@@ -8,7 +8,7 @@
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| Backend | Go + PocketBase | Go 1.25.0, PocketBase v0.23.4 |
+| Backend | Go + PocketBase | Go 1.25.0, PocketBase v0.37.4 |
 | Frontend | SvelteKit + Svelte | SvelteKit 2.5, Svelte 5.55 |
 | Styling | Tailwind CSS | 3.4 |
 | Build | Vite + TypeScript | Vite 7.3, TypeScript 5.5 |
@@ -654,12 +654,20 @@ audit_logs {
 | `GET /admin/settings/about` | About Facet | OAuth required |
 | `GET /admin/login` | Admin login | None |
 
+#### Frontend Operational Routes
+
+| Route | Method | Description | Auth |
+|-------|--------|-------------|------|
+| `/health` | GET | Full-stack container health check via Caddy, SvelteKit, and PocketBase | None |
+
 #### API Routes (PocketBase + Custom Hooks)
 
 | Route | Method | Description | Auth |
 |-------|--------|-------------|------|
 | `/api/collections/*` | * | PocketBase CRUD | API rules |
 | `/api/health` | GET | Health check | None |
+| `/api/version` | GET | Local build/version identity | None |
+| `/api/version-check` | GET | Latest release check proxy | None |
 | `/api/default-view` | GET | Get default view slug | None |
 | `/api/view/:slug/access` | GET | Check view access | Token/Password |
 | `/api/view/:slug/data` | GET | Get view content | Token/Password |

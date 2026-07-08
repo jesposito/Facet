@@ -662,6 +662,15 @@ afterNavigate(() => {
 								<li><code>{'{{embed:https://any-link}}'}</code></li>
 							</ul>
 						</div>
+						<div>
+							<p class="font-semibold">Booking</p>
+							<ul class="list-disc list-inside space-y-1">
+								<li><code>{'{{calendly:https://calendly.com/user/event}}'}</code></li>
+								<li><code>{'{{calcom:https://cal.com/user/event}}'}</code></li>
+								<li><code>{'{{googlecal:https://calendar.app.google/...}}'}</code></li>
+								<li><code>{'{{booking:https://example.com/book}}'}</code></li>
+							</ul>
+						</div>
 					</div>
 				</div>
 			</div>
