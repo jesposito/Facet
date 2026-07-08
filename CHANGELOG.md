@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.7 - July 08, 2026
+
+**Bugs Fixed:**
+- Backport portable Facet Cloud fixes
+
+**Pull Requests:** [#488](https://github.com/jesposito/Facet/pull/488),
+
+---
+
+
 ## v3.4.6 - July 07, 2026
 
 **Other Changes:**
