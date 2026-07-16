@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.8 - July 16, 2026
+
+**Other Changes:**
+- Update vulnerable Go dependencies and toolchain
+
+**Pull Requests:** [#489](https://github.com/jesposito/Facet/pull/489),
+
+---
+
+
 ## v3.4.7 - July 08, 2026
 
 **Bugs Fixed:**
