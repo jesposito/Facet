@@ -5,7 +5,7 @@
 # Go/Alpine patch stream without opening digest-refresh PRs for development-only
 # tooling. Production base images are digest-pinned in docker/Dockerfile.
 # supply-chain: allow-floating-base dev-only
-FROM golang:1.24-alpine
+FROM golang:1.25.12-alpine
 
 # Install dependencies
 RUN apk add --no-cache \
@@ -16,7 +16,7 @@ RUN apk add --no-cache \
     git \
     curl
 
-# Install air for Go hot reload (pinned to v1.52.3 for Go 1.24 compatibility)
+# Install air for Go hot reload (pinned for reproducible local tooling)
 RUN go install github.com/air-verse/air@v1.52.3
 
 WORKDIR /app

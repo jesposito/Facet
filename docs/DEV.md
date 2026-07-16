@@ -24,7 +24,7 @@ If credentials don't work, reset the database: `rm -rf pb_data && ./scripts/star
 
 ### Prerequisites
 
-- Go 1.25+
+- Go 1.25.12+
 - Node.js 20+
 - [Air](https://github.com/air-verse/air) for Go hot reload
 

@@ -708,7 +708,7 @@ Full security docs: [docs/SECURITY.md](docs/SECURITY.md)
 ### Local Development
 
 **Prerequisites:**
-- Go 1.25+
+- Go 1.25.12+
 - Node.js 20+
 - [Air](https://github.com/air-verse/air) for Go hot reload (install: `go install github.com/air-verse/air@v1.61.7`)
 

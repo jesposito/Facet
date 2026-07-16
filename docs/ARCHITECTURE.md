@@ -8,7 +8,7 @@
 
 | Layer | Technology | Version |
 |-------|------------|---------|
-| Backend | Go + PocketBase | Go 1.25.0, PocketBase v0.37.4 |
+| Backend | Go + PocketBase | Go 1.25.12, PocketBase v0.37.4 |
 | Frontend | SvelteKit + Svelte | SvelteKit 2.5, Svelte 5.55 |
 | Styling | Tailwind CSS | 3.4 |
 | Build | Vite + TypeScript | Vite 7.3, TypeScript 5.5 |

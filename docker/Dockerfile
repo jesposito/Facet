@@ -13,7 +13,7 @@ ARG GIT_COMMIT=unknown
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.25.11-bookworm@sha256:b96f24a8d7d010ea0acb9c3ba99064740f02b6b984612b28bd3c9c5ab9453e38 AS backend-builder
+FROM golang:1.25.12-bookworm@sha256:ea341baa9bd5ba6784f6d7161ace70544349a6242d54d34a0fbfd2c4d51c9d58 AS backend-builder
 
 ARG FACET_VERSION=dev
 ARG BUILD_DATE=unknown
