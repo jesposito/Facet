@@ -5,7 +5,7 @@ go 1.26.10
 require (
 	github.com/abadojack/whatlanggo v1.0.1
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
-	github.com/gen2brain/go-fitz v1.23.7
+	github.com/gen2brain/go-fitz v1.28.2
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/pocketbase/dbx v1.12.0
 	github.com/pocketbase/pocketbase v0.39.7
@@ -26,6 +26,7 @@ require (
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/domodwyer/mailyak/v3 v3.6.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fumiama/imgsz v0.0.2 // indirect
