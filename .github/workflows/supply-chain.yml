@@ -8,8 +8,10 @@ on:
       - 'backend/go.sum'
       - 'frontend/package.json'
       - 'frontend/package-lock.json'
+      - 'frontend/vendor/**'
       - 'docker/Dockerfile'
       - 'docker/Dockerfile.dev'
+      - 'docker/caddy/**'
       - 'scripts/check-docker-base-pins.sh'
       - '.github/workflows/supply-chain.yml'
   push:
@@ -19,8 +21,10 @@ on:
       - 'backend/go.sum'
       - 'frontend/package.json'
       - 'frontend/package-lock.json'
+      - 'frontend/vendor/**'
       - 'docker/Dockerfile'
       - 'docker/Dockerfile.dev'
+      - 'docker/caddy/**'
       - 'scripts/check-docker-base-pins.sh'
       - '.github/workflows/supply-chain.yml'
   workflow_dispatch:
@@ -47,9 +51,15 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Verify proxy module files are tidy
+        run: |
+          cd docker/caddy
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
 
       - name: Verify npm lockfile matches package manifest
         run: cd frontend && npm ci --ignore-scripts

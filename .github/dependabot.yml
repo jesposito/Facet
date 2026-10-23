@@ -1,0 +1,40 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      tiptap:
+        patterns: ['@tiptap/*', 'prosemirror-*']
+      security:
+        applies-to: security-updates
+        patterns: ['*']
+    open-pull-requests-limit: 5
+  - package-ecosystem: gomod
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      golang:
+        patterns: ['golang.org/x/*']
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: gomod
+    directory: /docker/caddy
+    schedule:
+      interval: weekly
+    groups:
+      proxy:
+        patterns: ['*']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']

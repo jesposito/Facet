@@ -1,0 +1,20 @@
+{
+  "name": "@facet/guarded-braces",
+  "version": "3.0.3-facet.1",
+  "private": true,
+  "description": "Explicit local MIT braces 3.0.3 fork with bounded parser and AST traversal",
+  "license": "MIT",
+  "main": "index.cjs",
+  "exports": {
+    ".": "./index.cjs",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "fill-range": "^7.1.1"
+  },
+  "facetUpstream": {
+    "name": "braces",
+    "version": "3.0.3",
+    "advisory": "GHSA-vfj7-8cjw-p6xm"
+  }
+}

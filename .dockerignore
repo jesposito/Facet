@@ -1,0 +1,16 @@
+.git
+.beads
+.recall
+**/.recall
+.env
+.env.*
+**/.env
+**/.env.*
+**/node_modules
+**/.svelte-kit
+**/build
+**/test-results
+**/playwright-report
+**/pb_data
+data
+uploads
