@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.10 - October 23, 2026
+
+**Bugs Fixed:**
+- Remove vulnerable runtime npm tooling and gate image publication
+
+**New Features:**
+- Scan both architecture images during PR builds and before release manifests receive public tags
+- Start the packaged runtime with fresh storage and verify frontend/backend health through Caddy
+- Ensure that node works and npm/npx are absent
+
+**Pull Requests:** [#513](https://github.com/jesposito/Facet/pull/513),
+
+---
+
+
 ## v3.4.9 - October 23, 2026
 
 **Bugs Fixed:**
