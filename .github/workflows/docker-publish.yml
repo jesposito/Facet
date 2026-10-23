@@ -142,7 +142,7 @@ jobs:
           file: docker/Dockerfile
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' || inputs.tag != '' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:build-${{ matrix.suffix }}
+          tags: ${{ (github.event_name == 'pull_request' && inputs.tag == '') && format('{0}/{1}:build-{2}', env.REGISTRY, env.IMAGE_NAME, matrix.suffix) || '' }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             FACET_VERSION=${{ steps.version.outputs.FACET_VERSION }}
