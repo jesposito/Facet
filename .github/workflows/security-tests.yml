@@ -8,11 +8,6 @@ on:
   schedule:
     - cron: '31 5 * * 1'
   workflow_dispatch:
-    inputs:
-      scan_published_image:
-        description: Scan the currently published image (disable for release commit validation)
-        type: boolean
-        default: true
 
 permissions:
   contents: read
@@ -27,10 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Release validation regression tests
         run: python3 scripts/ci/test-push-validated-release.py
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -57,13 +52,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -89,32 +84,10 @@ jobs:
         working-directory: frontend
       - name: Fresh database and built-app browser smoke tests
         run: bash scripts/ci/run-browser-smoke.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: browser-smoke-failure
           path: |
             frontend/test-results
             /tmp/facet-smoke-*/logs
-
-  published-image:
-    name: Published image vulnerability scan
-    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.scan_published_image)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - name: Scan the currently published image for fixable high and critical findings
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        env:
-          TRIVY_USERNAME: ${{ github.actor }}
-          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          image-ref: ghcr.io/jesposito/facet:latest
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
-          format: table

@@ -22,7 +22,7 @@ for attempt in 1 2 3; do
   # GITHUB_TOKEN pushes do not start workflows. Explicit dispatch does, and
   # creates real required checks on this SHA without granting a rules bypass.
   gh workflow run security-tests.yml --repo "$GITHUB_REPOSITORY" \
-    --ref "$validation_branch" -f scan_published_image=false
+    --ref "$validation_branch"
   run_id=''
   for poll in {1..30}; do
     run_id=$(gh run list --repo "$GITHUB_REPOSITORY" \

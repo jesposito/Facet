@@ -65,7 +65,7 @@ class ReleaseValidationTests(unittest.TestCase):
         self.assertLess(watch, push)
         self.assertIn("--exit-status", calls[watch])
         dispatch = next(c for c in calls if c[:3] == ["gh", "workflow", "run"])
-        self.assertIn("scan_published_image=false", dispatch)
+        self.assertIn("security-tests.yml", dispatch)
         self.assertEqual(calls[-1], ["git", "push", "origin", "--delete",
                                      "release/changelog-v1.2.3-42-1"])
 
