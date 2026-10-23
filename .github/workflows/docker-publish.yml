@@ -134,7 +134,7 @@ jobs:
             org.opencontainers.image.vendor=jesposito
             org.opencontainers.image.documentation=https://github.com/jesposito/Facet/blob/main/docs/SETUP.md
 
-      - name: Build and push by digest
+      - name: Build image
         id: build
         uses: docker/build-push-action@v7
         with:
@@ -142,14 +142,52 @@ jobs:
           file: docker/Dockerfile
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' || inputs.tag != '' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:build-${{ matrix.suffix }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             FACET_VERSION=${{ steps.version.outputs.FACET_VERSION }}
             BUILD_DATE=${{ steps.identity.outputs.build_date }}
             GIT_COMMIT=${{ steps.identity.outputs.full_sha }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' || inputs.tag != '' }}
+          # Load PR images into the runner for scanning. Release images are
+          # uploaded by digest, but receive public tags only after both scans pass.
+          outputs: ${{ (github.event_name == 'pull_request' && inputs.tag == '') && 'type=docker' || format('type=image,name={0}/{1},push-by-digest=true,name-canonical=true,push=true', env.REGISTRY, env.IMAGE_NAME) }}
           sbom: ${{ github.event_name != 'pull_request' || inputs.tag != '' }}
           provenance: ${{ (github.event_name != 'pull_request' || inputs.tag != '') && 'mode=max' || 'false' }}
+
+      - name: Scan image before publication
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ${{ (github.event_name == 'pull_request' && inputs.tag == '') && format('{0}/{1}:build-{2}', env.REGISTRY, env.IMAGE_NAME, matrix.suffix) || format('{0}/{1}@{2}', env.REGISTRY, env.IMAGE_NAME, steps.build.outputs.digest) }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Smoke test packaged runtime
+        if: github.event_name == 'pull_request' && inputs.tag == ''
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:build-${{ matrix.suffix }}
+        run: |
+          set -euo pipefail
+          container=$(docker run -d --memory=1g --cpus=2 \
+            -e ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000 \
+            "$IMAGE")
+          trap 'docker rm -fv "$container" >/dev/null' EXIT
+          docker exec "$container" sh -ec 'node --version; ! command -v npm; ! command -v npx'
+          for attempt in $(seq 1 60); do
+            if docker exec "$container" curl -fsS http://localhost:8080/health >/dev/null && \
+               docker exec "$container" curl -fsS http://localhost:8080/api/health >/dev/null; then
+              echo "Packaged frontend, backend and proxy are ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$container"
+          exit 1
 
       - name: Attest image build provenance
         if: (github.event_name != 'pull_request' || inputs.tag != '') && !github.event.repository.private
