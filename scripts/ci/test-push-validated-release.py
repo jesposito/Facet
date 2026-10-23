@@ -22,13 +22,19 @@ with (root / "calls").open("a") as log:
     log.write(json.dumps([tool, *args]) + "\n")
 scenario = os.environ["MOCK_SCENARIO"]
 revision = root / "revision"
+remote = root / "remote"
 if tool == "git":
     if args == ["rev-parse", "HEAD"]:
         print(revision.read_text() if revision.exists() else "sha-one")
+    elif args == ["rev-parse", "refs/remotes/origin/main"]:
+        print(remote.read_text() if remote.exists() else "base-0")
+    elif args == ["fetch", "origin", "main"]:
+        if scenario in ("rebase", "concurrent-updates"):
+            remote.write_text((remote.read_text() if remote.exists() else "base-0") + "-next")
     elif args == ["pull", "--rebase", "origin", "main"]:
         revision.write_text("sha-two")
     elif args == ["push", "origin", "HEAD:refs/heads/main"]:
-        if scenario == "reject" or (scenario == "rebase" and not revision.exists()):
+        if scenario in ("reject", "concurrent-updates") or (scenario == "rebase" and not revision.exists()):
             sys.exit(1)
 elif tool == "gh":
     if args[:2] == ["workflow", "run"] and scenario == "dispatch-failure":
@@ -36,6 +42,15 @@ elif tool == "gh":
     if args[:2] == ["run", "list"]:
         print("123")
     elif args[:2] == ["run", "watch"] and scenario == "failed-check":
+        sys.exit(1)
+    elif args[:2] == ["run", "view"]:
+        sha = revision.read_text() if revision.exists() else "sha-one"
+        if scenario == "wrong-sha": sha = "different-commit"
+        jobs = [{"name": name, "conclusion": "success"} for name in
+                ("Backend tests and security", "Frontend checks and smoke")]
+        if scenario == "skipped-job": jobs[0]["conclusion"] = "skipped"
+        print(json.dumps({"headSha": sha, "jobs": jobs}))
+    elif args[0] == "api" and scenario == "report-failure":
         sys.exit(1)
 '''
 
@@ -63,6 +78,12 @@ class ReleaseValidationTests(unittest.TestCase):
         watch = next(i for i, c in enumerate(calls) if c[:3] == ["gh", "run", "watch"])
         push = calls.index(["git", "push", "origin", "HEAD:refs/heads/main"])
         self.assertLess(watch, push)
+        reports = [i for i, c in enumerate(calls) if c[:2] == ["gh", "api"]]
+        self.assertEqual(len(reports), 2)
+        for report in reports:
+            self.assertLess(watch, report)
+            self.assertLess(report, push)
+            self.assertIn("repos/example/facet/statuses/sha-one", calls[report])
         self.assertIn("--exit-status", calls[watch])
         dispatch = next(c for c in calls if c[:3] == ["gh", "workflow", "run"])
         self.assertIn("security-tests.yml", dispatch)
@@ -91,9 +112,27 @@ class ReleaseValidationTests(unittest.TestCase):
         self.assertLess(watch, later.index(["git", "push", "origin", "HEAD:refs/heads/main"]))
 
     def test_repeated_push_rejection_fails_after_three_attempts(self):
-        result, calls = self.run_scenario("reject")
+        result, calls = self.run_scenario("concurrent-updates")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(calls.count(["git", "push", "origin", "HEAD:refs/heads/main"]), 3)
+
+    def test_policy_rejection_does_not_rebuild_unchanged_commit(self):
+        result, calls = self.run_scenario("reject")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(calls.count(["git", "push", "origin", "HEAD:refs/heads/main"]), 1)
+
+    def test_wrong_sha_or_skipped_job_cannot_report_success(self):
+        for scenario in ("wrong-sha", "skipped-job"):
+            with self.subTest(scenario=scenario):
+                result, calls = self.run_scenario(scenario)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(any(c[:2] == ["gh", "api"] for c in calls))
+                self.assertNotIn(["git", "push", "origin", "HEAD:refs/heads/main"], calls)
+
+    def test_failed_status_report_cannot_push_main(self):
+        result, calls = self.run_scenario("report-failure")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn(["git", "push", "origin", "HEAD:refs/heads/main"], calls)
 
 
 class OptionalChangelogTests(unittest.TestCase):
