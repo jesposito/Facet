@@ -63,6 +63,8 @@ Dependabot proposes one weekly maintenance PR spanning npm, both Go modules,
 Docker, and Actions. Security fixes are grouped within each ecosystem. Updates
 still require review and passing checks. Node and its type definitions remain
 on the supported LTS major; TypeScript 7 waits for Svelte checker support.
+Routine npm batches stay within existing major versions; framework/compiler
+major migrations are planned separately instead of opening failing update PRs.
 The weekly published-image scan also checks OS and
 bundled dependencies for fixable high/critical findings.
 

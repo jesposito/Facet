@@ -16,6 +16,9 @@ updates:
         applies-to: security-updates
         patterns: ['*']
     ignore:
+      # Framework/compiler major migrations need a planned compatibility pass.
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
       # Match the supported runtime; update this with .nvmrc and Docker.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
