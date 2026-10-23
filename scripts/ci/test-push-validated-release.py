@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import textwrap
 import unittest
 
 
@@ -64,7 +65,7 @@ class ReleaseValidationTests(unittest.TestCase):
         self.assertLess(watch, push)
         self.assertIn("--exit-status", calls[watch])
         dispatch = next(c for c in calls if c[:3] == ["gh", "workflow", "run"])
-        self.assertIn("scan_published_image=false", dispatch)
+        self.assertIn("security-tests.yml", dispatch)
         self.assertEqual(calls[-1], ["git", "push", "origin", "--delete",
                                      "release/changelog-v1.2.3-42-1"])
 
@@ -93,6 +94,39 @@ class ReleaseValidationTests(unittest.TestCase):
         result, calls = self.run_scenario("reject")
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(calls.count(["git", "push", "origin", "HEAD:refs/heads/main"]), 3)
+
+
+class OptionalChangelogTests(unittest.TestCase):
+    def test_optional_services_cannot_abort_release(self):
+        workflow = SCRIPT.parents[2] / ".github/workflows/auto-tag.yml"
+        source = workflow.read_text().split("          # Try GitHub Models (Copilot) first", 1)[1]
+        source = source.split("          # Process AI response if successful", 1)[0]
+        source = textwrap.dedent(source.split("\n", 1)[1])
+        for scenario in ("dns", "timeout", "html", "bad-json", "wrong-shape", "valid", "openai-fallback"):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as directory:
+                mock = Path(directory) / "curl"
+                mock.write_text('''#!/usr/bin/env python3
+import json, os, sys
+scenario = os.environ["MOCK_SCENARIO"]
+if scenario == "dns": sys.exit(6)
+if scenario == "timeout": sys.exit(28)
+if scenario == "html": print("<html>Bad gateway</html>"); sys.exit(0)
+if scenario == "openai-fallback" and any("azure.com" in x for x in sys.argv): sys.exit(6)
+content = json.dumps([{"number": 490, "category": "BUG", "description": "Dependency fixes"}])
+if scenario == "bad-json": content = "not json"
+if scenario == "wrong-shape": content = '{"error":"not a list"}'
+print(json.dumps({"choices":[{"message":{"content": content}}]}))
+''')
+                mock.chmod(0o755)
+                env = dict(os.environ, PATH=f"{directory}:{os.environ['PATH']}",
+                           MOCK_SCENARIO=scenario, GH_TOKEN="fixture-token",
+                           OPENAI_API_KEY="fixture-token", PROMPT="fixture-prompt")
+                script = 'AI_SUCCESS=false\nAI_SOURCE=""\n' + source + '\nprintf "RESULT=%s\\n" "$AI_SUCCESS"\n'
+                result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", script],
+                                        env=env, capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                expected = "true" if scenario in ("valid", "openai-fallback") else "false"
+                self.assertIn(f"RESULT={expected}", result.stdout)
 
 
 if __name__ == "__main__":

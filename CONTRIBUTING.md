@@ -10,7 +10,7 @@ Thanks for your interest in contributing! This document covers how to get starte
 
 ```bash
 # Install prerequisites
-# - Go 1.26.10+
+# - Go 1.27.3+
 # - Node.js 24 LTS
 # - Air (go install github.com/air-verse/air@v1.61.7)
 
@@ -59,8 +59,11 @@ release images.
 
 The `Security and tests` workflow runs backend tests, reachable Go vulnerability
 analysis, npm audit, Svelte checks, and browser smoke tests on each PR and weekly.
-Dependabot proposes npm, Go, Docker, and Actions updates; updates still require
-review and passing checks. The weekly published-image scan also checks OS and
+Dependabot proposes one weekly maintenance PR spanning npm, both Go modules,
+Docker, and Actions. Security fixes are grouped within each ecosystem. Updates
+still require review and passing checks. Node and its type definitions remain
+on the supported LTS major; TypeScript 7 waits for Svelte checker support.
+The weekly published-image scan also checks OS and
 bundled dependencies for fixable high/critical findings.
 
 Main requires the backend security and frontend smoke checks. The release bot

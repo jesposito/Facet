@@ -1,40 +1,44 @@
 version: 2
+
+# One routine dependency PR across the app, proxy, images, and CI.
+multi-ecosystem-groups:
+  maintenance:
+    schedule:
+      interval: weekly
+
 updates:
   - package-ecosystem: npm
     directory: /frontend
-    schedule:
-      interval: weekly
+    patterns: ['*']
+    multi-ecosystem-group: maintenance
     groups:
-      tiptap:
-        patterns: ['@tiptap/*', 'prosemirror-*']
       security:
         applies-to: security-updates
         patterns: ['*']
-    open-pull-requests-limit: 5
+    ignore:
+      # Match the supported runtime; update this with .nvmrc and Docker.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # svelte-check 4 does not support the TypeScript 7 compiler API.
+      - dependency-name: typescript
+        versions: ['>=7']
   - package-ecosystem: gomod
-    directory: /backend
-    schedule:
-      interval: weekly
+    directories: [/backend, /docker/caddy]
+    patterns: ['*']
+    multi-ecosystem-group: maintenance
     groups:
-      golang:
-        patterns: ['golang.org/x/*']
-    open-pull-requests-limit: 5
+      security:
+        applies-to: security-updates
+        patterns: ['*']
   - package-ecosystem: docker
     directory: /docker
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-  - package-ecosystem: gomod
-    directory: /docker/caddy
-    schedule:
-      interval: weekly
-    groups:
-      proxy:
-        patterns: ['*']
+    patterns: ['*']
+    multi-ecosystem-group: maintenance
+    ignore:
+      # Stay on Node 24 LTS; runtime major upgrades are deliberate.
+      - dependency-name: node
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
-    schedule:
-      interval: weekly
-    groups:
-      actions:
-        patterns: ['*']
+    patterns: ['*']
+    multi-ecosystem-group: maintenance
