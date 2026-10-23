@@ -10,8 +10,8 @@ Thanks for your interest in contributing! This document covers how to get starte
 
 ```bash
 # Install prerequisites
-# - Go 1.25.12+
-# - Node.js 20+
+# - Go 1.26.10+
+# - Node.js 24 LTS
 # - Air (go install github.com/air-verse/air@v1.61.7)
 
 # Start development
@@ -56,6 +56,26 @@ bash scripts/check-docker-base-pins.sh
 `docker/Dockerfile.dev` is development-only and may use the explicit
 `supply-chain: allow-floating-base` marker. Do not add that marker to published
 release images.
+
+The `Security and tests` workflow runs backend tests, reachable Go vulnerability
+analysis, npm audit, Svelte checks, and browser smoke tests on each PR and weekly.
+Dependabot proposes npm, Go, Docker, and Actions updates; updates still require
+review and passing checks. The weekly published-image scan also checks OS and
+bundled dependencies for fixable high/critical findings.
+
+`frontend/vendor/guarded-braces` is an explicit MIT-licensed fork of braces 3.0.3
+carried from Facet Cloud because GHSA-vfj7-8cjw-p6xm has no upstream fix. It limits
+parser nesting, AST traversal, and expansion work without changing normal glob
+behavior. Provenance and patch hashes are recorded alongside the source; run
+`npm run test:dependencies` in `frontend` after any dependency refresh. Remove
+the fork when the upstream dependency chain supplies an equivalent fix.
+The `postcss-selector-parser` override upgrades Tailwind 3's pinned parser to the
+patched 7.x line; the production build and glob tests cover compatibility.
+
+The release proxy is built from `docker/caddy` with the release Go toolchain,
+instead of using the distro's precompiled Caddy. Keep both Go module directives
+and the Docker Go image in sync when patching the toolchain. That module also
+pins the patched `x/net` dependency and is included in vulnerability checks.
 
 ### Testing
 

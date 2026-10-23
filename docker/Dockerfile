@@ -13,7 +13,7 @@ ARG GIT_COMMIT=unknown
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.25.12-bookworm@sha256:ea341baa9bd5ba6784f6d7161ace70544349a6242d54d34a0fbfd2c4d51c9d58 AS backend-builder
+FROM golang:1.26.10-bookworm@sha256:632dff7351799a5a9954a48dc06670ade72ee44e8c351cdc0e5a57af2fea21af AS backend-builder
 
 ARG FACET_VERSION=dev
 ARG BUILD_DATE=unknown
@@ -36,12 +36,13 @@ RUN CGO_ENABLED=1 GOOS=linux go build \
 # ============================================
 # Stage 2: Build SvelteKit frontend
 # ============================================
-FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS frontend-builder
+FROM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS frontend-builder
 
 ARG FACET_VERSION=dev
 
 WORKDIR /build
 COPY frontend/package*.json ./
+COPY frontend/vendor ./vendor
 RUN npm ci
 
 COPY frontend/ ./
@@ -50,16 +51,24 @@ ENV NODE_ENV=production
 ENV FACET_VERSION=${FACET_VERSION}
 RUN npm run build
 
+# Build the proxy from pinned modules with the patched Go toolchain. The distro
+# Caddy package otherwise retains the old Go runtime embedded in its binary.
+FROM golang:1.26.10-bookworm@sha256:632dff7351799a5a9954a48dc06670ade72ee44e8c351cdc0e5a57af2fea21af AS caddy-builder
+WORKDIR /caddy-build
+COPY docker/caddy/go.mod docker/caddy/go.sum ./
+RUN go mod download
+COPY docker/caddy/main.go ./
+RUN CGO_ENABLED=0 go build -trimpath -o /caddy .
+
 # ============================================
 # Stage 3: Final runtime image
 # ============================================
-FROM debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df
+FROM debian:bookworm-slim@sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     tzdata \
     curl \
-    caddy \
     pandoc \
     texlive-latex-base \
     texlive-latex-extra \
@@ -74,17 +83,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && groupadd -g 1000 facet \
     && useradd -u 1000 -g facet -s /bin/bash -m facet
 
-# Install Node.js 20 from NodeSource using an explicit signed apt repo.
+# Install Node.js 24 from NodeSource using an explicit signed apt repo.
 RUN set -eux; \
     mkdir -p /etc/apt/keyrings; \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /etc/apt/keyrings/nodesource.asc; \
     echo "b42e0321dabdc24e892115da705cf061167eac12a317f23d329862d0aa0a271d  /etc/apt/keyrings/nodesource.asc" | sha256sum -c -; \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list; \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list; \
     apt-get update; \
     apt-get install -y nodejs; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+COPY --from=caddy-builder /caddy /usr/bin/caddy
 
 # Copy backend binary
 COPY --from=backend-builder /facet ./facet

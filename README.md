@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Docker image](https://img.shields.io/badge/docker-ghcr.io%2Fjesposito%2Ffacet-2496ED?logo=docker&logoColor=white)](https://github.com/jesposito/Facet/pkgs/container/facet)
 [![Build](https://img.shields.io/github/actions/workflow/status/jesposito/Facet/docker-publish.yml?branch=main&label=build)](https://github.com/jesposito/Facet/actions)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![Svelte 5](https://img.shields.io/badge/Svelte-5.x-FF3E00?logo=svelte&logoColor=white)](https://svelte.dev)
 [![Self-hosted](https://img.shields.io/badge/self--hosted-friendly-2ea44f?logo=docker&logoColor=white)](docs/SELF-HOSTING-GUIDE.md)
 [![Stars](https://img.shields.io/github/stars/jesposito/Facet?style=social)](https://github.com/jesposito/Facet/stargazers)
@@ -193,7 +193,7 @@ Each view can show/hide sections, include/exclude specific items, override your 
 ### 3. **Developers** (Contributing to Facet or customizing it)
 
 The codebase is:
-- **Backend**: Go 1.25 with PocketBase (a lightweight backend framework)
+- **Backend**: Go 1.26 with PocketBase (a lightweight backend framework)
 - **Frontend**: SvelteKit 2.0 with TypeScript and Tailwind CSS
 - **Database**: SQLite (embedded, single file)
 - **Deployment**: Docker with Caddy reverse proxy
@@ -553,7 +553,7 @@ Search engines can index your public content. Unlisted and private stuff stays h
 ## Tech Stack (For Developers)
 
 **Backend:**
-- **Go 1.25** (backend language)
+- **Go 1.26** (backend language)
 - **PocketBase v0.23.4** (lightweight backend framework built on SQLite and Fiber)
 - **SQLite** (embedded database, single file)
 - **AES-256-GCM** (encryption for API keys and tokens)
@@ -708,8 +708,8 @@ Full security docs: [docs/SECURITY.md](docs/SECURITY.md)
 ### Local Development
 
 **Prerequisites:**
-- Go 1.25.12+
-- Node.js 20+
+- Go 1.26.10+
+- Node.js 24 LTS
 - [Air](https://github.com/air-verse/air) for Go hot reload (install: `go install github.com/air-verse/air@v1.61.7`)
 
 **Start everything:**
