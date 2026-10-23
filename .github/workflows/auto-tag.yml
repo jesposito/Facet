@@ -228,12 +228,12 @@ jobs:
               "messages": [{"role": "user", "content": $prompt}],
               "temperature": 0.3,
               "max_tokens": 2000
-            }')" 2>/dev/null)
+            }')" 2>/dev/null || true)
 
-          GH_CONTENT=$(echo "$GH_MODELS_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+          GH_CONTENT=$(echo "$GH_MODELS_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || true)
 
           if [ -n "$GH_CONTENT" ] && [ "$GH_CONTENT" != "null" ]; then
-            AI_JSON=$(echo "$GH_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
+            AI_JSON=$(echo "$GH_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq -ce 'select(type == "array" and length > 0) | select(all(.[]; type == "object" and (.number | type == "number") and (.category | type == "string") and (.description | type == "string")))' 2>/dev/null || true)
             if [ -n "$AI_JSON" ]; then
               echo "GitHub Models (Copilot) categorization successful"
               AI_SUCCESS=true
@@ -252,12 +252,12 @@ jobs:
                 "messages": [{"role": "user", "content": $prompt}],
                 "temperature": 0.3,
                 "max_tokens": 2000
-              }')" 2>/dev/null)
+              }')" 2>/dev/null || true)
 
-            AI_CONTENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+            AI_CONTENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || true)
 
             if [ -n "$AI_CONTENT" ]; then
-              AI_JSON=$(echo "$AI_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq '.' 2>/dev/null)
+              AI_JSON=$(echo "$AI_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq -ce 'select(type == "array" and length > 0) | select(all(.[]; type == "object" and (.number | type == "number") and (.category | type == "string") and (.description | type == "string")))' 2>/dev/null || true)
               if [ -n "$AI_JSON" ]; then
                 echo "OpenAI categorization successful"
                 AI_SUCCESS=true
