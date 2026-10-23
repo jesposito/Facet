@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.9 - October 23, 2026
+
+**Bugs Fixed:**
+- Patch self-hosted dependencies and restore security checks
+- Batch dependency maintenance and unblock the security release
+- Report verified release checks and stop redundant retries
+
+**Pull Requests:** [#490](https://github.com/jesposito/Facet/pull/490),[#501](https://github.com/jesposito/Facet/pull/501),[#511](https://github.com/jesposito/Facet/pull/511),
+
+---
+
+
 ## v3.4.8 - July 16, 2026
 
 **Other Changes:**
