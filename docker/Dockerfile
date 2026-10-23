@@ -83,6 +83,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && useradd -u 1000 -g facet -s /bin/bash -m facet
 
 # Install Node.js 24 from NodeSource using an explicit signed apt repo.
+# Facet runs the built server with node; omit npm/npx and their bundled
+# dependencies from the shipped runtime.
 RUN set -eux; \
     mkdir -p /etc/apt/keyrings; \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key -o /etc/apt/keyrings/nodesource.asc; \
@@ -90,6 +92,10 @@ RUN set -eux; \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.asc] https://deb.nodesource.com/node_24.x nodistro main" > /etc/apt/sources.list.d/nodesource.list; \
     apt-get update; \
     apt-get install -y nodejs; \
+    rm -rf /usr/lib/node_modules/npm; \
+    rm -f /usr/bin/npm /usr/bin/npx; \
+    node --version; \
+    test ! -e /usr/lib/node_modules/npm; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
