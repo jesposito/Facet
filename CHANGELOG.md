@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.4.11 - October 23, 2026
+
+**Bugs Fixed:**
+- Fix ARM release scan failure by selecting the target architecture for registry image scans
+
+**Pull Requests:** [#514](https://github.com/jesposito/Facet/pull/514),
+
+---
+
+
 ## v3.4.10 - October 23, 2026
 
 **Bugs Fixed:**
