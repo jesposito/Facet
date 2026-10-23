@@ -12,7 +12,7 @@ require (
 	github.com/pquerna/otp v1.5.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stripe/stripe-go/v82 v82.5.1
-	github.com/yuin/goldmark v1.8.2
+	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.57.0
 	golang.org/x/image v0.45.0
 	golang.org/x/time v0.8.0
