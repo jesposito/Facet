@@ -157,6 +157,7 @@ jobs:
       - name: Scan image before publication
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         env:
+          TRIVY_PLATFORM: ${{ matrix.platform }}
           TRIVY_USERNAME: ${{ github.actor }}
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
