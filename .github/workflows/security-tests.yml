@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '31 5 * * 1'
   workflow_dispatch:
+    inputs:
+      scan_published_image:
+        description: Scan the currently published image (disable for release commit validation)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -23,6 +28,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Release validation regression tests
+        run: python3 scripts/ci/test-push-validated-release.py
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
@@ -82,7 +89,7 @@ jobs:
 
   published-image:
     name: Published image vulnerability scan
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.scan_published_image)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
