@@ -29,12 +29,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
-      - name: Install PDF build dependency
-        timeout-minutes: 5
-        run: |
-          apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
-          sudo apt-get "${apt_options[@]}" update
-          sudo apt-get "${apt_options[@]}" install -y libmupdf-dev
+      # go-fitz links its bundled MuPDF archive; no distro MuPDF install is needed.
       - name: Backend regression tests
         working-directory: backend
         run: go test ./...
@@ -62,12 +57,7 @@ jobs:
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
-      - name: Install PDF build dependency
-        timeout-minutes: 5
-        run: |
-          apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
-          sudo apt-get "${apt_options[@]}" update
-          sudo apt-get "${apt_options[@]}" install -y libmupdf-dev
+      # go-fitz links its bundled MuPDF archive; no distro MuPDF install is needed.
       - run: npm ci
         working-directory: frontend
       - name: Dependency audit and local mitigation regression tests

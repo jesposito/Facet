@@ -22,7 +22,6 @@ ARG GIT_COMMIT=unknown
 WORKDIR /build
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    libmupdf-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
