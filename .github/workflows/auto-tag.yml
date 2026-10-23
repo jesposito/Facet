@@ -38,6 +38,7 @@ jobs:
     # Only run if PR was merged (not just closed)
     if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     
     permissions:
       contents: write
@@ -47,6 +48,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0  # Need full history for tags
           fetch-tags: true
 
@@ -427,21 +429,7 @@ jobs:
             echo "No changelog changes to commit"
           else
             git commit -m "docs: update CHANGELOG for $NEW_TAG"
-            # Resilient push: if another run pushed main between our checkout and
-            # now, rebase onto it and retry. concurrency:group serializes runs so
-            # this should rarely fire, but it guards against any stray push.
-            for attempt in 1 2 3; do
-              if git push origin main; then
-                echo "Pushed CHANGELOG on attempt $attempt"
-                break
-              fi
-              if [ "$attempt" -eq 3 ]; then
-                echo "::error::Failed to push CHANGELOG after 3 attempts"
-                exit 1
-              fi
-              echo "Push rejected, rebasing onto latest main (attempt $attempt)..."
-              git pull --rebase origin main
-            done
+            bash scripts/ci/push-validated-release.sh "$NEW_TAG"
             echo "## Changelog Updated" >> $GITHUB_STEP_SUMMARY
             if [ "$AI_SUCCESS" = true ]; then
               echo "Generated with AI assistance" >> $GITHUB_STEP_SUMMARY
@@ -461,10 +449,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Pull latest main to include the changelog commit
-          git pull origin main
-
-          # Create annotated tag with PR info (on the changelog commit)
+          # Tag the exact validated changelog commit, even if another PR has
+          # reached main since it was pushed.
           if [ "$EVENT_NAME" == "workflow_dispatch" ]; then
             git tag -a "$NEW_TAG" -m "Release $NEW_TAG (manual trigger)"
           else
