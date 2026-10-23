@@ -63,13 +63,19 @@ Dependabot proposes one weekly maintenance PR spanning npm, both Go modules,
 Docker, and Actions. Security fixes are grouped within each ecosystem. Updates
 still require review and passing checks. Node and its type definitions remain
 on the supported LTS major; TypeScript 7 waits for Svelte checker support.
+Routine npm batches stay within existing major versions; framework/compiler
+major migrations are planned separately instead of opening failing update PRs.
 The weekly published-image scan also checks OS and
 bundled dependencies for fixable high/critical findings.
 
 Main requires the backend security and frontend smoke checks. The release bot
 validates its generated changelog commit on a temporary branch before pushing
 that same commit to main and tagging it. If a concurrent merge requires a
-rebase, validation runs again. These checks do not need a bot bypass; the old
+rebase, validation runs again. Because dispatch check runs do not satisfy the
+protected push, the bot verifies both job results and the exact commit SHA,
+then reports those successful results through GitHub's commit-status API.
+A rejected push retries only when main has actually moved. These checks do not
+need a bot bypass; the old
 published image is excluded from this pre-release check and scanned separately.
 
 `frontend/vendor/guarded-braces` is an explicit MIT-licensed fork of braces 3.0.3
