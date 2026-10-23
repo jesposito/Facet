@@ -54,7 +54,7 @@
     "@tiptap/markdown": "^3.32.0",
     "@tiptap/pm": "^3.32.0",
     "@tiptap/starter-kit": "^3.32.0",
-    "isomorphic-dompurify": "^2.35.0",
+    "isomorphic-dompurify": "^4.6.0",
     "marked": "^11.0.0",
     "pocketbase": "^0.21.0",
     "qrcode": "^1.5.4",
