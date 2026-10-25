@@ -9,7 +9,7 @@ Editable `.drawio` files (draw.io / diagrams.net / VS Code "Draw.io Integration"
 
 ## Tooling
 
-Generated with the [`drawio-skill`](https://github.com/Agents365-ai/drawio-skill) Claude Code skill (installed at `~/.claude/skills/drawio-skill`). Host deps: `graphviz`, `drawio` desktop CLI + `xvfb` for headless export.
+Diagrams are authored in draw.io. Host deps for headless export: `graphviz`, `drawio` desktop CLI + `xvfb`.
 
 ## Edit
 
@@ -17,7 +17,6 @@ Open the `.drawio` in draw.io or the VS Code extension. After editing, re-valida
 
 ```bash
 F=facet-architecture   # diagram name, no extension
-python3 ~/.claude/skills/drawio-skill/scripts/validate.py "$F.drawio"
 xvfb-run -a drawio -x -f png --scale 2 -o "$F.png" "$F.drawio" --no-sandbox
 ```
 

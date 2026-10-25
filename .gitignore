@@ -128,3 +128,14 @@ unraid-docker-templates/
 .dolt/
 *.db
 .beads-credential-key
+
+# Local assistant/tooling files (never committed)
+CLAUDE.md
+AGENTS.md
+.recall/
+.claude_settings.json
+.auto-claude-*
+.codex/
+.kimi/
+.gemini/
+.aider*

@@ -63,7 +63,7 @@ All notable changes to Facet will be documented in this file.
 ## v3.4.6 - July 07, 2026
 
 **Other Changes:**
-- [codex] localize formatted month names
+- localize formatted month names
 
 **Pull Requests:** [#487](https://github.com/jesposito/Facet/pull/487),
 
@@ -73,7 +73,7 @@ All notable changes to Facet will be documented in this file.
 ## v3.4.5 - July 07, 2026
 
 **Bugs Fixed:**
-- [codex] fix Ollama model sync
+- fix Ollama model sync
 
 **Pull Requests:** [#486](https://github.com/jesposito/Facet/pull/486),
 
@@ -93,7 +93,7 @@ All notable changes to Facet will be documented in this file.
 ## v3.4.3 - July 06, 2026
 
 **Other Changes:**
-- [codex] restore theme controls
+- restore theme controls
 
 **Pull Requests:** [#484](https://github.com/jesposito/Facet/pull/484),
 
@@ -103,7 +103,7 @@ All notable changes to Facet will be documented in this file.
 ## v3.4.2 - July 04, 2026
 
 **Bugs Fixed:**
-- [codex] Preserve AI writing language and fix security alerts
+- Preserve AI writing language and fix security alerts
 
 **Pull Requests:** [#483](https://github.com/jesposito/Facet/pull/483),
 

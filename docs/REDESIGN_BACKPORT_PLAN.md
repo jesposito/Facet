@@ -49,8 +49,6 @@ This file IS the session-persistent state. Any session resuming this work MUST:
 - **Accent caveat:** `--color-primary-*` is inline on `<html>` (beats attribute selectors) → Soft Premium's accent default must change **through the accent pipeline** (different default palette when `design=soft-premium` and no operator accent), NOT a CSS override. Surface/radius/shadow/font tokens (not accent-owned) switch safely via the attribute.
 - **Admin UI:** toggle wired to site-settings PUT (`/api/site-settings`), in `routes/admin/settings/site/`. Strings → all 5 locales.
 
-Execution layer / approved plan: `~/.claude/plans/ethereal-scribbling-dove.md`.
-
 ---
 
 ## 2. Zero-Regression Doctrine (READ FIRST)
