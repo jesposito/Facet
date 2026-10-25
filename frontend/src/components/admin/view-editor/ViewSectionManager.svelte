@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { preventDefault, createBubbler, stopPropagation, self } from 'svelte/legacy';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { icon } from '$lib/icons';

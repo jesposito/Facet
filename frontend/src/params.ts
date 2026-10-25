@@ -1,3 +1,5 @@
+import { defineParams } from '@sveltejs/kit/params';
+
 /**
  * Param matcher for view slugs
  *
@@ -14,12 +16,9 @@
  * - favicon.ico, robots.txt: Standard web files
  * - health: Health check endpoint
  */
-
-import type { ParamMatcher } from '@sveltejs/kit';
-
 // Reserved slugs that cannot be used for views
 // These correspond to existing routes or system paths
-const RESERVED_SLUGS = new Set([
+export const RESERVED_SLUGS = new Set([
 	// Existing routes
 	'admin',
 	'api',
@@ -62,7 +61,7 @@ const RESERVED_SLUGS = new Set([
 	'facets'
 ]);
 
-export const match: ParamMatcher = (param) => {
+export const matchSlug = (param: string) => {
 	// Must be a non-empty string
 	if (!param || typeof param !== 'string') {
 		return false;
@@ -76,6 +75,7 @@ export const match: ParamMatcher = (param) => {
 	// Must be a valid slug format (alphanumeric, hyphens, underscores)
 	// Prevents paths like "../" or weird characters
 	const slugPattern = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+
 	if (!slugPattern.test(param)) {
 		return false;
 	}
@@ -93,5 +93,6 @@ export const match: ParamMatcher = (param) => {
 	return true;
 };
 
-// Export for backend validation sync
-export { RESERVED_SLUGS };
+export const params = defineParams({
+	slug: (param) => (matchSlug(param) ? param : undefined)
+});

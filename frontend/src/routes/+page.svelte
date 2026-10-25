@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
-	import { navigating, page } from '$app/stores';
+	import { browser } from '$app/env';
+	import { navigating, page } from '$app/state';
 	import { t } from 'svelte-i18n';
 	import { brandName, isDemoMode } from '$lib/stores/plan';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
@@ -28,19 +28,42 @@
 	import { createAIResumeController } from '$lib/ai-resume/controller.svelte';
 	import { ACCENT_COLORS, type AccentColor, applyPaletteToRoot } from '$lib/colors';
 	import { getFontPack, DEFAULT_FONT_PACK } from '$lib/fonts';
-	import { currentUser, performLogout, getSectionLayout as getDefaultSectionLayout } from '$lib/pocketbase';
-	import { generatePersonJsonLd, generateWebSiteJsonLd, serializeJsonLd, getCanonicalUrl, generateOpenGraphTags, type OpenGraphData } from '$lib/seo';
+	import {
+		currentUser,
+		performLogout,
+		getSectionLayout as getDefaultSectionLayout
+	} from '$lib/pocketbase';
+	import {
+		generatePersonJsonLd,
+		generateWebSiteJsonLd,
+		serializeJsonLd,
+		getCanonicalUrl,
+		generateOpenGraphTags,
+		type OpenGraphData
+	} from '$lib/seo';
 	import { goto } from '$app/navigation';
 
 	// Track navigation to prevent showing WelcomePage during transitions
-	let isNavigating = $derived($navigating !== null);
+	let isNavigating = $derived(navigating.to !== null);
 
 	// Track whether data has been loaded at least once to prevent WelcomePage flash.
 	// During SPA navigation, $navigating becomes null BEFORE new data propagates,
 	// causing a brief frame where !data.profile && !isNavigating is true.
 	let hasHydratedData = $state(false);
 
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'courses', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = [
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'courses',
+		'testimonials',
+		'contacts'
+	];
 
 	interface Props {
 		data: PageData;
@@ -62,46 +85,70 @@
 
 	// Generate JSON-LD and Open Graph for SEO
 	// Use APP_URL from server for correct https:// canonical URLs behind reverse proxy
-	let baseUrl = $derived($page.data.appUrl || $page.url.origin);
-	let personJsonLd = $derived(data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null);
-	let websiteJsonLd = $derived(data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null);
+	let baseUrl = $derived(page.data.appUrl || page.url.origin);
+
+	let personJsonLd = $derived(
+		data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, baseUrl)) : null
+	);
+
+	let websiteJsonLd = $derived(
+		data.profile ? serializeJsonLd(generateWebSiteJsonLd(data.profile, baseUrl)) : null
+	);
+
 	let canonicalUrl = $derived(getCanonicalUrl(baseUrl, ''));
-	let ogTags = $derived(data.profile ? generateOpenGraphTags({
-		title: data.profile.name || 'Profile',
-		description: headline || 'Personal profile and portfolio',
-		image: data.profile.avatar_url || undefined,
-		url: canonicalUrl,
-		type: 'profile',
-		siteName: 'Facet'
-	}) : {});
+	let ogTags = $derived(
+		data.profile
+			? generateOpenGraphTags({
+					title: data.profile.name || 'Profile',
+					description: headline || 'Personal profile and portfolio',
+					image: data.profile.avatar_url || undefined,
+					url: canonicalUrl,
+					type: 'profile',
+					siteName: 'Facet'
+				})
+			: {}
+	);
 
 	// Section ordering - use view's custom order if available, then homepage order
 	// Ensure any sections with data that aren't in the saved order get appended
 	let effectiveSectionOrder = $derived.by(() => {
-		const baseOrder = (data.sectionOrder && data.sectionOrder.length > 0)
-			? data.sectionOrder
-			: (data.homepageSectionOrder && data.homepageSectionOrder.length > 0)
-				? data.homepageSectionOrder
-				: DEFAULT_SECTION_ORDER;
+		const baseOrder =
+			data.sectionOrder && data.sectionOrder.length > 0
+				? data.sectionOrder
+				: data.homepageSectionOrder && data.homepageSectionOrder.length > 0
+					? data.homepageSectionOrder
+					: DEFAULT_SECTION_ORDER;
 
 		// If using a saved order, append any default sections with data that are missing
 		if (baseOrder !== DEFAULT_SECTION_ORDER) {
-			const missingWithData = DEFAULT_SECTION_ORDER.filter(section => {
+			const missingWithData = DEFAULT_SECTION_ORDER.filter((section) => {
 				if (baseOrder.includes(section)) return false;
 				// Check if this section has data
 				switch (section) {
-					case 'experience': return data.experience?.length > 0;
-					case 'projects': return data.projects?.length > 0;
-					case 'education': return data.education?.length > 0;
-					case 'certifications': return data.certifications?.length > 0;
-					case 'awards': return data.awards?.length > 0;
-					case 'skills': return data.skills?.length > 0;
-					case 'posts': return data.posts?.length > 0;
-					case 'talks': return data.talks?.length > 0;
-					case 'courses': return data.courses?.length > 0;
-					case 'testimonials': return data.testimonials?.length > 0;
-					case 'contacts': return data.contacts?.length > 0;
-					default: return false;
+					case 'experience':
+						return data.experience?.length > 0;
+					case 'projects':
+						return data.projects?.length > 0;
+					case 'education':
+						return data.education?.length > 0;
+					case 'certifications':
+						return data.certifications?.length > 0;
+					case 'awards':
+						return data.awards?.length > 0;
+					case 'skills':
+						return data.skills?.length > 0;
+					case 'posts':
+						return data.posts?.length > 0;
+					case 'talks':
+						return data.talks?.length > 0;
+					case 'courses':
+						return data.courses?.length > 0;
+					case 'testimonials':
+						return data.testimonials?.length > 0;
+					case 'contacts':
+						return data.contacts?.length > 0;
+					default:
+						return false;
 				}
 			});
 			if (missingWithData.length > 0) {
@@ -143,9 +190,14 @@
 			alt_text?: string;
 		}>;
 	};
-	let customContentMap = $derived(new Map<string, CustomContentItem>(
-		(data.customContent || []).map((item: Record<string, unknown>) => [item.id as string, item as unknown as CustomContentItem])
-	));
+	let customContentMap = $derived(
+		new Map<string, CustomContentItem>(
+			(data.customContent || []).map((item: Record<string, unknown>) => [
+				item.id as string,
+				item as unknown as CustomContentItem
+			])
+		)
+	);
 
 	function getSectionLayout(sectionKey: string): string {
 		// First check view layouts, then homepage sections
@@ -220,9 +272,12 @@
 
 	function getWidthClass(width: string): string {
 		switch (width) {
-			case 'half': return 'section-half';
-			case 'third': return 'section-third';
-			default: return 'section-full';
+			case 'half':
+				return 'section-half';
+			case 'third':
+				return 'section-third';
+			default:
+				return 'section-full';
 		}
 	}
 
@@ -346,6 +401,7 @@
 	}
 </script>
 
+
 <svelte:head>
 	<title>{data.profile?.name || 'Profile'} | {$brandName}</title>
 	<meta name="description" content={headline || 'Personal profile and portfolio'} />
@@ -355,7 +411,7 @@
 
 	<!-- Open Graph and Twitter Card meta tags -->
 	{#each Object.entries(ogTags) as [property, content]}
-		<meta property={property} content={content} />
+		<meta {property} {content} />
 	{/each}
 
 	<!-- JSON-LD Structured Data -->
@@ -369,13 +425,21 @@
 
 {#if data.homepageDisabled}
 	<!-- Profile exists but homepage is disabled - show landing message -->
+
 	<div class="min-h-screen bg-stone-50 dark:bg-stone-900 flex items-center justify-center px-4">
-		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
-			<ThemeToggle />
-		</div>
-		<div class="max-w-2xl w-full bg-white dark:bg-stone-800 rounded-2xl shadow-lg border border-stone-200 dark:border-stone-700 p-8 text-center space-y-4">
-			<h1 class="text-2xl font-semibold text-stone-900 dark:text-white">{$t('public.homepage.profile_private')}</h1>
-			<p class="text-stone-600 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">{landingMessage}</p>
+		<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden"><ThemeToggle /></div>
+
+		<div
+			class="max-w-2xl w-full bg-white dark:bg-stone-800 rounded-2xl shadow-lg border border-stone-200 dark:border-stone-700 p-8 text-center space-y-4"
+		>
+			<h1 class="text-2xl font-semibold text-stone-900 dark:text-white">
+				{$t('public.homepage.profile_private')}
+			</h1>
+
+			<p class="text-stone-600 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">
+				{landingMessage}
+			</p>
+
 			<p class="text-sm text-stone-600 dark:text-stone-300">
 				{$t('public.homepage.views_accessible')}
 			</p>
@@ -385,108 +449,138 @@
 	<!-- First-time visitor: no profile exists yet (don't show during navigation transitions or after data was already loaded) -->
 	<WelcomePage />
 {:else}
-<div class="min-h-screen">
-	<div
-		class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
-		class:opacity-0={navPinned}
-		class:pointer-events-none={navPinned}
-		inert={navPinned}
-	>
-		<!-- Print Menu -->
-		<div class="relative">
-			<button
-				bind:this={printMenuTriggerEl}
-				onclick={() => showPrintMenu = !showPrintMenu}
-				class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-				title={$t('public.homepage.print_options')}
-				aria-label={$t('public.homepage.print_options')}
-				aria-expanded={showPrintMenu}
-				aria-haspopup="true"
-			>
-				<svg class="w-5 h-5 text-stone-600 dark:text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-				</svg>
-			</button>
-
-			{#if showPrintMenu}
-				<div class="fixed inset-0" onclick={closePrintMenu} onkeydown={handlePrintMenuKeydown} role="presentation" tabindex="-1"></div>
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50" onkeydown={handlePrintMenuKeydown}>
-					<button
-						onclick={() => { window.print(); closePrintMenu(); }}
-						class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
+	<div class="min-h-screen">
+		<div
+			class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden transition-opacity duration-200"
+			class:opacity-0={navPinned}
+			class:pointer-events-none={navPinned}
+			inert={navPinned}
+		>
+			<!-- Print Menu -->
+			<div class="relative">
+				<button
+					bind:this={printMenuTriggerEl}
+					onclick={() => (showPrintMenu = !showPrintMenu)}
+					class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+					title={$t('public.homepage.print_options')}
+					aria-label={$t('public.homepage.print_options')}
+					aria-expanded={showPrintMenu}
+					aria-haspopup="true"
+				>
+					<svg
+						class="w-5 h-5 text-stone-600 dark:text-stone-300"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
 					>
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-						</svg>
-						{$t('public.homepage.simple_print')}
-					</button>
-					{#if aiResume.status.ai_configured && data.view?.slug}
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+						></path>
+					</svg>
+				</button>
+
+				{#if showPrintMenu}
+					<div
+						class="fixed inset-0"
+						onclick={closePrintMenu}
+						onkeydown={handlePrintMenuKeydown}
+						role="presentation"
+						tabindex="-1"
+					></div>
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
+						onkeydown={handlePrintMenuKeydown}
+					>
 						<button
 							onclick={() => {
-								// Capture the menu trigger BEFORE closing the popover, so the
-								// AI-resume dialog can return focus to it on close (SC 2.4.3).
-								aiResume.show(printMenuTriggerEl ?? null);
+								window.print();
 								closePrintMenu();
 							}}
 							class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
-							aria-haspopup="dialog"
 						>
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+							<svg
+								class="w-4 h-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+								></path>
 							</svg>
-							{$t('public.homepage.ai_resume')}
+							{$t('public.homepage.simple_print')}
 						</button>
-					{/if}
-				</div>
+						{#if aiResume.status.ai_configured && data.view?.slug}
+							<button
+								onclick={() => {
+									// Capture the menu trigger BEFORE closing the popover, so the
+									// AI-resume dialog can return focus to it on close (SC 2.4.3).
+									aiResume.show(printMenuTriggerEl ?? null);
+									closePrintMenu();
+								}}
+								class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
+								aria-haspopup="dialog"
+							>
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+									></path>
+								</svg>
+								{$t('public.homepage.ai_resume')}
+							</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Login button - for demo users, auto-logout and go to login page -->
+			<!-- Always show on first-time screen, even if hide setting is enabled -->
+			{#if !$isDemoMode && (!data.hideLoginButton || (!data.profile?.name && data.experience.length === 0 && data.projects.length === 0))}
+				{#if $currentUser}
+					<button
+						onclick={handleLogout}
+						class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
+						title={$t('public.homepage.log_in_account')}
+						aria-label={$t('public.homepage.log_in_account')}
+					>
+						{$t('public.homepage.log_in')}
+					</button>
+				{:else}
+					<a
+						href="/admin/login"
+						class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
+						title={$t('public.homepage.log_in')}
+						aria-label={$t('public.homepage.log_in')}
+					>
+						{$t('public.homepage.log_in')}
+					</a>
+				{/if}
 			{/if}
+
+			<ThemeToggle />
 		</div>
 
-		<!-- Login button - for demo users, auto-logout and go to login page -->
-		<!-- Always show on first-time screen, even if hide setting is enabled -->
-		{#if !$isDemoMode && (!data.hideLoginButton || (!data.profile?.name && data.experience.length === 0 && data.projects.length === 0))}
-			{#if $currentUser}
-				<button
-					onclick={handleLogout}
-					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
-					title={$t('public.homepage.log_in_account')}
-					aria-label={$t('public.homepage.log_in_account')}
-				>
-					{$t('public.homepage.log_in')}
-				</button>
-			{:else}
-				<a
-					href="/admin/login"
-					class="px-3 py-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-sm font-medium text-stone-700 dark:text-stone-300"
-					title={$t('public.homepage.log_in')}
-					aria-label={$t('public.homepage.log_in')}
-				>
-					{$t('public.homepage.log_in')}
-				</a>
-			{/if}
-		{/if}
-
-		<ThemeToggle />
-	</div>
-
-	<!-- Site Navigation (above hero) - only renders when position='above' -->
-	<SiteNav
-		slot="above"
-		ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
-		ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
-		ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
-		ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-		ssrNavEnabled={data.siteNav?.enabled}
-		ssrNavMode={data.siteNav?.mode}
-		ssrNavPosition={data.siteNav?.position}
-		ssrNavItems={data.siteNav?.items}
-	/>
-
-	<!-- For rail layout, the below-hero SiteNav is lifted ABOVE the rail grid so
-	     it spans full width instead of getting trapped in the content column. -->
-	{#if useRailLayout}
+		<!-- Site Navigation (above hero) - only renders when position='above' -->
 		<SiteNav
-			slot="below"
+			slot="above"
 			ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
 			ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
 			ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
@@ -496,200 +590,293 @@
 			ssrNavPosition={data.siteNav?.position}
 			ssrNavItems={data.siteNav?.items}
 		/>
-	{/if}
 
-	<!-- Rail layout: 2-col grid wraps the hero (aside, col 1) + main flow
+		<!-- For rail layout, the below-hero SiteNav is lifted ABOVE the rail grid so
+	     it spans full width instead of getting trapped in the content column. -->
+		{#if useRailLayout}
+			<SiteNav
+				slot="below"
+				ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+				ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
+				ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+				ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+				ssrNavEnabled={data.siteNav?.enabled}
+				ssrNavMode={data.siteNav?.mode}
+				ssrNavPosition={data.siteNav?.position}
+				ssrNavItems={data.siteNav?.items}
+			/>
+		{/if}
+
+		<!-- Rail layout: 2-col grid wraps the hero (aside, col 1) + main flow
 	     (col 2). Other layouts fall back to display:contents (no structural
 	     change, so they render byte-identically to before). -->
-	<div class={useRailLayout ? 'md:grid md:grid-cols-[320px_minmax(0,1fr)] md:items-start' : 'contents'}>
-	<!-- Hero section with possible view overrides -->
-	<ProfileHero
-		profile={{
-			...data.profile,
-			headline,
-			summary,
-			location
-		}}
-		layout={effectiveHeroLayout}
-		spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
-		heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
-		showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
-	/>
-	<div class={useRailLayout ? 'min-w-0' : 'contents'}>
-
-	<!-- Site Navigation (below hero) / CTA Banner - only renders here for
+		<div
+			class={useRailLayout
+				? 'md:grid md:grid-cols-[320px_minmax(0,1fr)] md:items-start'
+				: 'contents'}
+		>
+			<!-- Hero section with possible view overrides -->
+			<ProfileHero
+				profile={{
+					...data.profile,
+					headline,
+					summary,
+					location
+				}}
+				layout={effectiveHeroLayout}
+				spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as
+					'' | 'compact' | 'default' | 'spacious'}
+				heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
+				showAvatar={(data as unknown as { showAvatar?: boolean }).showAvatar !== false}
+			/>
+			<div class={useRailLayout ? 'min-w-0' : 'contents'}>
+				<!-- Site Navigation (below hero) / CTA Banner - only renders here for
 	     non-rail layouts (rail lifts it above the grid). -->
-	{#if !useRailLayout}
-		<SiteNav
-			slot="below"
-			ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
-			ctaButtonText={data.profile?.cta_button_text || data.view?.cta_button_text || 'Learn More'}
-			ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
-			ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-			ssrNavEnabled={data.siteNav?.enabled}
-			ssrNavMode={data.siteNav?.mode}
-			ssrNavPosition={data.siteNav?.position}
-			ssrNavItems={data.siteNav?.items}
-		/>
-	{/if}
+				{#if !useRailLayout}
+					<SiteNav
+						slot="below"
+						ctaUrl={data.profile?.cta_url || data.view?.cta_url || ''}
+						ctaButtonText={data.profile?.cta_button_text ||
+							data.view?.cta_button_text ||
+							'Learn More'}
+						ctaText={data.profile?.cta_text || data.view?.cta_text || ''}
+						ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+						ssrNavEnabled={data.siteNav?.enabled}
+						ssrNavMode={data.siteNav?.mode}
+						ssrNavPosition={data.siteNav?.position}
+						ssrNavItems={data.siteNav?.items}
+					/>
+				{/if}
 
-	<div
-		aria-hidden="true"
-		class="h-px"
-		bind:this={sentinelEl}
-	></div>
+				<div aria-hidden="true" class="h-px" bind:this={sentinelEl}></div>
 
-	<ProfileNav
-		hasExperience={data.experience.length > 0}
-		hasProjects={data.projects.length > 0}
-		hasEducation={data.education.length > 0}
-		hasCertifications={data.certifications && data.certifications.length > 0}
-		hasAwards={data.awards && data.awards.length > 0}
-		hasSkills={data.skills.length > 0}
-		hasPosts={data.posts && data.posts.length > 0}
-		hasTalks={data.talks && data.talks.length > 0}
-		hasCourses={data.courses && data.courses.length > 0}
-		hasTestimonials={data.testimonials && data.testimonials.length > 0}
-		hasContacts={data.contacts && data.contacts.length > 0}
-		viewSlug=""
-		sectionOrder={effectiveSectionOrder}
-		customContent={data.customContent || []}
-	/>
+				<ProfileNav
+					hasExperience={data.experience.length > 0}
+					hasProjects={data.projects.length > 0}
+					hasEducation={data.education.length > 0}
+					hasCertifications={data.certifications && data.certifications.length > 0}
+					hasAwards={data.awards && data.awards.length > 0}
+					hasSkills={data.skills.length > 0}
+					hasPosts={data.posts && data.posts.length > 0}
+					hasTalks={data.talks && data.talks.length > 0}
+					hasCourses={data.courses && data.courses.length > 0}
+					hasTestimonials={data.testimonials && data.testimonials.length > 0}
+					hasContacts={data.contacts && data.contacts.length > 0}
+					viewSlug=""
+					sectionOrder={effectiveSectionOrder}
+					customContent={data.customContent || []}
+				/>
 
-	<!-- Main content -->
-	<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-		{#if !data.profile?.name && data.experience.length === 0 && data.projects.length === 0}
-			<!-- Empty profile state -->
-			<div class="text-center py-16">
-				<p class="text-stone-600 dark:text-stone-300 text-lg">
-					{$t('public.homepage.profile_setup')}
-				</p>
-			</div>
-		{:else}
-			<!-- Dynamic section rendering based on homepage_section_order -->
-			<div class="sections-grid">
-				{#each effectiveSectionOrder as sectionKey}
-					{@const widthClass = getWidthClass(getSectionWidth(sectionKey))}
-					{#if isCustomSection(sectionKey)}
-						{@const customItem = data.sections?.[sectionKey]?.[0] || customContentMap.get(getCustomContentId(sectionKey))}
-						{#if customItem}
-							<div class={widthClass}>
-								<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-								<CustomContentSection item={customItem as any} layout={getSectionLayout(sectionKey)} />
-							</div>
+				<!-- Main content -->
+				<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+					{#if !data.profile?.name && data.experience.length === 0 && data.projects.length === 0}
+						<!-- Empty profile state -->
+						<div class="text-center py-16">
+							<p class="text-stone-600 dark:text-stone-300 text-lg">
+								{$t('public.homepage.profile_setup')}
+							</p>
+						</div>
+					{:else}
+						<!-- Dynamic section rendering based on homepage_section_order -->
+						<div class="sections-grid">
+							{#each effectiveSectionOrder as sectionKey}
+								{@const widthClass = getWidthClass(getSectionWidth(sectionKey))}
+								{#if isCustomSection(sectionKey)}
+									{@const customItem =
+										data.sections?.[sectionKey]?.[0] ||
+										customContentMap.get(getCustomContentId(sectionKey))}
+									{#if customItem}
+										<div class={widthClass}>
+											<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
+											<CustomContentSection
+												item={customItem as any}
+												layout={getSectionLayout(sectionKey)}
+											/>
+										</div>
+									{/if}
+								{:else if sectionKey === 'experience' && data.experience.length > 0}
+									<div class={widthClass}>
+										<ExperienceSection
+											items={data.experience}
+											layout={getSectionLayout('experience')}
+										/>
+									</div>
+								{:else if sectionKey === 'projects' && data.projects.length > 0}
+									<div class={widthClass}>
+										<ProjectsSection
+											items={data.projects}
+											layout={getSectionLayout('projects')}
+											viewSlug={data.isDefaultView ? '' : data.view?.slug || ''}
+										/>
+									</div>
+								{:else if sectionKey === 'education' && data.education.length > 0}
+									<div class={widthClass}>
+										<EducationSection
+											items={data.education}
+											layout={getSectionLayout('education')}
+										/>
+									</div>
+								{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
+									<div class={widthClass}>
+										<CertificationsSection
+											items={data.certifications}
+											layout={getSectionLayout('certifications')}
+										/>
+									</div>
+								{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
+									<div class={widthClass}>
+										<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
+									</div>
+								{:else if sectionKey === 'skills' && data.skills.length > 0}
+									<div class={widthClass}>
+										<SkillsSection
+											items={data.skills}
+											layout={getSectionLayout('skills')}
+											categoryOrder={getCategoryOrder('skills')}
+											disabledCategories={getDisabledCategories('skills')}
+											categoryDisplayModes={getCategoryDisplayModes('skills')}
+										/>
+									</div>
+								{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
+									<div class={widthClass}>
+										{#if (data.postsTotalCount ?? 0) > data.posts.length}
+											<div class="flex items-center justify-between gap-3 mb-4">
+												<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
+												<a
+													href="/posts"
+													class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+												>
+													{$t('public.homepage.browse_all')}
+
+													<svg
+														class="w-4 h-4"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M9 5l7 7-7 7"
+														></path>
+													</svg>
+												</a>
+											</div>
+											<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+											<PostsSection
+												items={data.posts}
+												layout={getSectionLayout('posts')}
+												viewSlug=""
+												showHeader={false}
+											/>
+										{:else}
+											<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+											<PostsSection
+												items={data.posts}
+												layout={getSectionLayout('posts')}
+												viewSlug=""
+											/>
+										{/if}
+									</div>
+								{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
+									<div class={widthClass}>
+										{#if (data.talksTotalCount ?? 0) > data.talks.length}
+											<div class="flex items-center justify-between gap-3 mb-4">
+												<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
+												<a
+													href="/talks"
+													class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+												>
+													{$t('public.homepage.browse_all')}
+
+													<svg
+														class="w-4 h-4"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M9 5l7 7-7 7"
+														></path>
+													</svg>
+												</a>
+											</div>
+											<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+											<TalksSection
+												items={data.talks}
+												layout={getSectionLayout('talks')}
+												viewSlug=""
+												showHeader={false}
+											/>
+										{:else}
+											<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
+											<TalksSection
+												items={data.talks}
+												layout={getSectionLayout('talks')}
+												viewSlug=""
+											/>
+										{/if}
+									</div>
+								{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
+									<div class={widthClass}>
+										<CoursesSection
+											items={data.courses}
+											layout={getSectionLayout('courses') as
+												'grid-3' | 'grid-2' | 'list' | 'featured'}
+											viewSlug=""
+										/>
+									</div>
+								{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
+									<div class={widthClass}>
+										<TestimonialsSection
+											items={data.testimonials}
+											layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'}
+											featuredId={getFeaturedId('testimonials')}
+										/>
+									</div>
+								{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
+									<div class={widthClass}>
+										<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
+									</div>
+								{/if}
+							{/each}
+						</div>
+
+						<!-- Render any custom content not in the section order (for backwards compatibility) -->
+						{#if data.customContent && data.customContent.length > 0 && (!data.homepageSectionOrder || data.homepageSectionOrder.length === 0)}
+							{#each data.customContent as item}
+								<CustomContentSection {item} layout="default" />
+							{/each}
 						{/if}
-					{:else if sectionKey === 'experience' && data.experience.length > 0}
-						<div class={widthClass}>
-							<ExperienceSection items={data.experience} layout={getSectionLayout('experience')} />
-						</div>
-					{:else if sectionKey === 'projects' && data.projects.length > 0}
-						<div class={widthClass}>
-							<ProjectsSection items={data.projects} layout={getSectionLayout('projects')} viewSlug={data.isDefaultView ? '' : (data.view?.slug || '')} />
-						</div>
-					{:else if sectionKey === 'education' && data.education.length > 0}
-						<div class={widthClass}>
-							<EducationSection items={data.education} layout={getSectionLayout('education')} />
-						</div>
-					{:else if sectionKey === 'certifications' && data.certifications && data.certifications.length > 0}
-						<div class={widthClass}>
-							<CertificationsSection items={data.certifications} layout={getSectionLayout('certifications')} />
-						</div>
-					{:else if sectionKey === 'awards' && data.awards && data.awards.length > 0}
-						<div class={widthClass}>
-							<AwardsSection items={data.awards} layout={getSectionLayout('awards')} />
-						</div>
-					{:else if sectionKey === 'skills' && data.skills.length > 0}
-						<div class={widthClass}>
-							<SkillsSection items={data.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
-						</div>
-					{:else if sectionKey === 'posts' && data.posts && data.posts.length > 0}
-						<div class={widthClass}>
-							{#if (data.postsTotalCount ?? 0) > data.posts.length}
-								<div class="flex items-center justify-between gap-3 mb-4">
-									<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
-									<a
-										href="/posts"
-										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-									>
-										{$t('public.homepage.browse_all')}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-										</svg>
-									</a>
-								</div>
-								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-								<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" showHeader={false} />
-							{:else}
-								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-								<PostsSection items={data.posts} layout={getSectionLayout('posts')} viewSlug="" />
-							{/if}
-						</div>
-					{:else if sectionKey === 'talks' && data.talks && data.talks.length > 0}
-						<div class={widthClass}>
-							{#if (data.talksTotalCount ?? 0) > data.talks.length}
-								<div class="flex items-center justify-between gap-3 mb-4">
-									<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
-									<a
-										href="/talks"
-										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-									>
-										{$t('public.homepage.browse_all')}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-										</svg>
-									</a>
-								</div>
-								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-								<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" showHeader={false} />
-							{:else}
-								<!-- Note: Don't pass viewSlug - we're on root page, back navigation should go to "/" -->
-								<TalksSection items={data.talks} layout={getSectionLayout('talks')} viewSlug="" />
-							{/if}
-						</div>
-					{:else if sectionKey === 'courses' && data.courses && data.courses.length > 0}
-						<div class={widthClass}>
-							<CoursesSection items={data.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug="" />
-						</div>
-					{:else if sectionKey === 'testimonials' && data.testimonials && data.testimonials.length > 0}
-						<div class={widthClass}>
-							<TestimonialsSection items={data.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
-						</div>
-					{:else if sectionKey === 'contacts' && data.contacts && data.contacts.length > 0}
-						<div class={widthClass}>
-							<ContactMethodsList contacts={data.contacts} layout={getContactLayout()} />
-						</div>
 					{/if}
-				{/each}
+				</main>
 			</div>
 
-			<!-- Render any custom content not in the section order (for backwards compatibility) -->
-			{#if data.customContent && data.customContent.length > 0 && (!data.homepageSectionOrder || data.homepageSectionOrder.length === 0)}
-				{#each data.customContent as item}
-					<CustomContentSection {item} layout="default" />
-				{/each}
-			{/if}
-		{/if}
-	</main>
-	</div><!-- /content column (rail col 2) -->
-	</div><!-- /rail grid wrapper -->
+			<!-- /content column (rail col 2) -->
+		</div>
 
-	<Footer profile={data.profile} footerCtaEnabled={data.footerCtaEnabled} />
+		<!-- /rail grid wrapper -->
 
-	<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
-	<ATSContent
-		profile={data.profile}
-		experience={data.experience}
-		education={data.education}
-		skills={data.skills}
-		contacts={data.contacts}
-		certifications={data.certifications}
-	/>
-</div>
+		<Footer profile={data.profile} footerCtaEnabled={data.footerCtaEnabled} />
 
-<!-- AI Resume Generation Modal -->
-<AIResumeModal controller={aiResume} />
+		<!-- ATS-optimized hidden content for resume parsing (placed at end to avoid blank first page) -->
+		<ATSContent
+			profile={data.profile}
+			experience={data.experience}
+			education={data.education}
+			skills={data.skills}
+			contacts={data.contacts}
+			certifications={data.certifications}
+		/>
+	</div>
+
+	<!-- AI Resume Generation Modal -->
+	<AIResumeModal controller={aiResume} />
 {/if}
-
 
 <style>
 	/* Section grid layout */

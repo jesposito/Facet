@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import type { Profile, View } from '$lib/pocketbase';
 
 const STORAGE_KEY = 'facet_setup_wizard';

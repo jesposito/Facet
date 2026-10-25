@@ -4,7 +4,7 @@
 	const bubble = createBubbler();
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';

@@ -1,19 +1,19 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { dev, browser } from '$app/environment';
+	import { dev, browser } from '$app/env';
 	import { t } from 'svelte-i18n';
 
 	onMount(() => {
 		console.error('[ERROR PAGE] Displayed error:', {
-			status: $page.status,
-			message: $page.error?.message,
-			url: $page.url.href
+			status: page.status,
+			message: page.error?.message,
+			url: page.url.href
 		});
 	});
 
-	let is404 = $derived($page.status === 404);
-	let is500 = $derived($page.status >= 500);
+	let is404 = $derived(page.status === 404);
+	let is500 = $derived(page.status >= 500);
 
 	let referrerPath = '';
 
@@ -24,7 +24,10 @@
 			if (ref) {
 				const refUrl = new URL(ref);
 				// Only use same-origin referrers, and avoid self-loops
-				if (refUrl.origin === window.location.origin && refUrl.pathname !== window.location.pathname) {
+				if (
+					refUrl.origin === window.location.origin &&
+					refUrl.pathname !== window.location.pathname
+				) {
 					referrerPath = refUrl.pathname + refUrl.search;
 				}
 			}
@@ -36,7 +39,7 @@
 	const goHome = () => {
 		if (!browser) return;
 		// If we have a usable referrer, prefer it
-		if (referrerPath && referrerPath !== $page.url.pathname) {
+		if (referrerPath && referrerPath !== page.url.pathname) {
 			window.location.href = referrerPath;
 		} else {
 			window.location.href = '/';
@@ -45,7 +48,7 @@
 
 	const goBack = () => {
 		if (!browser) return;
-		if (referrerPath && referrerPath !== $page.url.pathname) {
+		if (referrerPath && referrerPath !== page.url.pathname) {
 			window.location.href = referrerPath;
 		} else {
 			window.history.back();
@@ -60,44 +63,66 @@
 
 <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
 	<div class="text-center max-w-2xl">
-
 		{#if is404}
 			<!-- 404: I Didn't Build That Facet -->
 			<div class="mb-8">
 				<!-- SVG Illustration: Developer with incomplete diamond -->
-				<svg class="w-64 h-64 mx-auto mb-6" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<svg
+					class="w-64 h-64 mx-auto mb-6"
+					viewBox="0 0 200 200"
+					fill="none"
+					xmlns="http://www.w3.org/2000/svg"
+				>
 					<!-- Incomplete diamond (missing a facet) -->
+
 					<g class="text-primary-500" stroke="currentColor" stroke-width="2" fill="none">
-						<path d="M 100 30 L 150 80 L 130 150 L 100 170 L 70 150 L 50 80 Z" opacity="0.3"/>
-						<line x1="100" y1="30" x2="150" y2="80"/>
-						<line x1="150" y1="80" x2="130" y2="150"/>
-						<line x1="130" y1="150" x2="100" y2="170"/>
-						<line x1="100" y1="170" x2="70" y2="150"/>
-						<line x1="70" y1="150" x2="50" y2="80"/>
+						<path d="M 100 30 L 150 80 L 130 150 L 100 170 L 70 150 L 50 80 Z" opacity="0.3"></path>
+
+						<line x1="100" y1="30" x2="150" y2="80"></line>
+						<line x1="150" y1="80" x2="130" y2="150"></line>
+						<line x1="130" y1="150" x2="100" y2="170"></line>
+						<line x1="100" y1="170" x2="70" y2="150"></line>
+						<line x1="70" y1="150" x2="50" y2="80"></line>
 						<!-- Missing facet - dashed line -->
-						<line x1="50" y1="80" x2="100" y2="30" stroke-dasharray="5,5" opacity="0.3"/>
+
+						<line x1="50" y1="80" x2="100" y2="30" stroke-dasharray="5,5" opacity="0.3"></line>
 					</g>
 
 					<!-- Stick figure developer -->
-					<g class="text-gray-700 dark:text-gray-300" stroke="currentColor" stroke-width="2" fill="none">
+					<g
+						class="text-gray-700 dark:text-gray-300"
+						stroke="currentColor"
+						stroke-width="2"
+						fill="none"
+					>
 						<!-- Head -->
-						<circle cx="40" cy="120" r="8"/>
+						<circle cx="40" cy="120" r="8"></circle>
 						<!-- Body -->
-						<line x1="40" y1="128" x2="40" y2="155"/>
+						<line x1="40" y1="128" x2="40" y2="155"></line>
 						<!-- Arms - scratching head -->
-						<line x1="40" y1="135" x2="35" y2="145"/>
-						<line x1="40" y1="135" x2="38" y2="115"/>
+						<line x1="40" y1="135" x2="35" y2="145"></line>
+						<line x1="40" y1="135" x2="38" y2="115"></line>
 						<!-- Legs -->
-						<line x1="40" y1="155" x2="33" y2="170"/>
-						<line x1="40" y1="155" x2="47" y2="170"/>
+						<line x1="40" y1="155" x2="33" y2="170"></line>
+						<line x1="40" y1="155" x2="47" y2="170"></line>
 					</g>
 
 					<!-- TODO sticky note -->
+
 					<g class="text-yellow-400" fill="currentColor" opacity="0.9">
-						<rect x="145" y="40" width="45" height="35" rx="2"/>
-						<text x="150" y="52" font-size="6" class="fill-gray-800" font-family="monospace">TODO:</text>
-						<text x="150" y="60" font-size="6" class="fill-gray-800" font-family="monospace">Build</text>
-						<text x="150" y="68" font-size="6" class="fill-gray-800" font-family="monospace">this!</text>
+						<rect x="145" y="40" width="45" height="35" rx="2"></rect>
+
+						<text x="150" y="52" font-size="6" class="fill-gray-800" font-family="monospace"
+							>TODO:</text
+						>
+
+						<text x="150" y="60" font-size="6" class="fill-gray-800" font-family="monospace"
+							>Build</text
+						>
+
+						<text x="150" y="68" font-size="6" class="fill-gray-800" font-family="monospace"
+							>this!</text
+						>
 					</g>
 
 					<!-- Question marks -->
@@ -108,54 +133,100 @@
 			<h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
 				{$t('errors.page.404_title')}
 			</h1>
+
 			<p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
 				{@html $t('errors.page.404_message')}
 			</p>
-
 		{:else if is500}
 			<!-- 500: I Should Have Added More Tests -->
 			<div class="mb-8">
 				<!-- SVG Illustration: Developer with broken diamond -->
-				<svg class="w-64 h-64 mx-auto mb-6" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<svg
+					class="w-64 h-64 mx-auto mb-6"
+					viewBox="0 0 200 200"
+					fill="none"
+					xmlns="http://www.w3.org/2000/svg"
+				>
 					<!-- Broken diamond pieces -->
 					<g class="text-primary-500" stroke="currentColor" stroke-width="2" fill="none">
 						<!-- Main broken piece -->
-						<path d="M 95 40 L 130 70 L 115 120" transform="rotate(-5 110 80)"/>
+
+						<path d="M 95 40 L 130 70 L 115 120" transform="rotate(-5 110 80)"></path>
+
 						<!-- Fragment 1 -->
-						<path d="M 120 130 L 135 140 L 125 155" transform="rotate(15 127 142)"/>
+
+						<path d="M 120 130 L 135 140 L 125 155" transform="rotate(15 127 142)"></path>
+
 						<!-- Fragment 2 -->
-						<path d="M 80 125 L 70 140 L 85 145" transform="rotate(-10 77 135)"/>
+
+						<path d="M 80 125 L 70 140 L 85 145" transform="rotate(-10 77 135)"></path>
+
 						<!-- Crack lines -->
-						<line x1="100" y1="100" x2="110" y2="120" stroke-dasharray="3,3" class="text-red-500"/>
-						<line x1="105" y1="110" x2="95" y2="125" stroke-dasharray="3,3" class="text-red-500"/>
+
+						<line x1="100" y1="100" x2="110" y2="120" stroke-dasharray="3,3" class="text-red-500"
+						></line>
+
+						<line x1="105" y1="110" x2="95" y2="125" stroke-dasharray="3,3" class="text-red-500"
+						></line>
 					</g>
 
 					<!-- Stick figure developer looking sheepish -->
-					<g class="text-gray-700 dark:text-gray-300" stroke="currentColor" stroke-width="2" fill="none">
+					<g
+						class="text-gray-700 dark:text-gray-300"
+						stroke="currentColor"
+						stroke-width="2"
+						fill="none"
+					>
 						<!-- Head -->
-						<circle cx="45" cy="130" r="8"/>
+						<circle cx="45" cy="130" r="8"></circle>
 						<!-- Worried face -->
-						<circle cx="43" cy="128" r="1" class="fill-current"/>
-						<circle cx="47" cy="128" r="1" class="fill-current"/>
-						<path d="M 42 134 Q 45 132 48 134" stroke-linecap="round"/>
+						<circle cx="43" cy="128" r="1" class="fill-current"></circle>
+						<circle cx="47" cy="128" r="1" class="fill-current"></circle>
+
+						<path d="M 42 134 Q 45 132 48 134" stroke-linecap="round"></path>
+
 						<!-- Body -->
-						<line x1="45" y1="138" x2="45" y2="165"/>
+						<line x1="45" y1="138" x2="45" y2="165"></line>
 						<!-- Arms - holding hammer -->
-						<line x1="45" y1="145" x2="55" y2="140"/>
-						<rect x="54" y="136" width="8" height="4" rx="1" class="fill-gray-600"/>
-						<line x1="45" y1="145" x2="35" y2="150"/>
+						<line x1="45" y1="145" x2="55" y2="140"></line>
+
+						<rect x="54" y="136" width="8" height="4" rx="1" class="fill-gray-600"></rect>
+
+						<line x1="45" y1="145" x2="35" y2="150"></line>
 						<!-- Legs -->
-						<line x1="45" y1="165" x2="38" y2="180"/>
-						<line x1="45" y1="165" x2="52" y2="180"/>
+						<line x1="45" y1="165" x2="38" y2="180"></line>
+						<line x1="45" y1="165" x2="52" y2="180"></line>
 					</g>
 
 					<!-- Thought bubble -->
 					<g class="text-gray-400" fill="currentColor">
-						<circle cx="20" cy="115" r="2"/>
-						<circle cx="24" cy="108" r="3"/>
-						<ellipse cx="30" cy="90" rx="20" ry="15" class="fill-white dark:fill-gray-800 stroke-current" stroke-width="1"/>
-						<text x="18" y="93" font-size="6" class="fill-gray-700 dark:fill-gray-300" font-family="monospace">Should've</text>
-						<text x="15" y="99" font-size="6" class="fill-gray-700 dark:fill-gray-300" font-family="monospace">added tests</text>
+						<circle cx="20" cy="115" r="2"></circle>
+						<circle cx="24" cy="108" r="3"></circle>
+
+						<ellipse
+							cx="30"
+							cy="90"
+							rx="20"
+							ry="15"
+							class="fill-white dark:fill-gray-800 stroke-current"
+							stroke-width="1"
+						></ellipse>
+
+						<text
+							x="18"
+							y="93"
+							font-size="6"
+							class="fill-gray-700 dark:fill-gray-300"
+							font-family="monospace">Should've</text
+						>
+
+						<text
+							x="15"
+							y="99"
+							font-size="6"
+							class="fill-gray-700 dark:fill-gray-300"
+							font-family="monospace">added tests</text
+						>
 					</g>
 				</svg>
 			</div>
@@ -163,31 +234,47 @@
 			<h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
 				{$t('errors.page.500_title')}
 			</h1>
+
 			<p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
 				{@html $t('errors.page.500_message')}
 			</p>
-
 		{:else}
 			<!-- Other errors - generic but still themed -->
-			<div class="mb-8">
-				<div class="text-6xl mb-4">💎</div>
-			</div>
+			<div class="mb-8"><div class="text-6xl mb-4">💎</div></div>
+
 			<h1 class="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-				{$t('errors.page.generic_title', { values: { status: $page.status } })}
+				{$t('errors.page.generic_title', { values: { status: page.status } })}
 			</h1>
+
 			<p class="text-xl text-gray-600 dark:text-gray-400 mb-8">
-				{$page.error?.message || $t('errors.page.generic_fallback')}
+				{page.error?.message || $t('errors.page.generic_fallback')}
 			</p>
 		{/if}
 
 		<!-- Debug info for development only -->
 		{#if dev}
-			<div class="text-left text-sm bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-8 max-w-md mx-auto">
-				<p class="text-gray-500 dark:text-gray-400 mb-2 font-mono">{$t('errors.page.debug_title')}</p>
+			<div
+				class="text-left text-sm bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-8 max-w-md mx-auto"
+			>
+				<p class="text-gray-500 dark:text-gray-400 mb-2 font-mono">
+					{$t('errors.page.debug_title')}
+				</p>
+
 				<ul class="text-gray-600 dark:text-gray-400 space-y-1 font-mono text-xs">
-					<li><strong>{$t('errors.page.debug_url')}</strong> {$page.url.pathname}</li>
-					<li><strong>{$t('errors.page.debug_status')}</strong> {$page.status}</li>
-					<li><strong>{$t('errors.page.debug_error')}</strong> {$page.error?.message || $t('errors.page.debug_none')}</li>
+					<li>
+						<strong>{$t('errors.page.debug_url')}</strong>
+						{page.url.pathname}
+					</li>
+
+					<li>
+						<strong>{$t('errors.page.debug_status')}</strong>
+						{page.status}
+					</li>
+
+					<li>
+						<strong>{$t('errors.page.debug_error')}</strong>
+						{page.error?.message || $t('errors.page.debug_none')}
+					</li>
 				</ul>
 			</div>
 		{/if}
@@ -201,7 +288,12 @@
 				class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+					></path>
 				</svg>
 				{is404 ? $t('errors.page.404_back_button') : $t('errors.page.go_home_button')}
 			</button>
@@ -213,7 +305,12 @@
 					class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M10 19l-7-7m0 0l7-7m-7 7h18"
+						></path>
 					</svg>
 					{$t('errors.page.404_go_back')}
 				</button>
@@ -224,7 +321,12 @@
 					class="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
 				>
 					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+						></path>
 					</svg>
 					{is500 ? $t('errors.page.500_refresh_button') : $t('errors.page.try_again_button')}
 				</button>

@@ -1,3 +1,5 @@
+import adapter from '@sveltejs/adapter-node';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import { execSync } from 'child_process';
@@ -36,10 +38,15 @@ function copyChangelog() {
 }
 
 export default defineConfig({
-	plugins: [sveltekit(), copyChangelog()],
-	define: {
-		__APP_VERSION__: JSON.stringify(getVersion())
-	},
+	plugins: [
+		sveltekit({
+			preprocess: vitePreprocess(),
+			adapter: adapter({ out: 'build', precompress: true, envPrefix: '' }),
+			alias: { $components: 'src/components', $lib: 'src/lib' }
+		}),
+		copyChangelog()
+	],
+	define: { __APP_VERSION__: JSON.stringify(getVersion()) },
 	server: {
 		proxy: {
 			'/api': {

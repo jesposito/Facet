@@ -1,17 +1,17 @@
 /**
  * Shared filter state helper for admin list pages
- * 
+ *
  * Provides reactive state for:
  * - Search query
  * - Visibility filter (all, public, unlisted, private)
  * - Draft filter (all, published, drafts)
  * - Tag filter (selected admin tag IDs)
- * 
+ *
  * With URL synchronization for bookmarkable filter states
  */
 
-import { page } from '$app/stores';
-import { browser } from '$app/environment';
+import { page } from '$app/state';
+import { browser } from '$app/env';
 import { goto } from '$app/navigation';
 
 export interface FilterState {
@@ -53,25 +53,26 @@ export function createFilterState(config: FilterConfig = {}) {
 
 	function loadFromUrl() {
 		const urlParams = new URLSearchParams(window.location.search);
-		
+
 		state.searchQuery = urlParams.get('search') || '';
-		state.visibilityFilter = (urlParams.get('visibility') as FilterState['visibilityFilter']) || 'all';
+		state.visibilityFilter =
+			(urlParams.get('visibility') as FilterState['visibilityFilter']) || 'all';
 		state.draftFilter = (urlParams.get('draft') as FilterState['draftFilter']) || 'all';
-		
+
 		const tagParam = urlParams.get('tags');
 		state.selectedTagIds = tagParam ? tagParam.split(',').filter(Boolean) : [];
 	}
 
 	function updateUrl() {
 		if (!browser) return;
-		
+
 		const urlParams = new URLSearchParams();
-		
+
 		if (state.searchQuery) urlParams.set('search', state.searchQuery);
 		if (state.visibilityFilter !== 'all') urlParams.set('visibility', state.visibilityFilter);
 		if (state.draftFilter !== 'all') urlParams.set('draft', state.draftFilter);
 		if (state.selectedTagIds.length > 0) urlParams.set('tags', state.selectedTagIds.join(','));
-		
+
 		const newUrl = urlParams.toString() ? `?${urlParams.toString()}` : window.location.pathname;
 		window.history.replaceState({}, '', newUrl);
 	}
@@ -101,7 +102,7 @@ export function createFilterState(config: FilterConfig = {}) {
 		if (index === -1) {
 			state.selectedTagIds = [...state.selectedTagIds, tagId];
 		} else {
-			state.selectedTagIds = state.selectedTagIds.filter(id => id !== tagId);
+			state.selectedTagIds = state.selectedTagIds.filter((id) => id !== tagId);
 		}
 		updateUrl();
 	}
@@ -136,7 +137,7 @@ export function createFilterState(config: FilterConfig = {}) {
 		getIsDraft: (item: T) => boolean = () => false,
 		getTagIds: (item: T) => string[] = () => []
 	): T[] {
-		return items.filter(item => {
+		return items.filter((item) => {
 			// Search filter
 			if (enableSearch && state.searchQuery) {
 				const searchText = getSearchableText(item).toLowerCase();
@@ -160,7 +161,7 @@ export function createFilterState(config: FilterConfig = {}) {
 			// Tag filter
 			if (enableTagFilter && state.selectedTagIds.length > 0) {
 				const itemTagIds = getTagIds(item);
-				const hasMatchingTag = state.selectedTagIds.some(tagId => itemTagIds.includes(tagId));
+				const hasMatchingTag = state.selectedTagIds.some((tagId) => itemTagIds.includes(tagId));
 				if (!hasMatchingTag) return false;
 			}
 
@@ -170,11 +171,19 @@ export function createFilterState(config: FilterConfig = {}) {
 
 	return {
 		// State (read-only getters)
-		get searchQuery() { return state.searchQuery; },
-		get visibilityFilter() { return state.visibilityFilter; },
-		get draftFilter() { return state.draftFilter; },
-		get selectedTagIds() { return state.selectedTagIds; },
-		
+		get searchQuery() {
+			return state.searchQuery;
+		},
+		get visibilityFilter() {
+			return state.visibilityFilter;
+		},
+		get draftFilter() {
+			return state.draftFilter;
+		},
+		get selectedTagIds() {
+			return state.selectedTagIds;
+		},
+
 		// Actions
 		setSearchQuery,
 		setVisibilityFilter,
@@ -183,11 +192,11 @@ export function createFilterState(config: FilterConfig = {}) {
 		toggleTag,
 		clearAllFilters,
 		loadFromUrl,
-		
+
 		// Utilities
 		hasActiveFilters,
 		filterItems,
-		
+
 		// Config
 		config: {
 			enableSearch,

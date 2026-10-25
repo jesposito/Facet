@@ -3,10 +3,10 @@
 
 	import type { PageData } from './$types';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
-	import { navigating, page } from '$app/stores';
+	import { refreshAll } from '$app/navigation';
+	import { navigating, page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ProfileNav from '$components/public/ProfileNav.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
@@ -48,10 +48,14 @@
 	let { data }: Props = $props();
 
 	// Generate JSON-LD for SEO (Person schema)
-	let personJsonLd = $derived(data.profile ? serializeJsonLd(generatePersonJsonLd(data.profile, browser ? window.location.origin : '')) : null);
+	let personJsonLd = $derived(
+		data.profile
+			? serializeJsonLd(generatePersonJsonLd(data.profile, browser ? window.location.origin : ''))
+			: null
+	);
 
 	// Track navigation to prevent showing "Not Found" during transitions
-	let isNavigating = $derived($navigating !== null);
+	let isNavigating = $derived(navigating.to !== null);
 
 	// Print menu state
 	let showPrintMenu = $state(false);
@@ -88,17 +92,19 @@
 	onMount(() => {
 		// In site-mode, use profile accent for visual coherence across Facet tabs.
 		// View accent only applies when site nav is off or view has an explicit override.
-		const accentColor = (data.siteNavEnabled && !data.view?.accent_color)
-			? data.profile?.accent_color
-			: (data.view?.accent_color || data.profile?.accent_color);
+		const accentColor =
+			data.siteNavEnabled && !data.view?.accent_color
+				? data.profile?.accent_color
+				: data.view?.accent_color || data.profile?.accent_color;
 		if (accentColor) {
 			applyAccentColor(accentColor as AccentColor);
 		}
 
 		// Apply font pack with same resolution: view override > profile default
-		const fontPackName = (data.siteNavEnabled && !data.view?.font_pack)
-			? data.profile?.font_pack
-			: (data.view?.font_pack || data.profile?.font_pack);
+		const fontPackName =
+			data.siteNavEnabled && !data.view?.font_pack
+				? data.profile?.font_pack
+				: data.view?.font_pack || data.profile?.font_pack;
 		if (fontPackName && fontPackName !== DEFAULT_FONT_PACK) {
 			const pack = getFontPack(fontPackName);
 			const root = document.documentElement;
@@ -157,12 +163,23 @@
 	}
 
 	// Default section order (fallback when no custom order is specified)
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = [
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'testimonials',
+		'contacts'
+	];
 
 	// Compute effective section order: use custom order if provided, otherwise use default
-	let effectiveSectionOrder = $derived((data.sectionOrder && data.sectionOrder.length > 0)
-		? data.sectionOrder
-		: DEFAULT_SECTION_ORDER);
+	let effectiveSectionOrder = $derived(
+		data.sectionOrder && data.sectionOrder.length > 0 ? data.sectionOrder : DEFAULT_SECTION_ORDER
+	);
 
 	// Extract custom content items from sections for ProfileNav
 	let customContentForNav = $derived.by(() => {
@@ -219,9 +236,12 @@
 	// Get CSS class for section width (using 6-column grid)
 	function getWidthClass(width: string): string {
 		switch (width) {
-			case 'half': return 'section-half';
-			case 'third': return 'section-third';
-			default: return 'section-full';
+			case 'half':
+				return 'section-half';
+			case 'third':
+				return 'section-third';
+			default:
+				return 'section-full';
 		}
 	}
 
@@ -240,10 +260,21 @@
 	}
 </script>
 
+
 <svelte:head>
 	<title>{data.view?.name || 'View'} | {data.profile?.name || 'Profile'}</title>
-	<meta name="description" content={data.view?.hero_summary || data.profile?.summary || data.view?.hero_headline || data.profile?.headline || ''} />
-	<link rel="canonical" href="{$page.data.appUrl || $page.url.origin}/{data.view?.slug}" />
+
+	<meta
+		name="description"
+		content={data.view?.hero_summary ||
+			data.profile?.summary ||
+			data.view?.hero_headline ||
+			data.profile?.headline ||
+			''}
+	/>
+
+	<link rel="canonical" href="{page.data.appUrl || page.url.origin}/{data.view?.slug}" />
+
 	<!-- JSON-LD structured data for SEO -->
 	{#if personJsonLd}
 		{@html `<script type="application/ld+json">${personJsonLd}</script>`}
@@ -259,7 +290,7 @@
 	use:enhance={() => {
 		return async ({ result }) => {
 			if (result.type === 'success') {
-				await invalidateAll();
+				await refreshAll();
 			}
 		};
 	}}
@@ -269,10 +300,7 @@
 </form>
 
 {#if data.requiresPassword}
-	<PasswordPrompt
-		viewId={data.view?.id || ''}
-		on:verified={handlePasswordVerified}
-	/>
+	<PasswordPrompt viewId={data.view?.id || ''} on:verified={handlePasswordVerified} />
 {:else if !data.view && !isNavigating}
 	<!-- Only show "Not Found" when not navigating (prevents flash during transitions) -->
 	<div class="min-h-screen flex items-center justify-center">
@@ -294,28 +322,62 @@
 			<div class="relative">
 				<button
 					bind:this={printMenuTriggerEl}
-					onclick={() => showPrintMenu = !showPrintMenu}
+					onclick={() => (showPrintMenu = !showPrintMenu)}
 					class="p-2 rounded-lg bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm shadow-sm border border-stone-200 dark:border-stone-700 hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
 					title={$t('public.aria.print_options')}
 					aria-label={$t('public.aria.print_options')}
 					aria-expanded={showPrintMenu}
 					aria-haspopup="true"
 				>
-					<svg class="w-5 h-5 text-stone-600 dark:text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+					<svg
+						class="w-5 h-5 text-stone-600 dark:text-stone-300"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+						></path>
 					</svg>
 				</button>
 
 				{#if showPrintMenu}
-					<div class="fixed inset-0" onclick={closePrintMenu} onkeydown={handlePrintMenuKeydown} role="presentation" tabindex="-1"></div>
+					<div
+						class="fixed inset-0"
+						onclick={closePrintMenu}
+						onkeydown={handlePrintMenuKeydown}
+						role="presentation"
+						tabindex="-1"
+					></div>
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<div class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50" onkeydown={handlePrintMenuKeydown}>
+					<div
+						class="absolute right-0 mt-2 w-48 bg-white dark:bg-stone-800 rounded-lg shadow-lg border border-stone-200 dark:border-stone-700 py-1 z-50"
+						onkeydown={handlePrintMenuKeydown}
+					>
 						<button
-							onclick={() => { window.print(); closePrintMenu(); }}
+							onclick={() => {
+								window.print();
+								closePrintMenu();
+							}}
 							class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
 						>
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+							<svg
+								class="w-4 h-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+								></path>
 							</svg>
 							{$t('public.homepage.simple_print')}
 						</button>
@@ -330,8 +392,19 @@
 								class="w-full px-4 py-2 text-left text-sm text-stone-700 dark:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-700 flex items-center gap-2"
 								aria-haspopup="dialog"
 							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+									></path>
 								</svg>
 								{$t('public.homepage.ai_resume')}
 							</button>
@@ -339,10 +412,14 @@
 					</div>
 				{/if}
 			</div>
-			<ShareButton 
-				url={browser 
-					? (data.shareToken ? `${window.location.origin}/s/${data.shareToken}` : window.location.href)
-					: (data.shareToken ? `/s/${data.shareToken}` : `/${data.view?.slug || ''}`)}
+			<ShareButton
+				url={browser
+					? data.shareToken
+						? `${window.location.origin}/s/${data.shareToken}`
+						: window.location.href
+					: data.shareToken
+						? `/s/${data.shareToken}`
+						: `/${data.view?.slug || ''}`}
 				title={`${data.profile?.name || 'Profile'} - ${data.view?.name || 'View'}`}
 				text={data.view?.hero_headline || data.profile?.headline || ''}
 				isUnlisted={!!data.shareToken}
@@ -354,9 +431,24 @@
 					title="Go to Admin"
 					aria-label={$t('public.aria.go_to_admin')}
 				>
-					<svg class="w-5 h-5 text-stone-600 dark:text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-						<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-						<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+					<svg
+						class="w-5 h-5 text-stone-600 dark:text-stone-300"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+						></path>
+
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+						></path>
 					</svg>
 				</a>
 			{/if}
@@ -415,178 +507,243 @@
 		<!-- Rail layout: 2-col grid wraps the hero (aside, col 1) + main flow
 		     (col 2). Other layouts fall back to display:contents (no structural
 		     change, so they render byte-identically to before). -->
-		<div class={useRailLayout ? 'md:grid md:grid-cols-[320px_minmax(0,1fr)] md:items-start' : 'contents'}>
-		<!-- Modified hero with view overrides -->
-		<ProfileHero
-			profile={{
-				...data.profile,
-				headline: data.view?.hero_headline || data.profile?.headline,
-				summary: data.view?.hero_summary || data.profile?.summary,
-				location: data.view?.hero_location || data.profile?.location,
-				hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
-			}}
-			layout={effectiveHeroLayout}
-			spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as '' | 'compact' | 'default' | 'spacious'}
-			heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
-			showAvatar={((data as unknown as { showAvatar?: boolean }).showAvatar) !== false}
-		/>
-		<div class={useRailLayout ? 'min-w-0' : 'contents'}>
-
-		<!-- Site Navigation (below hero) / CTA banner - only renders here for
-		     non-rail layouts (rail lifts it above the grid). -->
-		{#if !useRailLayout}
-			{#if data.isPublicView}
-				<SiteNav
-					slot="below"
-					ctaUrl={data.view?.cta_url || ''}
-					ctaButtonText={data.view?.cta_button_text || 'Learn More'}
-					ctaText={data.view?.cta_text || ''}
-					ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-					ssrNavEnabled={data.siteNav?.enabled}
-					ssrNavMode={data.siteNav?.mode}
-					ssrNavPosition={data.siteNav?.position}
-					ssrNavItems={data.siteNav?.items}
-				/>
-			{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
-				<!-- Fallback CTA for non-public views (no site nav) -->
-				<div class="bg-primary-600 text-white py-4">
-					<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-						<span class="font-medium">{data.view.cta_text}</span>
-						<a
-							href={data.view.cta_url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="btn bg-white text-primary-600 hover:bg-stone-100"
-						>
-							{data.view.cta_button_text || 'Learn More'}
-						</a>
-					</div>
-				</div>
-			{/if}
-		{/if}
-
-		<!-- Sentinel to detect when ProfileNav becomes sticky -->
 		<div
-			aria-hidden="true"
-			class="h-px"
-			bind:this={sentinelEl}
-		></div>
-
-		<ProfileNav
-			hasExperience={data.sections?.experience?.length > 0}
-			hasProjects={data.sections?.projects?.length > 0}
-			hasEducation={data.sections?.education?.length > 0}
-			hasCertifications={data.sections?.certifications?.length > 0}
-			hasAwards={data.sections?.awards?.length > 0}
-			hasSkills={data.sections?.skills?.length > 0}
-			hasPosts={data.sections?.posts?.length > 0}
-			hasTalks={data.sections?.talks?.length > 0}
-			hasCourses={data.sections?.courses?.length > 0}
-			hasTestimonials={data.sections?.testimonials?.length > 0}
-			hasContacts={data.sections?.contacts?.length > 0}
-			hasNewsletter={effectiveSectionOrder.includes('newsletter') && checkFeature('newsletter')}
-			viewSlug={data.view?.slug || ''}
-			sectionOrder={effectiveSectionOrder}
-			customContent={customContentForNav}
-		/>
-
-		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-			<div class="sections-grid">
-				{#each effectiveSectionOrder as sectionKey}
-					{#if sectionKey === 'experience' && data.sections?.experience?.length > 0}
-						<div class={getWidthClass(getSectionWidth('experience'))}>
-							<ExperienceSection items={data.sections.experience} layout={getSectionLayout('experience')} />
-						</div>
-					{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
-						<div class={getWidthClass(getSectionWidth('projects'))}>
-							<ProjectsSection
-								items={data.sections.projects}
-								layout={getSectionLayout('projects')}
-								viewSlug={data.view?.slug || ''}
-							/>
-						</div>
-					{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
-						<div class={getWidthClass(getSectionWidth('education'))}>
-							<EducationSection items={data.sections.education} layout={getSectionLayout('education')} />
-						</div>
-					{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
-						<div class={getWidthClass(getSectionWidth('certifications'))}>
-							<CertificationsSection items={data.sections.certifications} layout={getSectionLayout('certifications')} />
-						</div>
-					{:else if sectionKey === 'awards' && data.sections?.awards?.length > 0}
-						<div class={getWidthClass(getSectionWidth('awards'))}>
-							<AwardsSection items={data.sections.awards} layout={getSectionLayout('awards')} />
-						</div>
-					{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
-						<div class={getWidthClass(getSectionWidth('skills'))}>
-							<SkillsSection items={data.sections.skills} layout={getSectionLayout('skills')} categoryOrder={getCategoryOrder('skills')} disabledCategories={getDisabledCategories('skills')} categoryDisplayModes={getCategoryDisplayModes('skills')} />
-						</div>
-					{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
-						<div class={getWidthClass(getSectionWidth('posts'))}>
-							{#if (data.postsTotalCount ?? 0) > data.sections.posts.length}
-								<div class="flex items-center justify-between gap-3 mb-4">
-									<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
-									<a
-										href="/posts"
-										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-									>
-										{$t('public.homepage.browse_all')}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-										</svg>
-									</a>
-								</div>
-								<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} viewSlug={data.view?.slug || ''} showHeader={false} />
-							{:else}
-								<PostsSection items={data.sections.posts} layout={getSectionLayout('posts')} viewSlug={data.view?.slug || ''} />
-							{/if}
-						</div>
-					{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
-						<div class={getWidthClass(getSectionWidth('talks'))}>
-							{#if (data.talksTotalCount ?? 0) > data.sections.talks.length}
-								<div class="flex items-center justify-between gap-3 mb-4">
-									<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
-									<a
-										href="/talks"
-										class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
-									>
-										{$t('public.homepage.browse_all')}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-										</svg>
-									</a>
-								</div>
-								<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} showHeader={false} />
-							{:else}
-								<TalksSection items={data.sections.talks} layout={getSectionLayout('talks')} viewSlug={data.view?.slug || ''} />
-							{/if}
-						</div>
-					{:else if sectionKey === 'courses' && data.sections?.courses?.length > 0}
-						<div class={getWidthClass(getSectionWidth('courses'))}>
-							<CoursesSection items={data.sections.courses} layout={getSectionLayout('courses') as 'grid-3' | 'grid-2' | 'list' | 'featured'} viewSlug={data.view?.slug || ''} />
-						</div>
-					{:else if sectionKey === 'testimonials' && data.sections?.testimonials?.length > 0}
-						<div class={getWidthClass(getSectionWidth('testimonials'))}>
-							<TestimonialsSection items={data.sections.testimonials} layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'} featuredId={getFeaturedId('testimonials')} />
-						</div>
-					{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
-						<div class={getWidthClass(getSectionWidth('contacts'))}>
-							<ContactMethodsList contacts={data.sections.contacts} viewId={data.view?.id || ''} layout={getContactLayout()} />
-						</div>
-					{:else if sectionKey === 'newsletter' && checkFeature('newsletter')}
-						<div class={getWidthClass(getSectionWidth('newsletter'))}>
-							<NewsletterSection viewSlug={data.view?.slug || ''} />
-						</div>
-					{:else if isCustomSection(sectionKey) && data.sections?.[sectionKey]?.[0]}
-						<div class={getWidthClass(getSectionWidth(sectionKey))}>
-							<CustomContentSection item={data.sections[sectionKey][0]} layout={getSectionLayout(sectionKey)} />
+			class={useRailLayout
+				? 'md:grid md:grid-cols-[320px_minmax(0,1fr)] md:items-start'
+				: 'contents'}
+		>
+			<!-- Modified hero with view overrides -->
+			<ProfileHero
+				profile={{
+					...data.profile,
+					headline: data.view?.hero_headline || data.profile?.headline,
+					summary: data.view?.hero_summary || data.profile?.summary,
+					location: data.view?.hero_location || data.profile?.location,
+					hero_image_url: data.view?.hero_image_url || data.profile?.hero_image_url
+				}}
+				layout={effectiveHeroLayout}
+				spacing={(data.view?.hero_spacing || data.profile?.hero_spacing || '') as
+					'' | 'compact' | 'default' | 'spacious'}
+				heroBgColor={data.view?.hero_bg_color || data.profile?.hero_bg_color || ''}
+				showAvatar={(data as unknown as { showAvatar?: boolean }).showAvatar !== false}
+			/>
+			<div class={useRailLayout ? 'min-w-0' : 'contents'}>
+				<!-- Site Navigation (below hero) / CTA banner - only renders here for
+		     non-rail layouts (rail lifts it above the grid). -->
+				{#if !useRailLayout}
+					{#if data.isPublicView}
+						<SiteNav
+							slot="below"
+							ctaUrl={data.view?.cta_url || ''}
+							ctaButtonText={data.view?.cta_button_text || 'Learn More'}
+							ctaText={data.view?.cta_text || ''}
+							ctaEnabled={data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+							ssrNavEnabled={data.siteNav?.enabled}
+							ssrNavMode={data.siteNav?.mode}
+							ssrNavPosition={data.siteNav?.position}
+							ssrNavItems={data.siteNav?.items}
+						/>
+					{:else if data.view?.cta_text && data.view?.cta_url && data.siteCtaEnabled !== false && data.view?.cta_enabled !== false}
+						<!-- Fallback CTA for non-public views (no site nav) -->
+						<div class="bg-primary-600 text-white py-4">
+							<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+								<span class="font-medium">{data.view.cta_text}</span>
+								<a
+									href={data.view.cta_url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="btn bg-white text-primary-600 hover:bg-stone-100"
+								>
+									{data.view.cta_button_text || 'Learn More'}
+								</a>
+							</div>
 						</div>
 					{/if}
-				{/each}
+				{/if}
+
+				<!-- Sentinel to detect when ProfileNav becomes sticky -->
+				<div aria-hidden="true" class="h-px" bind:this={sentinelEl}></div>
+
+				<ProfileNav
+					hasExperience={data.sections?.experience?.length > 0}
+					hasProjects={data.sections?.projects?.length > 0}
+					hasEducation={data.sections?.education?.length > 0}
+					hasCertifications={data.sections?.certifications?.length > 0}
+					hasAwards={data.sections?.awards?.length > 0}
+					hasSkills={data.sections?.skills?.length > 0}
+					hasPosts={data.sections?.posts?.length > 0}
+					hasTalks={data.sections?.talks?.length > 0}
+					hasCourses={data.sections?.courses?.length > 0}
+					hasTestimonials={data.sections?.testimonials?.length > 0}
+					hasContacts={data.sections?.contacts?.length > 0}
+					hasNewsletter={effectiveSectionOrder.includes('newsletter') && checkFeature('newsletter')}
+					viewSlug={data.view?.slug || ''}
+					sectionOrder={effectiveSectionOrder}
+					customContent={customContentForNav}
+				/>
+
+				<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+					<div class="sections-grid">
+						{#each effectiveSectionOrder as sectionKey}
+							{#if sectionKey === 'experience' && data.sections?.experience?.length > 0}
+								<div class={getWidthClass(getSectionWidth('experience'))}>
+									<ExperienceSection
+										items={data.sections.experience}
+										layout={getSectionLayout('experience')}
+									/>
+								</div>
+							{:else if sectionKey === 'projects' && data.sections?.projects?.length > 0}
+								<div class={getWidthClass(getSectionWidth('projects'))}>
+									<ProjectsSection
+										items={data.sections.projects}
+										layout={getSectionLayout('projects')}
+										viewSlug={data.view?.slug || ''}
+									/>
+								</div>
+							{:else if sectionKey === 'education' && data.sections?.education?.length > 0}
+								<div class={getWidthClass(getSectionWidth('education'))}>
+									<EducationSection
+										items={data.sections.education}
+										layout={getSectionLayout('education')}
+									/>
+								</div>
+							{:else if sectionKey === 'certifications' && data.sections?.certifications?.length > 0}
+								<div class={getWidthClass(getSectionWidth('certifications'))}>
+									<CertificationsSection
+										items={data.sections.certifications}
+										layout={getSectionLayout('certifications')}
+									/>
+								</div>
+							{:else if sectionKey === 'awards' && data.sections?.awards?.length > 0}
+								<div class={getWidthClass(getSectionWidth('awards'))}>
+									<AwardsSection items={data.sections.awards} layout={getSectionLayout('awards')} />
+								</div>
+							{:else if sectionKey === 'skills' && data.sections?.skills?.length > 0}
+								<div class={getWidthClass(getSectionWidth('skills'))}>
+									<SkillsSection
+										items={data.sections.skills}
+										layout={getSectionLayout('skills')}
+										categoryOrder={getCategoryOrder('skills')}
+										disabledCategories={getDisabledCategories('skills')}
+										categoryDisplayModes={getCategoryDisplayModes('skills')}
+									/>
+								</div>
+							{:else if sectionKey === 'posts' && data.sections?.posts?.length > 0}
+								<div class={getWidthClass(getSectionWidth('posts'))}>
+									{#if (data.postsTotalCount ?? 0) > data.sections.posts.length}
+										<div class="flex items-center justify-between gap-3 mb-4">
+											<h2 class="section-title mb-0">{$t('public.sections.posts')}</h2>
+											<a
+												href="/posts"
+												class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+											>
+												{$t('public.homepage.browse_all')}
+
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M9 5l7 7-7 7"
+													></path>
+												</svg>
+											</a>
+										</div>
+										<PostsSection
+											items={data.sections.posts}
+											layout={getSectionLayout('posts')}
+											viewSlug={data.view?.slug || ''}
+											showHeader={false}
+										/>
+									{:else}
+										<PostsSection
+											items={data.sections.posts}
+											layout={getSectionLayout('posts')}
+											viewSlug={data.view?.slug || ''}
+										/>
+									{/if}
+								</div>
+							{:else if sectionKey === 'talks' && data.sections?.talks?.length > 0}
+								<div class={getWidthClass(getSectionWidth('talks'))}>
+									{#if (data.talksTotalCount ?? 0) > data.sections.talks.length}
+										<div class="flex items-center justify-between gap-3 mb-4">
+											<h2 class="section-title mb-0">{$t('public.sections.talks')}</h2>
+											<a
+												href="/talks"
+												class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 hover:text-primary-800 dark:text-primary-300 dark:hover:text-primary-200"
+											>
+												{$t('public.homepage.browse_all')}
+
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M9 5l7 7-7 7"
+													></path>
+												</svg>
+											</a>
+										</div>
+										<TalksSection
+											items={data.sections.talks}
+											layout={getSectionLayout('talks')}
+											viewSlug={data.view?.slug || ''}
+											showHeader={false}
+										/>
+									{:else}
+										<TalksSection
+											items={data.sections.talks}
+											layout={getSectionLayout('talks')}
+											viewSlug={data.view?.slug || ''}
+										/>
+									{/if}
+								</div>
+							{:else if sectionKey === 'courses' && data.sections?.courses?.length > 0}
+								<div class={getWidthClass(getSectionWidth('courses'))}>
+									<CoursesSection
+										items={data.sections.courses}
+										layout={getSectionLayout('courses') as
+											'grid-3' | 'grid-2' | 'list' | 'featured'}
+										viewSlug={data.view?.slug || ''}
+									/>
+								</div>
+							{:else if sectionKey === 'testimonials' && data.sections?.testimonials?.length > 0}
+								<div class={getWidthClass(getSectionWidth('testimonials'))}>
+									<TestimonialsSection
+										items={data.sections.testimonials}
+										layout={getSectionLayout('testimonials') as 'wall' | 'carousel' | 'featured'}
+										featuredId={getFeaturedId('testimonials')}
+									/>
+								</div>
+							{:else if sectionKey === 'contacts' && data.sections?.contacts?.length > 0}
+								<div class={getWidthClass(getSectionWidth('contacts'))}>
+									<ContactMethodsList
+										contacts={data.sections.contacts}
+										viewId={data.view?.id || ''}
+										layout={getContactLayout()}
+									/>
+								</div>
+							{:else if sectionKey === 'newsletter' && checkFeature('newsletter')}
+								<div class={getWidthClass(getSectionWidth('newsletter'))}>
+									<NewsletterSection viewSlug={data.view?.slug || ''} />
+								</div>
+							{:else if isCustomSection(sectionKey) && data.sections?.[sectionKey]?.[0]}
+								<div class={getWidthClass(getSectionWidth(sectionKey))}>
+									<CustomContentSection
+										item={data.sections[sectionKey][0]}
+										layout={getSectionLayout(sectionKey)}
+									/>
+								</div>
+							{/if}
+						{/each}
+					</div>
+				</main>
 			</div>
-		</main>
-		</div><!-- /content column (rail col 2) -->
-		</div><!-- /rail grid wrapper -->
+
+			<!-- /content column (rail col 2) -->
+		</div>
+
+		<!-- /rail grid wrapper -->
 
 		<Footer profile={data.profile} footerCtaEnabled={data.footerCtaEnabled} />
 

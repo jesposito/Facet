@@ -4,7 +4,7 @@
 
 import type { PageData } from './$types';
 import { parseMarkdown, isFilename } from '$lib/utils';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 import { onMount } from 'svelte';
 import { goto } from '$app/navigation';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
@@ -180,7 +180,7 @@ const getFileName = (url?: string) => {
 		if (browser && window.history.length > 1) {
 			window.history.back();
 		} else {
-			goto(backUrl, { replaceState: true });
+			goto(backUrl, { replace: true }).catch(() => window.location.assign(backUrl));
 		}
 	}
 

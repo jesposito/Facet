@@ -36,8 +36,8 @@
 	let sortOrder = $state(0);
 	let saving = $state(false);
 
-let selectMode = $state(false);
-let selectedIds: Set<string> = $state(new Set());
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
 	const autosave = createAutosave('admin-awards', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
@@ -62,62 +62,64 @@ let selectedIds: Set<string> = $state(new Set());
 	);
 
 	function getFormData() {
-	return { title, issuer, awardedAt, description, url, visibility, isDraft, sortOrder };
-}
-
-function restoreFromDraft(data: Record<string, any>) {
-	title = data.title || '';
-	issuer = data.issuer || '';
-	awardedAt = data.awardedAt || '';
-	description = data.description || '';
-	url = data.url || '';
-	visibility = data.visibility || 'public';
-	isDraft = data.isDraft || false;
-	sortOrder = data.sortOrder || 0;
-}
-
-function handleFormChange() {
-	if (showForm) {
-		autosave.save(getFormData(), !!editingAward, editingAward?.id);
+		return { title, issuer, awardedAt, description, url, visibility, isDraft, sortOrder };
 	}
-}
 
-function handleRestoreDraft() {
-	const draft = autosave.loadDraft();
-	if (draft?.data) {
-		restoreFromDraft(draft.data);
-		if (draft.isEditing && draft.editingId) {
-			const award = awards.find(a => a.id === draft.editingId);
-			if (award) editingAward = award;
+	function restoreFromDraft(data: Record<string, any>) {
+		title = data.title || '';
+		issuer = data.issuer || '';
+		awardedAt = data.awardedAt || '';
+		description = data.description || '';
+		url = data.url || '';
+		visibility = data.visibility || 'public';
+		isDraft = data.isDraft || false;
+		sortOrder = data.sortOrder || 0;
+	}
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingAward, editingAward?.id);
 		}
-		showForm = true;
 	}
-	showRecoveryBanner = false;
-}
 
-function handleDismissDraft() {
-	autosave.clearDraft();
-	showRecoveryBanner = false;
-	recoveryData = null;
-}
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const award = awards.find((a) => a.id === draft.editingId);
+				if (award) editingAward = award;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
 
-afterNavigate(() => {
-	showForm = false;
-	editingAward = null;
-	selectMode = false;
-	selectedIds = new Set();
-	
-	const draft = autosave.loadDraft();
-	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
-		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
-		showRecoveryBanner = true;
-	} else {
+	function handleDismissDraft() {
+		autosave.clearDraft();
 		showRecoveryBanner = false;
 		recoveryData = null;
 	}
-});
 
-onMount(loadAwards);
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingAward = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		const draft = autosave.loadDraft();
+		if (draft?.data && Object.values(draft.data).some((v) => v !== '' && v !== false && v !== 0)) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
+	});
+
+	onMount(loadAwards);
 
 	async function loadAwards() {
 		loading = true;
@@ -254,8 +256,13 @@ onMount(loadAwards);
 		selectedIds = selectedIds;
 	}
 
-	function selectAll() { selectedIds = new Set(awards.map(e => e.id)); }
-	function clearSelection() { selectedIds = new Set(); }
+	function selectAll() {
+		selectedIds = new Set(awards.map((e) => e.id));
+	}
+
+	function clearSelection() {
+		selectedIds = new Set();
+	}
 
 	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
 		const ids = Array.from(selectedIds);
@@ -305,8 +312,8 @@ onMount(loadAwards);
 		<BulkActionBar
 			selectedCount={selectedIds.size}
 			totalCount={awards.length}
-			on:selectAll={selectAll}
-			on:clearSelection={clearSelection}
+			on:selectAll
+			on:clearSelection
 			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
 			on:delete={bulkDelete}
 			on:cancel={toggleSelectMode}
@@ -315,22 +322,23 @@ onMount(loadAwards);
 
 	<div class="flex items-center justify-between mb-6">
 		<div>
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.awards.title')}</h1>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+				{$t('admin.content.awards.title')}
+			</h1>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
 				Showcase notable awards, honors, fellowships, and accolades.
 			</p>
 		</div>
 		<div class="flex items-center gap-2">
 			{#if awards.length > 0}
-				<button
-					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					onclick={toggleSelectMode}
-				>
+				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.awards.title').slice(0, -1) } })}
+				{$t('admin.content.common.new_button', {
+					values: { type: $t('admin.content.awards.title').slice(0, -1) }
+				})}
 			</button>
 		</div>
 	</div>
@@ -349,7 +357,11 @@ onMount(loadAwards);
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.awards.title').toLowerCase() } })}</div>
+			<div class="animate-pulse">
+				{$t('admin.content.common.loading', {
+					values: { type: $t('admin.content.awards.title').toLowerCase() }
+				})}
+			</div>
 		</div>
 	{:else if showForm}
 		<!-- Award Form (Inline) -->
@@ -359,9 +371,26 @@ onMount(loadAwards);
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingAward ? 'Edit Award' : 'New Award'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('shared.aria.close_form')}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+
+					<button
+						type="button"
+						class="text-gray-500 hover:text-gray-700"
+						onclick={closeForm}
+						aria-label={$t('shared.aria.close_form')}
+					>
+						<svg
+							class="w-5 h-5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							></path>
 						</svg>
 					</button>
 				</div>
@@ -403,7 +432,12 @@ onMount(loadAwards);
 
 				<div>
 					<label for="description" class="label">Description</label>
-					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="80px" placeholder="Optional summary or citation" />
+					<MarkdownEditor
+						bind:value={description}
+						toolbar="compact"
+						minHeight="80px"
+						placeholder="Optional summary or citation"
+					/>
 				</div>
 
 				<div>
@@ -426,13 +460,7 @@ onMount(loadAwards);
 
 						<div>
 							<label for="sort_order" class="label">Sort Order</label>
-							<input
-								type="number"
-								id="sort_order"
-								bind:value={sortOrder}
-								class="input"
-								min="0"
-							/>
+							<input type="number" id="sort_order" bind:value={sortOrder} class="input" min="0" />
 							<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
 						</div>
 					</div>
@@ -456,8 +484,19 @@ onMount(loadAwards);
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					{editingAward ? 'Update Award' : 'Create Award'}
@@ -466,23 +505,43 @@ onMount(loadAwards);
 		</form>
 	{:else if awards.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No awards yet</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your awards, honors, fellowships, and recognitions.
 			</p>
-			<button class="btn btn-primary" onclick={openNewForm}>
-				+ Add Your First Award
-			</button>
+			<button class="btn btn-primary" onclick={openNewForm}> + Add Your First Award </button>
 		</div>
 	{:else if filteredAwards.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				></path>
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No awards match your filters</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+				No awards match your filters
+			</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Try adjusting your search or filter criteria.
 			</p>
@@ -494,7 +553,11 @@ onMount(loadAwards);
 		<!-- Awards List -->
 		<div class="space-y-3">
 			{#each filteredAwards as award (award.id)}
-				<div class="card p-4 {selectMode && selectedIds.has(award.id) ? 'ring-2 ring-primary-500' : ''}">
+				<div
+					class="card p-4 {selectMode && selectedIds.has(award.id)
+						? 'ring-2 ring-primary-500'
+						: ''}"
+				>
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
 							<input
@@ -510,12 +573,16 @@ onMount(loadAwards);
 									{award.title}
 								</h3>
 								{#if award.is_draft}
-									<span class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
+									>
 										Draft
 									</span>
 								{/if}
 								{#if award.visibility !== 'public'}
-									<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+									>
 										{award.visibility}
 									</span>
 								{/if}
@@ -543,14 +610,21 @@ onMount(loadAwards);
 								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
 							{/if}
 
-							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+							<div
+								class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+							>
 								{#if award.issuer}
 									<span>{award.issuer}</span>
 								{/if}
 								{#if award.awarded_at}
 									<span class="flex items-center gap-1">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+											></path>
 										</svg>
 										{formatDate(award.awarded_at, { month: 'long', year: 'numeric' })}
 									</span>
@@ -565,9 +639,19 @@ onMount(loadAwards);
 
 							{#if award.url}
 								<div class="mt-2">
-									<a href={award.url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+									<a
+										href={award.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+									>
 										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+											></path>
 										</svg>
 										View announcement
 									</a>
@@ -582,7 +666,12 @@ onMount(loadAwards);
 								title="Edit"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+									></path>
 								</svg>
 							</button>
 							<button
@@ -591,7 +680,12 @@ onMount(loadAwards);
 								title="Delete"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+									></path>
 								</svg>
 							</button>
 						</div>

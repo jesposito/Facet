@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { pb, currentUser, markFreshLogin } from '$lib/pocketbase';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { get } from 'svelte/store';

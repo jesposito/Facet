@@ -3,7 +3,7 @@
  * Used by AdminSidebar and About page
  */
 import { writable, get } from 'svelte/store';
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 const CACHE_KEY = 'facet_version_check';
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours

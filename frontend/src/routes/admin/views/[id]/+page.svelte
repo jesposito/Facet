@@ -3,9 +3,22 @@
 
 	const bubble = createBubbler();
 	import { onMount, onDestroy, tick } from 'svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto, afterNavigate } from '$app/navigation';
-	import { pb, type View, type ViewSection, type ItemConfig, type Profile, type SectionWidth, type ShareToken, OVERRIDABLE_FIELDS, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
+	import {
+		pb,
+		type View,
+		type ViewSection,
+		type ItemConfig,
+		type Profile,
+		type SectionWidth,
+		type ShareToken,
+		OVERRIDABLE_FIELDS,
+		VALID_LAYOUTS,
+		VALID_WIDTHS,
+		getValidWidthsForLayout,
+		isWidthValidForLayout
+	} from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -21,7 +34,11 @@
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import type { OverrideEditorState, ResumeGenerationConfig, ExportRecord } from '$lib/view-editor/types';
+	import type {
+		OverrideEditorState,
+		ResumeGenerationConfig,
+		ExportRecord
+	} from '$lib/view-editor/types';
 
 	// Default section definitions - used to initialize and provide labels
 	const SECTION_DEFS: Record<string, { label: string; collection: string }> = {
@@ -38,7 +55,18 @@
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = [
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'testimonials',
+		'contacts'
+	];
 
 	// Custom content items (each becomes its own section)
 	// Includes full data for preview rendering
@@ -57,7 +85,9 @@
 
 	// Dynamic section definitions (includes custom content)
 	let allSectionDefs = $derived(() => {
-		const defs: Record<string, { label: string; collection: string; isCustom?: boolean }> = { ...SECTION_DEFS };
+		const defs: Record<string, { label: string; collection: string; isCustom?: boolean }> = {
+			...SECTION_DEFS
+		};
 		for (const item of customContentItems) {
 			defs[`custom:${item.id}`] = {
 				label: item.title,
@@ -111,42 +141,52 @@
 	let heroSpacing: string | null = $state(null);
 	let heroBgColor: string = $state('');
 	let heroBgError: string = $state('');
-	let inheritedHeroSpacing = $derived((profile as unknown as { hero_spacing?: string } | null)?.hero_spacing || 'default');
-	let inheritedHeroBgColor = $derived((profile as unknown as { hero_bg_color?: string } | null)?.hero_bg_color || '');
+	let inheritedHeroSpacing = $derived(
+		(profile as unknown as { hero_spacing?: string } | null)?.hero_spacing || 'default'
+	);
+	let inheritedHeroBgColor = $derived(
+		(profile as unknown as { hero_bg_color?: string } | null)?.hero_bg_color || ''
+	);
 	let heroImageUrl: string | null = $state(null);
 	let heroImageFile: File | null = null;
 	let heroBlobUrl: string | null = null;
 
 	// Sections configuration with itemConfig, layout, and width support
-	let sections: Record<string, {
-		enabled: boolean;
-		items: string[];
-		expanded: boolean;
-		layout: string;
-		width: SectionWidth;
-		itemConfig: Record<string, ItemConfig>;
-		categoryOrder?: string[];
-		disabledCategories?: string[];
-		categoryDisplayModes?: Record<string, string>;
-		featuredId?: string;
-		list?: string;
-	}> = $state({});
+	let sections: Record<
+		string,
+		{
+			enabled: boolean;
+			items: string[];
+			expanded: boolean;
+			layout: string;
+			width: SectionWidth;
+			itemConfig: Record<string, ItemConfig>;
+			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
+			featuredId?: string;
+			list?: string;
+		}
+	> = $state({});
 
 	// Section order for drag-drop (array of section keys with unique ids for dndzone)
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
 	const flipDurationMs = 200;
 
 	// Available items for each section (full data for override editing)
-	let sectionItems: Record<string, Array<{
-		id: string;
-		label: string;
-		visibility: string;
-		is_draft?: boolean;
-		data: Record<string, unknown>;
-		expand?: {
-			admin_tags?: Array<{ id: string; name: string; color: string }>;
-		};
-	}>> = $state({});
+	let sectionItems: Record<
+		string,
+		Array<{
+			id: string;
+			label: string;
+			visibility: string;
+			is_draft?: boolean;
+			data: Record<string, unknown>;
+			expand?: {
+				admin_tags?: Array<{ id: string; name: string; color: string }>;
+			};
+		}>
+	> = $state({});
 
 	// Override editor state
 	let showOverrideEditor = $state(false);
@@ -169,8 +209,6 @@
 	let newTokenExpires = $state('');
 	let newTokenMaxUses = $state(0);
 	let createdTokenUrl: string | null = $state(null);
-
-
 
 	onMount(async () => {
 		mounted = true;
@@ -198,29 +236,29 @@
 	});
 
 	// Reload view data when navigating between different views (e.g., clicking facets in sidebar)
-	afterNavigate(({ from, to }) => {
+	afterNavigate(({ from, to, shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		const fromId = from?.params?.id;
 		const toId = to?.params?.id;
 		// Only reload if navigating between different view IDs
 		if (fromId && toId && fromId !== toId) {
 			loading = true;
 			// Load custom content FIRST since initializeSections() needs it
-			loadCustomContentItems().then(() => {
-				return Promise.all([
-					loadView(),
-					loadSectionItems(),
-					loadViewTokens()
-				]);
-			}).then(async () => {
-				// Wait for Svelte to process reactive updates before reordering
-				await tick();
-				applySavedItemOrder();
-			}).finally(() => {
-				loading = false;
-			});
+			loadCustomContentItems()
+				.then(() => {
+					return Promise.all([loadView(), loadSectionItems(), loadViewTokens()]);
+				})
+				.then(async () => {
+					// Wait for Svelte to process reactive updates before reordering
+					await tick();
+					applySavedItemOrder();
+				})
+				.finally(() => {
+					loading = false;
+				});
 		}
 	});
-
 
 	async function loadProfile() {
 		try {
@@ -244,10 +282,9 @@
 	// Load custom content items - each becomes its own section
 	async function loadCustomContentItems() {
 		try {
-			const records = await collection('custom_content').getList(1, 100, {
-				sort: 'sort_order'
-			});
-			customContentItems = records.items.map(item => {
+			const records = await collection('custom_content').getList(1, 100, { sort: 'sort_order' });
+
+			customContentItems = records.items.map((item) => {
 				const record = item as any;
 				const collectionId = record.collectionId || 'custom_content';
 
@@ -260,8 +297,8 @@
 				// Build media URLs if exist
 				let media_urls: string[] | undefined;
 				if (record.media && Array.isArray(record.media) && record.media.length > 0) {
-					media_urls = record.media.map((filename: string) =>
-						`/api/files/${collectionId}/${record.id}/${filename}`
+					media_urls = record.media.map(
+						(filename: string) => `/api/files/${collectionId}/${record.id}/${filename}`
 					);
 				}
 
@@ -328,7 +365,7 @@
 	 */
 	async function handleResumeGenerate(config: ResumeGenerationConfig): Promise<void> {
 		if (!slug) return;
-		
+
 		console.log('[AI-PRINT] Starting generation for:', slug);
 		const response = await fetch(`/api/view/${slug}/generate`, {
 			method: 'POST',
@@ -350,13 +387,16 @@
 		showGenerateModal = false;
 
 		// Add new export to list
-		exports = [{
-			id: data.export_id,
-			format: data.format,
-			status: data.status,
-			generated_at: data.generated_at,
-			download_url: data.download_url
-		}, ...exports];
+		exports = [
+			{
+				id: data.export_id,
+				format: data.format,
+				status: data.status,
+				generated_at: data.generated_at,
+				download_url: data.download_url
+			},
+			...exports
+		];
 
 		// Auto-download the file
 		if (data.download_url) {
@@ -385,7 +425,7 @@
 				headers: { Authorization: pb.authStore.token || '' }
 			});
 			if (response.ok) {
-				exports = exports.filter(e => e.id !== exportId);
+				exports = exports.filter((e) => e.id !== exportId);
 				toasts.add('success', 'Export deleted');
 			} else {
 				toasts.add('error', 'Failed to delete export');
@@ -586,15 +626,27 @@
 
 	function getTokenStatusInfo(token: ShareToken): { label: string; class: string } {
 		if (!token.is_active) {
-			return { label: 'Revoked', class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+			return {
+				label: 'Revoked',
+				class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+			};
 		}
 		if (isTokenExpired(token)) {
-			return { label: 'Expired', class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' };
+			return {
+				label: 'Expired',
+				class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+			};
 		}
 		if (isTokenMaxUsesReached(token)) {
-			return { label: 'Max Uses', class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' };
+			return {
+				label: 'Max Uses',
+				class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+			};
 		}
-		return { label: 'Active', class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+		return {
+			label: 'Active',
+			class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+		};
 	}
 
 	onDestroy(() => {
@@ -635,7 +687,10 @@
 		if (!viewId) return;
 		loading = true;
 		try {
-			const record = await collection('views').getOne(viewId) as unknown as View & { collectionId: string; hero_image?: string };
+			const record = (await collection('views').getOne(viewId)) as unknown as View & {
+				collectionId: string;
+				hero_image?: string;
+			};
 			view = record as unknown as View;
 
 			name = view.name;
@@ -662,7 +717,10 @@
 
 			initializeSections(view.sections);
 		} catch (err) {
-			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+			if (
+				err instanceof Error &&
+				(err.message.includes('autocancelled') || err.name === 'AbortError')
+			) {
 				return;
 			}
 			console.error('Failed to load view:', err);
@@ -678,24 +736,42 @@
 	function initializeSections(viewSections?: ViewSection[]) {
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined, disabledCategories: undefined, categoryDisplayModes: undefined, featuredId: undefined };
+			sections[key] = {
+				enabled: false,
+				items: [],
+				expanded: false,
+				layout: defaultLayout,
+				width: 'full',
+				itemConfig: {},
+				categoryOrder: undefined,
+				disabledCategories: undefined,
+				categoryDisplayModes: undefined,
+				featuredId: undefined
+			};
 		}
 
 		for (const item of customContentItems) {
 			const sectionKey = `custom:${item.id}`;
 			const defaultLayout = VALID_LAYOUTS['custom']?.default || 'default';
-			sections[sectionKey] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
+			sections[sectionKey] = {
+				enabled: false,
+				items: [],
+				expanded: false,
+				layout: defaultLayout,
+				width: 'full',
+				itemConfig: {}
+			};
 		}
 
-		const customSectionKeys = customContentItems.map(item => `custom:${item.id}`);
+		const customSectionKeys = customContentItems.map((item) => `custom:${item.id}`);
 		const allAvailableSections = [...DEFAULT_SECTION_ORDER, ...customSectionKeys];
 
 		if (viewSections && viewSections.length > 0) {
-			const savedOrder = viewSections.map(vs => vs.section);
-			const remainingSections = allAvailableSections.filter(k => !savedOrder.includes(k));
+			const savedOrder = viewSections.map((vs) => vs.section);
+			const remainingSections = allAvailableSections.filter((k) => !savedOrder.includes(k));
 			const fullOrder = [...savedOrder, ...remainingSections];
 
-			sectionOrder = fullOrder.map(key => ({ id: `section-${key}`, key }));
+			sectionOrder = fullOrder.map((key) => ({ id: `section-${key}`, key }));
 
 			for (const vs of viewSections) {
 				if (sections[vs.section] !== undefined) {
@@ -713,7 +789,7 @@
 				}
 			}
 		} else {
-			sectionOrder = allAvailableSections.map(key => ({ id: `section-${key}`, key }));
+			sectionOrder = allAvailableSections.map((key) => ({ id: `section-${key}`, key }));
 		}
 		updateSections();
 	}
@@ -734,8 +810,8 @@
 					id: item.id,
 					label: getItemLabel(key, item),
 					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: (item as Record<string, unknown>).visibility as string || 'private',
-					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					visibility: ((item as Record<string, unknown>).visibility as string) || 'private',
+					is_draft: ((item as Record<string, unknown>).is_draft as boolean) || false,
 					data: item as Record<string, unknown>,
 					expand: (item as any).expand || {}
 				}));
@@ -746,8 +822,6 @@
 		}
 		updateSectionItems();
 	}
-
-
 
 	function getItemLabel(sectionKey: string, item: Record<string, unknown>): string {
 		switch (sectionKey) {
@@ -772,7 +846,7 @@
 			case 'testimonials':
 				return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
 			default:
-				return item.title as string || item.name as string || item.id as string;
+				return (item.title as string) || (item.name as string) || (item.id as string);
 		}
 	}
 
@@ -786,8 +860,6 @@
 		sectionItems = { ...sectionItems };
 	}
 
-
-
 	function generateSlug(value: string): string {
 		return value
 			.toLowerCase()
@@ -799,17 +871,17 @@
 	async function enableItemsForView(sectionsData: ViewSection[]) {
 		for (const section of sectionsData) {
 			if (!section.enabled || !section.items?.length) continue;
-			
+
 			const collectionName = SECTION_DEFS[section.section]?.collection;
 			if (!collectionName) continue;
 
 			for (const itemId of section.items) {
-				const item = sectionItems[section.section]?.find(i => i.id === itemId);
+				const item = sectionItems[section.section]?.find((i) => i.id === itemId);
 				if (!item) continue;
 
 				const isPrivate = item.visibility === 'private';
 				const isDraft = item.is_draft === true;
-				
+
 				if (isPrivate || isDraft) {
 					const currentViewVis = (item.data.view_visibility as Record<string, boolean>) || {};
 					if (!currentViewVis[viewId]) {
@@ -836,52 +908,54 @@
 		try {
 			// Build sections array in current order with itemConfig, layout, and width
 			// Important: We save ALL sections in order (enabled + disabled) so order is preserved
-			const sectionsData: ViewSection[] = sectionOrder
-				.map(({ key }) => {
-					const sectionConfig = sections[key];
-					const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-					const sectionData: ViewSection = {
-						section: key,
-						enabled: sectionConfig?.enabled || false,
-						items: sectionConfig?.items || [],
-						layout: sectionConfig?.layout || defaultLayout,
-						width: sectionConfig?.width || 'full'
-					};
-					// Only include itemConfig if there are overrides
-					const itemConfig = sectionConfig?.itemConfig;
-					if (itemConfig && Object.keys(itemConfig).length > 0) {
-						// Filter out empty configs
-						const filteredConfig: Record<string, ItemConfig> = {};
-						for (const [itemId, config] of Object.entries(itemConfig)) {
-							if (config.overrides && Object.keys(config.overrides).length > 0) {
-								filteredConfig[itemId] = config;
-							}
-						}
-						if (Object.keys(filteredConfig).length > 0) {
-							sectionData.itemConfig = filteredConfig;
+			const sectionsData: ViewSection[] = sectionOrder.map(({ key }) => {
+				const sectionConfig = sections[key];
+				const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
+				const sectionData: ViewSection = {
+					section: key,
+					enabled: sectionConfig?.enabled || false,
+					items: sectionConfig?.items || [],
+					layout: sectionConfig?.layout || defaultLayout,
+					width: sectionConfig?.width || 'full'
+				};
+				// Only include itemConfig if there are overrides
+				const itemConfig = sectionConfig?.itemConfig;
+				if (itemConfig && Object.keys(itemConfig).length > 0) {
+					// Filter out empty configs
+					const filteredConfig: Record<string, ItemConfig> = {};
+					for (const [itemId, config] of Object.entries(itemConfig)) {
+						if (config.overrides && Object.keys(config.overrides).length > 0) {
+							filteredConfig[itemId] = config;
 						}
 					}
-					// Include skills section settings if set
-					if (key === 'skills') {
-						if (sectionConfig?.categoryOrder?.length) {
-							sectionData.categoryOrder = sectionConfig.categoryOrder;
-						}
-						if (sectionConfig?.disabledCategories?.length) {
-							sectionData.disabledCategories = sectionConfig.disabledCategories;
-						}
-						if (sectionConfig?.categoryDisplayModes && Object.keys(sectionConfig.categoryDisplayModes).length > 0) {
-							sectionData.categoryDisplayModes = sectionConfig.categoryDisplayModes;
-						}
+					if (Object.keys(filteredConfig).length > 0) {
+						sectionData.itemConfig = filteredConfig;
 					}
-					// Include testimonials section settings if set
-					if (key === 'testimonials' && sectionConfig?.list) {
-						sectionData.list = sectionConfig.list;
+				}
+				// Include skills section settings if set
+				if (key === 'skills') {
+					if (sectionConfig?.categoryOrder?.length) {
+						sectionData.categoryOrder = sectionConfig.categoryOrder;
 					}
-					if (key === 'testimonials' && sectionConfig?.featuredId) {
-						sectionData.featuredId = sectionConfig.featuredId;
+					if (sectionConfig?.disabledCategories?.length) {
+						sectionData.disabledCategories = sectionConfig.disabledCategories;
 					}
-					return sectionData;
-				});
+					if (
+						sectionConfig?.categoryDisplayModes &&
+						Object.keys(sectionConfig.categoryDisplayModes).length > 0
+					) {
+						sectionData.categoryDisplayModes = sectionConfig.categoryDisplayModes;
+					}
+				}
+				// Include testimonials section settings if set
+				if (key === 'testimonials' && sectionConfig?.list) {
+					sectionData.list = sectionConfig.list;
+				}
+				if (key === 'testimonials' && sectionConfig?.featuredId) {
+					sectionData.featuredId = sectionConfig.featuredId;
+				}
+				return sectionData;
+			});
 
 			const formData = new FormData();
 			formData.append('name', name.trim());
@@ -900,8 +974,11 @@
 			formData.append('accent_color', accentColor || '');
 			formData.append('font_pack', fontPack || '');
 			formData.append('hero_layout', heroLayout || '');
-		formData.append('hero_spacing', heroSpacing || '');
-		formData.append('hero_bg_color', heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : '');
+			formData.append('hero_spacing', heroSpacing || '');
+			formData.append(
+				'hero_bg_color',
+				heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : ''
+			);
 
 			if (visibility === 'password' && password.trim()) {
 				formData.append('password', password.trim());
@@ -931,7 +1008,7 @@
 
 	// Override editor functions
 	function openOverrideEditor(sectionKey: string, itemId: string) {
-		const item = sectionItems[sectionKey]?.find(i => i.id === itemId);
+		const item = sectionItems[sectionKey]?.find((i) => i.id === itemId);
 		if (!item) return;
 
 		const existingConfig = sections[sectionKey]?.itemConfig?.[itemId];
@@ -940,9 +1017,7 @@
 			itemId,
 			itemLabel: item.label,
 			originalData: item.data,
-			overrides: existingConfig?.overrides
-				? { ...existingConfig.overrides }
-				: {}
+			overrides: existingConfig?.overrides ? { ...existingConfig.overrides } : {}
 		};
 		showOverrideEditor = true;
 	}
@@ -977,10 +1052,6 @@
 		toasts.add('success', 'Overrides saved');
 	}
 
-
-
-
-
 	// Apply saved item order to sectionItems after loading
 	// Selected items appear first (in saved order), then unselected items (in original order)
 	function applySavedItemOrder() {
@@ -993,7 +1064,7 @@
 			if (savedOrder.length === 0 || allItems.length === 0) continue;
 
 			// Create a map for quick lookup
-			const itemMap = new Map(allItems.map(item => [item.id, item]));
+			const itemMap = new Map(allItems.map((item) => [item.id, item]));
 
 			// Build reordered array: selected items first (in saved order), then unselected
 			const selectedItems: typeof allItems = [];
@@ -1005,7 +1076,7 @@
 			}
 
 			const selectedSet = new Set(savedOrder);
-			const unselectedItems = allItems.filter(item => !selectedSet.has(item.id));
+			const unselectedItems = allItems.filter((item) => !selectedSet.has(item.id));
 
 			sectionItems[key] = [...selectedItems, ...unselectedItems];
 			didUpdate = true;
@@ -1016,7 +1087,7 @@
 		}
 	}
 
-	let viewId = $derived($page.params.id as string);
+	let viewId = $derived(page.params.id as string);
 </script>
 
 <svelte:head>
@@ -1030,29 +1101,70 @@
 		</div>
 	{:else}
 		<!-- Sticky save header (cloud parity) -->
-		<div class="sticky top-16 z-10 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 px-4 py-3 -mx-4 -mt-4 lg:-mt-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+		<div
+			class="sticky top-16 z-10 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 px-4 py-3 -mx-4 -mt-4 lg:-mt-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+		>
 			<div class="flex items-center gap-4 min-w-0">
-				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label={$t('admin.views.back_to_views')}>
-					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				<a
+					href="/admin/views"
+					class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+					aria-label={$t('admin.views.back_to_views')}
+				>
+					<svg
+						class="w-5 h-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 19l-7-7 7-7"
+						></path>
 					</svg>
 				</a>
-				<h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">Edit Facet</h1>
+				<h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
+					Edit Facet
+				</h1>
 			</div>
 			<div class="flex items-center gap-2 flex-wrap">
 				<!-- Preview Toggle - hidden on mobile since preview is collapsible -->
 				<button
 					type="button"
 					class="btn btn-ghost hidden lg:flex items-center gap-2"
-					onclick={() => showPreview = !showPreview}
+					onclick={() => (showPreview = !showPreview)}
 					title={showPreview ? 'Hide preview' : 'Show preview'}
 				>
-					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<svg
+						class="w-5 h-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
 						{#if showPreview}
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+							></path>
 						{:else}
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+							></path>
+
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+							></path>
 						{/if}
 					</svg>
 					<span>{showPreview ? 'Hide' : 'Show'} Preview</span>
@@ -1065,20 +1177,55 @@
 					<button
 						type="button"
 						class="btn btn-secondary text-sm flex items-center gap-1 sm:gap-2"
-						onclick={() => showGenerateModal = true}
-						title={aiPrintStatus.pandoc_installed ? "Generate AI-powered resume" : "Generate Resume (Pandoc not installed)"}
+						onclick={() => (showGenerateModal = true)}
+						title={aiPrintStatus.pandoc_installed
+							? 'Generate AI-powered resume'
+							: 'Generate Resume (Pandoc not installed)'}
 					>
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+						<svg
+							class="w-4 h-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+							></path>
 						</svg>
 						<span class="hidden sm:inline">Generate Resume</span>
 					</button>
 				{/if}
-				<button type="button" class="btn btn-primary text-sm" onclick={handleSubmit} disabled={saving} aria-busy={saving}>
+				<button
+					type="button"
+					class="btn btn-primary text-sm"
+					onclick={handleSubmit}
+					disabled={saving}
+					aria-busy={saving}
+				>
 					{#if saving}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						<svg
+							class="animate-spin -ml-1 mr-2 h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					Save
@@ -1090,729 +1237,869 @@
 		<div class="editor-layout" class:with-preview={showPreview}>
 			<!-- Editor Pane -->
 			<div class="editor-pane">
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 sm:space-y-6">
-			<!-- Basic Info -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<ViewBasicInfo
-					bind:name
-					bind:slug
-					bind:description
-					bind:visibility
-					bind:password
-					{view}
-				/>
+				<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 sm:space-y-6">
+					<!-- Basic Info -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<ViewBasicInfo
+							bind:name
+							bind:slug
+							bind:description
+							bind:visibility
+							bind:password
+							{view}
+						/>
 
-				<!-- Inline Share Token Generation Panel -->
-				{#if visibility === 'unlisted' || visibility === 'private'}
-					<div class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-						<div class="flex items-center gap-2 mb-3">
-							{@html icon('link')}
-							<h3 class="font-medium text-gray-900 dark:text-white">Generate Share Link</h3>
-						</div>
-						<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-							{visibility === 'unlisted'
-								? 'This view is unlisted — only people with a share link can access it.'
-								: 'This view is private — generate a share link for specific access.'}
-						</p>
+						<!-- Inline Share Token Generation Panel -->
+						{#if visibility === 'unlisted' || visibility === 'private'}
+							<div
+								class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+							>
+								<div class="flex items-center gap-2 mb-3">
+									{@html icon('link')}
+									<h3 class="font-medium text-gray-900 dark:text-white">Generate Share Link</h3>
+								</div>
+								<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+									{visibility === 'unlisted'
+										? 'This view is unlisted — only people with a share link can access it.'
+										: 'This view is private — generate a share link for specific access.'}
+								</p>
 
-						<!-- Newly Created Token Banner -->
-						{#if createdTokenUrl}
-							<div class="p-3 mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-								<div class="flex items-start justify-between gap-2">
-									<div class="flex-1 min-w-0">
-										<p class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
-											{@html icon('check')} Share link created!
-										</p>
-										<p class="text-xs text-green-700 dark:text-green-300 mb-2">
-											Copy this link now — for security, the full token won't be shown again.
-										</p>
-										<div class="flex items-center gap-2">
-											<input
-												type="text"
-												readonly
-												value={createdTokenUrl}
-												class="flex-1 min-w-0 px-2 py-1 text-sm font-mono bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded truncate"
-											/>
+								<!-- Newly Created Token Banner -->
+								{#if createdTokenUrl}
+									<div
+										class="p-3 mb-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+									>
+										<div class="flex items-start justify-between gap-2">
+											<div class="flex-1 min-w-0">
+												<p class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+													{@html icon('check')} Share link created!
+												</p>
+												<p class="text-xs text-green-700 dark:text-green-300 mb-2">
+													Copy this link now — for security, the full token won't be shown again.
+												</p>
+												<div class="flex items-center gap-2">
+													<input
+														type="text"
+														readonly
+														value={createdTokenUrl}
+														class="flex-1 min-w-0 px-2 py-1 text-sm font-mono bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 rounded truncate"
+													/>
+													<button
+														type="button"
+														class="btn btn-sm btn-secondary shrink-0"
+														onclick={() => copyShareUrl(createdTokenUrl || '')}
+													>
+														{@html icon('copy')} Copy
+													</button>
+												</div>
+											</div>
 											<button
 												type="button"
-												class="btn btn-sm btn-secondary shrink-0"
-												onclick={() => copyShareUrl(createdTokenUrl || '')}
+												class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+												onclick={dismissCreatedToken}
 											>
-												{@html icon('copy')} Copy
+												{@html icon('x')}
 											</button>
 										</div>
 									</div>
-									<button
-										type="button"
-										class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
-										onclick={dismissCreatedToken}
+								{/if}
+
+								<!-- Generate Token Form -->
+								{#if showTokenForm}
+									<div
+										class="space-y-3 mb-4 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
 									>
-										{@html icon('x')}
-									</button>
-								</div>
-							</div>
-						{/if}
+										<div>
+											<label
+												for="token_name"
+												class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+											>
+												Name (optional)
+											</label>
+											<input
+												type="text"
+												id="token_name"
+												bind:value={newTokenName}
+												placeholder="e.g., Sent to Company X"
+												class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+											/>
+											<p class="text-xs text-gray-500 mt-1">
+												A label to help you remember who this link was shared with.
+											</p>
+										</div>
 
-						<!-- Generate Token Form -->
-						{#if showTokenForm}
-							<div class="space-y-3 mb-4 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-								<div>
-									<label for="token_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-										Name (optional)
-									</label>
-									<input
-										type="text"
-										id="token_name"
-										bind:value={newTokenName}
-										placeholder="e.g., Sent to Company X"
-										class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
-									/>
-									<p class="text-xs text-gray-500 mt-1">A label to help you remember who this link was shared with.</p>
-								</div>
-
-								<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-									<div>
-										<label for="token_expires" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-											Expiration
-										</label>
-										<input
-											type="datetime-local"
-											id="token_expires"
-											bind:value={newTokenExpires}
-											class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
-										/>
-									</div>
-									<div>
-										<label for="token_max_uses" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-											Max Uses
-										</label>
-										<input
-											type="number"
-											id="token_max_uses"
-											bind:value={newTokenMaxUses}
-											min="0"
-											placeholder="0 = unlimited"
-											class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
-										/>
-									</div>
-								</div>
-
-								<div class="flex justify-end gap-2 pt-2">
-									<button type="button" class="btn btn-sm btn-ghost" onclick={resetTokenForm}>
-										Cancel
-									</button>
-									<button
-										type="button"
-										class="btn btn-sm btn-primary"
-										onclick={generateShareToken}
-										disabled={generatingToken}
-									>
-										{#if generatingToken}
-											Generating...
-										{:else}
-											Generate Link
-										{/if}
-									</button>
-								</div>
-							</div>
-						{:else}
-							<button
-								type="button"
-								class="btn btn-primary"
-								onclick={() => showTokenForm = true}
-							>
-								{@html icon('plus')} Generate Share Link
-							</button>
-						{/if}
-
-						<!-- Existing Tokens for this View -->
-						{#if viewTokens.length > 0}
-							<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-								<div class="flex items-center justify-between mb-2">
-									<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-										Existing Share Links ({viewTokens.length})
-									</h4>
-									<a href="/admin/tokens" class="text-xs text-primary-600 hover:underline">
-										Manage all →
-									</a>
-								</div>
-								<div class="space-y-2">
-									{#each viewTokens.slice(0, 3) as token}
-										{@const status = getTokenStatusInfo(token)}
-										<div class="flex items-center justify-between p-2 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
-											<div class="flex items-center gap-2 min-w-0">
-												<span class="px-1.5 py-0.5 text-xs rounded {status.class}">
-													{status.label}
-												</span>
-												<span class="text-sm text-gray-700 dark:text-gray-300 truncate">
-													{token.name || 'Unnamed link'}
-												</span>
-												{#if token.token_prefix}
-													<code class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-1 rounded">
-														{token.token_prefix}...
-													</code>
-												{/if}
+										<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+											<div>
+												<label
+													for="token_expires"
+													class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+												>
+													Expiration
+												</label>
+												<input
+													type="datetime-local"
+													id="token_expires"
+													bind:value={newTokenExpires}
+													class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+												/>
 											</div>
-											<div class="flex items-center gap-1 shrink-0">
-												<span class="text-xs text-gray-500">
-													{token.use_count} use{token.use_count !== 1 ? 's' : ''}
-												</span>
-												{#if token.is_active && !isTokenExpired(token) && !isTokenMaxUsesReached(token)}
-													<button
-														type="button"
-														class="p-1 text-primary-600 hover:text-primary-700 dark:text-primary-400"
-														onclick={() => regenerateViewToken(token)}
-														title="Regenerate link (revokes old, creates new)"
-													>
-														<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
-													</button>
-													<button
-														type="button"
-														class="p-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
-														onclick={() => revokeViewToken(token.id)}
-														title="Revoke link"
-													>
-														{@html icon('lock')}
-													</button>
-												{/if}
+											<div>
+												<label
+													for="token_max_uses"
+													class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+												>
+													Max Uses
+												</label>
+												<input
+													type="number"
+													id="token_max_uses"
+													bind:value={newTokenMaxUses}
+													min="0"
+													placeholder="0 = unlimited"
+													class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+												/>
 											</div>
 										</div>
-									{/each}
-									{#if viewTokens.length > 3}
-										<p class="text-xs text-gray-500 text-center">
-											+{viewTokens.length - 3} more — <a href="/admin/tokens" class="text-primary-600 hover:underline">view all</a>
-										</p>
-									{/if}
+
+										<div class="flex justify-end gap-2 pt-2">
+											<button type="button" class="btn btn-sm btn-ghost" onclick={resetTokenForm}
+												>Cancel</button
+											>
+
+											<button
+												type="button"
+												class="btn btn-sm btn-primary"
+												onclick={generateShareToken}
+												disabled={generatingToken}
+											>
+												{#if generatingToken}
+													Generating...
+												{:else}
+													Generate Link
+												{/if}
+											</button>
+										</div>
+									</div>
+								{:else}
+									<button
+										type="button"
+										class="btn btn-primary"
+										onclick={() => (showTokenForm = true)}
+									>
+										{@html icon('plus')} Generate Share Link
+									</button>
+								{/if}
+
+								<!-- Existing Tokens for this View -->
+								{#if viewTokens.length > 0}
+									<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+										<div class="flex items-center justify-between mb-2">
+											<h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+												Existing Share Links ({viewTokens.length})
+											</h4>
+											<a href="/admin/tokens" class="text-xs text-primary-600 hover:underline">
+												Manage all →
+											</a>
+										</div>
+										<div class="space-y-2">
+											{#each viewTokens.slice(0, 3) as token}
+												{@const status = getTokenStatusInfo(token)}
+												<div
+													class="flex items-center justify-between p-2 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+												>
+													<div class="flex items-center gap-2 min-w-0">
+														<span class="px-1.5 py-0.5 text-xs rounded {status.class}">
+															{status.label}
+														</span>
+														<span class="text-sm text-gray-700 dark:text-gray-300 truncate">
+															{token.name || 'Unnamed link'}
+														</span>
+														{#if token.token_prefix}
+															<code
+																class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-1 rounded"
+															>
+																{token.token_prefix}...
+															</code>
+														{/if}
+													</div>
+													<div class="flex items-center gap-1 shrink-0">
+														<span class="text-xs text-gray-500">
+															{token.use_count} use{token.use_count !== 1 ? 's' : ''}
+														</span>
+														{#if token.is_active && !isTokenExpired(token) && !isTokenMaxUsesReached(token)}
+															<button
+																type="button"
+																class="p-1 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+																onclick={() => regenerateViewToken(token)}
+																title="Regenerate link (revokes old, creates new)"
+															>
+																<svg
+																	xmlns="http://www.w3.org/2000/svg"
+																	width="16"
+																	height="16"
+																	viewBox="0 0 24 24"
+																	fill="none"
+																	stroke="currentColor"
+																	stroke-width="2"
+																	stroke-linecap="round"
+																	stroke-linejoin="round"
+																	><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"
+																	></path><path d="M3 22v-6h6"></path><path
+																		d="M21 12a9 9 0 0 1-15 6.7L3 16"
+																	></path></svg
+																>
+															</button>
+															<button
+																type="button"
+																class="p-1 text-yellow-600 hover:text-yellow-700 dark:text-yellow-400"
+																onclick={() => revokeViewToken(token.id)}
+																title="Revoke link"
+															>
+																{@html icon('lock')}
+															</button>
+														{/if}
+													</div>
+												</div>
+											{/each}
+											{#if viewTokens.length > 3}
+												<p class="text-xs text-gray-500 text-center">
+													+{viewTokens.length - 3} more —
+													<a href="/admin/tokens" class="text-primary-600 hover:underline"
+														>view all</a
+													>
+												</p>
+											{/if}
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Hero Overrides -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
+						<p class="text-sm text-gray-500 -mt-2">
+							Override your profile's hero image, headline and summary for this view
+						</p>
+
+						<div>
+							<span class="label">Hero Image</span>
+							<div class="space-y-3">
+								{#if heroImageUrl}
+									<div class="relative">
+										<img
+											src={heroImageUrl}
+											alt="Hero"
+											class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+										/>
+										<button
+											type="button"
+											onclick={removeHeroImage}
+											class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+											title="Remove hero image"
+										>
+											{@html icon('x')}
+										</button>
+									</div>
+								{:else}
+									<div
+										class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400"
+									>
+										{@html icon('image')}
+									</div>
+								{/if}
+								<div>
+									<input
+										type="file"
+										id="view_hero_image"
+										accept="image/jpeg,image/png,image/webp"
+										onchange={handleHeroImageChange}
+										class="hidden"
+									/>
+									<label for="view_hero_image" class="btn btn-secondary btn-sm cursor-pointer">
+										{heroImageUrl ? 'Change' : 'Upload'} Hero Image
+									</label>
+									<p class="text-xs text-gray-500 mt-1">
+										Leave empty to use profile's hero image. JPG, PNG or WebP. Max 10MB.
+									</p>
 								</div>
 							</div>
-						{/if}
-					</div>
-				{/if}
-			</div>
-
-			<!-- Hero Overrides -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
-				<p class="text-sm text-gray-500 -mt-2">Override your profile's hero image, headline and summary for this view</p>
-
-				<div>
-					<span class="label">Hero Image</span>
-					<div class="space-y-3">
-						{#if heroImageUrl}
-							<div class="relative">
-								<img 
-									src={heroImageUrl} 
-									alt="Hero" 
-									class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-								/>
-								<button
-									type="button"
-									onclick={removeHeroImage}
-									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-									title="Remove hero image"
-								>
-									{@html icon('x')}
-								</button>
-							</div>
-						{:else}
-							<div class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
-								{@html icon('image')}
-							</div>
-						{/if}
-						<div>
-							<input
-								type="file"
-								id="view_hero_image"
-								accept="image/jpeg,image/png,image/webp"
-								onchange={handleHeroImageChange}
-								class="hidden"
-							/>
-							<label for="view_hero_image" class="btn btn-secondary btn-sm cursor-pointer">
-								{heroImageUrl ? 'Change' : 'Upload'} Hero Image
-							</label>
-							<p class="text-xs text-gray-500 mt-1">Leave empty to use profile's hero image. JPG, PNG or WebP. Max 10MB.</p>
 						</div>
-					</div>
-				</div>
 
-				<div>
-					<div class="flex items-center justify-between">
-						<label for="hero_headline" class="label">Custom Headline</label>
-						{#if heroHeadline}
-							<button
-								type="button"
-								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-								onclick={() => heroHeadline = ''}
-							>
-								Use profile value
-							</button>
-						{/if}
-					</div>
-					<input
-						type="text"
-						id="hero_headline"
-						bind:value={heroHeadline}
-						class="input"
-						placeholder="Leave empty to use profile headline"
-					/>
-					{#if profile?.headline}
-						<p class="text-xs text-gray-500 mt-1">
-							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.headline}</span>
-						</p>
-					{/if}
-				</div>
-
-				<div>
-					<div class="flex items-center justify-between">
-						<label for="hero_summary" class="label">Custom Summary</label>
-						{#if heroSummary}
-							<button
-								type="button"
-								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-								onclick={() => heroSummary = ''}
-							>
-								Use profile value
-							</button>
-						{/if}
-					</div>
-					<textarea
-						id="hero_summary"
-						bind:value={heroSummary}
-						class="input min-h-[120px]"
-						placeholder="Leave empty to use profile summary (Markdown supported)"
-					></textarea>
-				{#if profile?.summary}
-					<p class="text-xs text-gray-500 mt-1">
-						Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.summary.length > 100 ? profile.summary.substring(0, 100) + '...' : profile.summary}</span>
-					</p>
-				{/if}
-				</div>
-
-				<div>
-					<div class="flex items-center justify-between">
-						<label for="hero_location" class="label">Custom Location</label>
-						{#if heroLocation}
-							<button
-								type="button"
-								class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
-								onclick={() => heroLocation = ''}
-							>
-								Use profile value
-							</button>
-						{/if}
-					</div>
-					<input
-						type="text"
-						id="hero_location"
-						bind:value={heroLocation}
-						class="input"
-						placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
-					/>
-					{#if profile?.location}
-						<p class="text-xs text-gray-500 mt-1">
-							Profile value: <span class="text-gray-700 dark:text-gray-300">{profile.location}</span>
-						</p>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Call to Action -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<div class="flex items-start justify-between gap-4">
-					<div>
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
-						<p class="text-sm text-gray-500">Add a prominent button to this view</p>
-					</div>
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							class="sr-only peer"
-							bind:checked={ctaEnabled}
-						/>
-						<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-					</label>
-				</div>
-
-				{#if ctaEnabled}
-					<div>
-						<label for="cta_text" class="label">Description</label>
-						<input
-							type="text"
-							id="cta_text"
-							bind:value={ctaText}
-							class="input"
-							placeholder="Ready to work together?"
-						/>
-						<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
-					</div>
-
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
-							<label for="cta_button_text" class="label">Button Label</label>
+							<div class="flex items-center justify-between">
+								<label for="hero_headline" class="label">Custom Headline</label>
+								{#if heroHeadline}
+									<button
+										type="button"
+										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+										onclick={() => (heroHeadline = '')}
+									>
+										Use profile value
+									</button>
+								{/if}
+							</div>
 							<input
 								type="text"
-								id="cta_button_text"
-								bind:value={ctaButtonText}
+								id="hero_headline"
+								bind:value={heroHeadline}
 								class="input"
-								placeholder="Get in touch"
+								placeholder="Leave empty to use profile headline"
 							/>
+							{#if profile?.headline}
+								<p class="text-xs text-gray-500 mt-1">
+									Profile value: <span class="text-gray-700 dark:text-gray-300"
+										>{profile.headline}</span
+									>
+								</p>
+							{/if}
 						</div>
+
 						<div>
-							<label for="cta_url" class="label">Button URL</label>
+							<div class="flex items-center justify-between">
+								<label for="hero_summary" class="label">Custom Summary</label>
+								{#if heroSummary}
+									<button
+										type="button"
+										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+										onclick={() => (heroSummary = '')}
+									>
+										Use profile value
+									</button>
+								{/if}
+							</div>
+							<textarea
+								id="hero_summary"
+								bind:value={heroSummary}
+								class="input min-h-[120px]"
+								placeholder="Leave empty to use profile summary (Markdown supported)"></textarea>
+							{#if profile?.summary}
+								<p class="text-xs text-gray-500 mt-1">
+									Profile value: <span class="text-gray-700 dark:text-gray-300"
+										>{profile.summary.length > 100
+											? profile.summary.substring(0, 100) + '...'
+											: profile.summary}</span
+									>
+								</p>
+							{/if}
+						</div>
+
+						<div>
+							<div class="flex items-center justify-between">
+								<label for="hero_location" class="label">Custom Location</label>
+								{#if heroLocation}
+									<button
+										type="button"
+										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+										onclick={() => (heroLocation = '')}
+									>
+										Use profile value
+									</button>
+								{/if}
+							</div>
 							<input
-								type="url"
-								id="cta_url"
-								bind:value={ctaUrl}
+								type="text"
+								id="hero_location"
+								bind:value={heroLocation}
 								class="input"
-								placeholder="https://..."
+								placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
 							/>
+							{#if profile?.location}
+								<p class="text-xs text-gray-500 mt-1">
+									Profile value: <span class="text-gray-700 dark:text-gray-300"
+										>{profile.location}</span
+									>
+								</p>
+							{/if}
 						</div>
 					</div>
-				{:else}
-					<p class="text-sm text-gray-500 dark:text-gray-400 italic">
-						CTA button is disabled for this view. Enable the toggle above to configure it.
-					</p>
-				{/if}
-			</div>
 
-			<!-- Settings -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
-
-				<!-- Accent Color Override -->
-				<div class="pt-2">
-					<span class="label mb-3 block">Accent Color</span>
-					<div class="flex flex-wrap items-center gap-3" role="group" aria-label={$t('admin.view_editor.aria.accent_color_label')}>
-						<!-- Use Global Option -->
-						<button
-							type="button"
-							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
-								{accentColor === null
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => accentColor = null}
-						>
-							<div class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"></div>
-							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use global</span>
-							{#if accentColor === null}
-								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</button>
-
-						<!-- Color Swatches -->
-						{#each ACCENT_COLOR_LIST as color}
-							{@const colorInfo = ACCENT_COLORS[color]}
-							<button
-								type="button"
-								class="relative group"
-								onclick={() => accentColor = color}
-								title="{colorInfo.label} - {colorInfo.description}"
-							>
+					<!-- Call to Action -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<div class="flex items-start justify-between gap-4">
+							<div>
+								<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
+								<p class="text-sm text-gray-500">Add a prominent button to this view</p>
+							</div>
+							<label class="relative inline-flex items-center cursor-pointer">
+								<input type="checkbox" class="sr-only peer" bind:checked={ctaEnabled} />
 								<div
-									class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
-										{accentColor === color
-										? 'ring-2 ring-gray-900 dark:ring-white scale-110'
-										: 'hover:scale-105'}"
-									style="background-color: {colorInfo.scale[500]}"
-								>
-									{#if accentColor === color}
-										<div class="absolute inset-0 flex items-center justify-center">
-											<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-											</svg>
-										</div>
-									{/if}
-								</div>
-							</button>
-						{/each}
-					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if accentColor}
-							Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
-						{:else}
-							Inherits from global profile setting
-						{/if}
-					</p>
-				</div>
-
-				<!-- Font Pack Override -->
-				<div class="pt-4">
-					<span class="label mb-3 block">Typography</span>
-					<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Font pack selection">
-						<button
-							type="button"
-							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
-								{fontPack === null
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => fontPack = null}
-						>
-							<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
-							{#if fontPack === null}
-								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</button>
-
-						{#each FONT_PACK_LIST as pack}
-							{@const packInfo = FONT_PACKS[pack]}
-							<button
-								type="button"
-								class="px-3 py-2 rounded-lg border transition-all text-sm
-									{fontPack === pack
-									? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-									: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-								onclick={() => fontPack = pack}
-								title={packInfo.description}
-								aria-pressed={fontPack === pack}
-							>
-								{packInfo.label}
-							</button>
-						{/each}
-					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if fontPack}
-							Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
-						{:else}
-							Inherits typography from global profile settings
-						{/if}
-					</p>
-				</div>
-
-				<!-- Hero Layout Override -->
-				<div class="pt-4">
-					<span class="label mb-3 block">Hero Layout</span>
-					<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Hero layout selection">
-						<button
-							type="button"
-							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
-								{heroLayout === null
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => heroLayout = null}
-						>
-							<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
-							{#if heroLayout === null}
-								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</button>
-
-						{#each [
-							{ id: 'standard', label: 'Image & Gradient' },
-							{ id: 'centered', label: 'Centered' },
-							{ id: 'split', label: 'Split' },
-							{ id: 'minimal', label: 'Minimal' },
-							{ id: 'stacked', label: 'Stacked' },
-							{ id: 'rail', label: 'Rail' }
-						] as layoutOption}
-							<button
-								type="button"
-								class="px-3 py-2 rounded-lg border transition-all text-sm
-									{heroLayout === layoutOption.id
-									? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-									: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-								onclick={() => heroLayout = layoutOption.id}
-								aria-pressed={heroLayout === layoutOption.id}
-							>
-								{layoutOption.label}
-							</button>
-						{/each}
-					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if heroLayout}
-							Using <strong>{heroLayout}</strong> layout for this view
-						{:else}
-							Inherits hero layout from global profile settings
-						{/if}
-					</p>
-				</div>
-
-				<!-- Hero Spacing Override -->
-				<div class="pt-4">
-					<span class="label mb-3 block">Hero Spacing</span>
-					<div class="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Hero spacing override">
-						{#each [
-							{ id: null as string | null, label: `Inherit (${inheritedHeroSpacing})` },
-							{ id: 'compact', label: 'Compact' },
-							{ id: 'default', label: 'Default' },
-							{ id: 'spacious', label: 'Spacious' }
-						] as option (option.id ?? 'inherit')}
-							{@const isChecked = heroSpacing === option.id}
-							<button
-								type="button"
-								role="radio"
-								aria-checked={isChecked}
-								tabindex={(heroSpacing === null && option.id === null) || (heroSpacing !== null && heroSpacing === option.id) ? 0 : -1}
-								onclick={() => heroSpacing = option.id}
-								class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600
-									{isChecked
-										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							>
-								{option.label}
-							</button>
-						{/each}
-					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if heroSpacing}
-							Using <strong>{heroSpacing}</strong> spacing for this view
-						{:else}
-							Inherits hero spacing from global profile settings
-						{/if}
-					</p>
-				</div>
-
-				<!-- Hero Background Color Override -->
-				<div class="pt-4">
-					<label for="view-hero-bg-color" class="label mb-1 block">Hero Background Color</label>
-					<p class="text-xs text-gray-500 mb-3">
-						{#if inheritedHeroBgColor}
-							Leave blank to inherit homepage default: <code>{inheritedHeroBgColor}</code>
-						{:else}
-							Leave blank to use the default gradient.
-						{/if}
-					</p>
-					<div class="flex items-center gap-2">
-						<span
-							class="inline-block w-11 h-11 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0"
-							style="background-color: {heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : (inheritedHeroBgColor || '#1f2937')}"
-							aria-hidden="true"
-						></span>
-						<input
-							id="view-hero-bg-color"
-							type="text"
-							bind:value={heroBgColor}
-							onblur={() => {
-								const trimmed = heroBgColor.trim();
-								if (trimmed && !/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
-									heroBgError = 'Enter a valid hex color (e.g. #6366f1)';
-								} else {
-									heroBgError = '';
-									if (trimmed && !trimmed.startsWith('#')) heroBgColor = '#' + trimmed;
-								}
-							}}
-							placeholder={inheritedHeroBgColor || '#1f2937'}
-							maxlength="7"
-							spellcheck="false"
-							autocomplete="off"
-							autocapitalize="off"
-							autocorrect="off"
-							aria-invalid={heroBgError !== ''}
-							aria-describedby="view-hero-bg-help view-hero-bg-error"
-							class="input flex-1 font-mono"
-						/>
-						{#if heroBgColor}
-							<button
-								type="button"
-								onclick={() => { heroBgColor = ''; heroBgError = ''; }}
-								aria-label="Reset hero background color to inherit homepage default"
-								class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-11"
-							>
-								Reset
-							</button>
-						{/if}
-					</div>
-					<p id="view-hero-bg-help" class="sr-only">Six hexadecimal characters (0-9, A-F), with optional leading hash.</p>
-					<p
-						id="view-hero-bg-error"
-						role="status"
-						aria-live="polite"
-						aria-atomic="true"
-						class="text-sm text-red-600 dark:text-red-400 mt-1 min-h-[1.25rem]"
-					>{heroBgError}</p>
-				</div>
-
-				<div class="flex flex-col gap-3 pt-2">
-					<label class="flex items-center gap-3">
-						<input
-							type="checkbox"
-							bind:checked={isActive}
-							class="w-4 h-4 text-primary-600 rounded border-gray-300"
-						/>
-						<div>
-							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
-							<p class="text-xs text-gray-500">Inactive views are not accessible publicly</p>
+									class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+								></div>
+							</label>
 						</div>
-					</label>
-				</div>
-			</div>
 
-			<!-- Sections -->
-			<ViewSectionManager
-				bind:sections
-				bind:sectionOrder
-				bind:sectionItems
-				{customContentItems}
-				{viewId}
-				onOpenOverrideEditor={openOverrideEditor}
-			/>
+						{#if ctaEnabled}
+							<div>
+								<label for="cta_text" class="label">Description</label>
+								<input
+									type="text"
+									id="cta_text"
+									bind:value={ctaText}
+									class="input"
+									placeholder="Ready to work together?"
+								/>
+								<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
+							</div>
 
-		</form>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label for="cta_button_text" class="label">Button Label</label>
+									<input
+										type="text"
+										id="cta_button_text"
+										bind:value={ctaButtonText}
+										class="input"
+										placeholder="Get in touch"
+									/>
+								</div>
+								<div>
+									<label for="cta_url" class="label">Button URL</label>
+									<input
+										type="url"
+										id="cta_url"
+										bind:value={ctaUrl}
+										class="input"
+										placeholder="https://..."
+									/>
+								</div>
+							</div>
+						{:else}
+							<p class="text-sm text-gray-500 dark:text-gray-400 italic">
+								CTA button is disabled for this view. Enable the toggle above to configure it.
+							</p>
+						{/if}
+					</div>
 
-			<!-- Danger Zone -->
-			<div class="card mt-6 border-red-200 dark:border-red-900">
-				<div class="p-4 border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20">
-					<h2 class="text-lg font-semibold text-red-700 dark:text-red-400">Danger Zone</h2>
-				</div>
-				<div class="p-4">
-					<div class="flex items-center justify-between">
-						<div>
-							<h3 class="font-medium text-gray-900 dark:text-white">Delete this facet</h3>
-							<p class="text-sm text-gray-500 dark:text-gray-400">
-								Permanently delete this facet and all associated share tokens and exports.
+					<!-- Settings -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+
+						<!-- Accent Color Override -->
+						<div class="pt-2">
+							<span class="label mb-3 block">Accent Color</span>
+							<div
+								class="flex flex-wrap items-center gap-3"
+								role="group"
+								aria-label={$t('admin.view_editor.aria.accent_color_label')}
+							>
+								<!-- Use Global Option -->
+								<button
+									type="button"
+									class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+								{accentColor === null
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									onclick={() => (accentColor = null)}
+								>
+									<div
+										class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"
+									></div>
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Use global</span
+									>
+									{#if accentColor === null}
+										<svg
+											class="w-4 h-4 text-gray-900 dark:text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"
+											></path>
+										</svg>
+									{/if}
+								</button>
+
+								<!-- Color Swatches -->
+								{#each ACCENT_COLOR_LIST as color}
+									{@const colorInfo = ACCENT_COLORS[color]}
+									<button
+										type="button"
+										class="relative group"
+										onclick={() => (accentColor = color)}
+										title="{colorInfo.label} - {colorInfo.description}"
+									>
+										<div
+											class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
+										{accentColor === color ? 'ring-2 ring-gray-900 dark:ring-white scale-110' : 'hover:scale-105'}"
+											style="background-color: {colorInfo.scale[500]}"
+										>
+											{#if accentColor === color}
+												<div class="absolute inset-0 flex items-center justify-center">
+													<svg
+														class="w-4 h-4 text-white"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="3"
+													>
+														<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"
+														></path>
+													</svg>
+												</div>
+											{/if}
+										</div>
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if accentColor}
+									Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
+								{:else}
+									Inherits from global profile setting
+								{/if}
 							</p>
 						</div>
-						<button
-							type="button"
-							class="btn bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
-							onclick={deleteView}
-							disabled={deleting}
-						>
-							{deleting ? 'Deleting...' : 'Delete Facet'}
-						</button>
+
+						<!-- Font Pack Override -->
+						<div class="pt-4">
+							<span class="label mb-3 block">Typography</span>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="group"
+								aria-label="Font pack selection"
+							>
+								<button
+									type="button"
+									class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+								{fontPack === null
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									onclick={() => (fontPack = null)}
+								>
+									<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+									{#if fontPack === null}
+										<svg
+											class="w-4 h-4 text-gray-900 dark:text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"
+											></path>
+										</svg>
+									{/if}
+								</button>
+
+								{#each FONT_PACK_LIST as pack}
+									{@const packInfo = FONT_PACKS[pack]}
+									<button
+										type="button"
+										class="px-3 py-2 rounded-lg border transition-all text-sm
+									{fontPack === pack
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+										onclick={() => (fontPack = pack)}
+										title={packInfo.description}
+										aria-pressed={fontPack === pack}
+									>
+										{packInfo.label}
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if fontPack}
+									Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
+								{:else}
+									Inherits typography from global profile settings
+								{/if}
+							</p>
+						</div>
+
+						<!-- Hero Layout Override -->
+						<div class="pt-4">
+							<span class="label mb-3 block">Hero Layout</span>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="group"
+								aria-label="Hero layout selection"
+							>
+								<button
+									type="button"
+									class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+								{heroLayout === null
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									onclick={() => (heroLayout = null)}
+								>
+									<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+									{#if heroLayout === null}
+										<svg
+											class="w-4 h-4 text-gray-900 dark:text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"
+											></path>
+										</svg>
+									{/if}
+								</button>
+
+								{#each [{ id: 'standard', label: 'Image & Gradient' }, { id: 'centered', label: 'Centered' }, { id: 'split', label: 'Split' }, { id: 'minimal', label: 'Minimal' }, { id: 'stacked', label: 'Stacked' }, { id: 'rail', label: 'Rail' }] as layoutOption}
+									<button
+										type="button"
+										class="px-3 py-2 rounded-lg border transition-all text-sm
+									{heroLayout === layoutOption.id
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+										onclick={() => (heroLayout = layoutOption.id)}
+										aria-pressed={heroLayout === layoutOption.id}
+									>
+										{layoutOption.label}
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if heroLayout}
+									Using <strong>{heroLayout}</strong> layout for this view
+								{:else}
+									Inherits hero layout from global profile settings
+								{/if}
+							</p>
+						</div>
+
+						<!-- Hero Spacing Override -->
+						<div class="pt-4">
+							<span class="label mb-3 block">Hero Spacing</span>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="radiogroup"
+								aria-label="Hero spacing override"
+							>
+								{#each [{ id: null as string | null, label: `Inherit (${inheritedHeroSpacing})` }, { id: 'compact', label: 'Compact' }, { id: 'default', label: 'Default' }, { id: 'spacious', label: 'Spacious' }] as option (option.id ?? 'inherit')}
+									{@const isChecked = heroSpacing === option.id}
+									<button
+										type="button"
+										role="radio"
+										aria-checked={isChecked}
+										tabindex={(heroSpacing === null && option.id === null) ||
+										(heroSpacing !== null && heroSpacing === option.id)
+											? 0
+											: -1}
+										onclick={() => (heroSpacing = option.id)}
+										class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600
+									{isChecked
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									>
+										{option.label}
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if heroSpacing}
+									Using <strong>{heroSpacing}</strong> spacing for this view
+								{:else}
+									Inherits hero spacing from global profile settings
+								{/if}
+							</p>
+						</div>
+
+						<!-- Hero Background Color Override -->
+						<div class="pt-4">
+							<label for="view-hero-bg-color" class="label mb-1 block">Hero Background Color</label>
+							<p class="text-xs text-gray-500 mb-3">
+								{#if inheritedHeroBgColor}
+									Leave blank to inherit homepage default: <code>{inheritedHeroBgColor}</code>
+								{:else}
+									Leave blank to use the default gradient.
+								{/if}
+							</p>
+							<div class="flex items-center gap-2">
+								<span
+									class="inline-block w-11 h-11 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0"
+									style="background-color: {heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor)
+										? heroBgColor
+										: inheritedHeroBgColor || '#1f2937'}"
+									aria-hidden="true"
+								></span>
+								<input
+									id="view-hero-bg-color"
+									type="text"
+									bind:value={heroBgColor}
+									onblur={() => {
+										const trimmed = heroBgColor.trim();
+										if (trimmed && !/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+											heroBgError = 'Enter a valid hex color (e.g. #6366f1)';
+										} else {
+											heroBgError = '';
+											if (trimmed && !trimmed.startsWith('#')) heroBgColor = '#' + trimmed;
+										}
+									}}
+									placeholder={inheritedHeroBgColor || '#1f2937'}
+									maxlength="7"
+									spellcheck="false"
+									autocomplete="off"
+									autocapitalize="off"
+									autocorrect="off"
+									aria-invalid={heroBgError !== ''}
+									aria-describedby="view-hero-bg-help view-hero-bg-error"
+									class="input flex-1 font-mono"
+								/>
+								{#if heroBgColor}
+									<button
+										type="button"
+										onclick={() => {
+											heroBgColor = '';
+											heroBgError = '';
+										}}
+										aria-label="Reset hero background color to inherit homepage default"
+										class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-11"
+									>
+										Reset
+									</button>
+								{/if}
+							</div>
+							<p id="view-hero-bg-help" class="sr-only">
+								Six hexadecimal characters (0-9, A-F), with optional leading hash.
+							</p>
+							<p
+								id="view-hero-bg-error"
+								role="status"
+								aria-live="polite"
+								aria-atomic="true"
+								class="text-sm text-red-600 dark:text-red-400 mt-1 min-h-[1.25rem]"
+							>
+								{heroBgError}
+							</p>
+						</div>
+
+						<div class="flex flex-col gap-3 pt-2">
+							<label class="flex items-center gap-3">
+								<input
+									type="checkbox"
+									bind:checked={isActive}
+									class="w-4 h-4 text-primary-600 rounded border-gray-300"
+								/>
+								<div>
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+									<p class="text-xs text-gray-500">Inactive views are not accessible publicly</p>
+								</div>
+							</label>
+						</div>
+					</div>
+
+					<!-- Sections -->
+					<ViewSectionManager
+						bind:sections
+						bind:sectionOrder
+						bind:sectionItems
+						{customContentItems}
+						{viewId}
+						onOpenOverrideEditor={openOverrideEditor}
+					/>
+				</form>
+
+				<!-- Danger Zone -->
+				<div class="card mt-6 border-red-200 dark:border-red-900">
+					<div class="p-4 border-b border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20">
+						<h2 class="text-lg font-semibold text-red-700 dark:text-red-400">Danger Zone</h2>
+					</div>
+					<div class="p-4">
+						<div class="flex items-center justify-between">
+							<div>
+								<h3 class="font-medium text-gray-900 dark:text-white">Delete this facet</h3>
+								<p class="text-sm text-gray-500 dark:text-gray-400">
+									Permanently delete this facet and all associated share tokens and exports.
+								</p>
+							</div>
+							<button
+								type="button"
+								class="btn bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+								onclick={deleteView}
+								disabled={deleting}
+							>
+								{deleting ? 'Deleting...' : 'Delete Facet'}
+							</button>
+						</div>
 					</div>
 				</div>
-			</div>
 			</div>
 
 			<!-- Preview Pane -->
 			{#if showPreview}
 				<details class="preview-pane group" open>
-					<summary class="lg:hidden flex items-center justify-between p-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg cursor-pointer list-none">
+					<summary
+						class="lg:hidden flex items-center justify-between p-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg cursor-pointer list-none"
+					>
 						<span class="font-medium text-gray-900 dark:text-white">Live Preview</span>
-						<svg class="w-5 h-5 text-gray-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+
+						<svg
+							class="w-5 h-5 text-gray-500 transition-transform group-open:rotate-180"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 9l-7 7-7-7"
+							></path>
 						</svg>
 					</summary>
 
 					<div class="lg:sticky lg:top-4">
 						<div class="flex items-center justify-between mb-3 px-1">
-							<h2 class="hidden lg:block text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Live Preview</h2>
+							<h2
+								class="hidden lg:block text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+							>
+								Live Preview
+							</h2>
 							<!-- Phase 6.2.2: Desktop/Mobile toggle -->
-							<div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ml-auto lg:ml-0">
+							<div
+								class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5 ml-auto lg:ml-0"
+							>
 								<button
 									type="button"
-									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									onclick={() => previewMode = 'desktop'}
+									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop'
+										? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+										: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+									onclick={() => (previewMode = 'desktop')}
 									title="Desktop preview"
 								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+										></path>
 									</svg>
 								</button>
 								<button
 									type="button"
-									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									onclick={() => previewMode = 'mobile'}
+									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile'
+										? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+										: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+									onclick={() => (previewMode = 'mobile')}
 									title="Mobile preview"
 								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+										></path>
 									</svg>
 								</button>
 							</div>
@@ -1840,11 +2127,7 @@
 
 <!-- Override Editor Modal -->
 {#if showOverrideEditor && editingOverride}
-	<ViewOverrideEditor
-		{editingOverride}
-		onSave={handleOverrideSave}
-		onClose={closeOverrideEditor}
-	/>
+	<ViewOverrideEditor {editingOverride} onSave={handleOverrideSave} onClose={closeOverrideEditor} />
 {/if}
 
 <!-- Generate Resume Modal -->
@@ -1855,7 +2138,7 @@
 		{exports}
 		onGenerate={handleResumeGenerate}
 		onDeleteExport={deleteExport}
-		onClose={() => showGenerateModal = false}
+		onClose={() => (showGenerateModal = false)}
 	/>
 {/if}
 

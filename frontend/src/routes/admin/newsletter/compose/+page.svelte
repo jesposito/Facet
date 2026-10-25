@@ -88,9 +88,7 @@
 			(bodyMarkdown && (bodyMarkdown.includes('{{') || bodyMarkdown.includes('{%')))
 	);
 
-	let hasUnsavedContent = $derived(
-		subject !== lastSavedSubject || bodyMarkdown !== lastSavedBody
-	);
+	let hasUnsavedContent = $derived(subject !== lastSavedSubject || bodyMarkdown !== lastSavedBody);
 
 	// Sanitize preview HTML with DOMPurify before {@html}.
 	$effect(() => {
@@ -102,6 +100,8 @@
 	});
 
 	beforeNavigate((navigation) => {
+		if (navigation.shallow && navigation.type === 'goto') return;
+
 		if (hasUnsavedContent && !sending) {
 			if (!window.confirm($t('admin.newsletter.unsaved_warning'))) {
 				navigation.cancel();
@@ -233,8 +233,8 @@
 		sendingTest = true;
 		try {
 			const adminEmail = (pb.authStore.model as Record<string, unknown>)?.email as
-				| string
-				| undefined;
+				string | undefined;
+
 			if (!adminEmail) {
 				toasts.add('error', $t('admin.newsletter.no_admin_email'));
 				return;
@@ -419,7 +419,7 @@
 					stroke-linejoin="round"
 					stroke-width="2"
 					d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-				/>
+				></path>
 			</svg>
 			<div>
 				<p class="text-sm font-medium text-amber-800 dark:text-amber-300">
@@ -444,10 +444,9 @@
 						? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300 dark:border-primary-500'
 						: 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}"
 					aria-pressed={selectedTemplate === ''}
-					onclick={() => (selectedTemplate = '')}
+					onclick={() => (selectedTemplate = '')}>{$t('admin.newsletter.template_default')}</button
 				>
-					{$t('admin.newsletter.template_default')}
-				</button>
+
 				{#each templates as tpl}
 					<button
 						type="button"
@@ -503,8 +502,7 @@
 					style="min-height: 300px;"
 					placeholder={$t('admin.newsletter.body_placeholder')}
 					required
-					aria-required="true"
-				></textarea>
+					aria-required="true"></textarea>
 			</div>
 			<div>
 				<span class="label text-xs">{$t('admin.newsletter.preview_label')}</span>
@@ -529,9 +527,7 @@
 		{#if lists.length > 1}
 			<div class="border-t border-gray-200 dark:border-gray-700 pt-4">
 				<fieldset>
-					<legend
-						class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block"
-					>
+					<legend class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
 						{$t('admin.newsletter.send_to_list')}
 					</legend>
 					<div class="flex flex-wrap items-center gap-3">
@@ -601,9 +597,9 @@
 						type="button"
 						class="text-amber-900 underline hover:no-underline dark:text-amber-100"
 						onclick={() => (personalize = true)}
+						>{$t('admin.newsletter.placeholder_hint_enable')}</button
 					>
-						{$t('admin.newsletter.placeholder_hint_enable')}
-					</button>
+
 					<button
 						type="button"
 						aria-label={$t('admin.newsletter.placeholder_hint_dismiss_aria')}
@@ -643,9 +639,7 @@
 			{/if}
 		</div>
 
-		<div
-			class="flex gap-2 justify-end border-t border-gray-200 dark:border-gray-700 pt-4"
-		>
+		<div class="flex gap-2 justify-end border-t border-gray-200 dark:border-gray-700 pt-4">
 			<button
 				type="button"
 				class="btn btn-secondary text-sm"
@@ -688,13 +682,7 @@
 					viewBox="0 0 24 24"
 					aria-hidden="true"
 				>
-					<circle
-						class="opacity-25"
-						cx="12"
-						cy="12"
-						r="10"
-						stroke="currentColor"
-						stroke-width="4"
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
 					></circle>
 					<path
 						class="opacity-75"
@@ -750,7 +738,9 @@
 								</td>
 								<td class="py-3 px-4">
 									<span
-										class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {getStatusClass(send.status)}"
+										class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {getStatusClass(
+											send.status
+										)}"
 									>
 										{$t(`admin.newsletter.status_${send.status}`)}
 									</span>
@@ -770,15 +760,14 @@
 										<span class="inline-flex items-center gap-2 text-xs">
 											<span title="Opens">
 												{send.open_count || 0}
-												{$t('admin.newsletter.opens', {
-													values: { count: send.open_count || 0 }
-												})}
-												<span class="text-gray-400">
-													({Math.round(
+												{$t('admin.newsletter.opens', { values: { count: send.open_count || 0 } })}
+												<span class="text-gray-400"
+													>({Math.round(
 														((send.open_count || 0) / send.recipient_count) * 100
-													)}%)
-												</span>
+													)}%)</span
+												>
 											</span>
+
 											<span title="Clicks">
 												{send.click_count || 0}
 												{$t('admin.newsletter.clicks', {
@@ -787,7 +776,7 @@
 											</span>
 										</span>
 									{:else}
-										<span class="text-gray-400">&mdash;</span>
+										<span class="text-gray-400">—</span>
 									{/if}
 								</td>
 								<td class="py-3 px-4 text-gray-600 dark:text-gray-400">
@@ -814,7 +803,7 @@
 												stroke-linejoin="round"
 												stroke-width="2"
 												d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-											/>
+											></path>
 										</svg>
 									</button>
 								</td>

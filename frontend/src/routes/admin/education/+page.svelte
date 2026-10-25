@@ -27,69 +27,81 @@
 	let editingEdu: Education | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
-let selectMode = $state(false);
-let selectedIds: Set<string> = $state(new Set());
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
-const filterStore = createFilterState({
-	enableSearch: true,
-	enableVisibilityFilter: true,
-	enableDraftFilter: true,
-	enableTagFilter: false,
-	searchPlaceholder: 'Search education...'
-});
-let showAdvancedFilters = $state(false);
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: true,
+		enableDraftFilter: true,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search education...'
+	});
 
-let filteredEducations = $derived(
-	filterStore.filterItems(
-		educations,
-		(edu) => `${edu.institution} ${edu.degree || ''} ${edu.field || ''} ${edu.description || ''}`,
-		(edu) => edu.visibility,
-		(edu) => edu.is_draft,
-		() => []
-	)
-);
+	let showAdvancedFilters = $state(false);
+	let filteredEducations = $derived(
+		filterStore.filterItems(
+			educations,
+			(edu) => `${edu.institution} ${edu.degree || ''} ${edu.field || ''} ${edu.description || ''}`,
+			(edu) => edu.visibility,
+			(edu) => edu.is_draft,
+			() => []
+		)
+	);
+	const autosave = createAutosave('admin-education', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
-const autosave = createAutosave('admin-education', { saveDelay: 1500 });
-let showRecoveryBanner = $state(false);
-let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
-
-function getFormData() {
-	return { institution, degree, field, startDate, endDate, description, visibility, isDraft, sortOrder, hasLogoFile: !!(institutionLogoFile && institutionLogoFile.length > 0) };
-}
-
-function restoreFromDraft(data: Record<string, any>) {
-	institution = data.institution || '';
-	degree = data.degree || '';
-	field = data.field || '';
-	startDate = data.startDate || '';
-	endDate = data.endDate || '';
-	description = data.description || '';
-	visibility = data.visibility || 'public';
-	isDraft = data.isDraft || false;
-	sortOrder = data.sortOrder || 0;
-}
-
-function handleFormChange() {
-	if (showForm) {
-		autosave.save(getFormData(), !!editingEdu, editingEdu?.id);
+	function getFormData() {
+		return {
+			institution,
+			degree,
+			field,
+			startDate,
+			endDate,
+			description,
+			visibility,
+			isDraft,
+			sortOrder,
+			hasLogoFile: !!(institutionLogoFile && institutionLogoFile.length > 0)
+		};
 	}
-}
 
-afterNavigate(() => {
-	showForm = false;
-	editingEdu = null;
-	selectMode = false;
-	selectedIds = new Set();
-	
-	const draft = autosave.loadDraft();
-	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
-		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
-		showRecoveryBanner = true;
-	} else {
-		showRecoveryBanner = false;
-		recoveryData = null;
+	function restoreFromDraft(data: Record<string, any>) {
+		institution = data.institution || '';
+		degree = data.degree || '';
+		field = data.field || '';
+		startDate = data.startDate || '';
+		endDate = data.endDate || '';
+		description = data.description || '';
+		visibility = data.visibility || 'public';
+		isDraft = data.isDraft || false;
+		sortOrder = data.sortOrder || 0;
 	}
-});
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingEdu, editingEdu?.id);
+		}
+	}
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingEdu = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		const draft = autosave.loadDraft();
+		if (draft?.data && Object.values(draft.data).some((v) => v !== '' && v !== false && v !== 0)) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
+	});
 
 	// Form fields
 	let institution = $state('');
@@ -104,7 +116,8 @@ afterNavigate(() => {
 	let institutionLogoFile: FileList | null = $state(null);
 	let institutionLogoLibraryUrl = $state('');
 	let clearInstitutionLogo = $state(false);
-	let logoBackground: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent' = $state('none');
+	let logoBackground: 'none' | 'white' | 'light-gray' | 'dark-gray' | 'black' | 'accent' =
+		$state('none');
 	let saving = $state(false);
 
 	onMount(loadEducations);
@@ -158,7 +171,7 @@ afterNavigate(() => {
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
 			if (draft.isEditing && draft.editingId) {
-				const edu = educations.find(e => e.id === draft.editingId);
+				const edu = educations.find((e) => e.id === draft.editingId);
 				if (edu) editingEdu = edu;
 			}
 			showForm = true;
@@ -325,8 +338,13 @@ afterNavigate(() => {
 		selectedIds = selectedIds;
 	}
 
-	function selectAll() { selectedIds = new Set(educations.map(e => e.id)); }
-	function clearSelection() { selectedIds = new Set(); }
+	function selectAll() {
+		selectedIds = new Set(educations.map((e) => e.id));
+	}
+
+	function clearSelection() {
+		selectedIds = new Set();
+	}
 
 	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
 		const ids = Array.from(selectedIds);
@@ -386,8 +404,8 @@ afterNavigate(() => {
 		<BulkActionBar
 			selectedCount={selectedIds.size}
 			totalCount={educations.length}
-			on:selectAll={selectAll}
-			on:clearSelection={clearSelection}
+			on:selectAll
+			on:clearSelection
 			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
 			on:delete={bulkDelete}
 			on:cancel={toggleSelectMode}
@@ -395,7 +413,9 @@ afterNavigate(() => {
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.education.title')}</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.content.education.title')}
+		</h1>
 		<div class="flex items-center gap-2">
 			{#if educations.length > 0}
 				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
@@ -403,7 +423,9 @@ afterNavigate(() => {
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.education.title') } })}
+				{$t('admin.content.common.new_button', {
+					values: { type: $t('admin.content.education.title') }
+				})}
 			</button>
 		</div>
 	</div>
@@ -412,7 +434,11 @@ afterNavigate(() => {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.education.title').toLowerCase() } })}</div>
+			<div class="animate-pulse">
+				{$t('admin.content.common.loading', {
+					values: { type: $t('admin.content.education.title').toLowerCase() }
+				})}
+			</div>
 		</div>
 	{:else if showForm}
 		<!-- Education Form -->
@@ -420,17 +446,43 @@ afterNavigate(() => {
 			<div class="card p-6 space-y-4">
 				<div class="flex items-center justify-between">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-						{editingEdu ? $t('admin.content.common.form_title_edit', { values: { type: $t('admin.content.education.title') } }) : $t('admin.content.common.form_title_new', { values: { type: $t('admin.content.education.title') } })}
+						{editingEdu
+							? $t('admin.content.common.form_title_edit', {
+									values: { type: $t('admin.content.education.title') }
+								})
+							: $t('admin.content.common.form_title_new', {
+									values: { type: $t('admin.content.education.title') }
+								})}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('shared.aria.close_form')}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+
+					<button
+						type="button"
+						class="text-gray-500 hover:text-gray-700"
+						onclick={closeForm}
+						aria-label={$t('shared.aria.close_form')}
+					>
+						<svg
+							class="w-5 h-5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							></path>
 						</svg>
 					</button>
 				</div>
 
 				<div>
-					<label for="institution" class="label">{$t('admin.content.education.institution_label')} {$t('admin.content.common.required_field')}</label>
+					<label for="institution" class="label"
+						>{$t('admin.content.education.institution_label')}
+						{$t('admin.content.common.required_field')}</label
+					>
 					<input
 						type="text"
 						id="institution"
@@ -449,26 +501,32 @@ afterNavigate(() => {
 							bind:value={institutionLogoLibraryUrl}
 							bind:fileInput={institutionLogoFile}
 							bind:clearExisting={clearInstitutionLogo}
-							currentFileUrl={editingEdu?.institution_logo ? pb.files.getUrl(editingEdu, editingEdu.institution_logo, { thumb: '64x64' }) : ''}
+							currentFileUrl={editingEdu?.institution_logo
+								? pb.files.getUrl(editingEdu, editingEdu.institution_logo, { thumb: '64x64' })
+								: ''}
 							currentFileName={editingEdu?.institution_logo || ''}
 							imagesOnly={true}
 						/>
 					</div>
 					<div>
-						<label for="logo_background" class="label">{$t('admin.content.education.logo_background_label')}</label>
-						<select
-							id="logo_background"
-							bind:value={logoBackground}
-							class="input"
+						<label for="logo_background" class="label"
+							>{$t('admin.content.education.logo_background_label')}</label
 						>
+						<select id="logo_background" bind:value={logoBackground} class="input">
 							<option value="none">{$t('admin.content.common.logo_background.none')}</option>
 							<option value="white">{$t('admin.content.common.logo_background.white')}</option>
-							<option value="light-gray">{$t('admin.content.common.logo_background.light_gray')}</option>
-							<option value="dark-gray">{$t('admin.content.common.logo_background.dark_gray')}</option>
+							<option value="light-gray"
+								>{$t('admin.content.common.logo_background.light_gray')}</option
+							>
+							<option value="dark-gray"
+								>{$t('admin.content.common.logo_background.dark_gray')}</option
+							>
 							<option value="black">{$t('admin.content.common.logo_background.black')}</option>
 							<option value="accent">{$t('admin.content.common.logo_background.accent')}</option>
 						</select>
-						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.content.education.logo_background_help')}</p>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+							{$t('admin.content.education.logo_background_help')}
+						</p>
 					</div>
 				</div>
 
@@ -498,7 +556,9 @@ afterNavigate(() => {
 
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div>
-						<label for="start_date" class="label">{$t('admin.content.education.start_date_label')}</label>
+						<label for="start_date" class="label"
+							>{$t('admin.content.education.start_date_label')}</label
+						>
 						<input
 							type="text"
 							id="start_date"
@@ -509,7 +569,9 @@ afterNavigate(() => {
 					</div>
 
 					<div>
-						<label for="end_date" class="label">{$t('admin.content.education.end_date_label')}</label>
+						<label for="end_date" class="label"
+							>{$t('admin.content.education.end_date_label')}</label
+						>
 						<input
 							type="text"
 							id="end_date"
@@ -523,7 +585,9 @@ afterNavigate(() => {
 
 				<div>
 					<div class="flex items-center justify-between mb-2">
-						<label for="description" class="label mb-0">{$t('admin.content.common.description_label')}</label>
+						<label for="description" class="label mb-0"
+							>{$t('admin.content.common.description_label')}</label
+						>
 						<AIContentHelper
 							fieldType="description"
 							content={description}
@@ -531,7 +595,12 @@ afterNavigate(() => {
 							on:apply={(e) => (description = e.detail.content)}
 						/>
 					</div>
-					<MarkdownEditor bind:value={description} toolbar="compact" minHeight="100px" placeholder={$t('admin.content.education.description_placeholder')} />
+					<MarkdownEditor
+						bind:value={description}
+						toolbar="compact"
+						minHeight="100px"
+						placeholder={$t('admin.content.education.description_placeholder')}
+					/>
 					<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.markdown_supported')}</p>
 				</div>
 			</div>
@@ -542,14 +611,10 @@ afterNavigate(() => {
 						<VisibilitySelector bind:value={visibility} />
 
 						<div>
-							<label for="sort_order" class="label">{$t('admin.content.common.sort_order_label')}</label>
-							<input
-								type="number"
-								id="sort_order"
-								bind:value={sortOrder}
-								class="input"
-								min="0"
-							/>
+							<label for="sort_order" class="label"
+								>{$t('admin.content.common.sort_order_label')}</label
+							>
+							<input type="number" id="sort_order" bind:value={sortOrder} class="input" min="0" />
 							<p class="text-xs text-gray-500 mt-1">{$t('admin.content.common.sort_order_help')}</p>
 						</div>
 					</div>
@@ -569,39 +634,82 @@ afterNavigate(() => {
 			</AccordionSection>
 
 			<div class="flex justify-end gap-3">
-				<button type="button" class="btn btn-secondary" onclick={closeForm}>{$t('shared.actions.cancel')}</button>
+				<button type="button" class="btn btn-secondary" onclick={closeForm}
+					>{$t('shared.actions.cancel')}</button
+				>
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
-					{editingEdu ? $t('admin.content.common.update_button', { values: { type: $t('admin.content.education.title') } }) : $t('admin.content.common.create_button', { values: { type: $t('admin.content.education.title') } })}
+					{editingEdu
+						? $t('admin.content.common.update_button', {
+								values: { type: $t('admin.content.education.title') }
+							})
+						: $t('admin.content.common.create_button', {
+								values: { type: $t('admin.content.education.title') }
+							})}
 				</button>
 			</div>
 		</form>
 	{:else if educations.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path d="M12 14l9-5-9-5-9 5 9 5z" />
-				<path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+
+				<path
+					d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
+				></path>
+
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No education added yet</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your educational background, degrees, and certifications.
 			</p>
-			<button class="btn btn-primary" onclick={openNewForm}>
-				+ Add Your First Education
-			</button>
+			<button class="btn btn-primary" onclick={openNewForm}> + Add Your First Education </button>
 		</div>
 	{:else if filteredEducations.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				></path>
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No education matches your filters</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+				No education matches your filters
+			</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Try adjusting your search or filter criteria.
 			</p>
@@ -613,7 +721,9 @@ afterNavigate(() => {
 		<!-- Education List -->
 		<div class="space-y-4">
 			{#each filteredEducations as edu (edu.id)}
-				<div class="card p-4 {selectMode && selectedIds.has(edu.id) ? 'ring-2 ring-primary-500' : ''}">
+				<div
+					class="card p-4 {selectMode && selectedIds.has(edu.id) ? 'ring-2 ring-primary-500' : ''}"
+				>
 					<div class="flex items-start justify-between gap-4">
 						{#if selectMode}
 							<input
@@ -632,17 +742,23 @@ afterNavigate(() => {
 									{/if}
 								</h3>
 								{#if edu.is_draft}
-									<span class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
+									>
 										Draft
 									</span>
 								{/if}
 								{#if edu.visibility !== 'public'}
-									<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+									>
 										{edu.visibility}
 									</span>
 								{/if}
 								{#if !edu.end_date}
-									<span class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded"
+									>
 										Current
 									</span>
 								{/if}
@@ -670,18 +786,31 @@ afterNavigate(() => {
 								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
 							{/if}
 
-							<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+							<div
+								class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+							>
 								<span class="flex items-center gap-1">
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path d="M12 14l9-5-9-5-9 5 9 5z" />
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v7" />
+										<path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 14l9-5-9-5-9 5 9 5zm0 0v7"
+										></path>
 									</svg>
 									{edu.institution}
 								</span>
 								{#if edu.start_date || edu.end_date}
 									<span class="flex items-center gap-1">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+											></path>
 										</svg>
 										{formatDateRange(edu.start_date, edu.end_date)}
 									</span>
@@ -703,12 +832,28 @@ afterNavigate(() => {
 							>
 								{#if edu.is_draft}
 									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+										></path>
+
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+										></path>
 									</svg>
 								{:else}
 									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+										></path>
 									</svg>
 								{/if}
 							</button>
@@ -718,7 +863,12 @@ afterNavigate(() => {
 								title="Edit"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+									></path>
 								</svg>
 							</button>
 							<button
@@ -727,7 +877,12 @@ afterNavigate(() => {
 								title="Delete"
 							>
 								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+									></path>
 								</svg>
 							</button>
 						</div>

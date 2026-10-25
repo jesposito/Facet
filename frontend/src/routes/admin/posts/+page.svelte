@@ -3,100 +3,120 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-import { pb, type Post, getFileUrl } from '$lib/pocketbase';
-import { t } from 'svelte-i18n';
-import { brandName } from '$lib/stores/plan';
-import { collection } from '$lib/stores/demo';
-import { toasts, confirm } from '$lib/stores';
-import { createAutosave } from '$lib/stores/autosave';
-import { createFilterState } from '$lib/admin/filterState.svelte';
-import { formatDate, toDateInputValue } from '$lib/utils';
-import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
-import AIContentHelper from '$components/admin/AIContentHelper.svelte';
-import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
-import BulkActionBar from '$components/admin/BulkActionBar.svelte';
-import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
-import PageHelp from '$components/admin/PageHelp.svelte';
-import AdminFilters from '$components/admin/AdminFilters.svelte';
-import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
-import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
-import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
+	import { pb, type Post, getFileUrl } from '$lib/pocketbase';
+	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
+	import { collection } from '$lib/stores/demo';
+	import { toasts, confirm } from '$lib/stores';
+	import { createAutosave } from '$lib/stores/autosave';
+	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { formatDate, toDateInputValue } from '$lib/utils';
+	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
+	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
+	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
+	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
+	import MultiMediaPicker from '$lib/components/admin/MultiMediaPicker.svelte';
+	import PageHelp from '$components/admin/PageHelp.svelte';
+	import AdminFilters from '$components/admin/AdminFilters.svelte';
+	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
+	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
+	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
-let posts: Post[] = $state([]);
-let loading = $state(true);
-let showForm = $state(false);
-let editingPost: Post | null = $state(null);
-let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
-let mediaRefs: string[] = $state([]);
-let mediaPickerRef: MultiMediaPicker | undefined = $state();
-let showShortcodes = $state(false);
+	let posts: Post[] = $state([]);
+	let loading = $state(true);
+	let showForm = $state(false);
+	let editingPost: Post | null = $state(null);
+	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
+	let mediaRefs: string[] = $state([]);
+	let mediaPickerRef: MultiMediaPicker | undefined = $state();
+	let showShortcodes = $state(false);
 
-let selectMode = $state(false);
-let selectedIds: Set<string> = $state(new Set());
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
-const filterStore = createFilterState({
-	enableSearch: true,
-	enableVisibilityFilter: true,
-	enableDraftFilter: true,
-	enableTagFilter: false,
-	searchPlaceholder: 'Search posts...'
-});
-let showAdvancedFilters = $state(false);
+	const filterStore = createFilterState({
+		enableSearch: true,
+		enableVisibilityFilter: true,
+		enableDraftFilter: true,
+		enableTagFilter: false,
+		searchPlaceholder: 'Search posts...'
+	});
 
-let filteredPosts = $derived(
-	filterStore.filterItems(
-		posts,
-		(post) => `${post.title} ${post.excerpt || ''} ${post.content || ''} ${(post.tags || []).join(' ')}`,
-		(post) => post.visibility,
-		(post) => post.is_draft,
-		() => []
-	)
-);
+	let showAdvancedFilters = $state(false);
+	let filteredPosts = $derived(
+		filterStore.filterItems(
+			posts,
+			(post) =>
+				`${post.title} ${post.excerpt || ''} ${post.content || ''} ${(post.tags || []).join(' ')}`,
+			(post) => post.visibility,
+			(post) => post.is_draft,
+			() => []
+		)
+	);
+	const autosave = createAutosave('admin-posts', { saveDelay: 1500 });
+	let showRecoveryBanner = $state(false);
+	let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
 
-const autosave = createAutosave('admin-posts', { saveDelay: 1500 });
-let showRecoveryBanner = $state(false);
-let recoveryData: { savedAt: number; isEditing: boolean } | null = $state(null);
-
-function getFormData() {
-	return { title, slug, excerpt, content, tags, visibility, isDraft, featured, publishedAt, mediaRefs, coverImageLibraryUrl, commentsEnabled };
-}
-
-function restoreFromDraft(data: Record<string, any>) {
-	title = data.title || '';
-	slug = data.slug || '';
-	excerpt = data.excerpt || '';
-	content = data.content || '';
-	tags = data.tags || [];
-	visibility = data.visibility || 'public';
-	isDraft = data.isDraft !== false;
-	featured = data.featured === true;
-	publishedAt = data.publishedAt || '';
-	mediaRefs = data.mediaRefs || [];
-	coverImageLibraryUrl = data.coverImageLibraryUrl || '';
-	commentsEnabled = data.commentsEnabled === true;
-}
-
-function handleFormChange() {
-	if (showForm) {
-		autosave.save(getFormData(), !!editingPost, editingPost?.id);
+	function getFormData() {
+		return {
+			title,
+			slug,
+			excerpt,
+			content,
+			tags,
+			visibility,
+			isDraft,
+			featured,
+			publishedAt,
+			mediaRefs,
+			coverImageLibraryUrl,
+			commentsEnabled
+		};
 	}
-}
 
-afterNavigate(() => {
-	showForm = false;
-	editingPost = null;
-	selectMode = false;
-	selectedIds = new Set();
-	
-	const draft = autosave.loadDraft();
-	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && !(Array.isArray(v) && v.length === 0))) {
-		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
-		showRecoveryBanner = true;
-	} else {
-		showRecoveryBanner = false;
-		recoveryData = null;
+	function restoreFromDraft(data: Record<string, any>) {
+		title = data.title || '';
+		slug = data.slug || '';
+		excerpt = data.excerpt || '';
+		content = data.content || '';
+		tags = data.tags || [];
+		visibility = data.visibility || 'public';
+		isDraft = data.isDraft !== false;
+		featured = data.featured === true;
+		publishedAt = data.publishedAt || '';
+		mediaRefs = data.mediaRefs || [];
+		coverImageLibraryUrl = data.coverImageLibraryUrl || '';
+		commentsEnabled = data.commentsEnabled === true;
 	}
-});
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingPost, editingPost?.id);
+		}
+	}
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingPost = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		const draft = autosave.loadDraft();
+		if (
+			draft?.data &&
+			Object.values(draft.data).some(
+				(v) => v !== '' && v !== false && v !== 0 && !(Array.isArray(v) && v.length === 0)
+			)
+		) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
+	});
 
 	// Form fields
 	let title = $state('');
@@ -116,46 +136,46 @@ afterNavigate(() => {
 	let commentsEnabled = $state(false);
 
 	// Simple pattern - admin layout handles auth
-onMount(loadPosts);
+	onMount(loadPosts);
 
-async function loadPosts() {
-	loading = true;
-	try {
-		const [records, membershipResp] = await Promise.all([
-			await collection('posts').getList(1, 100, {
-				sort: '-published_at'
-			}),
-			fetch('/api/admin/view-memberships?collection=posts', {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-			}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-		]);
+	async function loadPosts() {
+		loading = true;
+		try {
+			const [records, membershipResp] = await Promise.all([
+				await collection('posts').getList(1, 100, {
+					sort: '-published_at'
+				}),
+				fetch('/api/admin/view-memberships?collection=posts', {
+					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
+			]);
 
-		posts = records.items as unknown as Post[];
-		memberships = (membershipResp.memberships as typeof memberships) || {};
-	} catch (err) {
-		console.error('Failed to load posts:', err);
-		toasts.add('error', 'Failed to load posts');
-	} finally {
-		loading = false;
+			posts = records.items as unknown as Post[];
+			memberships = (membershipResp.memberships as typeof memberships) || {};
+		} catch (err) {
+			console.error('Failed to load posts:', err);
+			toasts.add('error', 'Failed to load posts');
+		} finally {
+			loading = false;
 		}
 	}
 
-function resetForm() {
-	title = '';
-	slug = '';
-	excerpt = '';
-	content = '';
-	mediaRefs = [];
-	tags = [];
-	tagInput = '';
-	visibility = 'public';
-	isDraft = true;
-	featured = false;
-	publishedAt = '';
-	coverImageFile = null;
-	coverImageLibraryUrl = '';
-	clearCoverImage = false;
-	commentsEnabled = false;
+	function resetForm() {
+		title = '';
+		slug = '';
+		excerpt = '';
+		content = '';
+		mediaRefs = [];
+		tags = [];
+		tagInput = '';
+		visibility = 'public';
+		isDraft = true;
+		featured = false;
+		publishedAt = '';
+		coverImageFile = null;
+		coverImageLibraryUrl = '';
+		clearCoverImage = false;
+		commentsEnabled = false;
 		editingPost = null;
 	}
 
@@ -170,7 +190,7 @@ function resetForm() {
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
 			if (draft.isEditing && draft.editingId) {
-				const post = posts.find(p => p.id === draft.editingId);
+				const post = posts.find((p) => p.id === draft.editingId);
 				if (post) editingPost = post;
 			}
 			showForm = true;
@@ -184,23 +204,23 @@ function resetForm() {
 		recoveryData = null;
 	}
 
-function openEditForm(post: Post) {
-	editingPost = post;
-	title = post.title;
-	slug = post.slug || '';
-	excerpt = post.excerpt || '';
-	content = post.content || '';
-	mediaRefs = (post as any).media_refs || [];
-	tags = post.tags || [];
-	visibility = post.visibility;
-	isDraft = post.is_draft;
-	featured = post.featured || false;
-	publishedAt = toDateInputValue(post.published_at);
-	coverImageFile = null;
-	coverImageLibraryUrl = (post as any).cover_image_library_url || '';
-	clearCoverImage = false;
-	commentsEnabled = (post as any).comments_enabled ?? false;
-	showForm = true;
+	function openEditForm(post: Post) {
+		editingPost = post;
+		title = post.title;
+		slug = post.slug || '';
+		excerpt = post.excerpt || '';
+		content = post.content || '';
+		mediaRefs = (post as any).media_refs || [];
+		tags = post.tags || [];
+		visibility = post.visibility;
+		isDraft = post.is_draft;
+		featured = post.featured || false;
+		publishedAt = toDateInputValue(post.published_at);
+		coverImageFile = null;
+		coverImageLibraryUrl = (post as any).cover_image_library_url || '';
+		clearCoverImage = false;
+		commentsEnabled = (post as any).comments_enabled ?? false;
+		showForm = true;
 	}
 
 	function closeForm() {
@@ -229,7 +249,7 @@ function openEditForm(post: Post) {
 	}
 
 	function removeTag(tag: string) {
-		tags = tags.filter(t => t !== tag);
+		tags = tags.filter((t) => t !== tag);
 	}
 
 	function handleTagKeydown(event: KeyboardEvent) {
@@ -263,7 +283,9 @@ function openEditForm(post: Post) {
 
 		saving = true;
 		try {
-			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
+			const resolvedRefs = mediaPickerRef
+				? await mediaPickerRef.resolveMediaRefs(mediaRefs)
+				: mediaRefs;
 
 			// Use FormData to support file uploads
 			const formData = new FormData();
@@ -349,7 +371,7 @@ function openEditForm(post: Post) {
 			const newDraftState = !post.is_draft;
 			await await collection('posts').update(post.id, {
 				is_draft: newDraftState,
-				published_at: newDraftState ? null : (post.published_at || new Date().toISOString())
+				published_at: newDraftState ? null : post.published_at || new Date().toISOString()
 			});
 			toasts.add('success', newDraftState ? 'Post unpublished' : 'Post published');
 			await loadPosts();
@@ -370,8 +392,13 @@ function openEditForm(post: Post) {
 		selectedIds = selectedIds;
 	}
 
-	function selectAll() { selectedIds = new Set(posts.map(e => e.id)); }
-	function clearSelection() { selectedIds = new Set(); }
+	function selectAll() {
+		selectedIds = new Set(posts.map((e) => e.id));
+	}
+
+	function clearSelection() {
+		selectedIds = new Set();
+	}
 
 	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
 		const ids = Array.from(selectedIds);
@@ -432,8 +459,8 @@ function openEditForm(post: Post) {
 		<BulkActionBar
 			selectedCount={selectedIds.size}
 			totalCount={posts.length}
-			on:selectAll={selectAll}
-			on:clearSelection={clearSelection}
+			on:selectAll
+			on:clearSelection
 			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
 			on:delete={bulkDelete}
 			on:cancel={toggleSelectMode}
@@ -441,18 +468,19 @@ function openEditForm(post: Post) {
 	{/if}
 
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.posts.title')}</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.content.posts.title')}
+		</h1>
 		<div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 			{#if posts.length > 0}
-				<button
-					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					onclick={toggleSelectMode}
-				>
+				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.posts.title').slice(0, -1) } })}
+				{$t('admin.content.common.new_button', {
+					values: { type: $t('admin.content.posts.title').slice(0, -1) }
+				})}
 			</button>
 		</div>
 	</div>
@@ -461,7 +489,11 @@ function openEditForm(post: Post) {
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.posts.title').toLowerCase() } })}</div>
+			<div class="animate-pulse">
+				{$t('admin.content.common.loading', {
+					values: { type: $t('admin.content.posts.title').toLowerCase() }
+				})}
+			</div>
 		</div>
 	{:else if showForm}
 		<!-- Post Form -->
@@ -471,9 +503,26 @@ function openEditForm(post: Post) {
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingPost ? 'Edit Post' : 'New Post'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('shared.aria.close_form')}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+
+					<button
+						type="button"
+						class="text-gray-500 hover:text-gray-700"
+						onclick={closeForm}
+						aria-label={$t('shared.aria.close_form')}
+					>
+						<svg
+							class="w-5 h-5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							></path>
 						</svg>
 					</button>
 				</div>
@@ -524,8 +573,7 @@ function openEditForm(post: Post) {
 						bind:value={excerpt}
 						class="input"
 						rows="2"
-						placeholder="A brief summary of the post..."
-					></textarea>
+						placeholder="A brief summary of the post..."></textarea>
 				</div>
 
 				<div>
@@ -533,20 +581,30 @@ function openEditForm(post: Post) {
 						<label for="content" class="label mb-0">Content (Markdown)</label>
 						<AIContentHelper
 							fieldType="content"
-							content={content}
+							{content}
 							context={{ title, excerpt, tags: tags.join(', ') }}
 							on:apply={(e) => (content = e.detail.content)}
 							size="sm"
 						/>
 					</div>
-					<MarkdownEditor bind:value={content} toolbar="full" minHeight="300px" placeholder="Write your post content here... (Markdown + media shortcodes)" />
+					<MarkdownEditor
+						bind:value={content}
+						toolbar="full"
+						minHeight="300px"
+						placeholder="Write your post content here... (Markdown + media shortcodes)"
+					/>
 					<div class="mt-2 flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
-						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Media shortcodes</button>
-						<span>Use {'{{provider:url}}'} (youtube, vimeo, soundcloud, spotify, image, video, pdf, figma, codepen)</span>
+						<button type="button" class="btn btn-ghost btn-sm" onclick={toggleShortcodes}
+							>Media shortcodes</button
+						>
+						<span
+							>Use {'{{provider:url}}'} (youtube, vimeo, soundcloud, spotify, image, video, pdf, figma,
+							codepen)</span
+						>
 					</div>
 				</div>
 
-					<div>
+				<div>
 					<SingleMediaPicker
 						label="Cover Image"
 						helpText="Displayed in post grids and as the header image"
@@ -626,11 +684,30 @@ function openEditForm(post: Post) {
 					<span class="label">Tags</span>
 					<div class="flex flex-wrap gap-2 mb-2">
 						{#each tags as tag}
-							<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">
+							<span
+								class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm"
+							>
 								{tag}
-								<button type="button" class="text-gray-500 hover:text-red-500" onclick={() => removeTag(tag)} aria-label={$t('admin.tags.remove_tag', { values: { name: tag } })}>
-									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+
+								<button
+									type="button"
+									class="text-gray-500 hover:text-red-500"
+									onclick={() => removeTag(tag)}
+									aria-label={$t('admin.tags.remove_tag', { values: { name: tag } })}
+								>
+									<svg
+										class="w-3 h-3"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										></path>
 									</svg>
 								</button>
 							</span>
@@ -655,8 +732,19 @@ function openEditForm(post: Post) {
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					{editingPost ? 'Update Post' : 'Create Post'}
@@ -671,9 +759,12 @@ function openEditForm(post: Post) {
 						<button class="btn btn-ghost btn-sm" onclick={toggleShortcodes}>Close</button>
 					</div>
 					<p class="text-sm text-gray-600 dark:text-gray-400">
-						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media Library (uploads or external) or any supported provider.
+						Embed media in Markdown using <code>{'{{provider:url}}'}</code>. Paste URLs from Media
+						Library (uploads or external) or any supported provider.
 					</p>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-200">
+					<div
+						class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-200"
+					>
 						<div>
 							<p class="font-semibold">Video</p>
 							<ul class="list-disc list-inside space-y-1">
@@ -717,23 +808,43 @@ function openEditForm(post: Post) {
 		{/if}
 	{:else if posts.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No posts yet</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Start writing to share your thoughts and ideas.
 			</p>
-			<button class="btn btn-primary" onclick={openNewForm}>
-				Write your first post
-			</button>
+			<button class="btn btn-primary" onclick={openNewForm}> Write your first post </button>
 		</div>
 	{:else if filteredPosts.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				></path>
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No posts match your filters</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+				No posts match your filters
+			</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Try adjusting your search or filter criteria.
 			</p>
@@ -745,7 +856,13 @@ function openEditForm(post: Post) {
 		<!-- Posts List -->
 		<div class="space-y-4">
 			{#each filteredPosts as post (post.id)}
-				<div class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id) ? 'ring-2 ring-primary-500' : ''}" data-row-id={post.id} tabindex="-1">
+				<div
+					class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id)
+						? 'ring-2 ring-primary-500'
+						: ''}"
+					data-row-id={post.id}
+					tabindex="-1"
+				>
 					<div class="flex items-start gap-4">
 						{#if selectMode}
 							<input
@@ -756,7 +873,9 @@ function openEditForm(post: Post) {
 							/>
 						{/if}
 						{#if hasCoverImage(post)}
-							<div class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+							<div
+								class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800"
+							>
 								<img
 									src={getCoverImageUrl(post)}
 									alt={post.title}
@@ -770,20 +889,28 @@ function openEditForm(post: Post) {
 									{post.title}
 								</h3>
 								{#if post.is_draft}
-									<span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+									<span
+										class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
+									>
 										Draft
 									</span>
 								{:else}
-									<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded">
+									<span
+										class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded"
+									>
 										Published
 									</span>
 								{/if}
 								{#if post.featured}
-									<span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded">
+									<span
+										class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded"
+									>
 										Featured
 									</span>
 								{/if}
-								<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize">
+								<span
+									class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize"
+								>
 									{post.visibility}
 								</span>
 							</div>
@@ -821,14 +948,26 @@ function openEditForm(post: Post) {
 									<span>/posts/{post.slug}</span>
 								{/if}
 								{#if post.published_at}
-									<span>Published: {formatDate(post.published_at, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+									<span
+										>Published: {formatDate(post.published_at, {
+											month: 'short',
+											day: 'numeric',
+											year: 'numeric'
+										})}</span
+									>
 								{/if}
 								{#if post.tags && post.tags.length > 0}
 									<span class="flex items-center gap-1">
 										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+											></path>
 										</svg>
-										{post.tags.length} {post.tags.length === 1 ? 'tag' : 'tags'}
+										{post.tags.length}
+										{post.tags.length === 1 ? 'tag' : 'tags'}
 									</span>
 								{/if}
 							</div>
@@ -843,7 +982,12 @@ function openEditForm(post: Post) {
 									title="View post"
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+										></path>
 									</svg>
 								</a>
 							{/if}
@@ -853,22 +997,43 @@ function openEditForm(post: Post) {
 								onclick={() => togglePublish(post)}
 							>
 								{#if post.is_draft}
-									<svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+									<svg
+										class="w-4 h-4 text-green-600"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										></path>
 									</svg>
 								{:else}
-									<svg class="w-4 h-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+									<svg
+										class="w-4 h-4 text-yellow-600"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+										></path>
 									</svg>
 								{/if}
 							</button>
-							<button
-								class="btn btn-ghost btn-sm"
-								title="Edit"
-								onclick={() => openEditForm(post)}
-							>
+							<button class="btn btn-ghost btn-sm" title="Edit" onclick={() => openEditForm(post)}>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+									></path>
 								</svg>
 							</button>
 							<button
@@ -877,7 +1042,12 @@ function openEditForm(post: Post) {
 								onclick={() => deletePost(post)}
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+									></path>
 								</svg>
 							</button>
 						</div>

@@ -3,7 +3,13 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import { pb, type ContactMethod, type ContactMethodType, type ProtectionLevel, type View } from '$lib/pocketbase';
+	import {
+		pb,
+		type ContactMethod,
+		type ContactMethodType,
+		type ProtectionLevel,
+		type View
+	} from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { collection } from '$lib/stores/demo';
@@ -13,7 +19,6 @@
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
-	
 
 	// State
 	let contacts: ContactMethod[] = $state([]);
@@ -82,7 +87,7 @@
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
 			if (draft.isEditing && draft.editingId) {
-				const contact = contacts.find(c => c.id === draft.editingId);
+				const contact = contacts.find((c) => c.id === draft.editingId);
 				if (contact) editingContact = contact;
 			}
 			showForm = true;
@@ -96,12 +101,24 @@
 		recoveryData = null;
 	}
 
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		showForm = false;
 		editingContact = null;
-		
+
 		const draft = autosave.loadDraft();
-		if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0 && v !== null && !(typeof v === 'object' && Object.keys(v).length === 0))) {
+		if (
+			draft?.data &&
+			Object.values(draft.data).some(
+				(v) =>
+					v !== '' &&
+					v !== false &&
+					v !== 0 &&
+					v !== null &&
+					!(typeof v === 'object' && Object.keys(v).length === 0)
+			)
+		) {
 			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
 			showRecoveryBanner = true;
 		} else {
@@ -111,16 +128,41 @@
 	});
 
 	// Contact method type options with icons
-	const contactTypes: { value: ContactMethodType; label: string; icon: string; placeholder: string }[] = [
+	const contactTypes: {
+		value: ContactMethodType;
+		label: string;
+		icon: string;
+		placeholder: string;
+	}[] = [
 		{ value: 'email', label: 'Email', icon: '📧', placeholder: 'your@email.com' },
 		{ value: 'phone', label: 'Phone', icon: '📱', placeholder: '+1 (555) 123-4567' },
-		{ value: 'linkedin', label: 'LinkedIn', icon: '💼', placeholder: 'https://linkedin.com/in/username' },
+		{
+			value: 'linkedin',
+			label: 'LinkedIn',
+			icon: '💼',
+			placeholder: 'https://linkedin.com/in/username'
+		},
 		{ value: 'github', label: 'GitHub', icon: '🐙', placeholder: 'https://github.com/username' },
 		{ value: 'twitter', label: 'Twitter', icon: '🐦', placeholder: 'https://twitter.com/username' },
-		{ value: 'facebook', label: 'Facebook', icon: '👥', placeholder: 'https://facebook.com/username' },
-		{ value: 'instagram', label: 'Instagram', icon: '📷', placeholder: 'https://instagram.com/username' },
+		{
+			value: 'facebook',
+			label: 'Facebook',
+			icon: '👥',
+			placeholder: 'https://facebook.com/username'
+		},
+		{
+			value: 'instagram',
+			label: 'Instagram',
+			icon: '📷',
+			placeholder: 'https://instagram.com/username'
+		},
 		{ value: 'youtube', label: 'YouTube', icon: '🎬', placeholder: 'https://youtube.com/@channel' },
-		{ value: 'mastodon', label: 'Mastodon', icon: '🐘', placeholder: 'https://mastodon.social/@username' },
+		{
+			value: 'mastodon',
+			label: 'Mastodon',
+			icon: '🐘',
+			placeholder: 'https://mastodon.social/@username'
+		},
 		{ value: 'bluesky', label: 'Bluesky', icon: '🦋', placeholder: 'username.bsky.social' },
 		{ value: 'website', label: 'Website', icon: '🌐', placeholder: 'https://yourwebsite.com' },
 		{ value: 'portfolio', label: 'Portfolio', icon: '💼', placeholder: 'https://portfolio.com' },
@@ -136,9 +178,21 @@
 	// Protection levels
 	const protectionLevels: { value: ProtectionLevel; label: string; description: string }[] = [
 		{ value: 'none', label: 'None', description: 'Visible to everyone (no protection)' },
-		{ value: 'obfuscation', label: 'CSS Obfuscation', description: 'Hidden from bots via CSS tricks' },
-		{ value: 'click_to_reveal', label: 'Click to Reveal', description: 'User must click to see contact' },
-		{ value: 'captcha', label: 'CAPTCHA (Coming Soon)', description: 'Cloudflare Turnstile - not yet implemented' }
+		{
+			value: 'obfuscation',
+			label: 'CSS Obfuscation',
+			description: 'Hidden from bots via CSS tricks'
+		},
+		{
+			value: 'click_to_reveal',
+			label: 'Click to Reveal',
+			description: 'User must click to see contact'
+		},
+		{
+			value: 'captcha',
+			label: 'CAPTCHA (Coming Soon)',
+			description: 'Cloudflare Turnstile - not yet implemented'
+		}
 	];
 
 	// Lifecycle
@@ -359,13 +413,17 @@
 		{@html $t('admin.content.contacts.help_tip_2')}
 	</PageHelp>
 
-	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">{$t('admin.content.contacts.title')}</h1>
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+		{$t('admin.content.contacts.title')}
+	</h1>
 
 	<div class="flex items-center justify-between mb-6">
 		<p class="text-sm text-gray-600 dark:text-gray-400">
 			Add contact methods with per-view visibility and anti-scraping protection.
 		</p>
-		<button class="btn btn-primary" onclick={openNewForm}>{$t('admin.content.common.new_button', { values: { type: 'Contact' } })}</button>
+		<button class="btn btn-primary" onclick={openNewForm}
+			>{$t('admin.content.common.new_button', { values: { type: 'Contact' } })}</button
+		>
 	</div>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -382,8 +440,14 @@
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
-			<p class="mt-4 text-gray-600 dark:text-gray-400">{$t('admin.content.common.loading', { values: { type: $t('admin.content.contacts.title').toLowerCase() } })}</p>
+			<div
+				class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"
+			></div>
+			<p class="mt-4 text-gray-600 dark:text-gray-400">
+				{$t('admin.content.common.loading', {
+					values: { type: $t('admin.content.contacts.title').toLowerCase() }
+				})}
+			</p>
 		</div>
 	{:else if showForm}
 		<!-- Form View -->
@@ -404,7 +468,8 @@
 						<select id="contact-type" bind:value={type} onchange={handleTypeChange} class="input">
 							{#each contactTypes as contactType}
 								<option value={contactType.value}>
-									{contactType.icon} {contactType.label}
+									{contactType.icon}
+									{contactType.label}
 								</option>
 							{/each}
 						</select>
@@ -448,7 +513,9 @@
 							class="input"
 							maxlength="4"
 						/>
-						<p class="text-xs text-gray-500 mt-1">Emoji or icon to display (defaults to type icon)</p>
+						<p class="text-xs text-gray-500 mt-1">
+							Emoji or icon to display (defaults to type icon)
+						</p>
 					</div>
 				</div>
 
@@ -458,13 +525,13 @@
 					</legend>
 					<div class="space-y-2">
 						{#each protectionLevels as level}
-							<label class="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {protectionLevel === level.value ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-700'}">
-								<input
-									type="radio"
-									bind:group={protectionLevel}
-									value={level.value}
-									class="mt-1"
-								/>
+							<label
+								class="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {protectionLevel ===
+								level.value
+									? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+									: 'border-gray-300 dark:border-gray-700'}"
+							>
+								<input type="radio" bind:group={protectionLevel} value={level.value} class="mt-1" />
 								<div class="flex-1">
 									<div class="font-medium">{level.label}</div>
 									<div class="text-sm text-gray-600 dark:text-gray-400">{level.description}</div>
@@ -477,7 +544,8 @@
 				<fieldset>
 					<legend class="label">View Visibility</legend>
 					<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-						Select which views should display this contact method. Leave all unchecked to show on all views.
+						Select which views should display this contact method. Leave all unchecked to show on
+						all views.
 					</p>
 
 					<div class="flex gap-2 mb-3">
@@ -494,7 +562,13 @@
 					{:else}
 						<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
 							{#each views as view}
-								<label class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {viewVisibility[view.id] ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-700'}">
+								<label
+									class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {viewVisibility[
+										view.id
+									]
+										? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+										: 'border-gray-300 dark:border-gray-700'}"
+								>
 									<input
 										type="checkbox"
 										checked={viewVisibility[view.id] || false}
@@ -502,7 +576,9 @@
 									/>
 									<span class="text-sm">{view.name}</span>
 									{#if view.is_default}
-										<span class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded">
+										<span
+											class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded"
+										>
 											Default
 										</span>
 									{/if}
@@ -562,7 +638,7 @@
 					stroke-linejoin="round"
 					stroke-width="2"
 					d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-				/>
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No contact methods yet</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
@@ -583,12 +659,12 @@
 					stroke-linejoin="round"
 					stroke-width="2"
 					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-				/>
+				></path>
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No contact methods match your filters</h3>
-			<p class="text-gray-500 dark:text-gray-400 mb-4">
-				Try adjusting your search query.
-			</p>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+				No contact methods match your filters
+			</h3>
+			<p class="text-gray-500 dark:text-gray-400 mb-4">Try adjusting your search query.</p>
 			<button class="btn btn-secondary" onclick={() => filterStore.clearAllFilters()}>
 				Clear Search
 			</button>
@@ -609,7 +685,9 @@
 									{contact.label || getContactTypeInfo(contact.type).label}
 								</span>
 								{#if contact.is_primary}
-									<span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded">
+									<span
+										class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded"
+									>
 										Primary
 									</span>
 								{/if}
@@ -662,16 +740,10 @@
 						>
 							{contact.is_primary ? '⭐' : '☆'}
 						</button>
-						<button
-							class="btn btn-secondary text-sm"
-							onclick={() => openEditForm(contact)}
-						>
+						<button class="btn btn-secondary text-sm" onclick={() => openEditForm(contact)}>
 							Edit
 						</button>
-						<button
-							class="btn btn-danger-ghost btn-sm"
-							onclick={() => deleteContact(contact)}
-						>
+						<button class="btn btn-danger-ghost btn-sm" onclick={() => deleteContact(contact)}>
 							Delete
 						</button>
 					</div>
@@ -684,7 +756,9 @@
 			<h4 class="font-medium text-blue-900 dark:text-blue-300 mb-2">About Contact Protection</h4>
 			<ul class="text-sm text-blue-800 dark:text-blue-400 space-y-1">
 				<li><strong>None:</strong> Contact visible to everyone including bots</li>
-				<li><strong>CSS Obfuscation:</strong> Hides contact from simple scrapers using CSS tricks</li>
+				<li>
+					<strong>CSS Obfuscation:</strong> Hides contact from simple scrapers using CSS tricks
+				</li>
 				<li><strong>Click to Reveal:</strong> Requires user interaction to display contact</li>
 				<li><strong>CAPTCHA:</strong> Cloudflare Turnstile verification required (coming soon)</li>
 			</ul>

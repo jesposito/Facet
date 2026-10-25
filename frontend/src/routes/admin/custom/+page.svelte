@@ -2,7 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 	import { onMount, tick } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { flip } from 'svelte/animate';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { pb, type CustomContent, getFileUrl } from '$lib/pocketbase';
@@ -94,7 +94,9 @@
 		}
 	}
 
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		showForm = false;
 		editingItem = null;
 		selectMode = false;
@@ -266,7 +268,9 @@
 			}
 
 			// Handle media library refs
-			const resolvedRefs = mediaPickerRef ? await mediaPickerRef.resolveMediaRefs(mediaRefs) : mediaRefs;
+			const resolvedRefs = mediaPickerRef
+				? await mediaPickerRef.resolveMediaRefs(mediaRefs)
+				: mediaRefs;
 			formData.append('media_refs', JSON.stringify(resolvedRefs));
 
 			if (editingItem) {
@@ -386,7 +390,9 @@
 		reorderItems = e.detail.items;
 	}
 
-	function handleDndFinalize(e: CustomEvent<{ items: typeof reorderItems; info?: { id?: string } }>) {
+	function handleDndFinalize(
+		e: CustomEvent<{ items: typeof reorderItems; info?: { id?: string } }>
+	) {
 		reorderItems = e.detail.items;
 		// Announce the dropped item's new position for screen-reader users.
 		const droppedId = e.detail.info?.id;
@@ -420,9 +426,7 @@
 		await tick();
 		if (btn.disabled) {
 			const opposite = direction === 'up' ? 'down' : 'up';
-			btn.parentElement
-				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
-				?.focus();
+			btn.parentElement?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)?.focus();
 		}
 	}
 
@@ -475,8 +479,8 @@
 		<BulkActionBar
 			selectedCount={selectedIds.size}
 			totalCount={items.length}
-			on:selectAll={selectAll}
-			on:clearSelection={clearSelection}
+			on:selectAll
+			on:clearSelection
 			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
 			on:delete={bulkDelete}
 			on:cancel={toggleSelectMode}
@@ -484,7 +488,9 @@
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.custom.title')}</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.content.custom.title')}
+		</h1>
 		<div class="flex items-center gap-2">
 			{#if items.length > 1 && !showForm}
 				<button
@@ -500,7 +506,11 @@
 				</button>
 			{/if}
 			{#if !reorderMode}
-				<button class="btn btn-primary" onclick={openNewForm}> {$t('admin.content.common.new_button', { values: { type: $t('admin.content.custom.title') } })} </button>
+				<button class="btn btn-primary" onclick={openNewForm}>
+					{$t('admin.content.common.new_button', {
+						values: { type: $t('admin.content.custom.title') }
+					})}
+				</button>
 			{/if}
 		</div>
 	</div>
@@ -511,7 +521,11 @@
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.custom.title').toLowerCase() } })}</div>
+			<div class="animate-pulse">
+				{$t('admin.content.common.loading', {
+					values: { type: $t('admin.content.custom.title').toLowerCase() }
+				})}
+			</div>
 		</div>
 	{:else if reorderMode}
 		<!-- Reorder Mode -->
@@ -533,13 +547,18 @@
 							animate:flip={{ duration: flipDurationMs }}
 							class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg cursor-grab active:cursor-grabbing"
 						>
-							<svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<svg
+								class="w-5 h-5 text-gray-400"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+							>
 								<path
 									stroke-linecap="round"
 									stroke-linejoin="round"
 									stroke-width="2"
 									d="M4 8h16M4 16h16"
-								/>
+								></path>
 							</svg>
 							<!-- Keyboard-accessible reorder controls (complement drag). Stop
 							     pointer/touch events so pressing a button never starts a drag. -->
@@ -556,10 +575,19 @@
 									class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
 									disabled={itemIdx === 0}
 									onclick={(e) => moveReorderItem(itemIdx, 'up', e.currentTarget)}
-									aria-label={$t('admin.content.common.reorder_move_up', { values: { item: item.title } })}
+									aria-label={$t('admin.content.common.reorder_move_up', {
+										values: { item: item.title }
+									})}
 								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="2.5"
+										aria-hidden="true"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"></path>
 									</svg>
 								</button>
 								<button
@@ -568,10 +596,19 @@
 									class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
 									disabled={itemIdx === reorderItems.length - 1}
 									onclick={(e) => moveReorderItem(itemIdx, 'down', e.currentTarget)}
-									aria-label={$t('admin.content.common.reorder_move_down', { values: { item: item.title } })}
+									aria-label={$t('admin.content.common.reorder_move_down', {
+										values: { item: item.title }
+									})}
 								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										stroke-width="2.5"
+										aria-hidden="true"
+									>
+										<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"></path>
 									</svg>
 								</button>
 							</div>
@@ -614,7 +651,7 @@
 								stroke-linejoin="round"
 								stroke-width="2"
 								d="M6 18L18 6M6 6l12 12"
-							/>
+							></path>
 						</svg>
 					</button>
 				</div>
@@ -637,13 +674,18 @@
 						<label for="content" class="label mb-0">Content (Markdown)</label>
 						<AIContentHelper
 							fieldType="content"
-							content={content}
+							{content}
 							context={{ title }}
 							on:apply={(e) => (content = e.detail.content)}
 							size="sm"
 						/>
 					</div>
-					<MarkdownEditor bind:value={content} toolbar="full" minHeight="200px" placeholder="Write your content here... (Markdown supported)" />
+					<MarkdownEditor
+						bind:value={content}
+						toolbar="full"
+						minHeight="200px"
+						placeholder="Write your content here... (Markdown supported)"
+					/>
 				</div>
 
 				<div>
@@ -695,7 +737,9 @@
 				<div>
 					<span id="admin-tags-label" class="label">Admin Tags</span>
 					<AdminTagSelector bind:selectedIds={adminTagIds} labelledBy="admin-tags-label" />
-					<p class="text-xs text-gray-500 mt-1">Tags are for admin organization only (not shown publicly)</p>
+					<p class="text-xs text-gray-500 mt-1">
+						Tags are for admin organization only (not shown publicly)
+					</p>
 				</div>
 			</div>
 
@@ -736,7 +780,7 @@
 					stroke-linejoin="round"
 					stroke-width="2"
 					d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-				/>
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No custom content yet</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
@@ -757,7 +801,7 @@
 					stroke-linejoin="round"
 					stroke-width="2"
 					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-				/>
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
 				No content matches your filters
@@ -790,7 +834,10 @@
 
 						{#if item.cover_image}
 							<img
-								src={getFileUrl({ id: item.id, collectionName: 'custom_content' }, item.cover_image)}
+								src={getFileUrl(
+									{ id: item.id, collectionName: 'custom_content' },
+									item.cover_image
+								)}
 								alt={item.title}
 								class="w-16 h-16 object-cover rounded shrink-0"
 							/>
@@ -865,22 +912,32 @@
 								onclick={() => togglePublish(item)}
 							>
 								{#if item.is_draft}
-									<svg class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<svg
+										class="w-4 h-4 text-green-600"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
 											d="M5 13l4 4L19 7"
-										/>
+										></path>
 									</svg>
 								{:else}
-									<svg class="w-4 h-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<svg
+										class="w-4 h-4 text-yellow-600"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+									>
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
 											d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-										/>
+										></path>
 									</svg>
 								{/if}
 							</button>
@@ -891,7 +948,7 @@
 										stroke-linejoin="round"
 										stroke-width="2"
 										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-									/>
+									></path>
 								</svg>
 							</button>
 							<button
@@ -905,7 +962,7 @@
 										stroke-linejoin="round"
 										stroke-width="2"
 										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									/>
+									></path>
 								</svg>
 							</button>
 						</div>

@@ -4,7 +4,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { afterNavigate } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { t } from 'svelte-i18n';
 	import { pb, currentUser, performLogout, freshLogin, clearFreshLogin } from '$lib/pocketbase';
 	import { adminSidebarOpen } from '$lib/stores';
@@ -19,33 +19,31 @@
 	import { setupWizard, shouldShowWizard } from '$lib/stores/setupWizard';
 	import { get } from 'svelte/store';
 	import type { Profile, View } from '$lib/pocketbase';
+
 	interface Props {
 		children?: import('svelte').Snippet;
 	}
 
 	let { children }: Props = $props();
-
 	let loading = $state(true);
 	let authorized = $state(false);
 	let mounted = $state(false);
 	let showPasswordChangeModal = $state(false);
 	let showTwoFactorModal = $state(false);
 	let twoFactorError = $state(false);
-	
+
 	// Mobile detection for responsive sidebar behavior
 	// Mobile: sidebar is overlay drawer (hidden by default)
 	// Desktop: sidebar is persistent (current behavior)
 	let isMobile = $state(false);
 	const MOBILE_BREAKPOINT = 1024;
-	
+
 	let profileData: Profile | null = $state(null);
 	let viewsData: View[] = $state([]);
 	let showEncryptionWarning = $state(false);
 	let encryptionKeySource = $state('');
 	let checkingSetupWizard = $state(false);
 	let wizardCheckedThisSession = false;
-
-
 
 	async function check2FAStatus(): Promise<boolean> {
 		try {
@@ -137,7 +135,7 @@
 		}
 		return false;
 	}
-	
+
 	async function checkSetupWizard() {
 		// Only check wizard once per page load — prevents nagging on every auth state change
 		if (wizardCheckedThisSession) return;
@@ -157,7 +155,7 @@
 				collection('views').getList(1, 100)
 			]);
 
-			profileData = profileRes.items[0] as unknown as Profile || null;
+			profileData = (profileRes.items[0] as unknown as Profile) || null;
 			viewsData = viewsRes.items as unknown as View[];
 
 			if (shouldShowWizard(profileData, viewsData, $demoMode)) {
@@ -181,7 +179,7 @@
 		// Set up mobile detection with media query
 		const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 		isMobile = mediaQuery.matches;
-		
+
 		const handleMediaChange = (e: MediaQueryListEvent) => {
 			isMobile = e.matches;
 			// When switching to mobile, close sidebar by default
@@ -189,7 +187,7 @@
 				adminSidebarOpen.set(false);
 			}
 		};
-		
+
 		mediaQuery.addEventListener('change', handleMediaChange);
 		mediaQueryCleanup = () => mediaQuery.removeEventListener('change', handleMediaChange);
 
@@ -256,7 +254,11 @@
 					authorized = true;
 				} else {
 					// Token validation failed (401/403) - clear stale auth and redirect to login
-					console.log('[LAYOUT] Auth validation failed (status:', status, '), clearing stale auth state');
+					console.log(
+						'[LAYOUT] Auth validation failed (status:',
+						status,
+						'), clearing stale auth state'
+					);
 					pb.authStore.clear();
 					// Clear the cookie to prevent redirect loops
 					document.cookie = 'pb_auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -280,7 +282,9 @@
 	});
 
 	// Close sidebar on navigation (mobile only)
-	afterNavigate(() => {
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		if (isMobile && $adminSidebarOpen) {
 			adminSidebarOpen.set(false);
 		}
@@ -310,7 +314,7 @@
 		// If needs2FA, the modal is now showing and authorized stays false
 	}
 	// Check if we're on the login page (don't require auth there)
-	let isLoginPage = $derived($page.url.pathname === '/admin/login');
+	let isLoginPage = $derived(page.url.pathname === '/admin/login');
 	// Handle login page - always stop loading immediately
 	run(() => {
 		if (isLoginPage) {
@@ -321,7 +325,14 @@
 	run(() => {
 		if (mounted && !isLoginPage) {
 			const isAuth = $currentUser && pb.authStore.isValid;
-			if (isAuth && !authorized && !showTwoFactorModal && !showPasswordChangeModal && !twoFactorError && !loading) {
+			if (
+				isAuth &&
+				!authorized &&
+				!showTwoFactorModal &&
+				!showPasswordChangeModal &&
+				!twoFactorError &&
+				!loading
+			) {
 				// Show loading spinner during auth checks to prevent "Unauthorized" flash
 				loading = true;
 				(async () => {
@@ -360,12 +371,28 @@
 </script>
 
 {#if loading}
-	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900" role="status" aria-label={$t('admin.layout.loading')}>
+	<div
+		class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900"
+		role="status"
+		aria-label={$t('admin.layout.loading')}
+	>
 		<div class="animate-pulse text-center">
-			<div class="w-12 h-12 mx-auto mb-4 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-				<svg class="w-6 h-6 text-primary-600 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+			<div
+				class="w-12 h-12 mx-auto mb-4 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center"
+			>
+				<svg
+					class="w-6 h-6 text-primary-600 animate-spin"
+					fill="none"
+					viewBox="0 0 24 24"
+					aria-hidden="true"
+				>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
 				</svg>
 			</div>
 			<p class="text-gray-600 dark:text-gray-400">{$t('admin.layout.loading')}</p>
@@ -388,9 +415,17 @@
 					aria-label={$t('admin.layout.close_navigation')}
 				>
 					<!-- Visible tap-to-close affordance -->
-					<span class="absolute right-4 top-20 flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-lg">
+
+					<span
+						class="absolute right-4 top-20 flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-lg"
+					>
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							></path>
 						</svg>
 						{$t('shared.actions.close')}
 					</span>
@@ -409,20 +444,38 @@
 			<main
 				id="main-content"
 				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-clip w-full max-w-full
-					{isMobile ? '' : ($adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16')}
+					{isMobile ? '' : $adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}
 					{!isMobile && $userPreferences.livePreviewEnabled
-						? 'lg:max-w-[calc(50%-1rem)] xl:max-w-[calc(50%-1.5rem)]'
-						: ''}"
+					? 'lg:max-w-[calc(50%-1rem)] xl:max-w-[calc(50%-1.5rem)]'
+					: ''}"
 			>
 				{#if showEncryptionWarning}
-					<div class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4" role="status">
+					<div
+						class="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+						role="status"
+					>
 						<div class="flex items-start gap-3">
-							<svg class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							<svg
+								class="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+								></path>
 							</svg>
 							<div class="flex-1">
-								<h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">{$t('admin.layout.encryption_info_title')}</h3>
-								<p class="text-sm text-blue-700 dark:text-blue-300 mt-1">{$t('admin.layout.encryption_info_message')}</p>
+								<h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+									{$t('admin.layout.encryption_info_title')}
+								</h3>
+								<p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
+									{$t('admin.layout.encryption_info_message')}
+								</p>
 							</div>
 							<button
 								type="button"
@@ -431,7 +484,12 @@
 								aria-label={$t('admin.layout.encryption_warning_dismiss')}
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18L18 6M6 6l12 12"
+									></path>
 								</svg>
 							</button>
 						</div>
@@ -453,18 +511,34 @@
 			{/if}
 		</div>
 
-			<SetupWizard />
+		<SetupWizard />
 	</div>
 {:else if twoFactorError}
 	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
 		<div class="text-center max-w-md mx-auto px-4">
-			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center">
-				<svg class="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+			<div
+				class="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center"
+			>
+				<svg
+					class="w-8 h-8 text-amber-600 dark:text-amber-400"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					></path>
 				</svg>
 			</div>
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{$t('admin.two_factor.status_check_failed_title')}</h2>
-			<p class="text-gray-600 dark:text-gray-400 mb-6">{$t('admin.two_factor.status_check_failed_message')}</p>
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('admin.two_factor.status_check_failed_title')}
+			</h2>
+			<p class="text-gray-600 dark:text-gray-400 mb-6">
+				{$t('admin.two_factor.status_check_failed_message')}
+			</p>
 			<div class="flex gap-3 justify-center">
 				<button
 					type="button"
@@ -496,21 +570,32 @@
 		</div>
 	</div>
 {:else if showPasswordChangeModal || showTwoFactorModal}
-	<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-	</div>
+	<div class="min-h-screen bg-gray-50 dark:bg-gray-900"></div>
 {:else}
 	<!-- CRITICAL SECURITY: Fallback for any edge case where user is not authenticated -->
 	<!-- This prevents blank pages AND unauthorized access to admin panel -->
 	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
 		<div class="text-center">
-			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+			<div
+				class="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center"
+			>
 				<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					></path>
 				</svg>
 			</div>
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{$t('errors.unauthorized')}</h2>
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+				{$t('errors.unauthorized')}
+			</h2>
 			<p class="text-gray-600 dark:text-gray-400 mb-6">{$t('errors.unauthorized_message')}</p>
-			<a href="/admin/login" class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+			<a
+				href="/admin/login"
+				class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+			>
 				{$t('errors.go_to_login')}
 			</a>
 		</div>

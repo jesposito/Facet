@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
 
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { onMount, onDestroy } from 'svelte';
 import { t } from 'svelte-i18n';
 import { brandName } from '$lib/stores/plan';

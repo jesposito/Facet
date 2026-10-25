@@ -36,8 +36,8 @@
 	let sortOrder = $state(0);
 	let saving = $state(false);
 
-let selectMode = $state(false);
-let selectedIds: Set<string> = $state(new Set());
+	let selectMode = $state(false);
+	let selectedIds: Set<string> = $state(new Set());
 
 	const autosave = createAutosave('admin-certifications', { saveDelay: 1500 });
 	let showRecoveryBanner = $state(false);
@@ -62,63 +62,75 @@ let selectedIds: Set<string> = $state(new Set());
 	);
 
 	function getFormData() {
-	return { name, issuer, issueDate, expiryDate, credentialId, credentialUrl, visibility, isDraft, sortOrder };
-}
-
-function restoreFromDraft(data: Record<string, any>) {
-	name = data.name || '';
-	issuer = data.issuer || '';
-	issueDate = data.issueDate || '';
-	expiryDate = data.expiryDate || '';
-	credentialId = data.credentialId || '';
-	credentialUrl = data.credentialUrl || '';
-	visibility = data.visibility || 'public';
-	isDraft = data.isDraft || false;
-	sortOrder = data.sortOrder || 0;
-}
-
-function handleFormChange() {
-	if (showForm) {
-		autosave.save(getFormData(), !!editingCert, editingCert?.id);
+		return {
+			name,
+			issuer,
+			issueDate,
+			expiryDate,
+			credentialId,
+			credentialUrl,
+			visibility,
+			isDraft,
+			sortOrder
+		};
 	}
-}
 
-function handleRestoreDraft() {
-	const draft = autosave.loadDraft();
-	if (draft?.data) {
-		restoreFromDraft(draft.data);
-		if (draft.isEditing && draft.editingId) {
-			const cert = certifications.find(c => c.id === draft.editingId);
-			if (cert) editingCert = cert;
+	function restoreFromDraft(data: Record<string, any>) {
+		name = data.name || '';
+		issuer = data.issuer || '';
+		issueDate = data.issueDate || '';
+		expiryDate = data.expiryDate || '';
+		credentialId = data.credentialId || '';
+		credentialUrl = data.credentialUrl || '';
+		visibility = data.visibility || 'public';
+		isDraft = data.isDraft || false;
+		sortOrder = data.sortOrder || 0;
+	}
+
+	function handleFormChange() {
+		if (showForm) {
+			autosave.save(getFormData(), !!editingCert, editingCert?.id);
 		}
-		showForm = true;
 	}
-	showRecoveryBanner = false;
-}
 
-function handleDismissDraft() {
-	autosave.clearDraft();
-	showRecoveryBanner = false;
-	recoveryData = null;
-}
+	function handleRestoreDraft() {
+		const draft = autosave.loadDraft();
+		if (draft?.data) {
+			restoreFromDraft(draft.data);
+			if (draft.isEditing && draft.editingId) {
+				const cert = certifications.find((c) => c.id === draft.editingId);
+				if (cert) editingCert = cert;
+			}
+			showForm = true;
+		}
+		showRecoveryBanner = false;
+	}
 
-afterNavigate(() => {
-	showForm = false;
-	editingCert = null;
-	selectMode = false;
-	selectedIds = new Set();
-	
-	const draft = autosave.loadDraft();
-	if (draft?.data && Object.values(draft.data).some(v => v !== '' && v !== false && v !== 0)) {
-		recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
-		showRecoveryBanner = true;
-	} else {
+	function handleDismissDraft() {
+		autosave.clearDraft();
 		showRecoveryBanner = false;
 		recoveryData = null;
 	}
-});
 
-onMount(loadCertifications);
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingCert = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		const draft = autosave.loadDraft();
+		if (draft?.data && Object.values(draft.data).some((v) => v !== '' && v !== false && v !== 0)) {
+			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
+			showRecoveryBanner = true;
+		} else {
+			showRecoveryBanner = false;
+			recoveryData = null;
+		}
+	});
+
+	onMount(loadCertifications);
 
 	async function loadCertifications() {
 		loading = true;
@@ -244,7 +256,10 @@ onMount(loadCertifications);
 			await await collection('certifications').update(cert.id, {
 				is_draft: !cert.is_draft
 			});
-			toasts.add('success', cert.is_draft ? 'Certification published' : 'Certification unpublished');
+			toasts.add(
+				'success',
+				cert.is_draft ? 'Certification published' : 'Certification unpublished'
+			);
 			await loadCertifications();
 		} catch (err) {
 			console.error('Failed to toggle publish:', err);
@@ -293,8 +308,13 @@ onMount(loadCertifications);
 		selectedIds = selectedIds;
 	}
 
-	function selectAll() { selectedIds = new Set(certifications.map(e => e.id)); }
-	function clearSelection() { selectedIds = new Set(); }
+	function selectAll() {
+		selectedIds = new Set(certifications.map((e) => e.id));
+	}
+
+	function clearSelection() {
+		selectedIds = new Set();
+	}
 
 	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
 		const ids = Array.from(selectedIds);
@@ -337,7 +357,10 @@ onMount(loadCertifications);
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="certifications">
 		{@html $t('admin.content.certifications.help_text')}
-		<p><strong>{$t('admin.content.common.tip')}:</strong> {$t('admin.content.certifications.help_tip_1')}</p>
+		<p>
+			<strong>{$t('admin.content.common.tip')}:</strong>
+			{$t('admin.content.certifications.help_tip_1')}
+		</p>
 	</PageHelp>
 
 	{#if showRecoveryBanner && recoveryData}
@@ -354,8 +377,8 @@ onMount(loadCertifications);
 		<BulkActionBar
 			selectedCount={selectedIds.size}
 			totalCount={certifications.length}
-			on:selectAll={selectAll}
-			on:clearSelection={clearSelection}
+			on:selectAll
+			on:clearSelection
 			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
 			on:delete={bulkDelete}
 			on:cancel={toggleSelectMode}
@@ -363,18 +386,19 @@ onMount(loadCertifications);
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.content.certifications.title')}</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.content.certifications.title')}
+		</h1>
 		<div class="flex items-center gap-2">
 			{#if certifications.length > 0}
-				<button
-					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
-					onclick={toggleSelectMode}
-				>
+				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			<button class="btn btn-primary" onclick={openNewForm}>
-				{$t('admin.content.common.new_button', { values: { type: $t('admin.content.certifications.title').slice(0, -1) } })}
+				{$t('admin.content.common.new_button', {
+					values: { type: $t('admin.content.certifications.title').slice(0, -1) }
+				})}
 			</button>
 		</div>
 	</div>
@@ -393,7 +417,11 @@ onMount(loadCertifications);
 
 	{#if loading}
 		<div class="card p-8 text-center">
-			<div class="animate-pulse">{$t('admin.content.common.loading', { values: { type: $t('admin.content.certifications.title').toLowerCase() } })}</div>
+			<div class="animate-pulse">
+				{$t('admin.content.common.loading', {
+					values: { type: $t('admin.content.certifications.title').toLowerCase() }
+				})}
+			</div>
 		</div>
 	{:else if showForm}
 		<!-- Certification Form -->
@@ -403,9 +431,26 @@ onMount(loadCertifications);
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{editingCert ? 'Edit Certification' : 'New Certification'}
 					</h2>
-					<button type="button" class="text-gray-500 hover:text-gray-700" onclick={closeForm} aria-label={$t('shared.aria.close_form')}>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+
+					<button
+						type="button"
+						class="text-gray-500 hover:text-gray-700"
+						onclick={closeForm}
+						aria-label={$t('shared.aria.close_form')}
+					>
+						<svg
+							class="w-5 h-5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							></path>
 						</svg>
 					</button>
 				</div>
@@ -481,7 +526,9 @@ onMount(loadCertifications);
 							class="input"
 							placeholder="https://www.credly.com/badges/..."
 						/>
-						<p class="text-xs text-gray-500 mt-1">Link where others can verify this certification</p>
+						<p class="text-xs text-gray-500 mt-1">
+							Link where others can verify this certification
+						</p>
 					</div>
 				</div>
 			</AccordionSection>
@@ -493,14 +540,10 @@ onMount(loadCertifications);
 
 						<div>
 							<label for="sort_order" class="label">Sort Order</label>
-							<input
-								type="number"
-								id="sort_order"
-								bind:value={sortOrder}
-								class="input"
-								min="0"
-							/>
-							<p class="text-xs text-gray-500 mt-1">Higher numbers appear first within issuer group</p>
+							<input type="number" id="sort_order" bind:value={sortOrder} class="input" min="0" />
+							<p class="text-xs text-gray-500 mt-1">
+								Higher numbers appear first within issuer group
+							</p>
 						</div>
 					</div>
 
@@ -523,8 +566,19 @@ onMount(loadCertifications);
 				<button type="submit" class="btn btn-primary" disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					{editingCert ? 'Update Certification' : 'Create Certification'}
@@ -533,8 +587,18 @@ onMount(loadCertifications);
 		</form>
 	{:else if certifications.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+				></path>
 			</svg>
 			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No certifications yet</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
@@ -546,10 +610,22 @@ onMount(loadCertifications);
 		</div>
 	{:else if filteredCertifications.length === 0}
 		<div class="card p-8 text-center">
-			<svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+			<svg
+				class="w-12 h-12 mx-auto text-gray-400 mb-4"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+				></path>
 			</svg>
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No certifications match your filters</h3>
+			<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+				No certifications match your filters
+			</h3>
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Try adjusting your search or filter criteria.
 			</p>
@@ -562,12 +638,18 @@ onMount(loadCertifications);
 		<div class="space-y-6">
 			{#each [...groupedCertifications] as [issuerName, certs] (issuerName)}
 				<div>
-					<h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+					<h2
+						class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3"
+					>
 						{issuerName}
 					</h2>
 					<div class="space-y-3">
 						{#each certs as cert (cert.id)}
-							<div class="card p-4 {selectMode && selectedIds.has(cert.id) ? 'ring-2 ring-primary-500' : ''}">
+							<div
+								class="card p-4 {selectMode && selectedIds.has(cert.id)
+									? 'ring-2 ring-primary-500'
+									: ''}"
+							>
 								<div class="flex items-start justify-between gap-4">
 									{#if selectMode}
 										<input
@@ -583,21 +665,29 @@ onMount(loadCertifications);
 												{cert.name}
 											</h3>
 											{#if cert.is_draft}
-												<span class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
+												<span
+													class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
+												>
 													Draft
 												</span>
 											{/if}
 											{#if cert.visibility !== 'public'}
-												<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+												<span
+													class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+												>
 													{cert.visibility}
 												</span>
 											{/if}
 											{#if isExpired(cert)}
-												<span class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded">
+												<span
+													class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded"
+												>
 													Expired
 												</span>
 											{:else if expiresSoon(cert)}
-												<span class="px-2 py-0.5 text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded">
+												<span
+													class="px-2 py-0.5 text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded"
+												>
 													Expires Soon
 												</span>
 											{/if}
@@ -625,27 +715,60 @@ onMount(loadCertifications);
 											<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
 										{/if}
 
-										<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400">
+										<div
+											class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+										>
 											{#if cert.issue_date}
 												<span class="flex items-center gap-1">
-													<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+													<svg
+														class="w-4 h-4"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+														></path>
 													</svg>
 													Issued {formatDate(cert.issue_date)}
 												</span>
 											{/if}
 											{#if cert.expiry_date}
 												<span class="flex items-center gap-1">
-													<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+													<svg
+														class="w-4 h-4"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+														></path>
 													</svg>
-													{isExpired(cert) ? 'Expired' : 'Expires'} {formatDate(cert.expiry_date)}
+													{isExpired(cert) ? 'Expired' : 'Expires'}
+													{formatDate(cert.expiry_date)}
 												</span>
 											{/if}
 											{#if cert.credential_id}
 												<span class="flex items-center gap-1">
-													<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+													<svg
+														class="w-4 h-4"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+														></path>
 													</svg>
 													{cert.credential_id}
 												</span>
@@ -654,9 +777,24 @@ onMount(loadCertifications);
 
 										{#if cert.credential_url}
 											<div class="mt-2">
-												<a href={cert.credential_url} target="_blank" rel="noopener noreferrer" class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
-													<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+												<a
+													href={cert.credential_url}
+													target="_blank"
+													rel="noopener noreferrer"
+													class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+												>
+													<svg
+														class="w-3 h-3"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+														></path>
 													</svg>
 													Verify Credential
 												</a>
@@ -672,12 +810,28 @@ onMount(loadCertifications);
 										>
 											{#if cert.is_draft}
 												<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+													></path>
+
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+													></path>
 												</svg>
 											{:else}
 												<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+													></path>
 												</svg>
 											{/if}
 										</button>
@@ -687,7 +841,12 @@ onMount(loadCertifications);
 											title="Edit"
 										>
 											<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+												></path>
 											</svg>
 										</button>
 										<button
@@ -696,7 +855,12 @@ onMount(loadCertifications);
 											title="Delete"
 										>
 											<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+												></path>
 											</svg>
 										</button>
 									</div>

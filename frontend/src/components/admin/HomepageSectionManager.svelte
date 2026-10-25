@@ -8,7 +8,7 @@
 	 * - Per-item selection (when none selected, shows all public items)
 	 * - Drag-and-drop reordering of items within sections
 	 */
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import type { CustomContent } from '$lib/pocketbase';

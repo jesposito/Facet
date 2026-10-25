@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
-	import { env } from '$env/dynamic/public';
-	import { browser } from '$app/environment';
+	import { PUBLIC_TURNSTILE_SITE_KEY } from '$app/env/public';
+	import { browser } from '$app/env';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -19,7 +19,7 @@
 	let turnstileContainer: HTMLDivElement | undefined = $state();
 	let turnstileToken = $state('');
 	let scriptLoaded = $state(false);
-	const siteKey = env.PUBLIC_TURNSTILE_SITE_KEY || '';
+	const siteKey = PUBLIC_TURNSTILE_SITE_KEY || '';
 
 	function loadTurnstileScript(): Promise<void> {
 		return new Promise((resolve, reject) => {

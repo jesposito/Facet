@@ -5,7 +5,7 @@
 	import Footer from '$components/public/Footer.svelte';
 	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 
 	interface Props {
 		data: PageData;

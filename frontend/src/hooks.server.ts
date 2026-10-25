@@ -1,7 +1,11 @@
-import type { Handle, HandleFetch } from '@sveltejs/kit';
+import type { Handle, HandleFetch } from '@sveltejs/kit/hooks';
 import PocketBase from 'pocketbase';
 import { PB_COOKIE_NAME } from '$lib/pocketbase';
-import { generateAccentCSSVars, generateTextInkCSSVars, SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
+import {
+	generateAccentCSSVars,
+	generateTextInkCSSVars,
+	SOFT_PREMIUM_DEFAULT_ACCENT
+} from '$lib/colors';
 import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
 import { fetchWith503Retry } from '$lib/server/internal-api-retry';
 
@@ -18,7 +22,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		defaultLocale: null,
 		showAvatar: true,
 		defaultThemeMode: 'system',
-		design: 'classic',
+		design: 'classic'
 	};
 
 	// Snapshot the token so we can detect if auth changed during request handling
@@ -35,7 +39,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	let design: App.SiteSettings['design'] = 'classic';
 	try {
 		const settingsRes = await fetch(`${pbUrl}/api/site-settings`, {
-			headers: { 'X-Internal': 'true' },
+			headers: { 'X-Internal': 'true' }
 		});
 		if (settingsRes.ok) {
 			const settings = await settingsRes.json();
@@ -46,7 +50,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 				defaultLocale: settings.default_locale || null,
 				showAvatar: settings.show_avatar !== false,
 				defaultThemeMode: settings.default_theme_mode || 'system',
-				design,
+				design
 			};
 		}
 	} catch {
@@ -55,7 +59,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	try {
 		const homepageRes = await fetch(`${pbUrl}/api/homepage`, {
-			headers: { 'X-Internal': 'true' },
+			headers: { 'X-Internal': 'true' }
 		});
 		if (homepageRes.ok) {
 			const homepage = await homepageRes.json();
@@ -77,7 +81,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Fonts are fully governed by the operator's font-pack pick. Whatever they
 	// selected is used. If they never chose one, Classic keeps the static
 	// Lora/Jakarta defaults from app.css; Soft Premium gets the redesigned default.
-	const effectiveFontPack = operatorFontPack || (design === 'soft-premium' ? DEFAULT_FONT_PACK : '');
+	const effectiveFontPack =
+		operatorFontPack || (design === 'soft-premium' ? DEFAULT_FONT_PACK : '');
 	if (effectiveFontPack) {
 		fontCSSVars = generateFontCSSVars(effectiveFontPack);
 		fontPack = effectiveFontPack;
@@ -102,7 +107,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
-						.replace(/;?\s*$/, ';'),
+						.replace(/;?\s*$/, ';')
 				);
 			}
 			if (fontCSSVars) {
@@ -112,7 +117,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
-						.replace(/;?\s*$/, ';'),
+						.replace(/;?\s*$/, ';')
 				);
 			}
 			if (textInkCSSVars) {
@@ -122,7 +127,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 						.replace(/\}\s*$/, '')
 						.trim()
 						.replace(/\s+/g, ' ')
-						.replace(/;?\s*$/, ';'),
+						.replace(/;?\s*$/, ';')
 				);
 			}
 
@@ -155,7 +160,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 
 			return result;
-		},
+		}
 	});
 	const headers = new Headers(response.headers);
 
@@ -188,9 +193,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 				httpOnly: false,
 				secure: isSecure,
 				sameSite: 'Lax',
-				path: '/',
+				path: '/'
 			},
-			PB_COOKIE_NAME,
+			PB_COOKIE_NAME
 		);
 
 		headers.append('set-cookie', exportedCookie);
@@ -199,13 +204,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return new Response(response.body, {
 		status: response.status,
 		statusText: response.statusText,
-		headers,
+		headers
 	});
 };
 
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	return fetchWith503Retry(request, fetch, {
-		apiOrigins: [event.url.origin, pbUrl],
+		apiOrigins: [event.url.origin, pbUrl]
 	});
 };

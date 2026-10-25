@@ -2,11 +2,11 @@
  * Tests for the slug param matcher
  *
  * This file documents expected behavior of the slug matcher.
- * Run with: npx tsx src/params/slug.test.ts
- * Or use with vitest when available: npx vitest run src/params/slug.test.ts
+ * Run with: npx tsx src/params.test.ts
+ * Or use with vitest when available: npx vitest run src/params.test.ts
  */
 
-import { match, RESERVED_SLUGS } from './slug';
+import { matchSlug as match, RESERVED_SLUGS } from './params';
 
 // Simple test runner
 let passed = 0;

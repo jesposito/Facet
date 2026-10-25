@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { t } from 'svelte-i18n';
 	import { adminSidebarOpen, sidebarSectionStates, sidebarFacetsVersion } from '$lib/stores';
 	import { collection } from '$lib/stores/demo';
@@ -52,7 +52,7 @@
 		facets: 'sidebar-facets',
 		content: 'sidebar-content',
 		audience: 'sidebar-audience',
-		settings: 'sidebar-settings',
+		settings: 'sidebar-settings'
 	};
 
 	// All section IDs as array
@@ -88,7 +88,10 @@
 		if (!contentMenuOpen && !audienceMenuOpen) return;
 		function handleClick(e: MouseEvent) {
 			const target = e.target as HTMLElement;
-			if (!target.closest('[data-quick-create-menu]') && !target.closest('[data-quick-create-trigger]')) {
+			if (
+				!target.closest('[data-quick-create-menu]') &&
+				!target.closest('[data-quick-create-trigger]')
+			) {
 				contentMenuOpen = false;
 				audienceMenuOpen = false;
 			}
@@ -108,7 +111,9 @@
 	});
 
 	// Refresh facets after navigation (e.g., after creating/editing/deleting a view)
-	afterNavigate(({ from }) => {
+	afterNavigate(({ from, shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
 		const fromPath = from?.url.pathname || '';
 		if (fromPath.includes('/admin/views') || facetsError) {
 			scheduleFacetsLoad();
@@ -137,7 +142,10 @@
 			facets = recentResult?.items ?? [];
 			facetsTotalCount = recentResult?.totalItems ?? 0;
 		} catch (err) {
-			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+			if (
+				err instanceof Error &&
+				(err.message.includes('autocancelled') || err.name === 'AbortError')
+			) {
 				return;
 			}
 			console.error('[Sidebar] Failed to load facets:', err);
@@ -169,7 +177,9 @@
 
 			// New subscriber count (last 7 days)
 			try {
-				const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ');
+				const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+					.toISOString()
+					.replace('T', ' ');
 				const subResult = await collection('subscribers').getList(1, 1, {
 					filter: `created >= "${sevenDaysAgo}"`,
 					$cancelKey: 'sidebar-new-subs'
@@ -204,12 +214,41 @@
 		const items: SidebarEntry[] = [];
 
 		// Portfolio items
-		items.push({ href: '/admin/experience', labelKey: 'admin.sidebar.experience', icon: 'briefcase' });
-		items.push({ href: '/admin/projects', labelKey: 'admin.sidebar.projects', icon: 'folder' });
-		items.push({ href: '/admin/education', labelKey: 'admin.sidebar.education', icon: 'academic' });
-		items.push({ href: '/admin/certifications', labelKey: 'admin.sidebar.certifications', icon: 'badge' });
-		items.push({ href: '/admin/awards', labelKey: 'admin.sidebar.awards', icon: 'star' });
-		items.push({ href: '/admin/skills', labelKey: 'admin.sidebar.skills', icon: 'chip' });
+		items.push({
+			href: '/admin/experience',
+			labelKey: 'admin.sidebar.experience',
+			icon: 'briefcase'
+		});
+
+		items.push({
+			href: '/admin/projects',
+			labelKey: 'admin.sidebar.projects',
+			icon: 'folder'
+		});
+
+		items.push({
+			href: '/admin/education',
+			labelKey: 'admin.sidebar.education',
+			icon: 'academic'
+		});
+
+		items.push({
+			href: '/admin/certifications',
+			labelKey: 'admin.sidebar.certifications',
+			icon: 'badge'
+		});
+
+		items.push({
+			href: '/admin/awards',
+			labelKey: 'admin.sidebar.awards',
+			icon: 'star'
+		});
+
+		items.push({
+			href: '/admin/skills',
+			labelKey: 'admin.sidebar.skills',
+			icon: 'chip'
+		});
 
 		// Publish subgroup
 		items.push({ type: 'subgroup', labelKey: 'admin.sidebar.content' });
@@ -220,7 +259,11 @@
 		}
 		items.push({ href: '/admin/custom', labelKey: 'admin.sidebar.custom_content', icon: 'puzzle' });
 		items.push({ href: '/admin/import', labelKey: 'admin.sidebar.import_ai', icon: 'sparkle' });
-		items.push({ href: '/admin/settings/tags', labelKey: 'admin.sidebar.admin_tags', icon: 'chip' });
+		items.push({
+			href: '/admin/settings/tags',
+			labelKey: 'admin.sidebar.admin_tags',
+			icon: 'chip'
+		});
 
 		return items;
 	});
@@ -232,12 +275,20 @@
 		if ($hasAnalytics) {
 			items.push({ href: '/admin/analytics', labelKey: 'admin.sidebar.analytics', icon: 'chart' });
 		}
-		items.push({ href: '/admin/contacts', labelKey: 'admin.sidebar.contact_methods', icon: 'mail' });
+		items.push({
+			href: '/admin/contacts',
+			labelKey: 'admin.sidebar.contact_methods',
+			icon: 'mail'
+		});
 
 		// Testimonials subgroup
 		items.push({ type: 'subgroup', labelKey: 'admin.sidebar.testimonials' });
 		items.push({ href: '/admin/testimonials', labelKey: 'admin.sidebar.manage', icon: 'chat' });
-		items.push({ href: '/admin/testimonials/requests', labelKey: 'admin.sidebar.request_links', icon: 'link' });
+		items.push({
+			href: '/admin/testimonials/requests',
+			labelKey: 'admin.sidebar.request_links',
+			icon: 'link'
+		});
 		if ($hasDiscussions) {
 			items.push({ href: '/admin/comments', labelKey: 'admin.sidebar.comments', icon: 'comment' });
 		}
@@ -245,10 +296,26 @@
 		// Newsletter subgroup
 		if ($hasNewsletter) {
 			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.newsletter' });
-			items.push({ href: '/admin/newsletter', labelKey: 'admin.sidebar.newsletter_overview', icon: 'mail' });
-			items.push({ href: '/admin/subscribers', labelKey: 'admin.sidebar.subscribers', icon: 'users' });
-			items.push({ href: '/admin/newsletter/lists', labelKey: 'admin.sidebar.newsletter_lists', icon: 'list' });
-			items.push({ href: '/admin/newsletter/compose', labelKey: 'admin.sidebar.newsletter_compose', icon: 'pencil' });
+			items.push({
+				href: '/admin/newsletter',
+				labelKey: 'admin.sidebar.newsletter_overview',
+				icon: 'mail'
+			});
+			items.push({
+				href: '/admin/subscribers',
+				labelKey: 'admin.sidebar.subscribers',
+				icon: 'users'
+			});
+			items.push({
+				href: '/admin/newsletter/lists',
+				labelKey: 'admin.sidebar.newsletter_lists',
+				icon: 'list'
+			});
+			items.push({
+				href: '/admin/newsletter/compose',
+				labelKey: 'admin.sidebar.newsletter_compose',
+				icon: 'pencil'
+			});
 		}
 
 		return items;
@@ -258,24 +325,71 @@
 	const settingsItems = $derived.by((): SidebarEntry[] => {
 		const items: SidebarEntry[] = [];
 
-		items.push({ href: '/admin/settings/account', labelKey: 'admin.sidebar.account_security', icon: 'badge' });
-		items.push({ href: '/admin/settings/site', labelKey: 'admin.sidebar.site_settings', icon: 'cog' });
-		items.push({ href: '/admin/settings/features', labelKey: 'admin.sidebar.features', icon: 'puzzle' });
-		items.push({ href: '/admin/settings/integrations', labelKey: 'admin.sidebar.integrations', icon: 'sparkle' });
-		items.push({ href: '/admin/settings/webhooks', labelKey: 'admin.sidebar.webhooks', icon: 'webhook' });
-		items.push({ href: '/admin/api', labelKey: 'admin.sidebar.api_keys', icon: 'key' });
+		items.push({
+			href: '/admin/settings/account',
+			labelKey: 'admin.sidebar.account_security',
+			icon: 'badge'
+		});
+
+		items.push({
+			href: '/admin/settings/site',
+			labelKey: 'admin.sidebar.site_settings',
+			icon: 'cog'
+		});
+
+		items.push({
+			href: '/admin/settings/features',
+			labelKey: 'admin.sidebar.features',
+			icon: 'puzzle'
+		});
+
+		items.push({
+			href: '/admin/settings/integrations',
+			labelKey: 'admin.sidebar.integrations',
+			icon: 'sparkle'
+		});
+
+		items.push({
+			href: '/admin/settings/webhooks',
+			labelKey: 'admin.sidebar.webhooks',
+			icon: 'webhook'
+		});
+
+		items.push({
+			href: '/admin/api',
+			labelKey: 'admin.sidebar.api_keys',
+			icon: 'key'
+		});
 
 		// Commerce subgroup
 		if ($hasPricing) {
 			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.commerce' });
 			items.push({ href: '/admin/pricing', labelKey: 'admin.sidebar.pricing', icon: 'currency' });
 			items.push({ href: '/admin/coupons', labelKey: 'admin.sidebar.coupons', icon: 'tag' });
-			items.push({ href: '/admin/settings/payments', labelKey: 'admin.sidebar.payments', icon: 'currency' });
+			items.push({
+				href: '/admin/settings/payments',
+				labelKey: 'admin.sidebar.payments',
+				icon: 'currency'
+			});
 		}
 
-		items.push({ href: '/admin/settings/audit', labelKey: 'admin.sidebar.audit_log', icon: 'shield' });
-		items.push({ href: '/admin/settings/about', labelKey: 'admin.sidebar.about_facet', icon: 'info' });
-		items.push({ href: '/admin/help', labelKey: 'admin.sidebar.help', icon: 'help' });
+		items.push({
+			href: '/admin/settings/audit',
+			labelKey: 'admin.sidebar.audit_log',
+			icon: 'shield'
+		});
+
+		items.push({
+			href: '/admin/settings/about',
+			labelKey: 'admin.sidebar.about_facet',
+			icon: 'info'
+		});
+
+		items.push({
+			href: '/admin/help',
+			labelKey: 'admin.sidebar.help',
+			icon: 'help'
+		});
 
 		return items;
 	});
@@ -303,7 +417,7 @@
 	// Reactive function that updates when $page changes
 	// Uses longest-match to avoid highlighting parent items when a child item matches
 	let isActive = $derived((href: string): boolean => {
-		const currentPath = $page.url.pathname;
+		const currentPath = page.url.pathname;
 
 		// Exact match for dashboard
 		if (href === '/admin') {
@@ -316,8 +430,11 @@
 		// Prefix match: only if no other sidebar item is a longer match
 		if (currentPath.startsWith(href + '/')) {
 			for (const other of allSidebarHrefs) {
-				if (other.length > href.length && other !== href &&
-					(currentPath === other || currentPath.startsWith(other + '/'))) {
+				if (
+					other.length > href.length &&
+					other !== href &&
+					(currentPath === other || currentPath.startsWith(other + '/'))
+				) {
 					return false;
 				}
 			}
@@ -347,7 +464,7 @@
 	}
 
 	function handleMenuKeydown(e: KeyboardEvent) {
-		const menu = (e.currentTarget as HTMLElement);
+		const menu = e.currentTarget as HTMLElement;
 		const menuItems = menu.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]');
 		const current = Array.from(menuItems).indexOf(document.activeElement as HTMLAnchorElement);
 		if (e.key === 'ArrowDown') {
@@ -375,7 +492,9 @@
 
 	// Badge values
 	const contentBadge = $derived(draftCount);
-	const audienceBadge = $derived($testimonialsStore.pendingCount > 0 ? $testimonialsStore.pendingCount : newSubscriberCount);
+	const audienceBadge = $derived(
+		$testimonialsStore.pendingCount > 0 ? $testimonialsStore.pendingCount : newSubscriberCount
+	);
 	const audienceBadgeAmber = $derived($testimonialsStore.pendingCount > 0);
 </script>
 
@@ -383,109 +502,261 @@
 	id="admin-sidebar"
 	class="fixed top-16 h-[calc(100dvh-4rem)] bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-200 z-30 flex flex-col
 		{isMobile
-			? ($adminSidebarOpen ? 'left-0 w-64' : '-left-64 w-64')
-			: ($adminSidebarOpen ? 'left-0 w-64' : 'left-0 w-16')
-		}"
+		? $adminSidebarOpen
+			? 'left-0 w-64'
+			: '-left-64 w-64'
+		: $adminSidebarOpen
+			? 'left-0 w-64'
+			: 'left-0 w-16'}"
 	aria-label={$t('shared.aria.admin_navigation')}
 >
-	<nav class="p-3 space-y-1 flex-1 min-h-0 overflow-y-auto overscroll-contain" aria-label={$t('shared.aria.main_menu')}>
-			<a
-				href="/admin"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.dashboard') : undefined}
-				aria-current={isActive('/admin') ? 'page' : undefined}
+	<nav
+		class="p-3 space-y-1 flex-1 min-h-0 overflow-y-auto overscroll-contain"
+		aria-label={$t('shared.aria.main_menu')}
+	>
+		<a
+			href="/admin"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin')
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.dashboard') : undefined}
+			aria-current={isActive('/admin') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.dashboard')}</span>
-			</a>
-			<a
-				href="/admin/homepage"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/homepage')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.homepage') : undefined}
-				aria-current={isActive('/admin/homepage') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.dashboard')}</span>
+		</a>
+		<a
+			href="/admin/homepage"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(
+				'/admin/homepage'
+			)
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.homepage') : undefined}
+			aria-current={isActive('/admin/homepage') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.homepage')}</span>
-			</a>
-			<a
-				href="/admin/profile"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/profile')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.profile') : undefined}
-				aria-current={isActive('/admin/profile') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.homepage')}</span>
+		</a>
+		<a
+			href="/admin/profile"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(
+				'/admin/profile'
+			)
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.profile') : undefined}
+			aria-current={isActive('/admin/profile') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.profile')}</span>
-			</a>
-			<a
-				href="/admin/content"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/content')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.content') : undefined}
-				aria-current={isActive('/admin/content') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.profile')}</span>
+		</a>
+		<a
+			href="/admin/content"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(
+				'/admin/content'
+			)
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.content') : undefined}
+			aria-current={isActive('/admin/content') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.content')}</span>
-				{#if contentBadge > 0}
-					<span class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen ? '' : 'sr-only'}" aria-hidden="true">{contentBadge}</span>
-				{/if}
-			</a>
-			<a
-				href="/admin/views"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/views')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
-				aria-current={isActive('/admin/views') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.content')}</span>
+			{#if contentBadge > 0}
+				<span
+					class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen
+						? ''
+						: 'sr-only'}"
+					aria-hidden="true">{contentBadge}</span
+				>
+			{/if}
+		</a>
+		<a
+			href="/admin/views"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(
+				'/admin/views'
+			)
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.facets') : undefined}
+			aria-current={isActive('/admin/views') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 9-9 9-9-9 9-9z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.facets')}</span>
-				{#if facetsTotalCount > 0}
-					<span class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen ? '' : 'sr-only'}" aria-hidden="true">{facetsTotalCount}</span>
-				{/if}
-			</a>
-			<a
-				href="/admin/audience"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/audience')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.audience') : undefined}
-				aria-current={isActive('/admin/audience') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M12 3l9 9-9 9-9-9 9-9z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.facets')}</span>
+			{#if facetsTotalCount > 0}
+				<span
+					class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen
+						? ''
+						: 'sr-only'}"
+					aria-hidden="true">{facetsTotalCount}</span
+				>
+			{/if}
+		</a>
+		<a
+			href="/admin/audience"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(
+				'/admin/audience'
+			)
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.audience') : undefined}
+			aria-current={isActive('/admin/audience') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.audience')}</span>
-				{#if audienceBadge > 0}
-					<span class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen ? '' : 'sr-only'}" aria-hidden="true">{audienceBadge}</span>
-				{/if}
-			</a>
-			<a
-				href="/admin/settings"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/settings')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.settings') : undefined}
-				aria-current={isActive('/admin/settings') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.audience')}</span>
+			{#if audienceBadge > 0}
+				<span
+					class="ml-auto inline-flex items-center justify-center bg-gray-700 text-gray-300 text-[10px] font-semibold rounded-full h-5 min-w-5 px-1.5 sp:bg-[var(--chip)] sp:text-[var(--ink)] {$adminSidebarOpen
+						? ''
+						: 'sr-only'}"
+					aria-hidden="true">{audienceBadge}</span
+				>
+			{/if}
+		</a>
+		<a
+			href="/admin/settings"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive(
+				'/admin/settings'
+			)
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.settings') : undefined}
+			aria-current={isActive('/admin/settings') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.settings')}</span>
-			</a>
-			<a
-				href="/admin/help"
-				class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/help')
-					? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
-					: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
-				title={!$adminSidebarOpen ? $t('admin.sidebar.help') : undefined}
-				aria-current={isActive('/admin/help') ? 'page' : undefined}
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+				></path>
+
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.settings')}</span>
+		</a>
+		<a
+			href="/admin/help"
+			class="flex items-center gap-3 px-3 py-2 rounded-lg transition-colors {isActive('/admin/help')
+				? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300 sp:bg-[var(--accent-soft)] sp:text-[var(--accent)]'
+				: 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)]'}"
+			title={!$adminSidebarOpen ? $t('admin.sidebar.help') : undefined}
+			aria-current={isActive('/admin/help') ? 'page' : undefined}
+		>
+			<svg
+				class="w-5 h-5 shrink-0"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
 			>
-				<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-				<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.help')}</span>
-			</a>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+				></path>
+			</svg>
+
+			<span class={$adminSidebarOpen ? '' : 'sr-only'}>{$t('admin.sidebar.help')}</span>
+		</a>
 	</nav>
 
 	<!-- Version -->
@@ -506,15 +777,27 @@
 						viewBox="0 0 24 24"
 						stroke="currentColor"
 					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+						></path>
 					</svg>
 				</button>
 			</div>
 			{#if $newVersionAvailable}
 				<div class="mt-1.5 text-center">
-					<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300">
+					<span
+						class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300"
+					>
 						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M5 10l7-7m0 0l7 7m-7-7v18"
+							></path>
 						</svg>
 						{$t('admin.sidebar.update_available')}
 					</span>
@@ -534,17 +817,71 @@
 		style="top: {contentMenuPos.top}px; left: {contentMenuPos.left}px;"
 		onkeydown={(e) => handleMenuKeydown(e)}
 	>
-		<a href="/admin/posts" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" onclick={() => { contentMenuOpen = false; }}>
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+		<a
+			href="/admin/posts"
+			role="menuitem"
+			class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+			onclick={() => {
+				contentMenuOpen = false;
+			}}
+		>
+			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+				></path>
+			</svg>
+
 			{$t('admin.sidebar.new_post')}
 		</a>
-		<a href="/admin/talks" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" onclick={() => { contentMenuOpen = false; }}>
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+
+		<a
+			href="/admin/talks"
+			role="menuitem"
+			class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+			onclick={() => {
+				contentMenuOpen = false;
+			}}
+		>
+			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
+				></path>
+			</svg>
+
 			{$t('admin.sidebar.new_talk')}
 		</a>
 		{#if $hasCourses}
-			<a href="/admin/courses" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" onclick={() => { contentMenuOpen = false; }}>
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>
+			<a
+				href="/admin/courses"
+				role="menuitem"
+				class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+				onclick={() => {
+					contentMenuOpen = false;
+				}}
+			>
+				<svg
+					class="w-4 h-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+					></path>
+				</svg>
+
 				{$t('admin.sidebar.new_course')}
 			</a>
 		{/if}
@@ -561,8 +898,23 @@
 		style="top: {audienceMenuPos.top}px; left: {audienceMenuPos.left}px;"
 		onkeydown={(e) => handleMenuKeydown(e)}
 	>
-		<a href="/admin/testimonials/requests" role="menuitem" class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm" onclick={() => { audienceMenuOpen = false; }}>
-			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+		<a
+			href="/admin/testimonials/requests"
+			role="menuitem"
+			class="flex items-center gap-2 px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+			onclick={() => {
+				audienceMenuOpen = false;
+			}}
+		>
+			<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+				></path>
+			</svg>
+
 			{$t('admin.sidebar.request_links')}
 		</a>
 	</div>
@@ -571,124 +923,459 @@
 <!-- Reusable icon snippet -->
 {#snippet navIcon(icon: string)}
 	{#if icon === 'home'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+			></path>
 		</svg>
 	{:else if icon === 'user'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+			></path>
 		</svg>
 	{:else if icon === 'mail'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+			></path>
 		</svg>
 	{:else if icon === 'briefcase'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+			></path>
 		</svg>
 	{:else if icon === 'folder'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+			></path>
 		</svg>
 	{:else if icon === 'academic'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path d="M12 14l9-5-9-5-9 5 9 5z" />
-			<path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+
+			<path
+				d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
+			></path>
+
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+			></path>
 		</svg>
 	{:else if icon === 'badge'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+			></path>
 		</svg>
 	{:else if icon === 'chip'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+			></path>
 		</svg>
 	{:else if icon === 'document'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+			></path>
 		</svg>
 	{:else if icon === 'star'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.184c.969 0 1.371 1.24.588 1.81l-3.39 2.463a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.39-2.462a1 1 0 00-1.176 0l-3.39 2.462c-.784.57-1.838-.196-1.539-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.04 9.394c-.783-.57-.38-1.81.588-1.81h4.184a1 1 0 00.95-.69l1.287-3.967z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.184c.969 0 1.371 1.24.588 1.81l-3.39 2.463a1 1 0 00-.364 1.118l1.287 3.966c.3.922-.755 1.688-1.54 1.118l-3.39-2.462a1 1 0 00-1.176 0l-3.39 2.462c-.784.57-1.838-.196-1.539-1.118l1.287-3.966a1 1 0 00-.364-1.118L2.04 9.394c-.783-.57-.38-1.81.588-1.81h4.184a1 1 0 00.95-.69l1.287-3.967z"
+			></path>
 		</svg>
 	{:else if icon === 'presentation'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
+			></path>
 		</svg>
 	{:else if icon === 'puzzle'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1H3a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1H3a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"
+			></path>
 		</svg>
 	{:else if icon === 'sparkle'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8l2 2-2 2-2-2 2-2zm12-5l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3zm-4 9l1.5 4.5L19 18l-4.5 1.5L13 24l-1.5-4.5L7 18l4.5-1.5L13 12z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M5 8l2 2-2 2-2-2 2-2zm12-5l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3zm-4 9l1.5 4.5L19 18l-4.5 1.5L13 24l-1.5-4.5L7 18l4.5-1.5L13 12z"
+			></path>
 		</svg>
 	{:else if icon === 'info'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+			></path>
 		</svg>
 	{:else if icon === 'help'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+			></path>
 		</svg>
 	{:else if icon === 'shield'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+			></path>
 		</svg>
 	{:else if icon === 'cog'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+			></path>
+
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+			></path>
 		</svg>
 	{:else if icon === 'chat'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+			></path>
 		</svg>
 	{:else if icon === 'link'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+			></path>
 		</svg>
 	{:else if icon === 'comment'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+			></path>
 		</svg>
 	{:else if icon === 'users'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+			></path>
 		</svg>
 	{:else if icon === 'chart'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+			></path>
 		</svg>
 	{:else if icon === 'currency'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+			></path>
 		</svg>
 	{:else if icon === 'tag'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+			></path>
 		</svg>
 	{:else if icon === 'webhook'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 8l-2 2 2 2m8-4l2 2-2 2" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12a9 9 0 1118 0 9 9 0 01-18 0z"
+			></path>
+
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M8 8l-2 2 2 2m8-4l2 2-2 2"
+			></path>
 		</svg>
 	{:else if icon === 'key'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+			></path>
 		</svg>
 	{:else if icon === 'bell'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+			></path>
 		</svg>
 	{:else if icon === 'list'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M4 6h16M4 12h16M4 18h7"
+			></path>
 		</svg>
 	{:else if icon === 'pencil'}
-		<svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+		<svg
+			class="w-5 h-5 shrink-0"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+			aria-hidden="true"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="2"
+				d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+			></path>
 		</svg>
 	{/if}
 {/snippet}

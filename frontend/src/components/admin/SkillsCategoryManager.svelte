@@ -6,7 +6,7 @@
 	 * - Category-level: drag to reorder, toggle to enable/disable entire category
 	 * - Skill-level (when expanded): checkboxes to include/exclude, drag to reorder
 	 */
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';

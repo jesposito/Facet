@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { onMount } from 'svelte';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 	import { beforeNavigate, afterNavigate } from '$app/navigation';
 	import { theme, toasts } from '$lib/stores';
 	import Toast from '$components/shared/Toast.svelte';
@@ -15,7 +15,7 @@
 		hexToRgbChannels,
 		buildPaletteRootBlock,
 		deriveTextInk,
-		isValidHexColor,
+		isValidHexColor
 	} from '$lib/colors';
 	import { DEFAULT_FONT_PACK, getFontPack } from '$lib/fonts';
 	import { initI18n, setLocale, waitLocale } from '$lib/i18n';
@@ -103,22 +103,26 @@
 
 	// Debug navigation (only log in dev mode)
 	beforeNavigate((navigation) => {
+		if (navigation.shallow && navigation.type === 'goto') return;
+
 		if (import.meta.env.DEV) {
 			console.log('[NAVIGATION] Before navigate:', {
 				from: navigation.from?.url?.pathname,
 				to: navigation.to?.url?.pathname,
 				type: navigation.type,
-				willUnload: navigation.willUnload,
+				willUnload: navigation.willUnload
 			});
 		}
 	});
 
 	afterNavigate((navigation) => {
+		if (navigation.shallow && navigation.type === 'goto') return;
+
 		if (import.meta.env.DEV) {
 			console.log('[NAVIGATION] After navigate:', {
 				from: navigation.from?.url?.pathname,
 				to: navigation.to?.url?.pathname,
-				type: navigation.type,
+				type: navigation.type
 			});
 		}
 	});
@@ -143,8 +147,22 @@
 	// svelte-ignore state_referenced_locally -- one-time SSR seed; data changes and live events reassign it below
 	let currentFontPackExplicit = $state(data.fontPackExplicit === true);
 	// svelte-ignore state_referenced_locally -- one-time SSR seed; data changes and live events reassign it below
-	let currentDesign = $state<DesignMode>(data.design === 'soft-premium' ? 'soft-premium' : 'classic');
-	const PRIMARY_STEPS = ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const;
+	let currentDesign = $state<DesignMode>(
+		data.design === 'soft-premium' ? 'soft-premium' : 'classic'
+	);
+	const PRIMARY_STEPS = [
+		'50',
+		'100',
+		'200',
+		'300',
+		'400',
+		'500',
+		'600',
+		'700',
+		'800',
+		'900',
+		'950'
+	] as const;
 	// Initialize from server-loaded data so SSR renders the correct favicon.
 	// A $state(null) + $effect pattern is broken here because $effect never
 	// runs during SSR, so the server-rendered HTML would always fall back to
@@ -161,7 +179,11 @@
 		if (!browser || !css) return;
 
 		// Collect explicit primary tokens from user CSS
-		const matches = [...css.matchAll(/--color-primary-(50|100|200|300|400|500|600|700|800|900|950)\s*:\s*([^;]+);?/gi)];
+		const matches = [
+			...css.matchAll(
+				/--color-primary-(50|100|200|300|400|500|600|700|800|900|950)\s*:\s*([^;]+);?/gi
+			)
+		];
 		const palette: Record<string, string> = {};
 		for (const [, token, value] of matches) {
 			palette[token] = value.trim();
@@ -172,7 +194,19 @@
 		// If only 500 is provided, generate a full palette from it
 		if (Object.keys(palette).length === 1 && palette['500']) {
 			const scale = generatePaletteFromHex(palette['500']);
-			for (const step of ['50', '100', '200', '300', '400', '500', '600', '700', '800', '900', '950'] as const) {
+			for (const step of [
+				'50',
+				'100',
+				'200',
+				'300',
+				'400',
+				'500',
+				'600',
+				'700',
+				'800',
+				'900',
+				'950'
+			] as const) {
 				palette[step] = scale[step];
 			}
 			customPaletteLocked = true;
@@ -184,7 +218,10 @@
 		// Apply directly to :root so Tailwind classes pick up overrides immediately
 		for (const [token, value] of Object.entries(palette)) {
 			document.documentElement.style.setProperty(`--color-primary-${token}`, value);
-			document.documentElement.style.setProperty(`--color-primary-${token}-rgb`, hexToRgbChannels(value));
+			document.documentElement.style.setProperty(
+				`--color-primary-${token}-rgb`,
+				hexToRgbChannels(value)
+			);
 		}
 	}
 
@@ -358,7 +395,9 @@
 		if (!primary500) return;
 
 		// If they already set other palette tokens, don't override
-		const hasOtherTokens = /--color-primary-(50|100|200|300|400|600|700|800|900|950)\s*:/i.test(css);
+		const hasOtherTokens = /--color-primary-(50|100|200|300|400|600|700|800|900|950)\s*:/i.test(
+			css
+		);
 		if (hasOtherTokens) return;
 
 		const color = primary500[1].trim();

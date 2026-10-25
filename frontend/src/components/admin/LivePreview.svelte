@@ -34,7 +34,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { pb } from '$lib/pocketbase';
-	import { browser } from '$app/environment';
+	import { browser } from '$app/env';
 
 	// Reload debounce: 400ms after PB realtime fires. Tuned so a fast typer
 	// saving every keystroke (autosave debounces internally) gets exactly
