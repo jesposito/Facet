@@ -3,6 +3,14 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.5.0 - October 25, 2026
+
+**Other Changes:**
+- Internal improvements and maintenance
+
+---
+
+
 ## v3.4.11 - October 23, 2026
 
 **Bugs Fixed:**
