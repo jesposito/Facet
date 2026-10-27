@@ -56,7 +56,7 @@
     "@tiptap/starter-kit": "^3.32.0",
     "isomorphic-dompurify": "^4.6.0",
     "marked": "^11.0.0",
-    "pocketbase": "^0.21.0",
+    "pocketbase": "^0.28.1",
     "qrcode": "^1.5.4",
     "svelte-dnd-action": "^0.9.69",
     "svelte-i18n": "^4.0.1"
