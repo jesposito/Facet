@@ -98,37 +98,27 @@ func isRecordVisible(record *core.Record) bool {
 	return visibility != "private" && !isDraft
 }
 
-func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
-	viewVisibility := record.Get("view_visibility")
-
-	if isRecordVisible(record) {
-		if section == "contacts" && viewId != "" {
-			if viewVisibility != nil {
-				var vv map[string]interface{}
-				switch v := viewVisibility.(type) {
-				case map[string]interface{}:
-					vv = v
-				case types.JSONRaw:
-					if len(v) > 0 && string(v) != "{}" && string(v) != "null" {
-						json.Unmarshal(v, &vv)
-					}
-				case string:
-					if v != "" && v != "{}" && v != "null" {
-						json.Unmarshal([]byte(v), &vv)
-					}
-				}
-				if vv != nil {
-					if enabled, exists := vv[viewId]; exists {
-						if b, ok := enabled.(bool); ok {
-							return b
-						}
-					}
-				}
-			}
-		}
+// Contact view restrictions are evaluated before their metadata is removed from
+// public responses. An empty map means all pages; a nonempty map is opt-in.
+func contactVisibleInView(record *core.Record, viewID string) bool {
+	raw := record.GetString("view_visibility")
+	if raw == "" {
 		return true
 	}
+	var visibility map[string]bool
+	if err := json.Unmarshal([]byte(raw), &visibility); err != nil {
+		return false
+	}
+	return len(visibility) == 0 || visibility[viewID]
+}
 
+func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
+	if section == "contacts" && !contactVisibleInView(record, viewId) {
+		return false
+	}
+	if isRecordVisible(record) {
+		return true
+	}
 	return isVisibleInView(record, viewId)
 }
 

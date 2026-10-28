@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { setTimeout as delay } from 'node:timers/promises';
 import { loginAsAdmin } from './helpers';
 import { apiBaseURL } from './config';
 
@@ -26,6 +27,16 @@ test.describe('portfolio portability', () => {
 			['talks', { title: 'Responsive talk', slug: 'responsive-talk', description: richText }],
 			['custom_content', { title: 'Responsive custom content', content: richText }],
 			[
+				'contact_methods',
+				{
+					type: 'email',
+					value: 'restricted-contact@example.test',
+					label: 'Restricted contact',
+					protection_level: 'none',
+					view_visibility: { pending: true }
+				}
+			],
+			[
 				'testimonials',
 				{
 					content: 'Public testimonial',
@@ -45,7 +56,12 @@ test.describe('portfolio portability', () => {
 			created.push({ collection, id: (await result.json()).id });
 		}
 		const sections = created.map(({ collection, id }) => ({
-			section: collection === 'custom_content' ? `custom:${id}` : collection,
+			section:
+				collection === 'custom_content'
+					? `custom:${id}`
+					: collection === 'contact_methods'
+						? 'contacts'
+						: collection,
 			enabled: true,
 			layout: 'default',
 			items: [id]
@@ -67,6 +83,13 @@ test.describe('portfolio portability', () => {
 			expect(response.ok(), await response.text()).toBe(true);
 			created.push({ collection: 'views', id: (await response.json()).id });
 		}
+		const contactID = created.find((x) => x.collection === 'contact_methods')!.id;
+		const selectedView = created.find((x) => x.collection === 'views')!.id;
+		const updated = await request.patch(
+			`${apiBaseURL}/api/collections/contact_methods/records/${contactID}`,
+			{ headers: { Authorization: token }, data: { view_visibility: { [selectedView]: true } } }
+		);
+		expect(updated.ok()).toBe(true);
 	});
 	test.afterAll(async ({ request }) => {
 		await request.put(`${apiBaseURL}/api/site-settings`, {
@@ -106,6 +129,22 @@ test.describe('portfolio portability', () => {
 			).toBe(404);
 		}
 	});
+	test('contacts limited to one Facet stay off other pages', async ({ request }) => {
+		for (const [path, visible] of [
+			['/api/homepage', false],
+			['/api/view/responsive-default/data', true],
+			['/api/view/responsive-card/data', false]
+		] as const) {
+			// The anonymous API allows one request per second after its initial burst.
+			await delay(1100);
+			const response = await request.get(`${apiBaseURL}${path}`);
+			expect(response.ok()).toBe(true);
+			const body = await response.text();
+			expect(body.includes('restricted-contact@example.test')).toBe(visible);
+			expect(body).not.toContain('"view_visibility"');
+		}
+	});
+
 	test('CSS API rejects oversized input without changing saved text', async ({ request }) => {
 		const headers = { Authorization: token },
 			baseline = '/* saved baseline */';
@@ -150,15 +189,13 @@ test.describe('portfolio portability', () => {
 		request
 	}, testInfo) => {
 		const { token, record: model } = await loginAsAdmin(request);
-		await page
-			.context()
-			.addCookies([
-				{
-					name: 'pb_auth',
-					value: JSON.stringify({ token, model }),
-					url: process.env.PLAYWRIGHT_BASE_URL!
-				}
-			]);
+		await page.context().addCookies([
+			{
+				name: 'pb_auth',
+				value: JSON.stringify({ token, model }),
+				url: process.env.PLAYWRIGHT_BASE_URL!
+			}
+		]);
 		await page.addInitScript(
 			({ token, model }) => {
 				localStorage.setItem('pocketbase_auth', JSON.stringify({ token, model }));

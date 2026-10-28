@@ -70,3 +70,26 @@ func TestPublicFieldsRetainMediaAndFacetOverrides(t *testing.T) {
 		t.Fatalf("public content lost: %#v", item)
 	}
 }
+
+func TestContactRestrictionsSurvivePublicProjection(t *testing.T) {
+	for _, tc := range []struct {
+		raw  any
+		view string
+		want bool
+	}{
+		{nil, "", true}, {map[string]bool{}, "other", true},
+		{map[string]bool{"selected": true}, "selected", true},
+		{map[string]bool{"selected": true}, "", false},
+		{map[string]bool{"selected": true}, "other", false},
+		{map[string]bool{"selected": false}, "selected", false},
+		{map[string]any{"selected": "true"}, "selected", false},
+	} {
+		record := createMockRecord(map[string]any{"visibility": "public", "view_visibility": tc.raw})
+		if got := contactVisibleInView(record, tc.view); got != tc.want {
+			t.Errorf("%v on %q = %v", tc.raw, tc.view, got)
+		}
+		if got := isRecordVisibleForSection(record, "contacts", tc.view); got != tc.want {
+			t.Errorf("contact section: %v on %q = %v", tc.raw, tc.view, got)
+		}
+	}
+}
