@@ -112,6 +112,9 @@ COPY --from=backend-builder /build/seeds/demo_assets ./backend/seeds/demo_assets
 COPY --from=frontend-builder /build/build ./frontend/build
 COPY --from=frontend-builder /build/package.json ./frontend/
 COPY --from=frontend-builder /build/node_modules ./frontend/node_modules
+# Local dependency overrides are symlinks into vendor, including deepmerge.
+COPY --from=frontend-builder /build/vendor ./frontend/vendor
+RUN node -e "require('./frontend/node_modules/deepmerge'); require('./frontend/node_modules/braces')"
 
 # Copy Caddy config and startup script
 COPY docker/Caddyfile ./Caddyfile

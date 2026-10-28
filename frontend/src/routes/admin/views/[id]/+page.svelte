@@ -214,7 +214,7 @@
 		mounted = true;
 		if (!viewId) {
 			toasts.add('error', 'Invalid facet ID');
-			goto('/admin/views');
+			goto('/admin/views', { replace: true });
 			return;
 		}
 		// Load custom content FIRST since initializeSections() needs it
@@ -457,7 +457,7 @@
 			// Now delete the view
 			await collection('views').delete(viewId);
 			toasts.add('success', 'Facet deleted');
-			goto('/admin/views');
+			goto('/admin/views', { replace: true });
 		} catch (err) {
 			console.error('Failed to delete view:', err);
 			toasts.add('error', 'Failed to delete facet');
@@ -726,7 +726,7 @@
 			console.error('Failed to load view:', err);
 			if (mounted) {
 				toasts.add('error', 'Failed to load facet');
-				goto('/admin/views');
+				goto('/admin/views', { replace: true });
 			}
 		} finally {
 			loading = false;

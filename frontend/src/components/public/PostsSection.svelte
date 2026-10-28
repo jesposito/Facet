@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { discoverySectionHref } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 	import type { Post } from '$lib/pocketbase';
 	import { formatDate, truncate } from '$lib/utils';
@@ -18,10 +19,7 @@
 
 	// Build the post URL with optional from parameter for back navigation
 	function getPostUrl(slug: string): string {
-		if (viewSlug) {
-			return `/posts/${slug}?from=${encodeURIComponent(viewSlug)}`;
-		}
-		return `/posts/${slug}`;
+		return discoverySectionHref('post', slug, viewSlug);
 	}
 
 	const thumbSrc = (post: Post) =>

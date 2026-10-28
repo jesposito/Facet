@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { run, preventDefault } from 'svelte/legacy';
+	import { page } from '$app/state';
+	import { discoveryDetailBack } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 
 import type { PageData } from './$types';
 import { parseMarkdown, isFilename } from '$lib/utils';
 import { browser } from '$app/env';
-import { onMount } from 'svelte';
-import { goto } from '$app/navigation';
 import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
@@ -31,8 +30,6 @@ let ogTags = $derived(generateOpenGraphTags({
 	type: 'article',
 	siteName: data.profile?.name || 'Facet'
 }));
-
-let referrerPath = $state('');
 let mediaRefs = $derived(((data as any).media_refs as Array<RecordModel & {
 	url?: string;
 	title?: string;
@@ -100,28 +97,8 @@ function relatedDateRange(start?: string, end?: string): string {
 		if (e.key === 'ArrowLeft') prevImage();
 	}
 
-	onMount(() => {
-		if (!browser) return;
-		try {
-			const ref = document.referrer;
-			if (ref) {
-				const refUrl = new URL(ref);
-				// Only use same-origin referrers
-				if (refUrl.origin === window.location.origin && refUrl.pathname !== window.location.pathname) {
-					referrerPath = refUrl.pathname + refUrl.search;
-				}
-			}
-		} catch {
-			// ignore
-		}
-	});
 
-	// Back navigation: prefer originating view, then referrer, then home
-	let backUrl = $derived(data.fromView ? `/v/${data.fromView}` : referrerPath || '/');
-	let backLabel = 'Back';
-	run(() => {
-		console.log('[PROJECT PAGE] fromView:', data.fromView, 'referrerPath:', referrerPath, 'backUrl:', backUrl);
-	});
+	let back = $derived(discoveryDetailBack('project', page.url.searchParams, data.fromView, $t));
 	let projectThumb =
 		$derived((data.project as Record<string, string>).cover_image_thumb_url ?? data.project.cover_image_url);
 	let projectLarge =
@@ -175,14 +152,6 @@ const getFileName = (url?: string) => {
 	}
 };
 
-	function handleBack(event: Event) {
-		event.preventDefault();
-		if (browser && window.history.length > 1) {
-			window.history.back();
-		} else {
-			goto(backUrl, { replace: true }).catch(() => window.location.assign(backUrl));
-		}
-	}
 
 	function getLinkIcon(type: string) {
 		switch (type.toLowerCase()) {
@@ -245,14 +214,14 @@ const getFileName = (url?: string) => {
 		<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 			<!-- Back navigation -->
 			<a
-				href={backUrl}
-				onclick={preventDefault(handleBack)}
+				href={back.href}
+
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>{backLabel}</span>
+				<span>{back.label}</span>
 			</a>
 
 			<!-- Project title and badges -->

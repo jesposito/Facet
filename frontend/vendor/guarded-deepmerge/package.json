@@ -1,0 +1,21 @@
+{
+  "name": "@facet/guarded-deepmerge",
+  "version": "4.3.1-facet.1",
+  "private": true,
+  "description": "Local MIT deepmerge 4.3.1 fork rejecting prototype-control keys on both inputs",
+  "license": "MIT",
+  "main": "index.cjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "facetUpstream": {
+    "name": "deepmerge",
+    "version": "4.3.1",
+    "advisory": "GHSA-gcqx-w48m-w2h4"
+  }
+}

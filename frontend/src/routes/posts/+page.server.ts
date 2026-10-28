@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 	const fromView = url.searchParams.get('from');
 
 	try {
-		const response = await fetch(`${pbUrl}/api/posts`);
+		const response = await fetch(`${pbUrl}/api/posts`, { headers: { 'X-Internal': 'true' } });
 
 		if (!response.ok) {
 			let landingPageMessage = '';

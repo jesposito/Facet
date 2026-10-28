@@ -12,7 +12,6 @@
 
 import { page } from '$app/state';
 import { browser } from '$app/env';
-import { goto } from '$app/navigation';
 
 export interface FilterState {
 	searchQuery: string;
@@ -63,18 +62,25 @@ export function createFilterState(config: FilterConfig = {}) {
 		state.selectedTagIds = tagParam ? tagParam.split(',').filter(Boolean) : [];
 	}
 
+	$effect(() => {
+		// Reload the controls when browser Back or Forward restores this page.
+		void page.url;
+		if (browser) loadFromUrl();
+	});
+
 	function updateUrl() {
 		if (!browser) return;
 
-		const urlParams = new URLSearchParams();
+		const url = new URL(window.location.href);
+		const urlParams = url.searchParams;
+		for (const key of ['search', 'visibility', 'draft', 'tags']) urlParams.delete(key);
 
 		if (state.searchQuery) urlParams.set('search', state.searchQuery);
 		if (state.visibilityFilter !== 'all') urlParams.set('visibility', state.visibilityFilter);
 		if (state.draftFilter !== 'all') urlParams.set('draft', state.draftFilter);
 		if (state.selectedTagIds.length > 0) urlParams.set('tags', state.selectedTagIds.join(','));
 
-		const newUrl = urlParams.toString() ? `?${urlParams.toString()}` : window.location.pathname;
-		window.history.replaceState({}, '', newUrl);
+		window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
 	}
 
 	function setSearchQuery(query: string) {

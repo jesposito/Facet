@@ -573,9 +573,9 @@
 			if (generateTokenAfterCreate && (visibility === 'unlisted' || visibility === 'private')) {
 				await generateShareToken(newView.id);
 				// Redirect to edit page so user can see/copy the token
-				goto(`/admin/views/${newView.id}`);
+				goto(`/admin/views/${newView.id}`, { replace: true });
 			} else {
-				goto('/admin/views');
+				goto('/admin/views', { replace: true });
 			}
 		} catch (err) {
 			console.error('Failed to create view:', err);

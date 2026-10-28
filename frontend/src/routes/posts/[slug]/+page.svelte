@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { preventDefault } from 'svelte/legacy';
+	import { page } from '$app/state';
+	import { discoveryDetailBack } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 
 	import type { PageData } from './$types';
@@ -10,8 +11,6 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
 import Comments from '$components/public/Comments.svelte';
 import { browser } from '$app/env';
-import { goto } from '$app/navigation';
-import { onMount } from 'svelte';
 	import type { RecordModel } from 'pocketbase';
 import { getCanonicalUrl, generateOpenGraphTags, generateArticleJsonLd, serializeJsonLd } from '$lib/seo';
 
@@ -88,27 +87,8 @@ import { getCanonicalUrl, generateOpenGraphTags, generateArticleJsonLd, serializ
 		if (e.key === 'ArrowLeft') prevImage();
 	}
 
-	let referrerPath = $state('');
 
-	onMount(() => {
-		if (!browser) return;
-		try {
-			const ref = document.referrer;
-			if (ref) {
-				const refUrl = new URL(ref);
-				if (refUrl.origin === window.location.origin && refUrl.pathname !== window.location.pathname) {
-					referrerPath = refUrl.pathname + refUrl.search;
-				}
-			}
-		} catch {
-			// ignore
-		}
-	});
-
-	// Determine back navigation URL and label
-	// Prefer originating view, then referrer, otherwise posts index
-	let backUrl = $derived(data.fromView ? `/${data.fromView}` : referrerPath || '/posts');
-	let backLabel = 'Back';
+	let back = $derived(discoveryDetailBack('post', page.url.searchParams, data.fromView, $t));
 
 	function isYouTube(url?: string): string | null {
 		if (!url) return null;
@@ -158,14 +138,6 @@ const getHost = (url?: string) => {
 	}
 };
 
-	function handleBack(event: Event) {
-		event.preventDefault();
-		if (browser && window.history.length > 1) {
-			window.history.back();
-		} else {
-			goto(backUrl, { replace: true }).catch(() => window.location.assign(backUrl));
-		}
-	}
 </script>
 
 <svelte:head>
@@ -214,14 +186,14 @@ const getHost = (url?: string) => {
 		<div class="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
 			<!-- Back navigation -->
 			<a
-				href={backUrl}
-				onclick={preventDefault(handleBack)}
+				href={back.href}
+
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>{backLabel}</span>
+				<span>{back.label}</span>
 			</a>
 
 			<!-- Post title -->

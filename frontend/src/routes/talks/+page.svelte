@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
+	import { discoveryCollectionHref, discoveryDetailHref, discoveryListBackHref } from '$lib/discovery';
 	import type { PageData } from './$types';
 	import { formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import Footer from '$components/public/Footer.svelte';
-	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { browser } from '$app/env';
 
@@ -14,17 +15,11 @@
 	let { data }: Props = $props();
 
 	// Compute back navigation URL based on where user came from
-	let backUrl = $derived(data.fromView ? `/${data.fromView}` : '/');
+	let backUrl = $derived(discoveryListBackHref(data.fromView));
 	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
 	let icalUrl = $derived(browser ? new URL('/talks.ics', pb.baseUrl).toString() : '/talks.ics');
 
-	onMount(() => {
-		console.log('[TALKS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
-	});
 
-	function handleBackClick() {
-		console.log('[TALKS PAGE CLIENT] Back button clicked, navigating to:', backUrl);
-	}
 
 	// Extract YouTube/Vimeo thumbnail
 	function getVideoThumbnail(url: string): string | null {
@@ -67,17 +62,16 @@
 	<header class="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			<!-- Back navigation -->
-			<!-- Using data-sveltekit-reload to force full page load - workaround for client-side nav issue -->
+
 			<a
 				href={backUrl}
-				onclick={handleBackClick}
-				data-sveltekit-reload
+				data-sveltekit-reload={Boolean(data.fromView)}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>Back to Profile</span>
+				<span>{$t('public.nav.back_to', { values: { page: backUrl === '/' ? $t('public.nav.home') : backUrl.slice(1) } })}</span>
 			</a>
 
 			<h1 class="text-3xl sm:text-4xl font-bold">
@@ -117,7 +111,7 @@
 				<h2 class="sr-only">Filter by year</h2>
 				<div class="flex flex-wrap gap-2">
 					<a
-						href="/talks"
+						href={discoveryCollectionHref('talk', { fromView: data.fromView })}
 						class="px-3 py-1.5 text-sm rounded-full transition-colors {!data.selectedYear
 							? 'bg-primary-600 text-white'
 							: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}"
@@ -126,7 +120,7 @@
 					</a>
 					{#each data.allYears as year}
 						<a
-							href="/talks?year={year}"
+							href={discoveryCollectionHref('talk', { fromView: data.fromView, filter: year })}
 							class="px-3 py-1.5 text-sm rounded-full transition-colors {data.selectedYear === year
 								? 'bg-primary-600 text-white'
 								: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}"
@@ -148,7 +142,7 @@
 							<!-- Thumbnail or placeholder -->
 							<div class="sm:w-64 flex-shrink-0">
 								{#if talk.slug}
-									<a href="/talks/{talk.slug}" class="block aspect-video sm:h-full">
+									<a href={discoveryDetailHref('talk', talk.slug, { fromView: data.fromView, filter: data.selectedYear })} class="block aspect-video sm:h-full">
 										{#if thumbnail}
 											<img
 												src={thumbnail}
@@ -211,7 +205,7 @@
 							<!-- Content -->
 							<div class="flex-1 p-5">
 								{#if talk.slug}
-									<a href="/talks/{talk.slug}" class="block">
+									<a href={discoveryDetailHref('talk', talk.slug, { fromView: data.fromView, filter: data.selectedYear })} class="block">
 										<h2 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
 											{talk.title}
 										</h2>
@@ -263,7 +257,7 @@
 								<div class="mt-4 flex flex-wrap gap-3">
 									{#if talk.slug}
 										<a
-											href="/talks/{talk.slug}"
+											href={discoveryDetailHref('talk', talk.slug, { fromView: data.fromView, filter: data.selectedYear })}
 											class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
 										>
 											View Details
@@ -321,7 +315,7 @@
 					{/if}
 				</p>
 				{#if data.selectedYear}
-					<a href="/talks" class="mt-4 inline-block text-primary-600 dark:text-primary-400 hover:underline">
+					<a href={discoveryCollectionHref('talk', { fromView: data.fromView })} class="mt-4 inline-block text-primary-600 dark:text-primary-400 hover:underline">
 						View all talks
 					</a>
 				{/if}
