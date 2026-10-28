@@ -432,9 +432,6 @@ jobs:
             git commit -m "docs: update CHANGELOG for $NEW_TAG"
             bash scripts/ci/push-validated-release.sh "$NEW_TAG"
             echo "## Changelog Updated" >> $GITHUB_STEP_SUMMARY
-            if [ "$AI_SUCCESS" = true ]; then
-              echo "Generated with AI assistance" >> $GITHUB_STEP_SUMMARY
-            fi
             echo "CHANGELOG.md has been updated with release notes for $NEW_TAG" >> $GITHUB_STEP_SUMMARY
           fi
 
