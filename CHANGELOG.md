@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.5.2 - October 28, 2026
+
+**Bugs Fixed:**
+- Fix fixed-width video embeds to fit project, talk and custom-content pages
+- Fix CSS error for over 20,000 Unicode characters
+- Fix text clipping to preserve UTF-8 boundaries
+
+**New Features:**
+- Protect public portfolio fields and preserve rich content
+
+**Pull Requests:** [#518](https://github.com/jesposito/Facet/pull/518),
+
+---
+
+
 ## v3.5.1 - October 28, 2026
 
 **Bugs Fixed:**
