@@ -166,6 +166,7 @@
         "custom_css_title": "Custom Battle Code",
         "custom_css_description": "Optional styling applied to public pages. Keep it minimal; you bear responsibility for the result.",
         "custom_css_char_count": "{count}/20000",
+        "custom_css_limit_error": "CSS exceeds 20,000 characters. Cut it down before saving. Your text has not been lost.",
         "custom_css_selectors": "Target Selectors",
         "custom_css_placeholder": "/* Custom battle code (adjust fonts, spacing, colors) */",
         "custom_css_save": "Secure",

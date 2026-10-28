@@ -1360,7 +1360,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
-					contacts := serializeRecords(contactRecords)
+					var visibleContacts []*core.Record
+					for _, contact := range contactRecords {
+						if contactVisibleInView(contact, "") {
+							visibleContacts = append(visibleContacts, contact)
+						}
+					}
+					contacts := serializeRecords(visibleContacts)
 					response["contacts"] = filterBySelectedItemsWithDefault(contacts, contactsSelectedItems, contactsConfigured)
 				}
 			}

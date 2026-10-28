@@ -9,6 +9,8 @@ import (
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+
+	"facet/internal/textlimit"
 )
 
 // DailyViewCount is one day's view count in the analytics time series.
@@ -307,7 +309,7 @@ func LogViewAccess(app *pocketbase.PocketBase, e *core.RequestEvent, viewID, vie
 
 	referrer := e.Request.Header.Get("Referer")
 	if len(referrer) > 2048 {
-		referrer = referrer[:2048]
+		referrer = textlimit.Bytes(referrer, 2048)
 	}
 	// Strip query params from referrer for privacy
 	if idx := strings.Index(referrer, "?"); idx > 0 {

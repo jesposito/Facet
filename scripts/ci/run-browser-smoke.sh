@@ -56,5 +56,6 @@ JS
 cd frontend
 # Run the direct public API checks before browser traffic consumes their shared
 # anonymous rate-limit bucket. Keep production rate limits enabled in this fixture.
-npx playwright test tests/public-api.spec.ts
-npx playwright test tests/admin-flows.spec.ts tests/booking-shortcodes.spec.ts tests/dependency-security.spec.ts tests/back-navigation.spec.ts
+npx playwright test --output=test-results/public-api tests/public-api.spec.ts
+npx playwright test --output=test-results/portfolio tests/portfolio-portability.spec.ts
+npx playwright test --output=test-results/core tests/admin-flows.spec.ts tests/booking-shortcodes.spec.ts tests/dependency-security.spec.ts tests/back-navigation.spec.ts

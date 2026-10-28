@@ -98,37 +98,27 @@ func isRecordVisible(record *core.Record) bool {
 	return visibility != "private" && !isDraft
 }
 
-func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
-	viewVisibility := record.Get("view_visibility")
-
-	if isRecordVisible(record) {
-		if section == "contacts" && viewId != "" {
-			if viewVisibility != nil {
-				var vv map[string]interface{}
-				switch v := viewVisibility.(type) {
-				case map[string]interface{}:
-					vv = v
-				case types.JSONRaw:
-					if len(v) > 0 && string(v) != "{}" && string(v) != "null" {
-						json.Unmarshal(v, &vv)
-					}
-				case string:
-					if v != "" && v != "{}" && v != "null" {
-						json.Unmarshal([]byte(v), &vv)
-					}
-				}
-				if vv != nil {
-					if enabled, exists := vv[viewId]; exists {
-						if b, ok := enabled.(bool); ok {
-							return b
-						}
-					}
-				}
-			}
-		}
+// Contact view restrictions are evaluated before their metadata is removed from
+// public responses. An empty map means all pages; a nonempty map is opt-in.
+func contactVisibleInView(record *core.Record, viewID string) bool {
+	raw := record.GetString("view_visibility")
+	if raw == "" {
 		return true
 	}
+	var visibility map[string]bool
+	if err := json.Unmarshal([]byte(raw), &visibility); err != nil {
+		return false
+	}
+	return len(visibility) == 0 || visibility[viewID]
+}
 
+func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
+	if section == "contacts" && !contactVisibleInView(record, viewId) {
+		return false
+	}
+	if isRecordVisible(record) {
+		return true
+	}
 	return isVisibleInView(record, viewId)
 }
 
@@ -184,7 +174,7 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 	for _, record := range records {
 		item := make(map[string]interface{})
 		for key, value := range record.FieldsData() {
-			if key == "password_hash" {
+			if !publicFieldAllowed(record.Collection(), key) {
 				continue
 			}
 			item[key] = value
@@ -193,7 +183,7 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 
 		// Handle testimonials author_photo: convert filename to full URL
 		if record.Collection().Name == "testimonials" {
-			if photo := record.GetString("author_photo"); photo != "" {
+			if photo := record.GetString("author_photo"); publicFieldAllowed(record.Collection(), "author_photo") && photo != "" {
 				item["author_photo"] = "/api/files/testimonials/" + record.Id + "/" + photo
 			}
 		}
@@ -210,7 +200,7 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 	for _, record := range records {
 		item := make(map[string]interface{})
 		for key, value := range record.FieldsData() {
-			if key == "password_hash" {
+			if !publicFieldAllowed(record.Collection(), key) {
 				continue
 			}
 			item[key] = value
@@ -220,7 +210,7 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 		if config, exists := itemConfig[record.Id]; exists {
 			if overrides, ok := config["overrides"].(map[string]interface{}); ok {
 				for field, value := range overrides {
-					if containsString(overridableFields, field) {
+					if containsString(overridableFields, field) && publicFieldAllowed(record.Collection(), field) {
 						item[field] = value
 					}
 				}
@@ -229,11 +219,11 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 
 		if sectionName == "projects" || sectionName == "posts" || isCustomContentSection(sectionName) {
 			// Prefer library URL over file upload
-			if libraryURL := record.GetString("cover_image_library_url"); libraryURL != "" {
+			if libraryURL := record.GetString("cover_image_library_url"); publicFieldAllowed(record.Collection(), "cover_image_library_url") && libraryURL != "" {
 				item["cover_image_url"] = libraryURL
 				item["cover_image_large_url"] = libraryURL
 				item["cover_image_thumb_url"] = libraryURL
-			} else if coverImage := record.GetString("cover_image"); coverImage != "" {
+			} else if coverImage := record.GetString("cover_image"); publicFieldAllowed(record.Collection(), "cover_image") && coverImage != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["cover_image_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + coverImage
@@ -244,7 +234,7 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 
 		// Handle custom content media gallery
 		if isCustomContentSection(sectionName) {
-			if mediaField := record.Get("media"); mediaField != nil {
+			if mediaField := record.Get("media"); publicFieldAllowed(record.Collection(), "media") && mediaField != nil {
 				var mediaFiles []string
 				switch v := mediaField.(type) {
 				case []string:
@@ -268,7 +258,7 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 			}
 
 			// Handle media_refs from library (external_media references)
-			if mediaRefs := record.GetStringSlice("media_refs"); len(mediaRefs) > 0 {
+			if mediaRefs := record.GetStringSlice("media_refs"); publicFieldAllowed(record.Collection(), "media_refs") && len(mediaRefs) > 0 {
 				item["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
 					item["media_refs_expand"] = expanded
@@ -278,9 +268,9 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 
 		if sectionName == "experience" {
 			// Prefer library URL over file upload
-			if libraryURL := record.GetString("company_logo_library_url"); libraryURL != "" {
+			if libraryURL := record.GetString("company_logo_library_url"); publicFieldAllowed(record.Collection(), "company_logo_library_url") && libraryURL != "" {
 				item["company_logo_url"] = libraryURL
-			} else if companyLogo := record.GetString("company_logo"); companyLogo != "" {
+			} else if companyLogo := record.GetString("company_logo"); publicFieldAllowed(record.Collection(), "company_logo") && companyLogo != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["company_logo_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + companyLogo
@@ -289,9 +279,9 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 
 		if sectionName == "education" {
 			// Prefer library URL over file upload
-			if libraryURL := record.GetString("institution_logo_library_url"); libraryURL != "" {
+			if libraryURL := record.GetString("institution_logo_library_url"); publicFieldAllowed(record.Collection(), "institution_logo_library_url") && libraryURL != "" {
 				item["institution_logo_url"] = libraryURL
-			} else if institutionLogo := record.GetString("institution_logo"); institutionLogo != "" {
+			} else if institutionLogo := record.GetString("institution_logo"); publicFieldAllowed(record.Collection(), "institution_logo") && institutionLogo != "" {
 				collectionID := record.Collection().Id
 				recordID := record.Id
 				item["institution_logo_url"] = "/api/files/" + collectionID + "/" + recordID + "/" + institutionLogo
@@ -299,7 +289,7 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 		}
 
 		if sectionName == "testimonials" {
-			if photo := record.GetString("author_photo"); photo != "" {
+			if photo := record.GetString("author_photo"); publicFieldAllowed(record.Collection(), "author_photo") && photo != "" {
 				item["author_photo"] = "/api/files/testimonials/" + record.Id + "/" + photo
 			}
 		}

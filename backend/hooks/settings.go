@@ -15,6 +15,8 @@ import (
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 	"github.com/pocketbase/pocketbase/tools/mailer"
 	"github.com/stripe/stripe-go/v82/client"
+
+	"facet/internal/textlimit"
 )
 
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
@@ -113,21 +115,21 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				// Allow clearing the message by sending empty string
 				msg := strings.TrimSpace(*req.LandingPageMessage)
 				if len(msg) > 2000 {
-					msg = msg[:2000]
+					msg = textlimit.Runes(msg, 2000)
 				}
 				updates["landing_page_message"] = msg
 			}
 			if req.CustomCSS != nil {
 				css := strings.TrimSpace(*req.CustomCSS)
-				if len(css) > 20000 {
-					css = css[:20000]
+				if err := services.CheckCustomCSSLength(css); err != nil {
+					return apis.NewBadRequestError(err.Error(), nil)
 				}
 				updates["custom_css"] = css
 			}
 			if req.GAMeasurementID != nil {
 				id := strings.TrimSpace(*req.GAMeasurementID)
 				if len(id) > 100 {
-					id = id[:100]
+					id = textlimit.Runes(id, 100)
 				}
 				updates["ga_measurement_id"] = id
 			}

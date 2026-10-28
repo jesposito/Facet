@@ -200,7 +200,7 @@
 				{/if}
 				{#if item.content}
 					<div class="card p-6 {item.cover_image_url ? '-mt-16 relative z-10 mx-4' : ''}">
-						<div class="prose prose-gray dark:prose-invert max-w-none">
+						<div class="rich-content-safe prose prose-gray dark:prose-invert max-w-none">
 							{@html parseMarkdown(item.content || '')}
 						</div>
 					</div>
@@ -230,9 +230,9 @@
 							/>
 						</div>
 					{/if}
-					<div class="flex-1">
+					<div class="min-w-0 flex-1">
 						{#if item.content}
-							<div class="prose prose-gray dark:prose-invert max-w-none">
+							<div class="rich-content-safe prose prose-gray dark:prose-invert max-w-none">
 								{@html parseMarkdown(item.content || '')}
 							</div>
 						{/if}
@@ -263,7 +263,7 @@
 			{/if}
 
 			{#if item.content}
-				<div class="prose prose-gray dark:prose-invert max-w-none">
+				<div class="rich-content-safe prose prose-gray dark:prose-invert max-w-none">
 					{@html parseMarkdown(item.content || '')}
 				</div>
 			{/if}

@@ -301,7 +301,7 @@ import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 
 		<!-- Description (Markdown) -->
 		{#if data.talk.description}
-			<article class="prose prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-img:rounded-lg">
+			<article class="rich-content-safe prose prose-lg dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-a:text-primary-600 dark:prose-a:text-primary-400 prose-img:rounded-lg">
 				{@html parseMarkdown(data.talk.description)}
 			</article>
 		{/if}

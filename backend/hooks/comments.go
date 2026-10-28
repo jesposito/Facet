@@ -16,6 +16,8 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+
+	"facet/internal/textlimit"
 )
 
 // commentEmailRegex validates email addresses for comment submissions.
@@ -279,7 +281,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			// User agent (truncate to 500)
 			userAgent := e.Request.Header.Get("User-Agent")
 			if len(userAgent) > 500 {
-				userAgent = userAgent[:500]
+				userAgent = textlimit.Bytes(userAgent, 500)
 			}
 
 			// Duplicate detection: same ip_hash and body in last 5 minutes

@@ -166,6 +166,7 @@
         "custom_css_title": "Custom Weaving",
         "custom_css_description": "Optional styling woven upon public pages. Keep it spare; thou art its keeper.",
         "custom_css_char_count": "{count}/20000",
+        "custom_css_limit_error": "Your CSS scroll exceeds 20,000 characters. Shorten it before saving; its words remain here.",
         "custom_css_selectors": "Binding Words",
         "custom_css_placeholder": "/* Custom weaving (adjust scripts, spacing, hues) */",
         "custom_css_save": "Preserve",

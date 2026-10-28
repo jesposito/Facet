@@ -473,6 +473,47 @@
 		@apply prose-img:rounded-lg;
 	}
 
+	/* Rich text can contain fixed-width embeds pasted from other services. */
+	.rich-content-safe,
+	.prose-custom {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+
+	:is(.rich-content-safe, .prose-custom) :is(iframe, video, img) {
+		max-width: 100%;
+	}
+
+	:is(.rich-content-safe, .prose-custom) iframe {
+		width: 100%;
+	}
+
+	:is(.rich-content-safe, .prose-custom) iframe:is(
+		[src^="https://www.youtube.com/embed/"],
+		[src^="https://www.youtube-nocookie.com/embed/"],
+		[src^="https://player.vimeo.com/video/"],
+		[src^="https://www.loom.com/embed/"]
+	) {
+		aspect-ratio: 16 / 9;
+		height: auto;
+	}
+
+	:is(.rich-content-safe, .prose-custom) video {
+		height: auto;
+	}
+
+	:is(.rich-content-safe, .prose-custom) pre {
+		max-width: 100%;
+		overflow-x: auto;
+		overflow-wrap: normal;
+	}
+
+	:is(.rich-content-safe, .prose-custom) table {
+		display: block;
+		max-width: 100%;
+		overflow-x: auto;
+	}
+
 	.prose-custom .embed.booking {
 		@apply my-6;
 	}
