@@ -299,7 +299,7 @@ const getFileName = (url?: string) => {
 		{#if data.project.description}
 			<section class="mb-10">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h2>
-				<div class="prose prose-lg dark:prose-invert max-w-none">
+				<div class="rich-content-safe prose prose-lg dark:prose-invert max-w-none">
 					{@html parseMarkdown(data.project.description)}
 				</div>
 			</section>

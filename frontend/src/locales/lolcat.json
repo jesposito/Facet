@@ -166,6 +166,7 @@
         "custom_css_title": "Custom CSS",
         "custom_css_description": "Opshunl stylez applid 2 public pajez. Keep it minimal; u own teh result.",
         "custom_css_char_count": "{count}/20000",
+        "custom_css_limit_error": "CSS haz moar than 20,000 characters! Make it smoller before saving. Ur text iz still here.",
         "custom_css_selectors": "Selektorz",
         "custom_css_placeholder": "/* Custom CSS (e.g., tweak fonts, spacin, colorz) */",
         "custom_css_save": "Saev",

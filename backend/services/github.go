@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"facet/internal/textlimit"
 )
 
 type GitHubService struct {
@@ -103,7 +105,7 @@ func (g *GitHubService) FetchRepoMetadata(owner, repo, token string) (*RepoMetad
 
 	// Truncate README if too long (max 50KB)
 	if len(readme) > 50000 {
-		readme = readme[:50000] + "\n\n[README truncated...]"
+		readme = textlimit.Bytes(readme, 50000) + "\n\n[README truncated...]"
 	}
 
 	return &RepoMetadata{

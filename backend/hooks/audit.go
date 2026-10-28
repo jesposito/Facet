@@ -7,6 +7,8 @@ import (
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+
+	"facet/internal/textlimit"
 )
 
 // Collections to audit for CRUD operations.
@@ -232,7 +234,7 @@ func getUserAgent(e *core.RequestEvent) string {
 	}
 	ua := e.Request.Header.Get("User-Agent")
 	if len(ua) > 500 {
-		ua = ua[:500]
+		ua = textlimit.Bytes(ua, 500)
 	}
 	return ua
 }

@@ -516,7 +516,7 @@
 		{#if currentMode === 'wysiwyg'}
 			<div
 				bind:this={editorElement}
-				class="editor-content prose dark:prose-invert max-w-none p-4 focus-within:outline-none"
+				class="editor-content rich-content-safe prose dark:prose-invert max-w-none p-4 focus-within:outline-none"
 				style="min-height: {minHeight}"
 				role="textbox"
 				aria-multiline="true"

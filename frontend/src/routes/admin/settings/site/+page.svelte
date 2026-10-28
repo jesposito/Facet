@@ -15,6 +15,9 @@
 	let siteSettingsLoading = $state(true);
 	let siteSettingsSaving = $state(false);
 	let customCSS = $state('');
+	let customCSSEditor: HTMLTextAreaElement;
+	const customCSSCount = $derived(Array.from(customCSS.trim()).length);
+	const customCSSOverLimit = $derived(customCSSCount > 20000);
 	let gaMeasurementId = $state('');
 	let defaultThemeMode = $state<'system' | 'light' | 'dark'>('system');
 	let savingThemeMode = $state(false);
@@ -219,6 +222,10 @@
 	}
 
 	async function saveSiteSettings() {
+		if (customCSSOverLimit) {
+			customCSSEditor?.focus();
+			return;
+		}
 		siteSettingsSaving = true;
 		try {
 			const response = await fetch('/api/site-settings', {
@@ -235,7 +242,7 @@
 
 			const result = await response.json();
 			if (!response.ok) {
-				toasts.add('error', result.error || $t('admin.settings_page.settings_error'));
+				toasts.add('error', result.error || result.message || $t('admin.settings_page.settings_error'));
 				return;
 			}
 
@@ -783,9 +790,12 @@
 
 		<!-- Custom CSS -->
 		<div class="card p-6">
-			<div class="flex items-start justify-between gap-3">
+			<div class="flex flex-wrap items-start justify-between gap-3">
 				<div>
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+					<h2
+						id="custom-css-title"
+						class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+					>
 						{$t('admin.settings_page.appearance.custom_css_title')}
 					</h2>
 					<p class="text-gray-600 dark:text-gray-400 text-sm">
@@ -795,12 +805,14 @@
 				<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
 					<span
 						>{$t('admin.settings_page.appearance.custom_css_char_count', {
-							values: { count: customCSS.length },
+							values: { count: customCSSCount }
 						})}</span
 					>
 					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
 						{@html icon('info', 'w-4 h-4 mr-1')}
-						<span class="align-middle">{$t('admin.settings_page.appearance.custom_css_selectors')}</span>
+						<span class="align-middle"
+							>{$t('admin.settings_page.appearance.custom_css_selectors')}</span
+						>
 					</button>
 				</div>
 			</div>
@@ -809,11 +821,26 @@
 				<textarea
 					class="input font-mono text-sm h-48"
 					placeholder={$t('admin.settings_page.appearance.custom_css_placeholder')}
+					bind:this={customCSSEditor}
 					bind:value={customCSS}
 					disabled={siteSettingsLoading || siteSettingsSaving}
-					maxlength="20000"
-					aria-describedby={customCSSContrastWarning ? 'custom-css-contrast-warning' : undefined}
-				></textarea>
+					aria-labelledby="custom-css-title"
+					aria-invalid={customCSSOverLimit}
+					aria-describedby={[
+						customCSSOverLimit && 'custom-css-limit-error',
+						customCSSContrastWarning && 'custom-css-contrast-warning'
+					]
+						.filter(Boolean)
+						.join(' ') || undefined}></textarea>
+				{#if customCSSOverLimit}
+					<p
+						id="custom-css-limit-error"
+						role="alert"
+						class="text-sm text-red-700 dark:text-red-300"
+					>
+						{$t('admin.settings_page.appearance.custom_css_limit_error')}
+					</p>
+				{/if}
 				{#if customCSSContrastWarning}
 					<p
 						id="custom-css-contrast-warning"

@@ -166,6 +166,7 @@
         "custom_css_title": "Benutzerdefiniertes CSS",
         "custom_css_description": "Optionale Stile für öffentliche Seiten. Halten Sie es minimal; Sie sind für das Ergebnis verantwortlich.",
         "custom_css_char_count": "{count}/20000",
+        "custom_css_limit_error": "Benutzerdefiniertes CSS darf höchstens 20.000 Zeichen enthalten. Kürze es vor dem Speichern. Dein Text bleibt erhalten.",
         "custom_css_selectors": "Selektoren",
         "custom_css_placeholder": "/* Benutzerdefiniertes CSS (z.B. Schriften, Abstände, Farben anpassen) */",
         "custom_css_save": "Speichern",

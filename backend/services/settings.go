@@ -378,6 +378,9 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 		settings.Record.Set("landing_page_message", msg)
 	}
 	if css, ok := updates["custom_css"].(string); ok {
+		if err := CheckCustomCSSLength(css); err != nil {
+			return nil, err
+		}
 		if settings.Record.Collection().Fields.GetByName("custom_css") != nil {
 			settings.Record.Set("custom_css", css)
 		} else if logger != nil {

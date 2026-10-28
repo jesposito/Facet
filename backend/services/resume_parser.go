@@ -12,6 +12,8 @@ import (
 
 	"github.com/fumiama/go-docx"
 	"github.com/gen2brain/go-fitz"
+
+	"facet/internal/textlimit"
 )
 
 // ResumeParser handles extraction of text from resume files
@@ -278,7 +280,7 @@ func (rp *ResumeParser) ParseResume(ctx context.Context, provider *AIProvider, r
 	const maxChars = 16000
 	truncated := false
 	if len(resumeText) > maxChars {
-		resumeText = resumeText[:maxChars]
+		resumeText = textlimit.Bytes(resumeText, maxChars)
 		truncated = true
 	}
 
@@ -314,7 +316,7 @@ func (rp *ResumeParser) ParseResume(ctx context.Context, provider *AIProvider, r
 		// Still failed - return detailed error
 		preview := cleaned
 		if len(preview) > 500 {
-			preview = preview[:500] + "..."
+			preview = textlimit.Bytes(preview, 500) + "..."
 		}
 		return nil, fmt.Errorf("failed to parse AI response as JSON: %w. Response preview: %s", err, preview)
 	}

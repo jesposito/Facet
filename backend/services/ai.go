@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"facet/internal/textlimit"
 )
 
 // AIService handles AI provider interactions
@@ -159,14 +161,14 @@ Project Information:
 		// Truncate README for prompt
 		readme := req.README
 		if len(readme) > 10000 {
-			readme = readme[:10000] + "\n[Truncated]"
+			readme = textlimit.Bytes(readme, 10000) + "\n[Truncated]"
 		}
 		sb.WriteString(fmt.Sprintf("\nREADME:\n%s\n", readme))
 	} else if req.README != "" && req.PrivacyMode == "summary" {
 		// Just use first 500 chars as summary
 		readme := req.README
 		if len(readme) > 500 {
-			readme = readme[:500] + "..."
+			readme = textlimit.Bytes(readme, 500) + "..."
 		}
 		sb.WriteString(fmt.Sprintf("\nREADME Summary:\n%s\n", readme))
 	}

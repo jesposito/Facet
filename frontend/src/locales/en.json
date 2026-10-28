@@ -168,6 +168,7 @@
         "custom_css_title": "Custom CSS",
         "custom_css_description": "Optional styles applied to public pages. Keep it minimal; you own the result.",
         "custom_css_char_count": "{count}/20000",
+        "custom_css_limit_error": "Custom CSS can contain up to 20,000 characters. Shorten it before saving. Your text is still here.",
         "custom_css_selectors": "Selectors",
         "custom_css_placeholder": "/* Custom CSS (e.g., tweak fonts, spacing, colors) */",
         "custom_css_save": "Save",
