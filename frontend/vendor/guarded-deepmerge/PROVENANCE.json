@@ -1,0 +1,10 @@
+{
+  "upstream": {
+    "version": "4.3.1",
+    "file": "dist/cjs.js",
+    "sha256": "2e5160f84a1141bd927264afe4d15766f1e6cf07daef182b37ff53fea121de7d"
+  },
+  "fork": {
+    "index.cjs": "b0e211db5ef7c79731c1fbab3b250d96d5f8f3bfd7c933ae023d5fb003e15d9b"
+  }
+}
