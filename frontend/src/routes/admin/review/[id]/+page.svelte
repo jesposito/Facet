@@ -32,7 +32,7 @@
 			const proposalId = page.params.id;
 			if (!proposalId) {
 				toasts.add('error', 'Missing proposal ID');
-				goto('/admin/proposals');
+				goto('/admin/import', { replace: true });
 				return;
 			}
 
@@ -40,7 +40,7 @@
 
 			if (!proposal || proposal.status !== 'pending') {
 				toasts.add('info', 'This proposal has already been processed');
-				goto('/admin/proposals');
+				goto('/admin/import', { replace: true });
 				return;
 			}
 
@@ -116,7 +116,7 @@
 
 			const result = await response.json();
 			toasts.add('success', 'Changes applied successfully!');
-			goto(`/admin/projects`);
+			goto(`/admin/projects`, { replace: true });
 		} catch (err) {
 			console.error('Failed to apply proposal:', err);
 			toasts.add('error', 'Failed to apply changes');
@@ -139,7 +139,7 @@
 			}
 
 			toasts.add('info', 'Proposal rejected');
-			goto('/admin/proposals');
+			goto('/admin/import', { replace: true });
 		} catch (err) {
 			toasts.add('error', 'Failed to reject proposal');
 		}

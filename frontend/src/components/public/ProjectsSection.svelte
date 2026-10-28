@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { discoverySectionHref } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 	import type { Project } from '$lib/pocketbase';
 	import { truncate, parseMarkdown } from '$lib/utils';
@@ -47,7 +48,7 @@ const isLinkable = (project: Project) => {
 
 const projectHref = (project: Project) => {
 	if (!isLinkable(project)) return null;
-	return viewSlug ? `/projects/${project.slug}?from=${encodeURIComponent(viewSlug)}` : `/projects/${project.slug}`;
+	return discoverySectionHref('project', project.slug!, viewSlug);
 };
 
 	function getLinkIcon(type: string) {

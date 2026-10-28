@@ -1,10 +1,10 @@
 <script lang="ts">
+	import { discoveryCollectionHref, discoveryDetailHref, discoveryListBackHref } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { formatDate } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import Footer from '$components/public/Footer.svelte';
-	import { onMount } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { browser } from '$app/env';
 
@@ -15,17 +15,11 @@
 	let { data }: Props = $props();
 
 	// Compute back navigation URL based on where user came from
-	let backUrl = $derived(data.fromView ? `/${data.fromView}` : '/');
+	let backUrl = $derived(discoveryListBackHref(data.fromView));
 	let landingMessage = $derived(data.landingPageMessage || 'This profile is being set up.');
 	let rssUrl = $derived(browser ? new URL('/rss.xml', pb.baseUrl).toString() : '/rss.xml');
 
-	onMount(() => {
-		console.log('[POSTS PAGE CLIENT] Page mounted, backUrl:', backUrl, 'fromView:', data.fromView);
-	});
 
-	function handleBackClick() {
-		console.log('[POSTS PAGE CLIENT] Back button clicked, navigating to:', backUrl);
-	}
 </script>
 
 <svelte:head>
@@ -57,17 +51,16 @@
 	<header class="bg-gradient-to-br from-gray-900 to-gray-800 text-white">
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 			<!-- Back navigation -->
-			<!-- Using data-sveltekit-reload to force full page load - workaround for client-side nav issue -->
+
 			<a
 				href={backUrl}
-				onclick={handleBackClick}
-				data-sveltekit-reload
+				data-sveltekit-reload={Boolean(data.fromView)}
 				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
-				<span>Back to Profile</span>
+				<span>{$t('public.nav.back_to', { values: { page: backUrl === '/' ? $t('public.nav.home') : backUrl.slice(1) } })}</span>
 			</a>
 
 			<h1 class="text-3xl sm:text-4xl font-bold">
@@ -106,7 +99,7 @@
 				<h2 class="sr-only">Filter by tag</h2>
 				<div class="flex flex-wrap gap-2">
 					<a
-						href="/posts"
+						href={discoveryCollectionHref('post', { fromView: data.fromView })}
 						class="px-3 py-1.5 text-sm rounded-full transition-colors {!data.selectedTag
 							? 'bg-primary-600 text-white'
 							: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}"
@@ -115,7 +108,7 @@
 					</a>
 					{#each data.allTags as tag}
 						<a
-							href="/posts?tag={encodeURIComponent(tag)}"
+							href={discoveryCollectionHref('post', { fromView: data.fromView, filter: tag })}
 							class="px-3 py-1.5 text-sm rounded-full transition-colors {data.selectedTag === tag
 								? 'bg-primary-600 text-white'
 								: 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}"
@@ -134,7 +127,7 @@
 					<article class="group bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
 						<!-- Cover image -->
 						{#if post.cover_image_thumb_url || post.cover_image_url}
-							<a href="/posts/{post.slug}" class="block aspect-video overflow-hidden">
+							<a href={discoveryDetailHref('post', post.slug, { fromView: data.fromView, filter: data.selectedTag })} class="block aspect-video overflow-hidden">
 								<img
 									src={post.cover_image_large_url ?? post.cover_image_url}
 									srcset={`${post.cover_image_thumb_url ?? post.cover_image_url} 640w, ${post.cover_image_large_url ?? post.cover_image_url} 1280w, ${post.cover_image_url} 1600w`}
@@ -144,7 +137,7 @@
 								/>
 							</a>
 						{:else}
-							<a href="/posts/{post.slug}" class="block aspect-video bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center" aria-label={$t('public.aria.read_post', { values: { title: post.title } })}>
+							<a href={discoveryDetailHref('post', post.slug, { fromView: data.fromView, filter: data.selectedTag })} class="block aspect-video bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center" aria-label={$t('public.aria.read_post', { values: { title: post.title } })}>
 								<svg class="w-12 h-12 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
 								</svg>
@@ -153,7 +146,7 @@
 
 						<!-- Content -->
 						<div class="p-5">
-							<a href="/posts/{post.slug}" class="block">
+							<a href={discoveryDetailHref('post', post.slug, { fromView: data.fromView, filter: data.selectedTag })} class="block">
 								<h2 class="text-lg font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-2">
 									{post.title}
 								</h2>
@@ -206,7 +199,7 @@
 					{/if}
 				</p>
 				{#if data.selectedTag}
-					<a href="/posts" class="mt-4 inline-block text-primary-600 dark:text-primary-400 hover:underline">
+					<a href={discoveryCollectionHref('post', { fromView: data.fromView })} class="mt-4 inline-block text-primary-600 dark:text-primary-400 hover:underline">
 						View all posts
 					</a>
 				{/if}

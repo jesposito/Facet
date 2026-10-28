@@ -14,7 +14,8 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 	const { slug } = params;
 	const fromView = url.searchParams.get('from');
 
-	const headers: Record<string, string> = {};
+	// These requests originate in the server, like the homepage loader.
+	const headers: Record<string, string> = { 'X-Internal': 'true' };
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 	if (pbAuthToken) {
 		headers['Authorization'] = `Bearer ${pbAuthToken}`;

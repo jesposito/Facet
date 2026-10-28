@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { discoverySectionHref } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 	import type { Talk } from '$lib/pocketbase';
 	import { formatDate, parseMarkdown } from '$lib/utils';
@@ -27,10 +28,7 @@
 	};
 
 	function getTalkUrl(slug: string): string {
-		if (viewSlug) {
-			return `/talks/${slug}?from=${encodeURIComponent(viewSlug)}`;
-		}
-		return `/talks/${slug}`;
+		return discoverySectionHref('talk', slug, viewSlug);
 	}
 
 	function getYouTubeId(url: string): string | null {

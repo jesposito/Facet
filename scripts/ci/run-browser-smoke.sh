@@ -54,4 +54,7 @@ if (!changed.ok) throw new Error(`Fixture password change failed: ${changed.stat
 JS
 
 cd frontend
-npx playwright test tests/public-api.spec.ts tests/admin-flows.spec.ts tests/booking-shortcodes.spec.ts tests/dependency-security.spec.ts
+# Run the direct public API checks before browser traffic consumes their shared
+# anonymous rate-limit bucket. Keep production rate limits enabled in this fixture.
+npx playwright test tests/public-api.spec.ts
+npx playwright test tests/admin-flows.spec.ts tests/booking-shortcodes.spec.ts tests/dependency-security.spec.ts tests/back-navigation.spec.ts
