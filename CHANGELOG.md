@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.5.1 - October 28, 2026
+
+**Bugs Fixed:**
+- Fix public Back destinations and admin history
+
+**Pull Requests:** [#517](https://github.com/jesposito/Facet/pull/517),
+
+---
+
+
 ## v3.5.0 - October 25, 2026
 
 **Other Changes:**
