@@ -59,3 +59,5 @@ cd frontend
 npx playwright test --output=test-results/public-api tests/public-api.spec.ts
 npx playwright test --output=test-results/portfolio tests/portfolio-portability.spec.ts
 npx playwright test --output=test-results/core tests/admin-flows.spec.ts tests/booking-shortcodes.spec.ts tests/dependency-security.spec.ts tests/back-navigation.spec.ts
+
+npx playwright test --output=test-results/experiences tests/project-experiences.spec.ts

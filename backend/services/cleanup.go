@@ -11,13 +11,13 @@ import (
 
 // CleanupResult holds the count of records deleted per collection.
 type CleanupResult struct {
-	ExpiredShareTokens       int
-	RevokedShareTokens       int
+	ExpiredShareTokens        int
+	RevokedShareTokens        int
 	ExpiredVerificationTokens int
-	VerifiedTokens           int
-	FailedExports            int
-	StuckExports             int
-	OrphanedUploads          int
+	VerifiedTokens            int
+	FailedExports             int
+	StuckExports              int
+	OrphanedUploads           int
 }
 
 // Total returns the total number of records cleaned up.
@@ -292,6 +292,10 @@ func cleanupOrphanedUploads(app *pocketbase.PocketBase) int {
 				if isReferenced {
 					break
 				}
+			}
+
+			if !isReferenced && FindProjectExperienceMediaUsage(app, fileURL).UsageCount > 0 {
+				isReferenced = true
 			}
 
 			// Also check external_media for mirrors

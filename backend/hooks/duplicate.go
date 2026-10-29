@@ -74,6 +74,7 @@ func RegisterDuplicateHooks(app *pocketbase.PocketBase) {
 			}
 
 			duplicate.Set("description", original.GetString("description"))
+			duplicate.Set("experience", original.Get("experience"))
 			duplicate.Set("content", original.GetString("content"))
 			duplicate.Set("summary", original.GetString("summary"))
 			duplicate.Set("excerpt", original.GetString("excerpt"))

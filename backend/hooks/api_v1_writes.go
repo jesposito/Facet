@@ -36,7 +36,7 @@ var apiV1WriteFields = map[string][]string{
 		"tags", "visibility", "is_draft", "published_at",
 	},
 	"projects": {
-		"title", "slug", "summary", "description",
+		"title", "slug", "summary", "description", "experience",
 		"tech_stack", "links", "categories",
 		"visibility", "is_draft", "is_featured", "sort_order",
 	},

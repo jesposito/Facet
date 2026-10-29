@@ -10,7 +10,7 @@ import (
 // until reviewed here; demo records follow the same projection.
 var publicFieldAllowlist = map[string]map[string]bool{
 	"experience":      publicFields("company", "title", "location", "start_date", "end_date", "description", "bullets", "skills", "media", "company_logo", "company_logo_library_url", "logo_background", "company_group_id", "visibility", "is_draft", "sort_order", "created", "updated"),
-	"projects":        publicFields("title", "slug", "summary", "description", "tech_stack", "links", "media", "cover_image", "categories", "is_featured", "media_refs", "cover_image_library_url", "related_experience", "related_education", "visibility", "is_draft", "sort_order", "created", "updated"),
+	"projects":        publicFields("title", "slug", "summary", "description", "experience", "tech_stack", "links", "media", "cover_image", "categories", "is_featured", "media_refs", "cover_image_library_url", "related_experience", "related_education", "visibility", "is_draft", "sort_order", "created", "updated"),
 	"education":       publicFields("institution", "degree", "field", "start_date", "end_date", "description", "institution_logo", "institution_logo_library_url", "logo_background", "visibility", "is_draft", "sort_order", "created", "updated"),
 	"certifications":  publicFields("name", "issuer", "issue_date", "expiry_date", "credential_id", "credential_url", "visibility", "is_draft", "sort_order", "created", "updated"),
 	"awards":          publicFields("title", "issuer", "awarded_at", "description", "url", "visibility", "is_draft", "sort_order", "created", "updated"),

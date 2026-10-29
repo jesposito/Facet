@@ -1,6 +1,8 @@
 package services
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -9,6 +11,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,17 +39,14 @@ type MediaUsage struct {
 }
 
 // FindMediaUsage queries all collections to find which content references the given external_media ID.
-// It checks both media_refs relations AND *_library_url fields that may contain the media's URL.
+// It checks media_refs relations, library URL fields, and project experience URLs.
 func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUsage, error) {
 	usage := MediaUsage{
 		UsageCount: 0,
 		UsedBy:     []MediaUsageItem{},
 	}
 
-	// Track already-added records to avoid duplicates
 	seen := make(map[string]bool)
-
-	// Collections that have media_refs relation to external_media
 	collectionsWithMediaRefs := []string{"posts", "projects", "talks", "custom_content"}
 
 	for _, collName := range collectionsWithMediaRefs {
@@ -54,16 +54,11 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 		if err != nil {
 			continue
 		}
-
-		// Check if collection has media_refs field
 		if collection.Fields.GetByName("media_refs") == nil {
 			continue
 		}
 
-		// Find records that reference this external_media ID
-		// PocketBase multi-relation: use ~ operator to check if relation contains the ID
-		filter := "media_refs ~ {:id}"
-		records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, dbx.Params{"id": externalMediaID})
+		records, err := app.FindRecordsByFilter(collName, "media_refs ~ {:id}", "", 100, 0, dbx.Params{"id": externalMediaID})
 		if err != nil {
 			continue
 		}
@@ -74,33 +69,14 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 				continue
 			}
 			seen[key] = true
-
-			title := record.GetString("title")
-			if title == "" {
-				title = record.GetString("name")
-			}
-			if title == "" {
-				title = record.Id
-			}
-
-			item := MediaUsageItem{
-				Collection: collName,
-				RecordID:   record.Id,
-				Title:      title,
-				Slug:       record.GetString("slug"),
-			}
-			usage.UsedBy = append(usage.UsedBy, item)
-			usage.UsageCount++
+			usage.addRecord(collName, record)
 		}
 	}
 
-	// Also check *_library_url fields that might reference this external media's URL
-	// First, get the external_media record to find its URL
 	extRecord, err := app.FindRecordById("external_media", externalMediaID)
 	if err == nil {
 		mediaURL := extRecord.GetString("url")
 		if mediaURL != "" {
-			// Collections and their library URL fields
 			libraryURLFields := map[string][]string{
 				"experience":     {"company_logo_library_url"},
 				"education":      {"institution_logo_library_url"},
@@ -121,48 +97,33 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 				}
 
 				for _, fieldName := range fields {
-					// Check if field exists
 					if collection.Fields.GetByName(fieldName) == nil {
 						continue
 					}
-
-					// Find records where this field matches our URL
 					filter := fmt.Sprintf("%s = {:url}", fieldName)
 					records, err := app.FindRecordsByFilter(collName, filter, "", 100, 0, dbx.Params{"url": mediaURL})
 					if err != nil {
 						continue
 					}
-
 					for _, record := range records {
 						key := collName + ":" + record.Id
 						if seen[key] {
 							continue
 						}
 						seen[key] = true
-
-						title := record.GetString("title")
-						if title == "" {
-							title = record.GetString("name")
-						}
-						if title == "" {
-							title = record.GetString("company")
-						}
-						if title == "" {
-							title = record.GetString("institution")
-						}
-						if title == "" {
-							title = record.Id
-						}
-
-						usage.UsedBy = append(usage.UsedBy, MediaUsageItem{
-							Collection: collName,
-							RecordID:   record.Id,
-							Title:      title,
-							Slug:       record.GetString("slug"),
-						})
-						usage.UsageCount++
+						usage.addRecord(collName, record)
 					}
 				}
+			}
+
+			for _, item := range FindProjectExperienceMediaUsage(app, mediaURL).UsedBy {
+				key := item.Collection + ":" + item.RecordID
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
+				usage.UsedBy = append(usage.UsedBy, item)
+				usage.UsageCount++
 			}
 		}
 	}
@@ -170,29 +131,155 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 	return usage, nil
 }
 
-// RemoveMediaRefFromRecord removes an external_media ID from a record's media_refs field.
+func (u *MediaUsage) addRecord(collection string, record *core.Record) {
+	title := record.GetString("title")
+	if title == "" {
+		title = record.GetString("name")
+	}
+	if title == "" {
+		title = record.GetString("company")
+	}
+	if title == "" {
+		title = record.GetString("institution")
+	}
+	if title == "" {
+		title = record.Id
+	}
+	u.UsedBy = append(u.UsedBy, MediaUsageItem{
+		Collection: collection,
+		RecordID:   record.Id,
+		Title:      title,
+		Slug:       record.GetString("slug"),
+	})
+	u.UsageCount++
+}
+
+func FindProjectExperienceMediaUsage(app *pocketbase.PocketBase, mediaURL string) MediaUsage {
+	usage := MediaUsage{UsedBy: []MediaUsageItem{}}
+	if mediaURL == "" {
+		return usage
+	}
+	for _, collectionName := range []string{"projects", "demo_projects"} {
+		collection, err := app.FindCollectionByNameOrId(collectionName)
+		if err != nil || collection.Fields.GetByName("experience") == nil {
+			continue
+		}
+
+		const pageSize = 200
+		for offset := 0; ; offset += pageSize {
+			records, err := app.FindRecordsByFilter(collectionName, "", "", pageSize, offset, nil)
+			if err != nil {
+				break
+			}
+			for _, record := range records {
+				_, found := RewriteNestedMediaURLs(record.Get("experience"), mediaURL, mediaURL)
+				if found {
+					usage.addRecord(collectionName, record)
+				}
+			}
+			if len(records) < pageSize {
+				break
+			}
+		}
+	}
+	return usage
+}
+
+func RewriteNestedMediaURLs(value any, oldURL, newURL string) (any, bool) {
+	if oldURL == "" {
+		return value, false
+	}
+	raw, err := nestedMediaJSON(value)
+	if err != nil || len(bytes.TrimSpace(raw)) == 0 {
+		return value, false
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var document any
+	if err := decoder.Decode(&document); err != nil {
+		return value, false
+	}
+
+	changed := false
+	var walk func(any, string) any
+	walk = func(current any, key string) any {
+		switch node := current.(type) {
+		case map[string]any:
+			for childKey, child := range node {
+				node[childKey] = walk(child, childKey)
+			}
+		case []any:
+			for i, child := range node {
+				node[i] = walk(child, key)
+			}
+		case string:
+			if (key == "src" || key == "poster" || key == "href") && sameExperienceMediaURL(node, oldURL) {
+				changed = true
+				if oldURL == newURL {
+					return node
+				}
+				if newURL != "" {
+					old, err := url.Parse(node)
+					replacement, nextErr := url.Parse(newURL)
+					if err == nil && nextErr == nil && replacement.RawQuery == "" {
+						replacement.RawQuery = old.RawQuery
+						return replacement.String()
+					}
+				}
+				return newURL
+			}
+		}
+		return current
+	}
+	return walk(document, ""), changed
+}
+
+func nestedMediaJSON(value any) ([]byte, error) {
+	if value == nil {
+		return nil, nil
+	}
+	switch v := value.(type) {
+	case string:
+		return []byte(v), nil
+	case []byte:
+		return v, nil
+	default:
+		return json.Marshal(value)
+	}
+}
+
+// RemoveMediaRefFromRecord removes an external_media ID and any nested URLs from a record.
 func RemoveMediaRefFromRecord(app *pocketbase.PocketBase, collectionName, recordID, externalMediaID string) error {
 	record, err := app.FindRecordById(collectionName, recordID)
 	if err != nil {
 		return err
 	}
 
-	// Get current media_refs
+	changed := false
 	mediaRefs := record.GetStringSlice("media_refs")
-	if mediaRefs == nil {
-		return nil // Nothing to remove
+	if mediaRefs != nil {
+		newRefs := make([]string, 0, len(mediaRefs))
+		for _, ref := range mediaRefs {
+			if ref != externalMediaID {
+				newRefs = append(newRefs, ref)
+			}
+		}
+		record.Set("media_refs", newRefs)
+		changed = true
 	}
 
-	// Filter out the external media ID
-	newRefs := make([]string, 0, len(mediaRefs))
-	for _, ref := range mediaRefs {
-		if ref != externalMediaID {
-			newRefs = append(newRefs, ref)
+	if collectionName == "projects" || collectionName == "demo_projects" {
+		if external, err := app.FindRecordById("external_media", externalMediaID); err == nil {
+			experience, rewritten := RewriteNestedMediaURLs(record.Get("experience"), external.GetString("url"), "")
+			if rewritten {
+				record.Set("experience", experience)
+				changed = true
+			}
 		}
 	}
-
-	// Update the record
-	record.Set("media_refs", newRefs)
+	if !changed {
+		return nil
+	}
 	return app.Save(record)
 }
 
@@ -574,4 +661,21 @@ func SetMediaMetadata(app *pocketbase.PocketBase, collectionID, recordID, filena
 	record.Set("admin_tags", metadata.TagIDs)
 
 	return app.Save(record)
+}
+
+// A public absolute URL and its local file path refer to the same managed asset.
+// Treat matching external paths conservatively as used, too, rather than deleting media.
+func sameExperienceMediaURL(value, target string) bool {
+	if value == target {
+		return true
+	}
+	a, err := url.Parse(value)
+	if err != nil {
+		return false
+	}
+	b, err := url.Parse(target)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(a.Path, "/api/files/") && a.Path == b.Path
 }
