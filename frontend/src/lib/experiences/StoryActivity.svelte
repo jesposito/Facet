@@ -16,7 +16,7 @@
 			(token, key) => values[key] ?? block.fields.find((f) => f.key === key)?.initial ?? token
 		)
 	);
-	let visibleStory = $derived(story.replace(/\[\[pause\]\]/g, '\n\n'));
+	let visibleStory = $derived(story.replace(/\s*\[\[pause\]\]\s*/g, '\n\n'));
 	function stop() {
 		sequence++;
 		clearTimeout(timer);

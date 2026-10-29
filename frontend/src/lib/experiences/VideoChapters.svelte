@@ -66,8 +66,13 @@
 						class:chosen={active.id === lesson.id}
 						aria-pressed={active.id === lesson.id}
 						onclick={() => choose(lesson.id)}
-						><span>{String(i + 1).padStart(2, '0')}</span>{lesson.title ||
-							'Untitled chapter'}</button
+						>{#if safeExperienceUrl(lesson.poster)}<img
+								src={safeExperienceUrl(lesson.poster)}
+								alt=""
+								loading="lazy"
+							/>{/if}<span class="experience-chapter-label"
+							><span>{i + 1}</span>{lesson.title || 'Untitled chapter'}</span
+						></button
 					>{/each}
 			</div>
 		{/if}

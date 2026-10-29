@@ -290,6 +290,25 @@
 	color: #fff;
 	border-color: #203532;
 }
+.project-experience .experience-video .experience-chapters {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+}
+.project-experience .experience-video .experience-chapters button {
+	flex-direction: column;
+	align-items: stretch;
+	padding: 0.5rem;
+}
+.project-experience .experience-video .experience-chapters img {
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	border-radius: 2px;
+}
+.project-experience .experience-chapter-label {
+	display: flex;
+	gap: 0.5rem;
+	padding: 0.25rem;
+}
 .dark .project-experience .experience-chapters .chosen,
 .project-experience .experience-tone-ink .experience-chapters .chosen {
 	background: #e5efce;
