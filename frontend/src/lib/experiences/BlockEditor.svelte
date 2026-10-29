@@ -41,10 +41,7 @@
 					{onchange}
 				/>
 				<SingleMediaPicker label="Poster image" bind:value={lesson.poster} {onchange} />
-				<label
-					>Description<textarea rows="3" maxlength="500" bind:value={lesson.description}
-					></textarea></label
-				>
+				<label>Description<input maxlength="500" bind:value={lesson.description} /></label>
 				<label>Credit<input maxlength="500" bind:value={lesson.credit} /></label>
 				{#if lesson.captions}
 					<SingleMediaPicker
