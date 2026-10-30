@@ -39,6 +39,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				slug: project.slug,
 				summary: project.summary,
 				description: project.description,
+				experience: project.experience || null,
 				tech_stack: project.tech_stack || [],
 				links: project.links || [],
 				categories: project.categories || [],

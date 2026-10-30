@@ -1198,11 +1198,9 @@ func fetchMediaTags(app *pocketbase.PocketBase, record *core.Record) []services.
 	return tags
 }
 
-// replaceLibraryURLReferences repoints every record that references oldURL via a
-// *_library_url field to newURL, using the shared libraryURLFields map. For each
-// matching record it also clears the corresponding cached file field (e.g.
-// cover_image for cover_image_library_url) so the stale upload can no longer
-// shadow the new image. It returns the number of records updated.
+// replaceLibraryURLReferences repoints library URL fields and nested project
+// experience URLs. For library fields it also clears the corresponding cached
+// file field so the stale upload cannot shadow the new image.
 //
 // The render path (see view_helpers.go) prefers the *_library_url value over the
 // file field, so setting the URL is what actually moves the reference; clearing
@@ -1232,12 +1230,9 @@ func replaceLibraryURLReferences(app *pocketbase.PocketBase, oldURL, newURL stri
 				continue
 			}
 
-			// The cached file field is the library_url field minus the suffix.
 			fileField := strings.TrimSuffix(fieldName, "_library_url")
-
 			for _, record := range records {
 				record.Set(fieldName, newURL)
-				// Clear the stale cached upload if the field exists on this record.
 				if fileField != fieldName && collection.Fields.GetByName(fileField) != nil {
 					record.Set(fileField, nil)
 				}
@@ -1249,6 +1244,34 @@ func replaceLibraryURLReferences(app *pocketbase.PocketBase, oldURL, newURL stri
 				updated++
 			}
 		}
+	}
+
+	for _, collectionName := range []string{"projects", "demo_projects"} {
+		if collection, err := app.FindCollectionByNameOrId(collectionName); err == nil && collection.Fields.GetByName("experience") != nil {
+			const pageSize = 200
+			for offset := 0; ; offset += pageSize {
+				records, err := app.FindRecordsByFilter(collectionName, "", "", pageSize, offset, nil)
+				if err != nil {
+					break
+				}
+				for _, record := range records {
+					experience, changed := services.RewriteNestedMediaURLs(record.Get("experience"), oldURL, newURL)
+					if !changed {
+						continue
+					}
+					record.Set("experience", experience)
+					if err := app.Save(record); err != nil {
+						app.Logger().Warn("media replace: failed to save project experience", "record", record.Id, "error", err)
+						continue
+					}
+					updated++
+				}
+				if len(records) < pageSize {
+					break
+				}
+			}
+		}
+
 	}
 
 	return updated
@@ -1317,6 +1340,16 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 				usage.UsageCount++
 			}
 		}
+	}
+
+	for _, item := range services.FindProjectExperienceMediaUsage(app, fileURL).UsedBy {
+		key := item.Collection + ":" + item.RecordID
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		usage.UsedBy = append(usage.UsedBy, item)
+		usage.UsageCount++
 	}
 
 	// Also check for usage via media_refs by finding external_media mirrors of this upload

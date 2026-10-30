@@ -10,6 +10,8 @@ import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 import ShareButton from '$components/shared/ShareButton.svelte';
 import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 import Footer from '$components/public/Footer.svelte';
+import ExperienceRenderer from '$lib/experiences/ExperienceRenderer.svelte';
+import { readExperience, safeExperienceUrl } from '$lib/experiences/types';
 import type { RecordModel } from 'pocketbase';
 import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
@@ -18,6 +20,8 @@ import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 	}
 
 	let { data }: Props = $props();
+
+let experience = $derived(readExperience(data.project.experience));
 
 // SEO metadata
 let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
@@ -197,6 +201,14 @@ const getFileName = (url?: string) => {
 	</div>
 
 	<!-- Hero section with cover image -->
+	{#if experience}
+		<ExperienceRenderer {experience} title={data.project.title} summary={data.project.summary} backHref={back.href} backLabel={back.label} />
+		{#if data.project.links?.length}
+			<nav aria-label="Project links" class="max-w-5xl mx-auto px-6 py-8 flex flex-wrap gap-6">
+				{#each data.project.links as link}{#if safeExperienceUrl(link.url,true)}<a class="underline underline-offset-4" href={safeExperienceUrl(link.url,true)}>{link.type || 'Related link'} ↗</a>{/if}{/each}
+			</nav>
+		{/if}
+	{:else}
 	<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white">
 		{#if data.project.cover_image_url}
 			<div class="absolute inset-0">
@@ -434,6 +446,7 @@ const getFileName = (url?: string) => {
 		{/if}
 	</main>
 
+	{/if}
 	<!-- Footer -->
 	<Footer profile={data.profile} />
 </div>

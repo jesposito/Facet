@@ -27,6 +27,8 @@
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
+	import ExperienceEditor from '$lib/experiences/ExperienceEditor.svelte';
+	import type { ProjectExperience } from '$lib/experiences/types';
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let projects: Project[] = $state([]);
@@ -39,6 +41,7 @@
 	let slug = $state('');
 	let summary = $state('');
 	let description = $state('');
+	let projectExperience = $state<ProjectExperience | null>(null);
 	let techStackText = $state('');
 	let links: Array<{ type: string; url: string }> = $state([]);
 	let categoriesText = $state('');
@@ -97,6 +100,7 @@
 			slug,
 			summary,
 			description,
+			projectExperience,
 			techStackText,
 			links,
 			categoriesText,
@@ -117,6 +121,7 @@
 		slug = data.slug || '';
 		summary = data.summary || '';
 		description = data.description || '';
+		projectExperience = data.projectExperience || null;
 		techStackText = data.techStackText || '';
 		links = data.links || [];
 		categoriesText = data.categoriesText || '';
@@ -260,6 +265,7 @@
 		slug = '';
 		summary = '';
 		description = '';
+		projectExperience = null;
 		techStackText = '';
 		links = [];
 		categoriesText = '';
@@ -313,6 +319,7 @@
 		slug = project.slug || '';
 		summary = project.summary || '';
 		description = project.description || '';
+		projectExperience = project.experience ? JSON.parse(JSON.stringify(project.experience)) : null;
 		techStackText = (project.tech_stack || []).join(', ');
 		links = project.links || [];
 		categoriesText = (project.categories || []).join(', ');
@@ -382,6 +389,7 @@
 			if (slug.trim()) formData.append('slug', slug.trim());
 			formData.append('summary', summary.trim());
 			formData.append('description', description.trim());
+			formData.append('experience', JSON.stringify(projectExperience));
 			formData.append('tech_stack', JSON.stringify(techStack));
 			formData.append('links', JSON.stringify(validLinks));
 			formData.append('categories', JSON.stringify(categories));
@@ -431,7 +439,9 @@
 		} catch (err: any) {
 			console.error('Failed to save project:', err);
 			const message =
+				err?.response?.data?.experience?.message ||
 				err?.response?.data?.slug?.message ||
+				err?.response?.message ||
 				$t('admin.content.common.toast_save_error', {
 					values: { type: $t('admin.content.projects.title').slice(0, -1).toLowerCase() }
 				});
@@ -1005,6 +1015,8 @@
 					</div>
 				</div>
 			</div>
+
+			<ExperienceEditor bind:value={projectExperience} {title} {summary} onchange={handleFormChange} />
 
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

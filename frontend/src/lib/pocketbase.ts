@@ -1,3 +1,4 @@
+import type { ProjectExperience } from '$lib/experiences/types';
 import PocketBase from 'pocketbase';
 import { writable } from 'svelte/store';
 import { browser } from '$app/env';
@@ -116,6 +117,7 @@ export interface Experience {
 }
 
 export interface Project {
+	experience?: ProjectExperience | null;
 	id: string;
 	collectionId?: string;
 	collectionName?: string;

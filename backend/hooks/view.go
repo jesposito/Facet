@@ -2057,6 +2057,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"slug":             project.GetString("slug"),
 				"summary":          project.GetString("summary"),
 				"description":      project.GetString("description"),
+				"experience":       project.Get("experience"),
 				"tech_stack":       project.Get("tech_stack"),
 				"links":            project.Get("links"),
 				"categories":       project.Get("categories"),
