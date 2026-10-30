@@ -279,6 +279,27 @@ test.describe('native project experiences', () => {
 		const row = page.locator(`[data-row-id="${id}"]`);
 		await row.getByTitle('Edit', { exact: true }).click();
 		const editor = page.locator('.experience-editor');
+		for (const preset of ['Playful', 'Technical', 'Editorial']) {
+			await editor.getByRole('button', { name: new RegExp('^' + preset) }).click();
+			await editor.getByRole('button', { name: 'Preview experience' }).click();
+			await expect(editor.locator('.project-experience')).toHaveAttribute(
+				'data-design-preset',
+				preset.toLowerCase()
+			);
+			await expect(editor.getByLabel('Character', { exact: true })).toHaveValue('Sylvester');
+			await editor.getByLabel('Mobile width').check();
+			for (const dark of [false, true]) {
+				await editor.getByLabel('Dark preview').setChecked(dark);
+				expect(
+					await editor
+						.locator('.project-experience')
+						.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)
+				).toBeTruthy();
+			}
+			await editor.getByRole('button', { name: 'Return to editor' }).click();
+		}
+		await editor.getByRole('button', { name: /^Original/ }).click();
+		await editor.getByRole('button', { name: /^Technical/ }).click();
 		await editor
 			.getByLabel('Introduction', { exact: true })
 			.first()
@@ -299,6 +320,8 @@ test.describe('native project experiences', () => {
 			})
 		).json();
 		expect(saved.experience.hero.intro).toBe('A revised introduction.');
+		expect(saved.experience.design).toEqual({ preset: 'technical', width: 'wide' });
+		expect(saved.experience.sections).toEqual(fixture.sections);
 		await page.reload();
 		await page.locator(`[data-row-id="${id}"]`).getByTitle('Edit', { exact: true }).click();
 		await expect(

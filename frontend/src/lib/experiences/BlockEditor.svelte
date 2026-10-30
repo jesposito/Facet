@@ -25,8 +25,20 @@
 {:else if block.type === 'image'}
 	<SingleMediaPicker label="Image" bind:value={block.image.src} {onchange} />
 	<label>Image description<input maxlength="500" bind:value={block.image.alt} /></label>
+	<label class="experience-toggle"
+		><input type="checkbox" bind:checked={block.image.decorative} /> Decorative image</label
+	>
 	<label>Caption<input maxlength="500" bind:value={block.caption} /></label>
 {:else if block.type === 'video'}
+	<label
+		>Player layout<select bind:value={block.presentation}
+			><option value={undefined}>Original</option><option value="stack"
+				>Player above chapters</option
+			><option value="sidebar">Chapters beside player</option><option value="spotlight"
+				>Explanation beside player</option
+			></select
+		></label
+	>
 	<label>Player heading<input maxlength="200" bind:value={block.title} /></label>
 	{#each block.lessons as lesson, index (lesson.id)}
 		<details class="experience-edit-item" open={index === 0}>
@@ -188,6 +200,13 @@
 		}}>Add step</button
 	>
 {:else if block.type === 'story'}
+	<label
+		>Activity layout<select bind:value={block.presentation}
+			><option value={undefined}>Original</option><option value="plain">Simple</option><option
+				value="paper">Story on paper</option
+			></select
+		></label
+	>
 	<label>Heading<input maxlength="200" bind:value={block.title} /></label>
 	<label
 		>Story template<textarea rows="8" maxlength="50000" bind:value={block.template}

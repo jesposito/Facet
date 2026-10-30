@@ -32,6 +32,29 @@
 		'story'
 	];
 	let previewDoc = $derived(value ? readExperience({ ...value, enabled: true }) : null);
+	const designs = [
+		{
+			id: 'playful',
+			title: 'Playful',
+			description: 'Bright chapters, bold type and room to try things.'
+		},
+		{
+			id: 'technical',
+			title: 'Technical',
+			description: 'Clear screenshots, code and step-by-step explanations.'
+		},
+		{
+			id: 'editorial',
+			title: 'Editorial',
+			description: 'A considered setting for stories and case studies.'
+		}
+	] as const;
+	function chooseDesign(preset?: 'playful' | 'technical' | 'editorial') {
+		if (!value) return;
+		if (preset) value.design = { preset, width: value.design?.width || 'wide' };
+		else delete value.design;
+		onchange?.();
+	}
 	function move<T>(items: T[], index: number, delta: number) {
 		const next = index + delta;
 		if (next < 0 || next >= items.length) return;
@@ -71,6 +94,34 @@
 				>{preview ? 'Return to editor' : 'Preview experience'}</button
 			>
 		</div>
+		<fieldset>
+			<legend>Page design</legend>
+			<p class="hint">Change the appearance without replacing your words, media or activities.</p>
+			<div class="experience-design-choices">
+				<button
+					type="button"
+					class="experience-design-choice"
+					aria-pressed={!value.design}
+					onclick={() => chooseDesign()}
+					><strong>Original</strong><span
+						>Keep the site's type and the original chapter layout.</span
+					></button
+				>
+				{#each designs as design}<button
+						type="button"
+						class="experience-design-choice"
+						data-preset={design.id}
+						aria-pressed={value.design?.preset === design.id}
+						onclick={() => chooseDesign(design.id)}
+						><strong>{design.title}</strong><span>{design.description}</span></button
+					>{/each}
+			</div>
+			{#if value.design}<label
+					>Page width<select bind:value={value.design.width}
+						><option value="standard">Standard</option><option value="wide">Wide</option></select
+					></label
+				>{/if}
+		</fieldset>
 		{#if preview}
 			<div class="experience-edit-row">
 				<label class="experience-toggle"
@@ -110,6 +161,10 @@
 							></label
 						>
 					</div>
+					<label
+						>Image note <span class="hint">Optional short caption over the opening image.</span
+						><input maxlength="200" bind:value={value.hero.imageNote} /></label
+					>
 					{#if value.hero.image}<SingleMediaPicker
 							label="Opening image"
 							bind:value={value.hero.image.src}
@@ -198,6 +253,13 @@
 								}}>Remove section</button
 							>
 						</div>
+						<label
+							>Section introduction<select bind:value={section.headingLayout}
+								><option value={undefined}>Original</option><option value="stack"
+									>Heading above text</option
+								><option value="split">Heading beside text</option></select
+							></label
+						>
 						{#each section.blocks as block, bi (block.id)}
 							<details class="experience-edit-item" open>
 								<summary>{block.type.charAt(0).toUpperCase() + block.type.slice(1)} block</summary>

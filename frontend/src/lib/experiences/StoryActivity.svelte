@@ -74,7 +74,7 @@
 	});
 </script>
 
-<div class="experience-story">
+<div class="experience-story" data-presentation={block.presentation || 'plain'}>
 	<h3>{block.title || 'Make it your own'}</h3>
 	<div class="experience-story-fields">
 		{#each block.fields as field (field.key)}
