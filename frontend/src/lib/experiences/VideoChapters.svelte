@@ -1,7 +1,15 @@
 <script lang="ts">
 	import type { ExperienceLesson } from './types';
 	import { safeExperienceUrl } from './types';
-	let { title, lessons }: { title: string; lessons: ExperienceLesson[] } = $props();
+	let {
+		title,
+		lessons,
+		presentation = 'stack'
+	}: {
+		title: string;
+		lessons: ExperienceLesson[];
+		presentation?: 'stack' | 'sidebar' | 'spotlight';
+	} = $props();
 	let selected = $state('');
 	let active = $derived(lessons.find((l) => l.id === selected) || lessons[0]);
 	let player: HTMLMediaElement | undefined = $state();
@@ -17,7 +25,7 @@
 	});
 </script>
 
-<div class="experience-video">
+<div class="experience-video" data-presentation={presentation}>
 	{#if title}<h3>{title}</h3>{/if}
 	{#if active}
 		<div class="experience-player">

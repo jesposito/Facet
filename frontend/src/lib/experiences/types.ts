@@ -1,8 +1,10 @@
 /** Portable version-one project experience document, shared with Facet Cloud. */
-export type ExperienceTone = 'paper' | 'aqua' | 'sand' | 'green' | 'pink' | 'ink';
+export type ExperienceTone =
+	'paper' | 'aqua' | 'sand' | 'green' | 'pink' | 'ink' | 'yellow' | 'orange';
 export interface ExperienceImage {
 	src: string;
 	alt: string;
+	decorative?: boolean;
 }
 export interface ExperienceCaption {
 	src: string;
@@ -30,12 +32,19 @@ export interface ExperienceStep {
 export type ExperienceBlock =
 	| { id: string; type: 'text'; body: string }
 	| { id: string; type: 'image'; image: ExperienceImage; caption: string }
-	| { id: string; type: 'video'; title: string; lessons: ExperienceLesson[] }
+	| {
+			id: string;
+			type: 'video';
+			title: string;
+			lessons: ExperienceLesson[];
+			presentation?: 'stack' | 'sidebar' | 'spotlight';
+	  }
 	| { id: string; type: 'code'; title: string; steps: ExperienceStep[] }
 	| { id: string; type: 'disclosure'; title: string; body: string }
 	| {
 			id: string;
 			type: 'story';
+			presentation?: 'plain' | 'paper';
 			title: string;
 			template: string;
 			fields: { key: string; label: string; initial: string }[];
@@ -48,14 +57,17 @@ export interface ExperienceSection {
 	intro: string;
 	tone: ExperienceTone;
 	layout: 'stack' | 'split';
+	headingLayout?: 'stack' | 'split';
 	blocks: ExperienceBlock[];
 }
 export interface ProjectExperience {
 	version: 1;
+	design?: { preset: 'playful' | 'technical' | 'editorial'; width?: 'standard' | 'wide' };
 	enabled: boolean;
 	layout: 'immersive';
 	hero: {
 		intro: string;
+		imageNote?: string;
 		tone: ExperienceTone;
 		imagePosition: 'left' | 'right';
 		image?: ExperienceImage;
@@ -63,7 +75,16 @@ export interface ProjectExperience {
 	};
 	sections: ExperienceSection[];
 }
-export const experienceTones: ExperienceTone[] = ['paper', 'aqua', 'sand', 'green', 'pink', 'ink'];
+export const experienceTones: ExperienceTone[] = [
+	'paper',
+	'aqua',
+	'sand',
+	'green',
+	'pink',
+	'ink',
+	'yellow',
+	'orange'
+];
 
 export function safeExperienceUrl(value: unknown, link = false): string {
 	if (typeof value !== 'string' || /[\u0000-\u0020\u007f\\]/.test(value) || value.length > 2048)
@@ -88,7 +109,11 @@ export function readExperience(value: unknown): ProjectExperience | null {
 		typeof v === 'string' && Array.from(v).length <= max && (max > 500 || !/[\r\n]/.test(v));
 	const url = (v: unknown, link = false) =>
 		v === '' || (typeof v === 'string' && safeExperienceUrl(v, link) !== '');
-	const img = (v: unknown) => shape(v, ['src', 'alt']) && url(v.src) && str(v.alt);
+	const img = (v: unknown) =>
+		shape(v, ['src', 'alt', 'decorative']) &&
+		url(v.src) &&
+		str(v.alt) &&
+		(v.decorative === undefined || typeof v.decorative === 'boolean');
 	const tone = (v: unknown) => experienceTones.includes(v as ExperienceTone);
 	const list = (v: unknown, max: number): v is any[] => Array.isArray(v) && v.length <= max;
 	const ids = new Set<string>();
@@ -96,17 +121,25 @@ export function readExperience(value: unknown): ProjectExperience | null {
 		typeof v === 'string' && /^[a-zA-Z][\w-]{0,63}$/.test(v) && !ids.has(v) && !!ids.add(v);
 	try {
 		if (
-			!shape(value, ['version', 'enabled', 'layout', 'hero', 'sections']) ||
+			!shape(value, ['version', 'enabled', 'layout', 'hero', 'sections', 'design']) ||
 			value.version !== 1 ||
 			value.enabled !== true ||
 			value.layout !== 'immersive'
 		)
 			return null;
 		if (new TextEncoder().encode(JSON.stringify(value)).length > 500_000) return null;
+		if (
+			value.design !== undefined &&
+			(!shape(value.design, ['preset', 'width']) ||
+				!['playful', 'technical', 'editorial'].includes(value.design.preset) ||
+				(value.design.width !== undefined && !['standard', 'wide'].includes(value.design.width)))
+		)
+			return null;
 		const h = value.hero;
 		if (
-			!shape(h, ['intro', 'tone', 'imagePosition', 'image', 'action']) ||
+			!shape(h, ['intro', 'tone', 'imagePosition', 'image', 'action', 'imageNote']) ||
 			!str(h.intro, 50_000) ||
+			(h.imageNote !== undefined && !str(h.imageNote, 200)) ||
 			!tone(h.tone) ||
 			!['left', 'right'].includes(h.imagePosition) ||
 			(h.image !== undefined && !img(h.image))
@@ -122,12 +155,13 @@ export function readExperience(value: unknown): ProjectExperience | null {
 		if (!list(value.sections, 30)) return null;
 		for (const s of value.sections) {
 			if (
-				!shape(s, ['id', 'title', 'intro', 'tone', 'layout', 'blocks']) ||
+				!shape(s, ['id', 'title', 'intro', 'tone', 'layout', 'blocks', 'headingLayout']) ||
 				!id(s.id) ||
 				!str(s.title, 200) ||
 				!str(s.intro, 50_000) ||
 				!tone(s.tone) ||
 				!['stack', 'split'].includes(s.layout) ||
+				(s.headingLayout !== undefined && !['stack', 'split'].includes(s.headingLayout)) ||
 				!list(s.blocks, 20)
 			)
 				return null;
@@ -151,7 +185,9 @@ export function readExperience(value: unknown): ProjectExperience | null {
 						break;
 					case 'video':
 						if (
-							!shape(b, ['id', 'type', 'title', 'lessons']) ||
+							!shape(b, ['id', 'type', 'title', 'lessons', 'presentation']) ||
+							(b.presentation !== undefined &&
+								!['stack', 'sidebar', 'spotlight'].includes(b.presentation)) ||
 							!str(b.title, 200) ||
 							!list(b.lessons, 30)
 						)
@@ -208,7 +244,17 @@ export function readExperience(value: unknown): ProjectExperience | null {
 						break;
 					case 'story': {
 						if (
-							!shape(b, ['id', 'type', 'title', 'template', 'fields', 'pauseMs', 'credit']) ||
+							!shape(b, [
+								'id',
+								'type',
+								'title',
+								'template',
+								'fields',
+								'pauseMs',
+								'credit',
+								'presentation'
+							]) ||
+							(b.presentation !== undefined && !['plain', 'paper'].includes(b.presentation)) ||
 							!str(b.title, 200) ||
 							!str(b.template, 50_000) ||
 							!str(b.credit) ||

@@ -23,7 +23,7 @@ var (
 	projectExperienceIDPattern       = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]{0,63}$`)
 	projectExperienceFieldKeyPattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_-]{0,31}$`)
 	projectExperienceFragmentPattern = regexp.MustCompile(`^#[a-zA-Z][a-zA-Z0-9_-]*$`)
-	projectExperienceTones           = map[string]bool{"paper": true, "aqua": true, "sand": true, "green": true, "pink": true, "ink": true}
+	projectExperienceTones           = map[string]bool{"paper": true, "aqua": true, "sand": true, "green": true, "pink": true, "ink": true, "yellow": true, "orange": true}
 )
 
 func RegisterProjectExperienceHooks(app *pocketbase.PocketBase) {
@@ -65,7 +65,7 @@ func validateProjectExperience(value any) error {
 		return nil
 	}
 
-	doc, err := projectExperienceObject(decoded, "experience", []string{"version", "enabled", "layout", "hero", "sections"}, nil)
+	doc, err := projectExperienceObject(decoded, "experience", []string{"version", "enabled", "layout", "hero", "sections"}, []string{"design"})
 	if err != nil {
 		return err
 	}
@@ -83,13 +83,32 @@ func validateProjectExperience(value any) error {
 	if doc["layout"] != "immersive" {
 		return fmt.Errorf("experience.layout must be immersive")
 	}
+	if value, exists := doc["design"]; exists {
+		design, err := projectExperienceObject(value, "experience.design", []string{"preset"}, []string{"width"})
+		if err != nil {
+			return err
+		}
+		if preset, ok := design["preset"].(string); !ok || preset != "playful" && preset != "technical" && preset != "editorial" {
+			return fmt.Errorf("experience.design.preset is invalid")
+		}
+		if value, exists := design["width"]; exists {
+			if width, ok := value.(string); !ok || width != "standard" && width != "wide" {
+				return fmt.Errorf("experience.design.width is invalid")
+			}
+		}
+	}
 
-	hero, err := projectExperienceObject(doc["hero"], "experience.hero", []string{"intro", "tone", "imagePosition"}, []string{"image", "action"})
+	hero, err := projectExperienceObject(doc["hero"], "experience.hero", []string{"intro", "tone", "imagePosition"}, []string{"image", "action", "imageNote"})
 	if err != nil {
 		return err
 	}
 	if _, err := projectExperienceProse(hero, "intro", "experience.hero.intro"); err != nil {
 		return err
+	}
+	if _, exists := hero["imageNote"]; exists {
+		if _, err := projectExperienceString(hero, "imageNote", "experience.hero.imageNote", 200, true); err != nil {
+			return err
+		}
 	}
 	if tone, ok := hero["tone"].(string); !ok || !projectExperienceTones[tone] {
 		return fmt.Errorf("experience.hero.tone is invalid")
@@ -122,7 +141,7 @@ func validateProjectExperience(value any) error {
 	ids := make(map[string]struct{})
 	for i, value := range sections {
 		path := fmt.Sprintf("experience.sections[%d]", i)
-		section, err := projectExperienceObject(value, path, []string{"id", "title", "intro", "tone", "layout", "blocks"}, nil)
+		section, err := projectExperienceObject(value, path, []string{"id", "title", "intro", "tone", "layout", "blocks"}, []string{"headingLayout"})
 		if err != nil {
 			return err
 		}
@@ -140,6 +159,11 @@ func validateProjectExperience(value any) error {
 		}
 		if layout := section["layout"]; layout != "stack" && layout != "split" {
 			return fmt.Errorf("%s.layout is invalid", path)
+		}
+		if value, exists := section["headingLayout"]; exists {
+			if headingLayout, ok := value.(string); !ok || headingLayout != "stack" && headingLayout != "split" {
+				return fmt.Errorf("%s.headingLayout is invalid", path)
+			}
 		}
 		blocks, ok := section["blocks"].([]any)
 		if !ok || len(blocks) > 20 {
@@ -192,12 +216,17 @@ func validateProjectExperienceBlock(value any, path string, ids map[string]struc
 		_, err = projectExperienceProse(block, "body", path+".body")
 		return err
 	case "video":
-		block, err := projectExperienceObject(value, path, []string{"id", "type", "title", "lessons"}, nil)
+		block, err := projectExperienceObject(value, path, []string{"id", "type", "title", "lessons"}, []string{"presentation"})
 		if err != nil {
 			return err
 		}
 		if _, err := projectExperienceTitle(block, "title", path+".title"); err != nil {
 			return err
+		}
+		if value, exists := block["presentation"]; exists {
+			if presentation, ok := value.(string); !ok || presentation != "stack" && presentation != "sidebar" && presentation != "spotlight" {
+				return fmt.Errorf("%s.presentation is invalid", path)
+			}
 		}
 		lessons, ok := block["lessons"].([]any)
 		if !ok || len(lessons) > 30 {
@@ -307,12 +336,17 @@ func validateProjectExperienceStep(value any, path string, ids map[string]struct
 }
 
 func validateProjectExperienceStory(value any, path string) error {
-	story, err := projectExperienceObject(value, path, []string{"id", "type", "title", "template", "fields", "pauseMs", "credit"}, nil)
+	story, err := projectExperienceObject(value, path, []string{"id", "type", "title", "template", "fields", "pauseMs", "credit"}, []string{"presentation"})
 	if err != nil {
 		return err
 	}
 	if _, err := projectExperienceTitle(story, "title", path+".title"); err != nil {
 		return err
+	}
+	if value, exists := story["presentation"]; exists {
+		if presentation, ok := value.(string); !ok || presentation != "plain" && presentation != "paper" {
+			return fmt.Errorf("%s.presentation is invalid", path)
+		}
 	}
 	if _, err := projectExperienceProse(story, "template", path+".template"); err != nil {
 		return err
@@ -393,7 +427,7 @@ func projectExperienceID(object map[string]any, path string, ids map[string]stru
 }
 
 func projectExperienceImage(value any, path string) (map[string]any, error) {
-	image, err := projectExperienceObject(value, path, []string{"src", "alt"}, nil)
+	image, err := projectExperienceObject(value, path, []string{"src", "alt"}, []string{"decorative"})
 	if err != nil {
 		return nil, err
 	}
@@ -402,6 +436,11 @@ func projectExperienceImage(value any, path string) (map[string]any, error) {
 	}
 	if _, err := projectExperienceMetadata(image, "alt", path+".alt"); err != nil {
 		return nil, err
+	}
+	if value, exists := image["decorative"]; exists {
+		if _, ok := value.(bool); !ok {
+			return nil, fmt.Errorf("%s.decorative must be a boolean", path)
+		}
 	}
 	return image, nil
 }
