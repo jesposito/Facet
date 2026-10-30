@@ -3,6 +3,30 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.6.0 - October 30, 2026
+
+**New Features:**
+- Add native project experiences and visual authoring
+- Allow projects to contain native video or audio chapters, code walkthroughs, disclosures, images and editable story activities
+- Provide templates, media selection, keyboard reordering and a preview using the public renderer in the section editor
+- Validate the nullable, versioned document on record writes
+- Ensure existing visibility gates remain in place
+- Retain duplication and export of content
+- Account for nested references, including absolute managed-file URLs in media usage, replacement and orphan cleanup
+- Add one optional field during migration while leaving existing project content intact
+
+**Other Changes:**
+- Conduct full Go suite validation and Svelte check
+- Perform production frontend build and 36 fresh-database browser/API checks
+- Cover new tests for authoring/save/reopen, preview, video/audio playback, captions, source escaping, story input, export, duplication, disabled fallback and private/draft access
+- Check screenshots at 1440, 768 and 390px in both themes
+- Ensure new files pass Prettier
+
+**Pull Requests:** [#519](https://github.com/jesposito/Facet/pull/519),
+
+---
+
+
 ## v3.5.2 - October 28, 2026
 
 **Bugs Fixed:**
