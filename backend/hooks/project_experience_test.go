@@ -74,6 +74,109 @@ func TestValidateProjectExperienceAcceptsValidAllBlockDocument(t *testing.T) {
 	}
 }
 
+func TestValidateProjectExperienceAcceptsDesignOptions(t *testing.T) {
+	doc := strings.Replace(validProjectExperienceJSON, `"layout": "immersive",`, `"layout": "immersive", "design": {"preset":"playful","width":"wide"},`, 1)
+	doc = strings.Replace(doc, `"intro": "A complete project walkthrough.",`, `"intro": "A complete project walkthrough.", "imageNote": "Shown from the visitor's perspective.",`, 1)
+	doc = strings.Replace(doc, `"tone": "aqua"`, `"tone": "yellow"`, 1)
+	doc = strings.Replace(doc, `"alt": "Project overview"`, `"alt": "Project overview", "decorative": true`, 1)
+	doc = strings.Replace(doc, `"tone": "paper"`, `"tone": "orange"`, 1)
+	doc = strings.Replace(doc, `"layout": "stack",`, `"layout": "stack", "headingLayout": "split",`, 1)
+	doc = strings.Replace(doc, `"alt": "Architecture diagram"`, `"alt": "Architecture diagram", "decorative": false`, 1)
+	doc = strings.Replace(doc, `"type": "video", "title": "Video lesson"`, `"type": "video", "title": "Video lesson", "presentation": "stack"`, 1)
+	doc = strings.Replace(doc, `"type": "story", "title": "Try it"`, `"type": "story", "title": "Try it", "presentation": "plain"`, 1)
+
+	for _, preset := range []string{"playful", "technical", "editorial"} {
+		t.Run("preset "+preset, func(t *testing.T) {
+			configured := strings.Replace(doc, `"preset":"playful"`, `"preset":"`+preset+`"`, 1)
+			if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+				t.Fatalf("valid design preset rejected: %v", err)
+			}
+		})
+	}
+	for _, width := range []string{"standard", "wide"} {
+		t.Run("width "+width, func(t *testing.T) {
+			configured := strings.Replace(doc, `"width":"wide"`, `"width":"`+width+`"`, 1)
+			if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+				t.Fatalf("valid design width rejected: %v", err)
+			}
+		})
+	}
+	t.Run("width omitted", func(t *testing.T) {
+		configured := strings.Replace(doc, `,"width":"wide"`, "", 1)
+		if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+			t.Fatalf("design without optional width rejected: %v", err)
+		}
+	})
+	for _, headingLayout := range []string{"stack", "split"} {
+		t.Run("heading layout "+headingLayout, func(t *testing.T) {
+			configured := strings.Replace(doc, `"headingLayout": "split"`, `"headingLayout": "`+headingLayout+`"`, 1)
+			if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+				t.Fatalf("valid heading layout rejected: %v", err)
+			}
+		})
+	}
+	for _, presentation := range []string{"stack", "sidebar", "spotlight"} {
+		t.Run("video presentation "+presentation, func(t *testing.T) {
+			configured := strings.Replace(doc, `"presentation": "stack"`, `"presentation": "`+presentation+`"`, 1)
+			if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+				t.Fatalf("valid video presentation rejected: %v", err)
+			}
+		})
+	}
+	for _, presentation := range []string{"plain", "paper"} {
+		t.Run("story presentation "+presentation, func(t *testing.T) {
+			configured := strings.Replace(doc, `"presentation": "plain"`, `"presentation": "`+presentation+`"`, 1)
+			if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+				t.Fatalf("valid story presentation rejected: %v", err)
+			}
+		})
+	}
+
+	t.Run("image note rune limit", func(t *testing.T) {
+		configured := strings.Replace(doc, "Shown from the visitor's perspective.", strings.Repeat("界", 200), 1)
+		if err := validateProjectExperience(json.RawMessage(configured)); err != nil {
+			t.Fatalf("200-rune image note rejected: %v", err)
+		}
+	})
+}
+
+func TestValidateProjectExperienceRejectsInvalidDesignOptionsWhenDisabled(t *testing.T) {
+	disabled := strings.Replace(validProjectExperienceJSON, `"enabled": true`, `"enabled": false`, 1)
+	replace := func(old, new string) string {
+		return strings.Replace(disabled, old, new, 1)
+	}
+	tests := []struct {
+		name string
+		doc  string
+	}{
+		{"design wrong type", replace(`"layout": "immersive"`, `"layout": "immersive", "design": []`)},
+		{"design preset required", replace(`"layout": "immersive"`, `"layout": "immersive", "design": {"width":"wide"}`)},
+		{"design preset wrong type", replace(`"layout": "immersive"`, `"layout": "immersive", "design": {"preset":1}`)},
+		{"design preset invalid", replace(`"layout": "immersive"`, `"layout": "immersive", "design": {"preset":"playful; background:url(javascript:alert(1))"}`)},
+		{"design width wrong type", replace(`"layout": "immersive"`, `"layout": "immersive", "design": {"preset":"playful","width":1}`)},
+		{"design width invalid", replace(`"layout": "immersive"`, `"layout": "immersive", "design": {"preset":"playful","width":"100vw"}`)},
+		{"design unknown field", replace(`"layout": "immersive"`, `"layout": "immersive", "design": {"preset":"playful","extra":true}`)},
+		{"image note wrong type", replace(`"imagePosition": "left"`, `"imagePosition": "left", "imageNote": 1`)},
+		{"image note above rune limit", replace(`"imagePosition": "left"`, `"imagePosition": "left", "imageNote": "`+strings.Repeat("界", 201)+`"`)},
+		{"image note multiline", replace(`"imagePosition": "left"`, `"imagePosition": "left", "imageNote": "first\nsecond"`)},
+		{"heading layout wrong type", replace(`"layout": "stack"`, `"layout": "stack", "headingLayout": true`)},
+		{"heading layout invalid", replace(`"layout": "stack"`, `"layout": "stack", "headingLayout": "grid"`)},
+		{"video presentation wrong type", replace(`"title": "Video lesson"`, `"title": "Video lesson", "presentation": 1`)},
+		{"video presentation invalid", replace(`"title": "Video lesson"`, `"title": "Video lesson", "presentation": "overlay"`)},
+		{"story presentation wrong type", replace(`"title": "Try it"`, `"title": "Try it", "presentation": false`)},
+		{"story presentation invalid", replace(`"title": "Try it"`, `"title": "Try it", "presentation": "spotlight"`)},
+		{"image decorative wrong type", replace(`"alt": "Project overview"`, `"alt": "Project overview", "decorative": "true"`)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateProjectExperience(json.RawMessage(tt.doc)); err == nil {
+				t.Fatal("invalid disabled experience was accepted")
+			}
+		})
+	}
+}
+
 func TestValidateProjectExperienceRejectsMalformedAndUnknownShapes(t *testing.T) {
 	tests := []struct {
 		name  string

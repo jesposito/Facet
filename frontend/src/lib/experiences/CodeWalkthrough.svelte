@@ -46,7 +46,7 @@
 		{/if}
 		{#if active.image && safeExperienceUrl(active.image.src)}<img
 				src={safeExperienceUrl(active.image.src)}
-				alt={active.image.alt}
+				alt={active.image.decorative ? '' : active.image.alt}
 				loading="lazy"
 			/>{/if}
 	{:else}<p class="experience-empty">No steps have been added yet.</p>{/if}
