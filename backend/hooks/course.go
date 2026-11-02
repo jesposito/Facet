@@ -16,6 +16,7 @@ import (
 // RegisterCourseHooks registers course-related API endpoints
 func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig, crypto *services.CryptoService, rl *services.RateLimitService) {
 	purchaseService := services.NewPurchaseService(crypto)
+	downloadService := services.NewDownloadService(crypto)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Feature gate - return 404 when courses feature is disabled
@@ -41,15 +42,15 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 			courses := make([]map[string]interface{}, 0, len(records))
 			for _, record := range records {
 				course := map[string]interface{}{
-					"id":              record.Id,
-					"title":           record.GetString("title"),
-					"slug":            record.GetString("slug"),
-					"description":     record.GetString("description"),
-					"instructor_name": record.GetString("instructor_name"),
-					"access_tier":     record.GetString("access_tier"),
-					"price":           record.GetInt("price"),
-					"difficulty":      record.GetString("difficulty"),
-					"estimated_hours": record.GetFloat("estimated_hours"),
+					"id":                  record.Id,
+					"title":               record.GetString("title"),
+					"slug":                record.GetString("slug"),
+					"description":         record.GetString("description"),
+					"instructor_name":     record.GetString("instructor_name"),
+					"access_tier":         record.GetString("access_tier"),
+					"price":               record.GetInt("price"),
+					"difficulty":          record.GetString("difficulty"),
+					"estimated_hours":     record.GetFloat("estimated_hours"),
 					"tags":                record.Get("tags"),
 					"sort_order":          record.GetInt("sort_order"),
 					"enable_progress":     record.GetBool("enable_progress"),
@@ -145,20 +146,7 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 					purchaseIDs, email, err := purchaseService.ValidatePurchaseJWT(token)
 					if err == nil {
 						buyerEmail = email
-						purchaseRecords, err := app.FindRecordsByFilter(
-							"purchases",
-							"content_type = 'courses' && content_id = {:id} && status = 'completed'",
-							"",
-							1,
-							0,
-							map[string]interface{}{"id": course.Id},
-						)
-						if err == nil && len(purchaseRecords) > 0 {
-							purchase := purchaseRecords[0]
-							if purchaseService.HasPurchaseAccess(purchaseIDs, purchase.Id) {
-								isPurchased = true
-							}
-						}
+						isPurchased = findCompletedPurchase(app, purchaseService, purchaseIDs, email, "courses", course.Id) != nil
 					}
 				}
 			} else {
@@ -189,18 +177,18 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 
 			response := map[string]interface{}{
 				"id":                  course.Id,
-				"title":              course.GetString("title"),
-				"slug":               course.GetString("slug"),
-				"description":        course.GetString("description"),
-				"instructor_name":    course.GetString("instructor_name"),
-				"instructor_bio":     course.GetString("instructor_bio"),
-				"access_tier":        course.GetString("access_tier"),
-				"price":              course.GetInt("price"),
-				"sequential_access":  course.GetBool("sequential_access"),
-				"difficulty":         course.GetString("difficulty"),
-				"estimated_hours":    course.GetFloat("estimated_hours"),
-				"tags":               course.Get("tags"),
-				"learning_outcomes":  course.Get("learning_outcomes"),
+				"title":               course.GetString("title"),
+				"slug":                course.GetString("slug"),
+				"description":         course.GetString("description"),
+				"instructor_name":     course.GetString("instructor_name"),
+				"instructor_bio":      course.GetString("instructor_bio"),
+				"access_tier":         course.GetString("access_tier"),
+				"price":               course.GetInt("price"),
+				"sequential_access":   course.GetBool("sequential_access"),
+				"difficulty":          course.GetString("difficulty"),
+				"estimated_hours":     course.GetFloat("estimated_hours"),
+				"tags":                course.Get("tags"),
+				"learning_outcomes":   course.Get("learning_outcomes"),
 				"visibility":          visibility,
 				"is_draft":            isDraft,
 				"is_purchased":        isPurchased,
@@ -282,14 +270,16 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 								lessonData["content"] = lesson.GetString("content")
 								lessonData["video_url"] = lesson.GetString("video_url")
 
-								// Include attachment URLs
+								// Attachments are protected files, so each URL is a
+								// short-lived signed download link.
 								attachments := lesson.GetStringSlice("attachments")
 								if len(attachments) > 0 {
 									attachmentURLs := make([]map[string]string, 0, len(attachments))
 									for _, filename := range attachments {
+										token, _ := downloadService.GenerateSignedURL("lessons", lesson.Id, filename)
 										attachmentURLs = append(attachmentURLs, map[string]string{
 											"filename": filename,
-											"url":      "/api/files/" + lesson.Collection().Id + "/" + lesson.Id + "/" + filename,
+											"url":      "/api/downloads/" + token,
 										})
 									}
 									lessonData["attachments"] = attachmentURLs
@@ -342,19 +332,7 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 
 			// Verify purchase for paid courses
 			if course.GetString("access_tier") == "paid" {
-				purchaseRecords, err := app.FindRecordsByFilter(
-					"purchases",
-					"content_type = 'courses' && content_id = {:id} && status = 'completed'",
-					"",
-					1,
-					0,
-					map[string]interface{}{"id": course.Id},
-				)
-				if err != nil || len(purchaseRecords) == 0 {
-					return respondForbidden(e, "purchase required")
-				}
-				purchase := purchaseRecords[0]
-				if !purchaseService.HasPurchaseAccess(purchaseIDs, purchase.Id) {
+				if findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, "courses", course.Id) == nil {
 					return respondForbidden(e, "purchase required")
 				}
 			}
@@ -477,19 +455,7 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 
 			// Verify purchase (or course is free)
 			if course.GetString("access_tier") == "paid" {
-				purchaseRecords, err := app.FindRecordsByFilter(
-					"purchases",
-					"content_type = 'courses' && content_id = {:id} && status = 'completed'",
-					"",
-					1,
-					0,
-					map[string]interface{}{"id": course.Id},
-				)
-				if err != nil || len(purchaseRecords) == 0 {
-					return respondForbidden(e, "purchase required")
-				}
-				purchase := purchaseRecords[0]
-				if !purchaseService.HasPurchaseAccess(purchaseIDs, purchase.Id) {
+				if findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, "courses", course.Id) == nil {
 					return respondForbidden(e, "purchase required")
 				}
 			}
@@ -1226,13 +1192,14 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "certificate not found"})
 			}
 
+			// Anyone holding a certificate ID can verify it, so this response
+			// carries only what is printed on the certificate itself.
 			cert := certRecords[0]
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"certificate_id":  cert.GetString("certificate_id"),
 				"course_title":    cert.GetString("course_title"),
 				"instructor_name": cert.GetString("instructor_name"),
 				"student_name":    cert.GetString("student_name"),
-				"buyer_email":     cert.GetString("buyer_email"),
 				"issued_at":       cert.GetDateTime("issued_at"),
 			})
 		})
@@ -2100,4 +2067,3 @@ func checkModuleDripLock(app core.App, courseID string, module *core.Record, buy
 
 	return false, time.Time{}
 }
-

@@ -21,19 +21,19 @@ func publicTestRecord(collection string, fields ...string) *core.Record {
 func TestPublicProjectionKeepsPresentationAndDropsPrivateFields(t *testing.T) {
 	for _, collection := range []string{"projects", "demo_projects"} {
 		r := publicTestRecord(collection, "title", "description", "admin_tags", "source_id", "field_locks", "password_hash", "view_visibility", "future_private_field")
-		for _, item := range []map[string]interface{}{serializeRecords([]*core.Record{r})[0], serializeRecordsWithOverrides(nil, []*core.Record{r}, nil, "projects")[0]} {
+		for _, item := range []map[string]interface{}{serializeRecords([]*core.Record{r}, nil)[0], serializeRecordsWithOverrides(nil, []*core.Record{r}, nil, "projects", nil)[0]} {
 			if len(item) != 3 || item["id"] != r.Id || item["title"] != "value-title" || item["description"] != "value-description" {
 				t.Fatalf("unexpected public projection: %#v", item)
 			}
 		}
 	}
 	r := publicTestRecord("testimonials", "content", "author_name", "verification_identifier", "verification_data", "rejection_reason", "request_id")
-	item := serializeRecords([]*core.Record{r})[0]
+	item := serializeRecords([]*core.Record{r}, nil)[0]
 	if len(item) != 3 || item["content"] != "value-content" {
 		t.Fatalf("testimonial private fields leaked: %#v", item)
 	}
 	r = publicTestRecord("unknown_collection", "title", "content")
-	if item := serializeRecords([]*core.Record{r})[0]; len(item) != 1 {
+	if item := serializeRecords([]*core.Record{r}, nil)[0]; len(item) != 1 {
 		t.Fatalf("unknown collection must fail closed: %#v", item)
 	}
 }
@@ -44,7 +44,7 @@ func TestHiddenFieldsCannotReturnThroughOverridesOrDerivedURLs(t *testing.T) {
 		r.Collection().Fields.GetByName(name).SetHidden(true)
 	}
 	overrides := map[string]map[string]interface{}{r.Id: {"overrides": map[string]interface{}{"title": "Facet title", "description": "hidden override", "admin_tags": "private"}}}
-	item := serializeRecordsWithOverrides(nil, []*core.Record{r}, overrides, "projects")[0]
+	item := serializeRecordsWithOverrides(nil, []*core.Record{r}, overrides, "projects", nil)[0]
 	if len(item) != 2 || item["title"] != "Facet title" {
 		t.Fatalf("hidden or override field leaked: %#v", item)
 	}
@@ -56,7 +56,7 @@ func TestHiddenFieldsCannotReturnThroughOverridesOrDerivedURLs(t *testing.T) {
 				field.SetHidden(true)
 			}
 		}
-		item = serializeRecordsWithOverrides(nil, []*core.Record{r}, nil, section)[0]
+		item = serializeRecordsWithOverrides(nil, []*core.Record{r}, nil, section, nil)[0]
 		if len(item) != 1 {
 			t.Fatalf("hidden media leaked for %s: %#v", section, item)
 		}
@@ -65,7 +65,7 @@ func TestHiddenFieldsCannotReturnThroughOverridesOrDerivedURLs(t *testing.T) {
 
 func TestPublicFieldsRetainMediaAndFacetOverrides(t *testing.T) {
 	r := publicTestRecord("projects", "title", "summary", "cover_image_library_url", "related_experience", "related_education")
-	item := serializeRecordsWithOverrides(nil, []*core.Record{r}, map[string]map[string]interface{}{r.Id: {"overrides": map[string]interface{}{"summary": "Facet summary"}}}, "projects")[0]
+	item := serializeRecordsWithOverrides(nil, []*core.Record{r}, map[string]map[string]interface{}{r.Id: {"overrides": map[string]interface{}{"summary": "Facet summary"}}}, "projects", nil)[0]
 	if item["summary"] != "Facet summary" || item["cover_image_url"] != "value-cover_image_library_url" || item["related_experience"] != "value-related_experience" {
 		t.Fatalf("public content lost: %#v", item)
 	}

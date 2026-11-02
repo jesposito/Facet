@@ -51,6 +51,8 @@ func main() {
 	hooks.RegisterPlanHooks(app, planConfig)
 	hooks.RegisterAnalyticsHooks(app, planConfig)
 	hooks.RegisterAdminAuth(app)
+	hooks.RegisterAdminSessionGuard(app)                        // Server-side 2FA and default-password enforcement
+	hooks.RegisterAuthRateLimits(app)                           // PocketBase's built-in limiter for sign-in routes
 	hooks.RegisterPasswordChangeEndpoint(app, rateLimitService) // Password change endpoint for first-time setup
 	hooks.RegisterGitHubHooks(app, githubService, aiService, cryptoService)
 	hooks.RegisterVersionHooks(app, githubService) // /api/version-check (proxies LATEST_VERSION to avoid CSP issues)

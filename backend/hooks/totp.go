@@ -55,6 +55,25 @@ func clearTOTPSessionCookie(e *core.RequestEvent) {
 	})
 }
 
+// hasValidTOTPSession reports whether the request carries the session cookie
+// that /api/totp/verify issued to this user, and that session hasn't expired.
+func hasValidTOTPSession(e *core.RequestEvent, user *core.Record) bool {
+	nonce := user.GetString("totp_session_nonce")
+	expiresStr := user.GetString("totp_session_expires")
+	if nonce == "" || expiresStr == "" {
+		return false
+	}
+	expires, err := time.Parse("2006-01-02 15:04:05.000Z", expiresStr)
+	if err != nil || !time.Now().Before(expires) {
+		return false
+	}
+	c, err := e.Request.Cookie(totpCookieName)
+	if err != nil || c.Value == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(c.Value), []byte(nonce)) == 1
+}
+
 func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
@@ -66,22 +85,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			}
 
 			enabled := user.GetBool("totp_enabled")
-
-			verified := false
-			if enabled {
-				nonce := user.GetString("totp_session_nonce")
-				expiresStr := user.GetString("totp_session_expires")
-				if nonce != "" && expiresStr != "" {
-					expires, err := time.Parse("2006-01-02 15:04:05.000Z", expiresStr)
-					if err == nil && time.Now().Before(expires) {
-						if c, err := e.Request.Cookie(totpCookieName); err == nil && c.Value != "" {
-							if subtle.ConstantTimeCompare([]byte(c.Value), []byte(nonce)) == 1 {
-								verified = true
-							}
-						}
-					}
-				}
-			}
+			verified := enabled && hasValidTOTPSession(e, user)
 
 			return e.JSON(http.StatusOK, map[string]any{
 				"enabled":  enabled,

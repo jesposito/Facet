@@ -94,8 +94,64 @@ func enforceCollectionRules(app *pocketbase.PocketBase) error {
 		}
 	}
 
+	// Close any remaining public rule on every other collection, including
+	// ones added after this list was written. Nothing in Facet is meant to
+	// be read or written anonymously through /api/collections.
+	collections, err := app.FindAllCollections()
+	if err != nil {
+		return err
+	}
+	for _, collection := range collections {
+		// Auth collections are left alone: OAuth sign-in checks the users
+		// create rule. RegisterAdminAuth blocks direct sign-up instead.
+		if collection.System || collection.IsAuth() {
+			continue
+		}
+		if lockPublicRules(collection, authRule) {
+			if err := app.Save(collection); err != nil {
+				log.Printf("Warning: Failed to close public rules for %s: %v", collection.Name, err)
+			} else {
+				updated = append(updated, collection.Name)
+			}
+		}
+	}
+
 	if len(updated) > 0 {
+		log.Printf("Collection rules: closed anonymous access on %v", updated)
 	}
 
 	return nil
+}
+
+// superuserOnlyCollections are only reached through Facet's own admin
+// endpoints. Their migration set "" believing it meant superuser-only, but in
+// PocketBase "" is public and nil is superuser-only.
+var superuserOnlyCollections = map[string]bool{
+	"webhooks":           true,
+	"webhook_deliveries": true,
+}
+
+// lockPublicRules replaces each public ("") rule on a collection and reports
+// whether anything changed. Restricted rules, including nil, are left as set.
+func lockPublicRules(collection *core.Collection, authRule string) bool {
+	changed := false
+	for _, rule := range []**string{
+		&collection.ListRule,
+		&collection.ViewRule,
+		&collection.CreateRule,
+		&collection.UpdateRule,
+		&collection.DeleteRule,
+	} {
+		if *rule == nil || **rule != "" {
+			continue
+		}
+		if superuserOnlyCollections[collection.Name] {
+			*rule = nil
+		} else {
+			restricted := authRule
+			*rule = &restricted
+		}
+		changed = true
+	}
+	return changed
 }

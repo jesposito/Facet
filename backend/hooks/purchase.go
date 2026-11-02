@@ -278,11 +278,21 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid signature"})
 			}
 
-			// Handle checkout.session.completed
-			if event.Type == "checkout.session.completed" {
+			// A completed checkout only grants access once Stripe reports the
+			// money as paid. Delayed methods (bank debits, vouchers) complete
+			// first with payment_status "unpaid" and settle later through
+			// checkout.session.async_payment_succeeded.
+			switch event.Type {
+			case "checkout.session.completed", "checkout.session.async_payment_succeeded":
 				var sess stripe.CheckoutSession
 				if err := json.Unmarshal(event.Data.Raw, &sess); err != nil {
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid event data"})
+				}
+
+				if sess.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
+					app.Logger().Info("Checkout session not paid yet, access not granted",
+						"session_id", sess.ID, "event", event.Type, "payment_status", sess.PaymentStatus)
+					return e.JSON(http.StatusOK, map[string]string{"status": "awaiting_payment"})
 				}
 
 				// Extract metadata
@@ -358,6 +368,14 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				}
 
 				return e.JSON(http.StatusOK, map[string]string{"status": "success"})
+
+			case "checkout.session.async_payment_failed":
+				var sess stripe.CheckoutSession
+				if err := json.Unmarshal(event.Data.Raw, &sess); err != nil {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid event data"})
+				}
+				app.Logger().Warn("Delayed checkout payment failed, access not granted", "session_id", sess.ID)
+				return e.JSON(http.StatusOK, map[string]string{"status": "payment_failed"})
 			}
 
 			// Handle charge.refunded
@@ -590,12 +608,28 @@ func checkPurchaseAccess(app *pocketbase.PocketBase, purchaseService *services.P
 		return false, ""
 	}
 
-	// Find purchase for this specific content, scoped to buyer
+	purchase := findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, contentType, contentID)
+	if purchase == nil {
+		return false, ""
+	}
+	return true, purchase.Id
+}
+
+// findCompletedPurchase returns the buyer's completed purchase of one item.
+// The purchase must belong to the email in the buyer's token, and the token
+// must have been issued for that purchase. Every buyer has their own purchase
+// record, so this has to search the buyer's purchases rather than taking the
+// first sale of the item. A refunded purchase stops matching straight away.
+func findCompletedPurchase(app core.App, purchaseService *services.PurchaseService, purchaseIDs []string, buyerEmail, contentType, contentID string) *core.Record {
+	if buyerEmail == "" || len(purchaseIDs) == 0 {
+		return nil
+	}
+
 	purchaseRecords, err := app.FindRecordsByFilter(
 		"purchases",
 		"content_type = {:type} && content_id = {:id} && buyer_email = {:email} && status = 'completed'",
 		"",
-		1,
+		0,
 		0,
 		map[string]interface{}{
 			"type":  contentType,
@@ -603,77 +637,109 @@ func checkPurchaseAccess(app *pocketbase.PocketBase, purchaseService *services.P
 			"email": buyerEmail,
 		},
 	)
-
-	if err != nil || len(purchaseRecords) == 0 {
-		return false, ""
+	if err != nil {
+		return nil
 	}
 
-	purchase := purchaseRecords[0]
-
-	// Check if JWT contains this purchase ID
-	if purchaseService.HasPurchaseAccess(purchaseIDs, purchase.Id) {
-		return true, purchase.Id
+	for _, purchase := range purchaseRecords {
+		if purchaseService.HasPurchaseAccess(purchaseIDs, purchase.Id) {
+			return purchase
+		}
 	}
-
-	return false, ""
+	return nil
 }
 
-// applyContentGating modifies an item map to gate content if needed
-// Returns the modified item with gating applied
-func applyContentGating(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, item map[string]interface{}, collectionName string) map[string]interface{} {
-	// Only apply gating to posts, projects, custom_content, courses, talks
-	if collectionName != "posts" && collectionName != "projects" && collectionName != "custom_content" && collectionName != "courses" && collectionName != "talks" {
-		return item
+// paidContentFields lists the response fields that hold the part of an item a
+// buyer pays for. Titles, summaries, excerpts and cover images stay visible so
+// the item can still be listed and sold. Posts keep a short preview of their
+// content instead of losing it entirely.
+var paidContentFields = map[string][]string{
+	"posts":          {"content"},
+	"projects":       {"description", "experience"},
+	"talks":          {"description", "slides_url", "video_url"},
+	"custom_content": {"content"},
+}
+
+const defaultPaywallPreviewParagraphs = 3
+
+// contentAccess reports whether the current request may see the paid part of
+// a record. A nil contentAccess grants nothing, so a projection that forgets to
+// pass one fails closed.
+type contentAccess func(record *core.Record) bool
+
+// requiresPurchase reports whether a record is paid content.
+func requiresPurchase(record *core.Record) bool {
+	if _, gated := paidContentFields[strings.TrimPrefix(record.Collection().Name, "demo_")]; !gated {
+		return false
 	}
+	return record.GetString("access_tier") == "paid"
+}
 
-	// Check if content has access_tier field
-	accessTier, hasTier := item["access_tier"].(string)
-	if !hasTier || accessTier != "paid" {
-		// Not gated content
-		return item
+// newContentAccess checks the request's purchase token, once per record. The
+// site owner always sees full content.
+func newContentAccess(app core.App, purchaseService *services.PurchaseService, e *core.RequestEvent) contentAccess {
+	return func(record *core.Record) bool {
+		if !requiresPurchase(record) || isSuperuser(e) {
+			return true
+		}
+		token := extractPurchaseCookie(e)
+		if token == "" {
+			return false
+		}
+		purchaseIDs, buyerEmail, err := purchaseService.ValidatePurchaseJWT(token)
+		if err != nil {
+			return false
+		}
+		contentType := strings.TrimPrefix(record.Collection().Name, "demo_")
+		return findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, contentType, record.Id) != nil
 	}
+}
 
-	// Check if user has purchased access
-	contentID, ok := item["id"].(string)
-	if !ok {
-		return item
+// gatePaidContent removes the paid fields from a public projection of record
+// unless access allows them. It runs after any per-view overrides, so an
+// override can't put a paid description back.
+func gatePaidContent(record *core.Record, item map[string]interface{}, access contentAccess) {
+	if !requiresPurchase(record) {
+		return
 	}
-
-	hasPurchase, _ := checkPurchaseAccess(app, purchaseService, e, collectionName, contentID)
-
-	if hasPurchase {
-		// User has purchased - serve full content
+	if access != nil && access(record) {
 		item["is_gated"] = false
 		item["is_purchased"] = true
-		return item
+		return
 	}
 
-	// User hasn't purchased - gate the content
 	item["is_gated"] = true
 	item["is_purchased"] = false
-
-	// For posts: truncate to preview paragraphs instead of deleting content
-	if collectionName == "posts" {
-		previewParagraphs := 3 // default
-		if pp, ok := item["paywall_preview_paragraphs"].(float64); ok && int(pp) > 0 {
-			previewParagraphs = int(pp)
-		} else if pp, ok := item["paywall_preview_paragraphs"].(int); ok && pp > 0 {
-			previewParagraphs = pp
-		}
-
-		if content, ok := item["content"].(string); ok && content != "" {
-			paragraphs := strings.Split(content, "\n\n")
-			if len(paragraphs) > previewParagraphs {
-				item["content"] = strings.Join(paragraphs[:previewParagraphs], "\n\n")
-			}
-			// If content has fewer paragraphs than preview limit, keep it all
-		}
-		item["is_preview_content"] = true
-	} else {
-		// For other collections: strip content entirely
-		delete(item, "content")
-		delete(item, "description") // For projects
+	for _, field := range paidContentFields[strings.TrimPrefix(record.Collection().Name, "demo_")] {
+		delete(item, field)
 	}
 
-	return item
+	if strings.TrimPrefix(record.Collection().Name, "demo_") == "posts" {
+		preview := record.GetInt("paywall_preview_paragraphs")
+		if preview <= 0 {
+			preview = defaultPaywallPreviewParagraphs
+		}
+		item["content"] = paywallPreview(record.GetString("content"), preview)
+		item["is_preview_content"] = true
+	}
+}
+
+// paywallPreview returns up to the first n paragraphs of Markdown content. It
+// always holds back at least the final paragraph, so a short post is never
+// given away whole just because it fits inside the preview.
+func paywallPreview(content string, n int) string {
+	content = strings.ReplaceAll(content, "\r\n", "\n")
+	var paragraphs []string
+	for _, paragraph := range strings.Split(content, "\n\n") {
+		if strings.TrimSpace(paragraph) != "" {
+			paragraphs = append(paragraphs, paragraph)
+		}
+	}
+	if n > len(paragraphs)-1 {
+		n = len(paragraphs) - 1
+	}
+	if n <= 0 {
+		return ""
+	}
+	return strings.Join(paragraphs[:n], "\n\n")
 }

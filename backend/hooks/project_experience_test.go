@@ -195,15 +195,15 @@ func TestProjectExperiencePublicProjectionAndExport(t *testing.T) {
 		record.Set("admin_tags", "private")
 
 		for _, projected := range []map[string]any{
-			serializeRecords([]*core.Record{record})[0],
-			serializeRecordsWithOverrides(nil, []*core.Record{record}, nil, "projects")[0],
+			serializeRecords([]*core.Record{record}, nil)[0],
+			serializeRecordsWithOverrides(nil, []*core.Record{record}, nil, "projects", nil)[0],
 			sanitizeRecord(record),
 		} {
 			if _, ok := projected["experience"]; !ok {
 				t.Fatalf("%s projection omitted experience: %#v", collectionName, projected)
 			}
 		}
-		if _, ok := serializeRecords([]*core.Record{record})[0]["admin_tags"]; ok {
+		if _, ok := serializeRecords([]*core.Record{record}, nil)[0]["admin_tags"]; ok {
 			t.Fatal("private project field leaked")
 		}
 	}

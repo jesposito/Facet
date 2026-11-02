@@ -112,8 +112,13 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
 
-			// Verify the filename is still in the downloadable files
-			downloadableFiles := record.GetStringSlice("downloadable_files")
+			// Verify the filename is still in the downloadable files. Lesson
+			// attachments use the same signed links, issued by the course API.
+			fileField := "downloadable_files"
+			if contentType == "lessons" {
+				fileField = "attachments"
+			}
+			downloadableFiles := record.GetStringSlice(fileField)
 			found := false
 			for _, f := range downloadableFiles {
 				if f == filename {
