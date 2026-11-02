@@ -55,6 +55,8 @@ RUN npm run build
 FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS caddy-builder
 WORKDIR /caddy-build
 COPY docker/caddy/go.mod docker/caddy/go.sum ./
+# go.mod replaces go-jose v3 with this patched local copy.
+COPY docker/caddy/third_party ./third_party
 RUN go mod download
 COPY docker/caddy/main.go ./
 RUN CGO_ENABLED=0 go build -trimpath -o /caddy .
