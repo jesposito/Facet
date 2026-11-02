@@ -1,7 +1,7 @@
 # Patched go-jose v3.0.5
 
-This directory is a copy of `github.com/go-jose/go-jose/v3` v3.0.5 with one
-security fix backported. `docker/caddy/go.mod` points the module at this copy
+This directory is a copy of `github.com/go-jose/go-jose/v3` v3.0.5 with the RSA JWK
+security fix backported and an explicit Unicode parsing bound. `docker/caddy/go.mod` points the module at this copy
 with a `replace` directive.
 
 ## Why it exists
@@ -64,6 +64,11 @@ authors) are unchanged.
 Both checks run before `rsa.PrivateKey.Validate`. The rest of a0111f8 (header
 algorithm ordering, rejecting private key members in embedded `jwk`/`epk`
 headers) is not part of this advisory and has not been backported.
+
+`json/decode.go` parses the four hexadecimal digits in a JSON Unicode escape
+with a 16-bit bound instead of 64 bits. Four digits already limit the value to
+65535; making that bound explicit preserves behavior and makes the conversion
+to a rune provably safe for static analysis.
 
 `jwk_rsa_bounds_test.go` is new. It checks the size limit, the `p * q == n`
 check, and an ordinary RSA JWK round trip with RS256 signing.
@@ -131,6 +136,29 @@ unpatched v3.0.5, the 64 Kibit key in that test kept one parse busy for about
  
  	if key.Dp != nil {
 ```
+
+## Running the tests
+
+Run the tests from the parent `docker/caddy` module, not from inside this
+`third_party` directory:
+
+```
+cd docker/caddy
+go test github.com/go-jose/go-jose/v3/...
+```
+
+This resolves the patched copy through the `replace` directive in
+`docker/caddy/go.mod` and builds it against the same upgraded dependency
+versions Caddy actually links, which is the point of the exercise. The run
+covers `jwk_rsa_bounds_test.go` (the backported bounds checks) and, via
+`docker/caddy/jose_test.go`, the same rejection through
+`go.step.sm/crypto/jose`.
+
+Do not try to run the tests as a standalone nested module from within
+`third_party/go-jose-v3`. That copy has no `go.sum` of its own (`go mod vendor`
+does not produce one for a vendored package), so an isolated `go test` there
+fails resolving dependencies. The parent module owns the checksums, so invoking
+the tests from `docker/caddy` is both the working and the representative path.
 
 ## Effect on Caddy
 
