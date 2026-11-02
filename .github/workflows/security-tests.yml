@@ -24,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Release validation regression tests
-        run: python3 scripts/ci/test-push-validated-release.py
+        run: |
+          python3 scripts/ci/test-push-validated-release.py
+          python3 scripts/ci/test-dev-server.py
       - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod

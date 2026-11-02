@@ -19,14 +19,14 @@ help:
 	@echo "Seed Data (development only):"
 	@echo "  make seed-dev     Stop, reset & start with dev data (Jedidiah)"
 	@echo "  make seed-clear   Stop & clear database (no restart)"
-	@echo "  make stop         Stop all running dev processes"
+	@echo "  make stop         Stop this checkout's supervised dev services"
 	@echo ""
 	@echo "Individual Services:"
 	@echo "  make backend      Start backend only (with hot reload)"
 	@echo "  make frontend     Start frontend only (with HMR)"
 	@echo ""
 	@echo "Testing & Quality:"
-	@echo "  make test         Run all tests"
+	@echo "  make test         Run Go tests and frontend type checks"
 	@echo "  make lint         Run linters"
 	@echo "  make fmt          Format code"
 	@echo ""
@@ -67,8 +67,6 @@ dev-logs:
 dev-reset:
 	rm -rf frontend/node_modules/.lockfile-hash
 	rm -rf backend/.gomod-hash
-	rm -rf pb_data
-	rm -rf tmp
 	rm -rf frontend/.svelte-kit
 	@echo "Caches cleared. Run 'make dev' to reinstall."
 
@@ -76,22 +74,9 @@ dev-reset:
 # Seed Data Switching
 # =============================================================================
 
-# Kill running dev processes
-kill:
-	@echo "Stopping dev processes..."
-	@-pkill -9 -f "air" 2>/dev/null || true
-	@-pkill -9 -f "facet" 2>/dev/null || true
-	@-pkill -9 -f "pocketbase" 2>/dev/null || true
-	@-pkill -9 -f "vite" 2>/dev/null || true
-	@-pkill -9 -f "node.*5173" 2>/dev/null || true
-	@-pkill -9 -f "node.*5174" 2>/dev/null || true
-	@-fuser -k 8090/tcp 2>/dev/null || true
-	@-fuser -k 5173/tcp 2>/dev/null || true
-	@-fuser -k 5174/tcp 2>/dev/null || true
-	@sleep 2
-	@echo "Done."
-
-stop: kill
+# Only stop services started by this checkout's make dev supervisor.
+kill stop:
+	python3 scripts/dev-server.py --stop
 
 # Switch to dev profile (Jedidiah Esposito - for development/testing)
 # Demo data (Merlin) is available via Admin > Settings > Demo Data
@@ -191,7 +176,7 @@ seed-dev: kill
 # Just clear database (no restart)
 seed-clear: kill
 	rm -rf pb_data
-	@echo "Database cleared. Run 'make dev', 'make seed-demo', or 'make seed-dev' to restart."
+	@echo "Database cleared. Run 'make dev' or 'make seed-dev' to restart."
 
 # =============================================================================
 # Building
@@ -207,17 +192,21 @@ docker-build:
 docker-run:
 	docker run -d \
 		--name facet \
-		-p 8080:3000 \
-		-p 8090:8090 \
+		-p 8080:8080 \
 		-v $$(pwd)/data:/data \
-		-e ENCRYPTION_KEY=$${ENCRYPTION_KEY:-dev-key-change-me-in-production} \
+		-v $$(pwd)/uploads:/uploads \
+		-e ENCRYPTION_KEY="$${ENCRYPTION_KEY:?Set ENCRYPTION_KEY before starting the container}" \
 		facet:latest
 
 # =============================================================================
 # Testing
 # =============================================================================
 
-test: test-backend test-frontend
+test: test-scripts test-backend test-frontend
+
+test-scripts:
+	python3 scripts/ci/test-dev-server.py
+	python3 scripts/ci/test-push-validated-release.py
 
 test-backend:
 	cd backend && go test -v ./...
@@ -232,10 +221,10 @@ test-frontend:
 lint: lint-backend lint-frontend
 
 lint-backend:
-	cd backend && golangci-lint run || true
+	cd backend && go vet ./...
 
 lint-frontend:
-	cd frontend && npm run lint || true
+	cd frontend && npm run lint
 
 fmt: fmt-backend fmt-frontend
 
@@ -264,15 +253,19 @@ prod-down:
 
 # Clean build artifacts (not caches)
 clean:
+	python3 scripts/dev-server.py --check-stopped
 	rm -rf backend/tmp
 	rm -rf frontend/build
 	rm -rf frontend/.svelte-kit
-	rm -rf tmp
+	rm -f tmp/facet
 
-# Backup data
+# Back up a stopped native-development database, including uploaded files.
+# Production backup and restore instructions are in docs/UPGRADE.md.
 backup:
+	python3 scripts/dev-server.py --check-stopped
+	@test -d pb_data || { echo "No native development database at pb_data" >&2; exit 1; }
 	@mkdir -p backups
-	tar -czvf backups/facet-$$(date +%Y%m%d-%H%M%S).tar.gz pb_data/ data/ 2>/dev/null || true
+	tar -czf backups/facet-$$(date +%Y%m%d-%H%M%S).tar.gz pb_data/ $(wildcard uploads/)
 
 # Install dependencies (manual, usually handled by scripts)
 deps:
