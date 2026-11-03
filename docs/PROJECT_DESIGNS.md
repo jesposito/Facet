@@ -8,7 +8,9 @@ Project experiences can use the site's original appearance or one of three built
 
 Standard width keeps a closer reading measure. Wide gives demonstrations and large images more space. Section headings can sit above the content or alongside their introduction. A video block can use a stacked player, a chapter sidebar or a spotlight layout with the explanation beside the player. The paper story layout puts the controls beside the resulting story. Narrow screens and narrow editor previews use the same responsive layouts.
 
-Colours belong to each chapter so text remains legible when the surrounding site switches theme. Original experiences keep their existing light and dark palettes. Fonts are served by Facet; the font files and OFL licences are in `frontend/static/fonts/experiences`.
+Page width and these extra section, video and story layouts require a built-in design. Original retains its original layout, so while Original is selected the editor hides Page width, disables the section, player and activity layout controls, and explains beside each one that a built-in design is needed. Your section, video and story choices stay in the document and take effect again when you choose Playful, Technical or Editorial.
+
+Colours belong to each chapter so text remains legible when the surrounding site switches theme. The editor's light and dark previews show the same chapter colours as the published page. Original experiences keep their existing light and dark palettes. Fonts are served by Facet; the font files and OFL licences are in `frontend/static/fonts/experiences`.
 
 ## Document format
 
@@ -23,7 +25,7 @@ These fields extend version 1. Documents without them retain the original layout
 
 The excerpt only shows the new fields; the document still requires its existing version, enabled, layout, hero and sections fields.
 
-A section may set `headingLayout` to `stack` or `split`. A video block may set `presentation` to `stack`, `sidebar` or `spotlight`. A story block may set it to `plain` or `paper`. `yellow` and `orange` join the existing chapter tones. An image may set `decorative: true` to render an empty alternative text. Meaningful images should retain useful descriptions.
+A section may set `headingLayout` to `stack` or `split`. A video block may set `presentation` to `stack`, `sidebar` or `spotlight`. A story block may set it to `plain` or `paper`. These layouts render only when `design` names a preset; without one they are kept but ignored. `yellow` and `orange` join the existing chapter tones. An image may set `decorative: true` to render an empty alternative text. Meaningful images should retain useful descriptions.
 
 The server validates these choices, including disabled experiences. Arbitrary CSS and font URLs are not part of the document format. Duplication and export retain the options. Export to an older Facet version may require upgrading that installation before importing the new fields.
 

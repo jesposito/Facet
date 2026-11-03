@@ -413,44 +413,61 @@
 .project-experience :is(h1, h2, h3, h4) {
 	font-family: var(--font-heading, inherit);
 }
+/* A light preview inside a dark admin restores the Original palette. Built-in designs own theirs. */
 .experience-preview-frame[data-experience-theme='light']
-	.project-experience
+	.project-experience:not([data-design-preset])
 	.experience-tone-paper {
 	background: #faf8f0;
 	color: #203532;
 }
-.experience-preview-frame[data-experience-theme='light'] .project-experience .experience-tone-aqua {
+.experience-preview-frame[data-experience-theme='light']
+	.project-experience:not([data-design-preset])
+	.experience-tone-aqua {
 	background: #c8ece7;
 	color: #143e3b;
 }
-.experience-preview-frame[data-experience-theme='light'] .project-experience .experience-tone-sand {
+.experience-preview-frame[data-experience-theme='light']
+	.project-experience:not([data-design-preset])
+	.experience-tone-sand {
 	background: #f1dfb6;
 	color: #41371f;
 }
 .experience-preview-frame[data-experience-theme='light']
-	.project-experience
+	.project-experience:not([data-design-preset])
 	.experience-tone-green {
 	background: #dce6c8;
 	color: #2e3d25;
 }
-.experience-preview-frame[data-experience-theme='light'] .project-experience .experience-tone-pink {
+.experience-preview-frame[data-experience-theme='light']
+	.project-experience:not([data-design-preset])
+	.experience-tone-pink {
 	background: #eed8da;
 	color: #542d39;
 }
-.experience-preview-frame[data-experience-theme='light'] .project-experience .experience-primary,
 .experience-preview-frame[data-experience-theme='light']
-	.project-experience
+	.project-experience:not([data-design-preset])
+	.experience-primary {
+	background: #203532;
+	color: #fff;
+}
+.experience-preview-frame[data-experience-theme='light']
+	.project-experience:not(:where([data-design-preset='technical']))
 	.experience-chapters
 	.chosen {
 	background: #203532;
 	color: #fff;
 }
 .experience-preview-frame[data-experience-theme='light']
-	.project-experience
+	.project-experience:not([data-design-preset])
 	.experience-tone-ink
-	.experience-primary,
+	.experience-primary {
+	background: #e5efce;
+	color: #203532;
+}
+/* Technical colours its own selected chapters. :where adds no specificity, so the sidebar and
+   spotlight rules still win. */
 .experience-preview-frame[data-experience-theme='light']
-	.project-experience
+	.project-experience:not(:where([data-design-preset='technical']))
 	.experience-tone-ink
 	.experience-chapters
 	.chosen {
@@ -463,7 +480,9 @@
 	color: #e9eee8;
 	border-color: #e9eee833;
 }
-.experience-preview-frame[data-experience-theme='light'] .project-experience .experience-index {
+.experience-preview-frame[data-experience-theme='light']
+	.project-experience:not([data-design-preset])
+	.experience-index {
 	background: #faf8f0;
 	color: #203532;
 	border-color: #20353233;

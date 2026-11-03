@@ -1,5 +1,5 @@
-import { test, expect, type Locator } from '@playwright/test';
-import { loginAsAdmin } from './helpers';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import { loginAsAdmin, seedAdminSession } from './helpers';
 import { apiBaseURL, adminEmail, adminPassword } from './config';
 import {
 	readExperience,
@@ -10,6 +10,7 @@ import { newExperience, newBlock } from '../src/lib/experiences/templates';
 
 type Preset = 'playful' | 'technical' | 'editorial';
 type Box = { x: number; y: number; width: number; height: number };
+type Colours = { color: string; background: string } | null;
 
 const lesson = (id: string, title: string, description: string): ExperienceLesson => ({
 	id,
@@ -26,7 +27,12 @@ const designFixture = (preset: Preset): ProjectExperience => ({
 	enabled: true,
 	layout: 'immersive',
 	design: { preset, width: 'wide' },
-	hero: { intro: 'Design regression fixture.', tone: 'paper', imagePosition: 'right' },
+	hero: {
+		intro: 'Design regression fixture.',
+		tone: 'paper',
+		imagePosition: 'right',
+		action: { label: 'Start listening', href: '#listen' }
+	},
 	sections: [
 		{
 			id: 'listen',
@@ -64,9 +70,54 @@ const designFixture = (preset: Preset): ProjectExperience => ({
 					]
 				}
 			]
-		}
+		},
+		...(['aqua', 'sand', 'green', 'pink'] as const).map((tone) => ({
+			id: `tone-${tone}`,
+			title: `A ${tone} chapter`,
+			intro: '',
+			tone,
+			layout: 'stack' as const,
+			blocks: [{ id: `${tone}Text`, type: 'text' as const, body: `Words on ${tone}.` }]
+		}))
 	]
 });
+
+/** The design fixture without a preset, holding layout choices Original can't draw. */
+const originalFixture = (): ProjectExperience => {
+	const doc = designFixture('playful');
+	delete doc.design;
+	doc.hero.tone = 'aqua';
+	doc.sections[0].headingLayout = 'split';
+	const video = doc.sections[0].blocks[0];
+	if (video.type === 'video') video.presentation = 'sidebar';
+	const story = newBlock('story');
+	if (story.type === 'story') story.presentation = 'paper';
+	doc.sections[0].blocks.push(story);
+	return doc;
+};
+
+/** Computed chapter colours keyed by part, so a published page and a preview can be compared. */
+const palette = (root: Locator) =>
+	root.evaluate((el) => {
+		const colours = (node: Element | null): Colours => {
+			if (!node) return null;
+			const style = getComputedStyle(node);
+			return { color: style.color, background: style.backgroundColor };
+		};
+		const parts: Record<string, Colours> = {
+			hero: colours(el.querySelector('.experience-hero')),
+			index: colours(el.querySelector('.experience-index')),
+			action: colours(el.querySelector('a.experience-primary'))
+		};
+		for (const section of el.querySelectorAll('.experience-section')) {
+			const id = section.id.replace(/^preview-/, '');
+			parts[id] = colours(section);
+			parts[`${id} chosen chapter`] = colours(
+				section.querySelector('.experience-chapters .chosen')
+			);
+		}
+		return parts;
+	});
 
 /** WCAG contrast of an element's text against its composited background. */
 const textContrast = (target: Locator) =>
@@ -164,8 +215,11 @@ test.describe('project design presentation in the browser', () => {
 	test.skip(!adminEmail || !adminPassword, 'Disposable admin fixture required');
 	const presets: Preset[] = ['playful', 'technical', 'editorial'];
 	const slugs = new Map<Preset, string>();
+	const records = new Map<Preset, string>();
 	const ids: string[] = [];
 	let token: string;
+	let originalSlug: string;
+	let originalId: string;
 
 	test.beforeAll(async ({ request }) => {
 		token = (await loginAsAdmin(request)).token;
@@ -185,9 +239,27 @@ test.describe('project design presentation in the browser', () => {
 				}
 			});
 			expect(res.ok(), await res.text()).toBeTruthy();
-			ids.push((await res.json()).id);
+			const id = (await res.json()).id;
+			ids.push(id);
+			records.set(preset, id);
 			slugs.set(preset, slug);
 		}
+		originalSlug = `design-original-${run}`;
+		const res = await request.post(`${apiBaseURL}/api/collections/projects/records`, {
+			headers: { Authorization: token },
+			data: {
+				title: 'Design fixture original',
+				slug: originalSlug,
+				summary: 'Design regression fixture.',
+				description: 'Classic project description.',
+				visibility: 'public',
+				is_draft: false,
+				experience: originalFixture()
+			}
+		});
+		expect(res.ok(), await res.text()).toBeTruthy();
+		originalId = (await res.json()).id;
+		ids.push(originalId);
 	});
 	test.afterAll(async ({ request }) => {
 		for (const id of ids)
@@ -315,5 +387,139 @@ test.describe('project design presentation in the browser', () => {
 				}
 			}
 		}
+	});
+
+	async function openEditor(page: Page, id: string) {
+		await page.goto('/admin/projects');
+		await page.locator(`[data-row-id="${id}"]`).getByTitle('Edit', { exact: true }).click();
+		const editor = page.locator('.experience-editor');
+		await expect(editor).toBeVisible();
+		return editor;
+	}
+
+	test('editor previews show each preset palette exactly as published', async ({
+		page,
+		request
+	}) => {
+		await seedAdminSession(page, request);
+		await page.setViewportSize({ width: 1440, height: 900 });
+		for (const preset of presets) {
+			const published: Record<string, Record<string, Colours>> = {};
+			await page.goto(`/projects/${slugs.get(preset)}`);
+			const root = page.locator('.project-experience');
+			await expect(root).toHaveAttribute('data-design-preset', preset);
+			for (const dark of [false, true]) {
+				await page.evaluate((d) => document.documentElement.classList.toggle('dark', d), dark);
+				published[dark ? 'dark' : 'light'] = await palette(root);
+			}
+			// The fixture reaches the tones and button the Original light preview used to repaint.
+			for (const part of ['tone-aqua', 'tone-sand', 'tone-green', 'tone-pink', 'action', 'index'])
+				expect(published.light[part], `${preset} ${part}`).not.toBeNull();
+
+			const editor = await openEditor(page, records.get(preset)!);
+			await editor.getByRole('button', { name: 'Preview experience' }).click();
+			const preview = editor.locator('.project-experience');
+			await expect(preview).toHaveAttribute('data-design-preset', preset);
+			for (const theme of ['light', 'dark'] as const) {
+				await editor.getByLabel('Dark preview').setChecked(theme === 'dark');
+				await expect(editor.locator('.experience-preview-frame')).toHaveAttribute(
+					'data-experience-theme',
+					theme
+				);
+				expect(await palette(preview), `${preset} ${theme} preview`).toEqual(published[theme]);
+			}
+		}
+	});
+
+	test('Original disables the layouts it cannot draw and keeps their choices', async ({
+		page,
+		request
+	}) => {
+		await seedAdminSession(page, request);
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await page.goto(`/projects/${originalSlug}`);
+		const published = page.locator('.project-experience');
+		await expect(published).toBeVisible();
+		await expect(published).not.toHaveAttribute('data-design-preset');
+		await page.evaluate(() => document.documentElement.classList.remove('dark'));
+		const publishedLight = await palette(published);
+
+		const editor = await openEditor(page, originalId);
+		const requirement = editor.locator('#experience-layout-requirement');
+		const note = 'Needs a built-in Page design: Playful, Technical or Editorial.';
+		const controls = {
+			heading: editor.getByLabel('Section introduction').first(),
+			player: editor.getByLabel('Player layout').first(),
+			activity: editor.getByLabel('Activity layout')
+		};
+		type Layouts = Record<keyof typeof controls, string>;
+		const expectLayouts = async (enabled: boolean, values: Layouts) => {
+			if (enabled) await expect(requirement).toHaveCount(0);
+			else await expect(requirement).toContainText('need a built-in Page design');
+			for (const name of Object.keys(controls) as Array<keyof typeof controls>) {
+				const control = controls[name];
+				await expect(control, name).toHaveValue(values[name]);
+				if (enabled) {
+					await expect(control, name).toBeEnabled();
+					await expect(control, name).not.toHaveAttribute('aria-describedby');
+				} else {
+					await expect(control, name).toBeDisabled();
+					await expect(control, name).toHaveAccessibleDescription(note);
+				}
+			}
+		};
+
+		await expect(editor.getByRole('button', { name: /^Original/ })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
+		await expectLayouts(false, { heading: 'split', player: 'sidebar', activity: 'paper' });
+		await editor.getByRole('button', { name: /^Playful/ }).click();
+		await expectLayouts(true, { heading: 'split', player: 'sidebar', activity: 'paper' });
+		await controls.heading.selectOption('stack');
+		await controls.player.selectOption('spotlight');
+		await controls.activity.selectOption('plain');
+		await editor.getByRole('button', { name: /^Original/ }).click();
+		await expectLayouts(false, { heading: 'stack', player: 'spotlight', activity: 'plain' });
+
+		// A light preview inside a dark admin keeps the Original palette and its contrast.
+		await page.evaluate(() => document.documentElement.classList.add('dark'));
+		await editor.getByRole('button', { name: 'Preview experience' }).click();
+		const preview = editor.locator('.project-experience');
+		await expect(preview).not.toHaveAttribute('data-design-preset');
+		await expect(editor.locator('.experience-preview-frame')).toHaveAttribute(
+			'data-experience-theme',
+			'light'
+		);
+		expect(await palette(preview)).toEqual(publishedLight);
+		for (const text of [
+			preview.locator('h1'),
+			preview.locator('.experience-hero .experience-prose p')
+		])
+			expect(await textContrast(text)).toBeGreaterThanOrEqual(4.5);
+		await editor.getByRole('button', { name: 'Return to editor' }).click();
+		await page.evaluate(() => document.documentElement.classList.remove('dark'));
+
+		const saveResponse = page.waitForResponse(
+			(response) =>
+				response.request().method() === 'PATCH' &&
+				new URL(response.url()).pathname === `/api/collections/projects/records/${originalId}`
+		);
+		await page.getByRole('button', { name: /update project|save project|save changes/i }).click();
+		expect((await saveResponse).ok()).toBeTruthy();
+		const saved: ProjectExperience = (
+			await (
+				await request.get(`${apiBaseURL}/api/collections/projects/records/${originalId}`, {
+					headers: { Authorization: token }
+				})
+			).json()
+		).experience;
+		expect(saved.design).toBeUndefined();
+		const [listen] = saved.sections;
+		expect(listen.headingLayout).toBe('stack');
+		expect(listen.blocks.map((b) => ('presentation' in b ? b.presentation : null))).toEqual([
+			'spotlight',
+			'plain'
+		]);
 	});
 });

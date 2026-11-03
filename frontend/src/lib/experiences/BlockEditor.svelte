@@ -2,8 +2,13 @@
 	import SingleMediaPicker from '$lib/components/admin/SingleMediaPicker.svelte';
 	import { newLesson, newStep } from './templates';
 	import type { ExperienceBlock } from './types';
-	let { block = $bindable(), onchange }: { block: ExperienceBlock; onchange?: () => void } =
-		$props();
+	let {
+		block = $bindable(),
+		onchange,
+		layoutEnabled = true
+	}: { block: ExperienceBlock; onchange?: () => void; layoutEnabled?: boolean } = $props();
+	// Stored layout choices stay intact while a design that can't draw them is selected.
+	let layoutNote = $derived(layoutEnabled ? undefined : `block-layout-note-${block.id}`);
 	function move<T>(items: T[], index: number, delta: number) {
 		const next = index + delta;
 		if (next < 0 || next >= items.length) return;
@@ -31,7 +36,10 @@
 	<label>Caption<input maxlength="500" bind:value={block.caption} /></label>
 {:else if block.type === 'video'}
 	<label
-		>Player layout<select bind:value={block.presentation}
+		>Player layout<select
+			bind:value={block.presentation}
+			disabled={!layoutEnabled}
+			aria-describedby={layoutNote}
 			><option value={undefined}>Original</option><option value="stack"
 				>Player above chapters</option
 			><option value="sidebar">Chapters beside player</option><option value="spotlight"
@@ -39,6 +47,9 @@
 			></select
 		></label
 	>
+	{#if layoutNote}<p class="hint" id={layoutNote}>
+			Needs a built-in Page design: Playful, Technical or Editorial.
+		</p>{/if}
 	<label>Player heading<input maxlength="200" bind:value={block.title} /></label>
 	{#each block.lessons as lesson, index (lesson.id)}
 		<details class="experience-edit-item" open={index === 0}>
@@ -201,12 +212,18 @@
 	>
 {:else if block.type === 'story'}
 	<label
-		>Activity layout<select bind:value={block.presentation}
+		>Activity layout<select
+			bind:value={block.presentation}
+			disabled={!layoutEnabled}
+			aria-describedby={layoutNote}
 			><option value={undefined}>Original</option><option value="plain">Simple</option><option
 				value="paper">Story on paper</option
 			></select
 		></label
 	>
+	{#if layoutNote}<p class="hint" id={layoutNote}>
+			Needs a built-in Page design: Playful, Technical or Editorial.
+		</p>{/if}
 	<label>Heading<input maxlength="200" bind:value={block.title} /></label>
 	<label
 		>Story template<textarea rows="8" maxlength="50000" bind:value={block.template}

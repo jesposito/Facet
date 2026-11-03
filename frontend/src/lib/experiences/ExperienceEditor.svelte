@@ -32,6 +32,8 @@
 		'story'
 	];
 	let previewDoc = $derived(value ? readExperience({ ...value, enabled: true }) : null);
+	// Extra section, video and story layouts are drawn by the built-in designs only.
+	let layoutsEnabled = $derived(!!value?.design);
 	const designs = [
 		{
 			id: 'playful',
@@ -120,7 +122,11 @@
 					>Page width<select bind:value={value.design.width}
 						><option value="standard">Standard</option><option value="wide">Wide</option></select
 					></label
-				>{/if}
+				>{:else}<p class="hint" id="experience-layout-requirement">
+					Section introduction, player layout and activity layout need a built-in Page design
+					(Playful, Technical or Editorial). Original keeps its original layout; your choices are
+					kept and return when you pick a built-in design.
+				</p>{/if}
 		</fieldset>
 		{#if preview}
 			<div class="experience-edit-row">
@@ -254,17 +260,27 @@
 							>
 						</div>
 						<label
-							>Section introduction<select bind:value={section.headingLayout}
+							>Section introduction<select
+								bind:value={section.headingLayout}
+								disabled={!layoutsEnabled}
+								aria-describedby={layoutsEnabled ? undefined : `section-layout-note-${section.id}`}
 								><option value={undefined}>Original</option><option value="stack"
 									>Heading above text</option
 								><option value="split">Heading beside text</option></select
 							></label
 						>
+						{#if !layoutsEnabled}<p class="hint" id="section-layout-note-{section.id}">
+								Needs a built-in Page design: Playful, Technical or Editorial.
+							</p>{/if}
 						{#each section.blocks as block, bi (block.id)}
 							<details class="experience-edit-item" open>
 								<summary>{block.type.charAt(0).toUpperCase() + block.type.slice(1)} block</summary>
 								<div class="experience-edit-fields">
-									<BlockEditor bind:block={section.blocks[bi]} {onchange} />
+									<BlockEditor
+										bind:block={section.blocks[bi]}
+										{onchange}
+										layoutEnabled={layoutsEnabled}
+									/>
 									<div class="experience-edit-row">
 										<button
 											type="button"
