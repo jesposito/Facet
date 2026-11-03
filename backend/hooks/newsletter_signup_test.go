@@ -3,10 +3,14 @@ package hooks
 import (
 	"encoding/base64"
 	"net/http"
+	"net/http/httptest"
 	"regexp"
 	"testing"
+	"time"
 
 	"facet/services"
+
+	"github.com/pocketbase/pocketbase/core"
 )
 
 type newsletterFixture struct {
@@ -125,6 +129,54 @@ func TestUnsubscribedReaderIsNotResubscribedBySomeoneElse(t *testing.T) {
 		t.Fatalf("status after the owner confirmed = %q", got)
 	}
 	n.assertEmailsSent(t, 2)
+}
+
+func TestSimultaneousFirstSignupsSendOneConfirmation(t *testing.T) {
+	n := newNewsletterFixture(t, true)
+
+	// Both requests have looked the address up and found nothing before
+	// either one inserts it.
+	arrived := make(chan struct{}, 2)
+	release := make(chan struct{})
+	n.app.OnRecordCreate("subscribers").BindFunc(func(e *core.RecordEvent) error {
+		arrived <- struct{}{}
+		select {
+		case <-release:
+		case <-time.After(5 * time.Second):
+		}
+		return e.Next()
+	})
+
+	codes := make(chan *httptest.ResponseRecorder, 2)
+	for _, name := range []string{"First", "Second"} {
+		go func(name string) {
+			codes <- do(t, n.handler, testRequest{method: http.MethodPost, url: "/api/public/home/subscribe", body: `{"email":"race@example.com","name":"` + name + `"}`})
+		}(name)
+	}
+	for i := 0; i < 2; i++ {
+		select {
+		case <-arrived:
+		case <-time.After(5 * time.Second):
+			t.Fatal("both signups did not reach the insert")
+		}
+	}
+	close(release)
+
+	for i := 0; i < 2; i++ {
+		rec := <-codes
+		assertStatus(t, rec, http.StatusOK)
+		assertContains(t, rec, `"status":"confirmation_required"`)
+	}
+	if count, err := n.app.CountRecords("subscribers"); err != nil || count != 1 {
+		t.Fatalf("subscribers = %d (%v), want 1", count, err)
+	}
+	n.assertEmailsSent(t, 1)
+
+	// The confirmation that went out still matches the stored token.
+	assertStatus(t, do(t, n.handler, testRequest{url: n.confirmPath(t, "race@example.com")}), http.StatusFound)
+	if got := n.status(t, "race@example.com"); got != "active" {
+		t.Fatalf("status after confirming = %q, want active", got)
+	}
 }
 
 func TestNewsletterSignupWithoutEmailStaysPending(t *testing.T) {

@@ -176,7 +176,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			}
 
 			// Check for existing subscriber
-			existing, _ := app.FindRecordsByFilter(
+			existing, err := app.FindRecordsByFilter(
 				"subscribers",
 				"email = {:email}",
 				"",
@@ -184,6 +184,9 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				0,
 				map[string]interface{}{"email": req.Email},
 			)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
+			}
 
 			confirmationRequired := map[string]string{"status": "confirmation_required"}
 
@@ -266,6 +269,12 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				}
 				sub.Set("pending_list_id", list.Id)
 				if err := app.Save(sub); err != nil {
+					// A simultaneous first signup for the same address got
+					// there first. Its confirmation is the one that goes out;
+					// this request leaves that record alone.
+					if winner, findErr := app.FindFirstRecordByData("subscribers", "email", req.Email); findErr == nil && winner.Id != sub.Id {
+						return e.JSON(http.StatusOK, confirmationRequired)
+					}
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
 				}
 			}
