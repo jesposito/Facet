@@ -31,10 +31,10 @@ func enforceCollectionRules(app *pocketbase.PocketBase) error {
 	// Track what we changed for logging
 	var updated []string
 
-	// ALL content collections require authentication for direct access
-	// Public data flows through /api/view/{slug}/data which applies visibility rules
-	allManagedCollections := []string{
-		// Content collections
+	// These collections are read or changed directly by the owner admin UI.
+	// Public data flows through custom endpoints that apply visibility rules.
+	// Nil rules on collections outside this registry remain superuser-only.
+	ownerManagedCollections := []string{
 		"profile",
 		"experience",
 		"projects",
@@ -44,7 +44,9 @@ func enforceCollectionRules(app *pocketbase.PocketBase) error {
 		"posts",
 		"talks",
 		"views",
-		// Sensitive/admin collections
+		"courses",
+		"modules",
+		"lessons",
 		"share_tokens",
 		"sources",
 		"ai_providers",
@@ -52,7 +54,7 @@ func enforceCollectionRules(app *pocketbase.PocketBase) error {
 		"settings",
 	}
 
-	for _, name := range allManagedCollections {
+	for _, name := range ownerManagedCollections {
 		collection, err := app.FindCollectionByNameOrId(name)
 		if err != nil {
 			continue // Collection doesn't exist yet

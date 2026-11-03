@@ -65,19 +65,21 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			})
 		}).Bind(apis.RequireAuth())
 
-		// Check AI status endpoint - tells frontend if AI is available
-		// Also auto-configures from environment on first call if needed
+		// Providers set through environment variables are created once at
+		// startup, when none exist yet. This used to happen on the first
+		// call to /api/ai/status, which let any visitor trigger the write.
+		if allProviders, _ := app.FindRecordsByFilter("ai_providers", "1=1", "", 1, 0); len(allProviders) == 0 {
+			autoConfigureFromEnv(app, crypto)
+		}
+
+		// Check AI status endpoint - tells frontend if AI is available.
+		// Visitors only learn whether AI is available.
 		se.Router.GET("/api/ai/status", func(e *core.RequestEvent) error {
-			// First check if any providers exist
-			allProviders, _ := app.FindRecordsByFilter("ai_providers", "1=1", "", 1, 0)
-
-			// If no providers exist at all, try to auto-configure from environment
-			if len(allProviders) == 0 {
-				autoConfigureFromEnv(app, crypto)
-			}
-
 			providers, err := app.FindRecordsByFilter("ai_providers", "is_active = true", "", 1, 0)
 			available := err == nil && len(providers) > 0
+			if e.Auth == nil {
+				return e.JSON(http.StatusOK, map[string]interface{}{"available": available})
+			}
 
 			var defaultProvider map[string]interface{}
 			if available {
@@ -357,8 +359,8 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 	})
 }
 
-// autoConfigureFromEnv creates AI providers from environment variables
-// Called from request context where saves work correctly
+// autoConfigureFromEnv creates AI providers from environment variables.
+// Called once at startup when no providers exist.
 func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	isFirstProvider := true
 

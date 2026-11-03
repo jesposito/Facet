@@ -61,6 +61,14 @@ func stripeEvent(t *testing.T, eventType, paymentStatus, sessionID, postID strin
 func TestCheckoutGrantsAccessOnlyOncePaid(t *testing.T) {
 	t.Setenv("STRIPE_WEBHOOK_SECRET", testWebhookSecret)
 	f := newSecurityFixture(t)
+	// Paid access links go out by email, so the site needs a mailer.
+	settings := f.app.Settings()
+	settings.SMTP.Enabled = true
+	settings.Meta.AppURL = "https://facet.example"
+	settings.Meta.SenderAddress = "site@facet.example"
+	if err := f.app.Save(settings); err != nil {
+		t.Fatal(err)
+	}
 	RegisterPurchaseHooks(f.pb, f.crypto, f.rl)
 	post := f.create(t, "posts", map[string]any{"title": "Paid", "slug": "paid", "visibility": "public", "access_tier": "paid", "price": 500})
 	h := f.serve(t)

@@ -11,6 +11,7 @@ import (
 
 	"facet/services"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
@@ -197,6 +198,7 @@ func serializeRecords(records []*core.Record, access contentAccess) []map[string
 		}
 
 		gatePaidContent(record, item, access)
+		redactUnavailableProtection(record, item)
 		result = append(result, item)
 	}
 	return result
@@ -304,6 +306,7 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 		}
 
 		gatePaidContent(record, item, access)
+		redactUnavailableProtection(record, item)
 		result = append(result, item)
 	}
 	return result
@@ -379,6 +382,24 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 	}
 
 	return true, tokenRecord
+}
+
+// consumeShareTokenUse counts one use of a share token, unless the token has
+// none left. Checking use_count and saving use_count+1 as separate steps let
+// a burst of requests all pass the check, so a single-use link opened in
+// parallel worked many times. A conditional UPDATE does both at once.
+func consumeShareTokenUse(app core.App, tokenID string) bool {
+	result, err := app.DB().NewQuery(
+		"UPDATE share_tokens SET use_count = use_count + 1, last_used_at = {:now} " +
+			"WHERE id = {:id} AND is_active = TRUE AND (max_uses <= 0 OR use_count < max_uses)").
+		Bind(dbx.Params{"id": tokenID, "now": types.NowDateTime().String()}).
+		Execute()
+	if err != nil {
+		app.Logger().Warn("Failed to record share token use", "error", err, "token_id", tokenID)
+		return false
+	}
+	n, err := result.RowsAffected()
+	return err == nil && n == 1
 }
 
 // viewAccessDenial explains why a request may not read a view.

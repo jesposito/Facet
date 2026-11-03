@@ -193,7 +193,7 @@ func APIKeyMiddleware(app core.App, crypto *services.CryptoService, requiredScop
 
 // RegisterAPIKeyHooks wires up the admin CRUD endpoints for managing API keys
 // and the public read-only v1 endpoints that consume them.
-func RegisterAPIKeyHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+func RegisterAPIKeyHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// ---------------------------------------------------------------
 		// Admin endpoints (require superuser)
@@ -322,13 +322,15 @@ func RegisterAPIKeyHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 		// Public v1 read-only endpoints (require API key with matching scope)
 		// ---------------------------------------------------------------
 
+		// docs/SECURITY.md promises per-IP rate limiting on the public API.
 		readAuth := func(scope string, handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
-			return APIKeyMiddleware(app, crypto, scope)(handler)
+			return RateLimitMiddleware(rl, "normal")(APIKeyMiddleware(app, crypto, scope)(handler))
 		}
 
-		// GET /api/v1/profile
+		// GET /api/v1/profile (only when the profile isn't private, as on
+		// the public site)
 		se.Router.GET("/api/v1/profile", readAuth("read:profile", func(e *core.RequestEvent) error {
-			records, err := app.FindRecordsByFilter("profile", "id != ''", "", 1, 0)
+			records, err := app.FindRecordsByFilter("profile", "visibility != 'private'", "", 1, 0)
 			if err != nil || len(records) == 0 {
 				return respondNotFound(e, "profile not found")
 			}
@@ -349,7 +351,7 @@ func RegisterAPIKeyHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 
 		// GET /api/v1/projects
 		se.Router.GET("/api/v1/projects", readAuth("read:projects", func(e *core.RequestEvent) error {
-			return listPublicCollection(app, e, "projects", "-created", mapBasicProject)
+			return listPublicCollection(app, e, "projects", "-created", mapPublicProject)
 		}))
 
 		// GET /api/v1/skills
@@ -415,6 +417,16 @@ func mapBasicPost(r *core.Record) map[string]any {
 		"created":      r.GetString("created"),
 		"updated":      r.GetString("updated"),
 	}
+}
+
+// mapPublicProject is the read API's project shape. What buyers pay for
+// stays off the public API, as it does on the site.
+func mapPublicProject(r *core.Record) map[string]any {
+	project := mapBasicProject(r)
+	if requiresPurchase(r) {
+		project["description"] = ""
+	}
+	return project
 }
 
 func mapBasicProject(r *core.Record) map[string]any {

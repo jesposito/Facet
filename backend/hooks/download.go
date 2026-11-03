@@ -35,9 +35,10 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
 			}
 
-			// Fetch content record
+			// Fetch content record. Visitors only get files from content they
+			// can see: public or unlisted, and not a draft.
 			record, err := app.FindRecordById(contentType, contentID)
-			if err != nil {
+			if err != nil || (e.Auth == nil && !isRecordVisible(record)) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
 
@@ -162,6 +163,7 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			safeFilename = strings.ReplaceAll(safeFilename, `"`, "")
 			safeFilename = strings.ReplaceAll(safeFilename, `\`, "")
 			e.Response.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, safeFilename))
+			e.Response.Header().Set("Cache-Control", protectedFileCacheControl)
 			return e.FileFS(os.DirFS(filepath.Dir(filePath)), filepath.Base(filePath))
 		}))
 

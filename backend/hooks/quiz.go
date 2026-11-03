@@ -2,16 +2,20 @@ package hooks
 
 import (
 	"encoding/json"
+	"errors"
 	"facet/services"
 	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
+
+var errQuizAttemptsExhausted = errors.New("maximum attempts exceeded")
 
 // RegisterQuizHooks registers quiz-related API endpoints
 func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig, crypto *services.CryptoService, rl *services.RateLimitService) {
@@ -334,7 +338,26 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 			attempt.Set("passed", passed)
 			attempt.Set("answers", answerData)
 
-			if err := app.Save(attempt); err != nil {
+			// The check above is a quick answer for the common case.
+			// Concurrent submissions all pass it, so the limit is enforced
+			// again here, with the count and the save in one transaction.
+			err = app.RunInTransaction(func(txApp core.App) error {
+				if maxAttempts > 0 {
+					used, err := txApp.CountRecords("quiz_attempts",
+						dbx.NewExp("quiz = {:quiz} AND buyer_email = {:email}", dbx.Params{"quiz": quiz.Id, "email": buyerEmail}))
+					if err != nil {
+						return err
+					}
+					if int(used) >= maxAttempts {
+						return errQuizAttemptsExhausted
+					}
+				}
+				return txApp.Save(attempt)
+			})
+			if errors.Is(err, errQuizAttemptsExhausted) {
+				return respondForbidden(e, "maximum attempts exceeded")
+			}
+			if err != nil {
 				app.Logger().Error("Failed to save quiz attempt", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save attempt"})
 			}

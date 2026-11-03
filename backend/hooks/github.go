@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"facet/services"
@@ -13,18 +14,50 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// githubRepoClient is the part of services.GitHubService the import routes
+// use. Tests swap in a fake so they never call api.github.com.
+type githubRepoClient interface {
+	ParseRepoURL(input string) (owner, repo string, err error)
+	FetchRepoMetadata(owner, repo, token string) (*services.RepoMetadata, error)
+}
+
+// projectEnricher is the part of services.AIService the import route uses.
+// Tests swap in a fake so they never spend provider credits.
+type projectEnricher interface {
+	DecryptAPIKey(encrypted string) (string, error)
+	EnrichProject(ctx context.Context, provider *services.AIProvider, req *services.EnrichmentRequest) (*services.EnrichmentResult, error)
+}
+
+// githubAIError is what the import response says when enrichment was asked
+// for but didn't happen. Provider errors can echo request details, so the
+// specific cause goes to the server log and the admin gets a generic message.
+const githubAIError = "AI enrichment failed, so the project was imported from GitHub data only. Check the AI provider in Settings, then try again."
+
 // RegisterGitHubHooks registers GitHub-related API endpoints
 func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubService, ai *services.AIService, crypto *services.CryptoService) {
+	registerGitHubRoutes(app, github, ai, crypto)
+}
+
+// importGitHubToken picks the token for one preview or import. A token typed
+// into the import form wins over the saved one and is never stored.
+func importGitHubToken(app core.App, crypto *services.CryptoService, requestToken string) string {
+	if token := strings.TrimSpace(requestToken); token != "" {
+		return token
+	}
+	return getGitHubToken(app, crypto)
+}
+
+func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnricher, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Parse and preview a GitHub repo
 		se.Router.POST("/api/github/preview", func(e *core.RequestEvent) error {
-			// Require authentication
-			if e.Auth == nil {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			var req struct {
 				RepoURL string `json:"repo_url"`
+				Token   string `json:"token"`
 			}
 
 			if err := e.BindBody(&req); err != nil {
@@ -36,10 +69,7 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
-			// Get GitHub token from settings (stored once, used for all imports)
-			token := getGitHubToken(app, crypto)
-
-			metadata, err := github.FetchRepoMetadata(owner, repo, token)
+			metadata, err := github.FetchRepoMetadata(owner, repo, importGitHubToken(app, crypto, req.Token))
 			if err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
@@ -49,12 +79,13 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 
 		// Import a GitHub repo as a project
 		se.Router.POST("/api/github/import", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			var req struct {
 				RepoURL      string `json:"repo_url"`
+				Token        string `json:"token"`
 				AIEnrich     bool   `json:"ai_enrich"`
 				AIProviderID string `json:"ai_provider_id"`
 				PrivacyMode  string `json:"privacy_mode"` // full, summary, none
@@ -69,11 +100,8 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
-			// Get GitHub token from settings (stored once, used for all imports)
-			token := getGitHubToken(app, crypto)
-
 			// Fetch metadata
-			metadata, err := github.FetchRepoMetadata(owner, repo, token)
+			metadata, err := github.FetchRepoMetadata(owner, repo, importGitHubToken(app, crypto, req.Token))
 			if err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
@@ -103,10 +131,17 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 
 			// AI enrichment if requested
 			var aiResult *services.EnrichmentResult
+			aiError := ""
+			if req.AIEnrich && req.AIProviderID == "" {
+				aiError = githubAIError
+			}
 			if req.AIEnrich && req.AIProviderID != "" {
 				// Fetch AI provider
 				providerRecord, err := app.FindRecordById("ai_providers", req.AIProviderID)
-				if err == nil {
+				if err != nil {
+					app.Logger().Warn("github import: AI provider not found", "provider_id", req.AIProviderID)
+					aiError = githubAIError
+				} else {
 					// Decrypt API key
 					apiKeyEnc := providerRecord.GetString("api_key_encrypted")
 					apiKey, _ := ai.DecryptAPIKey(apiKeyEnc)
@@ -132,8 +167,10 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 					defer cancel()
 
 					aiResult, err = ai.EnrichProject(ctx, provider, enrichReq)
-					if err != nil {
-						app.Logger().Error("AI enrichment failed", "error", err)
+					if err != nil || aiResult == nil {
+						app.Logger().Error("AI enrichment failed", "provider_id", providerRecord.Id, "error", err)
+						aiResult = nil
+						aiError = githubAIError
 					} else {
 						// Apply AI enrichment
 						proposedData["summary"] = aiResult.Summary
@@ -190,19 +227,23 @@ func RegisterGitHubHooks(app *pocketbase.PocketBase, github *services.GitHubServ
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create proposal"})
 			}
 
-			return e.JSON(http.StatusOK, map[string]interface{}{
+			response := map[string]interface{}{
 				"proposal_id": proposalRecord.Id,
 				"source_id":   sourceRecord.Id,
 				"proposed":    proposedData,
 				"ai_enriched": aiResult != nil,
 				"metadata":    metadata,
-			})
+			}
+			if aiError != "" {
+				response["ai_error"] = aiError
+			}
+			return e.JSON(http.StatusOK, response)
 		}).Bind(apis.RequireAuth())
 
 		// Refresh an existing source
 		se.Router.POST("/api/github/refresh/{id}", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			sourceID := e.Request.PathValue("id")
@@ -354,7 +395,7 @@ func calculateDiff(existing, proposed map[string]interface{}) map[string]interfa
 }
 
 // getGitHubToken retrieves the GitHub PAT from settings (stored once, used for all imports)
-func getGitHubToken(app *pocketbase.PocketBase, crypto *services.CryptoService) string {
+func getGitHubToken(app core.App, crypto *services.CryptoService) string {
 	records, err := app.FindRecordsByFilter(
 		"settings",
 		"key = 'github_token'",

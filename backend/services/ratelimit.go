@@ -2,10 +2,8 @@ package services
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -49,15 +47,10 @@ type RateLimitService struct {
 	// Last access times for cleanup
 	lastAccess   map[string]map[string]time.Time
 	lastAccessMu sync.RWMutex
-
-	// Proxy trust settings
-	trustProxy bool
 }
 
 // NewRateLimitService creates a new rate limiting service
 func NewRateLimitService() *RateLimitService {
-	trustProxy := os.Getenv("TRUST_PROXY") == "true"
-
 	svc := &RateLimitService{
 		limiters: make(map[string]map[string]*rate.Limiter),
 		tiers: map[string]RateLimitTier{
@@ -68,7 +61,6 @@ func NewRateLimitService() *RateLimitService {
 		cleanupInterval: 5 * time.Minute,
 		limiterTTL:      10 * time.Minute,
 		lastAccess:      make(map[string]map[string]time.Time),
-		trustProxy:      trustProxy,
 	}
 
 	// Initialize limiter maps for each tier
@@ -194,42 +186,10 @@ func (s *RateLimitService) getLimiter(ip, tier string) *rate.Limiter {
 	return limiter
 }
 
-// getClientIP extracts the client IP address from the request
-// Respects TRUST_PROXY setting for X-Forwarded-For and CF-Connecting-IP
+// getClientIP keys limiters on the client address. ClientIP decides which
+// proxy headers to believe.
 func (s *RateLimitService) getClientIP(r *http.Request) string {
-	if s.trustProxy {
-		// Priority 1: Cloudflare's CF-Connecting-IP (most reliable when using Cloudflare)
-		if cfIP := r.Header.Get("CF-Connecting-IP"); cfIP != "" {
-			return cfIP
-		}
-
-		// Priority 2: X-Real-IP (set by some proxies like nginx)
-		if realIP := r.Header.Get("X-Real-IP"); realIP != "" {
-			return realIP
-		}
-
-		// Priority 3: X-Forwarded-For (take the first/leftmost IP, which is the original client)
-		// WARNING: This can be spoofed if not behind a trusted proxy
-		if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-			// X-Forwarded-For format: "client, proxy1, proxy2"
-			// The leftmost IP is the original client
-			ips := strings.Split(xff, ",")
-			if len(ips) > 0 {
-				clientIP := strings.TrimSpace(ips[0])
-				if clientIP != "" {
-					return clientIP
-				}
-			}
-		}
-	}
-
-	// Fallback: Use RemoteAddr (direct connection IP)
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		// RemoteAddr might not have a port
-		return r.RemoteAddr
-	}
-	return ip
+	return ClientIP(r)
 }
 
 // cleanupLoop periodically removes stale limiters
@@ -269,11 +229,6 @@ func (s *RateLimitService) cleanup() {
 			}
 		}
 	}
-}
-
-// TrustProxy returns whether proxy headers are trusted
-func (s *RateLimitService) TrustProxy() bool {
-	return s.trustProxy
 }
 
 // Stats returns current limiter statistics (for debugging/monitoring)

@@ -4,6 +4,7 @@ go 1.27.3
 
 require (
 	github.com/abadojack/whatlanggo v1.0.1
+	github.com/disintegration/imaging v1.6.2
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
 	github.com/gen2brain/go-fitz v1.28.2
 	github.com/golang-jwt/jwt/v4 v4.5.2
@@ -23,7 +24,6 @@ require (
 require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
-	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/domodwyer/mailyak/v3 v3.6.2 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/ebitengine/purego v0.10.1 // indirect

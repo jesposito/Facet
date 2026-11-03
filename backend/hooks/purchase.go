@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -74,6 +75,14 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 					"ready":   false,
 					"reason":  "stripe_not_configured",
 					"message": "Stripe secret key is not set. Configure Stripe in your settings to accept payments.",
+				})
+			}
+
+			if ready, reason := purchaseDeliveryReady(app); !ready {
+				return e.JSON(http.StatusOK, map[string]any{
+					"ready":   false,
+					"reason":  "email_not_configured",
+					"message": reason,
 				})
 			}
 
@@ -170,14 +179,21 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 
 			// If coupon made the price 0, grant access directly (skip Stripe)
 			if price <= 0 {
+				// Take the use before granting anything, so a burst of
+				// requests can't all redeem the coupon's last use.
+				if !claimCouponUse(app, couponCode) {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid coupon: Coupon usage limit reached"})
+				}
 				accessToken, err := purchaseService.GenerateAccessToken()
 				if err != nil {
+					releaseCouponUse(app, couponCode)
 					app.Logger().Error("Failed to generate access token for free coupon", "error", err)
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
 				}
 
 				collection, err := app.FindCollectionByNameOrId("purchases")
 				if err != nil {
+					releaseCouponUse(app, couponCode)
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "purchases collection not found"})
 				}
 
@@ -193,14 +209,16 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				purchase.Set("access_token", accessToken)
 
 				if err := app.Save(purchase); err != nil {
+					releaseCouponUse(app, couponCode)
 					app.Logger().Error("Failed to save coupon purchase", "error", err)
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to grant access"})
 				}
 
-				IncrementCouponUses(app, couponCode)
-
 				// Return the access URL so the frontend can redirect
+				// This token is safe to hand back directly: its buyer email is
+				// made up for this redemption, so it unlocks nothing else.
 				return e.JSON(http.StatusOK, map[string]string{
+					"status":       "authorized",
 					"checkout_url": fmt.Sprintf("/api/content/access/%s", accessToken),
 				})
 			}
@@ -208,6 +226,13 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			stripeKey := getStripeKey(app, crypto)
 			if stripeKey == "" {
 				return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "Stripe not configured"})
+			}
+
+			// Buyers get their access link by email. Without email, refuse
+			// before taking payment rather than after.
+			if ready, _ := purchaseDeliveryReady(app); !ready {
+				app.Logger().Error("Paid checkout refused: purchase emails can't be sent. Configure SMTP, the sender address and the application URL.")
+				return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "purchases are temporarily unavailable"})
 			}
 
 			// Per-request Stripe client (avoids global stripe.Key race condition)
@@ -235,7 +260,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 						Quantity: stripe.Int64(1),
 					},
 				},
-				SuccessURL: stripe.String(req.SuccessURL),
+				SuccessURL: stripe.String(withCheckoutSessionID(req.SuccessURL)),
 				CancelURL:  stripe.String(req.CancelURL),
 			}
 
@@ -250,12 +275,18 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 
 			sess, err := sc.CheckoutSessions.New(params)
 			if err != nil {
-				app.Logger().Error("Failed to create Stripe session", "error", err)
+				app.Logger().Error("Failed to create Stripe session", "code", stripeErrorCode(err))
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create checkout session"})
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"checkout_url": sess.URL})
 		}))
+
+		// Checkout return page: report a session's status and email the
+		// buyer their access link once it's paid. Never sets a cookie.
+		// Rate limited: strict tier (10/min)
+		se.Router.POST("/api/content/checkout/confirm", RateLimitMiddleware(rl, "strict")(
+			handleCheckoutConfirm(app, purchaseService, func() string { return getStripeKey(app, crypto) })))
 
 		// Stripe webhook endpoint
 		// Rate limited: normal tier (60/min) to prevent abuse
@@ -295,78 +326,42 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 					return e.JSON(http.StatusOK, map[string]string{"status": "awaiting_payment"})
 				}
 
-				// Extract metadata
-				contentType, ok := sess.Metadata["content_type"]
-				if !ok {
-					return e.JSON(http.StatusBadRequest, map[string]string{"error": "missing content_type in metadata"})
-				}
-				contentID, ok := sess.Metadata["content_id"]
-				if !ok {
-					return e.JSON(http.StatusBadRequest, map[string]string{"error": "missing content_id in metadata"})
+				if sess.Metadata["content_type"] == "" || sess.Metadata["content_id"] == "" {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "missing content metadata"})
 				}
 
-				// Idempotency: check if we already processed this checkout session
-				existing, _ := app.FindRecordsByFilter(
-					"purchases",
-					"stripe_checkout_session_id = {:sid}",
-					"",
-					1,
-					0,
-					map[string]interface{}{"sid": sess.ID},
-				)
-				if len(existing) > 0 {
-					app.Logger().Info("Duplicate webhook, purchase already exists", "session_id", sess.ID)
-					return e.JSON(http.StatusOK, map[string]string{"status": "already_processed"})
-				}
+				// A repeated event finds the purchase already recorded and
+				// only retries the email if it hasn't gone out yet. A failed
+				// send answers with an error, so Stripe retries the event.
+				unlock := lockSession(sess.ID)
+				defer unlock()
 
-				// Generate access token
-				accessToken, err := purchaseService.GenerateAccessToken()
-				if err != nil {
-					app.Logger().Error("Failed to generate access token", "error", err)
-					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
-				}
-
-				// Create purchase record
-				collection, err := app.FindCollectionByNameOrId("purchases")
-				if err != nil {
-					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "purchases collection not found"})
-				}
-
-				purchase := core.NewRecord(collection)
-				buyerEmail := ""
-				if sess.CustomerDetails != nil && sess.CustomerDetails.Email != "" {
-					buyerEmail = sess.CustomerDetails.Email
-				}
-				if buyerEmail == "" {
+				purchase, err := recordPaidSession(app, purchaseService, &sess)
+				switch {
+				case errors.Is(err, errSessionMismatch):
+					app.Logger().Error("Checkout session metadata does not match its purchase", "session_id", sess.ID)
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "session does not match purchase"})
+				case errors.Is(err, errSessionNoEmail):
 					app.Logger().Error("Webhook missing customer email", "session_id", sess.ID)
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "missing customer email"})
-				}
-				purchase.Set("buyer_email", buyerEmail)
-				purchase.Set("content_type", contentType)
-				purchase.Set("content_id", contentID)
-				paymentIntentID := ""
-				if sess.PaymentIntent != nil {
-					paymentIntentID = sess.PaymentIntent.ID
-				}
-				purchase.Set("stripe_payment_intent_id", paymentIntentID)
-				purchase.Set("stripe_checkout_session_id", sess.ID)
-				purchase.Set("amount", sess.AmountTotal)
-				purchase.Set("currency", sess.Currency)
-				purchase.Set("status", "completed")
-				purchase.Set("access_token", accessToken)
-
-				if err := app.Save(purchase); err != nil {
-					app.Logger().Error("Failed to save purchase", "error", err)
+				case err != nil:
+					app.Logger().Error("Failed to save purchase", "session_id", sess.ID)
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save purchase"})
 				}
 
-				app.Logger().Info("Purchase created", "purchase_id", purchase.Id, "email", buyerEmail)
-
-				// Increment coupon uses if a coupon was applied
-				if couponCode, ok := sess.Metadata["coupon_code"]; ok && couponCode != "" {
-					IncrementCouponUses(app, couponCode)
+				if purchase.GetString("status") != "completed" {
+					return e.JSON(http.StatusOK, map[string]string{"status": "already_processed"})
 				}
-
+				alreadySent := !purchase.GetDateTime("access_email_sent_at").IsZero()
+				if _, err := deliverPurchaseAccess(app, purchase, false); err != nil {
+					if errors.Is(err, errDeliveryUnconfigured) {
+						return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "purchase email delivery not configured"})
+					}
+					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to send access email"})
+				}
+				if alreadySent {
+					return e.JSON(http.StatusOK, map[string]string{"status": "already_processed"})
+				}
 				return e.JSON(http.StatusOK, map[string]string{"status": "success"})
 
 			case "checkout.session.async_payment_failed":

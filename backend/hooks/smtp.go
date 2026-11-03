@@ -11,7 +11,9 @@ import (
 
 // RegisterSMTPEnvConfig applies SMTP settings from environment variables
 // into PocketBase's built-in SMTP configuration on startup.
-// Always sets Meta.AppName (used in PocketBase's built-in auth emails).
+// Always sets Meta.AppName (used in PocketBase's built-in auth emails) and
+// applies APP_URL to Meta.AppURL when set, so email links and OAuth redirects
+// use the public address whether or not SMTP or OAuth is configured.
 // SMTP settings only activate when SMTP_HOST is set.
 func RegisterSMTPEnvConfig(app *pocketbase.PocketBase) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
@@ -31,13 +33,18 @@ func RegisterSMTPEnvConfig(app *pocketbase.PocketBase) {
 			needsSave = true
 		}
 
+		if appURL := strings.TrimSpace(os.Getenv("APP_URL")); appURL != "" && settings.Meta.AppURL != appURL {
+			settings.Meta.AppURL = appURL
+			needsSave = true
+		}
+
 		host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
 		if host == "" {
 			if needsSave {
 				if err := app.Save(settings); err != nil {
-					app.Logger().Error("Failed to update Meta.AppName", "error", err)
+					app.Logger().Error("Failed to update app settings from environment", "error", err)
 				} else {
-					app.Logger().Info("Meta.AppName updated", "appName", settings.Meta.AppName)
+					app.Logger().Info("App settings updated from environment", "appName", settings.Meta.AppName, "appURL", settings.Meta.AppURL)
 				}
 			}
 			app.Logger().Info("SMTP env config: SMTP_HOST not set; leaving SMTP settings unchanged")
@@ -67,11 +74,19 @@ func RegisterSMTPEnvConfig(app *pocketbase.PocketBase) {
 			settings.SMTP.Password = password
 		}
 
-		// TLS (default true)
+		// TLS. PocketBase's mailer treats TLS=true as implicit TLS (encrypted from
+		// the first byte, as on port 465). With TLS=false it connects in plain
+		// text and upgrades with STARTTLS when the server offers it, which is
+		// what port 587 expects. So when SMTP_TLS is unset, only port 465 gets
+		// implicit TLS. An explicit value always wins.
 		if tlsStr := strings.TrimSpace(os.Getenv("SMTP_TLS")); tlsStr != "" {
 			settings.SMTP.TLS = tlsStr == "true" || tlsStr == "1"
+			if settings.SMTP.TLS && settings.SMTP.Port == 587 {
+				app.Logger().Warn("SMTP env config: SMTP_TLS=true uses implicit TLS, but port 587 normally expects STARTTLS; unset SMTP_TLS or set it to false unless your provider requires implicit TLS on 587",
+					"port", settings.SMTP.Port)
+			}
 		} else {
-			settings.SMTP.TLS = true
+			settings.SMTP.TLS = settings.SMTP.Port == 465
 		}
 
 		// Auth method (default PLAIN)

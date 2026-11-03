@@ -12,6 +12,7 @@ import (
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/security"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -62,8 +63,9 @@ func seedMinimalData(app *pocketbase.PocketBase) error {
 	log.Println("This mode is for testing the first-run welcome page.")
 	log.Println("")
 
-	// Create default user for frontend admin
-	if err := createDefaultUser(app); err != nil {
+	// Create the owner account with a password nobody else knows. It's
+	// printed once to the server log, which only the operator can read.
+	if err := createDefaultUser(app, newAdminPassword()); err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 
@@ -140,8 +142,9 @@ func seedDevData(app *pocketbase.PocketBase) error {
 		}
 	}
 
-	// Create default user for frontend admin
-	if err := createDefaultUser(app); err != nil {
+	// Create default user for frontend admin. Dev mode keeps the well-known
+	// local password so developers can sign straight in.
+	if err := createDefaultUser(app, defaultAdminPassword); err != nil {
 		log.Printf("Warning: %v", err)
 	}
 
@@ -606,9 +609,11 @@ func createDemoUser(app *pocketbase.PocketBase) error {
 	return nil
 }
 
-// createDefaultUser creates the frontend admin user
+// createDefaultUser creates the frontend admin user on an empty database.
+// Existing installs already have users, so their accounts and passwords are
+// never touched.
 // Uses direct SQL INSERT because app.Save() silently fails in OnServe hooks (PB v0.23 issue)
-func createDefaultUser(app *pocketbase.PocketBase) error {
+func createDefaultUser(app *pocketbase.PocketBase, password string) error {
 	userCount, _ := app.CountRecords("users")
 	if userCount > 0 {
 		return nil
@@ -624,7 +629,7 @@ func createDefaultUser(app *pocketbase.PocketBase) error {
 	id := "r" + hex.EncodeToString(randomBytes)
 
 	// Hash password with bcrypt
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte("changeme123"), bcrypt.DefaultCost)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
@@ -652,14 +657,44 @@ func createDefaultUser(app *pocketbase.PocketBase) error {
 		return fmt.Errorf("insert user: %w", err)
 	}
 
-	log.Println("Created default frontend admin account:")
-	log.Printf("  Email: %s\n", email)
-	log.Println("  Password: changeme123")
-	log.Println("  ⚠️  You will be prompted to change this password on first login.")
+	log.Println("========================================")
+	log.Println("  Created the admin account")
+	log.Printf("  Email:    %s\n", email)
+	log.Printf("  Password: %s\n", password)
+	log.Println("  This is shown once. Sign in and change it under Settings.")
+	log.Printf("  Lost it? Run: facet reset-admin-password %s --dir=<data dir>", email)
+	log.Println("========================================")
 	log.Println("")
 	log.Printf("  NOTE: This email (%s) must be in ADMIN_EMAILS to access /admin", email)
 
 	return nil
+}
+
+// newAdminPassword returns a random password for a new owner account.
+func newAdminPassword() string {
+	return security.RandomString(20)
+}
+
+// ResetAdminPassword gives an account a new random password and returns it
+// for the operator's terminal. Changing the token key signs out every
+// existing session, and clearing the 2FA session means a stolen 2FA cookie
+// stops working too. 2FA itself stays on.
+func ResetAdminPassword(app core.App, email string) (string, error) {
+	user, err := app.FindAuthRecordByEmail("users", email)
+	if err != nil {
+		return "", fmt.Errorf("user with email '%s' not found: %w", email, err)
+	}
+	password := newAdminPassword()
+	user.SetPassword(password)
+	user.RefreshTokenKey()
+	if user.Collection().Fields.GetByName("totp_session_nonce") != nil {
+		user.Set("totp_session_nonce", "")
+		user.Set("totp_session_expires", "")
+	}
+	if err := app.Save(user); err != nil {
+		return "", fmt.Errorf("save password reset: %w", err)
+	}
+	return password, nil
 }
 
 // getSeedAdminEmail chooses the admin email for seeded accounts:

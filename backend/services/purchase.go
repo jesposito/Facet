@@ -128,6 +128,64 @@ func (p *PurchaseService) GenerateEnrollmentJWT(courseID, buyerEmail string) (st
 	return p.GeneratePurchaseJWT([]string{syntheticID}, buyerEmail)
 }
 
+// EnrollmentVerifyClaims are carried by the link in an enrolment email.
+// Following the link proves the visitor reads that inbox.
+type EnrollmentVerifyClaims struct {
+	CourseID string `json:"course"`
+	Email    string `json:"email"`
+	Name     string `json:"name,omitempty"`
+	jwt.RegisteredClaims
+}
+
+const (
+	EnrollmentVerifyAudience = "course-enrollment-verify"
+	EnrollmentVerifyDuration = 24 * time.Hour
+)
+
+// GenerateEnrollmentVerifyJWT signs the link sent to confirm a free-course
+// enrolment.
+func (p *PurchaseService) GenerateEnrollmentVerifyJWT(courseID, email, name string) (string, error) {
+	now := time.Now()
+	claims := EnrollmentVerifyClaims{
+		CourseID: courseID,
+		Email:    email,
+		Name:     name,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    JWTIssuer,
+			Audience:  jwt.ClaimStrings{EnrollmentVerifyAudience},
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(EnrollmentVerifyDuration)),
+		},
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(p.crypto.jwtKey)
+}
+
+// ValidateEnrollmentVerifyJWT checks an enrolment link. Purchase cookies and
+// view tokens are signed with the same key but carry other audiences, so they
+// can't stand in for it.
+func (p *PurchaseService) ValidateEnrollmentVerifyJWT(tokenString string) (*EnrollmentVerifyClaims, error) {
+	claims := &EnrollmentVerifyClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+		return p.crypto.jwtKey, nil
+	})
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+	if claims.Issuer != JWTIssuer || !claims.VerifyAudience(EnrollmentVerifyAudience, true) {
+		return nil, errors.New("invalid token")
+	}
+	if claims.ExpiresAt == nil || claims.ExpiresAt.Before(time.Now()) {
+		return nil, errors.New("token expired")
+	}
+	if claims.CourseID == "" || claims.Email == "" {
+		return nil, errors.New("invalid token")
+	}
+	return claims, nil
+}
+
 // HasPurchaseAccess checks if a purchase ID list contains access to specific content
 func (p *PurchaseService) HasPurchaseAccess(purchaseIDs []string, targetPurchaseID string) bool {
 	for _, id := range purchaseIDs {

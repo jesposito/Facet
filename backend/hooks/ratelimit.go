@@ -21,7 +21,7 @@ func RateLimitMiddleware(rl *services.RateLimitService, tier string) func(func(*
 	return func(handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
 		return func(e *core.RequestEvent) error {
 			// Bypass rate limiting for SSR internal requests (same-container fetch)
-			if e.Request.Header.Get("X-Internal") == "true" {
+			if services.IsInternalRequest(e.Request) {
 				return handler(e)
 			}
 

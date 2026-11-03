@@ -46,19 +46,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 					}
 				}()
 
-				result := services.RunCleanup(app)
-				if result.Total() > 0 {
-					app.Logger().Info("cleanup: startup cleanup complete",
-						"expired_share_tokens", result.ExpiredShareTokens,
-						"revoked_share_tokens", result.RevokedShareTokens,
-						"expired_verification_tokens", result.ExpiredVerificationTokens,
-						"verified_tokens", result.VerifiedTokens,
-						"failed_exports", result.FailedExports,
-						"stuck_exports", result.StuckExports,
-						"orphaned_uploads", result.OrphanedUploads,
-						"total", result.Total(),
-					)
-				}
+				logCleanupResult(app, "startup", services.RunCleanup(app))
 			}()
 
 			ticker := time.NewTicker(24 * time.Hour)
@@ -78,19 +66,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 							}
 						}()
 
-						result := services.RunCleanup(app)
-						if result.Total() > 0 {
-							app.Logger().Info("cleanup: periodic cleanup complete",
-								"expired_share_tokens", result.ExpiredShareTokens,
-								"revoked_share_tokens", result.RevokedShareTokens,
-								"expired_verification_tokens", result.ExpiredVerificationTokens,
-								"verified_tokens", result.VerifiedTokens,
-								"failed_exports", result.FailedExports,
-								"stuck_exports", result.StuckExports,
-								"orphaned_uploads", result.OrphanedUploads,
-								"total", result.Total(),
-							)
-						}
+						logCleanupResult(app, "periodic", services.RunCleanup(app))
 					}()
 				case <-done:
 					return
@@ -98,22 +74,59 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 			}
 		})
 
-		// Admin endpoint for on-demand cleanup
+		// Admin endpoint for on-demand cleanup. Counts are always returned so
+		// the caller can see what was removed. If any step failed, the response
+		// is a 500 naming those steps; the underlying errors stay in the log.
 		se.Router.POST("/api/admin/cleanup-stale-data", func(e *core.RequestEvent) error {
 			result := services.RunCleanup(app)
-			return e.JSON(http.StatusOK, map[string]any{
-				"status":                      "ok",
-				"expired_share_tokens":        result.ExpiredShareTokens,
-				"revoked_share_tokens":        result.RevokedShareTokens,
-				"expired_verification_tokens": result.ExpiredVerificationTokens,
-				"verified_tokens":             result.VerifiedTokens,
-				"failed_exports":              result.FailedExports,
-				"stuck_exports":               result.StuckExports,
-				"orphaned_uploads":            result.OrphanedUploads,
-				"total":                        result.Total(),
-			})
+			body := cleanupResultFields(result)
+			if !result.OK() {
+				body["status"] = "error"
+				body["message"] = "Some cleanup steps failed. Check the server log for details."
+				body["failed_steps"] = result.Failed
+				return e.JSON(http.StatusInternalServerError, body)
+			}
+			body["status"] = "ok"
+			return e.JSON(http.StatusOK, body)
 		}).Bind(apis.RequireAuth())
 
 		return se.Next()
 	})
+}
+
+func cleanupResultFields(result services.CleanupResult) map[string]any {
+	return map[string]any{
+		"expired_share_tokens":        result.ExpiredShareTokens,
+		"revoked_share_tokens":        result.RevokedShareTokens,
+		"expired_verification_tokens": result.ExpiredVerificationTokens,
+		"verified_tokens":             result.VerifiedTokens,
+		"failed_exports":              result.FailedExports,
+		"stuck_exports":               result.StuckExports,
+		"orphaned_uploads":            result.OrphanedUploads,
+		"total":                       result.Total(),
+	}
+}
+
+// logCleanupResult logs a scheduled run. A clean run that removed nothing
+// stays quiet; a run with failed steps is always logged.
+func logCleanupResult(app *pocketbase.PocketBase, run string, result services.CleanupResult) {
+	if result.OK() && result.Total() == 0 {
+		return
+	}
+	attrs := []any{
+		"expired_share_tokens", result.ExpiredShareTokens,
+		"revoked_share_tokens", result.RevokedShareTokens,
+		"expired_verification_tokens", result.ExpiredVerificationTokens,
+		"verified_tokens", result.VerifiedTokens,
+		"failed_exports", result.FailedExports,
+		"stuck_exports", result.StuckExports,
+		"orphaned_uploads", result.OrphanedUploads,
+		"total", result.Total(),
+	}
+	if !result.OK() {
+		attrs = append(attrs, "failed_steps", result.Failed)
+		app.Logger().Error("cleanup: "+run+" cleanup finished with errors", attrs...)
+		return
+	}
+	app.Logger().Info("cleanup: "+run+" cleanup complete", attrs...)
 }

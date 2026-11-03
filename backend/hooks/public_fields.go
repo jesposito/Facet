@@ -30,6 +30,19 @@ func publicFields(names ...string) map[string]bool {
 	return fields
 }
 
+// redactUnavailableProtection removes contact values that are marked for
+// CAPTCHA protection. Facet has no CAPTCHA check yet, so the public page can
+// only show the label; sending the value anyway would hand it to every
+// scraper while hiding it from visitors. Admin routes don't use this.
+func redactUnavailableProtection(record *core.Record, item map[string]interface{}) {
+	if strings.TrimPrefix(record.Collection().Name, "demo_") != "contact_methods" {
+		return
+	}
+	if record.GetString("protection_level") == "captcha" {
+		delete(item, "value")
+	}
+}
+
 func publicFieldAllowed(collection *core.Collection, name string) bool {
 	field := collection.Fields.GetByName(name)
 	if field == nil || field.GetHidden() {

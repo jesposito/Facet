@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"html"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"facet/internal/textlimit"
 	"facet/services"
 
 	"github.com/pocketbase/dbx"
@@ -90,7 +92,7 @@ func rewriteLinksForTracking(app core.App, htmlContent, sendID, token, unsubscri
 }
 
 // RegisterNewsletterHooks registers all newsletter-related routes and hooks.
-// Note: rl is accepted for future rate limiting use but not applied to routes in this upstream version.
+// rl limits the public signup and confirmation routes.
 func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService, planConfig *services.PlanConfig) {
 	// Clean up stale "sending" records on startup.
 	// Any send still in "sending" status after 10 minutes is assumed to have crashed.
@@ -121,12 +123,18 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
 		// POST /api/public/{slug}/subscribe — public newsletter signup
-		se.Router.POST("/api/public/{slug}/subscribe", func(e *core.RequestEvent) error {
+		//
+		// Signing up only asks: the address owner gets a confirmation link
+		// and is subscribed when they follow it. Someone who unsubscribed
+		// stays unsubscribed until they confirm again themselves. The reply
+		// is the same in every case, so the form doesn't reveal who is on
+		// the list.
+		se.Router.POST("/api/public/{slug}/subscribe", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
 
 			// Honeypot check — bots fill hidden fields, humans don't
 			if honeypot := e.Request.FormValue("website_url"); honeypot != "" {
-				return e.JSON(http.StatusOK, map[string]string{"status": "subscribed"})
+				return e.JSON(http.StatusOK, map[string]string{"status": "confirmation_required"})
 			}
 
 			// Parse request body
@@ -180,48 +188,93 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				map[string]interface{}{"email": req.Email},
 			)
 
+			confirmationRequired := map[string]string{"status": "confirmation_required"}
+
+			var sub *core.Record
 			if len(existing) > 0 {
-				sub := existing[0]
-				if sub.GetString("status") == "unsubscribed" {
-					// Re-subscribe
-					sub.Set("status", "active")
-					sub.Set("source", source)
-					sub.Set("view_id", view.Id)
-					if req.Name != "" {
-						sub.Set("name", req.Name)
-					}
-					if err := app.Save(sub); err != nil {
-						return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to resubscribe"})
-					}
-					// Send welcome email on re-subscribe (SMTP graceful degradation handled inside)
-					sendWelcomeEmail(app, crypto, sub.Id)
+				sub = existing[0]
+				// Already subscribed: nothing to confirm, and no email.
+				if sub.GetString("status") == "active" {
+					return e.JSON(http.StatusOK, confirmationRequired)
 				}
-				// Already active — return success silently
-				return e.JSON(http.StatusOK, map[string]string{"status": "subscribed"})
+				// Unsubscribed, bounced or still pending keep their status
+				// until the owner confirms.
+			} else {
+				collection, err := app.FindCollectionByNameOrId("subscribers")
+				if err != nil {
+					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "subscribers collection not found"})
+				}
+				sub = core.NewRecord(collection)
+				sub.Set("email", req.Email)
+				sub.Set("name", textlimit.Runes(req.Name, 200))
+				sub.Set("source", textlimit.Runes(source, 100))
+				sub.Set("view_id", view.Id)
+				sub.Set("status", "pending")
 			}
 
-			// Create new subscriber
-			collection, err := app.FindCollectionByNameOrId("subscribers")
-			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "subscribers collection not found"})
+			// One confirmation email per address per cooldown, however
+			// often the form is submitted.
+			if sentAt, err := time.Parse(time.RFC3339, sub.GetString("confirmation_sent_at")); err == nil &&
+				time.Since(sentAt) < subscribeConfirmationCooldown {
+				return e.JSON(http.StatusOK, confirmationRequired)
 			}
 
-			record := core.NewRecord(collection)
-			record.Set("email", req.Email)
-			record.Set("name", req.Name)
-			record.Set("source", source)
-			record.Set("view_id", view.Id)
-			record.Set("status", "active")
+			canSend := smtpConfigured(app) && publicAppURL(app) != ""
+			var rawToken string
+			if canSend {
+				rawToken, err = crypto.GenerateToken(32)
+				if err != nil {
+					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
+				}
+				sub.Set("confirm_token_hash", crypto.HMACToken(rawToken))
+				sub.Set("confirmation_sent_at", time.Now().UTC().Format(time.RFC3339))
+			}
 
-			if err := app.Save(record); err != nil {
+			if err := app.Save(sub); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
 			}
 
-			// Send welcome email to new subscriber (SMTP graceful degradation handled inside)
-			sendWelcomeEmail(app, crypto, record.Id)
+			if canSend {
+				if err := sendSubscribeConfirmation(app, sub, rawToken); err != nil {
+					app.Logger().Warn("newsletter: confirmation email failed", "error", err, "subscriber_id", sub.Id)
+				}
+			} else {
+				app.Logger().Info("newsletter: email not configured, signup left pending", "subscriber_id", sub.Id)
+			}
 
-			return e.JSON(http.StatusOK, map[string]string{"status": "subscribed"})
-		})
+			return e.JSON(http.StatusOK, confirmationRequired)
+		}))
+
+		// GET /api/public/newsletter/confirm/{token} — the link in the
+		// confirmation email. Subscribes the address and sends the welcome
+		// email.
+		se.Router.GET("/api/public/newsletter/confirm/{token}", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
+			token := e.Request.PathValue("token")
+			if token == "" {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid or expired link"})
+			}
+			sub, err := app.FindFirstRecordByFilter(
+				"subscribers",
+				"confirm_token_hash = {:hash}",
+				map[string]any{"hash": crypto.HMACToken(token)},
+			)
+			if err != nil {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "invalid or expired link"})
+			}
+			sentAt, err := time.Parse(time.RFC3339, sub.GetString("confirmation_sent_at"))
+			if err != nil || time.Since(sentAt) > subscribeConfirmationLifetime {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "invalid or expired link"})
+			}
+
+			sub.Set("status", "active")
+			sub.Set("confirm_token_hash", "")
+			sub.Set("bounce_count", 0)
+			if err := app.Save(sub); err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
+			}
+			sendWelcomeEmail(app, crypto, sub.Id)
+			return e.Redirect(http.StatusFound, "/?newsletter=confirmed")
+		}))
 
 		// ========================================
 		// Admin Subscriber Management Endpoints
@@ -488,7 +541,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			if err := requireSuperuser(e); err != nil {
 				return err
 			}
-			configured := app.Settings().SMTP.Host != ""
+			configured := smtpConfigured(app)
 			return respondJSON(e, http.StatusOK, map[string]any{
 				"configured": configured,
 				"host":       app.Settings().SMTP.Host,
@@ -598,7 +651,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid test email"})
 				}
 
-				if app.Settings().SMTP.Host == "" {
+				if !smtpConfigured(app) {
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP not configured"})
 				}
 
@@ -628,14 +681,8 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			}
 
 			// Full send mode
-			if app.Settings().SMTP.Host == "" {
+			if !smtpConfigured(app) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP not configured"})
-			}
-
-			// Concurrent send guard - check if another send is already in progress
-			activeSendCount, _ := app.CountRecords("newsletter_sends", dbx.NewExp("status = 'sending'"))
-			if activeSendCount > 0 {
-				return e.JSON(http.StatusConflict, map[string]string{"error": "a newsletter send is already in progress"})
 			}
 
 			// Count active subscribers
@@ -664,7 +711,22 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			sendRecord.Set("sent_count", 0)
 			sendRecord.Set("failed_count", 0)
 
-			if err := app.Save(sendRecord); err != nil {
+			// Only one send at a time. The check and the new record share a
+			// transaction, so a double-clicked Send can't start two.
+			err = app.RunInTransaction(func(txApp core.App) error {
+				activeSendCount, err := txApp.CountRecords("newsletter_sends", dbx.NewExp("status = 'sending'"))
+				if err != nil {
+					return err
+				}
+				if activeSendCount > 0 {
+					return errNewsletterSendInProgress
+				}
+				return txApp.Save(sendRecord)
+			})
+			if errors.Is(err, errNewsletterSendInProgress) {
+				return e.JSON(http.StatusConflict, map[string]string{"error": "a newsletter send is already in progress"})
+			}
+			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create send record"})
 			}
 
@@ -876,15 +938,21 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			if targetURL == "" {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid url"})
 			}
-			// Validate redirect URL scheme — prevent open redirect
 			parsed, err := url.Parse(targetURL)
 			if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid url"})
 			}
-			if sendID != "" && token != "" {
+			// Only follow links that were in this newsletter. Otherwise the
+			// route is an open redirect on the site's own domain.
+			send, err := app.FindRecordById("newsletter_sends", sendID)
+			if err != nil || !newsletterLinksTo(send.GetString("body_html"), targetURL) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "link not found"})
+			}
+			if token != "" {
 				go recordNewsletterEvent(app, crypto, sendID, token, "click", targetURL)
 			}
-			return e.Redirect(http.StatusFound, targetURL)
+			// The link was taken from HTML, where & is written &amp;.
+			return e.Redirect(http.StatusFound, html.UnescapeString(targetURL))
 		})
 
 		// GET /api/admin/newsletter/sends/{id}/stats — Send engagement statistics
@@ -907,6 +975,70 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 
 		return se.Next()
 	})
+}
+
+var errNewsletterSendInProgress = errors.New("a newsletter send is already in progress")
+
+// smtpConfigured reports whether the site can send email. PocketBase's
+// default settings carry a placeholder host, so the host alone doesn't say
+// SMTP was set up; the Enabled switch does.
+func smtpConfigured(app core.App) bool {
+	smtp := app.Settings().SMTP
+	return smtp.Enabled && smtp.Host != ""
+}
+
+const (
+	// subscribeConfirmationCooldown is the gap between confirmation emails
+	// to one address.
+	subscribeConfirmationCooldown = 24 * time.Hour
+	// subscribeConfirmationLifetime is how long a confirmation link works.
+	subscribeConfirmationLifetime = 7 * 24 * time.Hour
+)
+
+// sendSubscribeConfirmation emails the link that completes a signup.
+func sendSubscribeConfirmation(app core.App, sub *core.Record, rawToken string) error {
+	senderName := app.Settings().Meta.SenderName
+	if profile, err := app.FindFirstRecordByFilter("profile", "1=1", nil); err == nil && profile != nil {
+		if customName := profile.GetString("newsletter_sender_name"); customName != "" {
+			senderName = customName
+		} else if name := profile.GetString("name"); name != "" {
+			senderName = name
+		}
+	}
+	link := fmt.Sprintf("%s/api/public/newsletter/confirm/%s", publicAppURL(app), url.PathEscape(rawToken))
+	safeSender := html.EscapeString(senderName)
+
+	inner := fmt.Sprintf(
+		`<p style="color: #374151; font-size: 16px; line-height: 1.6;">Someone asked to subscribe this address to <strong>%s</strong>'s newsletter.</p>
+<p style="color: #374151; font-size: 16px; line-height: 1.6;"><a href="%s" style="color: #2563eb;">Confirm your subscription</a></p>
+<p style="color: #6B7280; font-size: 14px; line-height: 1.5;">If this wasn't you, ignore this email. You won't be subscribed or hear from us again.</p>`,
+		safeSender, html.EscapeString(link),
+	)
+
+	message := &mailer.Message{
+		From: mail.Address{
+			Address: app.Settings().Meta.SenderAddress,
+			Name:    senderName,
+		},
+		To:      []mail.Address{{Address: sub.GetString("email")}},
+		Subject: fmt.Sprintf("Confirm your subscription to %s's newsletter", senderName),
+		HTML:    EmailLayout(inner),
+		Text: fmt.Sprintf("Someone asked to subscribe this address to %s's newsletter.\n\nConfirm your subscription: %s\n\nIf this wasn't you, ignore this email. You won't be subscribed or hear from us again.\n",
+			senderName, link),
+	}
+	return app.NewMailClient().Send(message)
+}
+
+// newsletterLinksTo reports whether a sent newsletter contains a tracked
+// link to target. The click route only redirects to those, so its URLs
+// can't be used to bounce visitors to an arbitrary site.
+func newsletterLinksTo(bodyHTML, target string) bool {
+	for _, match := range linkHrefRegex.FindAllStringSubmatch(stripDangerousProtocols(bodyHTML), -1) {
+		if len(match) >= 3 && match[2] == target {
+			return true
+		}
+	}
+	return false
 }
 
 // tokenMaxAge is the maximum age of an unsubscribe token before it is rotated (90 days).
@@ -1087,7 +1219,7 @@ func sendWelcomeEmail(app *pocketbase.PocketBase, crypto *services.CryptoService
 		}()
 
 		// SMTP graceful degradation — self-hosted may not have SMTP configured
-		if app.Settings().SMTP.Host == "" {
+		if !smtpConfigured(app) {
 			app.Logger().Info("newsletter: SMTP not configured, skipping welcome email", "subscriber_id", subID)
 			return
 		}
@@ -1194,7 +1326,7 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 	}()
 
 	// SMTP graceful degradation — self-hosted may not have SMTP configured
-	if app.Settings().SMTP.Host == "" {
+	if !smtpConfigured(app) {
 		app.Logger().Info("newsletter: SMTP not configured, skipping newsletter send")
 		if sendRecord, err := app.FindRecordById("newsletter_sends", sendID); err == nil {
 			sendRecord.Set("status", "failed")

@@ -2,13 +2,12 @@ package hooks
 
 import (
 	"log"
-	"net"
-	"strings"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 
 	"facet/internal/textlimit"
+	"facet/services"
 )
 
 // Collections to audit for CRUD operations.
@@ -185,8 +184,42 @@ func extractLabel(collectionName string, record *core.Record) string {
 	}
 }
 
+// logAPIKeyAction records a successful write made through the public API.
+// Those handlers save records directly, so PocketBase's record request hooks
+// above never fire for them. The key is identified by its id, label and
+// display prefix (the same prefix the admin UI shows); the secret and its
+// hash are never written.
+func logAPIKeyAction(app core.App, e *core.RequestEvent, action, collectionName string, record *core.Record) {
+	keyID, _ := e.Get("api_key_id").(string)
+	metadata := map[string]any{
+		"via":        "api_key",
+		"api_key_id": keyID,
+	}
+
+	actor := "API key"
+	if keyID != "" {
+		if key, err := app.FindRecordById("api_keys", keyID); err == nil {
+			label := key.GetString("label")
+			prefix := key.GetString("key_prefix")
+			metadata["api_key_label"] = label
+			metadata["api_key_prefix"] = prefix
+			actor = "API key: " + label + " (" + prefix + ")"
+		}
+	}
+
+	resourceID := ""
+	if record != nil {
+		resourceID = record.Id
+		if label := extractLabel(collectionName, record); label != "" {
+			metadata["label"] = label
+		}
+	}
+
+	writeAuditLog(app, action, collectionName, resourceID, textlimit.Bytes(actor, 255), getIP(e), getUserAgent(e), metadata)
+}
+
 // writeAuditLog creates an audit log entry. Failures are logged but never block the operation.
-func writeAuditLog(app *pocketbase.PocketBase, action, resourceType, resourceID, userEmail, ipAddress, userAgent string, metadata map[string]any) {
+func writeAuditLog(app core.App, action, resourceType, resourceID, userEmail, ipAddress, userAgent string, metadata map[string]any) {
 	collection, err := app.FindCollectionByNameOrId("audit_logs")
 	if err != nil {
 		log.Printf("[AUDIT] collection not found: %v", err)
@@ -215,17 +248,7 @@ func getIP(e *core.RequestEvent) string {
 	if e == nil || e.Request == nil {
 		return ""
 	}
-	// Check X-Forwarded-For first (Caddy sets this)
-	if xff := e.Request.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.SplitN(xff, ",", 2)
-		return strings.TrimSpace(parts[0])
-	}
-	// Fall back to RemoteAddr (handles IPv4 and IPv6 correctly)
-	host, _, err := net.SplitHostPort(e.Request.RemoteAddr)
-	if err != nil {
-		return e.Request.RemoteAddr
-	}
-	return host
+	return services.ClientIP(e.Request)
 }
 
 func getUserAgent(e *core.RequestEvent) string {

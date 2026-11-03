@@ -428,11 +428,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if denial != nil {
 				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
-			if tokenRecord != nil {
-				useCount := tokenRecord.GetInt("use_count")
-				tokenRecord.Set("use_count", useCount+1)
-				tokenRecord.Set("last_used_at", time.Now())
-				app.Save(tokenRecord)
+			if tokenRecord != nil && !consumeShareTokenUse(app, tokenRecord.Id) {
+				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
 			}
 			access := newContentAccess(app, purchaseService, e)
 
@@ -1316,12 +1313,13 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Fetch contacts - only public ones appear on homepage
+			// Contacts use view_visibility rather than a visibility column.
+			// Apply contactVisibleInView below to exclude restricted contacts.
 			contactsEnabled, contactsSelectedItems, contactsConfigured := getSectionConfig(settings, "contacts")
 			if contactsEnabled {
 				contactRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "contact_methods"),
-					"visibility = 'public'",
+					"",
 					"-is_primary,-sort_order",
 					100,
 					0,
@@ -1369,9 +1367,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				})
 			}
 
-			// Fetch non-private, non-draft posts (public and unlisted)
-			// Use explicit OR to handle NULL visibility values
-			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
+			// Public, published posts only. Unlisted posts open from their
+			// direct link (/api/post/{slug}) but aren't listed, matching
+			// the RSS feed and the homepage.
+			filter := "visibility = 'public' && is_draft = false"
 
 			postRecords, err := app.FindRecordsByFilter(
 				"posts",
@@ -1657,9 +1656,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				})
 			}
 
-			// Fetch non-private, non-draft talks (public and unlisted)
-			// Use explicit OR to handle NULL visibility values
-			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
+			// Public, published talks only. Unlisted talks open from their
+			// direct link (/api/talk/{slug}) but aren't listed, matching
+			// talks.ics and the homepage.
+			filter := "visibility = 'public' && is_draft = false"
 
 			talkRecords, err := app.FindRecordsByFilter(
 				"talks",

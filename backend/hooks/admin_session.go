@@ -8,8 +8,9 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// defaultAdminPassword is the password seeded on first run and restored by
-// reset-admin-password.
+// defaultAdminPassword is the published password older releases seeded on
+// every install. Only SEED_DATA=dev still seeds it, for local testing. Any
+// account still using it must change it before reaching admin APIs.
 const defaultAdminPassword = "changeme123"
 
 // Routes an admin can still use before finishing sign-in. auth-refresh keeps

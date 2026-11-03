@@ -151,13 +151,101 @@ func (rp *ResumeParser) extractPDF(fileBytes []byte) (string, error) {
 	return extractedText, nil
 }
 
+// Limits for DOCX uploads. A DOCX is a ZIP archive, so a small upload can
+// expand into gigabytes of XML (a "zip bomb"). The archive is checked against
+// these limits before go-docx sees it. A typical resume is well under 1MB
+// uncompressed, so the limits leave plenty of room for long documents with
+// embedded images.
+const (
+	docxMaxCompressedBytes   = 10 << 20  // matches the 10MB upload ceiling
+	docxMaxEntries           = 1000      // Word writes a few dozen parts
+	docxMaxUncompressedBytes = 100 << 20 // all parts together, images included
+	docxMaxDocumentXMLBytes  = 20 << 20  // word/document.xml on its own
+	docxDocumentXMLName      = "word/document.xml"
+)
+
+// checkDOCXArchive opens the DOCX as a ZIP archive and decompresses every
+// part, counting the real bytes rather than trusting the sizes in the ZIP
+// headers. It returns the contents of word/document.xml (nil if missing).
+func checkDOCXArchive(fileBytes []byte) ([]byte, error) {
+	if len(fileBytes) > docxMaxCompressedBytes {
+		return nil, fmt.Errorf("DOCX file is too large (maximum %d MB)", docxMaxCompressedBytes>>20)
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(fileBytes), int64(len(fileBytes)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read DOCX as ZIP: the file may be corrupted (%v)", err)
+	}
+	if len(zipReader.File) > docxMaxEntries {
+		return nil, fmt.Errorf("DOCX contains too many parts (%d, maximum %d)", len(zipReader.File), docxMaxEntries)
+	}
+
+	// Reject early on declared sizes so an honest bomb is never decompressed.
+	var declared uint64
+	for _, file := range zipReader.File {
+		declared += file.UncompressedSize64
+		if declared > docxMaxUncompressedBytes {
+			return nil, fmt.Errorf("DOCX is too large when uncompressed (maximum %d MB)", docxMaxUncompressedBytes>>20)
+		}
+	}
+
+	var total int64
+	var documentXML []byte
+	for _, file := range zipReader.File {
+		if file.FileInfo().IsDir() {
+			continue
+		}
+
+		limit := int64(docxMaxUncompressedBytes) - total
+		isDocument := file.Name == docxDocumentXMLName && documentXML == nil
+		if isDocument && limit > docxMaxDocumentXMLBytes {
+			limit = docxMaxDocumentXMLBytes
+		}
+
+		rc, err := file.Open()
+		if err != nil {
+			return nil, fmt.Errorf("failed to open %s in DOCX: the file may be corrupted (%v)", file.Name, err)
+		}
+
+		// Read one byte past the limit so an oversized part is detectable.
+		limited := io.LimitReader(rc, limit+1)
+		var n int64
+		if isDocument {
+			documentXML, err = io.ReadAll(limited)
+			n = int64(len(documentXML))
+		} else {
+			n, err = io.Copy(io.Discard, limited)
+		}
+		rc.Close()
+
+		if n > limit {
+			if isDocument && limit == docxMaxDocumentXMLBytes {
+				return nil, fmt.Errorf("DOCX document text is too large when uncompressed (maximum %d MB)", docxMaxDocumentXMLBytes>>20)
+			}
+			return nil, fmt.Errorf("DOCX is too large when uncompressed (maximum %d MB)", docxMaxUncompressedBytes>>20)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s in DOCX: the file may be corrupted (%v)", file.Name, err)
+		}
+		total += n
+	}
+
+	return documentXML, nil
+}
+
 // extractDOCX extracts text from DOCX using go-docx with XML fallback
 func (rp *ResumeParser) extractDOCX(fileBytes []byte) (text string, err error) {
+	// Check the archive limits before any library decompresses it.
+	documentXML, err := checkDOCXArchive(fileBytes)
+	if err != nil {
+		return "", err
+	}
+
 	// Recover from panics in go-docx library (can happen with malformed/complex DOCX files)
 	defer func() {
 		if r := recover(); r != nil {
 			// If go-docx panics, try the XML fallback
-			text, err = rp.extractDOCXFromXML(fileBytes)
+			text, err = rp.extractDOCXFromXML(documentXML)
 			if err != nil {
 				err = fmt.Errorf("failed to parse DOCX: the file may be corrupted or use unsupported formatting. Error: %v", r)
 			}
@@ -168,11 +256,11 @@ func (rp *ResumeParser) extractDOCX(fileBytes []byte) (text string, err error) {
 	doc, parseErr := docx.Parse(reader, int64(len(fileBytes)))
 	if parseErr != nil {
 		// Try XML fallback before giving up
-		text, fallbackErr := rp.extractDOCXFromXML(fileBytes)
+		text, fallbackErr := rp.extractDOCXFromXML(documentXML)
 		if fallbackErr == nil {
 			return text, nil
 		}
-		return "", fmt.Errorf("failed to parse DOCX: %w. Try converting to PDF or re-saving the file", parseErr)
+		return "", fmt.Errorf("failed to parse DOCX: %w (%v). Try converting to PDF or re-saving the file", parseErr, fallbackErr)
 	}
 
 	var textBuilder strings.Builder
@@ -197,48 +285,15 @@ func (rp *ResumeParser) extractDOCX(fileBytes []byte) (text string, err error) {
 	return extractedText, nil
 }
 
-// extractDOCXFromXML extracts text from DOCX by parsing the XML directly
-// DOCX files are ZIP archives containing XML. This is a fallback when go-docx fails.
-func (rp *ResumeParser) extractDOCXFromXML(fileBytes []byte) (string, error) {
-	// Open DOCX as ZIP archive
-	reader := bytes.NewReader(fileBytes)
-	zipReader, err := zip.NewReader(reader, int64(len(fileBytes)))
-	if err != nil {
-		return "", fmt.Errorf("failed to read DOCX as ZIP: %w", err)
-	}
-
-	// Find and read word/document.xml
-	var documentXML []byte
-	for _, file := range zipReader.File {
-		if file.Name == "word/document.xml" {
-			rc, err := file.Open()
-			if err != nil {
-				return "", fmt.Errorf("failed to open document.xml: %w", err)
-			}
-			defer rc.Close()
-
-			documentXML, err = io.ReadAll(rc)
-			if err != nil {
-				return "", fmt.Errorf("failed to read document.xml: %w", err)
-			}
-			break
-		}
-	}
-
+// extractDOCXFromXML extracts text from word/document.xml directly. DOCX files
+// are ZIP archives containing XML; this is a fallback when go-docx fails. The
+// caller reads documentXML through checkDOCXArchive, so its size is bounded.
+func (rp *ResumeParser) extractDOCXFromXML(documentXML []byte) (string, error) {
 	if documentXML == nil {
 		return "", fmt.Errorf("document.xml not found in DOCX file")
 	}
 
-	// Parse XML and extract text from <w:t> elements
-	type Text struct {
-		Value string `xml:",chardata"`
-	}
-	type Document struct {
-		Texts []Text `xml:"body>p>r>t"`
-	}
-
-	// Use a simpler approach: extract all <w:t> tags with regex
-	// This is more robust than full XML parsing for our use case
+	// Walk the XML tokens and collect the text inside <w:t> elements.
 	var textBuilder strings.Builder
 	decoder := xml.NewDecoder(bytes.NewReader(documentXML))
 
@@ -248,7 +303,9 @@ func (rp *ResumeParser) extractDOCXFromXML(fileBytes []byte) (string, error) {
 			break
 		}
 		if err != nil {
-			continue
+			// The decoder keeps returning the same error after a syntax
+			// error, so carrying on here would loop forever.
+			return "", fmt.Errorf("failed to read DOCX text: document.xml is malformed, the file may be corrupted (%v)", err)
 		}
 
 		switch elem := token.(type) {
@@ -256,9 +313,10 @@ func (rp *ResumeParser) extractDOCXFromXML(fileBytes []byte) (string, error) {
 			if elem.Name.Local == "t" {
 				// Read the text content
 				var text string
-				if err := decoder.DecodeElement(&text, &elem); err == nil {
-					textBuilder.WriteString(text)
+				if err := decoder.DecodeElement(&text, &elem); err != nil {
+					return "", fmt.Errorf("failed to read DOCX text: document.xml is malformed, the file may be corrupted (%v)", err)
 				}
+				textBuilder.WriteString(text)
 			} else if elem.Name.Local == "p" {
 				// Add newline for paragraphs
 				textBuilder.WriteString("\n")

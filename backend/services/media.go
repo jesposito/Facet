@@ -77,20 +77,7 @@ func FindMediaUsage(app *pocketbase.PocketBase, externalMediaID string) (MediaUs
 	if err == nil {
 		mediaURL := extRecord.GetString("url")
 		if mediaURL != "" {
-			libraryURLFields := map[string][]string{
-				"experience":     {"company_logo_library_url"},
-				"education":      {"institution_logo_library_url"},
-				"projects":       {"cover_image_library_url"},
-				"posts":          {"cover_image_library_url"},
-				"talks":          {"cover_image_library_url"},
-				"profile":        {"hero_image_library_url", "avatar_library_url"},
-				"views":          {"hero_image_library_url"},
-				"site_settings":  {"favicon_library_url"},
-				"custom_content": {"cover_image_library_url"},
-				"testimonials":   {"author_photo_library_url"},
-			}
-
-			for collName, fields := range libraryURLFields {
+			for collName, fields := range LibraryURLFields {
 				collection, err := app.FindCollectionByNameOrId(collName)
 				if err != nil {
 					continue
@@ -155,9 +142,16 @@ func (u *MediaUsage) addRecord(collection string, record *core.Record) {
 }
 
 func FindProjectExperienceMediaUsage(app *pocketbase.PocketBase, mediaURL string) MediaUsage {
+	usage, _ := findProjectExperienceMediaUsage(app, mediaURL)
+	return usage
+}
+
+// findProjectExperienceMediaUsage also returns query failures, so cleanup can
+// keep an upload rather than treat an unreadable project as "unused".
+func findProjectExperienceMediaUsage(app *pocketbase.PocketBase, mediaURL string) (MediaUsage, error) {
 	usage := MediaUsage{UsedBy: []MediaUsageItem{}}
 	if mediaURL == "" {
-		return usage
+		return usage, nil
 	}
 	for _, collectionName := range []string{"projects", "demo_projects"} {
 		collection, err := app.FindCollectionByNameOrId(collectionName)
@@ -169,7 +163,7 @@ func FindProjectExperienceMediaUsage(app *pocketbase.PocketBase, mediaURL string
 		for offset := 0; ; offset += pageSize {
 			records, err := app.FindRecordsByFilter(collectionName, "", "", pageSize, offset, nil)
 			if err != nil {
-				break
+				return usage, fmt.Errorf("query %s experience media: %w", collectionName, err)
 			}
 			for _, record := range records {
 				_, found := RewriteNestedMediaURLs(record.Get("experience"), mediaURL, mediaURL)
@@ -182,7 +176,7 @@ func FindProjectExperienceMediaUsage(app *pocketbase.PocketBase, mediaURL string
 			}
 		}
 	}
-	return usage
+	return usage, nil
 }
 
 func RewriteNestedMediaURLs(value any, oldURL, newURL string) (any, bool) {

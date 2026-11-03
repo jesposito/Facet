@@ -4,7 +4,6 @@ import (
 	"facet/services"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -1372,137 +1371,8 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 			})
 		})
 
-		// POST /api/courses/{slug}/enroll - Enroll in a free course
-		se.Router.POST("/api/courses/{slug}/enroll", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
-
-			var req struct {
-				Email string `json:"email"`
-				Name  string `json:"name"`
-			}
-			if err := e.BindBody(&req); err != nil {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
-			}
-
-			req.Email = strings.TrimSpace(req.Email)
-			if req.Email == "" {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "email is required"})
-			}
-			emailRegex := regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
-			if !emailRegex.MatchString(req.Email) {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid email format"})
-			}
-
-			req.Name = strings.TrimSpace(req.Name)
-
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-
-			course := courseRecords[0]
-
-			if course.GetString("access_tier") == "paid" {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "this course requires purchase"})
-			}
-
-			existingRecords, err := app.FindRecordsByFilter(
-				"course_progress",
-				"course = {:course} && buyer_email = {:email}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"course": course.Id, "email": req.Email},
-			)
-
-			alreadyEnrolled := err == nil && len(existingRecords) > 0
-
-			if !alreadyEnrolled {
-				progressCollection, err := app.FindCollectionByNameOrId("course_progress")
-				if err != nil {
-					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to find progress collection"})
-				}
-
-				progress := core.NewRecord(progressCollection)
-				progress.Set("course", course.Id)
-				progress.Set("buyer_email", req.Email)
-				progress.Set("started_at", time.Now())
-				progress.Set("last_accessed", time.Now())
-				progress.Set("progress_percent", 0)
-				progress.Set("lessons_completed", 0)
-
-				totalLessons := 0
-				moduleRecords, mErr := app.FindRecordsByFilter(
-					"modules",
-					"course = {:course}",
-					"",
-					500,
-					0,
-					map[string]interface{}{"course": course.Id},
-				)
-				if mErr == nil {
-					for _, mod := range moduleRecords {
-						lessonRecords, lErr := app.FindRecordsByFilter(
-							"lessons",
-							"module = {:module}",
-							"",
-							500,
-							0,
-							map[string]interface{}{"module": mod.Id},
-						)
-						if lErr == nil {
-							totalLessons += len(lessonRecords)
-						}
-					}
-				}
-				progress.Set("total_lessons", totalLessons)
-
-				if req.Name != "" {
-					progress.Set("student_name", req.Name)
-				}
-
-				if err := app.Save(progress); err != nil {
-					if strings.Contains(err.Error(), "UNIQUE constraint failed") || strings.Contains(err.Error(), "duplicate key") {
-						alreadyEnrolled = true
-					} else {
-						return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create enrollment"})
-					}
-				}
-			}
-
-			jwtToken, expiresAt, err := purchaseService.GenerateEnrollmentJWT(course.Id, req.Email)
-			if err != nil {
-				app.Logger().Error("Failed to generate enrollment JWT", "error", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
-			}
-
-			http.SetCookie(e.Response, &http.Cookie{
-				Name:     services.PurchaseCookieName,
-				Value:    jwtToken,
-				Path:     "/",
-				Expires:  expiresAt,
-				HttpOnly: true,
-				Secure:   isRequestSecure(e),
-				SameSite: http.SameSiteLaxMode,
-			})
-
-			status := "enrolled"
-			if alreadyEnrolled {
-				status = "already_enrolled"
-			}
-
-			return e.JSON(http.StatusOK, map[string]interface{}{
-				"status":       status,
-				"redirect_url": fmt.Sprintf("/courses/%s/learn", slug),
-			})
-		}))
+		// POST /api/courses/{slug}/enroll and its email confirmation link
+		registerEnrollmentRoutes(se, app, purchaseService, rl)
 
 		// GET /api/my-courses
 		se.Router.GET("/api/my-courses", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
@@ -2016,54 +1886,61 @@ func checkModuleDripLock(app core.App, courseID string, module *core.Record, buy
 
 	dripDays := module.GetInt("drip_days_after_enrollment")
 	if dripDays > 0 {
-		progressRecords, err := app.FindRecordsByFilter(
-			"course_progress",
-			"course = {:course} && buyer_email = {:email}",
-			"",
-			1,
-			0,
-			map[string]interface{}{"course": courseID, "email": buyerEmail},
-		)
-
-		if err != nil || len(progressRecords) == 0 {
-			purchaseRecords, err := app.FindRecordsByFilter(
-				"purchases",
-				"content_type = 'courses' && content_id = {:id} && buyer_email = {:email} && status = 'completed'",
-				"created",
-				1,
-				0,
-				map[string]interface{}{"id": courseID, "email": buyerEmail},
-			)
-
-			if err != nil || len(purchaseRecords) == 0 {
-				return false, time.Time{}
-			}
-
-			purchaseDate := purchaseRecords[0].GetDateTime("created")
-			if purchaseDate.IsZero() {
-				return false, time.Time{}
-			}
-
-			unlockTime := purchaseDate.Time().AddDate(0, 0, dripDays)
-			if unlockTime.After(time.Now()) {
-				return true, unlockTime
-			}
+		start := courseStartTime(app, courseID, buyerEmail)
+		if start.IsZero() {
+			// No recorded start, as with purchases made before purchase
+			// dates were stored. Those buyers have always had the whole
+			// course, so they keep it.
 			return false, time.Time{}
 		}
-
-		enrollmentDate := progressRecords[0].GetDateTime("started_at")
-		if enrollmentDate.IsZero() {
-			enrollmentDate = progressRecords[0].GetDateTime("created")
-		}
-		if enrollmentDate.IsZero() {
-			return false, time.Time{}
-		}
-
-		unlockTime := enrollmentDate.Time().AddDate(0, 0, dripDays)
+		unlockTime := start.AddDate(0, 0, dripDays)
 		if unlockTime.After(time.Now()) {
 			return true, unlockTime
 		}
 	}
 
 	return false, time.Time{}
+}
+
+// courseStartTime is when a learner joined a course: the earliest of their
+// purchase and their progress record. A buyer's progress record is created
+// when they finish their first lesson, so using it alone would restart the
+// drip clock at that point and lock modules the purchase date had opened.
+func courseStartTime(app core.App, courseID, buyerEmail string) time.Time {
+	var start time.Time
+	consider := func(t time.Time) {
+		if !t.IsZero() && (start.IsZero() || t.Before(start)) {
+			start = t
+		}
+	}
+
+	purchases, err := app.FindRecordsByFilter(
+		"purchases",
+		"content_type = 'courses' && content_id = {:id} && buyer_email = {:email} && status = 'completed' && created != ''",
+		"created",
+		1,
+		0,
+		map[string]interface{}{"id": courseID, "email": buyerEmail},
+	)
+	if err == nil && len(purchases) > 0 {
+		consider(purchases[0].GetDateTime("created").Time())
+	}
+
+	progress, err := app.FindRecordsByFilter(
+		"course_progress",
+		"course = {:course} && buyer_email = {:email}",
+		"",
+		1,
+		0,
+		map[string]interface{}{"course": courseID, "email": buyerEmail},
+	)
+	if err == nil && len(progress) > 0 {
+		started := progress[0].GetDateTime("started_at")
+		if started.IsZero() {
+			started = progress[0].GetDateTime("created")
+		}
+		consider(started.Time())
+	}
+
+	return start
 }

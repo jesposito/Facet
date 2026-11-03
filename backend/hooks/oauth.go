@@ -36,14 +36,8 @@ func RegisterOAuthEnvConfig(app *pocketbase.PocketBase) {
 			return se.Next()
 		}
 
-		// Keep APP_URL in sync for downstream consumers (login redirect helpers, docs).
-		if appURL != "" && app.Settings().Meta.AppURL != appURL {
-			settings := app.Settings()
-			settings.Meta.AppURL = appURL
-			if err := app.Save(settings); err != nil {
-				app.Logger().Warn("OAuth env config: failed to persist APP_URL to settings", "error", err)
-			}
-		} else if appURL == "" {
+		// RegisterSMTPEnvConfig persists APP_URL to settings for every deployment.
+		if appURL == "" {
 			app.Logger().Warn("OAuth env config: APP_URL is empty; confirm redirect URIs match your deployment")
 		}
 

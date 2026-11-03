@@ -78,10 +78,10 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				return e.JSON(http.StatusOK, invalidResponse)
 			}
 
-			// Update usage
-			tokenRecord.Set("use_count", useCount+1)
-			tokenRecord.Set("last_used_at", time.Now())
-			app.Save(tokenRecord)
+			// Count the use; a concurrent request may have taken the last one
+			if !consumeShareTokenUse(app, tokenRecord.Id) {
+				return e.JSON(http.StatusOK, invalidResponse)
+			}
 
 			return e.JSON(http.StatusOK, services.ShareTokenValidation{
 				Valid:    true,
