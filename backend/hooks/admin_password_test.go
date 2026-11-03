@@ -1,9 +1,14 @@
 package hooks
 
 import (
+	"errors"
 	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/pocketbase/pocketbase/core"
 )
 
 func readTestAdminPassword(t *testing.T, dataDir string) string {
@@ -18,6 +23,19 @@ func readTestAdminPassword(t *testing.T, dataDir string) string {
 		t.Fatal("credentials file has no password")
 	}
 	return strings.TrimSuffix(password, "\n")
+}
+
+// assertNoTemporaryCredentials fails if a finished operation left a
+// temporary credentials file in the data directory.
+func assertNoTemporaryCredentials(t *testing.T, dataDir string) {
+	t.Helper()
+	leftovers, err := filepath.Glob(filepath.Join(dataDir, adminCredentialsFilename+"-*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(leftovers) != 0 {
+		t.Fatalf("%d temporary credentials files left in the data directory", len(leftovers))
+	}
 }
 
 func blockAdminCredentialHandoff(t *testing.T, dataDir string) {
@@ -131,4 +149,186 @@ func TestResetAdminPasswordWritesCredentialsAndPreservesTwoFactor(t *testing.T) 
 	if !user.GetBool("totp_enabled") || user.GetString("totp_secret") != "encrypted-secret-before-reset" {
 		t.Fatal("password reset changed 2FA settings")
 	}
+	assertNoTemporaryCredentials(t, f.app.DataDir())
+}
+
+// adminState is what a failed reset must leave unchanged.
+type adminState struct {
+	tokenKey string
+	nonce    string
+}
+
+func readAdminState(t *testing.T, f *securityFixture, email string) (*core.Record, adminState) {
+	t.Helper()
+	user, err := f.app.FindAuthRecordByEmail("users", email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return user, adminState{tokenKey: user.TokenKey(), nonce: user.GetString("totp_session_nonce")}
+}
+
+func assertAdminUnchanged(t *testing.T, f *securityFixture, email, password string, before adminState) {
+	t.Helper()
+	user, after := readAdminState(t, f, email)
+	if !user.ValidatePassword(password) {
+		t.Fatalf("failed reset changed the password for %s", email)
+	}
+	if after != before {
+		t.Fatalf("failed reset changed sessions for %s", email)
+	}
+}
+
+func TestResetRefusesPendingCredentialsForAnotherAccount(t *testing.T) {
+	f := newSecurityFixture(t)
+	_, _ = f.createAdmin(t, "first@example.com", "first-password-123", nil)
+	_, _ = f.createAdmin(t, "second@example.com", "second-password-123", map[string]any{
+		"totp_session_nonce": "second-nonce",
+	})
+
+	firstPassword, err := ResetAdminPassword(f.app, "first@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := AdminCredentialsPath(f.app.DataDir())
+	pending, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, before := readAdminState(t, f, "second@example.com")
+
+	password, err := ResetAdminPassword(f.app, "second@example.com")
+	if err == nil {
+		t.Fatal("reset replaced an unread credentials file")
+	}
+	if password != "" {
+		t.Fatal("refused reset returned a password")
+	}
+	if !strings.Contains(err.Error(), path) {
+		t.Fatalf("error does not name the pending credentials file: %v", err)
+	}
+
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(contents) != string(pending) {
+		t.Fatal("refused reset changed the pending credentials file")
+	}
+	first, err := f.app.FindAuthRecordByEmail("users", "first@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !first.ValidatePassword(firstPassword) || readTestAdminPassword(t, f.app.DataDir()) != firstPassword {
+		t.Fatal("pending credentials no longer sign in to their account")
+	}
+	assertAdminUnchanged(t, f, "second@example.com", "second-password-123", before)
+	assertNoTemporaryCredentials(t, f.app.DataDir())
+
+	// Once the operator has read and deleted the file, the reset works.
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	secondPassword, err := ResetAdminPassword(f.app, "second@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if readTestAdminPassword(t, f.app.DataDir()) != secondPassword {
+		t.Fatal("reset password does not match the credentials file")
+	}
+}
+
+func TestConcurrentResetsChangeThePasswordOnce(t *testing.T) {
+	f := newSecurityFixture(t)
+	_, _ = f.createAdmin(t, "owner@example.com", "old-password-123", nil)
+
+	const attempts = 8
+	var (
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		winners  []string
+		failures int
+		start    = make(chan struct{})
+	)
+	for i := 0; i < attempts; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			password, err := ResetAdminPassword(f.app, "owner@example.com")
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				if password != "" {
+					t.Error("failed reset returned a password")
+				}
+				failures++
+				return
+			}
+			winners = append(winners, password)
+		}()
+	}
+	close(start)
+	wg.Wait()
+
+	if len(winners) != 1 || failures != attempts-1 {
+		t.Fatalf("%d resets succeeded and %d failed, want 1 and %d", len(winners), failures, attempts-1)
+	}
+	if readTestAdminPassword(t, f.app.DataDir()) != winners[0] {
+		t.Fatal("credentials file does not hold the successful reset's password")
+	}
+	user, err := f.app.FindAuthRecordByEmail("users", "owner@example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !user.ValidatePassword(winners[0]) {
+		t.Fatal("stored password does not match the credentials file")
+	}
+	assertNoTemporaryCredentials(t, f.app.DataDir())
+}
+
+func TestResetSaveFailureRemovesOnlyItsOwnCredentials(t *testing.T) {
+	f := newSecurityFixture(t)
+	_, _ = f.createAdmin(t, "owner@example.com", "old-password-123", map[string]any{
+		"totp_session_nonce": "nonce-before-reset",
+	})
+	_, before := readAdminState(t, f, "owner@example.com")
+	path := AdminCredentialsPath(f.app.DataDir())
+
+	var replaceHandoff bool
+	other := []byte("Email: other@example.com\nPassword: other-password\n")
+	f.app.OnRecordUpdate("users").BindFunc(func(e *core.RecordEvent) error {
+		if replaceHandoff {
+			// The operator deletes this reset's file and another reset
+			// writes its own before the save fails.
+			if err := os.Remove(path); err != nil {
+				return err
+			}
+			if err := os.WriteFile(path, other, 0o600); err != nil {
+				return err
+			}
+		}
+		return errors.New("simulated database failure")
+	})
+
+	if _, err := ResetAdminPassword(f.app, "owner@example.com"); err == nil {
+		t.Fatal("reset succeeded although the account was not saved")
+	}
+	if _, err := os.Lstat(path); !os.IsNotExist(err) {
+		t.Fatal("failed reset left its credentials file behind")
+	}
+	assertAdminUnchanged(t, f, "owner@example.com", "old-password-123", before)
+
+	replaceHandoff = true
+	if _, err := ResetAdminPassword(f.app, "owner@example.com"); err == nil {
+		t.Fatal("reset succeeded although the account was not saved")
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("failed reset removed another operation's credentials file: %v", err)
+	}
+	if string(contents) != string(other) {
+		t.Fatal("failed reset changed another operation's credentials file")
+	}
+	assertAdminUnchanged(t, f, "owner@example.com", "old-password-123", before)
+	assertNoTemporaryCredentials(t, f.app.DataDir())
 }

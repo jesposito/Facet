@@ -116,7 +116,8 @@ func TestLessonAttachmentsUseSignedDownloads(t *testing.T) {
 		t.Fatalf("protected attachment served without a token")
 	}
 
-	rec := do(t, c.handler, testRequest{url: "/api/courses/course", headers: map[string]string{"Cookie": c.buyerCookie(t, "first@example.com", buyer)}})
+	cookie := map[string]string{"Cookie": c.buyerCookie(t, "first@example.com", buyer)}
+	rec := do(t, c.handler, testRequest{url: "/api/courses/course", headers: cookie})
 	assertStatus(t, rec, http.StatusOK)
 	var course struct {
 		Modules []struct {
@@ -136,7 +137,7 @@ func TestLessonAttachmentsUseSignedDownloads(t *testing.T) {
 		t.Fatalf("unexpected attachments: %#v", attachments)
 	}
 
-	rec = do(t, c.handler, testRequest{url: attachments[0].URL})
+	rec = do(t, c.handler, testRequest{url: attachments[0].URL, headers: cookie})
 	assertStatus(t, rec, http.StatusOK)
 	assertContains(t, rec, "LESSON WORKSHEET BYTES")
 	c.waitForDownloadLogs(t, 1)

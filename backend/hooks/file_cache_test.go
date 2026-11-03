@@ -64,7 +64,8 @@ func TestProtectedFilesAreNeverCached(t *testing.T) {
 
 	t.Run("signed buyer download", func(t *testing.T) {
 		buyer := f.completedPurchase(t, "buyer@example.com", "posts", post.Id)
-		rec := do(t, h, testRequest{url: "/api/content/posts/" + post.Id + "/download-urls", headers: map[string]string{"Cookie": f.buyerCookie(t, "buyer@example.com", buyer)}})
+		cookie := map[string]string{"Cookie": f.buyerCookie(t, "buyer@example.com", buyer)}
+		rec := do(t, h, testRequest{url: "/api/content/posts/" + post.Id + "/download-urls", headers: cookie})
 		assertStatus(t, rec, http.StatusOK)
 		start := strings.Index(rec.Body.String(), "/api/downloads/")
 		if start < 0 {
@@ -72,7 +73,7 @@ func TestProtectedFilesAreNeverCached(t *testing.T) {
 		}
 		link := rec.Body.String()[start:]
 		link = link[:strings.IndexByte(link, '"')]
-		rec = do(t, h, testRequest{url: link})
+		rec = do(t, h, testRequest{url: link, headers: cookie})
 		assertStatus(t, rec, http.StatusOK)
 		if got := rec.Header().Get("Cache-Control"); got != protectedFileCacheControl {
 			t.Fatalf("signed download Cache-Control = %q", got)

@@ -641,9 +641,11 @@ func createDefaultUser(app *pocketbase.PocketBase, password string) error {
 	}
 	tokenKey := hex.EncodeToString(tokenBytes)
 
-	if err := writeAdminCredentials(app.DataDir(), email, password); err != nil {
+	handoff, err := writeAdminCredentials(app.DataDir(), email, password)
+	if err != nil {
 		return fmt.Errorf("prepare admin credentials: %w", err)
 	}
+	defer handoff.release()
 
 	// Direct SQL INSERT
 	query := `INSERT INTO users (id, email, name, password, tokenKey, verified, emailVisibility, avatar, password_changed_from_default)
@@ -658,7 +660,7 @@ func createDefaultUser(app *pocketbase.PocketBase, password string) error {
 	}).Execute()
 
 	if err != nil {
-		if cleanupErr := removeAdminCredentials(app.DataDir()); cleanupErr != nil {
+		if cleanupErr := removeAdminCredentials(app.DataDir(), handoff); cleanupErr != nil {
 			return fmt.Errorf("insert user: %v; %w", err, cleanupErr)
 		}
 		return fmt.Errorf("insert user: %w", err)
@@ -687,15 +689,19 @@ func newAdminPassword() string {
 // the operator's private credentials file before changing the account.
 // Changing the token key signs out every existing session, and clearing the
 // 2FA session means a stolen 2FA cookie stops working too. 2FA itself stays on.
+// If an earlier credentials file is still there, the reset fails without
+// touching the account, so an unread password is never lost.
 func ResetAdminPassword(app core.App, email string) (string, error) {
 	user, err := app.FindAuthRecordByEmail("users", email)
 	if err != nil {
 		return "", fmt.Errorf("user with email '%s' not found: %w", email, err)
 	}
 	password := newAdminPassword()
-	if err := writeAdminCredentials(app.DataDir(), email, password); err != nil {
+	handoff, err := writeAdminCredentials(app.DataDir(), email, password)
+	if err != nil {
 		return "", fmt.Errorf("prepare admin credentials: %w", err)
 	}
+	defer handoff.release()
 	user.SetPassword(password)
 	user.RefreshTokenKey()
 	if user.Collection().Fields.GetByName("totp_session_nonce") != nil {
@@ -703,7 +709,7 @@ func ResetAdminPassword(app core.App, email string) (string, error) {
 		user.Set("totp_session_expires", "")
 	}
 	if err := app.Save(user); err != nil {
-		if cleanupErr := removeAdminCredentials(app.DataDir()); cleanupErr != nil {
+		if cleanupErr := removeAdminCredentials(app.DataDir(), handoff); cleanupErr != nil {
 			return "", fmt.Errorf("save password reset: %v; %w", err, cleanupErr)
 		}
 		return "", fmt.Errorf("save password reset: %w", err)

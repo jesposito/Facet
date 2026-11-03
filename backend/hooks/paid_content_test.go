@@ -177,7 +177,8 @@ func TestPaidDownloadsNeedAPurchase(t *testing.T) {
 	urls := "/api/content/posts/" + post.Id + "/download-urls"
 	assertStatus(t, do(t, h, testRequest{url: urls}), http.StatusForbidden)
 
-	rec = do(t, h, testRequest{url: urls, headers: map[string]string{"Cookie": f.buyerCookie(t, "buyer@example.com", buyer)}})
+	cookie := map[string]string{"Cookie": f.buyerCookie(t, "buyer@example.com", buyer)}
+	rec = do(t, h, testRequest{url: urls, headers: cookie})
 	assertStatus(t, rec, http.StatusOK)
 	var body struct {
 		Files []struct {
@@ -188,11 +189,11 @@ func TestPaidDownloadsNeedAPurchase(t *testing.T) {
 		t.Fatalf("unexpected download-urls response: %s", rec.Body.String())
 	}
 
-	rec = do(t, h, testRequest{url: body.Files[0].URL})
+	rec = do(t, h, testRequest{url: body.Files[0].URL, headers: cookie})
 	assertStatus(t, rec, http.StatusOK)
 	assertContains(t, rec, "PAID GUIDE BYTES")
 
-	assertStatus(t, do(t, h, testRequest{url: body.Files[0].URL + "tampered"}), http.StatusForbidden)
+	assertStatus(t, do(t, h, testRequest{url: body.Files[0].URL + "tampered", headers: cookie}), http.StatusForbidden)
 	f.waitForDownloadLogs(t, 1)
 }
 

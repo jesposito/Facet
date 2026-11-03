@@ -207,7 +207,9 @@ Example:
 		Short: "Give an admin user a new random password",
 		Long: `Sets a new random password for the specified admin user, writes it
 to a private file in the data directory, and signs out every existing session
-for that account.
+for that account. If an earlier credentials file is still in the data
+directory, the command stops without changing any password; read and delete
+that file first.
 
 If no email is provided, resets the password for admin@example.com.
 

@@ -35,28 +35,12 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
 			}
 
-			// Fetch content record. Visitors only get files from content they
-			// can see: public or unlisted, and not a draft.
 			record, err := app.FindRecordById(contentType, contentID)
-			if err != nil || (e.Auth == nil && !isRecordVisible(record)) {
+			if err != nil {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
-
-			// Check drip lock - if content is drip-locked, deny downloads
-			if record.GetBool("drip_enabled") {
-				dripLocked, _ := checkDripLock(app, purchaseService, e, record, contentType)
-				if dripLocked {
-					return respondForbidden(e, "content is not yet available")
-				}
-			}
-
-			// Check access: free content is accessible; paid content requires purchase
-			accessTier := record.GetString("access_tier")
-			if accessTier == "paid" {
-				hasPurchase, _ := checkPurchaseAccess(app, purchaseService, e, contentType, contentID)
-				if !hasPurchase {
-					return respondForbidden(e, "purchase required")
-				}
+			if status, reason := downloadAccess(app, purchaseService, e, contentType, record); status != 0 {
+				return e.JSON(status, map[string]string{"error": reason})
 			}
 
 			// Get downloadable files
@@ -93,7 +77,11 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 		}))
 
 		// GET /api/downloads/{token}
-		// Serve a file download using a signed token. No cookie needed.
+		// Serve a file download using a signed token. The token only names the
+		// file; access is checked again here against the current record,
+		// purchase and course state, as when the link was issued. Free public
+		// files and visible preview lessons need no cookie; protected files
+		// need the buyer's current purchase cookie as well as the link.
 		// Rate limited: moderate tier (30/min) to prevent abuse
 		se.Router.GET("/api/downloads/{token}", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			token := e.Request.PathValue("token")
@@ -107,10 +95,18 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return respondForbidden(e, "invalid or expired download link")
 			}
 
-			// Fetch the content record to verify it still exists
+			// Fetch the content record to verify it still exists, then check
+			// the visitor may still have it. A link captured before a refund,
+			// or before the item went private or draft, stops working.
+			if !isDownloadableType(contentType) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
+			}
 			record, err := app.FindRecordById(contentType, contentID)
 			if err != nil {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
+			}
+			if status, reason := downloadAccess(app, purchaseService, e, contentType, record); status != 0 {
+				return e.JSON(status, map[string]string{"error": reason})
 			}
 
 			// Verify the filename is still in the downloadable files. Lesson
@@ -222,6 +218,86 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 
 		return se.Next()
 	})
+}
+
+func isDownloadableType(contentType string) bool {
+	switch contentType {
+	case "posts", "projects", "custom_content", "lessons":
+		return true
+	}
+	return false
+}
+
+// downloadAccess decides whether the request may have a record's files right
+// now. Issuing links and redeeming them both ask it, so a signed link is never
+// worth more than the request that redeems it. It returns 0 when access is
+// allowed, otherwise the status and reason to refuse with.
+//
+// The site owner may see hidden records, as elsewhere, but still needs a
+// purchase for paid files.
+func downloadAccess(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, contentType string, record *core.Record) (int, string) {
+	if contentType == "lessons" {
+		return lessonDownloadAccess(app, purchaseService, e, record)
+	}
+
+	if !isSuperuser(e) && !isRecordVisible(record) {
+		return http.StatusNotFound, "content not found"
+	}
+	if record.GetBool("drip_enabled") {
+		if locked, _ := checkDripLock(app, purchaseService, e, record, contentType); locked {
+			return http.StatusForbidden, "content is not yet available"
+		}
+	}
+	if record.GetString("access_tier") == "paid" {
+		if ok, _ := checkPurchaseAccess(app, purchaseService, e, contentType, record.Id); !ok {
+			return http.StatusForbidden, "purchase required"
+		}
+	}
+	return 0, ""
+}
+
+// lessonDownloadAccess applies the course page's rules to a lesson's
+// attachments: the course must be visible; preview lessons are then open to
+// everyone; other lessons need a purchase of a paid course, or an enrolment
+// when a free course requires one, and must not be held back by drip
+// scheduling or sequential access.
+func lessonDownloadAccess(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, lesson *core.Record) (int, string) {
+	module, err := app.FindRecordById("modules", lesson.GetString("module"))
+	if err != nil {
+		return http.StatusNotFound, "content not found"
+	}
+	course, err := app.FindRecordById("courses", module.GetString("course"))
+	if err != nil || !courseVisibleTo(e, course) {
+		return http.StatusNotFound, "content not found"
+	}
+	if lesson.GetBool("is_preview") {
+		return 0, ""
+	}
+
+	email := ""
+	var purchaseIDs []string
+	if token := extractPurchaseCookie(e); token != "" {
+		if ids, tokenEmail, err := purchaseService.ValidatePurchaseJWT(token); err == nil {
+			purchaseIDs, email = ids, tokenEmail
+		}
+	}
+
+	openToAll := course.GetString("access_tier") != "paid" && !course.GetBool("require_enrollment")
+	if !openToAll {
+		if ok, reason := learnerEntitled(app, purchaseService, purchaseIDs, email, course); !ok {
+			return http.StatusForbidden, reason
+		}
+	}
+
+	if locked, _ := checkModuleDripLock(app, course.Id, module, email); locked {
+		return http.StatusForbidden, "module is not yet available"
+	}
+	// Sequential access follows a learner's own progress, so as on the course
+	// page it only applies to someone who has identified themselves.
+	if course.GetBool("sequential_access") && email != "" && !canAccessLesson(app, course.Id, lesson, email) {
+		return http.StatusForbidden, "complete previous lessons first"
+	}
+	return 0, ""
 }
 
 // resolveFilePath finds the actual filesystem path for a PocketBase file.

@@ -172,7 +172,7 @@ docker exec -it -u facet facet sh -c \
   'ENCRYPTION_KEY="${ENCRYPTION_KEY:-$(cat /data/.encryption_key)}" ./facet reset-admin-password you@example.com --dir=/data'
 ```
 
-This gives that account a new random password and writes it to `/data/.admin-credentials` with mode `0600`; the command prints the exact path but not the password. Read it with `docker exec -u facet facet cat /data/.admin-credentials`. Every existing session for the account is signed out, including any two-factor browser session. Two-factor sign-in itself stays on, so you'll still need your authenticator. Without an email, it resets `admin@example.com` ([source](../backend/main.go)). Sign in and change the password under **Settings**, then delete the handoff file with `docker exec -u facet facet rm /data/.admin-credentials`.
+This gives that account a new random password and writes it to `/data/.admin-credentials` with mode `0600`; the command prints the exact path but not the password. Read it with `docker exec -u facet facet cat /data/.admin-credentials`. Every existing session for the account is signed out, including any two-factor browser session. Two-factor sign-in itself stays on, so you'll still need your authenticator. Without an email, it resets `admin@example.com` ([source](../backend/main.go)). Sign in and change the password under **Settings**, then delete the handoff file with `docker exec -u facet facet rm /data/.admin-credentials`. If an earlier handoff file is still there, the command stops without changing any password; read and delete that file, then run the command again.
 
 ### Lost your authenticator app and recovery codes
 

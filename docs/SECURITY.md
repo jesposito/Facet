@@ -29,7 +29,7 @@ On first start with an empty database, Facet creates one account with the first 
 
 Older releases seeded every install with the published password `changeme123`. Only `SEED_DATA=dev` still does that, for local testing. Any account still using it is treated as signed out by admin APIs until the password is changed ([session guard](../backend/hooks/admin_session.go)), so an upgraded install that never changed it has to do so before anything else works.
 
-`reset-admin-password` gives an account a new random password, writes it to the same private handoff file before changing the account, and signs out every existing session for that account. The command prints the file path, not the password. Two-factor sign-in stays on, but any existing two-factor browser session is cleared ([source](../backend/hooks/seed.go)). Delete the handoff file after reading it and signing in.
+`reset-admin-password` gives an account a new random password, writes it to the same private handoff file before changing the account, and signs out every existing session for that account. The command prints the file path, not the password. Two-factor sign-in stays on, but any existing two-factor browser session is cleared ([source](../backend/hooks/seed.go)). Delete the handoff file after reading it and signing in. Facet never overwrites an existing handoff file: if one is still there, the reset stops before changing the account, so an unread password is never lost. Only one of several concurrent resets can succeed, and a reset whose database save fails removes only the file it created.
 
 ### Facet accounts and the PocketBase dashboard
 
@@ -235,7 +235,7 @@ Two advisories reach Facet through libraries it doesn't control directly.
 - **Unlisted items aren't private.** Only unlisted *views* need a share link.
 - **Visitors can trigger AI usage.** Anyone who can open a view can generate an AI résumé from it, on your AI provider account. The endpoint applies the view's own access check, so unlisted and password views still need a share link or password ([source](../backend/hooks/resume.go)).
 - **Rate limits are per process and in memory.**
-- **Uploaded files** are served by PocketBase according to each collection's rules. There are no expiring signed URLs.
+- **Uploaded files** are served by PocketBase according to each collection's rules. Downloadable files on posts, projects and custom content, and lesson attachments, go through 15-minute signed links (`/api/downloads/{token}`) instead. A signed link alone isn't enough for protected files: every redemption checks access again, just as when the link was issued ([source](../backend/hooks/download.go)). Free files on visible items and attachments on visible preview lessons need no cookie. Paid files, and lessons that need a purchase or enrolment, also need the buyer's current purchase cookie, which browsers send automatically on same-site downloads. A refund, a switch to private or draft, a deletion, or a drip or sequential-access lock takes effect on the next request, even for a link issued earlier.
 
 ## Reporting a security problem
 

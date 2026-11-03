@@ -26,7 +26,7 @@ Not yet released. Entries describe the code on this branch and may change before
 
 **Security and sign-in:**
 
-- `reset-admin-password` sets a random password and signs out every session for the account. Two-factor sign-in stays on.
+- `reset-admin-password` sets a random password and signs out every session for the account. Two-factor sign-in stays on. It refuses to run while an unread `.admin-credentials` file exists, never overwrites one, and removes only its own file if saving the account fails.
 - The server enforces the two-factor session and the default-password change, not just the admin UI.
 - Client addresses come from Caddy's `trusted_proxies`; headers a visitor can set, such as `CF-Connecting-IP`, are no longer used.
 - Contact values at the CAPTCHA protection level are removed from public page data.

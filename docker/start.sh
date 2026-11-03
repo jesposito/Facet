@@ -298,9 +298,11 @@ elif [ -n "$DEV_ADMIN_EMAIL" ]; then
 fi
 
 echo "  Admin login: $ADMIN_LOGIN_EMAIL"
-echo "    On a fresh install, the password is printed once in the"
-echo "    [Backend] log above. Existing accounts keep their password."
-echo "    Lost it? docker exec -u facet <container> ./facet reset-admin-password $ADMIN_LOGIN_EMAIL --dir=/data"
+echo "    On a fresh install, the password is in /data/.admin-credentials"
+echo "    (mode 0600, never in the log). Read it, then delete the file."
+echo "    Existing accounts keep their password."
+echo "    Read: docker exec -u facet <container> cat /data/.admin-credentials"
+echo "    Recovery: https://github.com/jesposito/Facet/blob/main/docs/UPGRADE.md#locked-out"
 echo ""
 if [ "$ADMIN_ENABLED" = "true" ]; then
     echo "  PocketBase Admin: http://localhost:8080/_/"
