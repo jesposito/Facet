@@ -26,6 +26,15 @@ const lesson = (id: string, title: string, description: string): ExperienceLesso
 	credit: 'Design fixture'
 });
 
+const longTitle = (lead: string) =>
+	`${lead} chapter with a title that keeps going long enough to wrap over several lines`;
+
+const story = (presentation: 'paper' | 'plain') => {
+	const block = newBlock('story');
+	if (block.type === 'story') block.presentation = presentation;
+	return block;
+};
+
 /** `video` should be a playable upload when a test needs real media; the default never loads. */
 const designFixture = (
 	preset: Preset,
@@ -113,6 +122,36 @@ const designFixture = (
 			layout: 'stack' as const,
 			blocks: [{ id: `${tone}Text`, type: 'text' as const, body: `Words on ${tone}.` }]
 		})),
+		{
+			id: 'chapter-labels',
+			title: 'Long chapter labels',
+			intro: '',
+			tone: 'paper',
+			layout: 'stack',
+			blocks: [
+				{
+					id: 'labelVideo',
+					type: 'video',
+					title: 'Long sidebar chapters',
+					presentation: 'sidebar',
+					lessons: [
+						{
+							...lesson('posterLong', longTitle('A poster'), 'The poster chapter text.'),
+							poster: '/icon.png'
+						},
+						lesson('plainLong', longTitle('A posterless'), 'The posterless chapter text.')
+					]
+				}
+			]
+		},
+		...(['paper', 'plain'] as const).map((presentation) => ({
+			id: `story-${presentation}`,
+			title: `A ${presentation} story`,
+			intro: '',
+			tone: 'paper' as const,
+			layout: 'stack' as const,
+			blocks: [story(presentation)]
+		})),
 		...splitTones.map((tone) => ({
 			id: `split-${tone}`,
 			title: `Split ${tone} chapter`,
@@ -137,9 +176,7 @@ const originalFixture = (): ProjectExperience => {
 	doc.sections[0].headingLayout = 'split';
 	const video = doc.sections[0].blocks[0];
 	if (video.type === 'video') video.presentation = 'sidebar';
-	const story = newBlock('story');
-	if (story.type === 'story') story.presentation = 'paper';
-	doc.sections[0].blocks.push(story);
+	doc.sections[0].blocks.push(story('paper'));
 	return doc;
 };
 
@@ -294,6 +331,82 @@ function expectSplit(
 				l.section.x + l.section.width + 0.5
 			);
 		}
+	}
+}
+
+/** Each long sidebar chapter's content box, thumbnail and label, read in one browser task. */
+const chapterLabels = (root: Locator, prefix: string) =>
+	root.evaluate((el, prefix) => {
+		const rect = (node: Element) => {
+			const { x, y, width, height } = node.getBoundingClientRect();
+			return { x, y, width, height };
+		};
+		const list = el.querySelector(`#${prefix}chapter-labels .experience-chapters`);
+		if (!list) throw new Error('Missing long chapter labels');
+		return {
+			list: rect(list),
+			buttons: [...list.querySelectorAll('button')].map((button) => {
+				const style = getComputedStyle(button);
+				const outer = rect(button);
+				const left = outer.x + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft);
+				const right =
+					outer.x +
+					outer.width -
+					parseFloat(style.borderRightWidth) -
+					parseFloat(style.paddingRight);
+				const label = button.querySelector('.experience-chapter-label')!;
+				const img = button.querySelector('img');
+				return {
+					title: label.textContent ?? '',
+					button: outer,
+					content: { left, right, width: right - left },
+					tracks: style.gridTemplateColumns.split(' ').filter(Boolean).map(parseFloat),
+					label: rect(label),
+					labelOverflow: label.scrollWidth - label.clientWidth,
+					buttonOverflow: button.scrollWidth - button.clientWidth,
+					poster: img !== null,
+					thumb: img && getComputedStyle(img).display !== 'none' ? rect(img) : null
+				};
+			})
+		};
+	}, prefix);
+
+function expectChapterLabels(
+	layout: Awaited<ReturnType<typeof chapterLabels>>,
+	where: string,
+	thumbnails: boolean
+) {
+	expect(layout.buttons.map((b) => b.poster)).toEqual([true, false]);
+	for (const b of layout.buttons) {
+		const at = `${where} ${b.poster ? 'poster' : 'posterless'} chapter`;
+		expect(b.title, at).toContain('keeps going long enough to wrap');
+		expect(b.labelOverflow, `${at} label overflow`).toBeLessThanOrEqual(1);
+		expect(b.buttonOverflow, `${at} button overflow`).toBeLessThanOrEqual(1);
+		expect(b.button.x, `${at} left edge`).toBeGreaterThanOrEqual(layout.list.x - 0.5);
+		expect(b.button.x + b.button.width, `${at} right edge`).toBeLessThanOrEqual(
+			layout.list.x + layout.list.width + 0.5
+		);
+		expect(b.label.x, `${at} label left edge`).toBeGreaterThanOrEqual(b.content.left - 0.5);
+		expect(b.label.x + b.label.width, `${at} label right edge`).toBeLessThanOrEqual(
+			b.content.right + 0.5
+		);
+		if (b.poster && thumbnails) {
+			expect(b.tracks.length, `${at} columns`).toBe(2);
+			expect(b.thumb, `${at} thumbnail`).not.toBeNull();
+			const thumb = b.thumb!;
+			expect(Math.abs(thumb.width - b.tracks[0]), `${at} thumbnail fills its column`).toBeLessThan(
+				1
+			);
+			expect(thumb.height, `${at} thumbnail height`).toBeGreaterThan(0);
+			expect(b.label.x, `${at} label beside the thumbnail`).toBeGreaterThanOrEqual(
+				thumb.x + thumb.width - 0.5
+			);
+			expect(Math.abs(b.label.width - b.tracks[1]), `${at} label fills its column`).toBeLessThan(1);
+			continue;
+		}
+		if (b.poster) expect(b.thumb, `${at} thumbnail hidden on narrow players`).toBeNull();
+		// Nothing shares the row, so the label must take the whole content box.
+		expect(b.label.width, `${at} label width`).toBeGreaterThanOrEqual(b.content.width - 1);
 	}
 }
 
@@ -613,16 +726,42 @@ test.describe('project design presentation in the browser', () => {
 		return editor;
 	}
 
-	/** Opens a preset's preview at mobile width while the admin window stays wide. */
-	async function openMobilePreview(page: Page, preset: Preset) {
+	/** Opens a preset's full-width preview while the admin window stays wide. */
+	async function openPreview(page: Page, preset: Preset) {
 		await page.setViewportSize({ width: 1440, height: 900 });
 		const editor = await openEditor(page, records.get(preset)!);
 		await editor.getByRole('button', { name: 'Preview experience' }).click();
 		const preview = editor.locator('.project-experience');
 		await expect(preview).toHaveAttribute('data-design-preset', preset);
+		return { editor, preview };
+	}
+
+	async function showMobile(editor: Locator) {
 		await editor.getByLabel('Mobile width').setChecked(true);
 		await expect(editor.locator('.experience-preview-frame')).toHaveClass(/\bmobile\b/);
+	}
+
+	/** Opens a preset's preview at mobile width while the admin window stays wide. */
+	async function openMobilePreview(page: Page, preset: Preset) {
+		const { editor, preview } = await openPreview(page, preset);
+		await showMobile(editor);
 		return preview;
+	}
+
+	/** Sets the article container to `width`; the window stays wide, so viewport rules stay off. */
+	async function sizePreview(preview: Locator, width: number | null) {
+		await preview.evaluate((el: HTMLElement, w) => {
+			el.style.width = w === null ? '' : `${w}px`;
+		}, width);
+		if (width !== null) await expect(preview).toHaveCSS('width', `${width}px`);
+	}
+
+	/** Resizes the window until the published article container is `width` wide. */
+	async function sizePage(page: Page, root: Locator, width: number) {
+		await page.setViewportSize({ width: width + 25, height: 900 });
+		const chrome = width + 25 - (await box(root)).width;
+		await page.setViewportSize({ width: Math.round(width + chrome), height: 900 });
+		expect(Math.abs((await box(root)).width - width), `article width ${width}`).toBeLessThan(1);
 	}
 
 	test('editor previews show each preset palette exactly as published', async ({
@@ -670,13 +809,102 @@ test.describe('project design presentation in the browser', () => {
 			const root = page.locator('.project-experience');
 			await expect(root).toHaveAttribute('data-design-preset', preset);
 			expectSplit(await splitLayouts(root, ''), `${preset} public 1440`, true);
+			// Splits stack at a 700px container, so widths between 650 and 700 must stack too.
+			await sizePage(page, root, 675);
+			expectSplit(await splitLayouts(root, ''), `${preset} public 675`, false);
 			await page.setViewportSize({ width: 390, height: 900 });
 			expectSplit(await splitLayouts(root, ''), `${preset} public 390`, false);
 
 			// A wide window keeps the viewport rules off, so only container rules can stack it.
-			const preview = await openMobilePreview(page, preset);
+			const { editor, preview } = await openPreview(page, preset);
+			await sizePreview(preview, 675);
+			expectSplit(await splitLayouts(preview, 'preview-'), `${preset} preview 675`, false);
+			await sizePreview(preview, null);
+			await showMobile(editor);
 			expect((await box(preview)).width).toBeLessThanOrEqual(390);
 			expectSplit(await splitLayouts(preview, 'preview-'), `${preset} preview mobile`, false);
+		}
+	});
+
+	test('sidebar chapter labels fill their row with or without a poster', async ({
+		page,
+		request
+	}) => {
+		await seedAdminSession(page, request);
+		const read = async (root: Locator, prefix: string, where: string, thumbnails: boolean) => {
+			const poster = root.locator(`#${prefix}chapter-labels img`);
+			if (thumbnails) {
+				await poster.scrollIntoViewIfNeeded();
+				await expect
+					.poll(
+						() => poster.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth),
+						{
+							message: `${where} poster`
+						}
+					)
+					.toBeGreaterThan(0);
+			}
+			expectChapterLabels(await chapterLabels(root, prefix), where, thumbnails);
+		};
+		for (const preset of presets) {
+			await page.setViewportSize({ width: 1440, height: 900 });
+			await page.goto(`/projects/${slugs.get(preset)}`);
+			const root = page.locator('.project-experience');
+			await expect(root).toHaveAttribute('data-design-preset', preset);
+			await read(root, '', `${preset} public 1440`, true);
+			// Between 650 and 1000 the thumbnail column narrows but stays beside the label.
+			await page.setViewportSize({ width: 900, height: 900 });
+			await read(root, '', `${preset} public 900`, true);
+			await page.setViewportSize({ width: 390, height: 900 });
+			await read(root, '', `${preset} public 390`, false);
+			expect(
+				await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+				`${preset} public 390 page overflow`
+			).toBe(true);
+
+			const preview = await openMobilePreview(page, preset);
+			await read(preview, 'preview-', `${preset} preview mobile`, false);
+		}
+	});
+
+	test('printing a story keeps the personalised text and hides its controls', async ({ page }) => {
+		const name = 'Marigold Quill';
+		await page.setViewportSize({ width: 1440, height: 900 });
+		for (const preset of presets) {
+			await page.goto(`/projects/${slugs.get(preset)}`);
+			await expect(page.locator('.project-experience')).toHaveAttribute(
+				'data-design-preset',
+				preset
+			);
+			for (const presentation of ['paper', 'plain'] as const) {
+				const at = `${preset} ${presentation}`;
+				const block = page.locator(`#story-${presentation} .experience-story`);
+				await expect(block).toHaveAttribute('data-presentation', presentation);
+				const output = block.locator('.experience-story-output');
+				const told = `${name} found something unexpected.`;
+				// Typing registers only once the activity has hydrated.
+				await expect(async () => {
+					await block.getByLabel('Character').fill(name);
+					await expect(output).toContainText(told, { timeout: 1000 });
+				}).toPass();
+				const controls = {
+					fields: block.locator('.experience-story-fields'),
+					options: block.locator('.experience-story-options'),
+					actions: block.locator('.experience-actions')
+				};
+				for (const [part, control] of Object.entries(controls))
+					await expect(control, `${at} ${part} on screen`).toBeVisible();
+
+				await page.emulateMedia({ media: 'print' });
+				for (const [part, control] of Object.entries(controls))
+					await expect(control, `${at} ${part} in print`).toBeHidden();
+				await expect(output, `${at} printed story`).toBeVisible();
+				await expect(output, `${at} printed story`).toContainText(told);
+				expect((await box(output)).height, `${at} printed story height`).toBeGreaterThan(0);
+
+				await page.emulateMedia({ media: 'screen' });
+				await expect(controls.fields, `${at} fields back on screen`).toBeVisible();
+			}
 		}
 	});
 
@@ -857,7 +1085,7 @@ test.describe('project design presentation in the browser', () => {
 		const controls = {
 			heading: editor.getByLabel('Section introduction').first(),
 			player: editor.getByLabel('Player layout').first(),
-			activity: editor.getByLabel('Activity layout')
+			activity: editor.getByLabel('Activity layout').first()
 		};
 		type Layouts = Record<keyof typeof controls, string>;
 		const expectLayouts = async (enabled: boolean, values: Layouts) => {

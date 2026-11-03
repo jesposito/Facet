@@ -259,6 +259,12 @@
 	> span {
 	display: none;
 }
+/* Without a poster the label is the button's only item, so it spans the thumbnail column too. */
+.project-experience[data-design-preset]
+	.experience-video[data-presentation='sidebar']
+	.experience-chapter-label:first-child {
+	grid-column: 1/-1;
+}
 .project-experience[data-design-preset]
 	.experience-video[data-presentation='sidebar']
 	> :is(h4, p, details) {
@@ -651,9 +657,7 @@
 		padding: 14px;
 		min-height: 70px;
 	}
-	/* Pink's split rule names .experience-split, so its override must too. */
 	.project-experience[data-design-preset] .experience-tone-pink .experience-blocks,
-	.project-experience[data-design-preset] .experience-tone-pink .experience-blocks.experience-split,
 	.project-experience[data-design-preset] .experience-tone-paper .experience-blocks,
 	.project-experience[data-design-preset] .experience-tone-orange .experience-blocks {
 		grid-template-columns: 1fr;
@@ -688,6 +692,12 @@
 	.project-experience[data-design-preset] .experience-story[data-presentation='paper'] > h3 {
 		background: white;
 		padding: 0;
+	}
+	/* Paper lays out its controls as grids, so print must hide them at the same specificity. */
+	.project-experience[data-design-preset]
+		.experience-story[data-presentation='paper']
+		:is(.experience-story-fields, .experience-story-options, .experience-actions) {
+		display: none;
 	}
 	.project-experience[data-design-preset] .experience-section {
 		background: white !important;
@@ -977,6 +987,13 @@
 	}
 	.project-experience[data-design-preset] .experience-heading-split .experience-prose {
 		margin-top: 24px;
+	}
+	/* Pink's split rule names .experience-split, so it must stack where the base split does. */
+	.project-experience[data-design-preset]
+		.experience-tone-pink
+		.experience-blocks.experience-split {
+		grid-template-columns: 1fr;
+		gap: 30px;
 	}
 	.project-experience[data-design-preset] .experience-image-note {
 		font-size: 14px;
