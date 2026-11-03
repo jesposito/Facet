@@ -142,7 +142,7 @@
 					<button
 						onclick={logout}
 						class="btn btn-ghost btn-sm"
-						aria-label={$t('admin.header.sign_out')}
+						aria-label={$t('admin.header.logout')}
 					>
 						<svg
 							class="w-4 h-4"

@@ -21,6 +21,7 @@
     "test:dependencies": "node ../scripts/ci/test-guarded-braces.cjs && node ../scripts/ci/test-guarded-deepmerge.cjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.57.0",
     "@sveltejs/adapter-node": "^6.0.0",

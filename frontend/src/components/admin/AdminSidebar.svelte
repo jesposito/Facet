@@ -770,7 +770,7 @@
 	{#if $adminSidebarOpen}
 		<div class="shrink-0 px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700">
 			<div class="flex items-center justify-center gap-1.5">
-				<span class="text-xs text-gray-400 dark:text-gray-500">{appVersion}</span>
+				<span class="text-xs text-gray-600 dark:text-gray-400">{appVersion}</span>
 				<button
 					type="button"
 					class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors disabled:opacity-50"

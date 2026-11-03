@@ -6,6 +6,7 @@
 		mode?: 'wysiwyg' | 'markdown';
 		minHeight?: string;
 		placeholder?: string;
+		label?: string;
 		toolbar?: 'full' | 'compact';
 		onchange?: (value: string) => void;
 	}
@@ -15,6 +16,7 @@
 		mode: initialMode = 'wysiwyg',
 		minHeight = '200px',
 		placeholder = 'Start writing...',
+		label = 'Rich text editor',
 		toolbar = 'full',
 		onchange
 	}: Props = $props();
@@ -102,6 +104,13 @@
 			element: editorElement,
 			extensions: editorExtensions,
 			content: '',
+			editorProps: {
+				attributes: {
+					role: 'textbox',
+					'aria-label': label,
+					'aria-multiline': 'true'
+				}
+			},
 			onUpdate: ({ editor: ed }: { editor: any }) => {
 				if (isUpdatingFromProp) return;
 				isUpdatingFromEditor = true;
@@ -394,7 +403,7 @@
 						type="button"
 						class="toolbar-btn {toolbarActive.h1 ? 'active' : ''}"
 						onclick={() => cmd('toggleHeading', { level: 1 })}
-						aria-label="Heading 1"
+						aria-label="H1 Heading 1"
 						title="Heading 1"
 					>
 						<span class="text-xs font-bold">H1</span>
@@ -404,7 +413,7 @@
 					type="button"
 					class="toolbar-btn {toolbarActive.h2 ? 'active' : ''}"
 					onclick={() => cmd('toggleHeading', { level: 2 })}
-					aria-label="Heading 2"
+					aria-label="H2 Heading 2"
 					title="Heading 2"
 				>
 					<span class="text-xs font-bold">H2</span>
@@ -413,7 +422,7 @@
 					type="button"
 					class="toolbar-btn {toolbarActive.h3 ? 'active' : ''}"
 					onclick={() => cmd('toggleHeading', { level: 3 })}
-					aria-label="Heading 3"
+					aria-label="H3 Heading 3"
 					title="Heading 3"
 				>
 					<span class="text-xs font-bold">H3</span>
@@ -695,7 +704,9 @@
 				type="button"
 				class="toolbar-btn px-2 gap-1 text-xs font-medium"
 				onclick={toggleMode}
-				aria-label="Toggle editor mode (Ctrl+Shift+M)"
+				aria-label={currentMode === 'wysiwyg'
+					? 'Switch to Markdown (Ctrl+Shift+M)'
+					: 'Switch to rich text (Ctrl+Shift+M)'}
 				title="Toggle editor mode (Ctrl+Shift+M)"
 			>
 				{#if currentMode === 'wysiwyg'}
@@ -723,7 +734,7 @@
 							d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
 						/></svg
 					>
-					<span>WYSIWYG</span>
+					<span>Rich text</span>
 				{/if}
 			</button>
 		</div>
@@ -736,14 +747,12 @@
 				bind:this={editorElement}
 				class="editor-content rich-content-safe prose dark:prose-invert max-w-none p-4 focus-within:outline-none"
 				style="min-height: {minHeight}"
-				role="textbox"
-				aria-multiline="true"
-				aria-label="Rich text editor"
 			></div>
 		{:else}
 			<textarea
 				class="w-full p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm resize-y focus:outline-none"
 				style="min-height: {minHeight}"
+				aria-label={label}
 				{placeholder}
 				value={markdownText}
 				oninput={handleMarkdownInput}></textarea>

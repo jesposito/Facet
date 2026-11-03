@@ -65,6 +65,7 @@
 				</div>
 				<input
 					type="text"
+					aria-label={filterStore.config.searchPlaceholder}
 					placeholder={filterStore.config.searchPlaceholder}
 					value={filterStore.searchQuery}
 					oninput={(e) => filterStore.setSearchQuery(e.currentTarget.value)}

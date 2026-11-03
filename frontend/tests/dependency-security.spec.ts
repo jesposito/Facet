@@ -46,7 +46,7 @@ test('updated editor preserves Markdown through rich-text round trip', async ({
 	const editor = page.locator('.ProseMirror').first();
 	await expect(editor).toBeVisible();
 	const toggle = page
-		.getByRole('button', { name: 'Toggle editor mode (Ctrl+Shift+M)', exact: true })
+		.getByRole('button', { name: /^Switch to (Markdown|rich text) \(Ctrl\+Shift\+M\)$/ })
 		.first();
 	await toggle.click();
 	const source = page.locator('textarea').filter({ visible: true }).first();
