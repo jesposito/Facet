@@ -16,7 +16,6 @@
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import Toggle from '$components/admin/Toggle.svelte';
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
-	import AccessTierSelect from '$components/admin/AccessTierSelect.svelte';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
 	import { pb } from '$lib/pocketbase';
 
@@ -129,8 +128,8 @@
 	let clearCoverImage = $state(false);
 	let instructorName = $state('');
 	let instructorBio = $state('');
+	// Read-only: shown so an imported paid course is flagged. Never sent on save.
 	let accessTier: 'free' | 'paid' = $state('free');
-	let priceInDollars = $state('');
 	let difficulty: 'beginner' | 'intermediate' | 'advanced' = $state('beginner');
 	let estimatedHours = $state(0);
 	let tags: string[] = $state([]);
@@ -210,8 +209,6 @@
 			description,
 			instructorName,
 			instructorBio,
-			accessTier,
-			priceInDollars,
 			difficulty,
 			estimatedHours,
 			tags,
@@ -233,8 +230,6 @@
 		description = data.description || '';
 		instructorName = data.instructorName || '';
 		instructorBio = data.instructorBio || '';
-		accessTier = data.accessTier || 'free';
-		priceInDollars = data.priceInDollars || '';
 		difficulty = data.difficulty || 'beginner';
 		estimatedHours = data.estimatedHours || 0;
 		tags = data.tags || [];
@@ -351,7 +346,6 @@
 		instructorName = '';
 		instructorBio = '';
 		accessTier = 'free';
-		priceInDollars = '';
 		difficulty = 'beginner';
 		estimatedHours = 0;
 		tags = [];
@@ -418,7 +412,6 @@
 		instructorName = course.instructor_name || '';
 		instructorBio = course.instructor_bio || '';
 		accessTier = course.access_tier || 'free';
-		priceInDollars = course.price ? (course.price / 100).toFixed(2) : '';
 		difficulty = course.difficulty || 'beginner';
 		estimatedHours = course.estimated_hours || 0;
 		tags = course.tags || [];
@@ -504,12 +497,11 @@
 			formData.append('description', description.trim());
 			formData.append('instructor_name', instructorName.trim());
 			formData.append('instructor_bio', instructorBio.trim());
-			formData.append('access_tier', accessTier);
-
-			if (accessTier === 'paid' && priceInDollars) {
-				const priceInCents = Math.round(parseFloat(priceInDollars) * 100);
-				formData.append('price', String(priceInCents));
-			} else {
+			// Course sales are Facet Cloud-only. New courses are free; an existing
+			// course's tier and price are left exactly as stored, so an imported
+			// paid course is never silently made free.
+			if (!editingCourse) {
+				formData.append('access_tier', 'free');
 				formData.append('price', '0');
 			}
 
@@ -2744,25 +2736,22 @@
 
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<VisibilitySelector bind:value={visibility} />
-							<AccessTierSelect bind:value={accessTier} />
 						</div>
 
+						<!-- Course sales are Facet Cloud-only, so there is no price or
+						     paid-tier control here. An imported paid course keeps its
+						     tier and price untouched; the server refuses any change. -->
 						{#if accessTier === 'paid'}
-							<div>
-								<label for="price" class="label">{$t('admin.courses.price')}</label>
-								<div class="relative">
-									<span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-									<input
-										type="number"
-										id="price"
-										bind:value={priceInDollars}
-										class="input pl-7"
-										placeholder={$t('admin.courses.price_placeholder')}
-										step="0.01"
-										min="0"
-									/>
-								</div>
-							</div>
+							<p
+								class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+								data-testid="course-sales-unavailable-admin"
+							>
+								{$t('admin.courses.sales_unavailable_imported')}
+							</p>
+						{:else}
+							<p class="text-sm text-gray-500 dark:text-gray-400" data-testid="course-free-note">
+								{$t('admin.courses.sales_cloud_only')}
+							</p>
 						{/if}
 
 						<div class="flex items-center gap-6">
@@ -3125,7 +3114,7 @@
 								<span
 									class="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300 rounded-full"
 								>
-									${(course.price / 100).toFixed(2)}
+									{$t('admin.courses.imported_paid_badge')}
 								</span>
 							{/if}
 						</div>

@@ -2,11 +2,11 @@
 
 These features help you build an audience and sell to it. They're the youngest parts of self-hosted Facet. This page explains what each one does today and where its limits are.
 
-| Feature | State in this version |
-|---------|-----------------------|
-| [Newsletter](#newsletter) | Double opt-in sign-ups, list targeting, idempotent sends, one-click and page unsubscribe. Link placeholders have limits. |
-| [Payments (Stripe)](#payments-stripe) | Stripe Checkout, access links delivered by email, partial and full refunds |
-| [Courses](#courses) | On by default. Public course pages, lessons, drip and sequential release, enrolment, quizzes and certificates. |
+| Feature                               | State in this version                                                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [Newsletter](#newsletter)             | Double opt-in sign-ups, list targeting, idempotent sends, one-click and page unsubscribe. Link placeholders have limits. |
+| [Payments (Stripe)](#payments-stripe) | Stripe Checkout, access links delivered by email, partial and full refunds                                               |
+| [Courses](#courses)                   | On by default. Public course pages, lessons, drip and sequential release, enrolment, quizzes and certificates.           |
 
 The automated tests for these features use a captured mailer and signed fake Stripe events. They haven't been run against a live SMTP server or a live Stripe account, so send yourself a real test before you rely on either.
 
@@ -72,8 +72,10 @@ Each newsletter offers two ways out:
 Under **Commerce** in the sidebar you'll find:
 
 - **Payments**: your Stripe secret key and webhook signing secret (both stored encrypted), with a connection test. `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` work as fallbacks.
-- **Bulk Pricing**: prices on posts, talks, projects and courses.
+- **Bulk Pricing**: prices on posts, talks and projects.
 - **Coupons**: percentage or fixed-amount codes with usage limits.
+
+Selling courses is only available on Facet Cloud. Self-hosted sites can publish courses for free ([below](#courses)), and other paid content works as described here.
 
 Point Stripe's webhook at `<APP_URL>/api/content/webhook`.
 
@@ -103,14 +105,22 @@ Use the switch to stop taking new learners for a while. Use the variable when yo
 
 In **Courses** in the sidebar you build courses from modules and lessons, add quizzes, issue completion certificates, and see enrolments and progress.
 
+### Course sales are Facet Cloud-only
+
+Self-hosted Facet has courses, free authoring and the free learner experience, but it doesn't sell courses. The server refuses every course checkout with `403` and `"reason": "course_sales_unavailable"` before any coupon is claimed, purchase is stored or Stripe is called. That includes 100% coupons and forged requests, and no environment variable (`FACET_MANAGED` or `FACET_FEATURE_*`) turns it on. Coupons can't be scoped to courses, and a course can't be created paid, switched to paid or repriced. `GET /api/plan` reports `features.course_sales: false`, and course API responses carry `sales_available: false`.
+
+A paid course imported from elsewhere keeps its tier and price: it is never turned free and its paid lessons stay locked. Its page says it isn't available to buy here. Learners who bought it earlier keep their access through their access links.
+
+Legacy payments: if Stripe reports a course checkout session as paid that was started before this build (for example a delayed bank payment settling later), the webhook still records the purchase and emails the access link, because the buyer has already been charged. This can't be used to start a sale: this server never creates a course checkout session, and the webhook only accepts events signed with your webhook secret. Unpaid course sessions grant nothing, as for any other content.
+
 ### What learners get
 
 - A public outline at `/courses/<slug>` and lessons under `/courses/<slug>/learn`. Draft and private courses answer 404 to everyone except you.
-- **Enrolment**: paid courses need a purchase. Free courses can require enrolment, which is confirmed by an emailed link (`/api/courses/<slug>/enroll/verify`).
+- **Enrolment**: imported paid courses open only to earlier buyers ([above](#course-sales-are-facet-cloud-only)). Free courses can require enrolment, which is confirmed by an emailed link (`/api/courses/<slug>/enroll/verify`).
 - **Release rules**: lessons can be held back by drip timing or by sequential order. Preview lessons skip both.
 - **Quizzes and progress**: one access check runs before a quiz is shown or submitted, a lesson is completed, or progress is read. A refused request stores nothing. Quiz routes answer 403 when there's no purchase or enrolment and 404 for hidden courses.
 - **Certificates** on completion, with a public check at `/api/certificates/verify/<id>`.
 
 ### Turning courses off
 
-Turning courses off closes the doors new learners would use: the public catalogue, new enrolments and course checkout ([feature gate](../backend/hooks/feature_gate.go)). People who already bought or enrolled keep their access. Access links, the Stripe webhook, enrolment verification and course pages stay open, and the course page tells newcomers it isn't taking new learners.
+Turning courses off closes the doors new learners would use: the public catalogue and new enrolments ([feature gate](../backend/hooks/feature_gate.go)). People who already bought or enrolled keep their access. Access links, the Stripe webhook, enrolment verification and course pages stay open, and the course page tells newcomers it isn't taking new learners.

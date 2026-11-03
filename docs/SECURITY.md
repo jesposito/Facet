@@ -100,6 +100,7 @@ A share link (`/s/<token>`) is the key to an unlisted view ([source](../backend/
 - Each link can have an expiry date and a maximum number of uses. You can revoke it at any time.
 - Opening the link validates it, stores it in an `httpOnly` cookie for 7 days, and redirects to the clean URL (`/your-view`). The token doesn't stay in the address bar or history.
 - Validation failures all return the same error, and the endpoint is rate limited.
+- Each visit spends one use, when the link is opened. The visitor then gets a signed visit proof in a second `httpOnly` cookie, so they can open projects on the view and come back to it without spending more uses. The proof lasts 30 minutes or until the link expires, whichever is sooner. It only works together with the link it was issued for and on that link's view, and it stops working as soon as the link is revoked, deleted or expires. Once a link's uses are spent, the link alone admits no one new.
 
 Anyone you send a link to can forward it. Use an expiry date or a use limit for anything sensitive.
 

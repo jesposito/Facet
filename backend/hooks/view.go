@@ -428,8 +428,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if denial != nil {
 				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
-			if tokenRecord != nil && !consumeShareTokenUse(app, tokenRecord.Id) {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
+			if tokenRecord != nil {
+				if !consumeShareTokenUse(app, tokenRecord.Id) {
+					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
+				}
+				issueShareVisitProof(e, crypto, tokenRecord)
 			}
 			access := newContentAccess(app, purchaseService, e)
 

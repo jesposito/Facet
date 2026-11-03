@@ -158,7 +158,7 @@ The data stays on your server. It does include each visitor's user agent and a d
 **Settings → Features** has an on/off switch for analytics, courses, newsletter and discussions ([feature gate](../backend/hooks/feature_gate.go)):
 
 - **Analytics off** stops view counting, and stops visitors receiving your Google Analytics ID. The GA script is removed if the switch goes off mid-visit.
-- **Courses off** closes the course catalogue, new enrolments and course checkout. Existing learners keep access ([details](AUDIENCE.md#turning-courses-off)).
+- **Courses off** closes the course catalogue and new enrolments. Selling courses is Facet Cloud-only, so there is no course checkout either way. Existing learners keep access ([details](AUDIENCE.md#turning-courses-off)).
 - **Discussions off** closes the public comment routes.
 - **Newsletter off** closes sign-up and the public list of lists. Unsubscribing always works. A confirmation link sent earlier still records consent, but no welcome email goes out while the newsletter is off ([source](../backend/hooks/newsletter.go)).
 

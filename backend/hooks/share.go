@@ -82,6 +82,9 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			if !consumeShareTokenUse(app, tokenRecord.Id) {
 				return e.JSON(http.StatusOK, invalidResponse)
 			}
+			// The visit this use admits continues on the view without
+			// spending another use.
+			issueShareVisitProof(e, crypto, tokenRecord)
 
 			return e.JSON(http.StatusOK, services.ShareTokenValidation{
 				Valid:    true,

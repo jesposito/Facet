@@ -19,6 +19,9 @@ import {
 	getPasswordToken,
 	setPasswordToken,
 	setShareToken,
+	getShareVisit,
+	storeShareVisit,
+	SHARE_VISIT_HEADER,
 	isSecureRequest
 } from '$lib/tokens';
 import { internalApiHeaders } from '$lib/server/public-api';
@@ -30,10 +33,14 @@ export const load: PageServerLoad = async ({
 	fetch,
 	locals,
 	request,
+	setHeaders,
 	parent
 }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
+	if (url.searchParams.has('t')) {
+		setHeaders({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+	}
 
 	const shareToken = getShareToken(cookies);
 	const passwordToken = getPasswordToken(cookies);
@@ -55,7 +62,9 @@ export const load: PageServerLoad = async ({
 			const result = await validateResponse.json();
 			if (result.valid) {
 				// Store token in cookie and redirect to clean URL
-				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60, isSecureRequest(url, request));
+				const secure = isSecureRequest(url, request);
+				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60, secure);
+				storeShareVisit(cookies, validateResponse, secure);
 				throw redirect(302, `/${slug}`);
 			}
 		}
@@ -121,6 +130,10 @@ export const load: PageServerLoad = async ({
 		const dataHeaders: Record<string, string> = internalApiHeaders(request);
 		if (effectiveShareToken) {
 			dataHeaders['X-Share-Token'] = effectiveShareToken;
+			const shareVisit = getShareVisit(cookies);
+			if (shareVisit) {
+				dataHeaders[SHARE_VISIT_HEADER] = shareVisit;
+			}
 		}
 		if (pbAuthToken) {
 			dataHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
@@ -162,6 +175,9 @@ export const load: PageServerLoad = async ({
 			}
 			throw error(404, 'Not Found');
 		}
+
+		// A share token use was counted for this request; keep the visit open.
+		storeShareVisit(cookies, dataResponse, isSecureRequest(url, request));
 
 		const viewData = await dataResponse.json();
 

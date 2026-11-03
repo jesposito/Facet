@@ -754,6 +754,9 @@
       "access_paid_description": "je' poQbej De' naQ.",
       "price": "Huch",
       "price_placeholder": "0.00",
+      "sales_cloud_only": "Training here is free to publish and to take. Selling training is only possible on Facet Cloud.",
+      "sales_unavailable_imported": "This training was imported as paid training. Selling training is only possible on Facet Cloud, so it cannot be bought here; its price and tier stay as they were, and warriors who bought it before keep their access.",
+      "imported_paid_badge": "Imported, paid",
       "difficulty": "Qatlh",
       "difficulty_beginner": "taghwI'",
       "difficulty_intermediate": "boQwI'",
@@ -3217,7 +3220,9 @@
         "opens": "Opens {date}",
         "minutes": "{count} min",
         "about": "About {name}",
-        "closed": "This training admits no new warriors for now."
+        "closed": "This training admits no new warriors for now.",
+        "sales_unavailable": "This training cannot be bought here. If you bought it before, open it from the access link in your purchase message.",
+        "not_for_sale": "Not for sale here"
       },
       "learn": {
         "course_lessons": "Training lessons",

@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { locale, t } from 'svelte-i18n';
+	import { t } from 'svelte-i18n';
 	import type { PageData } from './$types';
 	import { parseMarkdown, formatDate } from '$lib/utils';
-	import { formatPrice, flattenLessons, isReadable, type LessonState } from '$lib/commerce';
+	import { flattenLessons, isReadable, type LessonState } from '$lib/commerce';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
-	import PurchaseGate from '$components/public/PurchaseGate.svelte';
 	import EnrollmentForm from '$components/public/course/EnrollmentForm.svelte';
 	import CertificatePanel from '$components/public/course/CertificatePanel.svelte';
 	import { siteFeatures } from '$lib/stores/features';
@@ -109,7 +108,7 @@
 					>
 				{:else}
 					<span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white/15 text-white"
-						>{formatPrice(course.price, $locale)}</span
+						>{$t('public.commerce.course.not_for_sale')}</span
 					>
 				{/if}
 				{#if course.has_access && course.access_tier === 'paid'}
@@ -174,16 +173,15 @@
 				{$t('public.commerce.course.closed')}
 			</p>
 		{:else if isPaidLocked}
-			<PurchaseGate
-				contentType="courses"
-				contentId={course.id}
-				slug={course.slug}
-				title={course.title}
-				price={course.price}
-				summary={hasPreview
-					? 'Buy the course to unlock every lesson. The free preview lessons below are open now.'
-					: 'Buy the course to unlock every lesson.'}
-			/>
+			<!-- Course sales are Facet Cloud-only. An imported paid course stays
+			     paid (never silently opened up), but there is no checkout here.
+			     Earlier buyers keep their access through their access links. -->
+			<p
+				class="rounded-lg border border-gray-200 bg-white p-4 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+				data-testid="course-sales-unavailable"
+			>
+				{$t('public.commerce.course.sales_unavailable')}
+			</p>
 		{:else if needsEnrollment}
 			<EnrollmentForm
 				slug={course.slug}

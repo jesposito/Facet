@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -402,6 +403,73 @@ func consumeShareTokenUse(app core.App, tokenID string) bool {
 	return err == nil && n == 1
 }
 
+// A share visit proof lets the visitor who spent a use of a share token keep
+// browsing that view (its projects, a return to the view) after the token runs
+// out of uses. It is issued only after a use is counted, and only for
+// shareVisitProofTTL or until the token expires, whichever is sooner.
+const (
+	shareVisitProofTTL          = 30 * time.Minute
+	shareVisitHeader            = "X-Share-Visit"
+	shareVisitExpiresHeader     = "X-Share-Visit-Expires"
+	shareVisitProofHeaderMaxLen = 2048
+)
+
+func extractShareVisitProof(e *core.RequestEvent) string {
+	proof := e.Request.Header.Get(shareVisitHeader)
+	if len(proof) > shareVisitProofHeaderMaxLen {
+		return ""
+	}
+	return proof
+}
+
+// issueShareVisitProof adds a visit proof to the response for a token use the
+// caller has just counted. Failure only costs the visitor later navigation.
+func issueShareVisitProof(e *core.RequestEvent, crypto *services.CryptoService, tokenRecord *core.Record) {
+	expiresAt := time.Now().Add(shareVisitProofTTL)
+	if tokenExpiry := tokenRecord.GetDateTime("expires_at"); !tokenExpiry.IsZero() && tokenExpiry.Time().Before(expiresAt) {
+		expiresAt = tokenExpiry.Time()
+	}
+	if !expiresAt.After(time.Now()) {
+		return
+	}
+	proof, err := crypto.GenerateShareVisitProof(tokenRecord.GetString("view_id"), tokenRecord.Id, tokenRecord.GetString("token_hash"), expiresAt)
+	if err != nil {
+		return
+	}
+	e.Response.Header().Set(shareVisitHeader, proof)
+	e.Response.Header().Set(shareVisitExpiresHeader, expiresAt.UTC().Format(time.RFC3339))
+}
+
+// validShareVisit reports whether proof admits a visit to view made with the
+// raw share token. The token record is read fresh on every call, so revoking,
+// deleting or expiring the token ends the visit; only the use limit is not
+// rechecked, since the visit already spent its use.
+func validShareVisit(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, proof, token string, view *core.Record) bool {
+	if proof == "" || token == "" {
+		return false
+	}
+	claims, err := crypto.ValidateShareVisitProof(proof)
+	if err != nil || claims.ViewID != view.Id {
+		return false
+	}
+	tokenRecord, err := app.FindRecordById("share_tokens", claims.TokenID)
+	if err != nil || tokenRecord == nil || !tokenRecord.GetBool("is_active") {
+		return false
+	}
+	if tokenRecord.GetString("view_id") != view.Id {
+		return false
+	}
+	tokenHash := tokenRecord.GetString("token_hash")
+	if !share.ValidateTokenHMAC(token, tokenHash) {
+		return false
+	}
+	if subtle.ConstantTimeCompare([]byte(crypto.ShareVisitTokenFingerprint(tokenHash)), []byte(claims.TokenHash)) != 1 {
+		return false
+	}
+	expiresAt := tokenRecord.GetDateTime("expires_at")
+	return expiresAt.IsZero() || time.Now().Before(expiresAt.Time())
+}
+
 // viewAccessDenial explains why a request may not read a view.
 type viewAccessDenial struct {
 	status  int
@@ -411,6 +479,8 @@ type viewAccessDenial struct {
 // checkViewAccess applies a view's visibility to the current request. It
 // returns the share token record that granted access to an unlisted view, so
 // the caller can decide whether that request counts as a use of the token.
+// A request carrying a valid share visit proof is part of a visit that was
+// already counted; it is admitted with no record, so nothing is spent again.
 // The site owner can read every view.
 func checkViewAccess(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, e *core.RequestEvent, view *core.Record) (*core.Record, *viewAccessDenial) {
 	if e.Auth != nil {
@@ -439,6 +509,9 @@ func checkViewAccess(app *pocketbase.PocketBase, crypto *services.CryptoService,
 		shareToken := extractShareToken(e)
 		if shareToken == "" {
 			return nil, &viewAccessDenial{http.StatusUnauthorized, "share token required"}
+		}
+		if validShareVisit(app, crypto, share, extractShareVisitProof(e), shareToken, view) {
+			return nil, nil
 		}
 		valid, tokenRecord := validateShareToken(app, share, shareToken, view.Id)
 		if !valid {

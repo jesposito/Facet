@@ -121,6 +121,13 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
 			}
 
+			// Course sales are Facet Cloud-only. Refuse before any lookup,
+			// coupon claim, purchase record or Stripe call, whatever the
+			// request claims or the environment says.
+			if req.ContentType == "courses" && !services.CourseSalesAvailable {
+				return courseSalesUnavailable(e)
+			}
+
 			// Redirect URLs must be on this site's configured address
 			publicOrigin := publicAppURL(app)
 			if publicOrigin == "" {
@@ -522,8 +529,45 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 	}
 }
 
+// errCourseSalesUnavailable is returned wherever a course sale is refused.
+const errCourseSalesUnavailable = "Selling courses is only available on Facet Cloud. Courses can still be published for free."
+
+func courseSalesUnavailable(e *core.RequestEvent) error {
+	return e.JSON(http.StatusForbidden, map[string]any{
+		"error":  errCourseSalesUnavailable,
+		"reason": "course_sales_unavailable",
+	})
+}
+
+// courseSaleChangeBlocked reports whether a course save would put the course
+// up for sale. An imported course that is already paid keeps its tier and
+// price untouched (it is never silently made free), but it can't be newly
+// made paid or repriced, and a new course can't be created paid.
+func courseSaleChangeBlocked(record *core.Record) bool {
+	if services.CourseSalesAvailable || record.Collection().Name != "courses" {
+		return false
+	}
+	if record.GetString("access_tier") != "paid" {
+		return false
+	}
+	original := record.Original()
+	if !record.IsNew() && original != nil &&
+		original.GetString("access_tier") == "paid" &&
+		original.GetInt("price") == record.GetInt("price") {
+		return false
+	}
+	return true
+}
+
 // validatePaidContent checks that Stripe is configured when access_tier=paid, and price meets minimum.
 func validatePaidContent(app *pocketbase.PocketBase, crypto *services.CryptoService, e *core.RecordRequestEvent) error {
+	if e.Record.Collection().Name == "courses" && !services.CourseSalesAvailable {
+		if courseSaleChangeBlocked(e.Record) {
+			return courseSalesUnavailable(e.RequestEvent)
+		}
+		// A retained imported paid course doesn't need Stripe to stay as it is.
+		return e.Next()
+	}
 	accessTier := e.Record.GetString("access_tier")
 	if accessTier != "paid" {
 		return e.Next()

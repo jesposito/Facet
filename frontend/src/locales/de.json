@@ -754,6 +754,9 @@
       "access_paid_description": "Erfordert einen Kauf fuer den Zugang zum vollstaendigen Inhalt.",
       "price": "Preis",
       "price_placeholder": "0,00",
+      "sales_cloud_only": "Kurse sind hier kostenlos zu veröffentlichen und zu belegen. Der Verkauf von Kursen ist nur in Facet Cloud verfügbar.",
+      "sales_unavailable_imported": "Dieser Kurs wurde als kostenpflichtiger Kurs importiert. Der Verkauf von Kursen ist nur in Facet Cloud verfügbar, daher kann er hier nicht gekauft werden. Preis und Zugangsstufe bleiben unverändert, und frühere Käufer behalten ihren Zugang.",
+      "imported_paid_badge": "Importiert, kostenpflichtig",
       "difficulty": "Schwierigkeit",
       "difficulty_beginner": "Anfaenger",
       "difficulty_intermediate": "Fortgeschritten",
@@ -3217,7 +3220,9 @@
         "opens": "Öffnet am {date}",
         "minutes": "{count} Min.",
         "about": "Über {name}",
-        "closed": "Dieser Kurs nimmt derzeit keine neuen Teilnehmenden auf."
+        "closed": "Dieser Kurs nimmt derzeit keine neuen Teilnehmenden auf.",
+        "sales_unavailable": "Dieser Kurs kann auf dieser Website nicht gekauft werden. Wenn du ihn früher gekauft hast, öffne ihn über den Zugangslink in deiner Kaufbestätigung.",
+        "not_for_sale": "Hier nicht käuflich"
       },
       "learn": {
         "course_lessons": "Kurslektionen",

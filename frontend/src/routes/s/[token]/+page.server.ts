@@ -14,9 +14,17 @@
 
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
-import { setShareToken, isSecureRequest } from '$lib/tokens';
+import { setShareToken, storeShareVisit, isSecureRequest } from '$lib/tokens';
 
-export const load: PageServerLoad = async ({ params, fetch, cookies, url, request }) => {
+export const load: PageServerLoad = async ({
+	params,
+	fetch,
+	cookies,
+	url,
+	request,
+	setHeaders
+}) => {
+	setHeaders({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
 	const { token } = params;
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 
@@ -40,7 +48,11 @@ export const load: PageServerLoad = async ({ params, fetch, cookies, url, reques
 
 		// Store the validated token in a cookie for SSR access
 		// Token is valid for 7 days (same as backend expiry)
-		setShareToken(cookies, token, 7 * 24 * 60 * 60, isSecureRequest(url, request));
+		const secure = isSecureRequest(url, request);
+		setShareToken(cookies, token, 7 * 24 * 60 * 60, secure);
+		// Validation spent a use of the token; the visit proof lets this visit
+		// continue on the view without spending another.
+		storeShareVisit(cookies, response, secure);
 
 		// Redirect to the canonical URL WITHOUT token in URL (clean URLs)
 		throw redirect(302, `/${result.view_slug}`);

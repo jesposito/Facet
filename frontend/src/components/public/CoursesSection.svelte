@@ -53,9 +53,8 @@
 			return $t('public.courses.start_course');
 		} else if (course.access_tier === 'free') {
 			return $t('public.courses.start_free');
-		} else if (course.price) {
-			return `${$t('public.courses.start')} · $${(course.price / 100).toFixed(2)}`;
 		}
+		// Course sales are Facet Cloud-only: no price in the call to action.
 		return $t('public.courses.start');
 	}
 
@@ -126,7 +125,7 @@
 												/>
 											</svg>
 											<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-												>${(featuredCourse.price / 100).toFixed(2)}</span
+												>{$t('public.commerce.course.not_for_sale')}</span
 											>
 										</div>
 									{:else if featuredCourse.access_tier === 'free'}
@@ -199,7 +198,7 @@
 												/>
 											</svg>
 											<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-												>${(featuredCourse.price / 100).toFixed(2)}</span
+												>{$t('public.commerce.course.not_for_sale')}</span
 											>
 										</div>
 									{:else if featuredCourse.access_tier === 'free'}
@@ -367,7 +366,7 @@
 													/>
 												</svg>
 												<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-													>${(course.price / 100).toFixed(2)}</span
+													>{$t('public.commerce.course.not_for_sale')}</span
 												>
 											</div>
 										{:else if course.access_tier === 'free'}
@@ -438,7 +437,7 @@
 													/>
 												</svg>
 												<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-													>${(course.price / 100).toFixed(2)}</span
+													>{$t('public.commerce.course.not_for_sale')}</span
 												>
 											</div>
 										{:else if course.access_tier === 'free'}
@@ -609,7 +608,7 @@
 											/>
 										</svg>
 										<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-											>${(course.price / 100).toFixed(2)}</span
+											>{$t('public.commerce.course.not_for_sale')}</span
 										>
 									</div>
 								{:else if course.access_tier === 'free'}
@@ -676,7 +675,7 @@
 											/>
 										</svg>
 										<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-											>${(course.price / 100).toFixed(2)}</span
+											>{$t('public.commerce.course.not_for_sale')}</span
 										>
 									</div>
 								{:else if course.access_tier === 'free'}
@@ -846,7 +845,7 @@
 											/>
 										</svg>
 										<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-											>${(course.price / 100).toFixed(2)}</span
+											>{$t('public.commerce.course.not_for_sale')}</span
 										>
 									</div>
 								{:else if course.access_tier === 'free'}
@@ -915,7 +914,7 @@
 											/>
 										</svg>
 										<span class="text-xs font-semibold text-stone-700 dark:text-stone-200"
-											>${(course.price / 100).toFixed(2)}</span
+											>{$t('public.commerce.course.not_for_sale')}</span
 										>
 									</div>
 								{:else if course.access_tier === 'free'}

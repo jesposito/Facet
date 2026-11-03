@@ -3,7 +3,7 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { navigationFacet } from '$lib/discovery';
-import { buildTokenHeaders, getPasswordToken, getShareToken } from '$lib/tokens';
+import { buildTokenHeaders, getPasswordToken, getShareToken, getShareVisit } from '$lib/tokens';
 import { internalApiHeaders, parseMediaRefs } from '$lib/server/public-api';
 
 export const load: PageServerLoad = async ({ params, fetch, url, request, locals, cookies }) => {
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, request, locals
 
 	const headers: Record<string, string> = {
 		...internalApiHeaders(request),
-		...buildTokenHeaders(getShareToken(cookies), getPasswordToken(cookies))
+		...buildTokenHeaders(getShareToken(cookies), getPasswordToken(cookies), getShareVisit(cookies))
 	};
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 	if (pbAuthToken) {

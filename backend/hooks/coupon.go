@@ -90,6 +90,9 @@ func RegisterCouponHooks(app *pocketbase.PocketBase, rl *services.RateLimitServi
 			coupon.Set("code", strings.ToUpper(strings.TrimSpace(req.Code)))
 			coupon.Set("discount_type", req.DiscountType)
 			coupon.Set("discount_value", req.DiscountValue)
+			if req.ApplicableType == "courses" && !services.CourseSalesAvailable {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "Course sales are only available on Facet Cloud"})
+			}
 			if req.ApplicableType != "" {
 				coupon.Set("applicable_type", req.ApplicableType)
 			} else {
@@ -159,6 +162,9 @@ func RegisterCouponHooks(app *pocketbase.PocketBase, rl *services.RateLimitServi
 				coupon.Set("discount_value", discountValue)
 			}
 			if applicableType, ok := req["applicable_type"].(string); ok {
+				if applicableType == "courses" && !services.CourseSalesAvailable {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "Course sales are only available on Facet Cloud"})
+				}
 				coupon.Set("applicable_type", applicableType)
 			}
 			if applicableIDs, ok := req["applicable_ids"]; ok {
@@ -264,6 +270,9 @@ func RegisterCouponHooks(app *pocketbase.PocketBase, rl *services.RateLimitServi
 // validateCoupon checks if a coupon code is valid for the given content.
 // Returns empty string if valid, or a reason string if invalid.
 func validateCoupon(app *pocketbase.PocketBase, code, contentType, contentID string) string {
+	if contentType == "courses" && !services.CourseSalesAvailable {
+		return "Course sales are only available on Facet Cloud"
+	}
 	couponRecords, err := app.FindRecordsByFilter(
 		"coupons",
 		"code = {:code}",

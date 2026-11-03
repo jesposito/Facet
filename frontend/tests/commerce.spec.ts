@@ -1,6 +1,13 @@
 /**
  * Public course and checkout flows.
  *
+ * Selling courses is Facet Cloud-only: course pages must offer no checkout and
+ * the backend refuses every course sale. Paid checkout is covered on posts,
+ * projects and talks. Access for earlier buyers of imported paid courses is
+ * covered by the Go fixtures (backend/hooks/course_access_test.go and
+ * course_sales_boundary_test.go), because the backend won't create a paid
+ * course to test it through here.
+ *
  * Courses and paid content are seeded through the admin API. Checkout is never sent to Stripe:
  * POST /api/content/checkout is intercepted in the browser and the Stripe
  * page is stubbed. Access is only ever granted by the backend, so these tests
@@ -9,8 +16,8 @@
  * Needs ADMIN_EMAIL and ADMIN_PASSWORD. The backend refuses to save paid
  * content unless a Stripe secret key is set. The disposable test backend
  * sets a placeholder key and these tests never let a request reach Stripe,
- * so with COMMERCE_FIXTURE=1 the paid tests must run and fail loudly if the
- * paid course can't be created. Without it (an arbitrary developer
+ * so with COMMERCE_FIXTURE=1 the paid-content tests must run and fail loudly if
+ * the paid post cannot be created. Without it (an arbitrary developer
  * backend) they skip instead.
  *
  * Enrolment and quiz answers are mocked in the browser where the real flow
@@ -18,13 +25,11 @@
  */
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
 import { apiBaseURL, adminEmail, adminPassword } from './config';
-import { loginAsAdmin } from './helpers';
+import { loginAsAdmin, seedAdminSession } from './helpers';
 
 const requirePaid = process.env.COMMERCE_FIXTURE === '1';
 
 const run = Date.now().toString(36);
-const SECRET = `paid-lesson-secret-${run}`;
-const PREVIEW = `preview-lesson-text-${run}`;
 const FREE_TEXT = `free-lesson-text-${run}`;
 const EXPLANATION = `quiz-explanation-${run}`;
 
@@ -33,7 +38,8 @@ const created: string[] = [];
 let freeSlug = '';
 let enrolSlug = '';
 let quizCourse: { slug: string; lessonId: string } | null = null;
-let paid: { id: string; slug: string } | null = null;
+let freeId = '';
+let stripeReady = false;
 const paidContent: Array<{
 	type: 'posts' | 'projects' | 'talks';
 	id: string;
@@ -94,6 +100,12 @@ async function addLesson(
 	return (await res.json()).id as string;
 }
 
+function paidPost() {
+	const post = paidContent.find((fixture) => fixture.type === 'posts');
+	expect(post, 'create paid post fixture').toBeTruthy();
+	return post!;
+}
+
 async function openQuizLesson(page: Page) {
 	await page.goto(`/courses/${quizCourse!.slug}/learn?lesson=${quizCourse!.lessonId}`);
 }
@@ -121,6 +133,7 @@ test.describe('public courses and checkout', () => {
 		});
 		expect(free, 'create free course').toBeTruthy();
 		freeSlug = free!.slug;
+		freeId = free!.id;
 		const freeModule = await addModule(request, free!.id, 'Getting started');
 		await addLesson(request, free!.id, freeModule, {
 			title: 'Welcome',
@@ -180,32 +193,38 @@ test.describe('public courses and checkout', () => {
 		expect(quizRes.ok(), 'create quiz').toBeTruthy();
 		quizCourse = { slug: quiz!.slug, lessonId: quizLesson };
 
-		paid = await createCourse(request, {
-			title: `Paid course ${run}`,
-			slug: `paid-course-${run}`,
-			access_tier: 'paid',
-			price: 1999
-		});
-		if (requirePaid) {
-			expect(
-				paid,
-				'COMMERCE_FIXTURE=1 but the backend refused a paid course. Is STRIPE_SECRET_KEY set on the test backend?'
-			).toBeTruthy();
+		// Selling courses is Facet Cloud-only, so paid checkout is exercised on
+		// posts, projects and talks. Probe with a paid post: without a Stripe
+		// key the backend refuses paid content and these tests skip.
+		{
+			const probe = await request.post(`${apiBaseURL}/api/collections/posts/records`, {
+				headers: { Authorization: token },
+				data: {
+					title: `Paid probe ${run}`,
+					slug: `paid-probe-${run}`,
+					content: 'probe',
+					visibility: 'private',
+					access_tier: 'paid',
+					price: 1299
+				}
+			});
+			stripeReady = probe.ok();
+			if (requirePaid) {
+				expect(
+					stripeReady,
+					'COMMERCE_FIXTURE=1 but the backend refused paid content. Is STRIPE_SECRET_KEY set on the test backend?'
+				).toBeTruthy();
+			}
+			if (stripeReady) {
+				await request.delete(
+					`${apiBaseURL}/api/collections/posts/records/${(await probe.json()).id}`,
+					{
+						headers: { Authorization: token }
+					}
+				);
+			}
 		}
-		if (paid) {
-			const paidModule = await addModule(request, paid.id, 'Module one');
-			await addLesson(request, paid.id, paidModule, {
-				title: 'Preview lesson',
-				content: PREVIEW,
-				is_preview: true,
-				sort_order: 0
-			});
-			await addLesson(request, paid.id, paidModule, {
-				title: 'Paid lesson',
-				content: SECRET,
-				sort_order: 1
-			});
-
+		if (stripeReady) {
 			for (const [type, data] of [
 				[
 					'posts',
@@ -274,42 +293,110 @@ test.describe('public courses and checkout', () => {
 		await expect(page.getByRole('main')).toContainText(FREE_TEXT);
 	});
 
-	test.describe('paid course', () => {
+	test('course pages offer no paid or checkout controls', async ({ page }) => {
+		for (const slug of [freeSlug, enrolSlug]) {
+			const response = await page.goto(`/courses/${slug}`);
+			expect(response!.ok()).toBeTruthy();
+			await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+			await expect(page.getByTestId('purchase-gate')).toHaveCount(0);
+			await expect(page.getByRole('button', { name: /Buy for/ })).toHaveCount(0);
+			await expect(page.getByRole('button', { name: 'Have a coupon?' })).toHaveCount(0);
+			await expect(page.getByTestId('course-sales-unavailable')).toHaveCount(0);
+			await expect(page.getByRole('main')).not.toContainText(/\$\d/);
+		}
+	});
+
+	test('the backend refuses every course sale', async ({ request }) => {
+		const plan = await request.get(`${apiBaseURL}/api/plan`);
+		expect(plan.ok()).toBeTruthy();
+		expect((await plan.json()).features.course_sales).toBe(false);
+
+		const detail = await request.get(`${apiBaseURL}/api/courses/${freeSlug}`);
+		expect((await detail.json()).sales_available).toBe(false);
+
+		// One real course checkout against the live, rate-limited endpoint. The
+		// coupon, missing-course, and forged-field variants are each proven in
+		// backend/hooks/course_sales_boundary_test.go; repeating them here only
+		// spends the strict per-IP checkout budget the rest of the suite shares.
+		const origin = new URL(apiBaseURL).origin;
+		const res = await request.post(`${apiBaseURL}/api/content/checkout`, {
+			data: {
+				content_type: 'courses',
+				content_id: freeId,
+				success_url: `${origin}/ok`,
+				cancel_url: `${origin}/no`
+			}
+		});
+		expect(res.status()).toBe(403);
+		expect((await res.json()).reason).toBe('course_sales_unavailable');
+
+		// An admin can't create a paid course or switch a free one to paid.
+		const create = await request.post(`${apiBaseURL}/api/collections/courses/records`, {
+			headers: { Authorization: token },
+			data: {
+				title: `Refused paid ${run}`,
+				slug: `refused-paid-${run}`,
+				access_tier: 'paid',
+				price: 1999,
+				visibility: 'public'
+			}
+		});
+		expect(create.status()).toBe(403);
+		const missing = await request.get(`${apiBaseURL}/api/courses/refused-paid-${run}`);
+		expect(missing.status()).toBe(404);
+
+		const flip = await request.patch(`${apiBaseURL}/api/collections/courses/records/${freeId}`, {
+			headers: { Authorization: token },
+			data: { access_tier: 'paid', price: 1999 }
+		});
+		expect(flip.status()).toBe(403);
+		const after = await request.get(`${apiBaseURL}/api/collections/courses/records/${freeId}`, {
+			headers: { Authorization: token }
+		});
+		expect(await after.json()).toMatchObject({ access_tier: 'free', price: 0 });
+
+		const coupon = await request.post(`${apiBaseURL}/api/admin/coupons`, {
+			headers: { Authorization: token },
+			data: {
+				code: `COURSE-${run}`.toUpperCase(),
+				discount_type: 'percentage',
+				discount_value: 100,
+				applicable_type: 'courses',
+				max_uses: 1
+			}
+		});
+		expect(coupon.status()).toBe(400);
+	});
+
+	test('the admin course form has no price or paid tier', async ({ page, request }) => {
+		await seedAdminSession(page, request);
+		await page.goto('/admin/courses');
+		await page.getByRole('button', { name: 'New Course' }).first().click();
+		const editor = page.locator('form', { has: page.locator('nav') });
+		await expect(editor.locator('#title')).toBeVisible();
+
+		// Neither the content tab the editor opens on nor the settings tab,
+		// where tier and price would live, offers anything to sell with.
+		const noSellingControls = async () => {
+			await expect(editor.locator('#price, #access_tier')).toHaveCount(0);
+			await expect(editor.getByLabel(/Price|Access tier/i)).toHaveCount(0);
+			await expect(editor.getByRole('option', { name: /paid/i })).toHaveCount(0);
+			await expect(page.getByTestId('course-sales-unavailable-admin')).toHaveCount(0);
+		};
+		await noSellingControls();
+
+		await editor.locator('nav').getByRole('button', { name: 'Settings', exact: true }).click();
+		await expect(editor.getByTestId('course-free-note')).toBeVisible();
+		await noSellingControls();
+	});
+
+	test.describe('paid content checkout', () => {
 		test.beforeEach(() => {
-			// Under COMMERCE_FIXTURE=1 beforeAll has already failed if paid is null.
+			// Under COMMERCE_FIXTURE=1 beforeAll has already failed without Stripe.
 			test.skip(
-				!paid,
+				!stripeReady,
 				'Backend refused paid content (no Stripe key); set COMMERCE_FIXTURE=1 on a fixture backend to require these'
 			);
-		});
-
-		test('stays locked and keeps the paid lesson out of the page', async ({ page }) => {
-			const response = await page.goto(`/courses/${paid!.slug}`);
-			const html = await response!.text();
-			expect(html).not.toContain(SECRET);
-			// The outline page never ships lesson bodies, even preview ones.
-			expect(html).not.toContain(PREVIEW);
-
-			await expect(page.getByTestId('purchase-gate')).toBeVisible();
-			await expect(page.getByRole('button', { name: /Buy for .*19\.99/ })).toBeVisible();
-			await expect(page.locator('[data-lesson-state="locked"]')).toContainText('Paid lesson');
-			await expect(page.getByRole('link', { name: /Paid lesson/ })).toHaveCount(0);
-
-			// The preview lesson is readable, the paid one sends you back.
-			await page.getByRole('link', { name: /Preview lesson/ }).click();
-			await expect(page.getByRole('main')).toContainText(PREVIEW);
-			expect(await page.content()).not.toContain(SECRET);
-		});
-
-		test('opening a locked lesson directly redirects to the outline', async ({ page, request }) => {
-			const detail = await request.get(`${apiBaseURL}/api/courses/${paid!.slug}`);
-			const body = await detail.json();
-			const locked = body.modules[0].lessons.find(
-				(l: { title: string }) => l.title === 'Paid lesson'
-			);
-			const res = await page.goto(`/courses/${paid!.slug}/learn?lesson=${locked.id}`);
-			await expect(page).toHaveURL(new RegExp(`/courses/${paid!.slug}$`));
-			expect(await res!.text()).not.toContain(SECRET);
 		});
 
 		for (const type of ['posts', 'projects', 'talks'] as const) {
@@ -362,6 +449,7 @@ test.describe('public courses and checkout', () => {
 		}
 
 		test('shows the server error when checkout cannot start', async ({ page }) => {
+			const post = paidPost();
 			await page.route('**/api/content/checkout', (route) =>
 				route.fulfill({
 					status: 503,
@@ -369,7 +457,7 @@ test.describe('public courses and checkout', () => {
 					body: JSON.stringify({ error: 'Stripe not configured' })
 				})
 			);
-			await page.goto(`/courses/${paid!.slug}`);
+			await page.goto(`/posts/${post.slug}`);
 			const buy = page.getByRole('button', { name: /Buy for/ });
 			await buy.click();
 			await expect(page.getByRole('alert')).toContainText("Payments aren't set up");
@@ -378,6 +466,7 @@ test.describe('public courses and checkout', () => {
 		});
 
 		test('reports a rejected coupon', async ({ page }) => {
+			const post = paidPost();
 			await page.route('**/api/content/checkout', (route) =>
 				route.fulfill({
 					status: 400,
@@ -385,7 +474,7 @@ test.describe('public courses and checkout', () => {
 					body: JSON.stringify({ error: 'invalid coupon: coupon has expired' })
 				})
 			);
-			await page.goto(`/courses/${paid!.slug}`);
+			await page.goto(`/posts/${post.slug}`);
 			await page.getByRole('button', { name: 'Have a coupon?' }).click();
 			await page.getByLabel('Coupon code').fill('OLD');
 			await page.getByRole('button', { name: /Buy for/ }).click();
@@ -396,6 +485,7 @@ test.describe('public courses and checkout', () => {
 			page,
 			baseURL
 		}) => {
+			const post = paidPost();
 			let sent: Record<string, string> | null = null;
 			await page.route('**/api/content/checkout', async (route) => {
 				sent = route.request().postDataJSON();
@@ -409,17 +499,18 @@ test.describe('public courses and checkout', () => {
 				route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Stripe test stub</h1>' })
 			);
 
-			await page.goto(`/courses/${paid!.slug}`);
+			await page.goto(`/posts/${post.slug}`);
 			await page.getByRole('button', { name: /Buy for/ }).click();
 			await expect(page).toHaveURL('https://checkout.stripe.com/c/pay/cs_test_mock');
 
 			const origin = new URL(baseURL!).origin;
-			expect(sent).toMatchObject({ content_type: 'courses', content_id: paid!.id });
+			expect(sent).toMatchObject({ content_type: 'posts', content_id: post.id });
 			expect(sent!.success_url.startsWith(`${origin}/checkout/return?`)).toBeTruthy();
 			expect(sent!.cancel_url).toContain('cancelled=1');
 		});
 
 		test('does not follow an unexpected checkout address', async ({ page }) => {
+			const post = paidPost();
 			await page.route('**/api/content/checkout', (route) =>
 				route.fulfill({
 					status: 200,
@@ -427,13 +518,14 @@ test.describe('public courses and checkout', () => {
 					body: JSON.stringify({ checkout_url: 'https://evil.example/pay' })
 				})
 			);
-			await page.goto(`/courses/${paid!.slug}`);
+			await page.goto(`/posts/${post.slug}`);
 			await page.getByRole('button', { name: /Buy for/ }).click();
 			await expect(page.getByRole('alert')).toContainText("didn't follow it");
-			await expect(page).toHaveURL(new RegExp(`/courses/${paid!.slug}`));
+			await expect(page).toHaveURL(new RegExp(`/posts/${post.slug}`));
 		});
 
-		test('a forged success return does not unlock the course', async ({ page }) => {
+		test('a forged success return does not unlock the post', async ({ page }) => {
+			const post = paidPost();
 			// The return page asks the backend about the session. Answer for it,
 			// so the placeholder Stripe key is never sent to Stripe.
 			await page.route('**/api/content/checkout/confirm', (route) =>
@@ -444,13 +536,13 @@ test.describe('public courses and checkout', () => {
 				})
 			);
 			await page.goto(
-				`/checkout/return?type=courses&slug=${paid!.slug}&paid=1&session_id=cs_test_forged&is_purchased=true`
+				`/checkout/return?type=posts&slug=${post.slug}&paid=1&session_id=cs_test_forged&is_purchased=true`
 			);
 			await expect(page.getByTestId('checkout-return')).toHaveAttribute('data-status', 'not_found');
 			await expect(page.getByRole('heading', { level: 1 })).not.toHaveText(/all set/);
 
-			const res = await page.goto(`/courses/${paid!.slug}`);
-			expect(await res!.text()).not.toContain(SECRET);
+			const res = await page.goto(`/posts/${post.slug}`);
+			expect(await res!.text()).not.toContain(post.secret);
 			await expect(page.getByTestId('purchase-gate')).toBeVisible();
 		});
 
@@ -557,7 +649,8 @@ test.describe('public courses and checkout', () => {
 		});
 
 		test('a cancelled checkout explains what to check and links back', async ({ page }) => {
-			await page.goto(`/checkout/return?type=courses&slug=${paid!.slug}&cancelled=1`);
+			const post = paidPost();
+			await page.goto(`/checkout/return?type=posts&slug=${post.slug}&cancelled=1`);
 			const panel = page.getByTestId('checkout-return');
 			await expect(panel).toHaveAttribute('data-status', 'cancelled');
 			await expect(page.getByRole('heading', { level: 1 })).toHaveText('Checkout was cancelled');
@@ -565,7 +658,7 @@ test.describe('public courses and checkout', () => {
 			await expect(panel).not.toContainText(/haven't been charged|nothing was charged/i);
 			await expect(panel).toContainText('receipt from Stripe');
 			await page.getByRole('link', { name: /Back to/ }).click();
-			await expect(page).toHaveURL(new RegExp(`/courses/${paid!.slug}$`));
+			await expect(page).toHaveURL(new RegExp(`/posts/${post.slug}$`));
 			await expect(page.getByTestId('purchase-gate')).toBeVisible();
 		});
 	});

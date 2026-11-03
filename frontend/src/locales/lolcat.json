@@ -754,6 +754,9 @@
       "access_paid_description": "Needz moniez 2 see all da stuffz.",
       "price": "Moniez",
       "price_placeholder": "0.00",
+      "sales_cloud_only": "Coursez here iz free 2 publish an take. Sellin coursez iz only on Facet Cloud.",
+      "sales_unavailable_imported": "Dis course wuz imported az paid. Sellin coursez iz only on Facet Cloud, so u cant buy it here; itz price an tier stay same, an ppl hoo bought it b4 keep access.",
+      "imported_paid_badge": "Imported paid",
       "difficulty": "How Hard",
       "difficulty_beginner": "EZ Mode",
       "difficulty_intermediate": "Kinda Hard",
@@ -3217,7 +3220,9 @@
         "opens": "Opnz {date}",
         "minutes": "{count} min",
         "about": "Abowt {name}",
-        "closed": "Dis course iz not takin new learners rite nao."
+        "closed": "Dis course iz not takin new learners rite nao.",
+        "sales_unavailable": "Dis course iz not 4 sale on dis site. If u bought it b4, open it frum teh access link in ur purchase email.",
+        "not_for_sale": "Not 4 sale here"
       },
       "learn": {
         "course_lessons": "Cours lesunz",

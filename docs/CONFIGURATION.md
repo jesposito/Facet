@@ -159,7 +159,7 @@ See [Upgrades, backups and recovery](UPGRADE.md#built-in-backups) for what these
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `FACET_FEATURE_COURSES` | `true` | Courses are on for self-hosted sites. `false` or `0` turns off the catalogue, new enrolments and course checkout; people who already bought or enrolled keep access. A value that isn't a boolean keeps the default ([source](../backend/services/plan.go)). Not passed through by the repository's `docker-compose.yml`. |
+| `FACET_FEATURE_COURSES` | `true` | Courses are on for self-hosted sites. `false` or `0` turns off the catalogue and new enrolments; people who already bought or enrolled keep access. A value that isn't a boolean keeps the default ([source](../backend/services/plan.go)). Not passed through by the repository's `docker-compose.yml`. |
 | `FACET_MANAGED` | `false` | Compatibility switch for managed hosting. Unknown features default to off in this mode. It isn't a supported way to run self-hosted Facet, and it doesn't make this repository a cloud product. |
 | `NEWSLETTER_MAX_CONCURRENT_SENDS` | `4` | Limits how many newsletter sends run at once ([source](../backend/hooks/newsletter_concurrency.go)) |
 | `VIEW_DEDUP_WINDOW` | `30m` | Go duration (for example `30m`) during which repeat hits from the same visitor don't increase view counts |

@@ -308,7 +308,9 @@
 					>
 					<select id="coupon_applies_to" bind:value={appliesTo} class="input text-sm">
 						<option value="all">{$t('admin.coupons.applies_all')}</option>
-						<option value="courses">{$t('admin.coupons.applies_courses')}</option>
+						{#if editingCoupon?.applicable_type === 'courses'}
+							<option value="courses" disabled>{$t('admin.coupons.applies_courses')}</option>
+						{/if}
 						<option value="posts">{$t('admin.coupons.applies_posts')}</option>
 						<option value="projects">{$t('admin.coupons.applies_projects')}</option>
 					</select>

@@ -914,6 +914,9 @@
       "access_paid_description": "Requires purchase to access full content.",
       "price": "Price",
       "price_placeholder": "0.00",
+      "sales_cloud_only": "Courses here are free to publish and take. Selling courses is only available on Facet Cloud.",
+      "sales_unavailable_imported": "This course was imported as a paid course. Selling courses is only available on Facet Cloud, so it can't be bought here; its price and tier are kept as they were and earlier buyers keep their access.",
+      "imported_paid_badge": "Imported paid",
       "difficulty": "Difficulty",
       "difficulty_beginner": "Beginner",
       "difficulty_intermediate": "Intermediate",
@@ -3217,7 +3220,9 @@
         "opens": "Opens {date}",
         "minutes": "{count} min",
         "about": "About {name}",
-        "closed": "This course isn't taking new learners right now."
+        "closed": "This course isn't taking new learners right now.",
+        "sales_unavailable": "This course isn't available to buy on this site. If you bought it earlier, open it from the access link in your purchase email.",
+        "not_for_sale": "Not for sale here"
       },
       "learn": {
         "course_lessons": "Course lessons",
