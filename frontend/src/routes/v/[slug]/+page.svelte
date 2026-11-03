@@ -17,7 +17,8 @@
 		<p class="text-gray-600 dark:text-gray-400">Redirecting...</p>
 		<noscript>
 			<p class="mt-2 text-sm text-gray-500">
-				If you're not redirected, <a href="/" class="text-primary-600 hover:underline">click here</a>.
+				If you're not redirected, <a href="/" class="text-primary-600 hover:underline">click here</a
+				>.
 			</p>
 		</noscript>
 	</div>

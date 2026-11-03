@@ -2,11 +2,12 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
 
-	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/core"
 )
 
 // BackupConfig holds backup configuration.
@@ -32,7 +33,7 @@ type BackupInfo struct {
 // RunBackup creates a backup using PocketBase's built-in backup API.
 // This runs a WAL checkpoint inside a transaction for a consistent snapshot.
 // Backups are stored in {dataDir}/backups/ (inside the already-mapped /data volume).
-func RunBackup(app *pocketbase.PocketBase, name string) (*BackupResult, error) {
+func RunBackup(app core.App, name string) (*BackupResult, error) {
 	start := time.Now()
 
 	if err := app.CreateBackup(context.Background(), name); err != nil {
@@ -65,17 +66,19 @@ func RunBackup(app *pocketbase.PocketBase, name string) (*BackupResult, error) {
 }
 
 // ListBackups returns all backup files sorted by modification time (newest first).
-// Backups are stored in {dataDir}/backups/ by PocketBase.
-func ListBackups(app *pocketbase.PocketBase) ([]BackupInfo, error) {
+// Backups are stored in {dataDir}/backups/ by PocketBase. An unreadable backups
+// directory is an error, not an empty list: callers such as content recovery
+// must not mistake "could not look" for "nothing there".
+func ListBackups(app core.App) ([]BackupInfo, error) {
 	fsys, err := app.NewBackupsFilesystem()
 	if err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("open backups filesystem: %w", err)
 	}
 	defer fsys.Close()
 
 	files, err := fsys.List("")
 	if err != nil {
-		return nil, nil
+		return nil, fmt.Errorf("list backups: %w", err)
 	}
 
 	var backups []BackupInfo
@@ -99,24 +102,36 @@ func ListBackups(app *pocketbase.PocketBase) ([]BackupInfo, error) {
 }
 
 // EnforceRetention deletes the oldest backups to stay within the limit.
-func EnforceRetention(app *pocketbase.PocketBase, maxBackups int) {
+//
+// It keeps going after a failed delete so one stuck file doesn't stop the rest
+// being pruned, and returns every failure joined together. A retention error
+// says nothing about the backup that was just written: callers should report
+// the two separately.
+func EnforceRetention(app core.App, maxBackups int) error {
 	if maxBackups <= 0 {
-		return
+		return nil
 	}
 
 	backups, err := ListBackups(app)
-	if err != nil || len(backups) <= maxBackups {
-		return
+	if err != nil {
+		return err
+	}
+	if len(backups) <= maxBackups {
+		return nil
 	}
 
 	fsys, err := app.NewBackupsFilesystem()
 	if err != nil {
-		return
+		return fmt.Errorf("open backups filesystem: %w", err)
 	}
 	defer fsys.Close()
 
 	// Delete oldest backups beyond the limit
+	var errs []error
 	for _, b := range backups[maxBackups:] {
-		fsys.Delete(b.Filename)
+		if err := fsys.Delete(b.Filename); err != nil {
+			errs = append(errs, fmt.Errorf("delete %s: %w", b.Filename, err))
+		}
 	}
+	return errors.Join(errs...)
 }

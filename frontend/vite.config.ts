@@ -22,8 +22,8 @@ function copyChangelog() {
 	return {
 		name: 'copy-changelog',
 		buildStart() {
-			const src = resolve(__dirname, '../CHANGELOG.md');
-			const dest = resolve(__dirname, 'static/CHANGELOG.md');
+			const src = resolve(import.meta.dirname, '../CHANGELOG.md');
+			const dest = resolve(import.meta.dirname, 'static/CHANGELOG.md');
 
 			if (existsSync(src)) {
 				const destDir = dirname(dest);
@@ -36,6 +36,34 @@ function copyChangelog() {
 		}
 	};
 }
+
+// Dev proxy upstream. POCKETBASE_URL is server-side config (no VITE_ prefix),
+// so it never reaches the browser bundle. Native dev uses loopback; the
+// Docker dev frontend sets http://backend:8090.
+function pocketbaseProxyTarget(): string {
+	const raw = process.env.POCKETBASE_URL || 'http://127.0.0.1:8090';
+	let url: URL;
+	try {
+		url = new URL(raw);
+	} catch {
+		throw new Error('POCKETBASE_URL must be an absolute http(s) URL');
+	}
+	if (
+		(url.protocol !== 'http:' && url.protocol !== 'https:') ||
+		url.username ||
+		url.password ||
+		url.pathname !== '/' ||
+		url.search ||
+		url.hash
+	) {
+		throw new Error(
+			'POCKETBASE_URL must be an http(s) origin without credentials, path, query or fragment'
+		);
+	}
+	return url.origin;
+}
+
+const pocketbaseTarget = pocketbaseProxyTarget();
 
 export default defineConfig({
 	plugins: [
@@ -50,11 +78,11 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': {
-				target: 'http://localhost:8090',
+				target: pocketbaseTarget,
 				changeOrigin: true
 			},
 			'/_': {
-				target: 'http://localhost:8090',
+				target: pocketbaseTarget,
 				changeOrigin: true
 			}
 		}

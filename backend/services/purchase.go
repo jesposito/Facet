@@ -120,6 +120,25 @@ func (p *PurchaseService) ValidatePurchaseJWT(tokenString string) ([]string, str
 	return claims.PurchaseIDs, claims.BuyerEmail, nil
 }
 
+// BuyerAccessPurchaseID stands in for a list of purchase IDs in a token
+// issued from an emailed access link. Following that link proves the visitor
+// reads the buyer's inbox, so the token covers every completed purchase made
+// with that email, including ones made later. Each check still looks the
+// purchase up by the token's email and requires status completed, so a refund
+// ends access at once. Listing IDs instead capped access at the first 100
+// purchases and grew the cookie with each one.
+const BuyerAccessPurchaseID = "buyer:*"
+
+// GenerateBuyerJWT creates a purchase token covering every completed purchase
+// made with buyerEmail. Only issue it once the visitor has proven they read
+// that inbox.
+func (p *PurchaseService) GenerateBuyerJWT(buyerEmail string) (string, time.Time, error) {
+	if buyerEmail == "" {
+		return "", time.Time{}, errors.New("buyer email required")
+	}
+	return p.GeneratePurchaseJWT([]string{BuyerAccessPurchaseID}, buyerEmail)
+}
+
 // GenerateEnrollmentJWT creates a signed JWT for free course enrollment.
 // It uses a synthetic purchase ID ("free:<courseId>") so the token is compatible
 // with the existing ValidatePurchaseJWT flow.
@@ -186,10 +205,16 @@ func (p *PurchaseService) ValidateEnrollmentVerifyJWT(tokenString string) (*Enro
 	return claims, nil
 }
 
-// HasPurchaseAccess checks if a purchase ID list contains access to specific content
+// HasPurchaseAccess checks if a purchase ID list contains access to specific
+// content. Callers must already have checked that the target purchase belongs
+// to the token's buyer email and is completed; a buyer-wide token then
+// covers it.
 func (p *PurchaseService) HasPurchaseAccess(purchaseIDs []string, targetPurchaseID string) bool {
+	if targetPurchaseID == "" {
+		return false
+	}
 	for _, id := range purchaseIDs {
-		if id == targetPurchaseID {
+		if id == targetPurchaseID || id == BuyerAccessPurchaseID {
 			return true
 		}
 	}

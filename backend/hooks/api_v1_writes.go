@@ -230,14 +230,7 @@ func apiV1UpdateProfile(app core.App, e *core.RequestEvent) error {
 	}
 	logAPIKeyAction(app, e, "update", "profile", record)
 
-	// Mirror the shape of GET /api/v1/profile (see api_keys.go).
-	return respondJSON(e, http.StatusOK, map[string]any{
-		"name":     record.GetString("name"),
-		"headline": record.GetString("headline"),
-		"summary":  record.GetString("summary"),
-		"location": record.GetString("location"),
-		"updated":  record.GetString("updated"),
-	})
+	return respondJSON(e, http.StatusOK, mapProfileWrite(record))
 }
 
 // bindAPIBody decodes the JSON request body into a generic map. On parse

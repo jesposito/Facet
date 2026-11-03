@@ -47,25 +47,21 @@
 
 	function toggleTag(tagId: string) {
 		const newIds = selectedIds.includes(tagId)
-			? selectedIds.filter(id => id !== tagId)
+			? selectedIds.filter((id) => id !== tagId)
 			: [...selectedIds, tagId];
 		selectedIds = newIds;
 		onchange?.(newIds);
 	}
 
 	function removeTag(tagId: string) {
-		const newIds = selectedIds.filter(id => id !== tagId);
+		const newIds = selectedIds.filter((id) => id !== tagId);
 		selectedIds = newIds;
 		onchange?.(newIds);
 	}
 
-	let selectedTags = $derived(
-		availableTags.filter(tag => selectedIds.includes(tag.id))
-	);
+	let selectedTags = $derived(availableTags.filter((tag) => selectedIds.includes(tag.id)));
 
-	let unselectedTags = $derived(
-		availableTags.filter(tag => !selectedIds.includes(tag.id))
-	);
+	let unselectedTags = $derived(availableTags.filter((tag) => !selectedIds.includes(tag.id)));
 </script>
 
 <div class="relative">
@@ -83,13 +79,24 @@
 			<button
 				type="button"
 				class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-				onclick={() => showDropdown = !showDropdown}
+				onclick={() => (showDropdown = !showDropdown)}
 				aria-label={labelledBy ? undefined : $t('admin.tags.add_tag')}
 				aria-labelledby={labelledBy || undefined}
 				aria-expanded={showDropdown}
 			>
-				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+				<svg
+					class="w-3 h-3"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 4v16m8-8H4"
+					/>
 				</svg>
 				{$t('admin.tags.tag')}
 			</button>
@@ -109,7 +116,7 @@
 		<button
 			type="button"
 			class="btn btn-secondary btn-sm"
-			onclick={() => showDropdown = !showDropdown}
+			onclick={() => (showDropdown = !showDropdown)}
 			aria-labelledby={labelledBy}
 			aria-expanded={showDropdown}
 		>
@@ -141,13 +148,21 @@
 								{isSelected ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}"
 							onclick={() => toggleTag(tag.id)}
 						>
-							<span
-								class="w-3 h-3 rounded-full {colorInfo.bg} {colorInfo.border} border"
-							></span>
+							<span class="w-3 h-3 rounded-full {colorInfo.bg} {colorInfo.border} border"></span>
 							<span class="flex-1 text-gray-700 dark:text-gray-200">{tag.name}</span>
 							{#if isSelected}
-								<svg class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+								<svg
+									class="w-4 h-4 text-primary-600"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M5 13l4 4L19 7"
+									/>
 								</svg>
 							{/if}
 						</button>
@@ -165,11 +180,22 @@
 			<button
 				type="button"
 				class="absolute top-1 right-1 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-				onclick={() => showDropdown = false}
+				onclick={() => (showDropdown = false)}
 				aria-label={$t('shared.aria.close')}
 			>
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				<svg
+					class="w-4 h-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"
+					/>
 				</svg>
 			</button>
 		</div>
@@ -180,7 +206,7 @@
 	<button
 		type="button"
 		class="fixed inset-0 z-40"
-		onclick={() => showDropdown = false}
+		onclick={() => (showDropdown = false)}
 		aria-label={$t('shared.aria.close_menu')}
 	></button>
 {/if}

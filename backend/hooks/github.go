@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -163,10 +164,13 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 						PrivacyMode: req.PrivacyMode,
 					}
 
-					ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+					ctx, cancel := context.WithTimeout(e.Request.Context(), 60*time.Second)
 					defer cancel()
 
 					aiResult, err = ai.EnrichProject(ctx, provider, enrichReq)
+					if ctx.Err() != nil {
+						return e.JSON(http.StatusRequestTimeout, map[string]string{"error": "request canceled"})
+					}
 					if err != nil || aiResult == nil {
 						app.Logger().Error("AI enrichment failed", "provider_id", providerRecord.Id, "error", err)
 						aiResult = nil
@@ -193,6 +197,10 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 				}
 			}
 
+			if e.Request.Context().Err() != nil {
+				return e.JSON(http.StatusRequestTimeout, map[string]string{"error": "request canceled"})
+			}
+
 			// Create source record
 			sourcesCollection, err := app.FindCollectionByNameOrId("sources")
 			if err != nil {
@@ -207,6 +215,9 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 
 			if err := app.Save(sourceRecord); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create source"})
+			}
+			if e.Request.Context().Err() != nil {
+				return e.JSON(http.StatusRequestTimeout, map[string]string{"error": "request canceled"})
 			}
 
 			// Create import proposal
@@ -342,13 +353,22 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 }
 
 func getTopLanguages(languages map[string]int, limit int) []string {
-	// Simple implementation - just return keys
-	var result []string
+	if limit <= 0 {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(languages))
 	for lang := range languages {
 		result = append(result, lang)
-		if len(result) >= limit {
-			break
+	}
+	sort.Slice(result, func(i, j int) bool {
+		if languages[result[i]] == languages[result[j]] {
+			return result[i] < result[j]
 		}
+		return languages[result[i]] > languages[result[j]]
+	})
+	if limit < len(result) {
+		result = result[:limit]
 	}
 	return result
 }

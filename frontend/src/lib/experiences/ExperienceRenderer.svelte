@@ -35,7 +35,13 @@
 	const prose = (text: string) => parseMarkdown(text).replace(/<(\/?)h[12](?=[\s>])/gi, '<$1h3');
 </script>
 
-<article bind:this={article} class="project-experience" class:experience-preview={preview}>
+<article
+	id={preview ? undefined : 'main-content'}
+	role={preview ? undefined : 'main'}
+	bind:this={article}
+	class="project-experience"
+	class:experience-preview={preview}
+>
 	<header class="experience-hero experience-tone-{experience.hero.tone}">
 		<div class="experience-width">
 			{#if !preview}<a class="experience-back" href={backHref}>← {backLabel}</a>{/if}

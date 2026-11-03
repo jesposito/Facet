@@ -3,6 +3,7 @@
 	import { icon } from '$lib/icons';
 	import { t } from 'svelte-i18n';
 	import { formatDate } from '$lib/utils';
+	import { focusTrap } from '$lib/actions/focusTrap';
 
 	interface MediaUsageItem {
 		collection: string;
@@ -56,12 +57,6 @@
 		}
 	}
 
-	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			close();
-		}
-	}
-
 	function humanSize(bytes: number) {
 		if (!bytes) return '0 B';
 		const units = ['B', 'KB', 'MB', 'GB'];
@@ -101,21 +96,26 @@
 	}
 </script>
 
-<svelte:window onkeydown={handleKeyDown} />
-
 {#if item}
 	<div
 		class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
 		onclick={handleBackdropClick}
-		onkeydown={handleKeyDown}
+		onkeydown={(event) => {
+			if (event.key === 'Escape') close();
+		}}
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="preview-title"
 		tabindex="-1"
+		use:focusTrap={{ onEscape: close }}
 	>
-		<div class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+		<div
+			class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+		>
 			<!-- Header -->
-			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+			<div
+				class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+			>
 				<h2 id="preview-title" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
 					{item.display_name || item.filename}
 				</h2>
@@ -129,7 +129,9 @@
 			</div>
 
 			<!-- Preview area -->
-			<div class="flex-1 overflow-auto p-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-center min-h-[300px]">
+			<div
+				class="flex-1 overflow-auto p-4 bg-gray-100 dark:bg-gray-800 flex items-center justify-center min-h-[300px]"
+			>
 				{#if isImage(item)}
 					<img
 						src={getDisplayUrl(item)}
@@ -147,11 +149,7 @@
 						></iframe>
 					</div>
 				{:else if isVideo(item)}
-					<video
-						src={item.url}
-						controls
-						class="max-w-full max-h-[60vh] rounded"
-					>
+					<video src={item.url} controls class="max-w-full max-h-[60vh] rounded">
 						<track kind="captions" />
 					</video>
 				{:else if isAudio(item) && item.embed_url}
@@ -172,13 +170,10 @@
 						<div class="text-4xl text-gray-400 dark:text-gray-500 mb-4">
 							{@html icon('link')}
 						</div>
-						<p class="text-gray-600 dark:text-gray-400 mb-4">{$t('admin.media.preview_external')}</p>
-						<a
-							href={item.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="btn btn-primary"
-						>
+						<p class="text-gray-600 dark:text-gray-400 mb-4">
+							{$t('admin.media.preview_external')}
+						</p>
+						<a href={item.url} target="_blank" rel="noopener noreferrer" class="btn btn-primary">
 							{$t('admin.media.preview_open_link')}
 						</a>
 					</div>
@@ -187,13 +182,10 @@
 						<div class="text-4xl text-gray-400 dark:text-gray-500 mb-4">
 							{@html icon('file')}
 						</div>
-						<p class="text-gray-600 dark:text-gray-400 mb-4">{$t('admin.media.preview_no_preview')}</p>
-						<a
-							href={item.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="btn btn-primary"
-						>
+						<p class="text-gray-600 dark:text-gray-400 mb-4">
+							{$t('admin.media.preview_no_preview')}
+						</p>
+						<a href={item.url} target="_blank" rel="noopener noreferrer" class="btn btn-primary">
 							{$t('admin.media.preview_download')}
 						</a>
 					</div>
@@ -201,12 +193,18 @@
 			</div>
 
 			<!-- Metadata footer -->
-			<div class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-4">
+			<div
+				class="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 space-y-4"
+			>
 				<div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
 					{#if item.filename}
 						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_filename')}</span>
-							<p class="text-gray-900 dark:text-white truncate" title={item.filename}>{item.filename}</p>
+							<span class="text-gray-500 dark:text-gray-400"
+								>{$t('admin.media.preview_filename')}</span
+							>
+							<p class="text-gray-900 dark:text-white truncate" title={item.filename}>
+								{item.filename}
+							</p>
 						</div>
 					{/if}
 					{#if item.mime}
@@ -223,25 +221,35 @@
 					{/if}
 					{#if item.width && item.height}
 						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_dimensions')}</span>
+							<span class="text-gray-500 dark:text-gray-400"
+								>{$t('admin.media.preview_dimensions')}</span
+							>
 							<p class="text-gray-900 dark:text-white">{item.width}×{item.height}</p>
 						</div>
 					{/if}
 					{#if item.uploaded_at}
 						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_uploaded')}</span>
-							<p class="text-gray-900 dark:text-white">{formatDate(item.uploaded_at, { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+							<span class="text-gray-500 dark:text-gray-400"
+								>{$t('admin.media.preview_uploaded')}</span
+							>
+							<p class="text-gray-900 dark:text-white">
+								{formatDate(item.uploaded_at, { month: 'short', day: 'numeric', year: 'numeric' })}
+							</p>
 						</div>
 					{/if}
 					{#if item.provider}
 						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_provider')}</span>
+							<span class="text-gray-500 dark:text-gray-400"
+								>{$t('admin.media.preview_provider')}</span
+							>
 							<p class="text-gray-900 dark:text-white capitalize">{item.provider}</p>
 						</div>
 					{/if}
 					{#if item.collection}
 						<div>
-							<span class="text-gray-500 dark:text-gray-400">{$t('admin.media.preview_collection')}</span>
+							<span class="text-gray-500 dark:text-gray-400"
+								>{$t('admin.media.preview_collection')}</span
+							>
 							<p class="text-gray-900 dark:text-white">{item.collection}</p>
 						</div>
 					{/if}
@@ -250,12 +258,16 @@
 				<!-- Used by section -->
 				{#if !item.orphan}
 					<div class="pt-3 border-t border-gray-200 dark:border-gray-700">
-						<span class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.preview_used_by')}</span>
+						<span class="text-sm text-gray-500 dark:text-gray-400"
+							>{$t('admin.media.preview_used_by')}</span
+						>
 						{#if item.usage_count && item.usage_count > 0 && item.used_by && item.used_by.length > 0}
 							<ul class="mt-2 space-y-1">
 								{#each item.used_by as usage}
 									<li class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
-										<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+										<span
+											class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+										>
 											{usage.collection}
 										</span>
 										<span class="truncate">{usage.title}</span>
@@ -263,7 +275,9 @@
 								{/each}
 							</ul>
 						{:else}
-							<p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">{$t('admin.media.preview_not_used')}</p>
+							<p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">
+								{$t('admin.media.preview_not_used')}
+							</p>
 						{/if}
 					</div>
 				{/if}

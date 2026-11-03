@@ -17,10 +17,7 @@ export type ValidationTrigger = 'input' | 'blur' | 'submit';
  *   caller's responsibility (typically: only after first blur).
  * - 'submit' timing: validate only on submit — input + blur are silent.
  */
-export function shouldValidate(
-	timing: ValidationTiming,
-	trigger: ValidationTrigger
-): boolean {
+export function shouldValidate(timing: ValidationTiming, trigger: ValidationTrigger): boolean {
 	if (trigger === 'submit') return true;
 	if (timing === 'blur' && trigger === 'blur') return true;
 	return false;

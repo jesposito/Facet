@@ -38,7 +38,7 @@ export function createFilterState(config: FilterConfig = {}) {
 	} = config;
 
 	// Initialize state from URL params if available
-	let state = $state<FilterState>({
+	const state = $state<FilterState>({
 		searchQuery: '',
 		visibilityFilter: 'all',
 		draftFilter: 'all',
@@ -80,7 +80,11 @@ export function createFilterState(config: FilterConfig = {}) {
 		if (state.draftFilter !== 'all') urlParams.set('draft', state.draftFilter);
 		if (state.selectedTagIds.length > 0) urlParams.set('tags', state.selectedTagIds.join(','));
 
-		window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+		window.history.replaceState(
+			window.history.state,
+			'',
+			`${url.pathname}${url.search}${url.hash}`
+		);
 	}
 
 	function setSearchQuery(query: string) {

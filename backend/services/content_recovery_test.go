@@ -4,14 +4,14 @@ import "testing"
 
 func TestCollapseWS(t *testing.T) {
 	cases := map[string]string{
-		"a\n\nb":            "a b",
-		"a   b":             "a b",
-		"  a\n\n\nb  ":      "a b",
-		"a\r\n\r\nb":        "a b",
-		"# T\n\nFirst.":     "# T First.",
-		"nbsp  x": "nbsp x",
-		"":                  "",
-		"   ":               "",
+		"a\n\nb":        "a b",
+		"a   b":         "a b",
+		"  a\n\n\nb  ":  "a b",
+		"a\r\n\r\nb":    "a b",
+		"# T\n\nFirst.": "# T First.",
+		"nbsp  x":       "nbsp x",
+		"":              "",
+		"   ":           "",
 	}
 	for in, want := range cases {
 		if got := collapseWS(in); got != want {

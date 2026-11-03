@@ -8,6 +8,7 @@ import {
 } from '$lib/colors';
 import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
 import { fetchWith503Retry } from '$lib/server/internal-api-retry';
+import { applyPublicCacheHeaders } from '$lib/server/public-api';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
@@ -177,6 +178,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// the client clears a stale cookie, but the server response re-sets it
 	// because it loaded the stale token from the incoming request.
 	const currentToken = event.locals.pb.authStore.token;
+	applyPublicCacheHeaders(event.request, headers, Boolean(currentToken));
 	if (currentToken !== initialToken) {
 		// Determine cookie security from the actual request protocol, not NODE_ENV.
 		// NODE_ENV is always 'production' in Docker, but the connection may be HTTP

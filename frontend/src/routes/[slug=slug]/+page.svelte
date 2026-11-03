@@ -260,7 +260,6 @@
 	}
 </script>
 
-
 <svelte:head>
 	<title>{data.view?.name || 'View'} | {data.profile?.name || 'Profile'}</title>
 
@@ -277,7 +276,7 @@
 
 	<!-- JSON-LD structured data for SEO -->
 	{#if personJsonLd}
-		{@html `<script type="application/ld+json">${personJsonLd}</script>`}
+		{@html `<script type="application/ld+json">${personJsonLd}<\/script>`}
 	{/if}
 </svelte:head>
 
@@ -303,7 +302,7 @@
 	<PasswordPrompt viewId={data.view?.id || ''} on:verified={handlePasswordVerified} />
 {:else if !data.view && !isNavigating}
 	<!-- Only show "Not Found" when not navigating (prevents flash during transitions) -->
-	<div class="min-h-screen flex items-center justify-center">
+	<div id="main-content" role="main" class="min-h-screen flex items-center justify-center">
 		<div class="text-center">
 			<h1 class="text-4xl font-bold text-stone-900 dark:text-white mb-4">Not Found</h1>
 			<p class="text-stone-600 dark:text-stone-400">This page doesn't exist.</p>

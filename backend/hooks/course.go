@@ -1,6 +1,8 @@
 package hooks
 
 import (
+	"database/sql"
+	"errors"
 	"facet/services"
 	"fmt"
 	"net/http"
@@ -123,17 +125,9 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 			visibility := course.GetString("visibility")
 			isDraft := course.GetBool("is_draft")
 
-			// Check visibility - private/draft courses require superuser
-			if visibility != "public" && visibility != "unlisted" {
-				if !isSuperuser(e) {
-					return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-				}
-			}
-
-			if isDraft {
-				if !isSuperuser(e) {
-					return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-				}
+			// Private and draft courses are only shown to the site owner
+			if !courseVisibleTo(e, course) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
 			}
 
 			// Check if user has purchased and extract buyer email
@@ -158,17 +152,7 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 				}
 
 				if course.GetBool("require_enrollment") {
-					if buyerEmail != "" {
-						enrollRecords, eErr := app.FindRecordsByFilter(
-							"course_progress",
-							"course = {:course} && buyer_email = {:email}",
-							"", 1, 0,
-							map[string]interface{}{"course": course.Id, "email": buyerEmail},
-						)
-						if eErr == nil && len(enrollRecords) > 0 {
-							isPurchased = true
-						}
-					}
+					isPurchased = buyerEmail != "" && isEnrolled(app, course.Id, buyerEmail)
 				} else {
 					isPurchased = true // Free courses without enrollment requirement are always accessible
 				}
@@ -300,40 +284,9 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 
 		// GET /api/courses/{slug}/progress - Get buyer's progress
 		se.Router.GET("/api/courses/{slug}/progress", func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
-
-			// Extract buyer email from purchase cookie
-			token := extractPurchaseCookie(e)
-			if token == "" {
-				return respondUnauthorized(e, "authentication required")
-			}
-
-			purchaseIDs, buyerEmail, err := purchaseService.ValidatePurchaseJWT(token)
+			course, buyerEmail, err := requireCourseLearner(app, purchaseService, e, e.Request.PathValue("slug"))
 			if err != nil {
-				return respondUnauthorized(e, "invalid token")
-			}
-
-			// Find course by slug
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-
-			course := courseRecords[0]
-
-			// Verify purchase for paid courses
-			if course.GetString("access_tier") == "paid" {
-				if findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, "courses", course.Id) == nil {
-					return respondForbidden(e, "purchase required")
-				}
+				return err
 			}
 
 			// Find course progress
@@ -424,67 +377,14 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 
 		// POST /api/courses/{slug}/lessons/{lessonId}/complete - Mark lesson complete
 		se.Router.POST("/api/courses/{slug}/lessons/{lessonId}/complete", func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
 			lessonID := e.Request.PathValue("lessonId")
 
-			token := extractPurchaseCookie(e)
-			if token == "" {
-				return respondUnauthorized(e, "authentication required")
-			}
-
-			purchaseIDs, buyerEmail, err := purchaseService.ValidatePurchaseJWT(token)
+			course, buyerEmail, err := requireCourseLearner(app, purchaseService, e, e.Request.PathValue("slug"))
 			if err != nil {
-				return respondUnauthorized(e, "invalid token")
+				return err
 			}
-
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-
-			course := courseRecords[0]
-
-			// Verify purchase (or course is free)
-			if course.GetString("access_tier") == "paid" {
-				if findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, "courses", course.Id) == nil {
-					return respondForbidden(e, "purchase required")
-				}
-			}
-
-			// Find lesson
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-
-			// Verify lesson belongs to a module in this course
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != course.Id {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
-			}
-
-			// Check module-level drip lock
-			if locked, unlockDate := checkModuleDripLock(app, course.Id, lessonModule, buyerEmail); locked {
-				return respondJSON(e, http.StatusForbidden, map[string]interface{}{
-					"error":            "module is not yet available",
-					"drip_locked":      true,
-					"drip_unlock_date": unlockDate.Format(time.RFC3339),
-				})
-			}
-
-			// If sequential access enabled, verify prerequisites
-			if course.GetBool("sequential_access") {
-				if !canAccessLesson(app, course.Id, lesson, buyerEmail) {
-					return respondForbidden(e, "complete previous lessons first")
-				}
+			if _, err := requireCourseLesson(app, e, course, lessonID, buyerEmail); err != nil {
+				return err
 			}
 
 			// Check if progress tracking is enabled for this course
@@ -1728,8 +1628,23 @@ func isLessonCompleted(app core.App, lessonID, buyerEmail string) bool {
 	return err == nil && len(records) > 0
 }
 
-// recalculateCourseProgress recalculates and updates course progress for a buyer
+// recalculateCourseProgress recalculates and updates course progress for a
+// buyer, issuing the certificate when the course is complete.
+//
+// Counting, the progress row and the certificate all happen in one
+// transaction, so a learner never ends up "completed" without the certificate
+// they earned. If issuing fails, the whole update rolls back and the next
+// completion tries again. Transactions also run one at a time, so two
+// completions arriving together can't both create a progress row or a
+// certificate, and a slower one can't overwrite newer progress with a stale
+// count.
 func recalculateCourseProgress(app core.App, courseID, buyerEmail string) error {
+	return app.RunInTransaction(func(txApp core.App) error {
+		return recalculateCourseProgressTx(txApp, courseID, buyerEmail)
+	})
+}
+
+func recalculateCourseProgressTx(app core.App, courseID, buyerEmail string) error {
 	moduleRecords, err := app.FindRecordsByFilter(
 		"modules",
 		"course = {:course}",
@@ -1772,8 +1687,15 @@ func recalculateCourseProgress(app core.App, courseID, buyerEmail string) error 
 
 	completedCount := 0
 	for _, lesson := range lessonRecords {
-		if isLessonCompleted(app, lesson.Id, buyerEmail) {
+		_, err := app.FindFirstRecordByFilter(
+			"lesson_progress",
+			"lesson = {:lesson} && buyer_email = {:email} && completed = true",
+			map[string]interface{}{"lesson": lesson.Id, "email": buyerEmail},
+		)
+		if err == nil {
 			completedCount++
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
 		}
 	}
 
@@ -1782,20 +1704,29 @@ func recalculateCourseProgress(app core.App, courseID, buyerEmail string) error 
 		progressPercent = (float64(completedCount) / float64(totalLessons)) * 100
 	}
 
-	progressRecords, err := app.FindRecordsByFilter(
+	course, err := app.FindRecordById("courses", courseID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
+	progress, err := app.FindFirstRecordByFilter(
 		"course_progress",
 		"course = {:course} && buyer_email = {:email}",
-		"",
-		1,
-		0,
 		map[string]interface{}{"course": courseID, "email": buyerEmail},
 	)
-
-	var progress *core.Record
 	now := time.Now()
-	if err == nil && len(progressRecords) > 0 {
-		progress = progressRecords[0]
-	} else {
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		// A free course that requires enrolment only gets a progress record
+		// through the verified enrolment flow, never as a side effect here.
+		if course.GetString("access_tier") != "paid" && course.GetBool("require_enrollment") {
+			return nil
+		}
 		collection, err := app.FindCollectionByNameOrId("course_progress")
 		if err != nil {
 			return err
@@ -1811,70 +1742,59 @@ func recalculateCourseProgress(app core.App, courseID, buyerEmail string) error 
 	progress.Set("total_lessons", totalLessons)
 	progress.Set("last_accessed", now)
 
-	if progressPercent >= 100 && progress.GetDateTime("completed_at").IsZero() {
+	complete := progressPercent >= 100
+	if complete && progress.GetDateTime("completed_at").IsZero() {
 		progress.Set("completed_at", now)
-
-		course, err := app.FindRecordById("courses", courseID)
-		if err == nil && course.GetBool("enable_certificates") {
-			go func() {
-				issueCertificate(app, courseID, buyerEmail)
-			}()
-		}
 	}
 
-	return app.Save(progress)
+	if err := app.Save(progress); err != nil {
+		return err
+	}
+
+	// This checks for a missing certificate on every complete
+	// recalculation, not only the first, so a course finished before an
+	// issuing failure still gets its certificate later.
+	if complete && course.GetBool("enable_certificates") {
+		return issueCertificate(app, course, progress)
+	}
+	return nil
 }
 
-// issueCertificate creates a certificate for a completed course
-func issueCertificate(app core.App, courseID, buyerEmail string) {
-	existing, err := app.FindRecordsByFilter(
+// issueCertificate creates the certificate for a completed course unless the
+// learner already has one. Run it inside the transaction that saved progress.
+func issueCertificate(app core.App, course, progress *core.Record) error {
+	buyerEmail := progress.GetString("buyer_email")
+	_, err := app.FindFirstRecordByFilter(
 		"course_certificates",
 		"course = {:course} && buyer_email = {:email}",
-		"", 1, 0,
-		map[string]interface{}{"course": courseID, "email": buyerEmail},
+		map[string]interface{}{"course": course.Id, "email": buyerEmail},
 	)
-	if err == nil && len(existing) > 0 {
-		return
+	if err == nil {
+		return nil
 	}
-
-	course, err := app.FindRecordById("courses", courseID)
-	if err != nil {
-		app.Logger().Error("Failed to find course for certificate", "error", err)
-		return
+	if !errors.Is(err, sql.ErrNoRows) {
+		return err
 	}
 
 	certCollection, err := app.FindCollectionByNameOrId("course_certificates")
 	if err != nil {
-		app.Logger().Error("Failed to find certificates collection", "error", err)
-		return
+		return err
 	}
 
 	cert := core.NewRecord(certCollection)
-	cert.Set("course", courseID)
+	cert.Set("course", course.Id)
 	cert.Set("buyer_email", buyerEmail)
 	cert.Set("certificate_id", security.RandomString(32))
 	cert.Set("course_title", course.GetString("title"))
 	cert.Set("instructor_name", course.GetString("instructor_name"))
-
-	progressRecords, pErr := app.FindRecordsByFilter(
-		"course_progress",
-		"course = {:course} && buyer_email = {:email}",
-		"", 1, 0,
-		map[string]interface{}{"course": courseID, "email": buyerEmail},
-	)
-	if pErr == nil && len(progressRecords) > 0 {
-		if studentName := progressRecords[0].GetString("student_name"); studentName != "" {
-			cert.Set("student_name", studentName)
-		}
+	if studentName := progress.GetString("student_name"); studentName != "" {
+		cert.Set("student_name", studentName)
 	}
 
 	if err := app.Save(cert); err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") || strings.Contains(err.Error(), "duplicate key") {
-			app.Logger().Info("Certificate already issued (concurrent request)", "course", courseID, "email", buyerEmail)
-			return
-		}
-		app.Logger().Error("Failed to issue certificate", "error", err)
+		return fmt.Errorf("issue certificate: %w", err)
 	}
+	return nil
 }
 
 // checkModuleDripLock checks if a module is drip-locked for a buyer

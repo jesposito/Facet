@@ -43,7 +43,9 @@
 						: value
 	);
 
-	let buttonLabel = $derived(label || $t(`public.contacts.show_${type === 'copy' ? 'contact' : type}`));
+	let buttonLabel = $derived(
+		label || $t(`public.contacts.show_${type === 'copy' ? 'contact' : type}`)
+	);
 
 	function reveal() {
 		revealed = true;
@@ -78,12 +80,7 @@
 </script>
 
 {#if !revealed}
-	<button
-		type="button"
-		class="reveal-button"
-		onclick={reveal}
-		aria-label={`Reveal ${type}`}
-	>
+	<button type="button" class="reveal-button" onclick={reveal} aria-label={`Reveal ${type}`}>
 		{#if icon}
 			<span class="icon" aria-hidden="true">{@html icon}</span>
 		{/if}

@@ -59,8 +59,7 @@ export function focusTrap(node: HTMLElement, params: FocusTrapParams = {}) {
 	let current = params;
 	// Capture BEFORE we move focus, so the return target is the trigger, not
 	// whatever inside the modal we focus next.
-	const previouslyFocused =
-		current.returnFocusTo ?? (document.activeElement as HTMLElement | null);
+	const previouslyFocused = current.returnFocusTo ?? (document.activeElement as HTMLElement | null);
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {

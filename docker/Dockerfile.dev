@@ -4,25 +4,42 @@
 # This image is not used for CI or published releases; keep local dev on the
 # Go/Alpine patch stream without opening digest-refresh PRs for development-only
 # tooling. Production base images are digest-pinned in docker/Dockerfile.
+# frontend/package.json requires Node 24; Alpine's nodejs package may lag.
+# supply-chain: allow-floating-base dev-only
+FROM node:24-alpine AS node
+
 # supply-chain: allow-floating-base dev-only
 FROM golang:1.27.3-alpine
 
-# Install dependencies
+# Install dependencies (bash runs scripts/dev-backend.sh; libstdc++/libgcc
+# are runtime libraries for node)
 RUN apk add --no-cache \
-    nodejs \
-    npm \
+    bash \
     gcc \
     musl-dev \
     git \
-    curl
+    curl \
+    libstdc++ \
+    libgcc
+
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # Install air for Go hot reload (pinned for reproducible local tooling)
-RUN go install github.com/air-verse/air@v1.52.3
+RUN go install github.com/air-verse/air@v1.67.4
 
 WORKDIR /app
 
 # Environment
+# This image is Alpine (musl libc). go-fitz ships prebuilt MuPDF archives for
+# both glibc and musl and picks the glibc ones unless built with the `musl`
+# tag; linking those here fails on glibc-only symbols such as __printf_chk.
+# GOFLAGS reaches every go build/test/run in the container, including Air's.
+# The production image builds on Debian (glibc) and must not set this tag.
 ENV CGO_ENABLED=1 \
+    GOFLAGS=-tags=musl \
     DATA_DIR=/data \
     POCKETBASE_URL=http://localhost:8090
 

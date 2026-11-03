@@ -3,9 +3,9 @@
 	import { t } from 'svelte-i18n';
 
 	function selectTemplate(templateId: string) {
-		const template = viewTemplates.find(t => t.id === templateId);
+		const template = viewTemplates.find((t) => t.id === templateId);
 		if (!template) return;
-		
+
 		setupWizard.selectTemplate(templateId);
 		setupWizard.updateNewView({
 			name: template.suggestedName,
@@ -18,7 +18,7 @@
 	function handleNameChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		const name = target.value;
-		setupWizard.updateNewView({ 
+		setupWizard.updateNewView({
 			name,
 			slug: generateSlug(name)
 		});
@@ -34,16 +34,15 @@
 			{$t('admin.wizard.step2_subtitle')}
 		</p>
 	</div>
-	
+
 	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 		{#each viewTemplates as template}
-			<button 
+			<button
 				type="button"
-				class="p-4 border-2 rounded-lg text-left transition-colors {
-					$setupWizard.selectedTemplate === template.id
-						? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-						: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-				}"
+				class="p-4 border-2 rounded-lg text-left transition-colors {$setupWizard.selectedTemplate ===
+				template.id
+					? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+					: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
 				onclick={() => selectTemplate(template.id)}
 			>
 				<div class="flex items-start gap-3">
@@ -60,7 +59,7 @@
 			</button>
 		{/each}
 	</div>
-	
+
 	{#if $setupWizard.selectedTemplate}
 		<div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 			<div>
@@ -74,14 +73,24 @@
 					oninput={handleNameChange}
 				/>
 				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-					{$t('admin.wizard.url_label')} <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">/{$setupWizard.newView.slug || 'your-facet'}</code>
+					{$t('admin.wizard.url_label')}
+					<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded"
+						>/{$setupWizard.newView.slug || 'your-facet'}</code
+					>
 				</p>
 			</div>
 
-			<div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+			<div
+				class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+			>
 				<div class="flex items-center gap-2 text-blue-800 dark:text-blue-200">
 					<svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
 					</svg>
 					<span class="text-sm font-medium">
 						{#if $setupWizard.newView.visibility === 'public'}

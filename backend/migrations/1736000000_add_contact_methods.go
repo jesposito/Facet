@@ -13,8 +13,8 @@ func init() {
 
 		// Type of contact (email, phone, linkedin, github, twitter, etc.)
 		collection.Fields.Add(&core.SelectField{
-			Name:     "type",
-			Required: true,
+			Name:      "type",
+			Required:  true,
 			MaxSelect: 1,
 			Values: []string{
 				"email",
@@ -49,14 +49,14 @@ func init() {
 
 		// Protection level for anti-scraping
 		collection.Fields.Add(&core.SelectField{
-			Name:     "protection_level",
-			Required: true,
+			Name:      "protection_level",
+			Required:  true,
 			MaxSelect: 1,
 			Values: []string{
-				"none",           // Plaintext, no protection
-				"obfuscation",    // CSS tricks + decoy characters
+				"none",            // Plaintext, no protection
+				"obfuscation",     // CSS tricks + decoy characters
 				"click_to_reveal", // User must click to see value
-				"captcha",        // Cloudflare Turnstile required
+				"captcha",         // Cloudflare Turnstile required
 			},
 		})
 
@@ -74,9 +74,9 @@ func init() {
 
 		// Display order within its category
 		collection.Fields.Add(&core.NumberField{
-			Name:    "sort_order",
-			Min:     floatPtr(0),
-			Max:     floatPtr(999),
+			Name: "sort_order",
+			Min:  floatPtr(0),
+			Max:  floatPtr(999),
 		})
 
 		// Optional icon override (defaults to type-based icon)

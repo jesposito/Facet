@@ -1,114 +1,89 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import { apiBaseURL } from './config';
+import { loginAsAdmin, seedAdminSession } from './helpers';
 
-// Target + credentials come from the environment so no secrets live in the repo.
-// Defaults point at a local dev instance (`make dev` / `make seed-dev`).
 const BASE_URL =
 	process.env.PLAYWRIGHT_BASE_URL ?? process.env.VITE_POCKETBASE_URL ?? 'http://localhost:5173';
-const LOGIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
-const LOGIN_PASSWORD = process.env.ADMIN_PASSWORD ?? '';
 
-async function login(page: Page) {
-	if (!LOGIN_EMAIL || !LOGIN_PASSWORD) {
-		throw new Error(
-			'backport-qa.spec.ts requires ADMIN_EMAIL and ADMIN_PASSWORD env vars (and optionally PLAYWRIGHT_BASE_URL). ' +
-				'Set them to a seeded instance before running this suite.'
-		);
+async function login(page: Page, request: APIRequestContext) {
+	await seedAdminSession(page, request);
+}
+
+async function openAccordion(page: Page, sectionId: string, name: RegExp) {
+	const trigger = page.locator(sectionId).getByRole('button', { name });
+	await expect(trigger).toBeVisible();
+	if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+		await trigger.click();
 	}
-	await page.goto(`${BASE_URL}/admin/login`);
-	await page.waitForSelector('input[type="email"]', { timeout: 10_000 });
-	await page.fill('input[type="email"]', LOGIN_EMAIL);
-	await page.fill('input[type="password"]', LOGIN_PASSWORD);
-	await page.click('button[type="submit"]');
-	await page.waitForURL(`${BASE_URL}/admin`, { timeout: 15_000 });
+	await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 }
 
 test.describe('Backport QA - Phase 2b a11y', () => {
-	test.beforeEach(async ({ page }) => {
-		await login(page);
+	test.beforeEach(async ({ page, request }) => {
+		await login(page, request);
 	});
 
 	test('AccentPicker renders with radiogroup pattern', async ({ page }) => {
-		await page.goto(`${BASE_URL}/admin/settings/site`);
-		await page.waitForSelector('[role="radiogroup"]', { timeout: 10_000 });
-		const radios = await page.locator('[role="radio"]').count();
-		expect(radios).toBeGreaterThan(0);
-		// Check one has aria-checked
-		const checked = await page.locator('[role="radio"][aria-checked="true"]').count();
-		expect(checked).toBe(1);
+		await page.goto(`${BASE_URL}/admin/homepage#brand-section`);
+		await openAccordion(page, '#brand-section', /^Brand\b/);
+		const group = page.getByRole('radiogroup', { name: 'Curated accent colors', exact: true });
+		await expect(group).toBeVisible();
+		const radios = group.getByRole('radio');
+		expect(await radios.count()).toBeGreaterThan(0);
+		await expect(group.locator('[role="radio"][aria-checked="true"]')).toHaveCount(1);
 	});
 
 	test('AccentPicker keyboard navigation works', async ({ page }) => {
-		await page.goto(`${BASE_URL}/admin/settings/site`);
-		await page.waitForSelector('[role="radiogroup"]', { timeout: 10_000 });
-		const radios = page.locator('[role="radio"]');
+		await page.goto(`${BASE_URL}/admin/homepage#brand-section`);
+		await openAccordion(page, '#brand-section', /^Brand\b/);
+		const group = page.getByRole('radiogroup', { name: 'Curated accent colors', exact: true });
+		await expect(group).toBeVisible();
+		const radios = group.getByRole('radio');
 		const count = await radios.count();
 		expect(count).toBeGreaterThan(1);
-		// Find the currently checked radio and focus it
-		const checkedRadio = page.locator('[role="radio"][aria-checked="true"]');
+		const checkedRadio = group.locator('[role="radio"][aria-checked="true"]');
 		await checkedRadio.focus();
 		await expect(checkedRadio).toBeFocused();
-		// Determine the index of the checked radio
-		const checkedIndex = await checkedRadio.evaluate((el, list) => {
-			return Array.from(list).indexOf(el);
-		}, await radios.elementHandles());
-		// ArrowRight should move to next radio (wraps around at end)
+		const checkedIndex = await radios.evaluateAll((elements) =>
+			elements.findIndex((element) => element.getAttribute('aria-checked') === 'true')
+		);
 		await page.keyboard.press('ArrowRight');
-		const nextIndex = (checkedIndex + 1) % count;
-		const nextRadio = radios.nth(nextIndex);
+		const nextRadio = radios.nth((checkedIndex + 1) % count);
 		await expect(nextRadio).toBeFocused();
+		await expect(nextRadio).toHaveAttribute('aria-checked', 'true');
 	});
 
-	test('AdminSidebar has proper button elements for quick-create', async ({ page }) => {
-		await page.goto(`${BASE_URL}/admin`);
-		await page.waitForTimeout(1000);
-		// Quick-create triggers should be real buttons, not spans inside buttons
-		// On mobile the sidebar might be collapsed; check if sidebar is open
-		const sidebarToggle = page.locator('button[aria-label*="sidebar"], button[aria-label*="menu"]').first();
-		const sidebarOpen = await page.locator('aside, [data-sidebar]').isVisible().catch(() => false);
-		if (!sidebarOpen && await sidebarToggle.count() > 0) {
-			await sidebarToggle.click();
-			await page.waitForTimeout(500);
-		}
-		const quickCreateButtons = await page.locator('button[data-quick-create-trigger]').count();
-		expect(quickCreateButtons).toBeGreaterThan(0);
-		// Should NOT have span[role="button"] nested inside buttons
-		const nestedSpans = await page.locator('button span[role="button"]').count();
-		expect(nestedSpans).toBe(0);
+	test('Admin content uses a real button for quick-create', async ({ page }) => {
+		await page.goto(`${BASE_URL}/admin/posts`);
+		const newPost = page.getByRole('button', { name: '+ New Post', exact: true });
+		await expect(newPost).toBeVisible();
+		await newPost.click();
+		await expect(page.getByRole('heading', { name: 'New Post', exact: true })).toBeVisible();
+		expect(await page.locator('button span[role="button"]').count()).toBe(0);
 	});
 
 	test('AdminSidebar facets section shows single link with count badge', async ({ page }) => {
 		await page.goto(`${BASE_URL}/admin`);
-		await page.waitForTimeout(1000);
-		// Facets section should show single link to /admin/views
 		const facetsLink = page.locator('a[href="/admin/views"]').first();
 		await expect(facetsLink).toBeVisible();
-		// Should have a count badge if there are facets
 		const badge = facetsLink.locator('span').filter({ hasText: /^[0-9]+$/ });
-		// Badge may or may not be present depending on facet count
 		const badgeCount = await badge.count();
 		if (badgeCount > 0) {
-			const count = parseInt(await badge.textContent() || '0', 10);
+			const count = parseInt((await badge.textContent()) || '0', 10);
 			expect(count).toBeGreaterThanOrEqual(0);
 		}
-		// Should have New Facet link
-		const newFacetLink = page.locator('a[href="/admin/views/new"]').first();
-		await expect(newFacetLink).toBeVisible();
+		await expect(page.locator('a[href="/admin/views/new"]').first()).toBeVisible();
 	});
 
 	test('Floating cluster has inert attribute when nav is pinned', async ({ page }) => {
-		// Open a public page
 		await page.goto(`${BASE_URL}/`);
 		await page.waitForLoadState('networkidle');
-		// Check if the floating cluster element exists
 		const cluster = page.locator('.fixed.top-4.right-4');
-		if (await cluster.count() > 0) {
-			// Scroll down to pin the nav, then check inert
+		if ((await cluster.count()) > 0) {
 			await page.evaluate(() => window.scrollTo(0, 1000));
 			await page.waitForTimeout(500);
 			const inertAttr = await cluster.getAttribute('inert');
-			// inert attribute may be empty string (boolean attribute) or null if not pinned
-			// We just verify the attribute exists when nav is pinned, or the element exists
-			expect(inertAttr !== null || await cluster.isVisible()).toBeTruthy();
+			expect(inertAttr !== null || (await cluster.isVisible())).toBeTruthy();
 		} else {
 			test.skip(true, 'Floating cluster not found');
 		}
@@ -116,195 +91,193 @@ test.describe('Backport QA - Phase 2b a11y', () => {
 });
 
 test.describe('Backport QA - Keyboard reordering', () => {
-	test.beforeEach(async ({ page }) => {
-		await login(page);
+	test.beforeEach(async ({ page, request }) => {
+		await login(page, request);
 	});
 
 	test('HomepageSectionManager has keyboard move buttons', async ({ page }) => {
-		await page.goto(`${BASE_URL}/admin/homepage`);
-		await page.waitForTimeout(2000);
-		// Check for Quick Setup modal and skip if present
-		const skipSetup = page.locator('text=Skip setup');
-		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
-			await skipSetup.click();
-			await page.waitForTimeout(1000);
-		}
-		// Look for section items with move buttons (up/down)
-		const moveButtons = await page.locator('button[aria-label*="Move"]').count();
-		// If there are sections, there should be move buttons
-		if (moveButtons === 0) {
-			// Maybe no sections configured - check if page shows empty state
-			const emptyState = await page.locator('text=No sections').count();
-			if (emptyState > 0) {
-				test.skip(true, 'No homepage sections configured');
-			}
-		}
-		expect(moveButtons).toBeGreaterThan(0);
+		await page.goto(`${BASE_URL}/admin/homepage#section-order`);
+		const section = page.locator('#section-order');
+		const moveButtons = section.getByRole('button', { name: /move .+ (up|down)/i });
+		await expect(moveButtons.first()).toBeVisible();
+		expect(await moveButtons.count()).toBeGreaterThan(0);
 	});
 
 	test('View editor has keyboard move buttons', async ({ page }) => {
-		// Navigate to views list
 		await page.goto(`${BASE_URL}/admin/views`);
-		await page.waitForTimeout(2000);
-		// Check for Quick Setup modal and skip if present
-		const skipSetup = page.locator('text=Skip setup');
-		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
-			await skipSetup.click();
-			await page.waitForTimeout(1000);
-		}
-		// Click first view link
 		const viewLinks = page.locator('a[href^="/admin/views/"]');
-		if (await viewLinks.count() > 0) {
-			await viewLinks.first().click();
-			await page.waitForTimeout(2000);
-			const moveButtons = await page.locator('button[aria-label*="Move"]').count();
-			expect(moveButtons).toBeGreaterThan(0);
-		} else {
-			test.skip(true, 'No views to test');
-		}
+		await expect(viewLinks.first()).toBeVisible();
+		await viewLinks.first().click();
+		const moveButtons = page.getByRole('button', { name: /move .+ (up|down)/i });
+		await expect(moveButtons.first()).toBeVisible();
+		expect(await moveButtons.count()).toBeGreaterThan(0);
 	});
 });
 
 test.describe('Backport QA - MarkdownEditor inline dialog', () => {
-	test.beforeEach(async ({ page }) => {
-		await login(page);
+	test.beforeEach(async ({ page, request }) => {
+		await login(page, request);
 	});
 
 	test('MarkdownEditor opens inline dialog for links', async ({ page }) => {
-		// Navigate to content creation (any content type with markdown)
-		await page.goto(`${BASE_URL}/admin/content/new?type=page`);
-		await page.waitForTimeout(2000);
-		// Look for markdown editor toolbar with link button
-		const linkButton = page.locator('button[title*="link"], button[aria-label*="link"]').first();
-		if (await linkButton.count() > 0) {
-			await linkButton.click();
-			await page.waitForTimeout(500);
-			// Should show a dialog with input and buttons
-			const dialog = page.locator('[role="dialog"]').first();
-			await expect(dialog).toBeVisible();
-			const input = dialog.locator('input');
-			await expect(input).toBeVisible();
-			// Test ESC closes dialog
-			await page.keyboard.press('Escape');
-			await expect(dialog).not.toBeVisible();
-		} else {
-			test.skip(true, 'Markdown editor link button not found');
-		}
+		await page.goto(`${BASE_URL}/admin/posts`);
+		await page.getByRole('button', { name: '+ New Post', exact: true }).click();
+		const linkButton = page.getByRole('button', { name: 'Insert link', exact: true });
+		await expect(linkButton).toBeVisible();
+		await linkButton.focus();
+		await page.keyboard.press('Enter');
+		const dialog = page.getByRole('dialog', { name: 'Insert Link', exact: true });
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByLabel('URL', { exact: true })).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(dialog).not.toBeVisible();
+		await expect(linkButton).toBeFocused();
+	});
+
+	test('MarkdownEditor image dialog closes immediately and restores focus', async ({ page }) => {
+		await page.goto(`${BASE_URL}/admin/posts`);
+		await page.getByRole('button', { name: '+ New Post', exact: true }).click();
+		const imageButton = page.getByRole('button', { name: 'Insert image', exact: true });
+		await expect(imageButton).toBeVisible();
+		await imageButton.focus();
+		await page.keyboard.press('Enter');
+		const dialog = page.getByRole('dialog', { name: 'Insert Image', exact: true });
+		await expect(dialog).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(dialog).not.toBeVisible();
+		await expect(imageButton).toBeFocused();
 	});
 });
 
 test.describe('Phase 3 quick wins', () => {
-	test.beforeEach(async ({ page }) => {
-		await login(page);
+	test.beforeEach(async ({ page, request }) => {
+		await login(page, request);
 	});
 
 	test('Hero layout picker renders in homepage admin', async ({ page }) => {
-		await page.goto(`${BASE_URL}/admin/homepage`);
-		// Skip the Quick Setup wizard if it appears
-		const skipSetup = page.locator('text=Skip setup');
-		if (await skipSetup.count() > 0 && await skipSetup.isVisible({ timeout: 5000 }).catch(() => false)) {
-			await skipSetup.click();
-		}
-		// Wait until profile-loading-gated form renders (Images heading is a stable anchor).
-		// Profile load can be slow under network load — skip rather than fail if it doesn't
-		// settle within 20s (feature is verified manually + via other E2E tests).
-		const imagesHeading = page.locator('h2:has-text("Images")').first();
-		try {
-			await imagesHeading.waitFor({ state: 'visible', timeout: 20000 });
-		} catch {
-			test.skip(true, 'Profile loading timed out — feature verified elsewhere');
-			return;
-		}
-		const heroLayoutGroup = page.locator('[role="group"][aria-label="Hero Layout"]').first();
-		await heroLayoutGroup.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
-		const layoutButtons = heroLayoutGroup.locator('button[aria-pressed]');
-		expect(await layoutButtons.count()).toBeGreaterThan(0);
+		await page.goto(`${BASE_URL}/admin/homepage#hero-section`);
+		const heroLayoutGroup = page.getByRole('group', { name: 'Hero Layout', exact: true });
+		await expect(heroLayoutGroup).toBeVisible();
+		expect(await heroLayoutGroup.locator('button[aria-pressed]').count()).toBeGreaterThan(0);
 	});
 
 	test('Homepage has sections-grid CSS class', async ({ page }) => {
 		await page.goto(`${BASE_URL}/`);
 		await page.waitForLoadState('networkidle');
-		const grid = page.locator('.sections-grid');
-		await expect(grid).toBeVisible();
+		await expect(page.locator('.sections-grid')).toBeVisible();
 	});
 });
 
 test.describe('Site nav chips mode', () => {
-	test.beforeEach(async ({ page }) => {
-		await login(page);
+	let token: string;
+	let originalSettings: Record<string, unknown>;
+	let activeFacet: { slug: string; label: string };
+
+	test.beforeAll(async ({ request }) => {
+		({ token } = await loginAsAdmin(request));
+		const headers = { Authorization: token };
+		const response = await request.get(`${apiBaseURL}/api/site-settings`, { headers });
+		expect(response.ok()).toBeTruthy();
+		const settings = await response.json();
+		originalSettings = {
+			site_nav_enabled: settings.site_nav_enabled === true,
+			site_nav_mode: settings.site_nav_mode || 'bar',
+			site_nav_position: settings.site_nav_position || 'below',
+			site_cta_enabled: settings.site_cta_enabled !== false,
+			footer_cta_enabled: settings.footer_cta_enabled !== false,
+			site_nav_items: settings.site_nav_items || []
+		};
+
+		const viewsResponse = await request.get(
+			`${apiBaseURL}/api/collections/views/records?perPage=100`,
+			{
+				headers
+			}
+		);
+		expect(viewsResponse.ok()).toBeTruthy();
+		const views = (await viewsResponse.json()).items as Array<Record<string, unknown>>;
+		const view = views.find((item) => item.is_active === true && item.visibility === 'public');
+		if (!view) throw new Error('Site nav fixture requires an active public Facet');
+		activeFacet = { slug: String(view.slug), label: 'Backport QA Facet' };
+
+		const enabled = await request.put(`${apiBaseURL}/api/site-settings`, {
+			headers,
+			data: {
+				...originalSettings,
+				site_nav_enabled: true,
+				site_nav_items: [{ viewId: view.id, enabled: true, label: activeFacet.label }]
+			}
+		});
+		expect(enabled.ok(), await enabled.text()).toBeTruthy();
+	});
+
+	test.afterAll(async ({ request }) => {
+		const restored = await request.put(`${apiBaseURL}/api/site-settings`, {
+			headers: { Authorization: token },
+			data: originalSettings
+		});
+		expect(restored.ok(), await restored.text()).toBeTruthy();
+	});
+
+	test.beforeEach(async ({ page, request }) => {
+		await login(page, request);
 	});
 
 	test('Admin homepage editor shows nav mode selector with radiogroup', async ({ page }) => {
-		await page.goto(`${BASE_URL}/admin/homepage`);
-		await page.waitForTimeout(2000);
-		const skipSetup = page.locator('text=Skip setup');
-		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
-			await skipSetup.click();
-			await page.waitForTimeout(1000);
-		}
-		// Look for nav mode radiogroup
-		const radiogroup = page.locator('[role="radiogroup"][aria-label*="Navigation Style"]');
-		if (await radiogroup.count() === 0) {
-			// May only appear when site nav is enabled
-			test.skip(true, 'Nav mode selector hidden — enable site nav first');
-		}
+		await page.goto(`${BASE_URL}/admin/homepage#nav-section`);
+		await openAccordion(page, '#nav-section', /^Site Navigation\b/);
+		const radiogroup = page.getByRole('radiogroup', { name: 'Navigation Style', exact: true });
 		await expect(radiogroup).toBeVisible();
-		const radios = radiogroup.locator('[role="radio"]');
-		expect(await radios.count()).toBe(2); // bar + chips
+		await expect(radiogroup.getByRole('radio')).toHaveCount(2);
 	});
 
 	test('Public nav has aria-current="page" on active link', async ({ page }) => {
-		// Visit any public page; nav may or may not be enabled
 		await page.goto(`${BASE_URL}/`);
-		await page.waitForLoadState('networkidle');
-		const nav = page.locator('nav[aria-label="Site navigation"]');
-		if (await nav.count() === 0) {
-			test.skip(true, 'Site nav not enabled');
-		}
-		// Home link on root page should have aria-current="page"
-		const homeLink = nav.locator('a[href="/"]').first();
-		if (await homeLink.count() > 0) {
-			await expect(homeLink).toHaveAttribute('aria-current', 'page');
-		}
+		const nav = page.getByRole('navigation', { name: 'Site navigation', exact: true });
+		await expect(nav).toBeVisible();
+		await expect(nav.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+
+		const facetLink = nav.getByRole('link', { name: activeFacet.label, exact: true });
+		await expect(facetLink).toBeVisible();
+		await facetLink.click();
+		await expect(page).toHaveURL(`${BASE_URL}/${activeFacet.slug}`);
+		await expect(facetLink).toHaveAttribute('aria-current', 'page');
+		await expect(nav.getByRole('link', { name: 'Home', exact: true })).not.toHaveAttribute(
+			'aria-current',
+			'page'
+		);
 	});
 
 	test('E2E: switching chips in admin re-renders public nav as chips', async ({ page }) => {
-		// 1. Toggle to chips in admin
-		await page.goto(`${BASE_URL}/admin/homepage`);
-		await page.waitForTimeout(2000);
-		const skipSetup = page.locator('text=Skip setup');
-		if (await skipSetup.count() > 0 && await skipSetup.isVisible()) {
-			await skipSetup.click();
-			await page.waitForTimeout(1000);
-		}
-		// Make sure site nav is enabled; if not, enable it
-		const radiogroup = page.locator('[role="radiogroup"][aria-label*="Navigation Style"]');
-		if (await radiogroup.count() === 0) {
-			test.skip(true, 'Site nav not enabled — skipping');
-		}
-		const chipsBtn = radiogroup.locator('[role="radio"]').nth(1);
+		await page.goto(`${BASE_URL}/admin/homepage#nav-section`);
+		await openAccordion(page, '#nav-section', /^Site Navigation\b/);
+		const radiogroup = page.getByRole('radiogroup', { name: 'Navigation Style', exact: true });
+		await expect(radiogroup).toBeVisible();
+		const chipsBtn = radiogroup.getByRole('radio', { name: /^Chips\b/ });
+		const saved = page.waitForResponse(
+			(response) =>
+				response.url().endsWith('/api/site-settings') && response.request().method() === 'PUT'
+		);
 		await chipsBtn.click();
-		await page.waitForTimeout(1500); // wait for save
+		expect((await saved).ok()).toBeTruthy();
 		await expect(chipsBtn).toHaveAttribute('aria-checked', 'true');
 
-		// 2. Verify API persisted the value
 		const apiResp = await page.request.get(`${BASE_URL}/api/site-nav`);
+		expect(apiResp.ok()).toBeTruthy();
 		const apiData = await apiResp.json();
 		expect(apiData.mode).toBe('chips');
 
-		// 3. Visit public site, verify chips rendering (light bg, rounded-full pills)
 		await page.goto(`${BASE_URL}/`);
-		await page.waitForLoadState('networkidle');
-		const nav = page.locator('nav[aria-label="Site navigation"]');
+		const nav = page.getByRole('navigation', { name: 'Site navigation', exact: true });
 		await expect(nav).toBeVisible();
-		// Chips mode uses bg-white not bg-primary-600
-		const navClass = await nav.getAttribute('class') || '';
+		const navClass = (await nav.getAttribute('class')) || '';
 		expect(navClass).toContain('bg-white');
 		expect(navClass).not.toContain('bg-primary-600');
-		// Links should have rounded-full
 		const homeLink = nav.locator('a[href="/"]').first();
-		const linkClass = await homeLink.getAttribute('class') || '';
+		const linkClass = (await homeLink.getAttribute('class')) || '';
 		expect(linkClass).toContain('rounded-full');
-
 	});
 });

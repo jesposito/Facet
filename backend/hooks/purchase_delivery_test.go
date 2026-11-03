@@ -328,7 +328,7 @@ func TestSalesNeedWorkingEmail(t *testing.T) {
 	assertContains(t, rec, `"reason":"email_not_configured"`)
 
 	// Checkout is refused before Stripe is asked to take any money.
-	rec = do(t, d.h, testRequest{method: http.MethodPost, url: "/api/content/checkout", body: `{"content_type":"posts","content_id":"` + d.post.Id + `","success_url":"http://example.com/ok","cancel_url":"http://example.com/no"}`})
+	rec = do(t, d.h, testRequest{method: http.MethodPost, url: "/api/content/checkout", body: `{"content_type":"posts","content_id":"` + d.post.Id + `","success_url":"https://facet.example/ok","cancel_url":"https://facet.example/no"}`})
 	assertStatus(t, rec, http.StatusServiceUnavailable)
 
 	// A payment that arrives anyway is kept, and delivered once email works.
@@ -418,7 +418,7 @@ func TestCheckoutWithSomeoneElsesEmailUnlocksNothing(t *testing.T) {
 	// A zero-cost coupon gives the attacker a token straight away, but it
 	// belongs to a new identity that owns only the redeemed item.
 	d.create(t, "coupons", map[string]any{"code": "FREEALL", "discount_type": "percentage", "discount_value": 100, "applicable_type": "all", "max_uses": 5, "current_uses": 0, "active": true})
-	rec = do(t, d.h, testRequest{method: http.MethodPost, url: "/api/content/checkout", body: `{"content_type":"posts","content_id":"` + d.post.Id + `","success_url":"http://example.com/ok","cancel_url":"http://example.com/no","coupon_code":"FREEALL"}`})
+	rec = do(t, d.h, testRequest{method: http.MethodPost, url: "/api/content/checkout", body: `{"content_type":"posts","content_id":"` + d.post.Id + `","success_url":"https://facet.example/ok","cancel_url":"https://facet.example/no","coupon_code":"FREEALL"}`})
 	assertStatus(t, rec, http.StatusOK)
 	assertContains(t, rec, `"status":"authorized"`)
 	var free struct {

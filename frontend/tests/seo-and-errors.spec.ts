@@ -1,7 +1,18 @@
 import { test, expect } from '@playwright/test';
-import { apiBaseURL } from './config';
+import { createPublicProjectAndPost, deletePublicProjectAndPost, loginAsAdmin } from './helpers';
 
 test.describe('SEO features', () => {
+	let token: string;
+	let fixture: Awaited<ReturnType<typeof createPublicProjectAndPost>> | undefined;
+
+	test.beforeAll(async ({ request }) => {
+		({ token } = await loginAsAdmin(request));
+		fixture = await createPublicProjectAndPost(request, token);
+	});
+
+	test.afterAll(async ({ request }) => {
+		if (fixture) await deletePublicProjectAndPost(request, token, fixture);
+	});
 	test('sitemap.xml is valid and contains URLs', async ({ request }) => {
 		// Sitemap is served by SvelteKit frontend via baseURL (default: http://localhost:5173)
 		const sitemapRes = await request.get('/sitemap.xml');
@@ -52,88 +63,35 @@ test.describe('SEO features', () => {
 		await expect(twitterCard).toHaveCount(1);
 	});
 
-	test('project pages have proper SEO meta tags', async ({ request, page }) => {
-		// First, fetch a public project
-		const projectsRes = await request.get(`${apiBaseURL}/api/projects`);
-		if (!projectsRes.ok()) {
-			test.skip(true, 'No projects API available');
-			return;
-		}
+	test('project pages have proper SEO meta tags', async ({ page }) => {
+		await page.goto(`/projects/${fixture!.projectSlug}`);
 
-		const projectsData = await projectsRes.json();
-		const projects = projectsData?.projects || [];
-
-		if (projects.length === 0) {
-			test.skip(true, 'No projects available for testing');
-			return;
-		}
-
-		const project = projects[0];
-		if (!project.slug) {
-			test.skip(true, 'Project has no slug');
-			return;
-		}
-
-		// Visit the project page
-		await page.goto(`/projects/${project.slug}`);
-
-		// Check canonical URL
 		const canonical = page.locator('link[rel="canonical"]');
 		await expect(canonical).toHaveCount(1);
 		const canonicalHref = await canonical.getAttribute('href');
-		expect(canonicalHref).toContain(`projects/${project.slug}`);
+		expect(canonicalHref).toContain(`projects/${fixture!.projectSlug}`);
 
-		// Check Open Graph type is article
 		const ogType = page.locator('meta[property="og:type"]');
 		const typeContent = await ogType.getAttribute('content');
 		expect(typeContent).toBe('article');
 
-		// Check for basic OG tags
 		await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
 		await expect(page.locator('meta[property="og:url"]')).toHaveCount(1);
 	});
 
-	test('post pages have article metadata', async ({ request, page }) => {
-		// First, fetch a public post
-		const postsRes = await request.get(`${apiBaseURL}/api/posts`);
-		if (!postsRes.ok()) {
-			test.skip(true, 'No posts API available');
-			return;
-		}
+	test('post pages have article metadata', async ({ page }) => {
+		await page.goto(`/posts/${fixture!.postSlug}`);
 
-		const postsData = await postsRes.json();
-		const posts = postsData?.posts || [];
-
-		if (posts.length === 0) {
-			test.skip(true, 'No posts available for testing');
-			return;
-		}
-
-		const post = posts[0];
-		if (!post.slug) {
-			test.skip(true, 'Post has no slug');
-			return;
-		}
-
-		// Visit the post page
-		await page.goto(`/posts/${post.slug}`);
-
-		// Check canonical URL
 		const canonical = page.locator('link[rel="canonical"]');
 		await expect(canonical).toHaveCount(1);
 		const canonicalHref = await canonical.getAttribute('href');
-		expect(canonicalHref).toContain(`posts/${post.slug}`);
+		expect(canonicalHref).toContain(`posts/${fixture!.postSlug}`);
 
-		// Check Open Graph type is article
 		const ogType = page.locator('meta[property="og:type"]');
 		const typeContent = await ogType.getAttribute('content');
 		expect(typeContent).toBe('article');
 
-		// Check for published time if post has it
-		if (post.published_at) {
-			const publishedTime = page.locator('meta[property="article:published_time"]');
-			await expect(publishedTime).toHaveCount(1);
-		}
+		await expect(page.locator('meta[property="article:published_time"]')).toHaveCount(1);
 	});
 
 	test('JSON-LD structured data is present when profile exists', async ({ page }) => {

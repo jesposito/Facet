@@ -1,9 +1,9 @@
 /**
  * View Editor Context
- * 
+ *
  * Provides context-based state sharing for the view editor component hierarchy.
  * Uses Svelte's context API to share the editor instance across components.
- * 
+ *
  * Note: ViewEditor type will be defined when createViewEditor.svelte.ts is implemented.
  * For now, we use a generic type placeholder.
  */
@@ -27,7 +27,7 @@ export function setViewEditor(editor: ViewEditor): void {
 /**
  * Get the view editor instance from context.
  * Should be called in child components that need access to the editor.
- * 
+ *
  * @throws Error if called outside of a component that has the editor in context
  */
 export function useViewEditor(): ViewEditor {
@@ -35,7 +35,7 @@ export function useViewEditor(): ViewEditor {
 	if (!editor) {
 		throw new Error(
 			'useViewEditor() must be called within a component that has a ViewEditor in context. ' +
-			'Make sure setViewEditor() was called in a parent component.'
+				'Make sure setViewEditor() was called in a parent component.'
 		);
 	}
 	return editor;

@@ -3,7 +3,7 @@
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -17,6 +17,11 @@
 	// Field decisions
 	let fieldDecisions: Record<string, 'apply' | 'ignore' | 'lock'> = $state({});
 	let fieldEdits: Record<string, unknown> = $state({});
+	let fieldEditText: Record<string, string> = $state({});
+	let fieldEditErrors: Record<string, string> = $state({});
+	// Shown beside the Apply button. A toast here would sit over the button
+	// the admin needs to press again once the edit is fixed.
+	let applyError = $state('');
 
 	const fieldLabels: Record<string, string> = {
 		title: 'Title',
@@ -64,6 +69,12 @@
 			for (const field of Object.keys(proposedData)) {
 				fieldDecisions[field] = 'apply';
 				fieldEdits[field] = proposedData[field];
+				const value = proposedData[field];
+				if (Array.isArray(value)) {
+					fieldEditText[field] = isObjectArrayField(field, value)
+						? JSON.stringify(value, null, 2)
+						: value.join(', ');
+				}
 			}
 		} catch (err) {
 			console.error('Failed to load proposal:', err);
@@ -80,22 +91,70 @@
 		fieldDecisions = { ...fieldDecisions };
 	}
 
+	function isObjectArrayField(field: string, value: unknown[]): boolean {
+		return (
+			field === 'links' ||
+			(value.length > 0 &&
+				value[0] !== null &&
+				typeof value[0] === 'object' &&
+				!Array.isArray(value[0]))
+		);
+	}
+
+	function parseArrayEdit(field: string, original: unknown[]): unknown[] {
+		const raw = fieldEditText[field] || '';
+		if (!isObjectArrayField(field, original)) {
+			return raw.split(',').map((item) => item.trim());
+		}
+		try {
+			const parsed: unknown = JSON.parse(raw);
+			if (
+				!Array.isArray(parsed) ||
+				parsed.some((item) => item === null || typeof item !== 'object' || Array.isArray(item))
+			) {
+				throw new Error('invalid shape');
+			}
+			return parsed;
+		} catch {
+			throw new Error(`${fieldLabels[field] || field} must be a valid JSON array of objects.`);
+		}
+	}
+
 	async function handleApply() {
 		applying = true;
 		try {
 			const appliedFields: Record<string, boolean> = {};
 			const lockedFields: string[] = [];
 			const edits: Record<string, unknown> = {};
+			let hasInvalidEdits = false;
 
 			for (const [field, decision] of Object.entries(fieldDecisions)) {
 				if (decision === 'apply' || decision === 'lock') {
 					appliedFields[field] = true;
-					edits[field] = fieldEdits[field];
+					const original = proposedData[field];
+					if (Array.isArray(original)) {
+						try {
+							edits[field] = parseArrayEdit(field, original);
+						} catch (err) {
+							fieldEditErrors[field] = err instanceof Error ? err.message : 'Invalid field edit';
+							hasInvalidEdits = true;
+						}
+					} else {
+						edits[field] = fieldEdits[field];
+					}
 				}
 				if (decision === 'lock') {
 					lockedFields.push(field);
 				}
 			}
+
+			if (hasInvalidEdits) {
+				applyError = 'Correct the highlighted field edits before applying.';
+				await tick();
+				document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+				return;
+			}
+			applyError = '';
 
 			const response = await fetch(`/api/proposals/${page.params.id}/apply`, {
 				method: 'POST',
@@ -114,7 +173,6 @@
 				throw new Error('Failed to apply proposal');
 			}
 
-			const result = await response.json();
 			toasts.add('success', 'Changes applied successfully!');
 			goto(`/admin/projects`, { replace: true });
 		} catch (err) {
@@ -140,14 +198,13 @@
 
 			toasts.add('info', 'Proposal rejected');
 			goto('/admin/import', { replace: true });
-		} catch (err) {
+		} catch {
 			toasts.add('error', 'Failed to reject proposal');
 		}
 	}
 
 	function formatValue(value: unknown): string {
 		if (Array.isArray(value)) {
-			// Handle arrays of objects (like links) differently
 			if (value.length > 0 && typeof value[0] === 'object') {
 				return JSON.stringify(value, null, 2);
 			}
@@ -159,16 +216,10 @@
 		return String(value || '-');
 	}
 
-	function getArrayValue(field: string): string {
-		const val = fieldEdits[field];
-		if (Array.isArray(val)) {
-			// Handle arrays of objects (like links) differently
-			if (val.length > 0 && typeof val[0] === 'object') {
-				return JSON.stringify(val, null, 2);
-			}
-			return val.join(', ');
-		}
-		return '';
+	function updateArrayEdit(field: string, value: string) {
+		fieldEditText[field] = value;
+		delete fieldEditErrors[field];
+		if (Object.keys(fieldEditErrors).length === 0) applyError = '';
 	}
 </script>
 
@@ -180,7 +231,9 @@
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">Review Import</h1>
 		{#if proposal?.ai_enriched}
-			<span class="px-3 py-1 text-sm bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded-full">
+			<span
+				class="px-3 py-1 text-sm bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 rounded-full"
+			>
 				AI Enhanced
 			</span>
 		{/if}
@@ -216,7 +269,9 @@
 								{fieldLabels[field] || field}
 							</h3>
 							{#if diff[field]}
-								<span class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+								<span
+									class="text-xs px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"
+								>
 									{diff[field].type === 'added' ? 'New' : 'Changed'}
 								</span>
 							{/if}
@@ -240,7 +295,9 @@
 								Ignore
 							</button>
 							<button
-								class="px-3 py-1 text-sm rounded inline-flex items-center gap-1 {fieldDecisions[field] === 'lock'
+								class="px-3 py-1 text-sm rounded inline-flex items-center gap-1 {fieldDecisions[
+									field
+								] === 'lock'
 									? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
 									: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}"
 								onclick={() => (fieldDecisions[field] = 'lock')}
@@ -256,16 +313,23 @@
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 							<div class="p-3 bg-red-50 dark:bg-red-900/20 rounded">
 								<span class="text-xs text-red-600 dark:text-red-400 font-medium">Current</span>
-								<pre class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(diff[field].old)}</pre>
+								<pre class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(
+										diff[field].old
+									)}</pre>
 							</div>
 							<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded">
 								<span class="text-xs text-green-600 dark:text-green-400 font-medium">Proposed</span>
-								<pre class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(value)}</pre>
+								<pre class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(
+										value
+									)}</pre>
 							</div>
 						</div>
 					{:else}
 						<div class="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-							<pre class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(value)}</pre>
+							<pre
+								class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(
+									value
+								)}</pre>
 						</div>
 					{/if}
 
@@ -274,16 +338,34 @@
 						<div class="mt-3">
 							<span class="text-xs text-gray-500 dark:text-gray-400">Edit before applying:</span>
 							{#if Array.isArray(value)}
-								<input
-									type="text"
-									class="input mt-1"
-									value={getArrayValue(field)}
-									oninput={(e) => (fieldEdits[field] = e.currentTarget.value.split(',').map((s) => s.trim()))}
-								/>
+								{#if isObjectArrayField(field, value)}
+									<textarea
+										class="input mt-1 min-h-[120px] font-mono text-sm"
+										value={fieldEditText[field]}
+										aria-label={`Edit ${field} as JSON`}
+										aria-invalid={fieldEditErrors[field] ? 'true' : undefined}
+										aria-describedby={fieldEditErrors[field] ? `${field}-edit-error` : undefined}
+										oninput={(e) => updateArrayEdit(field, e.currentTarget.value)}></textarea>
+								{:else}
+									<input
+										type="text"
+										class="input mt-1"
+										value={fieldEditText[field]}
+										aria-label={`Edit ${field}`}
+										oninput={(e) => updateArrayEdit(field, e.currentTarget.value)}
+									/>
+								{/if}
+								{#if fieldEditErrors[field]}
+									<p
+										id={`${field}-edit-error`}
+										class="mt-1 text-sm text-red-600 dark:text-red-400"
+										role="alert"
+									>
+										{fieldEditErrors[field]}
+									</p>
+								{/if}
 							{:else if typeof value === 'string' && value.length > 100}
-								<textarea
-									class="input mt-1 min-h-[100px]"
-									bind:value={fieldEdits[field]}
+								<textarea class="input mt-1 min-h-[100px]" bind:value={fieldEdits[field]}
 								></textarea>
 							{:else}
 								<input type="text" class="input mt-1" bind:value={fieldEdits[field]} />
@@ -295,17 +377,31 @@
 		</div>
 
 		<!-- Actions -->
-		<div class="flex justify-between mt-8">
-			<button class="btn btn-danger-ghost" onclick={handleReject}>
-				Reject All
-			</button>
+		{#if applyError}
+			<p class="mt-8 text-sm text-red-600 dark:text-red-400 text-right" role="alert">
+				{applyError}
+			</p>
+		{/if}
+		<div class="flex justify-between {applyError ? 'mt-3' : 'mt-8'}">
+			<button class="btn btn-danger-ghost" onclick={handleReject}> Reject All </button>
 			<div class="flex gap-3">
 				<a href="/admin/import" class="btn btn-secondary">Cancel</a>
 				<button class="btn btn-primary" onclick={handleApply} disabled={applying}>
 					{#if applying}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					Apply Selected Changes

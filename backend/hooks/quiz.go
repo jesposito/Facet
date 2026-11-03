@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"facet/services"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
@@ -33,39 +32,16 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 		// GET /api/courses/{slug}/lessons/{lessonId}/quiz - Get quiz for a lesson
 		se.Router.GET("/api/courses/{slug}/lessons/{lessonId}/quiz", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
 			lessonID := e.Request.PathValue("lessonId")
 
-			// Find course by slug
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-			course := courseRecords[0]
-
-			// Check access (purchase or enrollment)
-			buyerEmail, err := checkQuizAccess(app, purchaseService, e, course)
+			// Same checks as the lesson itself: visibility, purchase or
+			// enrolment, drip schedule and sequential access
+			course, buyerEmail, err := requireCourseLearner(app, purchaseService, e, e.Request.PathValue("slug"))
 			if err != nil {
-				return respondUnauthorized(e, "authentication required")
+				return err
 			}
-
-			// Find lesson
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-
-			// Verify lesson belongs to this course
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != course.Id {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
+			if _, err := requireCourseLesson(app, e, course, lessonID, buyerEmail); err != nil {
+				return err
 			}
 
 			// Find quiz for this lesson
@@ -163,39 +139,16 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 		// POST /api/courses/{slug}/lessons/{lessonId}/quiz/submit - Submit quiz answers
 		se.Router.POST("/api/courses/{slug}/lessons/{lessonId}/quiz/submit", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
 			lessonID := e.Request.PathValue("lessonId")
 
-			// Find course by slug
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-			course := courseRecords[0]
-
-			// Check access
-			buyerEmail, err := checkQuizAccess(app, purchaseService, e, course)
+			// Checked before anything is recorded, so a refused submission
+			// leaves no attempt and no progress behind
+			course, buyerEmail, err := requireCourseLearner(app, purchaseService, e, e.Request.PathValue("slug"))
 			if err != nil {
-				return respondUnauthorized(e, "authentication required")
+				return err
 			}
-
-			// Find lesson
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-
-			// Verify lesson belongs to this course
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != course.Id {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
+			if _, err := requireCourseLesson(app, e, course, lessonID, buyerEmail); err != nil {
+				return err
 			}
 
 			// Find quiz
@@ -821,40 +774,6 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 		return se.Next()
 	})
-}
-
-// checkQuizAccess verifies the request has purchase/enrollment access to a course.
-// Returns the buyer email if access is granted, or an error if not.
-func checkQuizAccess(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, course *core.Record) (string, error) {
-	token := extractPurchaseCookie(e)
-	if token == "" {
-		return "", fmt.Errorf("no token")
-	}
-
-	purchaseIDs, buyerEmail, err := purchaseService.ValidatePurchaseJWT(token)
-	if err != nil {
-		return "", err
-	}
-
-	if course.GetString("access_tier") == "paid" {
-		if findCompletedPurchase(app, purchaseService, purchaseIDs, buyerEmail, "courses", course.Id) == nil {
-			return "", fmt.Errorf("purchase required")
-		}
-	} else if course.GetBool("require_enrollment") {
-		// Free course with enrollment requirement - check enrollment
-		enrollRecords, err := app.FindRecordsByFilter(
-			"course_progress",
-			"course = {:course} && buyer_email = {:email}",
-			"", 1, 0,
-			map[string]interface{}{"course": course.Id, "email": buyerEmail},
-		)
-		if err != nil || len(enrollRecords) == 0 {
-			return "", fmt.Errorf("enrollment required")
-		}
-	}
-	// Free course without enrollment requirement - always accessible
-
-	return buyerEmail, nil
 }
 
 // parseQuizOptions reads a question's options. A record loaded from the

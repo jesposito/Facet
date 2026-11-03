@@ -4,6 +4,7 @@
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { toasts } from '$lib/stores';
+	import { resolveSiteFeatures, setSiteFeatures } from '$lib/stores/features';
 
 	let loading = $state(true);
 	let saving = $state(false);
@@ -25,13 +26,7 @@
 			const response = await fetch(`/api/site-settings?_=${Date.now()}`);
 			if (response.ok) {
 				const data = await response.json();
-				const enabled = data.enabled_features ?? {};
-				features = {
-					analytics: enabled.analytics !== false,
-					courses: enabled.courses !== false,
-					newsletter: enabled.newsletter !== false,
-					discussions: enabled.discussions !== false
-				};
+				features = resolveSiteFeatures(data.enabled_features);
 			}
 		} catch (err) {
 			console.error('Failed to load feature settings:', err);
@@ -43,10 +38,12 @@
 	async function saveFeatures() {
 		saving = true;
 		try {
-			await pb.send('/api/site-settings', {
+			const saved = await pb.send('/api/site-settings', {
 				method: 'PUT',
 				body: { enabled_features: { ...features } }
 			});
+			// Update navigation and public components straight away.
+			setSiteFeatures(saved?.enabled_features ?? features);
 			toasts.add('success', $t('admin.settings.features.saved'));
 		} catch (err) {
 			console.error('Failed to save feature settings:', err);
@@ -92,8 +89,12 @@
 
 <div class="max-w-3xl mx-auto">
 	<div class="mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.settings.features.title')}</h1>
-		<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings.features.description')}</p>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.settings.features.title')}
+		</h1>
+		<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+			{$t('admin.settings.features.description')}
+		</p>
 	</div>
 
 	{#if loading}
@@ -112,7 +113,9 @@
 		</div>
 	{:else}
 		<div class="card p-6 space-y-6">
-			<p class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+			<p
+				class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3"
+			>
 				{$t('admin.settings.features.all_enabled_note')}
 			</p>
 
@@ -131,11 +134,11 @@
 							aria-checked={features[row.key]}
 							aria-label={$t(row.nameKey)}
 							disabled={saving}
-							onclick={() => { features[row.key] = !features[row.key]; }}
+							onclick={() => {
+								features[row.key] = !features[row.key];
+							}}
 							class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
-								{features[row.key]
-									? 'bg-primary-600'
-									: 'bg-gray-200 dark:bg-gray-700'}"
+								{features[row.key] ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}"
 						>
 							<span class="sr-only">{$t(row.nameKey)}</span>
 							<span
@@ -155,9 +158,24 @@
 					disabled={saving || loading}
 				>
 					{#if saving}
-						<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						<svg
+							class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					{$t('shared.actions.save')}

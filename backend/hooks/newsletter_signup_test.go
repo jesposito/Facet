@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"regexp"
 	"testing"
-	"time"
 
 	"facet/services"
 )
@@ -49,16 +48,13 @@ func (n *newsletterFixture) status(t *testing.T, email string) string {
 	return sub.GetString("status")
 }
 
-func (n *newsletterFixture) waitForEmails(t *testing.T, want int) {
+// assertEmailsSent checks the mail total right after a request. Signup
+// emails are sent inside the request, so there is nothing to wait for.
+func (n *newsletterFixture) assertEmailsSent(t *testing.T, want int) {
 	t.Helper()
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		if int(n.app.TestMailer.TotalSend()) >= want {
-			return
-		}
-		time.Sleep(20 * time.Millisecond)
+	if got := int(n.app.TestMailer.TotalSend()); got != want {
+		t.Fatalf("sent %d emails, want %d", got, want)
 	}
-	t.Fatalf("sent %d emails, want %d", n.app.TestMailer.TotalSend(), want)
 }
 
 var confirmLink = regexp.MustCompile(`https://facet\.example(/api/public/newsletter/confirm/[A-Za-z0-9_\-%=]+)`)
@@ -83,7 +79,7 @@ func TestNewsletterSignupWaitsForConfirmation(t *testing.T) {
 	if got := n.status(t, "reader@example.com"); got != "pending" {
 		t.Fatalf("status before confirming = %q, want pending", got)
 	}
-	n.waitForEmails(t, 1)
+	n.assertEmailsSent(t, 1)
 	path := n.confirmPath(t, "reader@example.com")
 
 	rec := do(t, n.handler, testRequest{url: path})
@@ -91,7 +87,7 @@ func TestNewsletterSignupWaitsForConfirmation(t *testing.T) {
 	if got := n.status(t, "reader@example.com"); got != "active" {
 		t.Fatalf("status after confirming = %q, want active", got)
 	}
-	n.waitForEmails(t, 2) // welcome email
+	n.assertEmailsSent(t, 2) // welcome email
 
 	// The link only works once.
 	assertStatus(t, do(t, n.handler, testRequest{url: path}), http.StatusNotFound)
@@ -99,7 +95,6 @@ func TestNewsletterSignupWaitsForConfirmation(t *testing.T) {
 	// Signing up again while subscribed sends nothing.
 	sent := n.app.TestMailer.TotalSend()
 	n.subscribe(t, "reader@example.com")
-	time.Sleep(50 * time.Millisecond)
 	if n.app.TestMailer.TotalSend() != sent {
 		t.Fatal("an active subscriber was emailed again")
 	}
@@ -113,14 +108,13 @@ func TestUnsubscribedReaderIsNotResubscribedBySomeoneElse(t *testing.T) {
 	if got := n.status(t, "left@example.com"); got != "unsubscribed" {
 		t.Fatalf("status = %q; the form alone must not resubscribe someone", got)
 	}
-	n.waitForEmails(t, 1)
+	n.assertEmailsSent(t, 1)
 	path := n.confirmPath(t, "left@example.com")
 
 	// Repeating the form doesn't flood their inbox.
 	for i := 0; i < 3; i++ {
 		n.subscribe(t, "left@example.com")
 	}
-	time.Sleep(50 * time.Millisecond)
 	if got := n.app.TestMailer.TotalSend(); got != 1 {
 		t.Fatalf("sent %d confirmation emails, want 1", got)
 	}
@@ -130,7 +124,7 @@ func TestUnsubscribedReaderIsNotResubscribedBySomeoneElse(t *testing.T) {
 	if got := n.status(t, "left@example.com"); got != "active" {
 		t.Fatalf("status after the owner confirmed = %q", got)
 	}
-	n.waitForEmails(t, 2)
+	n.assertEmailsSent(t, 2)
 }
 
 func TestNewsletterSignupWithoutEmailStaysPending(t *testing.T) {

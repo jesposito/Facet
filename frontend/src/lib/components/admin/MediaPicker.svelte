@@ -24,11 +24,7 @@
 		showHelp?: boolean;
 	}
 
-	let {
-		value = $bindable([]),
-		label = '',
-		showHelp = false
-	}: Props = $props();
+	let { value = $bindable([]), label = '', showHelp = false }: Props = $props();
 
 	const dispatch = createEventDispatcher<{
 		change: { value: string[] };
@@ -50,24 +46,26 @@
 			const res = await fetch('/api/media/recent?limit=10', { headers });
 			if (res.ok) {
 				const data = await res.json();
-				recentItems = (data.items || []).map((item: {
-					record_id: string;
-					display_name?: string;
-					filename?: string;
-					url?: string;
-					thumbnail_url?: string;
-					mime?: string;
-					collection?: string;
-					external?: boolean;
-				}) => ({
-					id: item.record_id,
-					title: item.display_name || item.filename || item.url || '',
-					url: item.url,
-					thumbnail_url: item.thumbnail_url,
-					mime: item.mime,
-					collection: item.collection,
-					provider: item.external ? 'external' : 'upload'
-				}));
+				recentItems = (data.items || []).map(
+					(item: {
+						record_id: string;
+						display_name?: string;
+						filename?: string;
+						url?: string;
+						thumbnail_url?: string;
+						mime?: string;
+						collection?: string;
+						external?: boolean;
+					}) => ({
+						id: item.record_id,
+						title: item.display_name || item.filename || item.url || '',
+						url: item.url,
+						thumbnail_url: item.thumbnail_url,
+						mime: item.mime,
+						collection: item.collection,
+						provider: item.external ? 'external' : 'upload'
+					})
+				);
 			}
 		} catch (err) {
 			console.error('Failed to load recent items', err);
@@ -388,12 +386,16 @@
 
 	{#if recentItems.length > 0 && !mediaSearch}
 		<div class="mb-3">
-			<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{$t('admin.media.picker_recent')}</p>
+			<p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+				{$t('admin.media.picker_recent')}
+			</p>
 			<div class="flex flex-wrap gap-1.5">
 				{#each recentItems.slice(0, 6) as opt}
 					<button
 						type="button"
-						class="flex items-center gap-1.5 px-2 py-1 rounded text-xs border transition-colors {value.includes(opt.id)
+						class="flex items-center gap-1.5 px-2 py-1 rounded text-xs border transition-colors {value.includes(
+							opt.id
+						)
 							? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300'
 							: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
 						onclick={() => handleSelectionChange(opt.id, !value.includes(opt.id), opt.collection)}
@@ -439,7 +441,8 @@
 						type="checkbox"
 						class="w-4 h-4"
 						checked={isSelected}
-						onchange={(e) => handleSelectionChange(opt.id, (e.target as HTMLInputElement).checked, opt.collection)}
+						onchange={(e) =>
+							handleSelectionChange(opt.id, (e.target as HTMLInputElement).checked, opt.collection)}
 					/>
 					{#if opt.thumbnail_url || (isImage(opt) && opt.url)}
 						<div class="w-8 h-8 rounded overflow-hidden bg-gray-200 dark:bg-gray-700 shrink-0">
@@ -454,9 +457,17 @@
 					<div class="flex flex-col min-w-0 flex-1">
 						<span class="text-sm font-medium truncate">{opt.title}</span>
 						{#if opt.description}
-							<span class="text-xs line-clamp-2 {isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-gray-600 dark:text-gray-300'}">{opt.description}</span>
+							<span
+								class="text-xs line-clamp-2 {isSelected
+									? 'text-primary-700 dark:text-primary-300'
+									: 'text-gray-600 dark:text-gray-300'}">{opt.description}</span
+							>
 						{:else if opt.provider}
-							<span class="text-xs {isSelected ? 'text-primary-600 dark:text-primary-300' : 'text-gray-500 dark:text-gray-400'}">{opt.provider}</span>
+							<span
+								class="text-xs {isSelected
+									? 'text-primary-600 dark:text-primary-300'
+									: 'text-gray-500 dark:text-gray-400'}">{opt.provider}</span
+							>
 						{/if}
 					</div>
 				</label>

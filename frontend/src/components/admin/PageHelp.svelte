@@ -58,7 +58,9 @@
 </script>
 
 {#if initialized}
-	<div class="mb-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
+	<div
+		class="mb-6 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden"
+	>
 		<button
 			type="button"
 			class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-blue-100/50 dark:hover:bg-blue-900/30 transition-colors"
@@ -67,12 +69,19 @@
 		>
 			<div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
 				<svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+					/>
 				</svg>
 				<span class="font-medium text-sm">Page Help</span>
 			</div>
 			<svg
-				class="w-5 h-5 text-blue-500 dark:text-blue-400 transition-transform duration-200 {isExpanded ? 'rotate-180' : ''}"
+				class="w-5 h-5 text-blue-500 dark:text-blue-400 transition-transform duration-200 {isExpanded
+					? 'rotate-180'
+					: ''}"
 				fill="none"
 				viewBox="0 0 24 24"
 				stroke="currentColor"
@@ -80,7 +89,7 @@
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
 			</svg>
 		</button>
-		
+
 		{#if isExpanded}
 			<div class="px-4 pb-4 pt-1 text-sm text-blue-800 dark:text-blue-200 space-y-2">
 				{@render children()}

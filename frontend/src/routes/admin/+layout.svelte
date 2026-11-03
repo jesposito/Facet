@@ -31,6 +31,7 @@
 	let showPasswordChangeModal = $state(false);
 	let showTwoFactorModal = $state(false);
 	let twoFactorError = $state(false);
+	let authCheckError = $state(false);
 
 	// Mobile detection for responsive sidebar behavior
 	// Mobile: sidebar is overlay drawer (hidden by default)
@@ -246,12 +247,13 @@
 					}
 				}
 				loading = false;
-			} catch (err: any) {
-				const status = err?.status || err?.response?.status || 0;
-				if (status >= 500) {
-					// Server error — don't log the user out, proceed with local token
-					console.warn('[LAYOUT] Server error during auth check, proceeding with local token');
-					authorized = true;
+			} catch (err) {
+				const authError = err as { status?: number; response?: { status?: number } };
+				const status = authError.status || authError.response?.status || 0;
+				if (status === 0 || status >= 500) {
+					console.warn('[LAYOUT] Unable to verify auth state; keeping admin content locked');
+					authorized = false;
+					authCheckError = true;
 				} else {
 					// Token validation failed (401/403) - clear stale auth and redirect to login
 					console.log(
@@ -331,6 +333,7 @@
 				!showTwoFactorModal &&
 				!showPasswordChangeModal &&
 				!twoFactorError &&
+				!authCheckError &&
 				!loading
 			) {
 				// Show loading spinner during auth checks to prevent "Unauthorized" flash
@@ -512,6 +515,34 @@
 		</div>
 
 		<SetupWizard />
+	</div>
+{:else if authCheckError}
+	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+		<div class="text-center max-w-md mx-auto px-4" role="alert">
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+				Couldn't verify your admin session
+			</h2>
+			<p class="text-gray-600 dark:text-gray-400 mb-6">
+				The server could not confirm your session. Admin content stays hidden until verification
+				succeeds.
+			</p>
+			<div class="flex gap-3 justify-center">
+				<button type="button" class="btn btn-primary" onclick={() => window.location.reload()}>
+					{$t('admin.two_factor.retry_button')}
+				</button>
+				<button
+					type="button"
+					class="btn btn-secondary"
+					onclick={async () => {
+						authCheckError = false;
+						await performLogout();
+						goto('/admin/login');
+					}}
+				>
+					{$t('admin.two_factor.logout_link')}
+				</button>
+			</div>
+		</div>
 	</div>
 {:else if twoFactorError}
 	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

@@ -1,17 +1,17 @@
 /**
  * View Editor Types
- * 
+ *
  * Centralized type definitions for the view editor component hierarchy.
  * These types are shared across the editor store, context, and extracted components.
  */
 
-import type { 
-	View, 
-	ViewSection, 
-	ItemConfig, 
-	Profile, 
-	SectionWidth, 
-	ShareToken 
+import type {
+	View,
+	ViewSection,
+	ItemConfig,
+	Profile,
+	SectionWidth,
+	ShareToken
 } from '$lib/pocketbase';
 import type { AccentColor } from '$lib/colors';
 

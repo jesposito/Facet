@@ -16,7 +16,9 @@
 	let popularViews: Array<{ view_id: string; view_slug: string; count: number }> = $state([]);
 	let topReferrers: Array<{ referrer: string; count: number }> = $state([]);
 	let countries: Array<{ country_code: string; count: number }> = $state([]);
-	let utmStats: Array<{ source: string; medium: string; campaign: string; count: number }> = $state([]);
+	let utmStats: Array<{ source: string; medium: string; campaign: string; count: number }> = $state(
+		[]
+	);
 
 	onMount(() => {
 		loadAnalytics();
@@ -62,21 +64,15 @@
 
 	// Calculate max for bar chart scaling
 	let maxDailyViews = $derived(
-		viewsOverTime.length > 0
-			? Math.max(...viewsOverTime.map((d) => d.count))
-			: 1
+		viewsOverTime.length > 0 ? Math.max(...viewsOverTime.map((d) => d.count)) : 1
 	);
 
 	let maxViewCount = $derived(
-		popularViews.length > 0
-			? Math.max(...popularViews.map((v) => v.count))
-			: 1
+		popularViews.length > 0 ? Math.max(...popularViews.map((v) => v.count)) : 1
 	);
 
 	let maxReferrerCount = $derived(
-		topReferrers.length > 0
-			? Math.max(...topReferrers.map((r) => r.count))
-			: 1
+		topReferrers.length > 0 ? Math.max(...topReferrers.map((r) => r.count)) : 1
 	);
 </script>
 
@@ -87,11 +83,19 @@
 <div class="max-w-5xl mx-auto">
 	<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
 		<div>
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.analytics_page.title')}</h1>
-			<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.description')}</p>
+			<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+				{$t('admin.analytics_page.title')}
+			</h1>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				{$t('admin.analytics_page.description')}
+			</p>
 		</div>
 
-		<div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto" role="group" aria-label={$t('admin.analytics_page.title')}>
+		<div
+			class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-full sm:w-auto"
+			role="group"
+			aria-label={$t('admin.analytics_page.title')}
+		>
 			{#each ['7d', '30d', '90d'] as p}
 				<button
 					type="button"
@@ -120,11 +124,7 @@
 	{:else if error}
 		<div class="card p-6 text-center" role="alert">
 			<p class="text-red-600 dark:text-red-400 mb-3">{$t('admin.analytics_page.error_loading')}</p>
-			<button
-				type="button"
-				class="btn btn-primary btn-sm"
-				onclick={() => loadAnalytics()}
-			>
+			<button type="button" class="btn btn-primary btn-sm" onclick={() => loadAnalytics()}>
 				{$t('admin.analytics_page.retry')}
 			</button>
 		</div>
@@ -132,7 +132,9 @@
 		<!-- Headline stats -->
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
 			<div class="card p-6">
-				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.total_views')}</p>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					{$t('admin.analytics_page.total_views')}
+				</p>
 				<p
 					class="text-3xl font-bold text-gray-900 dark:text-white"
 					aria-describedby="total-views-help"
@@ -144,7 +146,9 @@
 				</p>
 			</div>
 			<div class="card p-6">
-				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.analytics_page.unique_visitors')}</p>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					{$t('admin.analytics_page.unique_visitors')}
+				</p>
 				<p
 					class="text-3xl font-bold text-gray-900 dark:text-white"
 					aria-describedby="unique-visitors-help"
@@ -160,9 +164,13 @@
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 			<!-- Views over time -->
 			<div class="card p-6 lg:col-span-2">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.analytics_page.views_over_time')}</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+					{$t('admin.analytics_page.views_over_time')}
+				</h2>
 				{#if viewsOverTime.length === 0}
-					<p class="text-gray-500 dark:text-gray-400 text-sm">{$t('admin.analytics_page.no_view_data')}</p>
+					<p class="text-gray-500 dark:text-gray-400 text-sm">
+						{$t('admin.analytics_page.no_view_data')}
+					</p>
 				{:else}
 					<div
 						class="flex items-end gap-[2px] h-40"
@@ -186,15 +194,21 @@
 
 			<!-- Popular views -->
 			<div class="card p-6">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.analytics_page.popular_views')}</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+					{$t('admin.analytics_page.popular_views')}
+				</h2>
 				{#if popularViews.length === 0}
-					<p class="text-gray-500 dark:text-gray-400 text-sm">{$t('admin.analytics_page.no_view_data')}</p>
+					<p class="text-gray-500 dark:text-gray-400 text-sm">
+						{$t('admin.analytics_page.no_view_data')}
+					</p>
 				{:else}
 					<div class="space-y-3">
 						{#each popularViews as view}
 							<div>
 								<div class="flex justify-between text-sm mb-1">
-									<span class="text-gray-700 dark:text-gray-300 truncate">{view.view_slug || view.view_id}</span>
+									<span class="text-gray-700 dark:text-gray-300 truncate"
+										>{view.view_slug || view.view_id}</span
+									>
 									<span class="text-gray-500 dark:text-gray-400 ml-2 shrink-0">{view.count}</span>
 								</div>
 								<div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -212,9 +226,13 @@
 			<!-- Top referrers (advanced analytics) -->
 			{#if $hasAdvancedAnalytics}
 				<div class="card p-6">
-					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.analytics_page.top_referrers')}</h2>
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+						{$t('admin.analytics_page.top_referrers')}
+					</h2>
 					{#if topReferrers.length === 0}
-						<p class="text-gray-500 dark:text-gray-400 text-sm">{$t('admin.analytics_page.no_referrer_data')}</p>
+						<p class="text-gray-500 dark:text-gray-400 text-sm">
+							{$t('admin.analytics_page.no_referrer_data')}
+						</p>
 					{:else}
 						<div class="space-y-3">
 							{#each topReferrers as ref}
@@ -238,11 +256,17 @@
 				<!-- Countries -->
 				{#if countries.length > 0}
 					<div class="card p-6 lg:col-span-2">
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.analytics_page.top_countries')}</h2>
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+							{$t('admin.analytics_page.top_countries')}
+						</h2>
 						<div class="flex flex-wrap gap-3">
 							{#each countries as country}
-								<div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm">
-									<span class="text-gray-700 dark:text-gray-300">{country.country_code || '??'}</span>
+								<div
+									class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm"
+								>
+									<span class="text-gray-700 dark:text-gray-300"
+										>{country.country_code || '??'}</span
+									>
 									<span class="text-gray-500 dark:text-gray-400">{country.count}</span>
 								</div>
 							{/each}
@@ -257,7 +281,9 @@
 						<div class="overflow-x-auto">
 							<table class="w-full text-sm">
 								<thead>
-									<tr class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+									<tr
+										class="text-left text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700"
+									>
 										<th class="pb-2 font-medium">Source</th>
 										<th class="pb-2 font-medium">Medium</th>
 										<th class="pb-2 font-medium">Campaign</th>
@@ -270,7 +296,9 @@
 											<td class="py-2 text-gray-700 dark:text-gray-300">{utm.source}</td>
 											<td class="py-2 text-gray-600 dark:text-gray-400">{utm.medium}</td>
 											<td class="py-2 text-gray-600 dark:text-gray-400">{utm.campaign}</td>
-											<td class="py-2 text-right font-medium text-gray-900 dark:text-white">{utm.count}</td>
+											<td class="py-2 text-right font-medium text-gray-900 dark:text-white"
+												>{utm.count}</td
+											>
 										</tr>
 									{/each}
 								</tbody>

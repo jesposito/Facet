@@ -5,14 +5,11 @@ test.describe('health route helpers', () => {
 	test('reports healthy when PocketBase health responds OK', async () => {
 		let requestedUrl = '';
 
-		const status = await checkBackendHealth(
-			async (input, init) => {
-				requestedUrl = String(input);
-				expect(init?.headers).toEqual({ 'X-Internal': 'true' });
-				return new Response('{}', { status: 200 });
-			},
-			'http://localhost:8090/'
-		);
+		const status = await checkBackendHealth(async (input, init) => {
+			requestedUrl = String(input);
+			expect(init?.headers).toEqual({ 'X-Internal': 'true' });
+			return new Response('{}', { status: 200 });
+		}, 'http://localhost:8090/');
 
 		expect(requestedUrl).toBe('http://localhost:8090/api/health');
 		expect(status).toEqual({

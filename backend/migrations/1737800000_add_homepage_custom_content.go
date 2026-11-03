@@ -15,8 +15,8 @@ func init() {
 		// Add JSON field to store homepage custom content configuration
 		// Format: [{ "id": "custom_content_id", "enabled": true }]
 		collection.Fields.Add(&core.JSONField{
-			Name:     "homepage_custom_content",
-			MaxSize:  100000,
+			Name:    "homepage_custom_content",
+			MaxSize: 100000,
 		})
 
 		if err := app.Save(collection); err != nil {

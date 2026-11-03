@@ -7,6 +7,13 @@
 	import { toasts, confirm } from '$lib/stores';
 	import { marked } from 'marked';
 	import DOMPurify from 'isomorphic-dompurify';
+	import {
+		ALL_SUBSCRIBERS,
+		buildSendPayload,
+		findLinkPlaceholderProblem,
+		newRequestKey,
+		sendErrorMessage
+	} from '$lib/newsletter/compose';
 
 	type Send = {
 		id: string;
@@ -170,7 +177,7 @@
 
 		sendingTest = true;
 		try {
-			const adminEmail = (pb.authStore.model as Record<string, unknown>)?.email as
+			const adminEmail = (pb.authStore.record as Record<string, unknown>)?.email as
 				string | undefined;
 
 			if (!adminEmail) {
@@ -212,15 +219,37 @@
 			return;
 		}
 
-		// Pre-fetch active subscriber count
+		// This page always sends to every active subscriber. The count comes
+		// from the same audience query the send uses.
+		const payload = buildSendPayload({
+			subject,
+			bodyMarkdown,
+			template: selectedTemplate,
+			listId: ALL_SUBSCRIBERS,
+			personalize: false
+		});
+		const linkProblem = findLinkPlaceholderProblem(bodyMarkdown, false);
+		if (linkProblem) {
+			toasts.add('error', linkProblem);
+			return;
+		}
 		let activeCount = 0;
 		try {
-			const countResp = await fetch('/api/admin/subscribers?status=active&perPage=1', {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
+			const countResp = await fetch('/api/admin/newsletter/preview', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+				},
+				body: JSON.stringify(payload)
 			});
 			if (countResp.ok) {
 				const countData = await countResp.json();
-				activeCount = countData.totalItems || 0;
+				activeCount = countData.recipient_count || 0;
+			} else {
+				const data = await countResp.json().catch(() => ({}));
+				toasts.add('error', sendErrorMessage(data, $t('admin.newsletter.error_send')));
+				return;
 			}
 		} catch {
 			// Fall through — use 0
@@ -243,22 +272,36 @@
 
 		sending = true;
 		try {
-			const response = await fetch('/api/admin/newsletter/send', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
-				},
-				body: JSON.stringify({
-					subject: subject.trim(),
-					body_markdown: bodyMarkdown,
-					template: selectedTemplate
-				})
-			});
+			const post = (body: Record<string, unknown>) =>
+				fetch('/api/admin/newsletter/send', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
+					},
+					body: JSON.stringify(body)
+				});
+			const sendPayload = { ...payload, request_key: newRequestKey() };
+			let response = await post(sendPayload);
+
+			if (response.status === 409) {
+				const conflict = await response.json().catch(() => ({}));
+				if (conflict.code !== 'already_sent') {
+					throw new Error(sendErrorMessage(conflict, 'Failed to send'));
+				}
+				const resend = await confirm({
+					title: $t('admin.newsletter.send_confirm_title'),
+					message: conflict.error,
+					confirmText: $t('admin.newsletter.send_confirm_button'),
+					danger: true
+				});
+				if (!resend) return;
+				response = await post({ ...sendPayload, request_key: newRequestKey(), resend: true });
+			}
 
 			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to send');
+				const data = await response.json().catch(() => ({}));
+				throw new Error(sendErrorMessage(data, 'Failed to send'));
 			}
 
 			const data = await response.json();

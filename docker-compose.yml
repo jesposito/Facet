@@ -165,11 +165,6 @@ services:
       # ------------------------------------------------------------------
       # These tell SvelteKit how to handle requests behind a reverse proxy
       #
-      # ORIGIN:
-      # - Must match APP_URL
-      # - Used by SvelteKit for CSRF protection and URL generation
-      - ORIGIN=${APP_URL:-http://localhost:8080}
-
       # PROTOCOL_HEADER / HOST_HEADER:
       # - Tell SvelteKit to trust X-Forwarded-Proto and X-Forwarded-Host
       # - Critical for OAuth and share links to work behind reverse proxy

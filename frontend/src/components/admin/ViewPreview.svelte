@@ -47,13 +47,6 @@
 		return sectionKey.replace('custom:', '');
 	}
 
-	
-
-	
-
-	
-
-	
 	interface Props {
 		// Props from parent editor
 		profile?: Profile | null;
@@ -65,31 +58,31 @@
 		ctaUrl?: string;
 		previewMode?: 'desktop' | 'mobile'; // Phase 6.2.2: Desktop or mobile preview
 		sections?: Record<
-		string,
-		{
-			enabled: boolean;
-			items: string[];
-			layout: string;
-			width?: 'full' | 'half' | 'third';
-			itemConfig: Record<string, ItemConfig>;
-			categoryOrder?: string[];
-			disabledCategories?: string[];
-			categoryDisplayModes?: Record<string, string>;
-		}
-	>;
+			string,
+			{
+				enabled: boolean;
+				items: string[];
+				layout: string;
+				width?: 'full' | 'half' | 'third';
+				itemConfig: Record<string, ItemConfig>;
+				categoryOrder?: string[];
+				disabledCategories?: string[];
+				categoryDisplayModes?: Record<string, string>;
+			}
+		>;
 		// Section order from drag-drop
 		sectionOrder?: Array<{ id: string; key: string }>;
 		// Raw section data (all items)
 		sectionItems?: Record<
-		string,
-		Array<{
-			id: string;
-			label: string;
-			visibility: string;
-			is_draft?: boolean;
-			data: Record<string, unknown>;
-		}>
-	>;
+			string,
+			Array<{
+				id: string;
+				label: string;
+				visibility: string;
+				is_draft?: boolean;
+				data: Record<string, unknown>;
+			}>
+		>;
 		// Custom content items for preview
 		customContentItems?: Array<{
 			id: string;
@@ -118,23 +111,12 @@
 		customContentItems = []
 	}: Props = $props();
 
-
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	function computeAllSections(
 		sectionsConfig: typeof sections,
 		items: typeof sectionItems
-	): Record<string, {
-		data: any[];
-		layout: string;
-		width: string;
-		widthClass: string;
-		visible: boolean;
-		categoryOrder?: string[];
-		disabledCategories?: string[];
-		categoryDisplayModes?: Record<string, string>;
-	}> {
-		const result: Record<string, {
+	): Record<
+		string,
+		{
 			data: any[];
 			layout: string;
 			width: string;
@@ -143,7 +125,21 @@
 			categoryOrder?: string[];
 			disabledCategories?: string[];
 			categoryDisplayModes?: Record<string, string>;
-		}> = {};
+		}
+	> {
+		const result: Record<
+			string,
+			{
+				data: any[];
+				layout: string;
+				width: string;
+				widthClass: string;
+				visible: boolean;
+				categoryOrder?: string[];
+				disabledCategories?: string[];
+				categoryDisplayModes?: Record<string, string>;
+			}
+		> = {};
 
 		for (const key of Object.keys(sectionsConfig)) {
 			const config = sectionsConfig[key];
@@ -166,9 +162,9 @@
 				// Preserve order from config.items if specified
 				const orderedItems =
 					config.items.length > 0
-						? config.items
+						? (config.items
 								.map((id) => filteredItems.find((item) => item.id === id))
-								.filter(Boolean) as typeof filteredItems
+								.filter(Boolean) as typeof filteredItems)
 						: filteredItems;
 
 				// Apply overrides to items
@@ -203,19 +199,19 @@
 		return result;
 	}
 
-
-
 	// Build a map for quick custom content lookup by ID
-	let customContentMap = $derived(new Map(customContentItems.map(item => [item.id, item])));
+	let customContentMap = $derived(new Map(customContentItems.map((item) => [item.id, item])));
 
 	// Compute effective profile with hero overrides
-	let effectiveProfile = $derived(profile
-		? {
-				...profile,
-				headline: heroHeadline || profile.headline,
-				summary: heroSummary || profile.summary
-			}
-		: null);
+	let effectiveProfile = $derived(
+		profile
+			? {
+					...profile,
+					headline: heroHeadline || profile.headline,
+					summary: heroSummary || profile.summary
+				}
+			: null
+	);
 
 	// Effective hero layout (view override > profile default > standard) and the
 	// rail flag that drives the 2-col grid in the mini-preview.
@@ -227,24 +223,30 @@
 	// Reactive computation of all section data - ensures updates when props change
 	let computedSections = $derived(computeAllSections(sections, sectionItems));
 	// Reactive count of visible sections for empty state check (includes custom content)
-	let visibleSectionCount = $derived(sectionOrder.filter(s => {
-		// For regular sections, check computedSections
-		if (!isCustomSection(s.key)) {
-			return computedSections[s.key]?.visible;
-		}
-		// For custom sections, check if enabled and item exists and not draft
-		const customId = getCustomContentId(s.key);
-		const customItem = customContentMap.get(customId);
-		return sections[s.key]?.enabled && customItem && !customItem.is_draft;
-	}).length);
+	let visibleSectionCount = $derived(
+		sectionOrder.filter((s) => {
+			// For regular sections, check computedSections
+			if (!isCustomSection(s.key)) {
+				return computedSections[s.key]?.visible;
+			}
+			// For custom sections, check if enabled and item exists and not draft
+			const customId = getCustomContentId(s.key);
+			const customItem = customContentMap.get(customId);
+			return sections[s.key]?.enabled && customItem && !customItem.is_draft;
+		}).length
+	);
 	// Compute effective accent color (view override or profile default)
-	let effectiveAccentColor = $derived(accentColor || (profile?.accent_color as AccentColor) || null);
+	let effectiveAccentColor = $derived(
+		accentColor || (profile?.accent_color as AccentColor) || null
+	);
 	// Generate inline styles for accent color preview
-	let accentStyles = $derived(effectiveAccentColor ? (() => {
-		const color = ACCENT_COLORS[effectiveAccentColor];
-		if (!color) return '';
-		const s = color.scale;
-		return `
+	let accentStyles = $derived(
+		effectiveAccentColor
+			? (() => {
+					const color = ACCENT_COLORS[effectiveAccentColor];
+					if (!color) return '';
+					const s = color.scale;
+					return `
 			--color-primary-50: ${s[50]};
 			--color-primary-100: ${s[100]};
 			--color-primary-200: ${s[200]};
@@ -268,7 +270,9 @@
 			--color-primary-900-rgb: ${hexToRgbChannels(s[900])};
 			--color-primary-950-rgb: ${hexToRgbChannels(s[950])};
 		`;
-	})() : '');
+				})()
+			: ''
+	);
 </script>
 
 <div class="preview-container" class:preview-mobile={previewMode === 'mobile'} style={accentStyles}>
@@ -276,128 +280,137 @@
 	     so the rail sidebar previews correctly. Other layouts fall back to
 	     display:contents (no structural change). -->
 	<div class={useRailLayout ? 'preview-rail-grid' : 'contents'}>
-	<!-- Mini Hero -->
-	{#if effectiveProfile}
-		<div class="preview-hero">
-			<ProfileHero profile={effectiveProfile} layout={effectiveHeroLayout} />
-		</div>
-	{:else}
-		<div class="preview-hero-placeholder">
-			<div class="flex flex-col items-center justify-center py-8 text-gray-400">
-				<svg class="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-				</svg>
-				<span class="text-sm">{$t('admin.view_editor.preview.no_profile')}</span>
+		<!-- Mini Hero -->
+		{#if effectiveProfile}
+			<div class="preview-hero">
+				<ProfileHero profile={effectiveProfile} layout={effectiveHeroLayout} />
 			</div>
-		</div>
-	{/if}
-
-	<div class={useRailLayout ? 'min-w-0' : 'contents'}>
-	<!-- CTA Banner Preview -->
-	{#if ctaText && ctaUrl}
-		<div class="bg-primary-600 text-white py-2 px-4">
-			<div class="flex items-center justify-between text-sm">
-				<span class="font-medium truncate">{ctaText}</span>
-				<span class="px-2 py-0.5 bg-white/20 rounded text-xs">CTA</span>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Sections Preview (with grid layout for Phase 6.3) -->
-	<div class="preview-content">
-		<div class="preview-sections-grid">
-			{#each sectionOrder as { key: sectionKey } (sectionKey)}
-				{@const computed = computedSections[sectionKey]}
-				{#if sectionKey === 'experience' && computed?.visible}
-					<div class={computed.widthClass}>
-						<ExperienceSection
-							items={computed.data}
-							layout={computed.layout}
+		{:else}
+			<div class="preview-hero-placeholder">
+				<div class="flex flex-col items-center justify-center py-8 text-gray-400">
+					<svg
+						class="w-12 h-12 mb-2"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="1.5"
+							d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
 						/>
-					</div>
-				{:else if sectionKey === 'projects' && computed?.visible}
-					<div class={computed.widthClass}>
-						<ProjectsSection
-							items={computed.data}
-							layout={computed.layout}
-						/>
-					</div>
-				{:else if sectionKey === 'education' && computed?.visible}
-					<div class={computed.widthClass}>
-						<EducationSection
-							items={computed.data}
-							layout={computed.layout}
-						/>
-					</div>
-				{:else if sectionKey === 'certifications' && computed?.visible}
-					<div class={computed.widthClass}>
-						<CertificationsSection
-							items={computed.data}
-							layout={computed.layout}
-						/>
-					</div>
-				{:else if sectionKey === 'awards' && computed?.visible}
-					<div class={computed.widthClass}>
-						<AwardsSection
-							items={computed.data}
-							layout={computed.layout}
-						/>
-					</div>
-				{:else if sectionKey === 'skills' && computed?.visible}
-					<div class={computed.widthClass}>
-						<SkillsSection
-							items={computed.data}
-							layout={computed.layout}
-							categoryOrder={computed.categoryOrder}
-							disabledCategories={computed.disabledCategories}
-							categoryDisplayModes={computed.categoryDisplayModes}
-						/>
-					</div>
-				{:else if sectionKey === 'posts' && computed?.visible}
-					<div class={computed.widthClass}>
-						<PostsSection
-							items={computed.data}
-							layout={computed.layout}
-						/>
-					</div>
-				{:else if sectionKey === 'talks' && computed?.visible}
-					<div class={computed.widthClass}>
-						<TalksSection
-							items={computed.data}
-							layout={computed.layout}
-						/>
-					</div>
-				{:else if isCustomSection(sectionKey) && sections[sectionKey]?.enabled}
-					{@const customId = getCustomContentId(sectionKey)}
-					{@const customItem = customContentMap.get(customId)}
-					{#if customItem && !customItem.is_draft}
-						<div class="preview-section {sections[sectionKey]?.width === 'half' ? 'section-half' : sections[sectionKey]?.width === 'third' ? 'section-third' : 'section-full'}">
-							<CustomContentSection
-								item={{
-									...customItem,
-									visibility: customItem.visibility as 'public' | 'unlisted' | 'private',
-									sort_order: customItem.sort_order ?? 0
-								}}
-								layout={sections[sectionKey]?.layout || 'default'}
-							/>
-						</div>
-					{/if}
-				{/if}
-			{/each}
-		</div>
-
-		{#if visibleSectionCount === 0}
-			<div class="flex flex-col items-center justify-center py-12 text-gray-400">
-				<svg class="w-12 h-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-				</svg>
-				<span class="text-sm">{$t('admin.view_editor.preview.no_sections')}</span>
-				<span class="text-xs mt-1">{$t('admin.view_editor.preview.enable_hint')}</span>
+					</svg>
+					<span class="text-sm">{$t('admin.view_editor.preview.no_profile')}</span>
+				</div>
 			</div>
 		{/if}
+
+		<div class={useRailLayout ? 'min-w-0' : 'contents'}>
+			<!-- CTA Banner Preview -->
+			{#if ctaText && ctaUrl}
+				<div class="bg-primary-600 text-white py-2 px-4">
+					<div class="flex items-center justify-between text-sm">
+						<span class="font-medium truncate">{ctaText}</span>
+						<span class="px-2 py-0.5 bg-white/20 rounded text-xs">CTA</span>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Sections Preview (with grid layout for Phase 6.3) -->
+			<div class="preview-content">
+				<div class="preview-sections-grid">
+					{#each sectionOrder as { key: sectionKey } (sectionKey)}
+						{@const computed = computedSections[sectionKey]}
+						{#if sectionKey === 'experience' && computed?.visible}
+							<div class={computed.widthClass}>
+								<ExperienceSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if sectionKey === 'projects' && computed?.visible}
+							<div class={computed.widthClass}>
+								<ProjectsSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if sectionKey === 'education' && computed?.visible}
+							<div class={computed.widthClass}>
+								<EducationSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if sectionKey === 'certifications' && computed?.visible}
+							<div class={computed.widthClass}>
+								<CertificationsSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if sectionKey === 'awards' && computed?.visible}
+							<div class={computed.widthClass}>
+								<AwardsSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if sectionKey === 'skills' && computed?.visible}
+							<div class={computed.widthClass}>
+								<SkillsSection
+									items={computed.data}
+									layout={computed.layout}
+									categoryOrder={computed.categoryOrder}
+									disabledCategories={computed.disabledCategories}
+									categoryDisplayModes={computed.categoryDisplayModes}
+								/>
+							</div>
+						{:else if sectionKey === 'posts' && computed?.visible}
+							<div class={computed.widthClass}>
+								<PostsSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if sectionKey === 'talks' && computed?.visible}
+							<div class={computed.widthClass}>
+								<TalksSection items={computed.data} layout={computed.layout} />
+							</div>
+						{:else if isCustomSection(sectionKey) && sections[sectionKey]?.enabled}
+							{@const customId = getCustomContentId(sectionKey)}
+							{@const customItem = customContentMap.get(customId)}
+							{#if customItem && !customItem.is_draft}
+								<div
+									class="preview-section {sections[sectionKey]?.width === 'half'
+										? 'section-half'
+										: sections[sectionKey]?.width === 'third'
+											? 'section-third'
+											: 'section-full'}"
+								>
+									<CustomContentSection
+										item={{
+											...customItem,
+											visibility: customItem.visibility as 'public' | 'unlisted' | 'private',
+											sort_order: customItem.sort_order ?? 0
+										}}
+										layout={sections[sectionKey]?.layout || 'default'}
+									/>
+								</div>
+							{/if}
+						{/if}
+					{/each}
+				</div>
+
+				{#if visibleSectionCount === 0}
+					<div class="flex flex-col items-center justify-center py-12 text-gray-400">
+						<svg
+							class="w-12 h-12 mb-2"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="1.5"
+								d="M4 6h16M4 10h16M4 14h16M4 18h16"
+							/>
+						</svg>
+						<span class="text-sm">{$t('admin.view_editor.preview.no_sections')}</span>
+						<span class="text-xs mt-1">{$t('admin.view_editor.preview.enable_hint')}</span>
+					</div>
+				{/if}
+			</div>
+		</div>
+		<!-- /content column (rail col 2) -->
 	</div>
-	</div><!-- /content column (rail col 2) -->
-	</div><!-- /rail grid wrapper -->
+	<!-- /rail grid wrapper -->
 </div>
 
 <style>

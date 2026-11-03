@@ -1,5 +1,12 @@
 <script lang="ts">
-	import type { Profile, Experience, Education, Skill, ContactMethod, Certification } from '$lib/pocketbase';
+	import type {
+		Profile,
+		Experience,
+		Education,
+		Skill,
+		ContactMethod,
+		Certification
+	} from '$lib/pocketbase';
 
 	interface Props {
 		profile: Profile | null;
@@ -10,7 +17,14 @@
 		certifications?: Certification[];
 	}
 
-	let { profile, experience = [], education = [], skills = [], contacts = [], certifications = [] }: Props = $props();
+	let {
+		profile,
+		experience = [],
+		education = [],
+		skills = [],
+		contacts = [],
+		certifications = []
+	}: Props = $props();
 
 	// Strip markdown/HTML to plain text for ATS parsing
 	function stripToPlainText(text: string | undefined): string {
@@ -34,34 +48,61 @@
 		if (parts.length >= 2) {
 			const year = parts[0];
 			const month = parseInt(parts[1], 10);
-			const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+			const monthNames = [
+				'Jan',
+				'Feb',
+				'Mar',
+				'Apr',
+				'May',
+				'Jun',
+				'Jul',
+				'Aug',
+				'Sep',
+				'Oct',
+				'Nov',
+				'Dec'
+			];
 			return `${monthNames[month - 1]} ${year}`;
 		}
 		return date;
 	}
 
 	// Get important contacts for resume
-	let emailContact = $derived(contacts.find(c => c.type === 'email'));
-	let phoneContact = $derived(contacts.find(c => c.type === 'phone'));
-	let linkedinContact = $derived(contacts.find(c => c.type === 'linkedin'));
-	let githubContact = $derived(contacts.find(c => c.type === 'github'));
-	let websiteContact = $derived(contacts.find(c => c.type === 'website' || c.type === 'portfolio'));
+	let emailContact = $derived(contacts.find((c) => c.type === 'email'));
+	let phoneContact = $derived(contacts.find((c) => c.type === 'phone'));
+	let linkedinContact = $derived(contacts.find((c) => c.type === 'linkedin'));
+	let githubContact = $derived(contacts.find((c) => c.type === 'github'));
+	let websiteContact = $derived(
+		contacts.find((c) => c.type === 'website' || c.type === 'portfolio')
+	);
 
 	// Check if we have any contact info at all
-	let hasAnyContact = $derived(emailContact || phoneContact || linkedinContact || githubContact || websiteContact || contacts.length > 0);
+	let hasAnyContact = $derived(
+		emailContact ||
+			phoneContact ||
+			linkedinContact ||
+			githubContact ||
+			websiteContact ||
+			contacts.length > 0
+	);
 
 	// Group skills by category for ATS
-	let skillsByCategory = $derived(skills.reduce((acc, skill) => {
-		const category = skill.category || 'Skills';
-		if (!acc[category]) {
-			acc[category] = [];
-		}
-		acc[category].push(skill.name);
-		return acc;
-	}, {} as Record<string, string[]>));
+	let skillsByCategory = $derived(
+		skills.reduce(
+			(acc, skill) => {
+				const category = skill.category || 'Skills';
+				if (!acc[category]) {
+					acc[category] = [];
+				}
+				acc[category].push(skill.name);
+				return acc;
+			},
+			{} as Record<string, string[]>
+		)
+	);
 
 	// Flatten all skill names for keyword section
-	let allSkillNames = $derived(skills.map(s => s.name));
+	let allSkillNames = $derived(skills.map((s) => s.name));
 </script>
 
 <!--
@@ -118,7 +159,11 @@
 			{#each experience as job}
 				<div>
 					<p><strong>{job.title}</strong></p>
-					<p>{job.company}{job.location ? ` | ${job.location}` : ''} | {formatATSDate(job.start_date)} - {formatATSDate(job.end_date, true)}</p>
+					<p>
+						{job.company}{job.location ? ` | ${job.location}` : ''} | {formatATSDate(
+							job.start_date
+						)} - {formatATSDate(job.end_date, true)}
+					</p>
 					{#if job.description}
 						<p>{stripToPlainText(job.description)}</p>
 					{/if}
@@ -139,7 +184,12 @@
 			{#each education as edu}
 				<div>
 					<p><strong>{[edu.degree, edu.field].filter(Boolean).join(' in ')}</strong></p>
-					<p>{edu.institution} | {formatATSDate(edu.start_date)} - {formatATSDate(edu.end_date, true)}</p>
+					<p>
+						{edu.institution} | {formatATSDate(edu.start_date)} - {formatATSDate(
+							edu.end_date,
+							true
+						)}
+					</p>
 					{#if edu.description}
 						<p>{stripToPlainText(edu.description)}</p>
 					{/if}
@@ -163,7 +213,11 @@
 		<section>
 			<h2>CERTIFICATIONS</h2>
 			{#each certifications as cert}
-				<p>{cert.name}{cert.issuer ? ` - ${cert.issuer}` : ''}{cert.issue_date ? ` (${formatATSDate(cert.issue_date)})` : ''}</p>
+				<p>
+					{cert.name}{cert.issuer ? ` - ${cert.issuer}` : ''}{cert.issue_date
+						? ` (${formatATSDate(cert.issue_date)})`
+						: ''}
+				</p>
 			{/each}
 		</section>
 	{/if}

@@ -27,12 +27,7 @@ export const SETTINGS_DISCARD_EVENT = 'facet:settings-discard-all';
  * it exists only to give the default `SECTION_LABELS` registry a typed shape
  * and to make refactors of well-known sections discoverable.
  */
-export type SettingsSectionId =
-	| 'profile'
-	| 'branding'
-	| 'integrations'
-	| 'about'
-	| 'danger';
+export type SettingsSectionId = 'profile' | 'branding' | 'integrations' | 'about' | 'danger';
 
 type DirtyMap = Record<string, boolean>;
 
@@ -78,10 +73,7 @@ export const dirtySections: Readable<string[]> = derived(settingsDirty, ($map) =
 );
 
 /** Any dirty section? */
-export const isAnyDirty: Readable<boolean> = derived(
-	dirtySections,
-	($list) => $list.length > 0
-);
+export const isAnyDirty: Readable<boolean> = derived(dirtySections, ($list) => $list.length > 0);
 
 /**
  * Human-readable labels for well-known section ids. Callers using ad-hoc ids

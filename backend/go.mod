@@ -54,3 +54,7 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
 )
+
+// v3.6.2 plus connection deadlines on every send; see
+// third_party/mailyak-v3/FACET_PATCH.md.
+replace github.com/domodwyer/mailyak/v3 => ./third_party/mailyak-v3

@@ -15,7 +15,7 @@ func init() {
 
 		if expCollection.Fields.GetByName("logo_background") == nil {
 			expCollection.Fields.Add(&core.SelectField{
-				Name:     "logo_background",
+				Name:      "logo_background",
 				MaxSelect: 1,
 				Values: []string{
 					"none",       // Transparent (default)
@@ -40,7 +40,7 @@ func init() {
 
 		if eduCollection.Fields.GetByName("logo_background") == nil {
 			eduCollection.Fields.Add(&core.SelectField{
-				Name:     "logo_background",
+				Name:      "logo_background",
 				MaxSelect: 1,
 				Values: []string{
 					"none",       // Transparent (default)

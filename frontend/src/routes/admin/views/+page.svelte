@@ -132,7 +132,10 @@
 			});
 			views = result.items as unknown as View[];
 		} catch (err) {
-			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+			if (
+				err instanceof Error &&
+				(err.message.includes('autocancelled') || err.name === 'AbortError')
+			) {
 				return;
 			}
 			console.error('Failed to load facets:', err);
@@ -156,7 +159,10 @@
 			}
 			tokenCounts = counts;
 		} catch (err) {
-			if (err instanceof Error && (err.message.includes('autocancelled') || err.name === 'AbortError')) {
+			if (
+				err instanceof Error &&
+				(err.message.includes('autocancelled') || err.name === 'AbortError')
+			) {
 				return;
 			}
 			console.debug('[views list] share_tokens count fetch skipped:', err);
@@ -321,7 +327,8 @@
 		}
 	}
 
-	const kbdClass = 'px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 font-mono text-xs';
+	const kbdClass =
+		'px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 font-mono text-xs';
 	let shortcutsList = $derived([
 		{ label: $t('admin.views.keyboard_shortcut_focus_search'), keys: ['/'] },
 		{ label: $t('admin.views.keyboard_shortcut_next_row'), keys: ['j', '↓'] },
@@ -339,8 +346,15 @@
 <div class="max-w-5xl mx-auto">
 	<PageHelp pageKey="views">
 		<p><strong>Facets</strong> are curated versions of your profile for different audiences.</p>
-		<p>Create a "Recruiter" facet with your full work history, a "Conference" facet highlighting talks, or a "Consulting" facet for client work. Each facet shows exactly what you want that audience to see.</p>
-		<p><strong>Tip:</strong> Your homepage (<code>/</code>) shows all public content. Facets let you create focused views at URLs like <code>/recruiter</code> with only the sections and items you choose.</p>
+		<p>
+			Create a "Recruiter" facet with your full work history, a "Conference" facet highlighting
+			talks, or a "Consulting" facet for client work. Each facet shows exactly what you want that
+			audience to see.
+		</p>
+		<p>
+			<strong>Tip:</strong> Your homepage (<code>/</code>) shows all public content. Facets let you
+			create focused views at URLs like <code>/recruiter</code> with only the sections and items you choose.
+		</p>
 	</PageHelp>
 
 	<div class="flex items-center justify-between mb-4">
@@ -381,8 +395,13 @@
 						aria-keyshortcuts="/"
 						class="input w-full pe-16"
 					/>
-					<span class="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-						<kbd class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 font-mono">/</kbd>
+					<span
+						class="pointer-events-none absolute inset-y-0 right-2 flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500"
+					>
+						<kbd
+							class="px-1.5 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 font-mono"
+							>/</kbd
+						>
 					</span>
 				</div>
 
@@ -398,14 +417,18 @@
 				</label>
 			</div>
 
-			<div class="flex flex-wrap gap-2" role="group" aria-label={$t('admin.views.filter_visibility_label')}>
+			<div
+				class="flex flex-wrap gap-2"
+				role="group"
+				aria-label={$t('admin.views.filter_visibility_label')}
+			>
 				{#if siteNavEnabled}
 					<button
 						type="button"
 						class="px-3 py-1 rounded-full text-xs font-medium transition-colors border
 							{filterInNav
-								? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
-								: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'}"
+							? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
+							: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'}"
 						aria-pressed={filterInNav}
 						onclick={() => (filterInNav = !filterInNav)}
 					>
@@ -416,8 +439,8 @@
 					type="button"
 					class="px-3 py-1 rounded-full text-xs font-medium transition-colors border
 						{filterHasShareLinks
-							? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
-							: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'}"
+						? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
+						: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'}"
 					aria-pressed={filterHasShareLinks}
 					onclick={() => (filterHasShareLinks = !filterHasShareLinks)}
 				>
@@ -427,8 +450,8 @@
 					type="button"
 					class="px-3 py-1 rounded-full text-xs font-medium transition-colors border
 						{filterInactive
-							? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
-							: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'}"
+						? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
+						: 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700'}"
 					aria-pressed={filterInactive}
 					onclick={() => (filterInactive = !filterInactive)}
 				>
@@ -446,9 +469,16 @@
 			</div>
 		</div>
 
-		<p class="text-sm text-gray-600 dark:text-gray-400 mb-3" role="status" aria-live="polite" aria-atomic="true">
+		<p
+			class="text-sm text-gray-600 dark:text-gray-400 mb-3"
+			role="status"
+			aria-live="polite"
+			aria-atomic="true"
+		>
 			{#if anyFilterActive}
-				{$t('admin.views.count_filtered', { values: { filtered: filtered.length, total: views.length } })}
+				{$t('admin.views.count_filtered', {
+					values: { filtered: filtered.length, total: views.length }
+				})}
 			{:else}
 				{$t('admin.views.count_summary', { values: { count: views.length } })}
 			{/if}
@@ -489,35 +519,52 @@
 					<div class="flex items-start justify-between gap-2 mb-2">
 						<div class="min-w-0 flex-1">
 							<div class="flex items-center gap-2 flex-wrap">
-								<a href="/admin/views/{view.id}" class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate">
+								<a
+									href="/admin/views/{view.id}"
+									class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 truncate"
+								>
 									{view.name}
 								</a>
 								{#if !view.is_active}
-									<span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded"
+									>
 										{$t('admin.views.pill_inactive')}
 									</span>
 								{/if}
 							</div>
 							<div class="mt-1 flex flex-wrap items-center gap-1.5">
-								<code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">/{view.slug}</code>
-								<span class="px-2 py-0.5 text-xs rounded {visibilityPillClass(String(view.visibility))}">
+								<code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded"
+									>/{view.slug}</code
+								>
+								<span
+									class="px-2 py-0.5 text-xs rounded {visibilityPillClass(String(view.visibility))}"
+								>
 									{view.visibility}
 								</span>
 								{#if siteNavEnabled && inNavIds.has(view.id)}
-									<span class="px-2 py-0.5 text-xs rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+									<span
+										class="px-2 py-0.5 text-xs rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300"
+									>
 										{$t('admin.views.pill_in_nav')}
 									</span>
 								{/if}
 								{#if (tokenCounts[view.id] ?? 0) > 0}
-									<span class="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
-										{$t('admin.views.pill_share_links_count', { values: { count: tokenCounts[view.id] } })}
+									<span
+										class="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+									>
+										{$t('admin.views.pill_share_links_count', {
+											values: { count: tokenCounts[view.id] }
+										})}
 									</span>
 								{/if}
 							</div>
 						</div>
 					</div>
 
-					<div class="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+					<div
+						class="flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400"
+					>
 						<div class="flex items-center gap-3">
 							<span class="flex items-center gap-1">
 								{@html icon('eye')}
@@ -530,19 +577,44 @@
 							{/if}
 						</div>
 						<div class="flex items-center gap-1">
-							<button class="btn btn-sm btn-ghost p-2" onclick={() => copyViewUrl(String(view.slug))} title={$t('admin.views.action_copy_url')} aria-label={$t('admin.views.action_copy_url')}>
+							<button
+								class="btn btn-sm btn-ghost p-2"
+								onclick={() => copyViewUrl(String(view.slug))}
+								title={$t('admin.views.action_copy_url')}
+								aria-label={$t('admin.views.action_copy_url')}
+							>
 								{@html icon('copy')}
 							</button>
-							<a href="/{view.slug}" target="_blank" class="btn btn-sm btn-ghost p-2" title={$t('admin.views.action_preview')} aria-label={$t('admin.views.action_preview')}>
+							<a
+								href="/{view.slug}"
+								target="_blank"
+								class="btn btn-sm btn-ghost p-2"
+								title={$t('admin.views.action_preview')}
+								aria-label={$t('admin.views.action_preview')}
+							>
 								{@html icon('eye')}
 							</a>
 							<a href="/admin/views/{view.id}" class="btn btn-sm btn-secondary">
 								{$t('admin.views.action_edit')}
 							</a>
-							<button class="btn btn-sm btn-ghost p-2" onclick={() => toggleViewActive(view)} title={view.is_active ? $t('admin.views.action_deactivate') : $t('admin.views.action_activate')} aria-label={view.is_active ? $t('admin.views.action_deactivate') : $t('admin.views.action_activate')}>
+							<button
+								class="btn btn-sm btn-ghost p-2"
+								onclick={() => toggleViewActive(view)}
+								title={view.is_active
+									? $t('admin.views.action_deactivate')
+									: $t('admin.views.action_activate')}
+								aria-label={view.is_active
+									? $t('admin.views.action_deactivate')
+									: $t('admin.views.action_activate')}
+							>
 								{@html view.is_active ? icon('toggleOn') : icon('toggleOff')}
 							</button>
-							<button class="btn btn-danger-ghost btn-sm p-2" onclick={() => deleteView(view)} title={$t('admin.views.action_delete')} aria-label={$t('admin.views.action_delete')}>
+							<button
+								class="btn btn-danger-ghost btn-sm p-2"
+								onclick={() => deleteView(view)}
+								title={$t('admin.views.action_delete')}
+								aria-label={$t('admin.views.action_delete')}
+							>
 								{@html icon('trash')}
 							</button>
 						</div>
@@ -554,21 +626,32 @@
 		<!-- Desktop table view (keyboard navigation wired) -->
 		<div class="hidden md:block card overflow-x-auto">
 			<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-			<table
-				class="w-full text-sm"
-				onkeydown={handleTableKeydown}
-			>
+			<table class="w-full text-sm" onkeydown={handleTableKeydown}>
 				<caption class="sr-only">{$t('admin.views.title')}</caption>
-				<thead class="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs uppercase tracking-wide">
+				<thead
+					class="bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs uppercase tracking-wide"
+				>
 					<tr>
-						<th scope="col" class="text-start font-medium px-4 py-2">{$t('admin.views.column_facet')}</th>
-						<th scope="col" class="text-start font-medium px-4 py-2">{$t('admin.views.column_visibility')}</th>
+						<th scope="col" class="text-start font-medium px-4 py-2"
+							>{$t('admin.views.column_facet')}</th
+						>
+						<th scope="col" class="text-start font-medium px-4 py-2"
+							>{$t('admin.views.column_visibility')}</th
+						>
 						{#if siteNavEnabled}
-							<th scope="col" class="text-start font-medium px-4 py-2">{$t('admin.views.column_nav')}</th>
+							<th scope="col" class="text-start font-medium px-4 py-2"
+								>{$t('admin.views.column_nav')}</th
+							>
 						{/if}
-						<th scope="col" class="text-start font-medium px-4 py-2">{$t('admin.views.column_share_links')}</th>
-						<th scope="col" class="text-end font-medium px-4 py-2">{$t('admin.views.column_views')}</th>
-						<th scope="col" class="text-start font-medium px-4 py-2 whitespace-nowrap">{$t('admin.views.column_last_viewed')}</th>
+						<th scope="col" class="text-start font-medium px-4 py-2"
+							>{$t('admin.views.column_share_links')}</th
+						>
+						<th scope="col" class="text-end font-medium px-4 py-2"
+							>{$t('admin.views.column_views')}</th
+						>
+						<th scope="col" class="text-start font-medium px-4 py-2 whitespace-nowrap"
+							>{$t('admin.views.column_last_viewed')}</th
+						>
 						<th scope="col" class="text-end font-medium px-4 py-2">
 							<span class="sr-only">{$t('admin.views.column_actions')}</span>
 						</th>
@@ -582,17 +665,25 @@
 						<tr
 							data-row-index={i}
 							tabindex={i === focusedIndex ? 0 : -1}
-							class="hover:bg-gray-50 dark:hover:bg-gray-800/50 outline-none focus-visible:bg-primary-50 dark:focus-visible:bg-primary-900/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 {i === focusedIndex ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''}"
+							class="hover:bg-gray-50 dark:hover:bg-gray-800/50 outline-none focus-visible:bg-primary-50 dark:focus-visible:bg-primary-900/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 {i ===
+							focusedIndex
+								? 'bg-primary-50/50 dark:bg-primary-900/10'
+								: ''}"
 							aria-label={rowAriaLabel(view)}
 							onfocus={() => (focusedIndex = i)}
 						>
 							<td class="px-4 py-3 align-top">
 								<div class="flex items-center gap-2 flex-wrap">
-									<a href="/admin/views/{view.id}" class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400">
+									<a
+										href="/admin/views/{view.id}"
+										class="font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
+									>
 										{view.name}
 									</a>
 									{#if !view.is_active}
-										<span class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
+										<span
+											class="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded"
+										>
 											{$t('admin.views.pill_inactive')}
 										</span>
 									{/if}
@@ -600,14 +691,18 @@
 								<code class="text-xs text-gray-500 dark:text-gray-400 break-all">/{view.slug}</code>
 							</td>
 							<td class="px-4 py-3 align-top">
-								<span class="px-2 py-0.5 text-xs rounded {visibilityPillClass(String(view.visibility))}">
+								<span
+									class="px-2 py-0.5 text-xs rounded {visibilityPillClass(String(view.visibility))}"
+								>
 									{view.visibility}
 								</span>
 							</td>
 							{#if siteNavEnabled}
 								<td class="px-4 py-3 align-top">
 									{#if inNavIds.has(view.id)}
-										<span class="px-2 py-0.5 text-xs rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300">
+										<span
+											class="px-2 py-0.5 text-xs rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300"
+										>
 											{$t('admin.views.pill_in_nav')}
 										</span>
 									{:else}
@@ -617,38 +712,76 @@
 							{/if}
 							<td class="px-4 py-3 align-top">
 								{#if (tokenCounts[view.id] ?? 0) > 0}
-									<a href="/admin/tokens" class="text-xs text-purple-700 hover:underline dark:text-purple-300">
-										{$t('admin.views.pill_share_links_count', { values: { count: tokenCounts[view.id] } })}
+									<a
+										href="/admin/tokens"
+										class="text-xs text-purple-700 hover:underline dark:text-purple-300"
+									>
+										{$t('admin.views.pill_share_links_count', {
+											values: { count: tokenCounts[view.id] }
+										})}
 									</a>
 								{:else}
 									<span class="text-gray-300 dark:text-gray-600" aria-hidden="true">—</span>
 								{/if}
 							</td>
-							<td class="px-4 py-3 align-top text-end tabular-nums text-gray-600 dark:text-gray-300">
+							<td
+								class="px-4 py-3 align-top text-end tabular-nums text-gray-600 dark:text-gray-300"
+							>
 								{getViewCount(view).toLocaleString()}
 							</td>
 							<td class="px-4 py-3 align-top whitespace-nowrap text-gray-500 dark:text-gray-400">
 								{#if getLastViewedAt(view)}
-									{formatDate(String(getLastViewedAt(view)), { month: 'short', day: 'numeric', year: 'numeric' })}
+									{formatDate(String(getLastViewedAt(view)), {
+										month: 'short',
+										day: 'numeric',
+										year: 'numeric'
+									})}
 								{:else}
-									<span class="text-gray-300 dark:text-gray-600">{$t('admin.views.never_viewed')}</span>
+									<span class="text-gray-300 dark:text-gray-600"
+										>{$t('admin.views.never_viewed')}</span
+									>
 								{/if}
 							</td>
 							<td class="px-4 py-3 align-top">
 								<div class="flex items-center justify-end gap-1">
-									<button class="btn btn-sm btn-ghost p-2" onclick={() => copyViewUrl(String(view.slug))} title={$t('admin.views.action_copy_url')} aria-label={$t('admin.views.action_copy_url')}>
+									<button
+										class="btn btn-sm btn-ghost p-2"
+										onclick={() => copyViewUrl(String(view.slug))}
+										title={$t('admin.views.action_copy_url')}
+										aria-label={$t('admin.views.action_copy_url')}
+									>
 										{@html icon('copy')}
 									</button>
-									<a href="/{view.slug}" target="_blank" class="btn btn-sm btn-ghost p-2" title={$t('admin.views.action_preview')} aria-label={$t('admin.views.action_preview')}>
+									<a
+										href="/{view.slug}"
+										target="_blank"
+										class="btn btn-sm btn-ghost p-2"
+										title={$t('admin.views.action_preview')}
+										aria-label={$t('admin.views.action_preview')}
+									>
 										{@html icon('eye')}
 									</a>
 									<a href="/admin/views/{view.id}" class="btn btn-sm btn-secondary">
 										{$t('admin.views.action_edit')}
 									</a>
-									<button class="btn btn-sm btn-ghost p-2" onclick={() => toggleViewActive(view)} title={view.is_active ? $t('admin.views.action_deactivate') : $t('admin.views.action_activate')} aria-label={view.is_active ? $t('admin.views.action_deactivate') : $t('admin.views.action_activate')}>
+									<button
+										class="btn btn-sm btn-ghost p-2"
+										onclick={() => toggleViewActive(view)}
+										title={view.is_active
+											? $t('admin.views.action_deactivate')
+											: $t('admin.views.action_activate')}
+										aria-label={view.is_active
+											? $t('admin.views.action_deactivate')
+											: $t('admin.views.action_activate')}
+									>
 										{@html view.is_active ? icon('toggleOn') : icon('toggleOff')}
 									</button>
-									<button class="btn btn-danger-ghost btn-sm p-2" onclick={() => deleteView(view)} title={$t('admin.views.action_delete')} aria-label={$t('admin.views.action_delete')}>
+									<button
+										class="btn btn-danger-ghost btn-sm p-2"
+										onclick={() => deleteView(view)}
+										title={$t('admin.views.action_delete')}
+										aria-label={$t('admin.views.action_delete')}
+									>
 										{@html icon('trash')}
 									</button>
 								</div>
@@ -662,7 +795,9 @@
 
 	<!-- Share Tokens Section -->
 	<div class="mt-12">
-		<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">{$t('admin.views.share_tokens_title')}</h2>
+		<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+			{$t('admin.views.share_tokens_title')}
+		</h2>
 		<p class="text-gray-600 dark:text-gray-400 mb-4">
 			{$t('admin.views.share_tokens_description')}
 		</p>

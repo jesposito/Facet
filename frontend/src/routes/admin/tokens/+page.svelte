@@ -97,7 +97,10 @@
 			await loadTokens();
 			resetForm();
 		} catch (err) {
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.tokens.toast_create_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.tokens.toast_create_failed')
+			);
 		} finally {
 			creating = false;
 		}
@@ -157,7 +160,9 @@
 		const viewName = getViewName(token);
 		const confirmed = await confirm({
 			title: $t('admin.tokens.confirm_regenerate_title'),
-			message: $t('admin.tokens.confirm_regenerate_message', { values: { name: token.name || $t('admin.tokens.unnamed_token'), view: viewName } }),
+			message: $t('admin.tokens.confirm_regenerate_message', {
+				values: { name: token.name || $t('admin.tokens.unnamed_token'), view: viewName }
+			}),
 			confirmText: $t('admin.tokens.confirm_regenerate_button'),
 			danger: false
 		});
@@ -205,7 +210,10 @@
 			toasts.add('success', $t('admin.tokens.toast_regenerated'));
 			await loadTokens();
 		} catch (err) {
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.tokens.toast_regenerate_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.tokens.toast_regenerate_failed')
+			);
 		}
 	}
 
@@ -248,15 +256,27 @@
 
 	function getTokenStatus(token: ShareToken): { label: string; class: string } {
 		if (!token.is_active) {
-			return { label: $t('admin.tokens.status_revoked'), class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' };
+			return {
+				label: $t('admin.tokens.status_revoked'),
+				class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+			};
 		}
 		if (isExpired(token)) {
-			return { label: $t('admin.tokens.status_expired'), class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400' };
+			return {
+				label: $t('admin.tokens.status_expired'),
+				class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+			};
 		}
 		if (isMaxUsesReached(token)) {
-			return { label: $t('admin.tokens.status_max_uses'), class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' };
+			return {
+				label: $t('admin.tokens.status_max_uses'),
+				class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+			};
 		}
-		return { label: $t('admin.tokens.status_active'), class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+		return {
+			label: $t('admin.tokens.status_active'),
+			class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+		};
 	}
 
 	function formatDate(dateStr: string | undefined): string {
@@ -281,26 +301,29 @@
 		if (diffDays === 0) return $t('admin.tokens.today');
 		if (diffDays === 1) return $t('admin.tokens.yesterday');
 		if (diffDays < 7) return $t('admin.tokens.days_ago', { values: { count: diffDays } });
-		if (diffDays < 30) return $t('admin.tokens.weeks_ago', { values: { count: Math.floor(diffDays / 7) } });
+		if (diffDays < 30)
+			return $t('admin.tokens.weeks_ago', { values: { count: Math.floor(diffDays / 7) } });
 		return formatDate(dateStr);
 	}
 
 	// Group tokens by view
-	let tokensByView = $derived(tokens.reduce(
-		(acc, token) => {
-			const viewId = token.view_id;
-			if (!acc[viewId]) {
-				acc[viewId] = {
-					viewName: getViewName(token),
-					viewSlug: getViewSlug(token),
-					tokens: []
-				};
-			}
-			acc[viewId].tokens.push(token);
-			return acc;
-		},
-		{} as Record<string, { viewName: string; viewSlug: string; tokens: ShareToken[] }>
-	));
+	let tokensByView = $derived(
+		tokens.reduce(
+			(acc, token) => {
+				const viewId = token.view_id;
+				if (!acc[viewId]) {
+					acc[viewId] = {
+						viewName: getViewName(token),
+						viewSlug: getViewSlug(token),
+						tokens: []
+					};
+				}
+				acc[viewId].tokens.push(token);
+				return acc;
+			},
+			{} as Record<string, { viewName: string; viewSlug: string; tokens: ShareToken[] }>
+		)
+	);
 </script>
 
 <svelte:head>
@@ -317,31 +340,38 @@
 	<div class="flex items-center justify-between mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.tokens.title')}</h1>
 		<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
-			{@html icon('plus')} {$t('admin.tokens.generate_button')}
+			{@html icon('plus')}
+			{$t('admin.tokens.generate_button')}
 		</button>
 	</div>
 
 	<!-- Newly Created Token Banner -->
 	{#if createdToken}
-		<div class="card p-4 mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+		<div
+			class="card p-4 mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800"
+		>
 			<div class="flex items-start justify-between">
 				<div class="flex-1">
 					<h3 class="font-medium text-green-800 dark:text-green-200 mb-2">
-						{@html icon('check')} {$t('admin.tokens.token_created_title')}
+						{@html icon('check')}
+						{$t('admin.tokens.token_created_title')}
 					</h3>
 					<p class="text-sm text-green-700 dark:text-green-300 mb-3">
 						{$t('admin.tokens.token_created_message')}
 					</p>
 					<div class="flex flex-col gap-2">
 						<div class="flex items-center gap-2">
-							<code class="flex-1 bg-white dark:bg-gray-800 px-3 py-2 rounded border text-sm font-mono break-all">
+							<code
+								class="flex-1 bg-white dark:bg-gray-800 px-3 py-2 rounded border text-sm font-mono break-all"
+							>
 								{createdToken.url}
 							</code>
 							<button
 								class="btn btn-secondary shrink-0"
 								onclick={() => copyToClipboard(createdToken?.url || '')}
 							>
-								{@html icon('copy')} {$t('admin.tokens.copy_url')}
+								{@html icon('copy')}
+								{$t('admin.tokens.copy_url')}
 							</button>
 						</div>
 					</div>
@@ -368,7 +398,11 @@
 			</p>
 			{#if views.length === 0}
 				<p class="text-gray-500 dark:text-gray-300 text-sm mb-4">
-					{@html $t('admin.tokens.create_unlisted_first', { values: { link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.create_unlisted_link')}</a>` } })}
+					{@html $t('admin.tokens.create_unlisted_first', {
+						values: {
+							link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.create_unlisted_link')}</a>`
+						}
+					})}
 				</p>
 			{:else}
 				<button class="btn btn-primary" onclick={() => (showCreateModal = true)}>
@@ -414,11 +448,15 @@
 											<div class="flex items-center gap-4 flex-wrap">
 												<span>
 													{@html icon('clock')}
-													{$t('admin.tokens.created_relative', { values: { date: formatRelativeDate(token.created) } })}
+													{$t('admin.tokens.created_relative', {
+														values: { date: formatRelativeDate(token.created) }
+													})}
 												</span>
 												{#if token.expires_at}
 													<span>
-														{$t('admin.tokens.expires_label', { values: { date: formatDate(token.expires_at) } })}
+														{$t('admin.tokens.expires_label', {
+															values: { date: formatDate(token.expires_at) }
+														})}
 													</span>
 												{/if}
 											</div>
@@ -426,14 +464,20 @@
 											<div class="flex items-center gap-4 flex-wrap">
 												<span>
 													{#if token.max_uses}
-														{$t('admin.tokens.uses_with_max', { values: { current: token.use_count, max: token.max_uses } })}
+														{$t('admin.tokens.uses_with_max', {
+															values: { current: token.use_count, max: token.max_uses }
+														})}
 													{:else}
-														{$t('admin.tokens.uses_unlimited', { values: { current: token.use_count } })}
+														{$t('admin.tokens.uses_unlimited', {
+															values: { current: token.use_count }
+														})}
 													{/if}
 												</span>
 												{#if token.last_used_at}
 													<span>
-														{$t('admin.tokens.last_used', { values: { date: formatDate(token.last_used_at) } })}
+														{$t('admin.tokens.last_used', {
+															values: { date: formatDate(token.last_used_at) }
+														})}
 													</span>
 												{:else}
 													<span>{$t('admin.tokens.never_used')}</span>
@@ -443,7 +487,9 @@
 											{#if token.token_prefix}
 												<div>
 													<span class="text-gray-400">{$t('admin.tokens.prefix_label')}</span>
-													<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{token.token_prefix}...</code>
+													<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+														>{token.token_prefix}...</code
+													>
 												</div>
 											{/if}
 										</div>
@@ -456,7 +502,20 @@
 												onclick={() => regenerateToken(token)}
 												title={$t('admin.tokens.regenerate_title')}
 											>
-												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="16"
+													height="16"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"
+													></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"
+													></path></svg
+												>
 											</button>
 											<button
 												class="btn btn-sm btn-ghost text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
@@ -489,17 +548,26 @@
 	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
 		<div class="card w-full max-w-md">
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-lg font-bold text-gray-900 dark:text-white">{$t('admin.tokens.modal_title')}</h2>
+				<h2 class="text-lg font-bold text-gray-900 dark:text-white">
+					{$t('admin.tokens.modal_title')}
+				</h2>
 			</div>
 
 			<form onsubmit={preventDefault(createToken)} class="p-4 space-y-4">
 				<div>
-					<label for="view_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+					<label
+						for="view_id"
+						class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+					>
 						{$t('admin.tokens.view_required')}
 					</label>
 					{#if views.length === 0}
 						<p class="text-sm text-gray-500 dark:text-gray-400">
-							{@html $t('admin.tokens.no_unlisted_views', { values: { link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.no_unlisted_link')}</a>` } })}
+							{@html $t('admin.tokens.no_unlisted_views', {
+								values: {
+									link: `<a href="/admin/views/new" class="text-primary-600 hover:underline">${$t('admin.tokens.no_unlisted_link')}</a>`
+								}
+							})}
 						</p>
 					{:else}
 						<select
@@ -531,7 +599,10 @@
 				</div>
 
 				<div>
-					<label for="expires_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+					<label
+						for="expires_at"
+						class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+					>
 						{$t('admin.tokens.expiration_label')}
 					</label>
 					<input
@@ -544,7 +615,10 @@
 				</div>
 
 				<div>
-					<label for="max_uses" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+					<label
+						for="max_uses"
+						class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+					>
 						{$t('admin.tokens.max_uses_label')}
 					</label>
 					<input
@@ -562,11 +636,7 @@
 					<button type="button" class="btn btn-ghost" onclick={resetForm}>
 						{$t('admin.tokens.cancel')}
 					</button>
-					<button
-						type="submit"
-						class="btn btn-primary"
-						disabled={creating || views.length === 0}
-					>
+					<button type="submit" class="btn btn-primary" disabled={creating || views.length === 0}>
 						{#if creating}
 							{$t('admin.tokens.generating')}
 						{:else}

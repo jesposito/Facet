@@ -130,7 +130,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			ctx, cancel := context.WithTimeout(e.Request.Context(), 30*time.Second)
 			defer cancel()
 
 			err = ai.TestConnection(ctx, provider)
@@ -183,7 +183,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			// Build rewrite prompt with tone
 			prompt := buildRewritePrompt(req.Content, req.FieldType, req.Context, req.Tone)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(e.Request.Context(), 60*time.Second)
 			defer cancel()
 
 			result, err := ai.ImproveContent(ctx, provider, prompt)
@@ -227,7 +227,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			// Build critique prompt
 			prompt := buildCritiquePrompt(req.Content, req.FieldType, req.Context)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(e.Request.Context(), 60*time.Second)
 			defer cancel()
 
 			result, err := ai.ImproveContent(ctx, provider, prompt)
@@ -268,7 +268,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			// Build the improvement prompt
 			prompt := buildImprovementPrompt(req.ContentType, req.Content, req.Context, req.Action)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(e.Request.Context(), 60*time.Second)
 			defer cancel()
 
 			result, err := ai.ImproveContent(ctx, provider, prompt)
@@ -317,7 +317,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 				PrivacyMode: req.PrivacyMode,
 			}
 
-			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			ctx, cancel := context.WithTimeout(e.Request.Context(), 60*time.Second)
 			defer cancel()
 
 			result, err := ai.EnrichProject(ctx, provider, enrichReq)

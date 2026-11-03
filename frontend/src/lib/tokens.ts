@@ -19,9 +19,7 @@ export const TOKEN_COOKIES = {
  */
 export function isSecureRequest(url: URL, request?: Request): boolean {
 	const forwardedProto = request?.headers.get('x-forwarded-proto');
-	return forwardedProto
-		? forwardedProto === 'https'
-		: url.protocol === 'https:';
+	return forwardedProto ? forwardedProto === 'https' : url.protocol === 'https:';
 }
 
 // Base cookie options (secure flag added per-request)
@@ -37,7 +35,12 @@ function getCookieOptions(secure: boolean) {
 /**
  * Set a share token cookie
  */
-export function setShareToken(cookies: Cookies, token: string, maxAge = 7 * 24 * 60 * 60, secure = false) {
+export function setShareToken(
+	cookies: Cookies,
+	token: string,
+	maxAge = 7 * 24 * 60 * 60,
+	secure = false
+) {
 	cookies.set(TOKEN_COOKIES.SHARE, token, {
 		...getCookieOptions(secure),
 		maxAge
@@ -61,7 +64,12 @@ export function clearShareToken(cookies: Cookies) {
 /**
  * Set a password JWT cookie
  */
-export function setPasswordToken(cookies: Cookies, token: string, maxAge = 60 * 60, secure = false) {
+export function setPasswordToken(
+	cookies: Cookies,
+	token: string,
+	maxAge = 60 * 60,
+	secure = false
+) {
 	cookies.set(TOKEN_COOKIES.PASSWORD, token, {
 		...getCookieOptions(secure),
 		maxAge
@@ -89,7 +97,10 @@ export function clearPasswordToken(cookies: Cookies) {
  * - Password JWT: Authorization: Bearer <jwt> (standards compliant)
  * - Share token: X-Share-Token: <token> (custom header, avoids Authorization conflict)
  */
-export function buildTokenHeaders(shareToken: string | null, passwordToken: string | null): Record<string, string> {
+export function buildTokenHeaders(
+	shareToken: string | null,
+	passwordToken: string | null
+): Record<string, string> {
 	const headers: Record<string, string> = {};
 
 	// Share tokens use a custom header to avoid conflict with password JWT

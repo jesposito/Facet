@@ -7,6 +7,7 @@
 	import { collection } from '$lib/stores/demo';
 	import { testimonialsStore, refreshTestimonialsPendingCount } from '$lib/stores/testimonials';
 	import { hasFeature } from '$lib/stores/plan';
+	import { siteFeatures } from '$lib/stores/features';
 	import {
 		newVersionAvailable,
 		isCheckingVersion,
@@ -254,7 +255,7 @@
 		items.push({ type: 'subgroup', labelKey: 'admin.sidebar.content' });
 		items.push({ href: '/admin/posts', labelKey: 'admin.sidebar.posts', icon: 'document' });
 		items.push({ href: '/admin/talks', labelKey: 'admin.sidebar.talks', icon: 'presentation' });
-		if ($hasCourses) {
+		if ($hasCourses && $siteFeatures.courses) {
 			items.push({ href: '/admin/courses', labelKey: 'admin.sidebar.courses', icon: 'academic' });
 		}
 		items.push({ href: '/admin/custom', labelKey: 'admin.sidebar.custom_content', icon: 'puzzle' });
@@ -272,7 +273,7 @@
 	const audienceItems = $derived.by((): SidebarEntry[] => {
 		const items: SidebarEntry[] = [];
 
-		if ($hasAnalytics) {
+		if ($hasAnalytics && $siteFeatures.analytics) {
 			items.push({ href: '/admin/analytics', labelKey: 'admin.sidebar.analytics', icon: 'chart' });
 		}
 		items.push({
@@ -289,33 +290,39 @@
 			labelKey: 'admin.sidebar.request_links',
 			icon: 'link'
 		});
-		if ($hasDiscussions) {
+		if ($hasDiscussions && $siteFeatures.discussions) {
 			items.push({ href: '/admin/comments', labelKey: 'admin.sidebar.comments', icon: 'comment' });
 		}
 
-		// Newsletter subgroup
+		// Newsletter subgroup. With the newsletter switched off, Subscribers
+		// stays so the owner can still review, export and remove people;
+		// the sending tools are hidden.
 		if ($hasNewsletter) {
 			items.push({ type: 'subgroup', labelKey: 'admin.sidebar.newsletter' });
-			items.push({
-				href: '/admin/newsletter',
-				labelKey: 'admin.sidebar.newsletter_overview',
-				icon: 'mail'
-			});
+			if ($siteFeatures.newsletter) {
+				items.push({
+					href: '/admin/newsletter',
+					labelKey: 'admin.sidebar.newsletter_overview',
+					icon: 'mail'
+				});
+			}
 			items.push({
 				href: '/admin/subscribers',
 				labelKey: 'admin.sidebar.subscribers',
 				icon: 'users'
 			});
-			items.push({
-				href: '/admin/newsletter/lists',
-				labelKey: 'admin.sidebar.newsletter_lists',
-				icon: 'list'
-			});
-			items.push({
-				href: '/admin/newsletter/compose',
-				labelKey: 'admin.sidebar.newsletter_compose',
-				icon: 'pencil'
-			});
+			if ($siteFeatures.newsletter) {
+				items.push({
+					href: '/admin/newsletter/lists',
+					labelKey: 'admin.sidebar.newsletter_lists',
+					icon: 'list'
+				});
+				items.push({
+					href: '/admin/newsletter/compose',
+					labelKey: 'admin.sidebar.newsletter_compose',
+					icon: 'pencil'
+				});
+			}
 		}
 
 		return items;
@@ -856,7 +863,7 @@
 
 			{$t('admin.sidebar.new_talk')}
 		</a>
-		{#if $hasCourses}
+		{#if $hasCourses && $siteFeatures.courses}
 			<a
 				href="/admin/courses"
 				role="menuitem"

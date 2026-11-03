@@ -1,17 +1,21 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
+	import { siteFeatures } from '$lib/stores/features';
+	import { buildSignupBody, readSignupOutcome } from '$lib/newsletter/signup';
 
 	interface Props {
 		slug: string;
 		planFeatures?: string[];
+		/** List id or slug to join. Leave out for the site's default list. */
+		list?: string;
 	}
 
-	let { slug, planFeatures = [] }: Props = $props();
+	let { slug, planFeatures = [], list = '' }: Props = $props();
 
-	// Feature gate: check if newsletter is enabled
-	// In self-hosted mode all features default ON so this will always pass unless explicitly disabled.
+	// Shown when the plan includes the newsletter and the owner hasn't
+	// switched it off in Settings → Features.
 	let newsletterEnabled = $derived(
-		planFeatures.length === 0 || planFeatures.includes('newsletter')
+		$siteFeatures.newsletter && (planFeatures.length === 0 || planFeatures.includes('newsletter'))
 	);
 
 	let email = $state('');
@@ -38,30 +42,31 @@
 			const response = await fetch(`/api/public/${slug}/subscribe`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					email: trimmedEmail,
-					name: name.trim(),
-					source: 'newsletter'
-				})
+				body: JSON.stringify(
+					buildSignupBody({ email: trimmedEmail, name, source: 'newsletter', list })
+				)
 			});
 
-			if (!response.ok) {
-				const data = await response.json().catch(() => ({}));
-				throw new Error(data.error || 'subscription failed');
-			}
-
-			status = 'success';
-			email = '';
-			name = '';
-		} catch (err) {
-			console.error('Newsletter subscribe error:', err);
-			const msg = err instanceof Error ? err.message : '';
-			if (msg.includes('already')) {
-				status = 'success'; // Treat already-subscribed as success to avoid enumeration
+			// The server answers the same way whether or not the address is
+			// already subscribed, so only a real failure shows as one.
+			const outcome = await readSignupOutcome(response);
+			if (outcome === 'confirmation_required') {
+				status = 'success';
+				email = '';
+				name = '';
 			} else {
-				errorMessage = $t('public.sections.newsletter_error');
+				errorMessage =
+					outcome === 'list_unavailable'
+						? $t('public.sections.newsletter_list_unavailable', {
+								default: "This newsletter isn't taking signups right now."
+							})
+						: $t('public.sections.newsletter_error');
 				status = 'error';
 			}
+		} catch (err) {
+			console.error('Newsletter subscribe error:', err);
+			errorMessage = $t('public.sections.newsletter_error');
+			status = 'error';
 		}
 	}
 </script>
@@ -144,11 +149,7 @@
 						<p class="text-sm text-red-600 dark:text-red-400" role="alert">{errorMessage}</p>
 					{/if}
 
-					<button
-						type="submit"
-						class="btn btn-primary w-full"
-						disabled={status === 'submitting'}
-					>
+					<button type="submit" class="btn btn-primary w-full" disabled={status === 'submitting'}>
 						{status === 'submitting'
 							? $t('shared.status.loading')
 							: $t('public.sections.newsletter_button')}

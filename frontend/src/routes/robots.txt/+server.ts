@@ -1,29 +1,12 @@
 import type { RequestHandler } from './$types';
+import { buildRobotsTxt, publicOrigin } from '$lib/server/robots';
 
-export const GET: RequestHandler = async () => {
-	const baseUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:8080';
+export const GET: RequestHandler = async ({ url }) => {
+	const origin = publicOrigin(process.env, url.origin);
 
-	const robotsTxt = `# Facet - Personal Profile Platform
-# Your profile, your data, your rules.
-
-User-agent: *
-Allow: /
-Allow: /projects
-Allow: /posts
-Allow: /talks
-
-# Disallow admin and private areas
-Disallow: /admin
-Disallow: /s/
-Disallow: /v/
-
-# Sitemap
-Sitemap: ${baseUrl}/sitemap.xml
-`;
-
-	return new Response(robotsTxt, {
+	return new Response(buildRobotsTxt(origin), {
 		headers: {
-			'Content-Type': 'text/plain',
+			'Content-Type': 'text/plain; charset=utf-8',
 			'Cache-Control': 'public, max-age=86400' // Cache for 24 hours
 		}
 	});

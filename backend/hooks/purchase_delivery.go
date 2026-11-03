@@ -196,13 +196,69 @@ func deliverPurchaseAccess(app core.App, purchase *core.Record, resend bool) (re
 		return 0, errDeliveryFailed
 	}
 
-	purchase.Set("access_email_sent_at", types.NowDateTime())
-	if err := app.Save(purchase); err != nil {
+	// Record the send on a fresh copy, so this never writes back a status
+	// that a refund has changed since the caller loaded the purchase.
+	sentAt = types.NowDateTime()
+	purchase.Set("access_email_sent_at", sentAt)
+	fresh, err := app.FindRecordById("purchases", purchase.Id)
+	if err == nil {
+		fresh.Set("access_email_sent_at", sentAt)
+		err = app.Save(fresh)
+	}
+	if err != nil {
 		// The buyer has the email. A later retry may send it once more,
 		// which is better than claiming a send that didn't happen.
 		app.Logger().Error("Failed to record purchase email delivery", "purchase_id", purchase.Id)
 	}
 	return 0, nil
+}
+
+var errRefundPurchaseNotFound = errors.New("no purchase for the refunded charge")
+
+// chargeFullyRefunded reports whether Stripe has refunded the whole charge.
+// AmountRefunded is the running total across every refund on the charge, so
+// an event for a small goodwill refund doesn't count, and a late or repeated
+// event for an earlier partial refund can't undo a full one.
+func chargeFullyRefunded(charge *stripe.Charge) bool {
+	return charge.Refunded || (charge.Amount > 0 && charge.AmountRefunded >= charge.Amount)
+}
+
+// applyChargeRefund handles a charge.refunded event. A full refund ends the
+// buyer's access; a partial refund keeps it, since most of the price is still
+// paid. A refunded purchase stays refunded whatever arrives afterwards.
+func applyChargeRefund(app core.App, paymentIntentID string, charge *stripe.Charge) (string, error) {
+	purchase, err := app.FindFirstRecordByFilter("purchases", "stripe_payment_intent_id = {:pi}", map[string]any{"pi": paymentIntentID})
+	if err != nil {
+		return "", errRefundPurchaseNotFound
+	}
+
+	// The checkout webhook and return page hold this lock while they work
+	// on the purchase. Taking it here, and reloading the purchase under it,
+	// stops either of them saving an older copy over the refund.
+	if sessionID := purchase.GetString("stripe_checkout_session_id"); sessionID != "" {
+		unlock := lockSession(sessionID)
+		defer unlock()
+		if purchase, err = app.FindRecordById("purchases", purchase.Id); err != nil {
+			return "", err
+		}
+	}
+
+	if purchase.GetString("status") == "refunded" {
+		app.Logger().Info("Duplicate webhook, purchase already refunded", "purchase_id", purchase.Id)
+		return "already_processed", nil
+	}
+	if !chargeFullyRefunded(charge) {
+		app.Logger().Info("Partial refund, access kept", "purchase_id", purchase.Id,
+			"amount_refunded", charge.AmountRefunded, "amount", charge.Amount)
+		return "partial_refund", nil
+	}
+
+	purchase.Set("status", "refunded")
+	if err := app.Save(purchase); err != nil {
+		return "", err
+	}
+	app.Logger().Info("Purchase refunded", "purchase_id", purchase.Id)
+	return "success", nil
 }
 
 func purchaseItemTitle(app core.App, purchase *core.Record) string {

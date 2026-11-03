@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"facet/services"
 
@@ -39,26 +40,37 @@ func getStripeWebhookSecret(app *pocketbase.PocketBase, crypto *services.CryptoS
 	return os.Getenv("STRIPE_WEBHOOK_SECRET")
 }
 
-// validateRedirectURL ensures the URL has a valid scheme, host, and matches
-// the request origin to prevent open redirect attacks.
-func validateRedirectURL(redirectURL string, requestHost string) bool {
-	u, err := url.Parse(redirectURL)
-	if err != nil {
-		return false
+// urlOrigin returns scheme://host:port for an absolute http(s) URL, with the
+// default port filled in, so "https://a.example" and "https://a.example:443"
+// compare equal. It returns "" for anything else.
+func urlOrigin(raw string) string {
+	u, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || u.User != nil || u.Hostname() == "" {
+		return ""
 	}
-	// Must be HTTPS (or HTTP for localhost dev)
-	if u.Scheme != "https" && u.Scheme != "http" {
-		return false
+	scheme := strings.ToLower(u.Scheme)
+	port := u.Port()
+	switch {
+	case scheme == "https" && port == "":
+		port = "443"
+	case scheme == "http" && port == "":
+		port = "80"
+	case scheme != "https" && scheme != "http":
+		return ""
 	}
-	// Must have a host
-	if u.Host == "" {
-		return false
-	}
-	// Host must match the request host to prevent open redirect
-	if requestHost != "" && u.Hostname() != requestHost {
-		return false
-	}
-	return true
+	return scheme + "://" + strings.ToLower(u.Hostname()) + ":" + port
+}
+
+// validateRedirectURL checks that a checkout success or cancel URL points at
+// this site, as configured in the application URL. Stripe sends the buyer to
+// these URLs, so they can't be judged against the request's Host or
+// X-Forwarded-Host headers: whoever sends the request chooses those. Scheme,
+// host and port must all match, so plain HTTP is only accepted when the owner
+// configured an HTTP address themselves, as on a self-hosted LAN install.
+// With no application URL configured, nothing is accepted.
+func validateRedirectURL(redirectURL string, publicOrigin string) bool {
+	want := urlOrigin(publicOrigin)
+	return want != "" && urlOrigin(redirectURL) == want
 }
 
 // RegisterPurchaseHooks registers content purchase endpoints
@@ -109,19 +121,16 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
 			}
 
-			// Validate redirect URLs (must match request host to prevent open redirect)
-			requestHost := e.Request.Host
-			if h := e.Request.Header.Get("X-Forwarded-Host"); h != "" {
-				requestHost = h
+			// Redirect URLs must be on this site's configured address
+			publicOrigin := publicAppURL(app)
+			if publicOrigin == "" {
+				app.Logger().Error("Checkout refused: the application URL is not set, so redirect URLs can't be checked.")
+				return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "purchases are temporarily unavailable"})
 			}
-			// Strip port from host for comparison
-			if idx := strings.LastIndex(requestHost, ":"); idx != -1 {
-				requestHost = requestHost[:idx]
-			}
-			if !validateRedirectURL(req.SuccessURL, requestHost) {
+			if !validateRedirectURL(req.SuccessURL, publicOrigin) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid success_url"})
 			}
-			if !validateRedirectURL(req.CancelURL, requestHost) {
+			if !validateRedirectURL(req.CancelURL, publicOrigin) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid cancel_url"})
 			}
 
@@ -202,7 +211,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				purchase.Set("content_type", req.ContentType)
 				purchase.Set("content_id", req.ContentID)
 				purchase.Set("stripe_payment_intent_id", "")
-				purchase.Set("stripe_checkout_session_id", fmt.Sprintf("coupon_%s_%s_%s", couponCode, req.ContentID, accessToken[:8]))
+				purchase.Set("stripe_checkout_session_id", fmt.Sprintf(couponSessionPrefix+"%s_%s_%s", couponCode, req.ContentID, accessToken[:8]))
 				purchase.Set("amount", 0)
 				purchase.Set("currency", "usd")
 				purchase.Set("status", "completed")
@@ -390,39 +399,18 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "missing payment intent"})
 				}
 
-				// Find purchase by payment intent ID
-				purchaseRecords, err := app.FindRecordsByFilter(
-					"purchases",
-					"stripe_payment_intent_id = {:payment_intent}",
-					"",
-					1,
-					0,
-					map[string]interface{}{"payment_intent": paymentIntentID},
-				)
-
-				if err != nil || len(purchaseRecords) == 0 {
+				status, err := applyChargeRefund(app, paymentIntentID, &charge)
+				switch {
+				case errors.Is(err, errRefundPurchaseNotFound):
+					// The checkout may not be recorded yet. Answering with an
+					// error makes Stripe retry, by which time it will be.
 					app.Logger().Warn("Purchase not found for refund", "payment_intent", paymentIntentID)
 					return e.JSON(http.StatusNotFound, map[string]string{"error": "purchase not found"})
-				}
-
-				purchase := purchaseRecords[0]
-
-				// Idempotency: check if purchase is already refunded
-				if purchase.GetString("status") == "refunded" {
-					app.Logger().Info("Duplicate webhook, purchase already refunded", "purchase_id", purchase.Id)
-					return e.JSON(http.StatusOK, map[string]string{"status": "already_processed"})
-				}
-
-				purchase.Set("status", "refunded")
-
-				if err := app.Save(purchase); err != nil {
+				case err != nil:
 					app.Logger().Error("Failed to update purchase status", "error", err)
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update purchase"})
 				}
-
-				app.Logger().Info("Purchase refunded", "purchase_id", purchase.Id)
-
-				return e.JSON(http.StatusOK, map[string]string{"status": "success"})
+				return e.JSON(http.StatusOK, map[string]string{"status": status})
 			}
 
 			// Ignore other event types
@@ -459,30 +447,18 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "purchase not valid"})
 			}
 
-			// Get all purchases for this buyer email
+			// A paid access link only ever goes to the buyer's inbox, so
+			// following it proves that email and unlocks everything bought
+			// with it. A free coupon link is handed straight back to whoever
+			// redeemed it, proves no inbox, and so unlocks only its own item.
 			buyerEmail := purchase.GetString("buyer_email")
-			allPurchases, err := app.FindRecordsByFilter(
-				"purchases",
-				"buyer_email = {:email} && status = 'completed'",
-				"",
-				100,
-				0,
-				map[string]interface{}{"email": buyerEmail},
-			)
-
-			if err != nil {
-				app.Logger().Error("Failed to fetch purchases", "error", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch purchases"})
+			var jwtToken string
+			var expiresAt time.Time
+			if isCouponRedemption(purchase) {
+				jwtToken, expiresAt, err = purchaseService.GeneratePurchaseJWT([]string{purchase.Id}, buyerEmail)
+			} else {
+				jwtToken, expiresAt, err = purchaseService.GenerateBuyerJWT(buyerEmail)
 			}
-
-			// Collect all purchase IDs
-			purchaseIDs := make([]string, 0, len(allPurchases))
-			for _, p := range allPurchases {
-				purchaseIDs = append(purchaseIDs, p.Id)
-			}
-
-			// Generate JWT with all purchase IDs
-			jwtToken, expiresAt, err := purchaseService.GeneratePurchaseJWT(purchaseIDs, buyerEmail)
 			if err != nil {
 				app.Logger().Error("Failed to generate JWT", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to generate token"})
@@ -570,6 +546,14 @@ func validatePaidContent(app *pocketbase.PocketBase, crypto *services.CryptoServ
 	}
 
 	return e.Next()
+}
+
+// couponSessionPrefix marks purchases granted by a zero-price coupon, which
+// never went through Stripe.
+const couponSessionPrefix = "coupon_"
+
+func isCouponRedemption(purchase *core.Record) bool {
+	return strings.HasPrefix(purchase.GetString("stripe_checkout_session_id"), couponSessionPrefix)
 }
 
 // extractPurchaseCookie extracts the purchase JWT from cookies or Authorization header
@@ -697,6 +681,8 @@ func gatePaidContent(record *core.Record, item map[string]interface{}, access co
 	if !requiresPurchase(record) {
 		return
 	}
+	item["access_tier"] = "paid"
+	item["price"] = record.GetInt("price")
 	if access != nil && access(record) {
 		item["is_gated"] = false
 		item["is_purchased"] = true

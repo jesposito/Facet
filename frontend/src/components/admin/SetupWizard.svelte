@@ -48,8 +48,8 @@
 		try {
 			const profileData = $setupWizard.profile;
 			const viewData = $setupWizard.newView;
-			const template = viewTemplates.find(t => t.id === $setupWizard.selectedTemplate);
-			
+			const template = viewTemplates.find((t) => t.id === $setupWizard.selectedTemplate);
+
 			const profiles = await collection('profile').getList(1, 1);
 			if (profiles.items.length > 0) {
 				await collection('profile').update(profiles.items[0].id, {
@@ -65,7 +65,7 @@
 					visibility: 'public'
 				});
 			}
-			
+
 			if (template && viewData.name) {
 				const sections = template.sections.map((section) => ({
 					section,
@@ -74,7 +74,7 @@
 					layout: 'default',
 					width: 'full' as const
 				}));
-				
+
 				await collection('views').create({
 					name: viewData.name,
 					slug: viewData.slug,
@@ -85,7 +85,7 @@
 					is_default: false
 				});
 			}
-			
+
 			toasts.add('success', tr('admin.wizard.success_message'));
 			triggerSidebarFacetsReload();
 			setupWizard.complete();
@@ -115,7 +115,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 {#if $setupWizard.isOpen}
-	<div 
+	<div
 		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
 		role="dialog"
 		aria-labelledby="wizard-title"
@@ -140,17 +140,21 @@
 					{#each steps as step}
 						<div class="flex items-center gap-2 flex-1">
 							<div
-								class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors {
-									$setupWizard.currentStep === step.num
-										? 'bg-primary-600 text-white'
-										: $setupWizard.currentStep > step.num
-											? 'bg-green-500 text-white'
-											: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-								}"
+								class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors {$setupWizard.currentStep ===
+								step.num
+									? 'bg-primary-600 text-white'
+									: $setupWizard.currentStep > step.num
+										? 'bg-green-500 text-white'
+										: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}"
 							>
 								{#if $setupWizard.currentStep > step.num}
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/>
 									</svg>
 								{:else}
 									{step.num}
@@ -160,15 +164,18 @@
 								{$t(step.labelKey)}
 							</span>
 							{#if step.num < 3}
-								<div class="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 {
-									$setupWizard.currentStep > step.num ? 'bg-green-500' : ''
-								}"></div>
+								<div
+									class="flex-1 h-0.5 bg-gray-200 dark:bg-gray-700 {$setupWizard.currentStep >
+									step.num
+										? 'bg-green-500'
+										: ''}"
+								></div>
 							{/if}
 						</div>
 					{/each}
 				</div>
 			</header>
-			
+
 			<main class="flex-1 overflow-y-auto p-6">
 				{#if $setupWizard.currentStep === 1}
 					<Step1BasicProfile />
@@ -178,7 +185,7 @@
 					<Step3ReviewLaunch />
 				{/if}
 			</main>
-			
+
 			<footer class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between">
 				<button
 					type="button"
@@ -190,16 +197,22 @@
 				</button>
 
 				{#if $setupWizard.currentStep === 3}
-					<button
-						type="button"
-						class="btn btn-primary"
-						disabled={saving}
-						onclick={handleComplete}
-					>
+					<button type="button" class="btn btn-primary" disabled={saving} onclick={handleComplete}>
 						{#if saving}
 							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								></circle>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
 							</svg>
 							{$t('admin.wizard.saving')}
 						{:else}

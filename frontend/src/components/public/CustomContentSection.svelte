@@ -20,7 +20,9 @@
 	});
 
 	// Filter for images only (for lightbox)
-	let imageMedia = $derived(mediaRefs().filter(m => m.url && /\.(png|jpe?g|webp|gif|avif)$/i.test(m.url)));
+	let imageMedia = $derived(
+		mediaRefs().filter((m) => m.url && /\.(png|jpe?g|webp|gif|avif)$/i.test(m.url))
+	);
 
 	// Lightbox state
 	let lightboxOpen = $state(false);
@@ -33,6 +35,17 @@
 
 	function closeLightbox() {
 		lightboxOpen = false;
+	}
+
+	function handleBackdropClick(event: MouseEvent) {
+		if (event.target === event.currentTarget) closeLightbox();
+	}
+
+	function handleBackdropKeydown(event: KeyboardEvent) {
+		if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+			event.preventDefault();
+			closeLightbox();
+		}
 	}
 
 	function nextImage() {
@@ -106,8 +119,17 @@
 		{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
 		<!-- Image: clean gallery card without decoration -->
 		<div class="card overflow-hidden">
-			<button type="button" onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))} class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden">
-				<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
+			<button
+				type="button"
+				onclick={() => openLightbox(imageMedia.findIndex((m) => m.url === media.url))}
+				class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden"
+			>
+				<img
+					src={media.url || ''}
+					alt={media.alt_text || media.title || ''}
+					class="w-full h-full object-cover"
+					loading="lazy"
+				/>
 			</button>
 			{#if displayTitle || media.description}
 				<div class="p-3 space-y-1">
@@ -124,15 +146,41 @@
 		<!-- Non-image media: keep current card layout with icon header -->
 		<div class="card p-4 space-y-3">
 			<div class="flex items-start gap-3">
-				<div class="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-200 shrink-0">
+				<div
+					class="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-200 shrink-0"
+				>
 					{#if isYouTube(media.url)}
-						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2s-.2-1.5-.8-2.2c-.7-.8-1.5-.8-1.9-.8C15.7 4 12 4 12 4h-.1S8.3 4 5.1 4.2c-.4 0-1.2 0-1.9.8-.6.7-.8 2.2-.8 2.2S2 8.9 2 10.6v1.6c0 1.7.2 3.4.2 3.4s.2 1.5.8 2.2c.7.8 1.7.8 2.1.9 1.5.1 6.9.2 6.9.2s3.7 0 6.9-.2c.4 0 1.2 0 1.9-.9.6-.7.8-2.2.8-2.2s.2-1.7.2-3.4v-1.6c0-1.7-.2-3.4-.2-3.4Zm-12.7 6.8V8.8l5.2 2.6-5.2 2.6Z"/></svg>
+						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+							><path
+								d="M21.6 7.2s-.2-1.5-.8-2.2c-.7-.8-1.5-.8-1.9-.8C15.7 4 12 4 12 4h-.1S8.3 4 5.1 4.2c-.4 0-1.2 0-1.9.8-.6.7-.8 2.2-.8 2.2S2 8.9 2 10.6v1.6c0 1.7.2 3.4.2 3.4s.2 1.5.8 2.2c.7.8 1.7.8 2.1.9 1.5.1 6.9.2 6.9.2s3.7 0 6.9-.2c.4 0 1.2 0 1.9-.9.6-.7.8-2.2.8-2.2s.2-1.7.2-3.4v-1.6c0-1.7-.2-3.4-.2-3.4Zm-12.7 6.8V8.8l5.2 2.6-5.2 2.6Z"
+							/></svg
+						>
 					{:else if isVimeo(media.url)}
-						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.37 6.76c-.1 2.2-1.64 5.21-4.63 9.05-3.08 4-5.68 6-7.8 6-1.32 0-2.44-1.2-3.36-3.6l-1.84-6.6c-.68-2.4-1.4-3.6-2.16-3.6-.17 0-.78.36-1.82 1.08L0 7.38c1.15-1.01 2.29-2.02 3.43-3.03 1.54-1.33 2.7-2.03 3.5-2.1 1.84-.18 2.98 1.08 3.42 3.78.46 2.91.78 4.72.96 5.4.53 2.4 1.11 3.6 1.76 3.6.5 0 1.26-.79 2.28-2.36 1.01-1.58 1.55-2.79 1.62-3.64.14-1.38-.4-2.07-1.62-2.07-.58 0-1.18.12-1.8.36 1.2-3.9 3.47-5.79 6.8-5.68 2.48.06 3.64 1.68 3.48 4.86Z"/></svg>
+						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+							><path
+								d="M22.37 6.76c-.1 2.2-1.64 5.21-4.63 9.05-3.08 4-5.68 6-7.8 6-1.32 0-2.44-1.2-3.36-3.6l-1.84-6.6c-.68-2.4-1.4-3.6-2.16-3.6-.17 0-.78.36-1.82 1.08L0 7.38c1.15-1.01 2.29-2.02 3.43-3.03 1.54-1.33 2.7-2.03 3.5-2.1 1.84-.18 2.98 1.08 3.42 3.78.46 2.91.78 4.72.96 5.4.53 2.4 1.11 3.6 1.76 3.6.5 0 1.26-.79 2.28-2.36 1.01-1.58 1.55-2.79 1.62-3.64.14-1.38-.4-2.07-1.62-2.07-.58 0-1.18.12-1.8.36 1.2-3.9 3.47-5.79 6.8-5.68 2.48.06 3.64 1.68 3.48 4.86Z"
+							/></svg
+						>
 					{:else if isVideoFile(media.url)}
-						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3V9Z"/></svg>
+						<svg
+							class="w-5 h-5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m10 9 5 3-5 3V9Z" /></svg
+						>
 					{:else}
-						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-5-5 5 5 5-5"/><path d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"/></svg>
+						<svg
+							class="w-5 h-5"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							><path d="M12 5v14m-5-5 5 5 5-5" /><path
+								d="M5 9V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"
+							/></svg
+						>
 					{/if}
 				</div>
 				<div class="min-w-0 flex-1">
@@ -172,8 +220,22 @@
 					<track kind="captions" srclang="en" label="captions" />
 				</video>
 			{:else if media.url}
-				<a href={media.url} class="text-primary-600 dark:text-primary-300 hover:underline text-sm inline-flex items-center gap-1" target="_blank" rel="noopener noreferrer">
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6h8m0 0v8m0-8-9.5 9.5a3 3 0 0 1-4.243 0l-.757-.757a3 3 0 0 1 0-4.243L12 6Z"/></svg>
+				<a
+					href={media.url}
+					class="text-primary-600 dark:text-primary-300 hover:underline text-sm inline-flex items-center gap-1"
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						><path
+							d="M10 6h8m0 0v8m0-8-9.5 9.5a3 3 0 0 1-4.243 0l-.757-.757a3 3 0 0 1 0-4.243L12 6Z"
+						/></svg
+					>
 					{$t('public.custom_content.open_link')}
 				</a>
 			{/if}
@@ -190,11 +252,7 @@
 			<div class="relative">
 				{#if item.cover_image_url}
 					<div class="relative w-full h-64 md:h-80 rounded-lg overflow-hidden">
-						<img
-							src={item.cover_image_url}
-							alt={item.title}
-							class="w-full h-full object-cover"
-						/>
+						<img src={item.cover_image_url} alt={item.title} class="w-full h-full object-cover" />
 						<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
 					</div>
 				{/if}
@@ -282,14 +340,14 @@
 
 <!-- Lightbox modal for images -->
 {#if lightboxOpen && imageMedia[lightboxIndex]}
-	<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
 	<div
 		class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
 		role="dialog"
 		aria-modal="true"
 		aria-label={$t('public.lightbox.label')}
 		tabindex="-1"
-		onclick={closeLightbox}
+		onclick={handleBackdropClick}
+		onkeydown={handleBackdropKeydown}
 		oncontextmenu={(e) => e.preventDefault()}
 		use:focusTrap={{ onEscape: closeLightbox }}
 	>
@@ -309,7 +367,10 @@
 		{#if imageMedia.length > 1}
 			<button
 				type="button"
-				onclick={(e) => { e.stopPropagation(); prevImage(); }}
+				onclick={(e) => {
+					e.stopPropagation();
+					prevImage();
+				}}
 				class="absolute left-4 p-2 text-white/70 hover:text-white transition-colors"
 				aria-label={$t('public.lightbox.previous_image')}
 			>
@@ -321,7 +382,10 @@
 			<!-- Next button -->
 			<button
 				type="button"
-				onclick={(e) => { e.stopPropagation(); nextImage(); }}
+				onclick={(e) => {
+					e.stopPropagation();
+					nextImage();
+				}}
 				class="absolute right-4 p-2 text-white/70 hover:text-white transition-colors"
 				aria-label={$t('public.lightbox.next_image')}
 			>
@@ -332,12 +396,10 @@
 		{/if}
 
 		<!-- Image -->
-		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 		<img
 			src={imageMedia[lightboxIndex].url || ''}
 			alt={imageMedia[lightboxIndex].title || imageMedia[lightboxIndex].alt_text || ''}
 			class="max-h-[90vh] max-w-[90vw] object-contain"
-			onclick={(e) => e.stopPropagation()}
 			oncontextmenu={(e) => e.preventDefault()}
 		/>
 

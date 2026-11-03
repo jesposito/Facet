@@ -39,10 +39,9 @@ test.describe('Media replace propagation (#348)', () => {
 
 	test.afterAll(async ({ request }) => {
 		if (token && projectId) {
-			await request.delete(
-				`${apiBaseURL}/api/collections/projects/records/${projectId}`,
-				{ headers: { Authorization: token } }
-			);
+			await request.delete(`${apiBaseURL}/api/collections/projects/records/${projectId}`, {
+				headers: { Authorization: token }
+			});
 		}
 	});
 
@@ -84,10 +83,9 @@ test.describe('Media replace propagation (#348)', () => {
 		const newURL = body.new_url as string;
 
 		// The project record must now point at the new file's URL, not the old one.
-		const after = await request.get(
-			`${apiBaseURL}/api/collections/projects/records/${projectId}`,
-			{ headers: { Authorization: token } }
-		);
+		const after = await request.get(`${apiBaseURL}/api/collections/projects/records/${projectId}`, {
+			headers: { Authorization: token }
+		});
 		expect(after.ok()).toBeTruthy();
 		const rec = await after.json();
 		expect(rec.cover_image_library_url).toBe(newURL);

@@ -21,11 +21,11 @@ var sendSemaphore = func() chan struct{} {
 	return make(chan struct{}, max)
 }()
 
-func goSendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, bodyHTML, templateSlug string, subscriberIDs []string) {
+func goSendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, bodyHTML, templateSlug string, subscriberIDs []string, personalization *newsletterPersonalization) {
 	services.SafeGo(app, "send-newsletter", func() {
 		sendSemaphore <- struct{}{}
 		defer func() { <-sendSemaphore }()
-		sendNewsletter(app, crypto, sendID, subject, bodyHTML, templateSlug, subscriberIDs)
+		sendNewsletter(app, crypto, sendID, subject, bodyHTML, templateSlug, subscriberIDs, personalization)
 	})
 }
 

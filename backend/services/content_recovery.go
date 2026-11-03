@@ -112,7 +112,7 @@ type RecoveryReport struct {
 	Applied    bool
 	Scanned    int // candidate (flattened) values examined
 	Restored   int
-	Skipped    int // planned but skipped because the field changed under us (live edit)
+	Skipped    int    // planned but skipped because the field changed under us (live edit)
 	BackupUsed string // safety backup taken before applying, if any
 	Items      []RestoreItem
 }
@@ -135,10 +135,24 @@ type idVal struct {
 	Val string `db:"val"`
 }
 
+// isMissingSchemaErr reports whether a query failed only because the table or
+// column does not exist (an older backup schema, or an optional target such as
+// experience.bullets that this instance lacks). Every other query error is
+// treated as I/O or corruption and aborts the pass.
+func isMissingSchemaErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "no such table") || strings.Contains(msg, "no such column")
+}
+
 // RunContentRecovery scans editor/text fields for content flattened by #443 and,
 // when apply is true, restores the structured value from the newest matching
-// backup. It never returns a fatal error for recoverable conditions; callers
-// (the startup hook) treat a returned error as "retry next boot".
+// backup. Planning reads every backup before anything is written, so a backup
+// that cannot be listed, opened or read aborts the pass with no record changed.
+// Applying also requires a fresh safety backup first. Callers (the startup hook)
+// treat a returned error as "retry next boot".
 func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport, error) {
 	report := &RecoveryReport{Applied: apply}
 
@@ -157,7 +171,10 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 		rows := []idVal{}
 		q := fmt.Sprintf("SELECT id, %s AS val FROM %s WHERE %s <> ''", t.field, t.collection, t.field)
 		if err := app.DB().NewQuery(q).All(&rows); err != nil {
-			continue // collection/field not present in this instance — skip
+			if isMissingSchemaErr(err) {
+				continue // collection/field not present in this instance — skip
+			}
+			return report, fmt.Errorf("read %s.%s: %w", t.collection, t.field, err)
 		}
 		for _, r := range rows {
 			if lineBreaks(r.Val) == 0 && collapseWS(r.Val) != "" {
@@ -175,14 +192,23 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 
 	// Walk backups newest-first; the first backup whose value collapse-matches a
 	// candidate (and has more structure) is the freshest pre-corruption original.
-	backups, _ := ListBackups(app)
+	backups, err := ListBackups(app)
+	if err != nil {
+		return report, fmt.Errorf("list backups: %w", err)
+	}
 	sort.Slice(backups, func(i, j int) bool { return backups[i].Created.After(backups[j].Created) })
 	remaining := report.Scanned
 	for _, b := range backups {
 		if remaining == 0 {
 			break
 		}
-		planned := scanBackup(app, b.Filename, targets, candidates)
+		// An unreadable backup might hold the only good copy of a record, so a
+		// read failure stops the whole pass rather than applying a partial plan.
+		planned, err := scanBackup(app, b.Filename, targets, candidates)
+		if err != nil {
+			report.Items = nil
+			return report, fmt.Errorf("scan backup %s: %w", b.Filename, err)
+		}
 		for _, item := range planned {
 			// scanBackup already removed satisfied ids from the shared candidate map.
 			report.Items = append(report.Items, item)
@@ -199,11 +225,12 @@ func RunContentRecovery(app *pocketbase.PocketBase, apply bool) (*RecoveryReport
 	}
 
 	// Take a safety backup before mutating anything, so the recovery is reversible.
-	if res, err := RunBackup(app, fmt.Sprintf("facet_pre_recovery_%s.zip", time.Now().UTC().Format("20060102_150405"))); err == nil {
-		report.BackupUsed = res.Filename
-	} else {
-		app.Logger().Warn("content-recovery: pre-recovery backup failed; proceeding", "error", err)
+	// Without one we stop: no record is touched and the caller retries later.
+	res, err := RunBackup(app, fmt.Sprintf("facet_pre_recovery_%s.zip", time.Now().UTC().Format("20060102_150405")))
+	if err != nil {
+		return report, fmt.Errorf("pre-recovery safety backup failed; no records changed: %w", err)
 	}
+	report.BackupUsed = res.Filename
 
 	restoreFailed := false
 	for _, item := range report.Items {
@@ -262,18 +289,18 @@ func editorTextTargets(app *pocketbase.PocketBase) ([]fieldTarget, error) {
 }
 
 // scanBackup opens one backup archive and returns the restorations it can satisfy
-// for the still-remaining candidates.
-func scanBackup(app *pocketbase.PocketBase, name string, targets []fieldTarget, candidates map[fieldTarget]map[string]candidateValue) []RestoreItem {
+// for the still-remaining candidates. Any error other than a table or column
+// missing from an older schema means the archive could not be read reliably.
+func scanBackup(app *pocketbase.PocketBase, name string, targets []fieldTarget, candidates map[fieldTarget]map[string]candidateValue) ([]RestoreItem, error) {
 	tmp, cleanup, err := extractBackupDB(app, name)
 	if err != nil {
-		app.Logger().Warn("content-recovery: could not read backup", "backup", name, "error", err)
-		return nil
+		return nil, err
 	}
 	defer cleanup()
 
 	db, err := sql.Open("sqlite", "file:"+tmp+"?mode=ro&_pragma=busy_timeout(5000)")
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer db.Close()
 
@@ -285,15 +312,18 @@ func scanBackup(app *pocketbase.PocketBase, name string, targets []fieldTarget, 
 		}
 		rows, err := db.Query(fmt.Sprintf("SELECT id, %s FROM %s", t.field, t.collection))
 		if err != nil {
-			continue // table/column absent in this (older) backup schema
+			if isMissingSchemaErr(err) {
+				continue // table/column absent in this (older) backup schema
+			}
+			return nil, fmt.Errorf("query %s.%s: %w", t.collection, t.field, err)
 		}
-		func() {
+		err = func() error {
 			defer rows.Close()
 			for rows.Next() {
 				var id string
 				var val sql.NullString
 				if err := rows.Scan(&id, &val); err != nil {
-					continue
+					return err
 				}
 				cand, ok := pending[id]
 				if !ok || !val.Valid {
@@ -316,9 +346,13 @@ func scanBackup(app *pocketbase.PocketBase, name string, targets []fieldTarget, 
 					delete(pending, id) // satisfied by this (newest) backup
 				}
 			}
+			return rows.Err()
 		}()
+		if err != nil {
+			return nil, fmt.Errorf("read %s.%s: %w", t.collection, t.field, err)
+		}
 	}
-	return planned
+	return planned, nil
 }
 
 // candidateValue is the map value type for in-flight candidates.

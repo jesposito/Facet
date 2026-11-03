@@ -401,7 +401,6 @@
 	}
 </script>
 
-
 <svelte:head>
 	<title>{data.profile?.name || 'Profile'} | {$brandName}</title>
 	<meta name="description" content={headline || 'Personal profile and portfolio'} />
@@ -416,10 +415,10 @@
 
 	<!-- JSON-LD Structured Data -->
 	{#if personJsonLd}
-		{@html `<script type="application/ld+json">${personJsonLd}</script>`}
+		{@html `<script type="application/ld+json">${personJsonLd}<\/script>`}
 	{/if}
 	{#if websiteJsonLd}
-		{@html `<script type="application/ld+json">${websiteJsonLd}</script>`}
+		{@html `<script type="application/ld+json">${websiteJsonLd}<\/script>`}
 	{/if}
 </svelte:head>
 

@@ -577,6 +577,9 @@ func incrementHomepageViewCount(app core.App, e *core.RequestEvent) {
 	if !ok {
 		return
 	}
+	if !services.IsFeatureEnabled(app, services.FeatureAnalytics, false) {
+		return
+	}
 	// Bot-gate and ~30-min dedup so bots and rapid repeat hits from the same
 	// visitor don't inflate the homepage counter. Uses the "homepage" sentinel
 	// target and the same daily-salted IP hash as access_logs.

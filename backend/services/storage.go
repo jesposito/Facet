@@ -27,7 +27,7 @@ type StorageService struct {
 	hasPrimary   bool   // Whether primary storage is configured and accessible
 
 	// Cache for path existence checks to avoid repeated stat calls
-	mu         sync.RWMutex
+	mu          sync.RWMutex
 	existsCache map[string]string // relativePath -> actualFullPath
 }
 

@@ -85,7 +85,9 @@
 					alerts = alerts.filter((a) => a.id !== id);
 				} else {
 					alerts = alerts.map((a) =>
-						a.id === id ? { ...a, acknowledged_at: data.acknowledged_at ?? new Date().toISOString() } : a
+						a.id === id
+							? { ...a, acknowledged_at: data.acknowledged_at ?? new Date().toISOString() }
+							: a
 					);
 				}
 				toasts.success($t('admin.alerts_page.toast_acknowledged'));
@@ -120,9 +122,7 @@
 			if (resp.ok) {
 				const data = await resp.json();
 				const count = (data.acknowledged as number) ?? 0;
-				toasts.success(
-					$t('admin.alerts_page.toast_acknowledge_all_done', { values: { count } })
-				);
+				toasts.success($t('admin.alerts_page.toast_acknowledge_all_done', { values: { count } }));
 				announce($t('admin.alerts_page.toast_acknowledge_all_done', { values: { count } }));
 				if (filter === 'unacknowledged') {
 					alerts = [];
@@ -202,7 +202,8 @@
 		const diffMs = Date.now() - d.getTime();
 		const diffMin = Math.floor(diffMs / 60000);
 		if (diffMin < 1) return $t('admin.alerts_page.time_just_now');
-		if (diffMin < 60) return $t('admin.alerts_page.time_minutes_ago', { values: { count: diffMin } });
+		if (diffMin < 60)
+			return $t('admin.alerts_page.time_minutes_ago', { values: { count: diffMin } });
 		const diffHr = Math.floor(diffMin / 60);
 		if (diffHr < 24) return $t('admin.alerts_page.time_hours_ago', { values: { count: diffHr } });
 		const diffDay = Math.floor(diffHr / 24);
@@ -221,7 +222,9 @@
 
 <div class="max-w-4xl mx-auto">
 	<div class="mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.alerts_page.title')}</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.alerts_page.title')}
+		</h1>
 		<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 			{$t('admin.alerts_page.description')}
 		</p>
@@ -287,8 +290,14 @@
 			role="status"
 			aria-live="polite"
 		>
-			<svg class="w-6 h-6 animate-spin text-primary-600" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+			<svg
+				class="w-6 h-6 animate-spin text-primary-600"
+				fill="none"
+				viewBox="0 0 24 24"
+				aria-hidden="true"
+			>
+				<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+				></circle>
 				<path
 					class="opacity-75"
 					fill="currentColor"
@@ -352,10 +361,7 @@
 							<span class="text-sm font-semibold {severityClasses(alert.severity)} truncate">
 								{alert.title}
 							</span>
-							<span
-								class="text-xs text-gray-500 dark:text-gray-400 font-mono"
-								title={alert.event}
-							>
+							<span class="text-xs text-gray-500 dark:text-gray-400 font-mono" title={alert.event}>
 								{alert.event}
 							</span>
 							<time
@@ -371,7 +377,8 @@
 						{#if alert.acknowledged_at}
 							<p class="mt-1 text-xs text-gray-500 dark:text-gray-500">
 								{$t('admin.alerts_page.acknowledged_at_prefix')}
-								<time datetime={alert.acknowledged_at}>{formatRelative(alert.acknowledged_at)}</time>
+								<time datetime={alert.acknowledged_at}>{formatRelative(alert.acknowledged_at)}</time
+								>
 							</p>
 						{/if}
 					</div>
@@ -381,7 +388,9 @@
 								type="button"
 								onclick={() => acknowledgeAlert(alert.id)}
 								disabled={acknowledging.has(alert.id)}
-								aria-label={$t('admin.alerts_page.acknowledge_aria', { values: { title: alert.title } })}
+								aria-label={$t('admin.alerts_page.acknowledge_aria', {
+									values: { title: alert.title }
+								})}
 								aria-busy={acknowledging.has(alert.id) ? 'true' : undefined}
 								class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 							>

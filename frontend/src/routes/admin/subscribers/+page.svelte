@@ -323,7 +323,8 @@
 			);
 			await Promise.all([loadSubscribers(), loadStats()]);
 		} catch (err) {
-			const message = err instanceof Error ? err.message : $t('admin.subscribers.import_failed_all');
+			const message =
+				err instanceof Error ? err.message : $t('admin.subscribers.import_failed_all');
 			importFileError = message;
 			toasts.add('error', message);
 		} finally {
@@ -366,7 +367,11 @@
 			<a href="/admin/subscribers/compose" class="btn btn-primary w-full sm:w-auto">
 				{$t('admin.subscribers.compose')}
 			</a>
-			<button type="button" class="btn btn-secondary w-full sm:w-auto" onclick={() => (showImport = !showImport)}>
+			<button
+				type="button"
+				class="btn btn-secondary w-full sm:w-auto"
+				onclick={() => (showImport = !showImport)}
+			>
 				{$t('admin.subscribers.import')}
 			</button>
 			<button type="button" class="btn btn-secondary w-full sm:w-auto" onclick={exportCSV}>
@@ -468,15 +473,21 @@
 		<div class="grid grid-cols-3 gap-4">
 			<div class="card p-4 text-center">
 				<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_active}</p>
-				<p class="text-xs text-gray-500 dark:text-gray-400">{$t('admin.subscribers.status_active')}</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					{$t('admin.subscribers.status_active')}
+				</p>
 			</div>
 			<div class="card p-4 text-center">
 				<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_unsubscribed}</p>
-				<p class="text-xs text-gray-500 dark:text-gray-400">{$t('admin.subscribers.status_unsubscribed')}</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					{$t('admin.subscribers.status_unsubscribed')}
+				</p>
 			</div>
 			<div class="card p-4 text-center">
 				<p class="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_bounced}</p>
-				<p class="text-xs text-gray-500 dark:text-gray-400">{$t('admin.subscribers.status_bounced')}</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400">
+					{$t('admin.subscribers.status_bounced')}
+				</p>
 			</div>
 		</div>
 
@@ -490,8 +501,9 @@
 				<div class="space-y-2">
 					{#each stats.sources as src}
 						<div class="flex items-center gap-3">
-							<span class="text-xs text-gray-600 dark:text-gray-400 w-24 truncate" title={src.source}
-								>{src.source}</span
+							<span
+								class="text-xs text-gray-600 dark:text-gray-400 w-24 truncate"
+								title={src.source}>{src.source}</span
 							>
 							<div class="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
 								<div
@@ -711,7 +723,9 @@
 								<td class="py-3 px-4 text-gray-600 dark:text-gray-400 capitalize">{sub.source}</td>
 								<td class="py-3 px-4">
 									<span
-										class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {getStatusClass(sub.status)}"
+										class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {getStatusClass(
+											sub.status
+										)}"
 									>
 										{getStatusLabel(sub.status)}
 									</span>
@@ -724,7 +738,9 @@
 										type="button"
 										class="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
 										onclick={() => deleteSubscriber(sub)}
-										aria-label={$t('admin.subscribers.delete_aria', { values: { email: sub.email } })}
+										aria-label={$t('admin.subscribers.delete_aria', {
+											values: { email: sub.email }
+										})}
 									>
 										<svg
 											class="w-4 h-4"

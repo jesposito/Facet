@@ -29,9 +29,18 @@
 			adminLabelKey: 'admin.help.getting_started.open_dashboard',
 			items: [
 				{ qKey: 'admin.help.getting_started.q_tour', aKey: 'admin.help.getting_started.a_tour' },
-				{ qKey: 'admin.help.getting_started.q_profile', aKey: 'admin.help.getting_started.a_profile' },
-				{ qKey: 'admin.help.getting_started.q_preview', aKey: 'admin.help.getting_started.a_preview' },
-				{ qKey: 'admin.help.getting_started.q_encryption', aKey: 'admin.help.getting_started.a_encryption' }
+				{
+					qKey: 'admin.help.getting_started.q_profile',
+					aKey: 'admin.help.getting_started.a_profile'
+				},
+				{
+					qKey: 'admin.help.getting_started.q_preview',
+					aKey: 'admin.help.getting_started.a_preview'
+				},
+				{
+					qKey: 'admin.help.getting_started.q_encryption',
+					aKey: 'admin.help.getting_started.a_encryption'
+				}
 			]
 		},
 		{
@@ -123,10 +132,7 @@
 	{#each sections as section (section.slug)}
 		<section id={section.slug} class="mb-10 scroll-mt-20" aria-labelledby="{section.slug}-heading">
 			<div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 mb-3">
-				<h2
-					id="{section.slug}-heading"
-					class="text-lg font-semibold text-gray-900 dark:text-white"
-				>
+				<h2 id="{section.slug}-heading" class="text-lg font-semibold text-gray-900 dark:text-white">
 					{$t(section.titleKey)}
 				</h2>
 				{#if section.adminPath && section.adminLabelKey}
@@ -160,9 +166,7 @@
 
 			<div class="space-y-2">
 				{#each section.items as item (item.qKey)}
-					<details
-						class="card overflow-hidden group [&_summary::-webkit-details-marker]:hidden"
-					>
+					<details class="card overflow-hidden group [&_summary::-webkit-details-marker]:hidden">
 						<summary
 							class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset"
 						>

@@ -19,9 +19,22 @@ import (
 	"facet/internal/textlimit"
 )
 
+// publicGAMeasurementID is the Google Analytics ID the public site may load.
+// With the Analytics switch off, visitors get none, so no page can inject
+// the Google script. The owner still sees the saved ID so the settings page
+// can show it and doesn't wipe it on the next save.
+func publicGAMeasurementID(settings *services.SiteSettings, owner bool) string {
+	if owner || settings.FeatureEnabled(services.FeatureAnalytics) {
+		return settings.GAMeasurementID
+	}
+	return ""
+}
+
 // RegisterSiteSettingsHooks exposes site settings for homepage/privacy control.
 func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		bindFeatureGate(se, app)
+
 		// Authenticated: check encryption key source
 		se.Router.GET("/api/system/encryption-status", func(e *core.RequestEvent) error {
 			source := os.Getenv("ENCRYPTION_KEY_SOURCE")
@@ -49,7 +62,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"homepage_enabled":        settings.HomepageEnabled,
 				"landing_page_message":    settings.LandingPageMessage,
 				"custom_css":              settings.CustomCSS,
-				"ga_measurement_id":       settings.GAMeasurementID,
+				"ga_measurement_id":       publicGAMeasurementID(settings, isSuperuser(e)),
 				"hide_login_button":       settings.HideLoginButton,
 				"hide_demo_toggle":        settings.HideDemoToggle,
 				"homepage_custom_content": settings.HomepageCustomContent,
@@ -69,14 +82,15 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"design":                  settings.Design,
 				"homepage_view_count":     settings.HomepageViewCount,
 				"homepage_last_viewed_at": settings.HomepageLastViewedAt,
-				"enabled_features":        settings.EnabledFeatures,
+				"enabled_features":        settings.ResolvedFeatures(),
 			})
 		})
 
 		// Authenticated: update site settings
 		se.Router.PUT("/api/site-settings", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				return apis.NewUnauthorizedError("authentication required", nil)
+			// Site owners only: these settings include privacy switches.
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			var req struct {
@@ -229,7 +243,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"default_locale":          settings.DefaultLocale,
 				"default_theme_mode":      settings.DefaultThemeMode,
 				"design":                  settings.Design,
-				"enabled_features":        settings.EnabledFeatures,
+				"enabled_features":        settings.ResolvedFeatures(),
 			})
 		})
 

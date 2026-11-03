@@ -18,7 +18,10 @@ DOMPurify.addHook('uponSanitizeElement', (node, data) => {
 	// the jsdom-backed `Element` global isn't always materialized in the
 	// hook's evaluation context. Checking for the methods we need is
 	// equivalent for our purposes and works in both Node and the browser.
-	const el = node as unknown as { getAttribute?: (n: string) => string | null; parentNode?: { removeChild: (n: unknown) => void } } | null;
+	const el = node as unknown as {
+		getAttribute?: (n: string) => string | null;
+		parentNode?: { removeChild: (n: unknown) => void };
+	} | null;
 	if (data.tagName === 'iframe' && el && typeof el.getAttribute === 'function') {
 		const src = el.getAttribute('src') || '';
 
@@ -108,7 +111,10 @@ function currentLocale(): string {
 	return get(locale) || 'en';
 }
 
-export function formatDate(dateString: string | undefined, options?: Intl.DateTimeFormatOptions): string {
+export function formatDate(
+	dateString: string | undefined,
+	options?: Intl.DateTimeFormatOptions
+): string {
 	if (!dateString) return '';
 	if (/^\d{4}$/.test(dateString)) return dateString;
 	const formatOptions = options || { month: 'short', year: 'numeric' };
@@ -121,7 +127,11 @@ export function formatDate(dateString: string | undefined, options?: Intl.DateTi
 	return date.toLocaleDateString(currentLocale(), formatOptions);
 }
 
-export function formatDateRange(startDate?: string, endDate?: string, presentText: string = 'Present'): string {
+export function formatDateRange(
+	startDate?: string,
+	endDate?: string,
+	presentText: string = 'Present'
+): string {
 	const start = formatDate(startDate);
 	const end = endDate ? formatDate(endDate) : presentText;
 	return `${start} - ${end}`;
@@ -158,13 +168,16 @@ export function parseMarkdown(content: string): string {
 // Supported providers: youtube, vimeo, loom, soundcloud, spotify, codepen,
 // figma, image, video, pdf, immich, embed, calendly, calcom, googlecal, booking.
 function applyShortcodes(content: string): string {
-	return content.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*:\s*([^}]+?)\s*\}\}/g, (_, rawProvider, rawUrl) => {
-		const match: EmbedMatch = {
-			provider: (rawProvider || '').toLowerCase().trim(),
-			url: (rawUrl || '').trim()
-		};
-		return buildEmbed(match) ?? _;
-	});
+	return content.replace(
+		/\{\{\s*([a-zA-Z0-9_]+)\s*:\s*([^}]+?)\s*\}\}/g,
+		(_, rawProvider, rawUrl) => {
+			const match: EmbedMatch = {
+				provider: (rawProvider || '').toLowerCase().trim(),
+				url: (rawUrl || '').trim()
+			};
+			return buildEmbed(match) ?? _;
+		}
+	);
 }
 
 function buildEmbed(match: EmbedMatch): string | null {
@@ -284,7 +297,9 @@ function sanitizeUrl(url: string): string | null {
 }
 
 // Skill grouping
-export function groupSkillsByCategory(skills: Array<{ category?: string; name: string }>): Record<string, string[]> {
+export function groupSkillsByCategory(
+	skills: Array<{ category?: string; name: string }>
+): Record<string, string[]> {
 	const grouped: Record<string, string[]> = {};
 	for (const skill of skills) {
 		const category = skill.category || 'Other';
@@ -353,13 +368,7 @@ export function normalizeExternalUrl(url: string | undefined | null): string | n
  * media library can only accept links that are renderable in posts/projects.
  */
 export type ExternalMediaProvider =
-	| 'youtube'
-	| 'vimeo'
-	| 'spotify'
-	| 'loom'
-	| 'soundcloud'
-	| 'codepen'
-	| 'figma';
+	'youtube' | 'vimeo' | 'spotify' | 'loom' | 'soundcloud' | 'codepen' | 'figma';
 
 type ExternalProviderSpec = {
 	provider: ExternalMediaProvider;
@@ -368,11 +377,19 @@ type ExternalProviderSpec = {
 };
 
 const EXTERNAL_MEDIA_PROVIDERS: ExternalProviderSpec[] = [
-	{ provider: 'youtube', hostnames: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'], label: 'YouTube' },
+	{
+		provider: 'youtube',
+		hostnames: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'],
+		label: 'YouTube'
+	},
 	{ provider: 'vimeo', hostnames: ['vimeo.com', 'player.vimeo.com'], label: 'Vimeo' },
 	{ provider: 'spotify', hostnames: ['spotify.com', 'open.spotify.com'], label: 'Spotify' },
 	{ provider: 'loom', hostnames: ['loom.com'], label: 'Loom' },
-	{ provider: 'soundcloud', hostnames: ['soundcloud.com', 'w.soundcloud.com'], label: 'SoundCloud' },
+	{
+		provider: 'soundcloud',
+		hostnames: ['soundcloud.com', 'w.soundcloud.com'],
+		label: 'SoundCloud'
+	},
 	{ provider: 'codepen', hostnames: ['codepen.io'], label: 'CodePen' },
 	{ provider: 'figma', hostnames: ['figma.com'], label: 'Figma' }
 ];
@@ -405,7 +422,9 @@ export function detectExternalMediaProvider(raw: string): ExternalMediaProvider 
 /**
  * Human-readable label for a provider (e.g., "youtube" -> "YouTube").
  */
-export function getExternalMediaProviderLabel(provider: ExternalMediaProvider | null | undefined): string {
+export function getExternalMediaProviderLabel(
+	provider: ExternalMediaProvider | null | undefined
+): string {
 	if (!provider) return '';
 	const spec = EXTERNAL_MEDIA_PROVIDERS.find((p) => p.provider === provider);
 	return spec?.label ?? provider;
@@ -424,8 +443,10 @@ export function extractYouTubeVideoId(raw: string): string | null {
 		}
 		const v = u.searchParams.get('v');
 		if (v) return v;
-		if (u.pathname.startsWith('/embed/')) return u.pathname.replace('/embed/', '').split('/')[0] || null;
-		if (u.pathname.startsWith('/shorts/')) return u.pathname.replace('/shorts/', '').split('/')[0] || null;
+		if (u.pathname.startsWith('/embed/'))
+			return u.pathname.replace('/embed/', '').split('/')[0] || null;
+		if (u.pathname.startsWith('/shorts/'))
+			return u.pathname.replace('/shorts/', '').split('/')[0] || null;
 		return null;
 	} catch {
 		return null;
@@ -458,7 +479,9 @@ export const NON_LINKABLE_CONTACT_TYPES = ['discord', 'slack'] as const;
  * Checks if a contact type should be rendered as a link or copy-only
  */
 export function isLinkableContactType(type: string): boolean {
-	return !NON_LINKABLE_CONTACT_TYPES.includes(type.toLowerCase() as typeof NON_LINKABLE_CONTACT_TYPES[number]);
+	return !NON_LINKABLE_CONTACT_TYPES.includes(
+		type.toLowerCase() as (typeof NON_LINKABLE_CONTACT_TYPES)[number]
+	);
 }
 
 /**
@@ -472,9 +495,8 @@ export function isLinkableContactType(type: string): boolean {
 function isValidDomainUrl(value: string, expectedDomain: string): boolean {
 	try {
 		// Ensure value has a protocol for URL parsing
-		const urlString = value.startsWith('http://') || value.startsWith('https://')
-			? value
-			: `https://${value}`;
+		const urlString =
+			value.startsWith('http://') || value.startsWith('https://') ? value : `https://${value}`;
 		const url = new URL(urlString);
 		const hostname = url.hostname.toLowerCase();
 		const domain = expectedDomain.toLowerCase();
@@ -511,18 +533,20 @@ export function buildContactHref(type: string, value: string): string | null {
 		case 'phone':
 			return `tel:${value.replace(/\s/g, '')}`;
 
-		case 'whatsapp':
+		case 'whatsapp': {
 			// wa.me links work better than tel: for WhatsApp
 			const cleanNumber = value.replace(/\s/g, '').replace(/^\+/, '');
 			return `https://wa.me/${cleanNumber}`;
+		}
 
-		case 'telegram':
+		case 'telegram': {
 			// Support both @username and full URLs
 			if (isValidDomainUrl(value, 't.me') || isValidDomainUrl(value, 'telegram.me')) {
 				return normalizeExternalUrl(value);
 			}
 			const telegramUsername = value.replace(/^@/, '');
 			return `https://t.me/${telegramUsername}`;
+		}
 
 		case 'github':
 			// Support both username and full URLs
@@ -575,7 +599,13 @@ export function truncate(text: string, maxLength: number): string {
 
 /** Check if a string looks like a filename (has a known file extension and no spaces) */
 export function isFilename(title?: string): boolean {
-	return !!title && /\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(title) && !title.includes(' ');
+	return (
+		!!title &&
+		/\.(png|jpe?g|gif|webp|avif|svg|mp4|mov|webm|mkv|avi|mp3|wav|ogg|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|tar|gz|rar|7z)$/i.test(
+			title
+		) &&
+		!title.includes(' ')
+	);
 }
 
 // Class helper

@@ -109,6 +109,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 		if err == nil {
 			for _, sr := range staleSends {
 				sr.Set("status", "failed")
+				sr.Set("active_lock", "")
 				sr.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
 				if saveErr := app.Save(sr); saveErr != nil {
 					log.Printf("[newsletter] Failed to mark stale send %s as failed: %v", sr.Id, saveErr)
@@ -142,6 +143,9 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				Email  string `json:"email"`
 				Name   string `json:"name"`
 				Source string `json:"source"`
+				// List is the id or slug of the list to join. Empty means
+				// the default list.
+				List string `json:"list"`
 			}
 			if err := e.BindBody(&req); err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
@@ -157,6 +161,10 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			if planConfig.IsManaged() && !planConfig.HasFeature("newsletter") {
 				return respondForbidden(e, "newsletter not available on current plan")
 			}
+			// The owner's switch closes signup. Unsubscribing is never gated.
+			if !services.IsFeatureEnabled(app, services.FeatureNewsletter, true) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "newsletter is turned off"})
+			}
 
 			// Verify view exists by slug
 			records, err := app.FindRecordsByFilter(
@@ -171,6 +179,14 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 			}
 			view := records[0]
+
+			// The list is checked before anything is stored. Asking for a
+			// list that isn't open to the public is an error, never a quiet
+			// signup to some other list.
+			list, err := resolveSignupList(app, req.List)
+			if err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "this newsletter list isn't open for signup", "code": "list_unavailable"})
+			}
 
 			// Source defaults to "newsletter"
 			source := req.Source
@@ -193,8 +209,10 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			var sub *core.Record
 			if len(existing) > 0 {
 				sub = existing[0]
-				// Already subscribed: nothing to confirm, and no email.
-				if sub.GetString("status") == "active" {
+				// Already on this list: nothing to confirm, and no email.
+				// An active reader asking for another list still confirms
+				// that list from their inbox first.
+				if sub.GetString("status") == "active" && isListMember(app, sub.Id, list.Id) {
 					return e.JSON(http.StatusOK, confirmationRequired)
 				}
 				// Unsubscribed, bounced or still pending keep their status
@@ -229,6 +247,10 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				sub.Set("confirm_token_hash", crypto.HMACToken(rawToken))
 				sub.Set("confirmation_sent_at", time.Now().UTC().Format(time.RFC3339))
 			}
+			// The list travels with the confirmation link: following it
+			// joins this list. Inside the cooldown above nothing changes,
+			// so a later form can't swap the list behind an earlier link.
+			sub.Set("pending_list_id", list.Id)
 
 			if err := app.Save(sub); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
@@ -266,15 +288,71 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "invalid or expired link"})
 			}
 
+			// Join the list the signup asked for. Links sent before lists
+			// were recorded on signups carry none and join the default list.
+			listID := sub.GetString("pending_list_id")
+			if listID == "" {
+				if def, err := resolveSignupList(app, ""); err == nil {
+					listID = def.Id
+				}
+			} else if list, err := app.FindRecordById("newsletter_lists", listID); err != nil || !list.GetBool("is_active") {
+				// The list was removed or closed after the link went out.
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "this newsletter list is no longer open"})
+			}
+
 			sub.Set("status", "active")
 			sub.Set("confirm_token_hash", "")
+			sub.Set("pending_list_id", "")
 			sub.Set("bounce_count", 0)
-			if err := app.Save(sub); err != nil {
+			err = app.RunInTransaction(func(txApp core.App) error {
+				if err := txApp.Save(sub); err != nil {
+					return err
+				}
+				if listID == "" {
+					return nil
+				}
+				return ensureListMembership(txApp, sub.Id, listID)
+			})
+			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
 			}
-			sendWelcomeEmail(app, crypto, sub.Id)
+			// A link sent before the newsletter was switched off still
+			// records the reader's consent, but no welcome mail goes out
+			// while the newsletter is off.
+			if services.IsFeatureEnabled(app, services.FeatureNewsletter, true) {
+				sendWelcomeEmail(app, crypto, sub.Id)
+			}
 			return e.Redirect(http.StatusFound, "/?newsletter=confirmed")
 		}))
+
+		// GET /api/public/newsletter/lists — the lists a visitor may join
+		// from the signup form: active, and the default or marked public.
+		// Private lists and subscriber counts are never listed.
+		se.Router.GET("/api/public/newsletter/lists", func(e *core.RequestEvent) error {
+			if planConfig.IsManaged() && !planConfig.HasFeature("newsletter") {
+				return respondForbidden(e, "newsletter not available on current plan")
+			}
+			if !services.IsFeatureEnabled(app, services.FeatureNewsletter, true) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "newsletter is turned off"})
+			}
+			records, err := app.FindRecordsByFilter(
+				"newsletter_lists", "is_active = true && (is_default = true || is_public = true)", "-is_default,name", 0, 0,
+			)
+			if err != nil {
+				records = []*core.Record{}
+			}
+			items := make([]map[string]any, 0, len(records))
+			for _, r := range records {
+				items = append(items, map[string]any{
+					"id":          r.Id,
+					"slug":        r.GetString("slug"),
+					"name":        r.GetString("name"),
+					"description": r.GetString("description"),
+					"is_default":  r.GetBool("is_default"),
+				})
+			}
+			return e.JSON(http.StatusOK, map[string]any{"data": items})
+		})
 
 		// ========================================
 		// Admin Subscriber Management Endpoints
@@ -315,7 +393,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 
 			offset := (page - 1) * perPage
 
-			records, err := app.FindRecordsByFilter("subscribers", filter, "-created", perPage, offset, params)
+			records, err := app.FindRecordsByFilter("subscribers", filter, subscriberSort(app), perPage, offset, params)
 			if err != nil {
 				records = []*core.Record{}
 			}
@@ -429,7 +507,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				params["search"] = search
 			}
 
-			records, err := app.FindRecordsByFilter("subscribers", filter, "-created", 0, 0, params)
+			records, err := app.FindRecordsByFilter("subscribers", filter, subscriberSort(app), 0, 0, params)
 			if err != nil {
 				records = []*core.Record{}
 			}
@@ -623,11 +701,25 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return respondForbidden(e, "newsletter not available on current plan")
 			}
 
+			if !services.IsFeatureEnabled(app, services.FeatureNewsletter, true) {
+				return respondForbidden(e, "the newsletter feature is turned off")
+			}
+
 			var req struct {
 				Subject      string `json:"subject"`
 				BodyMarkdown string `json:"body_markdown"`
 				TestEmail    string `json:"test_email"`
 				Template     string `json:"template"`
+				ListID       string `json:"list_id"`
+				Personalize  bool   `json:"personalize"`
+				// Resend is the explicit "send this again" action. Without
+				// it, a newsletter matching one already sent to the same
+				// audience is refused.
+				Resend bool `json:"resend"`
+				// RequestKey identifies one Send click. Retrying with the
+				// same key returns the original send instead of starting
+				// another; a deliberate resend uses a new key.
+				RequestKey string `json:"request_key"`
 			}
 			if err := e.BindBody(&req); err != nil {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
@@ -635,14 +727,28 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 
 			req.Subject = strings.TrimSpace(req.Subject)
 			req.BodyMarkdown = strings.TrimSpace(req.BodyMarkdown)
+			req.RequestKey = strings.TrimSpace(req.RequestKey)
 			if req.Subject == "" || req.BodyMarkdown == "" {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "subject and body_markdown are required"})
+			}
+			if req.RequestKey != "" && !newsletterRequestKeyPattern.MatchString(req.RequestKey) {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request_key"})
 			}
 
 			// Convert markdown to HTML
 			bodyHTML, err := markdownToHTML(req.BodyMarkdown)
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to render markdown"})
+			}
+
+			audience, err := selectNewsletterAudience(app, req.ListID)
+			if err != nil {
+				return respondNewsletterAudienceError(e, err)
+			}
+			personalization := newNewsletterPersonalization(app, req.Personalize, audience)
+			bodyHTML, err = prepareNewsletterLinks(bodyHTML, personalization)
+			if err != nil {
+				return respondNewsletterLinkError(e, err)
 			}
 
 			// Test email mode
@@ -661,14 +767,18 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 						testSenderName = customName
 					}
 				}
-				testHTML := RenderNewsletterTemplate(req.Template, bodyHTML, "#", testSenderName)
+				// A personalized test shows what the first recipient of the
+				// selected audience would get, the same sample as the preview.
+				sampleName, sampleEmail := newsletterSampleRecipient(app, audience, req.TestEmail)
+				testBody := personalization.HTML(bodyHTML, sampleName, sampleEmail)
+				testHTML := RenderNewsletterTemplate(req.Template, testBody, "#", testSenderName)
 				message := &mailer.Message{
 					From: mail.Address{
 						Address: app.Settings().Meta.SenderAddress,
 						Name:    testSenderName,
 					},
 					To:      []mail.Address{{Address: req.TestEmail}},
-					Subject: "[TEST] " + req.Subject,
+					Subject: "[TEST] " + personalization.Subject(req.Subject, sampleName, sampleEmail),
 					HTML:    testHTML,
 				}
 
@@ -685,16 +795,9 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP not configured"})
 			}
 
-			// Count active subscribers
-			activeSubscribers, err := app.FindRecordsByFilter("subscribers", "status = 'active'", "", 0, 0)
-			if err != nil || len(activeSubscribers) == 0 {
+			subscriberIDs := audience.SubscriberIDs
+			if len(subscriberIDs) == 0 {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "no active subscribers"})
-			}
-
-			// Collect subscriber IDs for goroutine (don't pass mutable pointers)
-			subscriberIDs := make([]string, 0, len(activeSubscribers))
-			for _, sub := range activeSubscribers {
-				subscriberIDs = append(subscriberIDs, sub.Id)
 			}
 
 			// Create send record
@@ -703,40 +806,161 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "newsletter_sends collection not found"})
 			}
 
+			audienceKey := audience.key()
+			contentHash := newsletterContentHash(req.Subject, bodyHTML)
+
 			sendRecord := core.NewRecord(sendCollection)
 			sendRecord.Set("subject", req.Subject)
+			sendRecord.Set("body_markdown", req.BodyMarkdown)
 			sendRecord.Set("body_html", bodyHTML)
 			sendRecord.Set("status", "sending")
 			sendRecord.Set("recipient_count", len(subscriberIDs))
 			sendRecord.Set("sent_count", 0)
 			sendRecord.Set("failed_count", 0)
+			sendRecord.Set("request_key", req.RequestKey)
+			sendRecord.Set("audience_key", audienceKey)
+			sendRecord.Set("list_id", audience.listID())
+			sendRecord.Set("list_name", audience.listName())
+			sendRecord.Set("content_hash", contentHash)
+			sendRecord.Set("active_lock", newsletterActiveLock)
 
-			// Only one send at a time. The check and the new record share a
-			// transaction, so a double-clicked Send can't start two.
+			// The checks and the new record share a transaction, and the
+			// unique indexes on request_key and active_lock back them up in
+			// the database, so two racing requests can't both start a send.
+			var previous *core.Record
 			err = app.RunInTransaction(func(txApp core.App) error {
-				activeSendCount, err := txApp.CountRecords("newsletter_sends", dbx.NewExp("status = 'sending'"))
+				if req.RequestKey != "" {
+					if prior, err := txApp.FindFirstRecordByFilter(
+						"newsletter_sends", "request_key = {:key}", dbx.Params{"key": req.RequestKey},
+					); err == nil && prior != nil {
+						previous = prior
+						if prior.GetString("content_hash") != contentHash || prior.GetString("audience_key") != audienceKey {
+							return errNewsletterRequestKeyReused
+						}
+						return errNewsletterRequestReplayed
+					}
+				}
+				activeSendCount, err := txApp.CountRecords("newsletter_sends",
+					dbx.NewExp("status = 'sending' OR active_lock != ''"))
 				if err != nil {
 					return err
 				}
 				if activeSendCount > 0 {
 					return errNewsletterSendInProgress
 				}
+				if !req.Resend {
+					if prior := findPreviousNewsletterSend(txApp, req.Subject, bodyHTML, contentHash, audienceKey); prior != nil {
+						previous = prior
+						return errNewsletterAlreadySent
+					}
+				}
 				return txApp.Save(sendRecord)
 			})
-			if errors.Is(err, errNewsletterSendInProgress) {
-				return e.JSON(http.StatusConflict, map[string]string{"error": "a newsletter send is already in progress"})
+			if err != nil && previous == nil && !errors.Is(err, errNewsletterSendInProgress) {
+				// A unique index refused the insert: another request with
+				// this key, or another send, got there first.
+				if req.RequestKey != "" {
+					if prior, findErr := app.FindFirstRecordByFilter(
+						"newsletter_sends", "request_key = {:key}", dbx.Params{"key": req.RequestKey},
+					); findErr == nil && prior != nil {
+						previous = prior
+						err = errNewsletterRequestReplayed
+						if prior.GetString("content_hash") != contentHash || prior.GetString("audience_key") != audienceKey {
+							err = errNewsletterRequestKeyReused
+						}
+					}
+				}
+				if previous == nil {
+					if n, _ := app.CountRecords("newsletter_sends", dbx.NewExp("active_lock != ''")); n > 0 {
+						err = errNewsletterSendInProgress
+					}
+				}
 			}
-			if err != nil {
+			switch {
+			case errors.Is(err, errNewsletterRequestReplayed):
+				// A retry of a request that already started: report that
+				// send, and send nothing new.
+				return e.JSON(http.StatusOK, map[string]any{
+					"status":          previous.GetString("status"),
+					"send_id":         previous.Id,
+					"recipient_count": previous.GetInt("recipient_count"),
+					"list_name":       previous.GetString("list_name"),
+					"replayed":        true,
+				})
+			case errors.Is(err, errNewsletterRequestKeyReused):
+				return e.JSON(http.StatusConflict, map[string]string{
+					"error":   "this request key was already used for a different newsletter",
+					"code":    "request_key_reused",
+					"send_id": previous.Id,
+				})
+			case errors.Is(err, errNewsletterSendInProgress):
+				return e.JSON(http.StatusConflict, map[string]string{"error": "a newsletter send is already in progress", "code": "send_in_progress"})
+			case errors.Is(err, errNewsletterAlreadySent):
+				return e.JSON(http.StatusConflict, map[string]string{
+					"error":   "this newsletter has already been sent to this audience; confirm a resend to send it again",
+					"code":    "already_sent",
+					"send_id": previous.Id,
+				})
+			case err != nil:
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create send record"})
 			}
 
 			// Spawn bounded background sender (pass IDs, not mutable pointers).
-			goSendNewsletter(app, crypto, sendRecord.Id, req.Subject, bodyHTML, req.Template, subscriberIDs)
+			goSendNewsletter(app, crypto, sendRecord.Id, req.Subject, bodyHTML, req.Template, subscriberIDs, personalization)
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"status":          "sending",
 				"send_id":         sendRecord.Id,
 				"recipient_count": len(subscriberIDs),
+				"list_name":       audience.listName(),
+			})
+		})
+
+		// POST /api/admin/newsletter/preview — the audience a send would
+		// reach and what its first recipient would see. The compose page
+		// uses this for both the confirmation count and the personalized
+		// preview, so they match the send exactly.
+		se.Router.POST("/api/admin/newsletter/preview", func(e *core.RequestEvent) error {
+			if err := requireSuperuser(e); err != nil {
+				return err
+			}
+			if planConfig.IsManaged() && !planConfig.HasFeature("newsletter") {
+				return respondForbidden(e, "newsletter not available on current plan")
+			}
+
+			var req struct {
+				Subject      string `json:"subject"`
+				BodyMarkdown string `json:"body_markdown"`
+				ListID       string `json:"list_id"`
+				Personalize  bool   `json:"personalize"`
+			}
+			if err := e.BindBody(&req); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request body"})
+			}
+
+			audience, err := selectNewsletterAudience(app, req.ListID)
+			if err != nil {
+				return respondNewsletterAudienceError(e, err)
+			}
+			personalization := newNewsletterPersonalization(app, req.Personalize, audience)
+			bodyHTML, err := markdownToHTML(strings.TrimSpace(req.BodyMarkdown))
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to render markdown"})
+			}
+			// The preview refuses the same links the send would, so the
+			// problem shows up while writing.
+			bodyHTML, err = prepareNewsletterLinks(bodyHTML, personalization)
+			if err != nil {
+				return respondNewsletterLinkError(e, err)
+			}
+			sampleName, sampleEmail := newsletterSampleRecipient(app, audience, "")
+
+			return e.JSON(http.StatusOK, map[string]any{
+				"recipient_count": len(audience.SubscriberIDs),
+				"list_name":       audience.listName(),
+				"sample_email":    sampleEmail,
+				"subject":         personalization.Subject(strings.TrimSpace(req.Subject), sampleName, sampleEmail),
+				"body_html":       stripDangerousProtocols(personalization.HTML(bodyHTML, sampleName, sampleEmail)),
 			})
 		})
 
@@ -761,6 +985,8 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 					"subject":         r.GetString("subject"),
 					"status":          r.GetString("status"),
 					"recipient_count": r.GetInt("recipient_count"),
+					"list_id":         r.GetString("list_id"),
+					"list_name":       r.GetString("list_name"),
 					"sent_count":      r.GetInt("sent_count"),
 					"failed_count":    r.GetInt("failed_count"),
 					"open_count":      r.GetInt("open_count"),
@@ -918,7 +1144,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			token := e.Request.PathValue("token")
 			pixelData, _ := base64.StdEncoding.DecodeString("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")
 			if sendID != "" && token != "" {
-				go recordNewsletterEvent(app, crypto, sendID, token, "open", "")
+				recordNewsletterEvent(app, crypto, sendID, token, "open", "")
 			}
 			e.Response.Header().Set("Content-Type", "image/gif")
 			e.Response.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
@@ -949,7 +1175,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "link not found"})
 			}
 			if token != "" {
-				go recordNewsletterEvent(app, crypto, sendID, token, "click", targetURL)
+				recordNewsletterEvent(app, crypto, sendID, token, "click", targetURL)
 			}
 			// The link was taken from HTML, where & is written &amp;.
 			return e.Redirect(http.StatusFound, html.UnescapeString(targetURL))
@@ -977,7 +1203,76 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 	})
 }
 
-var errNewsletterSendInProgress = errors.New("a newsletter send is already in progress")
+var (
+	errNewsletterSendInProgress   = errors.New("a newsletter send is already in progress")
+	errNewsletterAlreadySent      = errors.New("this newsletter has already been sent")
+	errNewsletterRequestReplayed  = errors.New("this send request was already accepted")
+	errNewsletterRequestKeyReused = errors.New("request key used for a different newsletter")
+)
+
+// newsletterActiveLock is the active_lock value while a send runs. A partial
+// unique index allows only one row to hold it.
+const newsletterActiveLock = "sending"
+
+// findPreviousNewsletterSend returns a send that already delivered the same
+// newsletter to the same audience, or nil.
+//
+// Sends recorded before audiences were stored have a blank audience_key and
+// content_hash. Nobody knows who those went to, so they're matched by
+// subject and body against any audience: the owner confirms a resend rather
+// than risk mailing the same people twice.
+func findPreviousNewsletterSend(app core.App, subject, bodyHTML, contentHash, audienceKey string) *core.Record {
+	prior, err := app.FindFirstRecordByFilter(
+		"newsletter_sends",
+		"(status = 'sent' || sent_count > 0) && ("+
+			"(content_hash = {:hash} && audience_key = {:audience}) || "+
+			"(audience_key = '' && subject = {:subject} && body_html = {:body}))",
+		dbx.Params{"hash": contentHash, "audience": audienceKey, "subject": subject, "body": bodyHTML},
+	)
+	if err != nil {
+		return nil
+	}
+	return prior
+}
+
+func respondNewsletterLinkError(e *core.RequestEvent, err error) error {
+	code := "link_placeholder"
+	if errors.Is(err, errPerRecipientLink) {
+		code = "per_recipient_link"
+	}
+	return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error(), "code": code})
+}
+
+// subscriberSort orders subscribers newest first when the collection has a
+// created field. Some installs' subscribers collection doesn't, and sorting
+// on a missing field makes the whole query fail and the list look empty.
+func subscriberSort(app core.App) string {
+	if c, err := app.FindCachedCollectionByNameOrId("subscribers"); err == nil && c.Fields.GetByName("created") != nil {
+		return "-created"
+	}
+	return ""
+}
+
+func respondNewsletterAudienceError(e *core.RequestEvent, err error) error {
+	switch {
+	case errors.Is(err, errNewsletterListNotFound):
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "newsletter list not found"})
+	case errors.Is(err, errNewsletterListInactive):
+		return e.JSON(http.StatusBadRequest, map[string]string{"error": "newsletter list is inactive"})
+	}
+	return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load recipients"})
+}
+
+// newsletterSampleRecipient returns the first recipient of an audience for
+// previews. fallbackEmail is used when the audience is empty.
+func newsletterSampleRecipient(app core.App, audience *newsletterAudience, fallbackEmail string) (name, email string) {
+	if audience != nil && len(audience.SubscriberIDs) > 0 {
+		if sub, err := app.FindRecordById("subscribers", audience.SubscriberIDs[0]); err == nil {
+			return sub.GetString("name"), sub.GetString("email")
+		}
+	}
+	return "", fallbackEmail
+}
 
 // smtpConfigured reports whether the site can send email. PocketBase's
 // default settings carry a placeholder host, so the host alone doesn't say
@@ -1108,20 +1403,24 @@ func generateOneClickUnsubscribeURL(app core.App, token string) string {
 	return fmt.Sprintf("%s/api/public/unsubscribe/one-click/%s", baseURL, token)
 }
 
-// recordNewsletterEvent records an open or click event, deduplicates by subscriber+send+type,
-// and updates aggregate counts on the newsletter_sends record.
+// errDuplicateNewsletterEvent rolls back an event the subscriber already
+// recorded for this send.
+var errDuplicateNewsletterEvent = errors.New("duplicate newsletter event")
+
+// recordNewsletterEvent records an open or click event and bumps the
+// matching count on the send. It runs inside the request, so nothing touches
+// the database after the response or the app has finished. The event insert
+// and the count update share one transaction: the unique index on
+// (send_id, subscriber_id, event_type) lets only the first event through, and
+// the count moves only when that insert commits. Two clicks arriving together
+// therefore count once.
 func recordNewsletterEvent(app core.App, crypto *services.CryptoService, sendID, token, eventType, targetURL string) {
 	// Validate eventType to prevent SQL injection via countField concatenation
-	if eventType != "open" && eventType != "click" {
+	countField, ok := newsletterCountFieldFor(eventType)
+	if !ok {
 		log.Printf("[newsletter] Invalid event type: %s", eventType)
 		return
 	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("[newsletter] Event recording panic: %v", r)
-		}
-	}()
 
 	// Resolve subscriber from token
 	sub, err := findSubscriberByToken(app, crypto, token)
@@ -1129,49 +1428,42 @@ func recordNewsletterEvent(app core.App, crypto *services.CryptoService, sendID,
 		return // invalid token — silently ignore
 	}
 
-	subID := sub.Id
-
-	// Create event record — rely on unique composite index for deduplication
 	eventsCollection, err := app.FindCollectionByNameOrId("newsletter_events")
 	if err != nil {
 		log.Printf("[newsletter] Events collection not found: %v", err)
 		return
 	}
 
-	event := core.NewRecord(eventsCollection)
-	event.Set("send_id", sendID)
-	event.Set("subscriber_id", subID)
 	// Map open/click to stored enum values
-	storedEventType := eventType
-	if eventType == "open" {
-		storedEventType = "opened"
-	} else if eventType == "click" {
+	storedEventType := "opened"
+	if eventType == "click" {
 		storedEventType = "clicked"
 	}
-	event.Set("event_type", storedEventType)
-	if targetURL != "" {
-		event.Set("url", targetURL)
-	}
-	if err := app.Save(event); err != nil {
-		// Unique constraint violation means duplicate — silently ignore
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			return
-		}
-		log.Printf("[newsletter] Failed to save event: %v", err)
-		return
-	}
 
-	// Atomically increment the aggregate count on the send record.
-	countField, ok := newsletterCountFieldFor(eventType)
-	if !ok {
-		log.Printf("[newsletter] Refusing to update count for invalid event type: %s", eventType)
-		return
-	}
-	_, err = app.DB().NewQuery("UPDATE newsletter_sends SET " + countField + " = " + countField + " + 1 WHERE id = {:id}").
-		Bind(dbx.Params{"id": sendID}).
-		Execute()
-	if err != nil {
-		log.Printf("[newsletter] Failed to update send %s count: %v", countField, err)
+	err = app.RunInTransaction(func(txApp core.App) error {
+		event := core.NewRecord(eventsCollection)
+		event.Set("send_id", sendID)
+		event.Set("subscriber_id", sub.Id)
+		event.Set("event_type", storedEventType)
+		if targetURL != "" {
+			event.Set("url", targetURL)
+		}
+		if err := txApp.Save(event); err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				return errDuplicateNewsletterEvent
+			}
+			return fmt.Errorf("save event: %w", err)
+		}
+		_, err := txApp.DB().NewQuery("UPDATE newsletter_sends SET " + countField + " = " + countField + " + 1 WHERE id = {:id}").
+			Bind(dbx.Params{"id": sendID}).
+			Execute()
+		if err != nil {
+			return fmt.Errorf("update send %s: %w", countField, err)
+		}
+		return nil
+	})
+	if err != nil && !errors.Is(err, errDuplicateNewsletterEvent) {
+		log.Printf("[newsletter] Failed to record %s event: %v", eventType, err)
 	}
 }
 
@@ -1206,108 +1498,102 @@ func findSubscriberByToken(app core.App, crypto *services.CryptoService, token s
 	return records[0], nil
 }
 
-// sendWelcomeEmail sends a branded welcome email to a new subscriber in a goroutine.
-// Accepts subscriber ID (not pointer) to avoid goroutine capturing mutable record.
+// sendWelcomeEmail sends a branded welcome email to a new subscriber.
+// It runs inside the confirmation request, the same way the confirmation
+// email itself is sent, so it finishes before the response does and never
+// outlives the app. Failures are logged; the subscription stands either way.
 // Includes List-Unsubscribe headers for native unsubscribe support in Gmail/Apple Mail.
 // Gracefully skips if SMTP is not configured.
 func sendWelcomeEmail(app *pocketbase.PocketBase, crypto *services.CryptoService, subID string) {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("[newsletter] Welcome email panic: %v", r)
-			}
-		}()
+	// SMTP graceful degradation — self-hosted may not have SMTP configured
+	if !smtpConfigured(app) {
+		app.Logger().Info("newsletter: SMTP not configured, skipping welcome email", "subscriber_id", subID)
+		return
+	}
 
-		// SMTP graceful degradation — self-hosted may not have SMTP configured
-		if !smtpConfigured(app) {
-			app.Logger().Info("newsletter: SMTP not configured, skipping welcome email", "subscriber_id", subID)
-			return
+	// Re-fetch subscriber by ID to avoid stale data
+	sub, err := app.FindRecordById("subscribers", subID)
+	if err != nil {
+		log.Printf("[newsletter] Failed to find subscriber %s for welcome email: %v", subID, err)
+		return
+	}
+
+	// Look up profile for personalization and sender settings
+	senderName := "Newsletter"
+	welcomeReplyTo := ""
+	profile, err := app.FindFirstRecordByFilter("profile", "1=1", nil)
+	if err == nil && profile != nil {
+		if customName := profile.GetString("newsletter_sender_name"); customName != "" {
+			senderName = customName
+		} else if name := profile.GetString("name"); name != "" {
+			senderName = name
 		}
-
-		// Re-fetch subscriber by ID to avoid stale data
-		sub, err := app.FindRecordById("subscribers", subID)
-		if err != nil {
-			log.Printf("[newsletter] Failed to find subscriber %s for welcome email: %v", subID, err)
-			return
+		if customReplyTo := profile.GetString("newsletter_reply_to"); customReplyTo != "" {
+			welcomeReplyTo = customReplyTo
 		}
+	}
 
-		// Look up profile for personalization and sender settings
-		senderName := "Newsletter"
-		welcomeReplyTo := ""
-		profile, err := app.FindFirstRecordByFilter("profile", "1=1", nil)
-		if err == nil && profile != nil {
-			if customName := profile.GetString("newsletter_sender_name"); customName != "" {
-				senderName = customName
-			} else if name := profile.GetString("name"); name != "" {
-				senderName = name
-			}
-			if customReplyTo := profile.GetString("newsletter_reply_to"); customReplyTo != "" {
-				welcomeReplyTo = customReplyTo
-			}
-		}
+	// Generate unsubscribe token and URL
+	rawToken, err := ensureUnsubscribeToken(app, crypto, sub)
+	if err != nil {
+		log.Printf("[newsletter] Failed to generate unsubscribe token for %s: %v", sub.GetString("email"), err)
+		return
+	}
+	unsubscribeURL := generateUnsubscribeURL(app, rawToken)
+	oneClickURL := generateOneClickUnsubscribeURL(app, rawToken)
 
-		// Generate unsubscribe token and URL
-		rawToken, err := ensureUnsubscribeToken(app, crypto, sub)
-		if err != nil {
-			log.Printf("[newsletter] Failed to generate unsubscribe token for %s: %v", sub.GetString("email"), err)
-			return
-		}
-		unsubscribeURL := generateUnsubscribeURL(app, rawToken)
-		oneClickURL := generateOneClickUnsubscribeURL(app, rawToken)
+	recipientEmail := sub.GetString("email")
+	recipientName := sub.GetString("name")
+	safeSenderName := html.EscapeString(senderName)
 
-		recipientEmail := sub.GetString("email")
-		recipientName := sub.GetString("name")
-		safeSenderName := html.EscapeString(senderName)
+	greeting := "Hi"
+	if recipientName != "" {
+		greeting = fmt.Sprintf("Hi %s", html.EscapeString(recipientName))
+	}
 
-		greeting := "Hi"
-		if recipientName != "" {
-			greeting = fmt.Sprintf("Hi %s", html.EscapeString(recipientName))
-		}
+	subject := fmt.Sprintf("Welcome to %s's newsletter", senderName)
 
-		subject := fmt.Sprintf("Welcome to %s's newsletter", senderName)
-
-		innerContent := fmt.Sprintf(
-			`<p style="color: #374151; font-size: 16px; line-height: 1.6;">%s,</p>
+	innerContent := fmt.Sprintf(
+		`<p style="color: #374151; font-size: 16px; line-height: 1.6;">%s,</p>
 <p style="color: #374151; font-size: 16px; line-height: 1.6;">Thanks for subscribing to <strong>%s</strong>'s newsletter! You'll receive updates and content directly to your inbox.</p>
 <p style="color: #6B7280; font-size: 14px; line-height: 1.5;">If you didn't subscribe, you can <a href="%s" style="color: #2563eb;">unsubscribe here</a>.</p>`,
-			greeting,
-			safeSenderName,
-			unsubscribeURL,
-		)
-		htmlBody := NewsletterEmailLayout(innerContent, unsubscribeURL)
+		greeting,
+		safeSenderName,
+		unsubscribeURL,
+	)
+	htmlBody := NewsletterEmailLayout(innerContent, unsubscribeURL)
 
-		welcomeHeaders := map[string]string{
-			"List-Unsubscribe":      "<" + oneClickURL + ">, <" + unsubscribeURL + ">",
-			"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-		}
-		if welcomeReplyTo != "" {
-			welcomeHeaders["Reply-To"] = welcomeReplyTo
-		}
+	welcomeHeaders := map[string]string{
+		"List-Unsubscribe":      "<" + oneClickURL + ">, <" + unsubscribeURL + ">",
+		"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+	}
+	if welcomeReplyTo != "" {
+		welcomeHeaders["Reply-To"] = welcomeReplyTo
+	}
 
-		message := &mailer.Message{
-			From: mail.Address{
-				Address: app.Settings().Meta.SenderAddress,
-				Name:    senderName,
-			},
-			To:      []mail.Address{{Address: recipientEmail}},
-			Subject: subject,
-			HTML:    htmlBody,
-			Headers: welcomeHeaders,
-		}
+	message := &mailer.Message{
+		From: mail.Address{
+			Address: app.Settings().Meta.SenderAddress,
+			Name:    senderName,
+		},
+		To:      []mail.Address{{Address: recipientEmail}},
+		Subject: subject,
+		HTML:    htmlBody,
+		Headers: welcomeHeaders,
+	}
 
-		if sendErr := app.NewMailClient().Send(message); sendErr != nil {
-			log.Printf("[newsletter] Failed to send welcome email to %s: %v", recipientEmail, sendErr)
-		} else {
-			log.Printf("[newsletter] Sent welcome email to %s", recipientEmail)
-		}
-	}()
+	if sendErr := app.NewMailClient().Send(message); sendErr != nil {
+		log.Printf("[newsletter] Failed to send welcome email to %s: %v", recipientEmail, sendErr)
+	} else {
+		log.Printf("[newsletter] Sent welcome email to %s", recipientEmail)
+	}
 }
 
 // sendNewsletter sends a newsletter to all active subscribers in a goroutine.
 // Accepts subscriber IDs (not pointers) to avoid goroutine capturing mutable records.
 // Updates the send record with progress as it sends.
 // Gracefully skips if SMTP is not configured.
-func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, bodyHTML, templateSlug string, subscriberIDs []string) {
+func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, bodyHTML, templateSlug string, subscriberIDs []string, personalization *newsletterPersonalization) {
 	sentCount := 0
 	failedCount := 0
 
@@ -1319,6 +1605,7 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 				sendRecord.Set("sent_count", sentCount)
 				sendRecord.Set("failed_count", failedCount)
 				sendRecord.Set("status", "failed")
+				sendRecord.Set("active_lock", "")
 				sendRecord.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
 				_ = app.Save(sendRecord)
 			}
@@ -1330,6 +1617,7 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 		app.Logger().Info("newsletter: SMTP not configured, skipping newsletter send")
 		if sendRecord, err := app.FindRecordById("newsletter_sends", sendID); err == nil {
 			sendRecord.Set("status", "failed")
+			sendRecord.Set("active_lock", "")
 			sendRecord.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
 			_ = app.Save(sendRecord)
 		}
@@ -1377,6 +1665,11 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 		// Rewrite links for click tracking (skip unsubscribe links)
 		trackedBody := rewriteLinksForTracking(app, safeBodyHTML, sendID, rawToken, unsubscribeURL)
 
+		// Placeholders are filled after link tracking so tracked links
+		// still match the stored body the click route checks against.
+		recipientName, recipientEmail := sub.GetString("name"), sub.GetString("email")
+		trackedBody = personalization.HTML(trackedBody, recipientName, recipientEmail)
+
 		emailHTML := RenderNewsletterTemplate(templateSlug, trackedBody, unsubscribeURL, fromName)
 
 		// Inject tracking pixel before closing </body> or at end
@@ -1401,8 +1694,8 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 				Address: app.Settings().Meta.SenderAddress,
 				Name:    fromName,
 			},
-			To:      []mail.Address{{Address: sub.GetString("email")}},
-			Subject: subject,
+			To:      []mail.Address{{Address: recipientEmail}},
+			Subject: personalization.Subject(subject, recipientName, recipientEmail),
 			HTML:    emailHTML,
 			Headers: headers,
 		}
@@ -1445,6 +1738,7 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 
 	sendRecord.Set("sent_count", sentCount)
 	sendRecord.Set("failed_count", failedCount)
+	sendRecord.Set("active_lock", "")
 	sendRecord.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
 	if failedCount > 0 && sentCount == 0 {
 		sendRecord.Set("status", "failed")

@@ -32,10 +32,14 @@
 	}
 </script>
 
-<div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-4 shadow-sm">
+<div
+	class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-4 shadow-sm"
+>
 	<div class="flex items-center gap-4">
 		<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-			{$t('admin.bulk_actions.selected_count', { values: { selected: selectedCount, total: totalCount } })}
+			{$t('admin.bulk_actions.selected_count', {
+				values: { selected: selectedCount, total: totalCount }
+			})}
 		</span>
 		<button
 			type="button"
@@ -59,7 +63,7 @@
 				<button
 					type="button"
 					class="btn btn-secondary text-sm flex items-center gap-1"
-					onclick={() => showVisibilityMenu = !showVisibilityMenu}
+					onclick={() => (showVisibilityMenu = !showVisibilityMenu)}
 					aria-expanded={showVisibilityMenu}
 					aria-haspopup="true"
 				>
@@ -71,7 +75,12 @@
 						viewBox="0 0 24 24"
 						stroke="currentColor"
 					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M19 9l-7 7-7-7"
+						/>
 					</svg>
 				</button>
 
@@ -79,10 +88,12 @@
 					<button
 						type="button"
 						class="fixed inset-0 z-20"
-						onclick={() => showVisibilityMenu = false}
+						onclick={() => (showVisibilityMenu = false)}
 						aria-label={$t('shared.aria.close_menu')}
 					></button>
-					<div class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-30 animate-slide-in-down">
+					<div
+						class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-30 animate-slide-in-down"
+					>
 						<button
 							type="button"
 							class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
@@ -122,11 +133,7 @@
 			</button>
 		{/if}
 
-		<button
-			type="button"
-			class="btn btn-ghost text-sm"
-			onclick={() => dispatch('cancel')}
-		>
+		<button type="button" class="btn btn-ghost text-sm" onclick={() => dispatch('cancel')}>
 			{$t('shared.actions.cancel')}
 		</button>
 	</div>

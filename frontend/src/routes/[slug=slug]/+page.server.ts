@@ -14,15 +14,30 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getShareToken, getPasswordToken, setPasswordToken, setShareToken, isSecureRequest } from '$lib/tokens';
+import {
+	getShareToken,
+	getPasswordToken,
+	setPasswordToken,
+	setShareToken,
+	isSecureRequest
+} from '$lib/tokens';
+import { internalApiHeaders } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals, request, parent }) => {
+export const load: PageServerLoad = async ({
+	params,
+	cookies,
+	url,
+	fetch,
+	locals,
+	request,
+	parent
+}) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 
 	const shareToken = getShareToken(cookies);
 	const passwordToken = getPasswordToken(cookies);
-	
+
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 
 	// Check for URL token (legacy ?t= parameter)
@@ -50,15 +65,15 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 	const effectiveShareToken = shareToken;
 
 	try {
-		const accessHeaders: Record<string, string> = {};
+		const accessHeaders: Record<string, string> = internalApiHeaders(request);
 		if (pbAuthToken) {
 			accessHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
 		}
-		
+
 		const response = await fetch(`${pbUrl}/api/view/${slug}/access`, {
-			headers: { ...accessHeaders, 'X-Internal': 'true' }
+			headers: accessHeaders
 		});
-		
+
 		if (!response.ok) {
 			throw error(404, 'Not Found');
 		}
@@ -103,7 +118,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			};
 		}
 
-		const dataHeaders: Record<string, string> = {};
+		const dataHeaders: Record<string, string> = internalApiHeaders(request);
 		if (effectiveShareToken) {
 			dataHeaders['X-Share-Token'] = effectiveShareToken;
 		}
@@ -113,7 +128,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			dataHeaders['Authorization'] = `Bearer ${passwordToken}`;
 		}
 
-		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: { ...dataHeaders, 'X-Internal': 'true' } });
+		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: dataHeaders });
 
 		if (!dataResponse.ok) {
 			if (dataResponse.status === 401 || dataResponse.status === 403) {
@@ -172,11 +187,13 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				hero_spacing: viewData.hero_spacing || null,
 				hero_bg_color: viewData.hero_bg_color || null
 			},
-			profile: profile ? {
-				...profile,
-				hero_image: profile.hero_image_url || null,
-				avatar: profile.avatar_url || null
-			} : null,
+			profile: profile
+				? {
+						...profile,
+						hero_image: profile.hero_image_url || null,
+						avatar: profile.avatar_url || null
+					}
+				: null,
 			sections: viewData.sections || {},
 			sectionOrder: viewData.section_order || [],
 			sectionLayouts: viewData.section_layouts || {},

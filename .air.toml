@@ -18,8 +18,9 @@ tmp_dir = "tmp"
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  # Run from repo root with correct paths
-  full_bin = 'ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=${SEED_DATA:-} ./tmp/facet serve --http=127.0.0.1:8090 --dir="${DATA_DIR:-./pb_data}"'
+  # Run from repo root with correct paths. scripts/dev-backend.sh validates
+  # FACET_DEV_HOST (hostname or IPv4 only); docker-compose.dev.yml sets 0.0.0.0.
+  full_bin = 'ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=${SEED_DATA:-minimal} ./tmp/facet serve --http="${FACET_DEV_HOST:-127.0.0.1}:8090" --dir="${DATA_DIR:-./pb_data}"'
   include_dir = ["backend"]
   include_ext = ["go", "tpl", "tmpl", "html"]
   include_file = []

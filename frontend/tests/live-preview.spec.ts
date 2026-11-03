@@ -1,30 +1,20 @@
 import { test, expect, type Page } from '@playwright/test';
+import { seedAdminSession } from './helpers';
 
 // Exercises the ported live-site preview: a header toggle (role=switch) that
 // opens a side column with a sandboxed iframe of the public homepage, with the
 // state persisted in localStorage. Desktop only (lg+).
 const BASE_URL =
 	process.env.PLAYWRIGHT_BASE_URL ?? process.env.VITE_POCKETBASE_URL ?? 'http://localhost:5173';
-const LOGIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@example.com';
-const LOGIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme123';
-
-async function login(page: Page) {
-	await page.goto(`${BASE_URL}/admin/login`);
-	await page.waitForSelector('input[type="email"]', { timeout: 10_000 });
-	await page.fill('input[type="email"]', LOGIN_EMAIL);
-	await page.fill('input[type="password"]', LOGIN_PASSWORD);
-	await page.click('button[type="submit"]');
-	await page.waitForURL((url) => /\/admin(\/|$)/.test(url.pathname) && !url.pathname.includes('/login'), {
-		timeout: 15_000
-	});
-}
 
 const toggle = (page: Page) => page.getByRole('switch', { name: 'Toggle live preview' });
-const previewFrame = (page: Page) => page.locator('iframe[title="Live preview of your public site"]');
+const previewFrame = (page: Page) =>
+	page.locator('iframe[title="Live preview of your public site"]');
 
 test.describe('Live site preview', () => {
-	test.beforeEach(async ({ page }) => {
-		await login(page);
+	test.beforeEach(async ({ page, request }) => {
+		await seedAdminSession(page, request);
+		await page.goto(`${BASE_URL}/admin`);
 	});
 
 	test.afterEach(async ({ page }) => {

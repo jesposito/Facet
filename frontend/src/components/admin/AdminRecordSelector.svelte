@@ -71,7 +71,11 @@
 	let selectedRecords = $derived(options.filter((record) => selectedIds.includes(record.id)));
 </script>
 
-<svelte:window onkeydown={(e) => { if (showDropdown && e.key === 'Escape') closeDropdown(); }} />
+<svelte:window
+	onkeydown={(e) => {
+		if (showDropdown && e.key === 'Escape') closeDropdown();
+	}}
+/>
 
 <div class="relative">
 	{#if selectedRecords.length > 0}
@@ -87,8 +91,19 @@
 						onclick={() => remove(record.id)}
 						aria-label={$t('admin.related.remove_item', { values: { name: getLabel(record) } })}
 					>
-						<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						<svg
+							class="w-3.5 h-3.5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
 						</svg>
 					</button>
 				</li>
@@ -118,7 +133,11 @@
 			{:else if options.length === 0}
 				<p class="text-sm text-gray-500 dark:text-gray-400 p-2 text-center">{emptyLabel}</p>
 			{:else}
-				<ul class="space-y-1 max-h-56 overflow-y-auto list-none p-0 m-0" role="group" aria-label={listLabel}>
+				<ul
+					class="space-y-1 max-h-56 overflow-y-auto list-none p-0 m-0"
+					role="group"
+					aria-label={listLabel}
+				>
 					{#each options as record (record.id)}
 						{@const isSelected = selectedIds.includes(record.id)}
 						<li>
@@ -130,17 +149,32 @@
 								onclick={() => toggle(record.id)}
 							>
 								<span class="flex-1 min-w-0">
-									<span class="block truncate text-gray-700 dark:text-gray-200">{getLabel(record)}</span>
+									<span class="block truncate text-gray-700 dark:text-gray-200"
+										>{getLabel(record)}</span
+									>
 									{#if getSubLabel}
 										{@const sub = getSubLabel(record)}
 										{#if sub}
-											<span class="block truncate text-xs text-gray-500 dark:text-gray-400">{sub}</span>
+											<span class="block truncate text-xs text-gray-500 dark:text-gray-400"
+												>{sub}</span
+											>
 										{/if}
 									{/if}
 								</span>
 								{#if isSelected}
-									<svg class="w-4 h-4 text-primary-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+									<svg
+										class="w-4 h-4 text-primary-600 shrink-0"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/>
 									</svg>
 								{/if}
 							</button>
@@ -154,8 +188,19 @@
 				onclick={closeDropdown}
 				aria-label={$t('shared.aria.close')}
 			>
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+				<svg
+					class="w-4 h-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"
+					/>
 				</svg>
 			</button>
 		</div>

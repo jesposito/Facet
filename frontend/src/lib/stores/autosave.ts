@@ -31,18 +31,21 @@ function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T 
 /**
  * Creates an autosave manager for a specific form
  */
-export function createAutosave(formKey: string, options: {
-	saveDelay?: number; // ms to wait before saving after last change (default: 2000)
-	excludeFields?: string[]; // fields to exclude from autosave
-	maxAge?: number; // max age of saved data in ms (default: 7 days)
-} = {}) {
+export function createAutosave(
+	formKey: string,
+	options: {
+		saveDelay?: number; // ms to wait before saving after last change (default: 2000)
+		excludeFields?: string[]; // fields to exclude from autosave
+		maxAge?: number; // max age of saved data in ms (default: 7 days)
+	} = {}
+) {
 	const {
 		saveDelay = 2000,
 		excludeFields = [],
 		maxAge = 7 * 24 * 60 * 60 * 1000 // 7 days
 	} = options;
 
-	autosaveStatus.update(statuses => ({
+	autosaveStatus.update((statuses) => ({
 		...statuses,
 		[formKey]: {
 			formKey,
@@ -53,19 +56,19 @@ export function createAutosave(formKey: string, options: {
 	}));
 	const loadSavedData = (): any => {
 		if (typeof window === 'undefined') return null;
-		
+
 		try {
 			const saved = localStorage.getItem(`autosave-${formKey}`);
 			if (!saved) return null;
 
 			const parsed = JSON.parse(saved);
-			
+
 			// Check if data is too old
 			if (parsed.savedAt && Date.now() - parsed.savedAt > maxAge) {
 				localStorage.removeItem(`autosave-${formKey}`);
 				return null;
 			}
-			
+
 			return parsed;
 		} catch (error) {
 			console.warn('Failed to load autosave data:', error);
@@ -91,8 +94,8 @@ export function createAutosave(formKey: string, options: {
 
 		try {
 			localStorage.setItem(`autosave-${formKey}`, JSON.stringify(autosaveEntry));
-			
-			autosaveStatus.update(statuses => ({
+
+			autosaveStatus.update((statuses) => ({
 				...statuses,
 				[formKey]: {
 					...statuses[formKey],
@@ -102,7 +105,7 @@ export function createAutosave(formKey: string, options: {
 				}
 			}));
 			setTimeout(() => {
-				autosaveStatus.update(statuses => ({
+				autosaveStatus.update((statuses) => ({
 					...statuses,
 					[formKey]: {
 						...statuses[formKey],
@@ -110,10 +113,9 @@ export function createAutosave(formKey: string, options: {
 					}
 				}));
 			}, 2000);
-
 		} catch (error) {
 			console.error('Failed to save autosave data:', error);
-			autosaveStatus.update(statuses => ({
+			autosaveStatus.update((statuses) => ({
 				...statuses,
 				[formKey]: {
 					...statuses[formKey],
@@ -126,11 +128,17 @@ export function createAutosave(formKey: string, options: {
 	const debouncedSave = debounce(saveToStorage, saveDelay);
 	const hasUnsavedChanges = (currentData: Record<string, any>): boolean => {
 		const saved = loadSavedData();
-		if (!saved) return Object.keys(currentData).some(key => {
-			const value = currentData[key];
-			return value !== '' && value !== null && value !== undefined && value !== false && 
-				   (Array.isArray(value) ? value.length > 0 : true);
-		});
+		if (!saved)
+			return Object.keys(currentData).some((key) => {
+				const value = currentData[key];
+				return (
+					value !== '' &&
+					value !== null &&
+					value !== undefined &&
+					value !== false &&
+					(Array.isArray(value) ? value.length > 0 : true)
+				);
+			});
 
 		const savedData = saved.data;
 		for (const [key, value] of Object.entries(currentData)) {
@@ -146,7 +154,7 @@ export function createAutosave(formKey: string, options: {
 		loadDraft: () => loadSavedData(),
 
 		save: (data: Record<string, any>, isEditing = false, editingId?: string) => {
-			autosaveStatus.update(statuses => ({
+			autosaveStatus.update((statuses) => ({
 				...statuses,
 				[formKey]: {
 					...statuses[formKey],
@@ -159,21 +167,21 @@ export function createAutosave(formKey: string, options: {
 		},
 
 		saveNow: (data: Record<string, any>, isEditing = false, editingId?: string) => {
-			autosaveStatus.update(statuses => ({
+			autosaveStatus.update((statuses) => ({
 				...statuses,
 				[formKey]: {
 					...statuses[formKey],
 					status: 'saving'
 				}
 			}));
-			
+
 			saveToStorage(data, isEditing, editingId);
 		},
 
 		clearDraft: () => {
 			if (typeof window === 'undefined') return;
 			localStorage.removeItem(`autosave-${formKey}`);
-			autosaveStatus.update(statuses => ({
+			autosaveStatus.update((statuses) => ({
 				...statuses,
 				[formKey]: {
 					...statuses[formKey],
@@ -186,9 +194,9 @@ export function createAutosave(formKey: string, options: {
 
 		hasUnsavedChanges,
 
-		getStatus: () => derived(autosaveStatus, $statuses => $statuses[formKey]),
+		getStatus: () => derived(autosaveStatus, ($statuses) => $statuses[formKey]),
 		markChanged: () => {
-			autosaveStatus.update(statuses => ({
+			autosaveStatus.update((statuses) => ({
 				...statuses,
 				[formKey]: {
 					...statuses[formKey],
@@ -204,14 +212,14 @@ export function createAutosave(formKey: string, options: {
  */
 export function hasAnyUnsavedChanges(): boolean {
 	if (typeof window === 'undefined') return false;
-	
+
 	for (let i = 0; i < localStorage.length; i++) {
 		const key = localStorage.key(i);
 		if (key?.startsWith('autosave-')) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -229,8 +237,8 @@ export function clearAllAutosaveData(): void {
 		}
 	}
 
-	keysToRemove.forEach(key => localStorage.removeItem(key));
-	
+	keysToRemove.forEach((key) => localStorage.removeItem(key));
+
 	// Clear status store
 	autosaveStatus.set({});
 }

@@ -441,8 +441,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// visitor is not forwarded), so they can't be keyed on the visitor —
 				// count those unconditionally, matching pre-change behavior. Direct
 				// (non-internal) hits are bot-gated and ~30-min deduped.
-				if e.Request.Header.Get("X-Internal") == "true" ||
-					services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id) {
+				// The Analytics switch covers the raw counter too, not just
+				// access_logs. If settings can't be read, don't count.
+				if services.IsFeatureEnabled(app, services.FeatureAnalytics, false) &&
+					(e.Request.Header.Get("X-Internal") == "true" ||
+						services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id)) {
 					// Increment view count and last_viewed_at in the background
 					viewID := view.Id
 					collection := viewsCollection
@@ -1313,8 +1316,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Contacts use view_visibility rather than a visibility column.
-			// Apply contactVisibleInView below to exclude restricted contacts.
+			// Contacts use view_visibility; contactVisibleInView filters restrictions below.
 			contactsEnabled, contactsSelectedItems, contactsConfigured := getSectionConfig(settings, "contacts")
 			if contactsEnabled {
 				contactRecords, err := app.FindRecordsByFilter(

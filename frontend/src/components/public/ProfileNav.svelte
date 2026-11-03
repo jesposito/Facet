@@ -109,7 +109,20 @@
 	};
 
 	// Default order (used when no sectionOrder provided)
-	const DEFAULT_NAV_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'courses', 'testimonials', 'newsletter', 'contacts'];
+	const DEFAULT_NAV_ORDER = [
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'courses',
+		'testimonials',
+		'newsletter',
+		'contacts'
+	];
 
 	// Build nav items respecting the provided section order
 	let navItems = $derived.by(() => {
@@ -120,7 +133,7 @@
 			// Handle custom content sections
 			if (sectionId.startsWith('custom:')) {
 				const customId = sectionId.replace('custom:', '');
-				const customItem = customContent.find(c => c.id === customId);
+				const customItem = customContent.find((c) => c.id === customId);
 				if (customItem) {
 					items.push({
 						id: `custom-${customId}`,
@@ -154,9 +167,14 @@
 </script>
 
 {#if navItems.length > 0}
-	<nav aria-label={$t('public.nav.sections_label')} class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 print:hidden">
+	<nav
+		aria-label={$t('public.nav.sections_label')}
+		class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30 print:hidden"
+	>
 		<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-			<div class="flex items-center gap-1 py-2 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+			<div
+				class="flex items-center gap-1 py-2 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0"
+			>
 				{#each navItems as item (item.id)}
 					{#if item.href}
 						<a
@@ -164,12 +182,23 @@
 							aria-current={activeSection === item.id ? 'page' : undefined}
 							class="nav-item flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
-									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
-									: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
+								? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
+								: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
 						>
 							{item.label}
-							<svg class="inline-block w-3 h-3 ml-0.5 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+							<svg
+								class="inline-block w-3 h-3 ml-0.5 -mt-0.5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+								/>
 							</svg>
 						</a>
 					{:else}
@@ -179,8 +208,8 @@
 							aria-current={activeSection === item.id ? 'page' : undefined}
 							class="nav-item flex-shrink-0 px-3 py-1.5 text-sm font-medium rounded-full transition-colors
 								{activeSection === item.id
-									? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
-									: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
+								? 'bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-white'
+								: 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}"
 						>
 							{item.label}
 						</button>

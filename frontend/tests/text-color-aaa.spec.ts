@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import { apiBaseURL } from './config';
+import { loginAsAdmin } from './helpers';
 
 /**
  * AAA proof for the operator-settable text (font) color.
@@ -18,11 +19,8 @@ import { apiBaseURL } from './config';
  *  5. Assert the default (no text_color) is unchanged, and that a known surface
  *     element is NOT tinted (stays the neutral stone value).
  *
- * The PB superuser PATCHes the field; the public render re-derives the AAA clamp.
+ * The seeded owner PATCHes the field; the public render re-derives the AAA clamp.
  */
-
-const PB_SUPERUSER = process.env.PB_SUPERUSER_EMAIL || 'admin@localhost.dev';
-const PB_SUPERUSER_PW = process.env.PB_SUPERUSER_PASSWORD || 'admin123';
 
 // Two deliberately bad picks: pale yellow (worst case for dark-on-light) and a
 // mid gray (near the worst case for BOTH modes). Both must end up AAA.
@@ -50,17 +48,9 @@ function contrast(c1: string, c2: string): number {
 	return (hi + 0.05) / (lo + 0.05);
 }
 
-async function superuserToken(request: APIRequestContext): Promise<string> {
-	const res = await request.post(`${apiBaseURL}/api/collections/_superusers/auth-with-password`, {
-		data: { identity: PB_SUPERUSER, password: PB_SUPERUSER_PW },
-	});
-	expect(res.ok(), 'PB superuser auth must succeed').toBeTruthy();
-	return (await res.json()).token as string;
-}
-
 async function profileId(request: APIRequestContext, token: string): Promise<string> {
 	const res = await request.get(`${apiBaseURL}/api/collections/profile/records?perPage=1`, {
-		headers: { Authorization: token },
+		headers: { Authorization: token }
 	});
 	expect(res.ok()).toBeTruthy();
 	const items = (await res.json()).items as Array<{ id: string }>;
@@ -68,10 +58,15 @@ async function profileId(request: APIRequestContext, token: string): Promise<str
 	return items[0].id;
 }
 
-async function setTextColor(request: APIRequestContext, token: string, id: string, hex: string): Promise<void> {
+async function setTextColor(
+	request: APIRequestContext,
+	token: string,
+	id: string,
+	hex: string
+): Promise<void> {
 	const res = await request.patch(`${apiBaseURL}/api/collections/profile/records/${id}`, {
 		headers: { Authorization: token },
-		data: { text_color: hex },
+		data: { text_color: hex }
 	});
 	expect(res.ok(), `PATCH text_color=${hex || '(empty)'} must succeed`).toBeTruthy();
 }
@@ -123,7 +118,8 @@ async function measure(page: import('@playwright/test').Page, dark: boolean) {
 			paraOnBg = document.createElement('p');
 			paraOnBg.id = 'aaa-test-body-onbg';
 			paraOnBg.className = 'prose-custom text-gray-700 dark:text-gray-300';
-			paraOnBg.textContent = 'Body paragraph text on the warm page background for the AAA contrast assertion.';
+			paraOnBg.textContent =
+				'Body paragraph text on the warm page background for the AAA contrast assertion.';
 			main.appendChild(paraOnBg);
 		}
 
@@ -134,7 +130,8 @@ async function measure(page: import('@playwright/test').Page, dark: boolean) {
 			paraStone = document.createElement('p');
 			paraStone.id = 'aaa-test-body-stone';
 			paraStone.className = 'prose-custom text-stone-700 dark:text-stone-300';
-			paraStone.textContent = 'Body paragraph using stone utilities for the AAA contrast assertion.';
+			paraStone.textContent =
+				'Body paragraph using stone utilities for the AAA contrast assertion.';
 			main.appendChild(paraStone);
 		}
 
@@ -151,7 +148,7 @@ async function measure(page: import('@playwright/test').Page, dark: boolean) {
 			stoneBodyBg: bgOf(paraStone),
 			surfaceBg: surface ? getComputedStyle(surface).backgroundColor : null,
 			textInk: getComputedStyle(document.documentElement).getPropertyValue('--text-ink').trim(),
-			hasAttr: document.documentElement.hasAttribute('data-text-ink'),
+			hasAttr: document.documentElement.hasAttribute('data-text-ink')
 		};
 	}, dark);
 }
@@ -161,7 +158,7 @@ test.describe('operator text color is AAA by construction', () => {
 	let id: string;
 
 	test.beforeAll(async ({ request }) => {
-		token = await superuserToken(request);
+		({ token } = await loginAsAdmin(request));
 		id = await profileId(request, token);
 	});
 
@@ -182,7 +179,10 @@ test.describe('operator text color is AAA by construction', () => {
 	});
 
 	for (const pick of BAD_PICKS) {
-		test(`bad pick ${pick}: heading + body clear 7:1 in light AND dark`, async ({ request, page }) => {
+		test(`bad pick ${pick}: heading + body clear 7:1 in light AND dark`, async ({
+			request,
+			page
+		}) => {
 			await setTextColor(request, token, id, pick);
 			await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -196,11 +196,11 @@ test.describe('operator text color is AAA by construction', () => {
 			const lightBody = contrast(light.bodyColor, light.bodyBg);
 			expect(
 				lightHeading,
-				`light heading ${light.headingColor} on ${light.headingBg} = ${lightHeading.toFixed(2)}:1`,
+				`light heading ${light.headingColor} on ${light.headingBg} = ${lightHeading.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(6.95);
 			expect(
 				lightBody,
-				`light body ${light.bodyColor} on ${light.bodyBg} = ${lightBody.toFixed(2)}:1`,
+				`light body ${light.bodyColor} on ${light.bodyBg} = ${lightBody.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(6.95);
 
 			// Worst-case surface: body text directly on the warm page --bg (#fbf8f4),
@@ -209,12 +209,12 @@ test.describe('operator text color is AAA by construction', () => {
 			const lightBodyOnBg = contrast(light.bodyOnBgColor, light.bodyOnBgBg);
 			expect(
 				lightBodyOnBg,
-				`light body on page bg ${light.bodyOnBgColor} on ${light.bodyOnBgBg} = ${lightBodyOnBg.toFixed(2)}:1`,
+				`light body on page bg ${light.bodyOnBgColor} on ${light.bodyOnBgBg} = ${lightBodyOnBg.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(7.0);
 			const lightStoneBody = contrast(light.stoneBodyColor, light.stoneBodyBg);
 			expect(
 				lightStoneBody,
-				`light stone body ${light.stoneBodyColor} on ${light.stoneBodyBg} = ${lightStoneBody.toFixed(2)}:1`,
+				`light stone body ${light.stoneBodyColor} on ${light.stoneBodyBg} = ${lightStoneBody.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(7.0);
 
 			// Surface must NOT be tinted — still neutral stone white.
@@ -226,11 +226,11 @@ test.describe('operator text color is AAA by construction', () => {
 			const darkBody = contrast(dark.bodyColor, dark.bodyBg);
 			expect(
 				darkHeading,
-				`dark heading ${dark.headingColor} on ${dark.headingBg} = ${darkHeading.toFixed(2)}:1`,
+				`dark heading ${dark.headingColor} on ${dark.headingBg} = ${darkHeading.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(6.95);
 			expect(
 				darkBody,
-				`dark body ${dark.bodyColor} on ${dark.bodyBg} = ${darkBody.toFixed(2)}:1`,
+				`dark body ${dark.bodyColor} on ${dark.bodyBg} = ${darkBody.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(6.95);
 
 			// Worst-case surface in dark mode: body text directly on the page --bg
@@ -238,12 +238,12 @@ test.describe('operator text color is AAA by construction', () => {
 			const darkBodyOnBg = contrast(dark.bodyOnBgColor, dark.bodyOnBgBg);
 			expect(
 				darkBodyOnBg,
-				`dark body on page bg ${dark.bodyOnBgColor} on ${dark.bodyOnBgBg} = ${darkBodyOnBg.toFixed(2)}:1`,
+				`dark body on page bg ${dark.bodyOnBgColor} on ${dark.bodyOnBgBg} = ${darkBodyOnBg.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(7.0);
 			const darkStoneBody = contrast(dark.stoneBodyColor, dark.stoneBodyBg);
 			expect(
 				darkStoneBody,
-				`dark stone body ${dark.stoneBodyColor} on ${dark.stoneBodyBg} = ${darkStoneBody.toFixed(2)}:1`,
+				`dark stone body ${dark.stoneBodyColor} on ${dark.stoneBodyBg} = ${darkStoneBody.toFixed(2)}:1`
 			).toBeGreaterThanOrEqual(7.0);
 		});
 	}

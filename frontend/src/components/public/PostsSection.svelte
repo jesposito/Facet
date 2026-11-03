@@ -44,10 +44,15 @@
 			<article class="card p-0 overflow-hidden group animate-fade-in">
 				<div class="grid grid-cols-1 lg:grid-cols-2 gap-0">
 					<!-- Image -->
-					<div class="relative aspect-video lg:aspect-auto lg:min-h-[20rem] bg-stone-100 dark:bg-stone-800">
+					<div
+						class="relative aspect-video lg:aspect-auto lg:min-h-[20rem] bg-stone-100 dark:bg-stone-800"
+					>
 						{#if thumbSrc(featuredPost)}
 							{#if featuredPost.slug}
-								<a href={getPostUrl(featuredPost.slug)} class="absolute inset-0 block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-inset">
+								<a
+									href={getPostUrl(featuredPost.slug)}
+									class="absolute inset-0 block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-inset"
+								>
 									<img
 										src={largeSrc(featuredPost)}
 										srcset={`${thumbSrc(featuredPost)} 640w, ${largeSrc(featuredPost)} 1280w`}
@@ -64,13 +69,28 @@
 								/>
 							{/if}
 						{:else}
-							<div class="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-								<svg class="w-16 h-16 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+							<div
+								class="absolute inset-0 bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
+							>
+								<svg
+									class="w-16 h-16 text-white/50"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+									/>
 								</svg>
 							</div>
 						{/if}
-						<span class="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-semibold uppercase tracking-wide shadow-sm">
+						<span
+							class="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-primary-600 text-white text-xs font-semibold uppercase tracking-wide shadow-sm"
+						>
 							{$t('public.posts.featured')}
 						</span>
 					</div>
@@ -78,13 +98,25 @@
 					<!-- Metadata -->
 					<div class="p-6 sm:p-8 flex flex-col justify-center">
 						{#if featuredPost.published_at}
-							<time datetime={featuredPost.published_at} class="text-sm text-stone-600 dark:text-stone-300">
-								{formatDate(featuredPost.published_at, { month: 'long', day: 'numeric', year: 'numeric' })}
+							<time
+								datetime={featuredPost.published_at}
+								class="text-sm text-stone-600 dark:text-stone-300"
+							>
+								{formatDate(featuredPost.published_at, {
+									month: 'long',
+									day: 'numeric',
+									year: 'numeric'
+								})}
 							</time>
 						{/if}
-						<h3 class="mt-2 text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white leading-tight">
+						<h3
+							class="mt-2 text-2xl sm:text-3xl font-bold text-stone-900 dark:text-white leading-tight"
+						>
 							{#if featuredPost.slug}
-								<a href={getPostUrl(featuredPost.slug)} class="hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none focus-visible:underline">
+								<a
+									href={getPostUrl(featuredPost.slug)}
+									class="hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none focus-visible:underline"
+								>
 									{featuredPost.title}
 								</a>
 							{:else}
@@ -99,7 +131,9 @@
 						{#if featuredPost.tags && featuredPost.tags.length > 0}
 							<div class="mt-4 flex flex-wrap gap-1.5">
 								{#each featuredPost.tags.slice(0, 5) as tag}
-									<span class="px-2 py-0.5 text-xs bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300 rounded"
+									>
 										{tag}
 									</span>
 								{/each}
@@ -112,8 +146,19 @@
 									class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus-visible:underline"
 								>
 									{$t('public.posts.read_more')}
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M17 8l4 4m0 0l-4 4m4-4H3"
+										/>
 									</svg>
 								</a>
 							</div>
@@ -131,7 +176,13 @@
 			{/if}
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 {layout === 'grid-2' ? 'md:grid-cols-2' : layout === 'list' ? '' : 'md:grid-cols-2 lg:grid-cols-3'} gap-6">
+		<div
+			class="grid grid-cols-1 {layout === 'grid-2'
+				? 'md:grid-cols-2'
+				: layout === 'list'
+					? ''
+					: 'md:grid-cols-2 lg:grid-cols-3'} gap-6"
+		>
 			{#each items as post (post.id)}
 				{@render postCard(post)}
 			{/each}
@@ -143,7 +194,10 @@
 	<article class="card overflow-hidden group animate-fade-in">
 		{#if thumbSrc(post)}
 			{#if post.slug}
-				<a href={getPostUrl(post.slug)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-inset">
+				<a
+					href={getPostUrl(post.slug)}
+					class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-inset"
+				>
 					<img
 						src={largeSrc(post)}
 						srcset={`${thumbSrc(post)} 640w, ${largeSrc(post)} 1280w`}
@@ -164,9 +218,22 @@
 				</div>
 			{/if}
 		{:else}
-			<div class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-				<svg class="w-12 h-12 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+			<div
+				class="aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
+			>
+				<svg
+					class="w-12 h-12 text-white/50"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+					/>
 				</svg>
 			</div>
 		{/if}
@@ -175,7 +242,10 @@
 			<div class="flex items-start justify-between gap-2">
 				<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 					{#if post.slug}
-						<a href={getPostUrl(post.slug)} class="hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none focus-visible:underline">
+						<a
+							href={getPostUrl(post.slug)}
+							class="hover:text-primary-600 dark:hover:text-primary-400 focus:outline-none focus-visible:underline"
+						>
 							{post.title}
 						</a>
 					{:else}
@@ -185,7 +255,10 @@
 			</div>
 
 			{#if post.published_at}
-				<time datetime={post.published_at} class="mt-1 text-sm text-gray-600 dark:text-gray-300 block">
+				<time
+					datetime={post.published_at}
+					class="mt-1 text-sm text-gray-600 dark:text-gray-300 block"
+				>
 					{formatDate(post.published_at, { month: 'long', day: 'numeric', year: 'numeric' })}
 				</time>
 			{/if}
@@ -199,7 +272,9 @@
 			{#if post.tags && post.tags.length > 0}
 				<div class="mt-3 flex flex-wrap gap-1.5">
 					{#each post.tags.slice(0, 4) as tag}
-						<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+						<span
+							class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+						>
 							{tag}
 						</span>
 					{/each}
@@ -218,8 +293,19 @@
 						class="inline-flex items-center gap-1.5 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 focus:outline-none focus-visible:underline"
 					>
 						{$t('public.posts.read_more')}
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+						<svg
+							class="w-4 h-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M17 8l4 4m0 0l-4 4m4-4H3"
+							/>
 						</svg>
 					</a>
 				</div>

@@ -22,7 +22,9 @@ test.describe('booking markdown shortcodes', () => {
 	});
 
 	test('renders Google Calendar and generic booking as safe outbound links', () => {
-		const html = parseMarkdown('{{googlecal:https://calendar.app.google/abc123}}\n{{booking:https://example.com/book}}');
+		const html = parseMarkdown(
+			'{{googlecal:https://calendar.app.google/abc123}}\n{{booking:https://example.com/book}}'
+		);
 
 		expect(html).toContain('calendar.app.google/abc123');
 		expect(html).toContain('example.com/book');
@@ -33,11 +35,13 @@ test.describe('booking markdown shortcodes', () => {
 
 	test('keeps booking iframe allowlist narrow', () => {
 		expect(
-			sanitizeRichHtml('<iframe src="https://calendly.com/jed/30min?embed_type=Inline" title="Calendly"></iframe>')
+			sanitizeRichHtml(
+				'<iframe src="https://calendly.com/jed/30min?embed_type=Inline" title="Calendly"></iframe>'
+			)
 		).toContain('<iframe');
-		expect(sanitizeRichHtml('<iframe src="https://evil.example/jed/30min" title="Bad"></iframe>')).not.toContain(
-			'<iframe'
-		);
+		expect(
+			sanitizeRichHtml('<iframe src="https://evil.example/jed/30min" title="Bad"></iframe>')
+		).not.toContain('<iframe');
 		expect(parseMarkdown('{{calendly:https://evil.example/jed/30min}}')).not.toContain('<iframe');
 	});
 });

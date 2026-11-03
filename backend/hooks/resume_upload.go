@@ -40,8 +40,8 @@ const (
 // importPayload mirrors services.ParsedResume but is decoded from the request body
 // so the frontend can return only the items the user chose to import.
 type importPayload struct {
-	Filename   string                  `json:"filename"`
-	Visibility string                  `json:"visibility"`
+	Filename   string                 `json:"filename"`
+	Visibility string                 `json:"visibility"`
 	Parsed     *services.ParsedResume `json:"parsed"`
 }
 

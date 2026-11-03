@@ -1,592 +1,242 @@
-# Facet Security
+# Security, ownership and privacy
 
-This document describes security features, authentication flows, and known limitations.
+This page explains, in plain terms first and technical detail second, who controls a self-hosted Facet, what it protects, what it records about visitors, and which outside services it talks to. Where the honest answer is "less than you might assume", it says so.
 
-## Encryption
+## The short version
 
-### Master Encryption Key
+- **You own the data.** Everything lives in a SQLite database and an uploads folder on your machine. There's no Facet account, licence server or telemetry.
+- **Facet is built for one owner.** Every account that can sign in has full control of the site. `ADMIN_EMAILS` decides who that is, so set it.
+- **Secrets are encrypted, content isn't.** AI keys, the GitHub token, Stripe secrets and two-factor secrets are encrypted in the database. Your profile and posts are stored as normal database rows, protected by your server's security.
+- **Visitors' browsers do contact third parties.** Every page loads Google Fonts, and optional features add more. See [What leaves your server](#what-leaves-your-server).
+- **Facet keeps its own visit statistics.** They're stored on your server and never shared, but they aren't anonymous. See [What Facet records about visitors](#what-facet-records-about-visitors).
 
-All sensitive data is encrypted using AES-256-GCM. The encryption key can be set via the `ENCRYPTION_KEY` environment variable or auto-generated on first start.
+## Who can sign in
 
-**Key sources (in priority order):**
-1. `ENCRYPTION_KEY` environment variable (if set)
-2. `/data/.encryption_key` file (if exists)
-3. Auto-generated and saved to `/data/.encryption_key` (first start)
+Facet stores sign-in accounts in PocketBase's `users` table. Any signed-in account is treated as the site owner: the backend's admin endpoints check only that the request comes from a signed-in `users` account (or a PocketBase superuser), not which one ([helpers](../backend/hooks/helpers.go)). There are no roles.
 
-**Requirements:**
-- Minimum 32 characters (256 bits)
-- Generate manually with: `openssl rand -hex 32`
-- If auto-generated, ensure `/data` is included in backups — losing the key means encrypted data cannot be recovered
+`ADMIN_EMAILS` is the gate ([source](../backend/hooks/auth.go)):
 
-**What's encrypted:**
-- AI provider API keys (`ai_providers.api_key_encrypted`)
-- GitHub tokens (`settings.github_token`)
-- TOTP secrets (`users.totp_secret`)
-- TOTP recovery code hashes (`users.totp_recovery_codes`)
+| `ADMIN_EMAILS` | Password sign-in | Google / GitHub sign-in |
+|----------------|------------------|-------------------------|
+| Set, e.g. `you@example.com` | Only listed addresses | Only listed addresses |
+| Empty | **Any account in `users`** | Allowed only while `users` is empty, i.e. never once the first account exists |
 
-**Key derivation:**
-The master key is stretched into separate keys for different purposes:
-- Encryption key: `SHA256(master + ":encryption")`
-- HMAC key: `SHA256(master + ":hmac")`
-- JWT signing key: `SHA256(master + ":jwt")`
+Facet doesn't change the `users` table's own PocketBase access rules. Treat an empty `ADMIN_EMAILS` as "anyone who manages to create an account can sign in", and set it before your instance is reachable by others.
 
-## Authentication
+### The first account
 
-### Admin Authentication
+On first start with an empty database, Facet creates one account with the first address in `ADMIN_EMAILS` (or `admin@example.com`) and a random 20-character password. The password is printed once in the startup log; it isn't stored anywhere you can read it later ([seed](../backend/hooks/seed.go)). Treat that log as sensitive until you've changed the password under **Settings**. Passwords are stored as bcrypt hashes by PocketBase.
 
-Admin users authenticate via:
-1. **OAuth2** (Google, GitHub) - preferred
-2. **Password** - fallback
+Older releases seeded every install with the published password `changeme123`. Only `SEED_DATA=dev` still does that, for local testing. Any account still using it is treated as signed out by admin APIs until the password is changed ([session guard](../backend/hooks/admin_session.go)), so an upgraded install that never changed it has to do so before anything else works.
 
-Access is controlled by the `ADMIN_EMAILS` environment variable (comma-separated list, acting as an OAuth allowlist).
+`reset-admin-password` gives an account a new random password, prints it once, and signs out every existing session for that account. Two-factor sign-in stays on, but any existing two-factor browser session is cleared ([source](../backend/hooks/seed.go)).
 
-**Password storage:** Admin passwords are hashed with **bcrypt (cost 12)**. On first login with the default credentials, a password change is forced before access is granted.
+### Facet accounts and the PocketBase dashboard
 
-### Two-Factor Authentication (TOTP)
+Two separate sets of credentials exist, and they're easy to mix up:
 
-Facet supports optional TOTP-based two-factor authentication. When enabled, users must enter a 6-digit code from their authenticator app after logging in.
+- **Facet owner accounts** live in PocketBase's `users` collection. This is what `/admin`, `ADMIN_EMAILS`, the password reset command and two-factor sign-in apply to.
+- **PocketBase superusers** sign in to PocketBase's own database dashboard at `/_/`, which is off unless `ADMIN_ENABLED=true`. They're created with `./facet superuser upsert` and use PocketBase's own MFA settings, not Facet's two-factor check.
 
-**Implementation:** Application-layer gate (not native PocketBase MFA, which only supports email OTP). The existing PocketBase auth flow is completely unchanged; the TOTP check happens after successful PocketBase authentication in the admin layout.
+A superuser can change anything in the database, so keep the dashboard off when you aren't using it.
 
-**Auth flow with 2FA enabled:**
-```
-Login → PocketBase auth → authRefresh → checkDefaultPassword →
-  → check2FAStatus() →
-    if API error → retry/logout screen (fail-closed)
-    if 2FA enabled && session not verified → TwoFactorModal (blocks access)
-    if 2FA not enabled or already verified → normal admin flow
-```
+### Two-factor sign-in
 
-#### Cryptographic Details
+Optional TOTP two-factor sign-in works with any authenticator app. Turn it on in **Account & Security** ([source](../backend/hooks/totp.go)).
 
-| Aspect | Implementation |
-|--------|---------------|
-| TOTP algorithm | SHA1, 6 digits, 30-second period (RFC 6238) |
-| Clock drift tolerance | ±1 step (±30 seconds) via `ValidateCustom(Skew: 1)` |
-| TOTP secrets | AES-256-GCM encrypted at rest using app encryption key |
-| Recovery codes | 8 codes, `XXXX-XXXX` format (hex), bcrypt hashed (cost 10), stored encrypted |
-| Recovery code comparison | Lowercased before bcrypt compare (case-insensitive input) |
-| Session duration | 24 hours after successful TOTP verification |
-| Session storage | `totp_session_nonce` + `totp_session_expires` on user record |
-| QR code generation | Client-side only (`qrcode` npm library) — secret never sent to third-party services |
-| Rate limiting | Strict tier on all 6 TOTP endpoints |
-| Library | `github.com/pquerna/otp` v1.5.0 |
+| Aspect | Behaviour |
+|--------|-----------|
+| Codes | 6 digits, 30-second period, ±1 step allowed for clock drift |
+| Secret | Encrypted in the database. The QR code is drawn in your browser, so the secret isn't sent to a QR service. |
+| Recovery codes | 8 single-use codes, stored as bcrypt hashes |
+| How long a check lasts | 24 hours per browser |
+| Rate limit | Strict tier on setup, verify, disable and regenerate |
 
-#### API Endpoints
+This is a check in Facet's admin layer, after PocketBase has accepted your password. It protects the dashboard. If your authenticator is lost, `reset-2fa` turns it off from the server ([Recovery](UPGRADE.md#locked-out)).
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| `GET` | `/api/totp/status` | Check if 2FA is enabled + session verified |
-| `POST` | `/api/totp/begin-setup` | Generate TOTP secret and otpauth URL |
-| `POST` | `/api/totp/confirm-setup` | Validate code, enable 2FA, return recovery codes |
-| `POST` | `/api/totp/verify` | Validate TOTP/recovery code, create session |
-| `POST` | `/api/totp/disable` | Disable 2FA (requires valid code) |
-| `POST` | `/api/totp/regenerate-codes` | Generate new recovery codes (requires valid code) |
+Known limits: verifying on a new browser replaces the session record, so other browsers are asked again; and changing settings doesn't ask for a fresh code.
 
-All endpoints require PocketBase authentication (`apis.RequireAuth()`).
+### PocketBase's own dashboard
 
-#### Recovery
+PocketBase includes a raw database dashboard at `/_/`. Facet's Caddy hides it (404) unless `ADMIN_ENABLED=true` ([Caddyfile](../docker/Caddyfile)). It needs a separate PocketBase superuser account, which Facet never creates for you. Keep it off unless you're fixing something.
 
-If a user is locked out (lost authenticator + no recovery codes), an admin can reset 2FA via CLI:
+## What's encrypted
 
-```bash
-./facet reset-2fa user@example.com
-```
+Facet derives three keys from the master `ENCRYPTION_KEY` by hashing it with SHA-256 and a purpose label: one for encryption, one for HMAC, one for signing view-access tokens ([source](../backend/services/crypto.go)). Encryption uses AES-256-GCM.
 
-This clears all TOTP fields and disables 2FA for that user.
+| Encrypted with AES-256-GCM | Stored as a one-way hash |
+|----------------------------|--------------------------|
+| AI provider API keys | Account passwords (bcrypt, by PocketBase) |
+| GitHub token for imports | Two-factor recovery codes (bcrypt) |
+| Stripe secret key and webhook secret | Share-link tokens (HMAC-SHA256) |
+| Two-factor (TOTP) secrets | Testimonial request tokens (HMAC-SHA256) |
+| | API keys (HMAC-SHA256) |
+| | Password-protected view passwords (bcrypt) |
 
-#### Security Properties
+Everything else, including drafts and private items, is stored unencrypted in SQLite. Anyone who can read `/data` or a backup archive can read your content. Protect the host, the backups and the logs accordingly. The automatically generated encryption key is printed once in the container log when it's created ([start script](../docker/start.sh)).
 
-- **Fail-closed:** If the 2FA status API is unreachable, access is blocked (retry/logout screen shown, not the TOTP modal)
-- **No bypass via password change:** Password change modal does not skip the 2FA gate
-- **Recovery code race protection:** Recovery code verification runs inside `app.RunInTransaction()` with a fresh user fetch to prevent double-consumption
-- **No secret leakage:** QR codes generated client-side; `session_nonce` not returned in API responses
-- **Mutual exclusivity:** Frontend enforces that the error screen and TOTP modal cannot display simultaneously
+## What visitors can see
 
-#### Limitations
+### Visibility
 
-- **Single-device sessions:** TOTP session is stored on the user record, so verifying on one device/browser updates the nonce for all sessions
-- **No re-auth on sensitive actions:** Enabling 2FA or changing settings does not require re-entering the TOTP code (protected by rate limiting)
-- **24-hour fixed window:** Session duration is not configurable
+Views and individual items each have a visibility setting. [Features](FEATURES.md#visibility) explains how they combine. In security terms:
 
-### View Access Levels
+| Setting | Enforced by |
+|---------|-------------|
+| **Public** | Visible to anyone |
+| **Unlisted view** | Needs a valid share link. Without one, the view returns 404. |
+| **Password view** | Needs the password. A correct password gets a signed token valid for 1 hour. |
+| **Unlisted item** (post, project, talk, …) | Not secret: anyone with the item's URL can open it, and it shows in any view that includes it. Left out of the `/posts` and `/talks` index pages, RSS, the sitemap and the API. |
+| **Private** | Never served to visitors |
+| **Draft** | Never served to visitors |
 
-| Visibility | Access Control | HTTP Response |
-|------------|----------------|---------------|
-| `public` | Anyone | 200 OK |
-| `unlisted` | Valid share token required | 200 with token, 404 without |
-| `password` | Valid password JWT required | 200 with JWT, password prompt without |
-| `private` | Admin only | 404 (not 401 - prevents discovery) |
+Visitors never read the database tables directly. Facet requires sign-in for direct access to content collections, and public pages are built by custom endpoints that apply the rules above ([rules](../backend/hooks/rules.go), [views](../backend/hooks/view.go)).
 
-### URL Routing Model
+### Share links
 
-Facet uses LinkedIn-style canonical URLs:
+A share link (`/s/<token>`) is the key to an unlisted view ([source](../backend/hooks/share.go)).
 
-| Route | Purpose | Notes |
-|-------|---------|-------|
-| `/` | Default public profile | Renders view with `is_default=true` |
-| `/<slug>` | Named view (canonical) | e.g., `/recruiter`, `/investor` |
-| `/s/<token>` | Share link entry | Sets cookie, redirects to `/<slug>` |
-| `/v/<slug>` | Legacy route | 301 redirects to `/<slug>` |
+- Tokens are 32 random bytes. Facet stores only an HMAC of the token, plus its first 12 characters for lookup, so a copy of the database doesn't contain working links.
+- Each link can have an expiry date and a maximum number of uses. You can revoke it at any time.
+- Opening the link validates it, stores it in an `httpOnly` cookie for 7 days, and redirects to the clean URL (`/your-view`). The token doesn't stay in the address bar or history.
+- Validation failures all return the same error, and the endpoint is rate limited.
 
-### Reserved Slug Protection
+Anyone you send a link to can forward it. Use an expiry date or a use limit for anything sensitive.
 
-View slugs cannot collide with system routes. These are protected:
+### Password-protected views
 
-```
-admin, api, s, v, projects, posts, talks,
-_app, _, assets, static,
-favicon.ico, robots.txt, sitemap.xml,
-health, healthz, ready, login, logout,
-auth, oauth, callback, home, index, default, profile
-```
+The visitor's password is checked against a bcrypt hash. A correct password returns a token signed with HMAC-SHA256 (HS256), bound to that view, with issuer and audience checks and a 1-hour lifetime ([source](../backend/hooks/password.go)). Tokens can't be revoked early. Changing the password stops new sign-ins but doesn't cancel tokens already issued. The check endpoint is rate limited to stop guessing.
 
-**Enforcement layers:**
-1. **Frontend param matcher**: `src/params/slug.ts` - invalid slugs don't route
-2. **Backend hook**: Returns HTTP 400 when creating/updating views with reserved slugs
+### Contact details
 
-## Password-Protected Views
+Contact protection levels change how an email address or phone number is **displayed**. The full value is still sent to the visitor's browser with the page. They deter simple scrapers but don't keep anything secret. [Contact protection](CONTACT_PROTECTION.md) has the details.
 
-Password-protected views use signed JWTs for access control.
+## What Facet records about visitors
 
-### Flow
+### Built-in analytics
 
-```
-1. Client: POST /api/view/{slug}/access
-   Response: { "requires_password": true, "id": "..." }
+Facet records page views for the **Analytics** dashboard ([source](../backend/hooks/analytics.go)). For each recorded visit it stores:
 
-2. Client: POST /api/password/check
-   Body: { "view_id": "...", "password": "..." }
-   Response: { "access_token": "<JWT>", "expires_in": 3600 }
+- the view or page visited, and the path
+- the referring page, with its query string removed
+- the browser's user-agent string
+- any `utm_source`, `utm_medium` and `utm_campaign` values
+- the share link used, if any
+- a hash of the visitor's IP address combined with the current date
 
-3. Client: GET /api/view/{slug}/data
-   Header: Authorization: Bearer <JWT>
-   Response: { view data }
-```
+The IP hash changes every day, so visits can't be linked across days by hash alone. It isn't anonymisation, though: the salt is just the date, so someone with the database could recover the IP addresses by trying them all. Treat the analytics table as personal data.
 
-### JWT Structure
+This logging is on by default, records stay until you delete them, and there's no switch in this version to turn it off. The **Features** setting for analytics is described in [Features](FEATURES.md#analytics).
 
-**Algorithm:** HS256
+### Other visitor data
 
-**Claims:**
-| Claim | Description |
-|-------|-------------|
-| `vid` | View ID |
-| `iss` | Issuer: `facet` |
-| `aud` | Audience: `view-access` |
-| `iat` | Issued at timestamp |
-| `exp` | Expiration timestamp |
-| `jti` | Unique token ID (for audit) |
+| Feature | What's stored |
+|---------|---------------|
+| Comments | Name, email, comment text, IP hash, user agent |
+| Testimonials | What the person submits (name, title, company, relationship, text), plus their email if they choose to verify it |
+| Newsletter | Email, optional name, list memberships. Sent emails include an open-tracking image and rewritten links that record opens and clicks. |
+| Downloads | A hashed IP address per download |
+| Courses (off by default) | Enrolment email and progress |
 
-**Lifetime:** 1 hour
+### Google Analytics
 
-### Token Transport
+If you add a Google Analytics measurement ID in **Site Settings**, Facet adds Google's tag to public pages while the Analytics switch is on ([layout](../frontend/src/routes/+layout.svelte)). With the switch off, visitors don't receive the ID at all, and turning it off mid-visit removes the script and sets Google's opt-out flag.
 
-Tokens can be sent via:
-1. `Authorization: Bearer <token>` (preferred)
-2. `X-Password-Token: <token>` (legacy/UI convenience)
+The Content-Security-Policy shipped in the Docker image doesn't list Google's tag or collection domains ([Caddyfile](../docker/Caddyfile)), so browsers block those requests in a standard install. Optional Google Analytics doesn't work out of the box in this version. If you loosen the policy yourself, Google receives your visitors' data under Google's terms.
 
-### Security Properties
+<!-- SUPERVISOR RECONCILE: a CSP expansion for optional Google Analytics is awaiting the owner's explicit approval. Leave this section saying GA is blocked until that change lands in docker/Caddyfile. -->
 
-- Tokens are signed with HMAC-SHA256
-- Signature validation is required
-- Expiry is enforced
-- Issuer and audience are validated
-- View ID in token must match requested view
-- Tokens cannot be used for a different view than issued
 
-### Limitations
+## What leaves your server
 
-- **No revocation:** Tokens are valid until expiry
-- **No refresh:** Client must re-authenticate after expiry
-- **Stateless:** Server doesn't track issued tokens
+These are all the outside connections the code makes. Most only happen when you use the related feature.
 
-## Share Tokens
+**From visitors' browsers**
 
-Share tokens provide access to unlisted views. They are required for any `visibility=unlisted` view.
+| Destination | When |
+|-------------|------|
+| Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) | Every page, admin and public ([app.html](../frontend/src/app.html), [fonts](../frontend/src/lib/fonts.ts)). Google sees each visitor's IP address and user agent. |
+| YouTube, Vimeo, Loom, SoundCloud, Spotify, CodePen, Figma | Pages where you've embedded their media |
+| Images hosted elsewhere | Pages that use external image URLs |
+| Cloudflare Web Analytics | Allowed by the CSP so Cloudflare-injected beacons work. Facet doesn't add it itself. |
+| Google Analytics | Only if configured, and blocked by the default CSP (above) |
 
-### Share Link Flow
+**From your server**
 
-The recommended way to share unlisted views is via `/s/<token>` URLs:
+| Destination | When |
+|-------------|------|
+| `raw.githubusercontent.com` | The admin's update check, at most once an hour ([source](../backend/hooks/version.go)) |
+| `api.github.com` | GitHub project imports and refreshes |
+| Your AI provider (Anthropic, OpenAI, Ollama or a custom endpoint) | When you, or a visitor using AI résumé generation, trigger an AI feature. The relevant content goes with the request. See [AI features](AI_FEATURES.md#what-gets-sent-to-the-provider). |
+| oEmbed endpoints (YouTube, Vimeo, Loom, SoundCloud, CodePen, Figma) | When you add external media and Facet looks up its title and thumbnail |
+| Your SMTP server | Sending email |
+| Stripe | Payment set-up and checkout, if configured |
+| Webhook URLs you register | When subscribed events happen |
+| Google / GitHub | OAuth sign-in, if configured |
 
-```
-1. Admin: POST /api/share/generate (authenticated)
-   Body: { "view_id": "...", "name": "For recruiters", "expires_at": null, "max_uses": 0 }
-   Response: { "id": "...", "token": "<raw-token>", "name": "..." }
-   ⚠️ Raw token is returned ONLY ONCE - store it securely
+## Protections against abuse
 
-2. Admin shares URL: https://example.com/s/<token>
+### Rate limits
 
-3. User visits /s/<token>:
-   - Server validates token (POST /api/share/validate)
-   - Sets httpOnly cookie (me_share_token, SameSite=Lax)
-   - 302 redirect to /<slug> (canonical URL)
-   - Token is NOT in the final URL
+Facet limits requests per client IP with a token bucket ([source](../backend/services/ratelimit.go)):
 
-4. User's browser requests /<slug>:
-   - SvelteKit reads token from cookie
-   - Sends X-Share-Token header to backend
-   - Backend validates and returns view data
-```
+| Tier | Rate | Burst | Used for, among others |
+|------|------|-------|------------------------|
+| Strict | 5 per minute | 3 | View passwords, password change, two-factor endpoints, testimonial submission, coupon checks, checkout |
+| Moderate | 10 per minute | 5 | Share-link validation, testimonial request lookup, webhook admin, downloads |
+| Normal | 60 per minute | 10 | Public view data, posts, talks, RSS, iCal, the `/api/v1` API |
 
-This flow ensures:
-- Token never appears in browser history
-- Token never leaks via Referer headers
-- Clean canonical URLs are displayed
-- Cookie is httpOnly (no JavaScript access)
+Blocked requests get HTTP 429 with a `Retry-After` header. Limits are kept in memory, so a restart resets them. Behind a proxy, set `TRUST_PROXY` correctly or every visitor shares one bucket ([Configuration](CONFIGURATION.md#trust_proxy)).
 
-### Direct API Flow (for programmatic access)
+AI résumé generation by visitors has its own limit of 5 per hour, keyed on the connecting address. Inside the Docker image that address is the internal proxy's, so in practice all anonymous visitors share those 5 generations an hour.
 
-```
-1. GET /api/view/{slug}/access
-   Response: { "requires_token": true, "id": "..." }
+### Response headers
 
-2. GET /api/view/{slug}/data
-   Header: X-Share-Token: <raw-token>         (RECOMMENDED)
-   -- or --
-   Header: Authorization: Bearer <raw-token>  (alternative)
-   Response: { view data }
-```
+Caddy adds these to every response ([Caddyfile](../docker/Caddyfile)):
 
-### Storage Architecture
+| Header | Value |
+|--------|-------|
+| `Content-Security-Policy` | Same-origin scripts, styles, connections and forms, with listed exceptions for Google Fonts, Cloudflare's beacon, and the embed providers above. `'unsafe-inline'` is allowed for scripts and styles because of how Svelte injects them. |
+| `X-Frame-Options` | `SAMEORIGIN` (the admin live preview frames your own site) |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | Geolocation, microphone, camera, payment and USB disabled |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` ([what that means for you](SELF-HOSTING-GUIDE.md#a-note-on-hsts)) |
+| `Server` | Removed |
 
-Share tokens use a two-part storage strategy for O(1) lookup:
+Request bodies are limited to 25 MB.
 
-1. **token_prefix** (first 12 chars): Stored in plaintext for indexed queries
-2. **token_hash**: HMAC-SHA256 of the full token
+### Content sanitising
 
-**Lookup algorithm:**
-```
-1. Extract prefix from provided token (first 12 chars)
-2. Query: SELECT * FROM share_tokens WHERE token_prefix = ? AND is_active = true
-3. For each candidate (typically 1), verify full HMAC
-4. Validate: view_id matches, not expired, under max_uses
-```
+Rich text is sanitised with DOMPurify before display. Comments are shown as plain text, so any HTML in them is displayed rather than run. Project experience documents are validated on the server before they're saved ([experiences](experiences/contract.md)).
 
-This achieves O(1) database lookup instead of O(n) scanning, while maintaining security.
+### API keys
 
-### Security Properties
+Keys for the `/api/v1` API are shown once, stored as HMAC-SHA256 hashes keyed with your encryption key, carry explicit scopes, and can expire or be revoked ([API](API.md)). A key can also list allowed origins, which blocks browser requests from other sites. That is a guard against misuse from someone else's web page, not authentication: scripts can send any `Origin` header they like ([details](API.md#allowed-origins)). Writes made with a key are recorded in the audit log under the key's label and prefix.
 
-- **HMAC storage:** Raw tokens never stored; DB leak doesn't reveal usable tokens
-- **Constant-time comparison:** Prevents timing attacks on HMAC verification
-- **Prefix is non-secret:** The 12-char prefix is a lookup optimization only; security relies entirely on HMAC verification of the full token and the underlying 256-bit token randomness
-- **View-bound:** Each token is tied to a specific view ID
-- **Expiry support:** Tokens can have optional expiration dates
-- **Usage limits:** Tokens can have optional max usage counts
-- **Revocation:** Admin can deactivate tokens at any time
-- **Non-leaky errors:** All validation failures return the same generic error to prevent oracle attacks
+### Webhooks
 
-### Token Properties
+Deliveries are signed with HMAC-SHA256. Before connecting, Facet resolves the destination and refuses loopback, private, link-local, carrier-grade NAT and cloud-metadata addresses, so a webhook can't be aimed at your internal network ([source](../backend/services/webhooks.go)).
 
-| Property | Description |
-|----------|-------------|
-| Length | 32 bytes, URL-safe base64 encoded (~43 chars) |
-| Prefix | First 12 characters stored for indexed lookup |
-| HMAC | Full token hashed with server's HMAC key |
-| Expiry | Optional, enforced server-side |
-| Max uses | Optional, 0 = unlimited |
-| Use count | Tracked per-token |
+### Audit log
 
-### Token Transport
+Facet records administrative actions in an audit log, shown under **Settings → Audit Log** ([source](../backend/hooks/audit.go)).
 
-Tokens can be sent via:
-1. `Authorization: Bearer <token>` — **RECOMMENDED** for API clients
-2. `X-Share-Token: <token>` — Alternative header for programmatic access
-3. `?token=<token>` — **LEGACY/COMPAT** for shareable links only
+### Dependency advisories
 
-> ⚠️ **Security Warning:** Query parameter tokens (`?token=...`) are logged in server access logs, stored in browser history, and may leak via HTTP Referer headers. Use header-based transport whenever possible. Consider the query parameter method only for human-shareable links where header transport is impractical.
+Two advisories reach Facet through libraries it doesn't control directly.
 
-### Limitations
+- **go-jose v3 (GHSA-mgcc-cww5-fp2q), in the bundled Caddy.** A crafted RSA key in JSON (JWK) form can keep the CPU busy for a long time. Upstream fixed it only in go-jose v4, and Caddy's certificate code still needs v3. So the image builds Caddy against a local copy of v3.0.5 with the fix backported: RSA moduli above 4096 bits are rejected, and private keys must satisfy `p × q = n`, before the expensive check runs. The patch is limited to that fix plus a stricter bound when parsing JSON `\u` escapes; the other changes in the same upstream commit aren't included. [FACET-PATCH.md](../docker/caddy/third_party/go-jose-v3/FACET-PATCH.md) records the source, checksums and full diff, and [jose_test.go](../docker/caddy/jose_test.go) fails if Caddy stops using the patched copy. Remove the copy once Caddy's dependencies move to go-jose v4.
+- **imaging and malformed TIFFs (CVE-2023-36308).** The `imaging` library can crash on a palette TIFF whose pixels point past the end of its palette. Facet's thumbnail service only accepts JPEG, PNG, GIF and WebP ([source](../backend/services/thumbnail.go)), but importing `imaging` also registers a TIFF decoder, so a TIFF can still reach it. The pinned `golang.org/x/image` (v0.47.0) checks palette indices while decoding, which stops the bad file before `imaging` sees it. [thumbnail_tiff_advisory_test.go](../backend/services/thumbnail_tiff_advisory_test.go) feeds it a malformed TIFF in a separate process and fails if that crashes, so a downgrade of `x/image` would show up there. `imaging` itself is still v1.6.2 without its own fix.
 
-- **No token refresh:** Expired tokens require admin to generate new one
-- **Prefix collision:** Rare but possible; mitigated by HMAC verification
-- **No per-use logging:** Usage count tracked, but not individual accesses
-- **URL token leakage:** Tokens in query strings may leak (see warning above)
+## Known limitations
 
-## Collection Access Control
+- **Single owner.** No roles, no separate editor or viewer accounts.
+- **Unlisted items aren't private.** Only unlisted *views* need a share link.
+- **Visitors can trigger AI usage.** Anyone who can open a view can generate an AI résumé from it, on your AI provider account. The endpoint applies the view's own access check, so unlisted and password views still need a share link or password ([source](../backend/hooks/resume.go)).
+- **Rate limits are per process and in memory.**
+- **Uploaded files** are served by PocketBase according to each collection's rules. There are no expiring signed URLs.
 
-### Deny-by-Default Model
+## Reporting a security problem
 
-All PocketBase collections require authentication for direct access via `/api/collections/{name}/records`. This prevents bypassing visibility and draft rules.
-
-**Public data flows through custom API endpoints:**
-- `/api/view/{slug}/access` — Returns view metadata (visibility, requirements)
-- `/api/view/{slug}/data` — Returns view content with visibility rules enforced
-
-These endpoints use server-side database calls that bypass collection rules, allowing them to serve public content while maintaining access control.
-
-### Collection Categories
-
-| Category | Collections | Direct Access |
-|----------|-------------|---------------|
-| Content | profile, experience, projects, education, certifications, skills, posts, talks, views, comments | Auth required |
-| Sensitive | share_tokens, sources, ai_providers, import_proposals, settings, api_keys, webhooks, testimonial_requests, email_verification_tokens | Auth required |
-| Auth | users | Managed by PocketBase |
-
-### Why This Matters
-
-Without these restrictions, an attacker could:
-1. Enumerate all records via `/api/collections/projects/records`
-2. Access draft content (`is_draft=true`)
-3. Access private content (`visibility=private`)
-4. Bypass share token requirements for unlisted views
-
-With deny-by-default:
-1. Public visitors use `/api/view/{slug}/data` which enforces visibility
-2. Only authenticated admins can access raw collection data
-3. Visibility and draft filtering is guaranteed
-
-### Security Boundary
-
-**PocketBase collection API rules protect HTTP access only.** Internal application queries (via `app.FindRecordsByFilter()` and similar methods) run with server authority and bypass these rules by design.
-
-Custom API endpoints (e.g., `/api/view/{slug}/data`) are responsible for enforcing visibility and draft rules in application code. This separation is intentional: collection rules block external enumeration, while application code handles business logic.
-
-### Authenticated Access
-
-Authenticated users (admin OAuth allowlist) can still:
-- Use the admin dashboard to manage content
-- Access collections directly via PocketBase API
-- Use the `/_/` admin UI (if enabled)
-
-## Public REST API & Scoped API Keys
-
-Facet exposes a documented public REST API under `/api/v1/*` for read and write integrations. Access is gated by API keys.
-
-### Key Properties
-
-| Property | Implementation |
-|----------|----------------|
-| Storage | Raw key never stored; only the **SHA-256 hash** is persisted |
-| Display | Raw key returned **once** at creation time — store it securely |
-| Scopes | Granular scopes (`read:*` / `write:*`), e.g. `read:posts`, `write:projects` |
-| Scope independence | Write scopes do **not** imply read scopes — callers needing both must request both |
-| Revocation | Keys can be deactivated/deleted by an admin at any time |
-
-**Valid scopes:** `read:profile`, `read:posts`, `read:projects`, `read:skills`, `read:experience`, `write:profile`, `write:posts`, `write:projects`, `write:skills`, `write:experience`.
-
-### Security Properties
-
-- **Hash-only storage:** A DB leak does not reveal usable keys (SHA-256, no reversibility)
-- **Least privilege:** Each key carries only the scopes it was granted
-- **Rate limited:** API requests are subject to per-IP rate limiting (see below)
-
-## Webhooks & SSRF Protection
-
-Facet can POST event payloads to user-registered webhook URLs. Because the target URL is attacker-influenced (admin-supplied), webhook dispatch is hardened against Server-Side Request Forgery (SSRF).
-
-### Signing
-
-- Every delivery is signed with **HMAC-SHA256** over the JSON body
-- Signature is sent in the `X-Facet-Signature` header as `sha256=<hex>`
-- Receivers verify the signature using the per-webhook secret
-
-### SSRF Protection
-
-Before dispatching, the resolved destination IP is validated. Requests to the following are **rejected**:
-
-- Loopback (`127.0.0.0/8`, `::1`, `localhost`)
-- Private RFC1918 ranges
-- Link-local (`169.254.0.0/16`) and link-local/interface-local multicast
-- CGNAT (`100.64.0.0/10`)
-- Cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`)
-- Unspecified / multicast addresses
-
-### Reliability Controls
-
-- **Retry with backoff** on transient delivery failures
-- **Auto-disable** after repeated consecutive failures
-- **Per-delivery log** for auditing dispatches and responses
-- **Test event picker:** Admins can fire synthetic payloads to matching subscribers
-
-## Comments Moderation
-
-Threaded comments support a moderation workflow with abuse controls.
-
-- **XSS prevention:** Comment content is sanitized with **DOMPurify** before rendering
-- **Moderation queue:** Submitted comments enter a pending state for admin approval
-- **Reports:** Visitors can report comments; reported items surface for review
-- **Per-item toggle:** Comments can be enabled/disabled per content item
-- **Rate limiting:** Public submission endpoints are rate limited
-
-## API Security
-
-### Rate Limiting
-
-Facet implements per-IP rate limiting using the [token bucket algorithm](https://pkg.go.dev/golang.org/x/time/rate) to protect against brute force and abuse.
-
-#### Rate Limit Tiers
-
-| Tier | Limit | Burst | Endpoints |
-|------|-------|-------|-----------|
-| Strict | 5/min | 3 | `POST /api/password/check`, all `/api/totp/*` endpoints |
-| Moderate | 10/min | 5 | `POST /api/share/validate` |
-| Normal | 60/min | 10 | `GET /api/view/{slug}/access`, `GET /api/view/{slug}/data` |
-
-#### Response Headers
-
-When rate limited, the server returns:
-- **Status:** `429 Too Many Requests`
-- **Headers:**
-  - `Retry-After: <seconds>` — Time until next request allowed
-  - `X-RateLimit-Limit: <rate>` — The rate limit for this endpoint
-  - `X-RateLimit-Remaining: 0` — No requests remaining
-- **Body:** `{"error": "too many requests"}` (uniform, non-leaky)
-
-#### Configuration
-
-**Environment Variables:**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `TRUST_PROXY` | `false` | Set to `true` to trust proxy headers for client IP |
-
-**Client IP Detection (in order of priority when `TRUST_PROXY=true`):**
-1. `CF-Connecting-IP` — Cloudflare's original client IP header
-2. `X-Real-IP` — Common proxy header (nginx, etc.)
-3. `X-Forwarded-For` — Leftmost IP from comma-separated list
-4. `RemoteAddr` — Direct connection IP (fallback)
-
-**Security Warning:** Only set `TRUST_PROXY=true` if:
-- Traffic arrives exclusively through a trusted proxy (Cloudflare, nginx, etc.)
-- The proxy is configured to set/overwrite these headers
-- Direct connections to the server are blocked
-
-Without proper proxy configuration, attackers can spoof their IP address.
-
-#### Cloudflare Setup
-
-When using Cloudflare Tunnel or proxy:
-1. Set `TRUST_PROXY=true`
-2. Ensure [Cloudflare IP ranges](https://www.cloudflare.com/ips/) are the only allowed source IPs
-3. The server will use `CF-Connecting-IP` for rate limiting
-
-#### Limitations
-
-- **In-memory storage:** Rate limit state does not persist across restarts
-- **Single-instance:** Each server instance has independent rate limit state
-- **No distributed coordination:** In multi-instance deployments, limits apply per-instance
-
-For production at scale, consider implementing Redis-backed rate limiting (Step 6B).
-
-#### Verification
-
-```bash
-# Test rate limiting on password endpoint (strict tier)
-for i in {1..6}; do
-  curl -s -o /dev/null -w "%{http_code}\n" \
-    -X POST http://localhost:8090/api/password/check \
-    -H "Content-Type: application/json" \
-    -d '{"view_id":"test","password":"wrong"}'
-done
-# Expected: 400, 400, 400, 429, 429, 429 (first 3 allowed, then rate limited)
-
-# Check Retry-After header
-curl -s -I -X POST http://localhost:8090/api/password/check \
-  -H "Content-Type: application/json" \
-  -d '{"view_id":"test","password":"wrong"}' | grep -i retry-after
-```
-
-### CORS
-
-No explicit CORS configuration - all endpoints are same-origin behind the Caddy reverse proxy.
-
-### Security Headers
-
-Facet implements security headers in two phases. Phase 5A is deployed by default; Phase 5B requires manual configuration after testing.
-
-#### Phase 5A: Deployed Headers
-
-These headers are safe for all deployments and applied via `docker/Caddyfile`:
-
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `X-Content-Type-Options` | `nosniff` | Prevents MIME type sniffing attacks |
-| `X-Frame-Options` | `DENY` | Prevents clickjacking by blocking iframes |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits referrer leakage on cross-origin requests |
-| `Permissions-Policy` | `geolocation=(), microphone=()...` | Disables unnecessary browser APIs |
-| `Server` | *(removed)* | Hides server software identity |
-
-**Intentionally Omitted:**
-
-| Header | Reason |
-|--------|--------|
-| `X-XSS-Protection` | Deprecated since 2023; can introduce vulnerabilities in modern browsers |
-| `Strict-Transport-Security` | TLS terminates at edge proxy (Cloudflare), not at Caddy |
-
-#### Phase 5B: Optional Stricter Headers
-
-These require testing before deployment and may break functionality:
-
-| Header | Recommendation |
-|--------|----------------|
-| `Content-Security-Policy` | Start with `Content-Security-Policy-Report-Only` to identify violations before enforcing. SvelteKit may require `'unsafe-inline'` for styles. |
-| `Content-Security-Policy: frame-ancestors 'none'` | Supersedes X-Frame-Options; add when CSP is configured |
-| `Strict-Transport-Security` | Only if Caddy terminates TLS directly (not behind proxy). Use `max-age=31536000; includeSubDomains` |
-| `Cross-Origin-Opener-Policy` | May break OAuth popups; test thoroughly |
-| `Cross-Origin-Embedder-Policy` | May break external image loading; test thoroughly |
-
-**References:**
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)
-- [OWASP HTTP Headers Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html)
-- [MDN Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy)
-
-#### Cloudflare Configuration
-
-If deploying behind Cloudflare Tunnel, configure these at Cloudflare instead of Caddy:
-
-1. **HSTS:** SSL/TLS → Edge Certificates → Enable "Always Use HTTPS" and configure HSTS
-2. **Security Headers:** Rules → Transform Rules → Modify Response Headers
-3. **CSP:** Consider Cloudflare's CSP reporting if using their proxy
-
-#### Verification
-
-Test that security headers are applied (requires Docker deployment):
-
-```bash
-# Frontend routes
-curl -sI http://localhost:8080/ | grep -E '^(X-Content-Type|X-Frame|Referrer|Permissions)'
-
-# API endpoints
-curl -sI http://localhost:8080/api/health | grep -E '^(X-Content-Type|X-Frame|Referrer|Permissions)'
-
-# PocketBase admin (when ADMIN_ENABLED=true)
-curl -sI http://localhost:8080/_/ | grep -E '^(X-Content-Type|X-Frame|Referrer|Permissions)'
-```
-
-Expected output for each:
-```
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
-```
-
-Verify `Server` header is removed:
-```bash
-curl -sI http://localhost:8080/ | grep -i '^server:'
-# Should return nothing (header removed)
-```
-
-## File Access
-
-Files are served via PocketBase at `/api/files/{collectionId}/{recordId}/{filename}`.
-
-**Current state:** Files follow the collection's access rules.
-
-**Planned:** Signed URLs with expiration for private files.
-
-## Development vs Production
-
-| Aspect | Development | Production |
-|--------|-------------|------------|
-| Encryption key | Dev-only key in docker-compose.dev.yml | Auto-generated or set via `ENCRYPTION_KEY` |
-| PocketBase Admin | Enabled at `/_/` | Disabled by default (`ADMIN_ENABLED=false`) |
-| Seed data | Created automatically | Not created |
-| Debug logging | Enabled | Disabled |
-
-## Reporting Security Issues
-
-If you discover a security vulnerability, please report it responsibly by opening a private issue or contacting the maintainers directly.
-
-Do not open public issues for security vulnerabilities.
+Please don't open a public issue for a vulnerability. Use **Report a vulnerability** on the repository's [Security tab](https://github.com/jesposito/Facet/security) to send a private report to the maintainer, with steps to reproduce and the version you tested.

@@ -67,6 +67,9 @@ func TestPaidContentIsGatedOnDetailEndpoints(t *testing.T) {
 		if post["content"] != "Opening paragraph.\n\nSecond paragraph." || post["is_gated"] != true {
 			t.Fatalf("unexpected gated post: %#v", post)
 		}
+		if post["price"] != float64(500) || post["access_tier"] != "paid" {
+			t.Fatalf("purchase offer lost its price or tier: %#v", post)
+		}
 	})
 
 	for name, cookie := range map[string]string{
@@ -98,6 +101,8 @@ func TestPaidContentIsGatedOnDetailEndpoints(t *testing.T) {
 		rec := do(t, h, testRequest{url: "/api/project/paid-project"})
 		assertStatus(t, rec, http.StatusOK)
 		assertContains(t, rec, "Project teaser")
+		assertContains(t, rec, `"price":700`)
+		assertContains(t, rec, `"access_tier":"paid"`)
 		assertNotContains(t, rec, "PAID PROJECT WRITEUP")
 
 		rec = do(t, h, testRequest{url: "/api/project/paid-project", headers: map[string]string{"Cookie": f.buyerCookie(t, "builder@example.com", projectBuyer)}})

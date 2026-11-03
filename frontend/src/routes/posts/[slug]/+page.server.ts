@@ -8,18 +8,20 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { navigationFacet } from '$lib/discovery';
+import { internalApiHeaders, parseMediaRefs } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, url, request, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
-	const fromView = url.searchParams.get('from');
+	const fromHints = url.searchParams.getAll('from');
+	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
 
-	// These requests originate in the server, like the homepage loader.
-	const headers: Record<string, string> = { 'X-Internal': 'true' };
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
-	if (pbAuthToken) {
-		headers['Authorization'] = `Bearer ${pbAuthToken}`;
-	}
+	const headers = {
+		...internalApiHeaders(request),
+		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+	};
 
 	try {
 		const response = await fetch(`${pbUrl}/api/post/${slug}`, { headers });
@@ -29,7 +31,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 
 		const post = await response.json();
 
-		const mediaRefs: any[] = post.media_refs_expand || [];
+		const mediaRefs = parseMediaRefs(post.media_refs_expand);
 
 		return {
 			post: {
@@ -43,11 +45,21 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				created: post.created,
 				updated: post.updated,
 				cover_image_url: post.cover_image_url || null,
+				cover_image_thumb_url:
+					typeof post.cover_image_thumb_url === 'string' ? post.cover_image_thumb_url : null,
+				cover_image_large_url:
+					typeof post.cover_image_large_url === 'string' ? post.cover_image_large_url : null,
 				visibility: post.visibility || 'public',
 				is_draft: post.is_draft || false,
-				comments_enabled: post.comments_enabled ?? false
+				comments_enabled: post.comments_enabled ?? false,
+				is_gated: post.is_gated === true,
+				is_purchased: post.is_purchased === true,
+				access_tier: post.access_tier || 'free',
+				price: Number(post.price) || 0,
+				paywall_preview_paragraphs: Number(post.paywall_preview_paragraphs) || 0,
+				is_preview_content: post.is_preview_content === true
 			},
-			media_refs: mediaRefs,
+			media_refs: post.is_gated === true ? [] : mediaRefs,
 			profile: post.profile || null,
 			prev_post: post.prev_post || null,
 			next_post: post.next_post || null,

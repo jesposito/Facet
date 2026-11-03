@@ -233,8 +233,8 @@
 		>
 			<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 				<!-- Desktop Navigation -->
-				<div class="hidden md:flex items-center justify-between py-3">
-					<div class="flex items-center gap-1">
+				<div class="hidden md:flex items-center justify-between gap-3 py-3">
+					<div class="flex min-w-0 max-w-full items-center gap-1 flex-wrap">
 						<!-- Home button -->
 						<a
 							href="/"
@@ -270,7 +270,7 @@
 							href={ctaUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
+							class="btn shrink-0 bg-white text-primary-600 hover:bg-stone-100 text-sm sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
 						>
 							{ctaButtonText}
 						</a>
@@ -328,7 +328,7 @@
 							href={ctaUrl}
 							target="_blank"
 							rel="noopener noreferrer"
-							class="btn bg-white text-primary-600 hover:bg-stone-100 text-sm sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
+							class="btn shrink-0 bg-white text-primary-600 hover:bg-stone-100 text-sm sp:bg-[var(--accent)] sp:text-white sp:hover:opacity-90"
 						>
 							{ctaButtonText}
 						</a>

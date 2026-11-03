@@ -19,7 +19,9 @@ function getBrowserPbUrl(): string {
 }
 
 // Initialize PocketBase client
-const runtimePbUrl = browser ? getBrowserPbUrl() : process.env.POCKETBASE_URL || 'http://localhost:8090';
+const runtimePbUrl = browser
+	? getBrowserPbUrl()
+	: process.env.POCKETBASE_URL || 'http://localhost:8090';
 export const pb = new PocketBase(runtimePbUrl);
 
 // Expose for debugging (development only)
@@ -27,8 +29,8 @@ if (browser && import.meta.env.DEV) {
 	(window as unknown as { pb: PocketBase }).pb = pb;
 }
 
-// Auth store (SDK 0.21.x uses 'model')
-export const currentUser = writable(pb.authStore.model);
+// Auth store (SDK 0.28.x uses 'record')
+export const currentUser = writable(pb.authStore.record);
 
 // Flag to skip redundant authRefresh after a fresh login.
 // authWithPassword issues a valid token — re-validating it immediately via
@@ -36,20 +38,27 @@ export const currentUser = writable(pb.authStore.model);
 // (the Svelte effect batch can fire authRefresh before the SDK's in-memory
 // token is fully wired into the fetch pipeline).
 export let freshLogin = false;
-export function markFreshLogin() { freshLogin = true; }
-export function clearFreshLogin() { freshLogin = false; }
+export function markFreshLogin() {
+	freshLogin = true;
+}
+export function clearFreshLogin() {
+	freshLogin = false;
+}
 
 pb.authStore.onChange((token, model) => {
 	currentUser.set(model);
-	
+
 	if (browser) {
 		const isProd = window.location.protocol === 'https:';
-		document.cookie = pb.authStore.exportToCookie({
-			httpOnly: false,
-			secure: isProd,
-			sameSite: 'Lax',
-			path: '/'
-		}, PB_COOKIE_NAME);
+		document.cookie = pb.authStore.exportToCookie(
+			{
+				httpOnly: false,
+				secure: isProd,
+				sameSite: 'Lax',
+				path: '/'
+			},
+			PB_COOKIE_NAME
+		);
 	}
 });
 
@@ -68,7 +77,15 @@ export interface Profile {
 	visibility: 'public' | 'unlisted' | 'private';
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate';
 	custom_hex_color?: string;
-	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | 'soft-premium';
+	font_pack?:
+		| 'editorial'
+		| 'modern'
+		| 'classic'
+		| 'technical'
+		| 'editorial-bold'
+		| 'humanist'
+		| 'geometric'
+		| 'soft-premium';
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked';
 	hero_spacing?: 'compact' | 'default' | 'spacious';
 	hero_bg_color?: string;
@@ -290,7 +307,15 @@ export interface CustomContent {
 	media?: string[];
 	media_urls?: string[];
 	media_refs?: string[];
-	media_refs_expand?: Array<{ id: string; url: string; title?: string; mime?: string; thumbnail_url?: string; description?: string; alt_text?: string }>;
+	media_refs_expand?: Array<{
+		id: string;
+		url: string;
+		title?: string;
+		mime?: string;
+		thumbnail_url?: string;
+		description?: string;
+		alt_text?: string;
+	}>;
 	visibility: 'public' | 'unlisted' | 'private';
 	view_visibility?: Record<string, boolean>;
 	is_draft: boolean;
@@ -431,7 +456,16 @@ export interface View {
 	is_active: boolean;
 	is_default?: boolean;
 	accent_color?: 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'slate' | null;
-	font_pack?: 'editorial' | 'modern' | 'classic' | 'technical' | 'editorial-bold' | 'humanist' | 'geometric' | 'soft-premium' | null;
+	font_pack?:
+		| 'editorial'
+		| 'modern'
+		| 'classic'
+		| 'technical'
+		| 'editorial-bold'
+		| 'humanist'
+		| 'geometric'
+		| 'soft-premium'
+		| null;
 	hero_layout?: 'standard' | 'centered' | 'split' | 'minimal' | 'stacked' | null;
 	hero_spacing?: 'compact' | 'default' | 'spacious' | null;
 	hero_bg_color?: string | null;
@@ -471,7 +505,10 @@ export const VALID_WIDTHS: { value: SectionWidth; label: string }[] = [
 ];
 
 // Valid layouts per section type (curated presets)
-export const VALID_LAYOUTS: Record<string, { layouts: string[]; default: string; labels: Record<string, string> }> = {
+export const VALID_LAYOUTS: Record<
+	string,
+	{ layouts: string[]; default: string; labels: Record<string, string> }
+> = {
 	experience: {
 		layouts: ['default', 'timeline', 'compact'],
 		default: 'default',
@@ -586,13 +623,13 @@ export function getSectionLayout(section: string, layout?: string): string {
 // Layout-to-width restrictions: which layouts only work at full width
 // Layouts not listed here support all widths (full, half, third)
 export const FULL_WIDTH_ONLY_LAYOUTS: Record<string, string[]> = {
-	experience: ['timeline'],      // Timeline visual needs horizontal space
-	education: ['timeline'],       // Timeline visual needs horizontal space
-	certifications: ['timeline'],  // Timeline visual needs horizontal space
-	projects: ['featured'],        // Featured item takes full width
-	posts: ['featured'],           // Featured item takes full width
-	skills: ['cloud', 'bars'],     // Cloud/bars need space to look good
-	talks: []                      // All talks layouts work at any width
+	experience: ['timeline'], // Timeline visual needs horizontal space
+	education: ['timeline'], // Timeline visual needs horizontal space
+	certifications: ['timeline'], // Timeline visual needs horizontal space
+	projects: ['featured'], // Featured item takes full width
+	posts: ['featured'], // Featured item takes full width
+	skills: ['cloud', 'bars'], // Cloud/bars need space to look good
+	talks: [] // All talks layouts work at any width
 };
 
 // Get valid widths for a given section and layout
@@ -818,7 +855,10 @@ export async function performLogout(): Promise<void> {
 	}
 }
 
-export function getFileUrl(record: { id: string; collectionId?: string; collectionName?: string }, filename: string): string {
+export function getFileUrl(
+	record: { id: string; collectionId?: string; collectionName?: string },
+	filename: string
+): string {
 	if (!filename) return '';
 	const collectionId = record.collectionId || record.collectionName;
 	// Use relative URL - works behind any reverse proxy

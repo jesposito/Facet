@@ -149,8 +149,8 @@ func stringContains(s, substr string) bool {
 // patterns and lets normal fields through.
 func TestIsSensitiveField(t *testing.T) {
 	cases := []struct {
-		field    string
-		want     bool
+		field string
+		want  bool
 	}{
 		{"password", true},
 		{"password_hash", true},

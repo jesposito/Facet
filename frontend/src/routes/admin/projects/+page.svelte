@@ -1016,7 +1016,12 @@
 				</div>
 			</div>
 
-			<ExperienceEditor bind:value={projectExperience} {title} {summary} onchange={handleFormChange} />
+			<ExperienceEditor
+				bind:value={projectExperience}
+				{title}
+				{summary}
+				onchange={handleFormChange}
+			/>
 
 			<div class="card p-6 space-y-4">
 				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">

@@ -48,8 +48,19 @@ test.describe('internal API 503 retry', () => {
 
 	test('bounds Retry-After delays', () => {
 		expect(parseRetryAfterMs('2')).toBe(2000);
-		expect(parseRetryAfterMs('Wed, 08 Jul 2026 00:00:03 GMT', () => Date.parse('2026-07-08T00:00:00Z'))).toBe(3000);
-		expect(isRetryableInternalApiRequest(new Request('http://localhost:8090/api/health', { method: 'HEAD' }), ['http://localhost:8090'])).toBe(true);
-		expect(isRetryableInternalApiRequest(new Request('http://localhost:8090/status'), ['http://localhost:8090'])).toBe(false);
+		expect(
+			parseRetryAfterMs('Wed, 08 Jul 2026 00:00:03 GMT', () => Date.parse('2026-07-08T00:00:00Z'))
+		).toBe(3000);
+		expect(
+			isRetryableInternalApiRequest(
+				new Request('http://localhost:8090/api/health', { method: 'HEAD' }),
+				['http://localhost:8090']
+			)
+		).toBe(true);
+		expect(
+			isRetryableInternalApiRequest(new Request('http://localhost:8090/status'), [
+				'http://localhost:8090'
+			])
+		).toBe(false);
 	});
 });

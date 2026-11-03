@@ -3,9 +3,11 @@
 
 import argparse
 import fcntl
+import ipaddress
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import socket
 import subprocess
@@ -16,6 +18,32 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parent.parent
 STATE = ROOT / 'tmp' / 'dev-processes.json'
+DEFAULT_HOST = '127.0.0.1'
+HOSTNAME_LABEL = re.compile(r'^(?!-)[A-Za-z0-9-]{1,63}(?<!-)$')
+
+
+def dev_host(value=None):
+    """Return FACET_DEV_HOST if it is a plain hostname or IPv4 address.
+
+    The value reaches shell commands run by Air, so anything else is refused.
+    """
+    host = os.environ.get('FACET_DEV_HOST', '') if value is None else value
+    if host == '':
+        return DEFAULT_HOST
+    try:
+        ipaddress.IPv4Address(host)
+        return host
+    except ValueError:
+        pass
+    labels = host.split('.')
+    if len(host) <= 253 and not host[0].isdigit() and all(HOSTNAME_LABEL.match(label) for label in labels):
+        return host
+    raise RuntimeError(f'FACET_DEV_HOST must be a hostname or IPv4 address, not {host!r}.')
+
+
+def browse_host(host):
+    """Wildcard binds are reachable on loopback; other hosts are used as given."""
+    return DEFAULT_HOST if host == '0.0.0.0' else host
 
 
 def process_start(pid):
@@ -43,11 +71,11 @@ def active_supervisor(state_path=STATE):
         return None
 
 
-def check_ports(ports=(8090, 5173)):
+def check_ports(ports=(8090, 5173), host=DEFAULT_HOST):
     for port in ports:
         with socket.socket() as sock:
             try:
-                sock.bind(('127.0.0.1', port))
+                sock.bind((host, port))
             except OSError as exc:
                 raise RuntimeError(f'Port {port} is in use. Stop its owner before starting Facet.') from exc
 
@@ -76,13 +104,16 @@ def stop_children(children):
 def run():
     if not Path('/proc/self/stat').exists():
         raise RuntimeError('The native development supervisor requires Linux /proc.')
+    host = dev_host()
+    os.environ['FACET_DEV_HOST'] = host
+    url_host = browse_host(host)
     STATE.parent.mkdir(parents=True, exist_ok=True)
     with (STATE.parent / 'dev.lock').open('w') as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as exc:
             raise RuntimeError('Development services are already running for this checkout.') from exc
-        check_ports()
+        check_ports(host=host)
         children = []
         stopping = False
 
@@ -106,7 +137,7 @@ def run():
                     if backend.poll() is not None:
                         raise RuntimeError(f'Backend exited; inspect {backend_log.name}. Your data is unchanged.')
                     try:
-                        with urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=1) as response:
+                        with urllib.request.urlopen(f'http://{url_host}:8090/api/health', timeout=1) as response:
                             if response.status == 200:
                                 break
                     except (urllib.error.URLError, TimeoutError):
@@ -120,7 +151,7 @@ def run():
                     [str(ROOT / 'scripts/dev-frontend.sh')], cwd=ROOT, start_new_session=True,
                 )
                 children.append(frontend)
-                print('Frontend starting at http://127.0.0.1:5173. Ctrl+C or make stop stops this session.', flush=True)
+                print(f'Frontend starting at http://{url_host}:5173. Ctrl+C or make stop stops this session.', flush=True)
                 while not stopping:
                     if any(child.poll() is not None for child in children):
                         raise RuntimeError('A development service exited unexpectedly.')

@@ -1,23 +1,21 @@
-# Facet — Architecture Diagrams
+# Diagrams
 
-Editable `.drawio` files (draw.io / diagrams.net / VS Code "Draw.io Integration" extension). Each has a committed `.png` render alongside it.
+Editable [draw.io](https://www.drawio.com/) diagrams, each with a committed PNG beside it.
 
-| Diagram | What it shows |
-|---|---|
-| `facet-architecture` | Single-container runtime: Caddy → SvelteKit + Go/PocketBase → SQLite, services, external integrations |
-| `facet-data-model` | Core PocketBase collections and relationships (subset of 48) |
+| Diagram | Shows |
+|---------|-------|
+| [`facet-architecture`](facet-architecture.png) ([source](facet-architecture.drawio)) | The single-container runtime: Caddy in front of SvelteKit and Go/PocketBase over SQLite, with optional outside services. The tunnel in front is one example of how an owner might expose Facet. |
+| [`facet-data-model`](facet-data-model.png) ([source](facet-data-model.drawio)) | The core PocketBase collections and how they relate. A subset: the full schema is in [`backend/migrations`](../../backend/migrations). |
 
-## Tooling
+[Architecture](../ARCHITECTURE.md) explains the runtime in words.
 
-Diagrams are authored in draw.io. Host deps for headless export: `graphviz`, `drawio` desktop CLI + `xvfb`.
+## Editing
 
-## Edit
-
-Open the `.drawio` in draw.io or the VS Code extension. After editing, re-validate and re-export:
+Open a `.drawio` file in draw.io, diagrams.net, or the VS Code "Draw.io Integration" extension. After editing, export a fresh PNG so the two stay in step. With the draw.io desktop app and `xvfb` installed:
 
 ```bash
-F=facet-architecture   # diagram name, no extension
+F=facet-architecture   # diagram name, without extension
 xvfb-run -a drawio -x -f png --scale 2 -o "$F.png" "$F.drawio" --no-sandbox
 ```
 
-Facet is the single-tenant app that Facet Cloud (`../../../facets-sh`) multi-tenants. See that repo's `docs/diagrams/` for the cloud architecture.
+Facet Cloud's architecture is documented in that service's own repository, not here.

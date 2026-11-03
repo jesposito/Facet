@@ -7,7 +7,8 @@ export type CustomCSSContrastAnalysis = {
 };
 
 const MIN_TEXT_CONTRAST = 4.5;
-const PRIMARY_COLOR_VAR_RE = /--color-primary-(?:50|100|200|300|400|500|600|700|800|900|950)(?:-rgb)?\s*:/i;
+const PRIMARY_COLOR_VAR_RE =
+	/--color-primary-(?:50|100|200|300|400|500|600|700|800|900|950)(?:-rgb)?\s*:/i;
 const NAMED_COLORS: Record<string, RGB> = {
 	black: { r: 0, g: 0, b: 0 },
 	blue: { r: 0, g: 0, b: 255 },
@@ -120,9 +121,7 @@ function clampByte(value: number): number {
 function relativeLuminance({ r, g, b }: RGB): number {
 	const channel = (value: number) => {
 		const normalized = value / 255;
-		return normalized <= 0.03928
-			? normalized / 12.92
-			: Math.pow((normalized + 0.055) / 1.055, 2.4);
+		return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
 	};
 	return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }

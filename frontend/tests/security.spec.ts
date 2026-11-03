@@ -67,7 +67,7 @@ test.describe('Security: XSS Prevention', () => {
 		for (const iframe of iframes) {
 			const src = await iframe.getAttribute('src');
 			if (src) {
-				const isAllowed = allowedDomains.some(domain => src.includes(domain));
+				const isAllowed = allowedDomains.some((domain) => src.includes(domain));
 				expect(isAllowed).toBe(true);
 			}
 		}
@@ -119,11 +119,7 @@ test.describe('Security: Path Traversal Prevention', () => {
 		// that the validation logic is in place by attempting to delete
 		// paths that would typically be symlink targets
 
-		const suspiciousPaths = [
-			'/var/log/system.log',
-			'/tmp/malicious_link',
-			'../outside_storage'
-		];
+		const suspiciousPaths = ['/var/log/system.log', '/tmp/malicious_link', '../outside_storage'];
 
 		const res = await request.post(`${apiBaseURL}/api/media/bulk-delete`, {
 			headers: { Authorization: token },

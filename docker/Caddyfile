@@ -44,8 +44,8 @@
         # (DENY blocked even same-origin frames, breaking the preview.)
         X-Frame-Options "SAMEORIGIN"
 
-        # Control referrer information - safe default per OWASP
-        Referrer-Policy "strict-origin-when-cross-origin"
+        # Preserve stricter route policies on token-bearing pages.
+        ?Referrer-Policy "strict-origin-when-cross-origin"
 
         # Disable browser features not used by Facet
         Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"

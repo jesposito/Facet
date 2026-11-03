@@ -2,6 +2,53 @@
 
 All notable changes to Facet will be documented in this file.
 
+## Unreleased
+
+Not yet released. Entries describe the code on this branch and may change before a version is tagged.
+
+**Upgrade notes:**
+
+- Preserve media URLs during legacy URL-to-text field conversion. Repair missing lesson comment flags and log timestamps; old log rows keep unknown creation times.
+- Bound SMTP connection, TLS negotiation and delivery to 30 seconds, and update newsletter list counts without background writes.
+- New installs get a random owner password, printed once in the startup log, instead of `changeme123`. Accounts still on `changeme123` must change it before admin APIs answer.
+- Courses are now on by default for self-hosted sites. Set `FACET_FEATURE_COURSES=false` to keep them off.
+- `SMTP_TLS` now follows the port when unset: implicit TLS on 465, STARTTLS elsewhere. Set it explicitly if your provider needs something else.
+- Behind a reverse proxy or tunnel, set `TRUSTED_PROXIES` to your proxy's address range, or every visitor shares one rate-limit bucket.
+- Checkout success and cancel addresses must match `APP_URL`. Checkout answers 503 if no app URL is set.
+- `/api/v1` projects no longer include `status`, which was always empty. Read responses gain the schema's real fields, such as `proficiency`, `summary`, `links`, `content` and `tags`; `level`, `url` and `is_current` stay as derived values.
+
+**API keys:**
+
+- A key's allowed origins are now enforced for browser requests, and entries are checked and tidied when the key is created. The allowlist is checked on the authenticated request, separately from PocketBase's CORS preflight handling; it does not replace keeping the key secret.
+- Expiry dates are validated. A date on its own lasts to the end of that day in UTC.
+- Recording a key's last use can no longer undo a revocation that happens at the same moment.
+- `/api/v1` is rate limited per IP, writes made with a key appear in the audit log, and paid post and project content is withheld as it is on the site.
+
+**Security and sign-in:**
+
+- `reset-admin-password` sets a random password and signs out every session for the account. Two-factor sign-in stays on.
+- The server enforces the two-factor session and the default-password change, not just the admin UI.
+- Client addresses come from Caddy's `trusted_proxies`; headers a visitor can set, such as `CF-Connecting-IP`, are no longer used.
+- Contact values at the CAPTCHA protection level are removed from public page data.
+- The generated encryption key is never printed. A new key file is created with mode 600, and an empty key file stops startup.
+
+**Courses, payments and newsletter:**
+- Public course pages, enrolment with email verification, drip and sequential release, and one shared access check for quizzes, completion and progress.
+- Paid access links are delivered to the buyer's inbox and work for buyers with more than 100 purchases. Partial refunds keep access; full refunds end it.
+- Newsletter sign-up is double opt-in and joins the chosen public list on confirmation. Sends can target one list and use request keys so retries don't send twice.
+- Personal placeholders are refused inside newsletter links.
+- The Analytics, Courses, Newsletter and Discussions switches are now enforced.
+
+**Reliability:**
+- The container start script waits for health checks, stops the remaining processes if one exits, and shuts down within `FACET_SHUTDOWN_TIMEOUT` seconds.
+- Backup listing and startup content repair report errors instead of treating them as "nothing found". A failed repair raises a system alert and retries at the next start.
+- SMTP settings from the environment are saved during bootstrap, and only when they've changed.
+
+**Development:**
+- Node 24, Air v1.67.4, and a musl build tag for the Alpine development image.
+
+**Testing note:** payment and email behaviour is covered by tests with signed fake Stripe events and a captured mailer. It hasn't been verified against a live Stripe account or external SMTP server.
+
 
 ## v3.6.0 - October 30, 2026
 

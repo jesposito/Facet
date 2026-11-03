@@ -1,18 +1,13 @@
-# Unraid Community Applications
+# Unraid
 
-Facet ships via Unraid Community Applications.
+Facet is available in Unraid Community Applications. Open **Apps**, search for **Facet**, and install it.
 
-**Install via CA**: open *Apps* in Unraid, search for "Facet".
-
-**Direct template URL** (Add Container > Template URL):
+To add it by hand instead, go to **Docker → Add Container** and use this template URL:
 
 ```
 https://raw.githubusercontent.com/jesposito/unraid_templates/main/templates/facet.xml
 ```
 
-The canonical Unraid template lives in
-[jesposito/unraid_templates](https://github.com/jesposito/unraid_templates).
+The template is maintained in [jesposito/unraid_templates](https://github.com/jesposito/unraid_templates), which is its only source. This repository used to carry a copy in `unraid/facet-template.xml`, but it drifted out of date and was removed.
 
-This repo previously carried a copy in `unraid/facet-template.xml`, but that
-copy drifted from canonical. The unraid_templates repo is now the single
-source of truth.
+For the settings to choose (data and uploads paths, `ADMIN_EMAILS`, `APP_URL`, `TRUST_PROXY`, `PUID`/`PGID`) and how to back up, see [Install → Unraid](../docs/SETUP.md#option-4-unraid) and [Upgrades, backups and recovery](../docs/UPGRADE.md).

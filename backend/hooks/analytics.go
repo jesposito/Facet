@@ -301,6 +301,12 @@ func RegisterAnalyticsHooks(app *pocketbase.PocketBase, planConfig *services.Pla
 // Filters out bots and captures user agent + hashed IP.
 // shareTokenID is optional — set when access came via a share token.
 func LogViewAccess(app *pocketbase.PocketBase, e *core.RequestEvent, viewID, viewSlug, shareTokenID string) {
+	// The owner's Analytics switch is a privacy promise: when it's off,
+	// nothing is written. If settings can't be read, err on not logging.
+	if !services.IsFeatureEnabled(app, services.FeatureAnalytics, false) {
+		return
+	}
+
 	// Extract data synchronously from the request
 	ua := GetUserAgent(e)
 	if services.IsBot(ua) {

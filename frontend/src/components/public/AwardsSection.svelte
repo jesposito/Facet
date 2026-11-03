@@ -10,7 +10,6 @@
 
 	let { items, layout = 'grouped' }: Props = $props();
 
-
 	function groupByIssuer(awards: Award[]): Map<string, Award[]> {
 		const groups = new Map<string, Award[]>();
 		for (const award of awards) {
@@ -32,19 +31,25 @@
 		<div class="space-y-6">
 			{#each items as award (award.id)}
 				<article class="card p-5 flex gap-4 items-start animate-fade-in">
-					<div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100 flex items-center justify-center font-semibold">
+					<div
+						class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100 flex items-center justify-center font-semibold"
+					>
 						{award.awarded_at ? formatDate(award.awarded_at, { year: 'numeric' }) : ''}
 					</div>
 					<div class="flex-1 space-y-1">
 						<p class="text-sm text-gray-600 dark:text-gray-300">
-							{award.awarded_at ? formatDate(award.awarded_at, { month: 'short', year: 'numeric' }) : $t('public.awards.no_date')}
+							{award.awarded_at
+								? formatDate(award.awarded_at, { month: 'short', year: 'numeric' })
+								: $t('public.awards.no_date')}
 						</p>
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{award.title}</h3>
 						{#if award.issuer}
 							<p class="text-sm text-gray-600 dark:text-gray-400">{award.issuer}</p>
 						{/if}
 						{#if award.description}
-							<div class="prose-custom text-gray-700 dark:text-gray-300 text-sm">{@html parseMarkdown(award.description)}</div>
+							<div class="prose-custom text-gray-700 dark:text-gray-300 text-sm">
+								{@html parseMarkdown(award.description)}
+							</div>
 						{/if}
 						{#if award.url}
 							<a
@@ -54,7 +59,12 @@
 								class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
 							>
 								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+									/>
 								</svg>
 								{$t('public.awards.view_details')}
 							</a>
@@ -70,7 +80,9 @@
 					<div class="flex items-start justify-between gap-2">
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{award.title}</h3>
 						{#if award.awarded_at}
-							<span class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100">
+							<span
+								class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100"
+							>
 								{formatDate(award.awarded_at, { month: 'short', year: 'numeric' })}
 							</span>
 						{/if}
@@ -79,7 +91,9 @@
 						<p class="text-sm text-gray-600 dark:text-gray-400">{award.issuer}</p>
 					{/if}
 					{#if award.description}
-						<div class="prose-custom text-gray-700 dark:text-gray-300 text-sm line-clamp-3">{@html parseMarkdown(award.description)}</div>
+						<div class="prose-custom text-gray-700 dark:text-gray-300 text-sm line-clamp-3">
+							{@html parseMarkdown(award.description)}
+						</div>
 					{/if}
 					{#if award.url}
 						<a
@@ -89,7 +103,12 @@
 							class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+								/>
 							</svg>
 							{$t('public.awards.view_details')}
 						</a>
@@ -113,7 +132,9 @@
 										{award.title}
 									</h4>
 									{#if award.awarded_at}
-										<span class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100">
+										<span
+											class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100"
+										>
 											{formatDate(award.awarded_at, { month: 'short', year: 'numeric' })}
 										</span>
 									{/if}
@@ -131,7 +152,12 @@
 										class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300"
 									>
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+											/>
 										</svg>
 										{$t('public.awards.view_details')}
 									</a>

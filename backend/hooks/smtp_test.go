@@ -1,16 +1,22 @@
 package hooks
 
 import (
+	"encoding/json"
+	"sync/atomic"
 	"testing"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/hook"
 	"github.com/pocketbase/pocketbase/tools/mailer"
 )
 
-func newSMTPEnvTestApp(t *testing.T) *pocketbase.PocketBase {
+// newSMTPEnvTestApp registers the env hook before bootstrapping, the same
+// order main.go uses with app.Start().
+func newSMTPEnvTestApp(t *testing.T, dataDir string) *pocketbase.PocketBase {
 	t.Helper()
-	app := pocketbase.NewWithConfig(pocketbase.Config{DefaultDataDir: t.TempDir()})
+	app := pocketbase.NewWithConfig(pocketbase.Config{DefaultDataDir: dataDir})
+	RegisterSMTPEnvConfig(app)
 	if err := app.Bootstrap(); err != nil {
 		t.Fatalf("bootstrap: %v", err)
 	}
@@ -18,12 +24,51 @@ func newSMTPEnvTestApp(t *testing.T) *pocketbase.PocketBase {
 	return app
 }
 
-func triggerServe(t *testing.T, app *pocketbase.PocketBase) {
+// seedStoredSettings opens dataDir without the env hook, lets edit change the
+// settings, saves them and closes the app again. It stands in for settings an
+// operator saved before a restart.
+//
+// The save happens inside bootstrap for the same reason the env hook's does:
+// once Bootstrap returns, PocketBase's version-check goroutine may be logging,
+// and a settings save reloads fields its logger reads without a lock.
+func seedStoredSettings(t *testing.T, dataDir string, edit func(*core.Settings)) {
 	t.Helper()
-	err := app.OnServe().Trigger(&core.ServeEvent{App: app}, func(*core.ServeEvent) error { return nil })
-	if err != nil {
-		t.Fatalf("serve hooks: %v", err)
+	app := pocketbase.NewWithConfig(pocketbase.Config{DefaultDataDir: dataDir})
+	app.OnBootstrap().BindFunc(func(be *core.BootstrapEvent) error {
+		if err := be.Next(); err != nil {
+			return err
+		}
+		settings, err := be.App.Settings().Clone()
+		if err != nil {
+			return err
+		}
+		edit(settings)
+		return be.App.Save(settings)
+	})
+	if err := app.Bootstrap(); err != nil {
+		t.Fatalf("bootstrap: %v", err)
 	}
+	if err := app.ResetBootstrapState(); err != nil {
+		t.Fatalf("close seeded app: %v", err)
+	}
+}
+
+// storedSettings decodes the settings row straight from the database, so a
+// test checks what was persisted without reloading the app's live settings.
+func storedSettings(t *testing.T, app core.App) (core.MetaConfig, core.SMTPConfig) {
+	t.Helper()
+	param := &core.Param{}
+	if err := app.ModelQuery(param).Model("settings", param); err != nil {
+		t.Fatalf("load stored settings: %v", err)
+	}
+	var stored struct {
+		Meta core.MetaConfig `json:"meta"`
+		SMTP core.SMTPConfig `json:"smtp"`
+	}
+	if err := json.Unmarshal(param.Value, &stored); err != nil {
+		t.Fatalf("decode stored settings: %v", err)
+	}
+	return stored.Meta, stored.SMTP
 }
 
 // APP_URL must reach Meta.AppURL even when neither OAuth nor SMTP is configured,
@@ -34,17 +79,16 @@ func TestSMTPEnvConfigPersistsAppURLWithoutOAuthOrSMTP(t *testing.T) {
 	}
 	t.Setenv("APP_URL", " https://facet.example.com ")
 
-	app := newSMTPEnvTestApp(t)
-	RegisterSMTPEnvConfig(app)
-	triggerServe(t, app)
+	app := newSMTPEnvTestApp(t, t.TempDir())
 
-	if got := app.Settings().Meta.AppURL; got != "https://facet.example.com" {
-		t.Fatalf("Meta.AppURL = %q, want trimmed APP_URL", got)
+	meta, smtp := storedSettings(t, app)
+	if meta.AppURL != "https://facet.example.com" || app.Settings().Meta.AppURL != meta.AppURL {
+		t.Fatalf("Meta.AppURL stored %q, live %q, want trimmed APP_URL", meta.AppURL, app.Settings().Meta.AppURL)
 	}
-	if got := app.Settings().Meta.AppName; got != "Facet" {
-		t.Fatalf("Meta.AppName = %q, want Facet", got)
+	if meta.AppName != "Facet" {
+		t.Fatalf("Meta.AppName = %q, want Facet", meta.AppName)
 	}
-	if app.Settings().SMTP.Enabled {
+	if smtp.Enabled {
 		t.Fatal("SMTP must stay disabled when SMTP_HOST is empty")
 	}
 }
@@ -76,16 +120,11 @@ func TestSMTPEnvConfigTLSDefaultsFollowPort(t *testing.T) {
 			t.Setenv("SMTP_PORT", tc.port)
 			t.Setenv("SMTP_TLS", tc.tls)
 
-			app := newSMTPEnvTestApp(t)
-			RegisterSMTPEnvConfig(app)
-			triggerServe(t, app)
+			app := newSMTPEnvTestApp(t, t.TempDir())
 
-			// Reload from the database so the test checks what was saved,
+			// Read the database row so the test checks what was saved,
 			// not only the in-memory settings.
-			if err := app.ReloadSettings(); err != nil {
-				t.Fatalf("reload settings: %v", err)
-			}
-			smtp := app.Settings().SMTP
+			_, smtp := storedSettings(t, app)
 			if !smtp.Enabled || smtp.Host != "smtp.example.com" {
 				t.Fatalf("SMTP not enabled for host: %+v", smtp)
 			}
@@ -109,17 +148,72 @@ func TestSMTPEnvConfigEmptyAppURLKeepsSavedSetting(t *testing.T) {
 	t.Setenv("SMTP_HOST", "")
 	t.Setenv("APP_URL", "")
 
-	app := newSMTPEnvTestApp(t)
-	settings := app.Settings()
-	settings.Meta.AppURL = "https://saved.example.com"
-	if err := app.Save(settings); err != nil {
-		t.Fatalf("save settings: %v", err)
-	}
+	dataDir := t.TempDir()
+	seedStoredSettings(t, dataDir, func(s *core.Settings) {
+		s.Meta.AppURL = "https://saved.example.com"
+	})
 
-	RegisterSMTPEnvConfig(app)
-	triggerServe(t, app)
+	app := newSMTPEnvTestApp(t, dataDir)
 
 	if got := app.Settings().Meta.AppURL; got != "https://saved.example.com" {
 		t.Fatalf("Meta.AppURL = %q, want saved value preserved", got)
+	}
+}
+
+// SMTP fields the environment leaves unset keep their stored values, and a
+// restart with the same environment does not rewrite the settings row.
+func TestSMTPEnvConfigPreservesStoredValuesAndSkipsNoOpSave(t *testing.T) {
+	for _, name := range []string{"SMTP_PORT", "SMTP_TLS", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_AUTH_METHOD", "SMTP_SENDER_NAME", "SMTP_SENDER_ADDRESS", "APP_NAME"} {
+		t.Setenv(name, "")
+	}
+	t.Setenv("SMTP_HOST", "smtp.example.com")
+	t.Setenv("APP_URL", "https://facet.example.com")
+
+	dataDir := t.TempDir()
+	seedStoredSettings(t, dataDir, func(s *core.Settings) {
+		s.SMTP.Username = "stored-user"
+		s.SMTP.Password = "stored-password"
+		s.Meta.SenderAddress = "hello@example.com"
+		s.Meta.SenderName = "Studio"
+	})
+
+	first := newSMTPEnvTestApp(t, dataDir)
+	meta, smtp := storedSettings(t, first)
+	if !smtp.Enabled || smtp.Host != "smtp.example.com" || smtp.Port != 587 || smtp.TLS {
+		t.Fatalf("SMTP = enabled:%v %s:%d tls:%v, want enabled smtp.example.com:587 with STARTTLS",
+			smtp.Enabled, smtp.Host, smtp.Port, smtp.TLS)
+	}
+	if smtp.Username != "stored-user" || smtp.Password != "stored-password" {
+		t.Fatal("stored SMTP credentials were not preserved")
+	}
+	if meta.SenderAddress != "hello@example.com" || meta.SenderName != "Studio" {
+		t.Fatalf("sender = %q <%s>, want stored values", meta.SenderName, meta.SenderAddress)
+	}
+	if meta.AppURL != "https://facet.example.com" {
+		t.Fatalf("Meta.AppURL = %q, want APP_URL", meta.AppURL)
+	}
+	if err := first.ResetBootstrapState(); err != nil {
+		t.Fatalf("close first app: %v", err)
+	}
+
+	// Restart with the same environment: nothing differs, so nothing is saved.
+	restarted := pocketbase.NewWithConfig(pocketbase.Config{DefaultDataDir: dataDir})
+	var saves atomic.Int32
+	restarted.OnModelAfterUpdateSuccess("_params").Bind(&hook.Handler[*core.ModelEvent]{
+		Func: func(e *core.ModelEvent) error {
+			saves.Add(1)
+			return e.Next()
+		},
+	})
+	RegisterSMTPEnvConfig(restarted)
+	if err := restarted.Bootstrap(); err != nil {
+		t.Fatalf("bootstrap: %v", err)
+	}
+	t.Cleanup(func() { _ = restarted.ResetBootstrapState() })
+	if n := saves.Load(); n != 0 {
+		t.Fatalf("settings saved %d times on an unchanged restart, want 0", n)
+	}
+	if restarted.Settings().SMTP.Password != "stored-password" {
+		t.Fatal("stored SMTP password lost on restart")
 	}
 }

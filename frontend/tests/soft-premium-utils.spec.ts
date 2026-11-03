@@ -1,19 +1,11 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { setSiteDesign } from './helpers';
+import { loginAsAdmin, setSiteDesign } from './helpers';
 
 // Editorial utilities under Soft Premium: .font-accent uses Newsreader italic
 // and .text-gradient clips a gradient to the text.
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
-const API_BASE = process.env.API_BASE_URL ?? process.env.POCKETBASE_URL ?? 'http://localhost:8090';
-const LOGIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@example.com';
-const LOGIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'changeme123';
-
 async function adminToken(request: APIRequestContext): Promise<string> {
-	const res = await request.post(`${API_BASE}/api/collections/users/auth-with-password`, {
-		data: { identity: LOGIN_EMAIL, password: LOGIN_PASSWORD },
-	});
-	expect(res.ok()).toBeTruthy();
-	return (await res.json()).token as string;
+	return (await loginAsAdmin(request)).token;
 }
 
 // Inject a probe element and read computed values for the editorial utilities.
@@ -30,7 +22,7 @@ const probe = (page: Page) =>
 			style: accent.fontStyle,
 			// text-gradient clips a gradient to the text → transparent fill + a bg image.
 			gradientFill: gradient.webkitTextFillColor || gradient.color,
-			gradientImg: gradient.backgroundImage,
+			gradientImg: gradient.backgroundImage
 		};
 		wrap.remove();
 		return r;

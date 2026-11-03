@@ -90,12 +90,17 @@ func TestSingleUseShareLinkWorksOnceUnderLoad(t *testing.T) {
 
 func TestSingleUseFreeCouponRedeemsOnceUnderLoad(t *testing.T) {
 	f := newSecurityFixture(t)
+	settings := f.app.Settings()
+	settings.Meta.AppURL = "https://facet.example"
+	if err := f.app.Save(settings); err != nil {
+		t.Fatal(err)
+	}
 	RegisterPurchaseHooks(f.pb, f.crypto, f.rl)
 	post := f.create(t, "posts", map[string]any{"title": "Paid", "slug": "paid", "visibility": "public", "access_tier": "paid", "price": 500, "content": "x"})
 	f.create(t, "coupons", map[string]any{"code": "FREEONE", "discount_type": "percentage", "discount_value": 100, "applicable_type": "all", "max_uses": 1, "current_uses": 0, "active": true})
 	h := f.serve(t)
 
-	body := `{"content_type":"posts","content_id":"` + post.Id + `","success_url":"http://example.com/ok","cancel_url":"http://example.com/no","coupon_code":"FREEONE"}`
+	body := `{"content_type":"posts","content_id":"` + post.Id + `","success_url":"https://facet.example/ok","cancel_url":"https://facet.example/no","coupon_code":"FREEONE"}`
 	results := concurrently(t, h, testRequest{method: http.MethodPost, url: "/api/content/checkout", body: body})
 	if got := countStatus(results, http.StatusOK); got != 1 {
 		t.Fatalf("%d of %d parallel checkouts redeemed a single-use coupon", got, burst)

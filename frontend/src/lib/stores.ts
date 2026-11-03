@@ -129,7 +129,7 @@ export const adminSidebarOpen = writable(true);
 
 export const sidebarFacetsVersion = writable(0);
 export function triggerSidebarFacetsReload() {
-	sidebarFacetsVersion.update(n => n + 1);
+	sidebarFacetsVersion.update((n) => n + 1);
 }
 
 // Sidebar section collapse states with localStorage persistence
@@ -205,7 +205,11 @@ function createSidebarSectionStatesStore() {
 				return newStates;
 			});
 		},
-		isExpanded: (states: SidebarSectionStates, sectionId: string, defaultExpanded = true): boolean => {
+		isExpanded: (
+			states: SidebarSectionStates,
+			sectionId: string,
+			defaultExpanded = true
+		): boolean => {
 			return states[sectionId] ?? defaultExpanded;
 		},
 		expandAll: (sectionIds: string[]) => {
@@ -253,7 +257,11 @@ export const currentView = writable<ViewContext | null>(null);
 
 // Modal state
 export const modalOpen = writable(false);
-export const modalContent = writable<{ title: string; component: unknown; props?: Record<string, unknown> } | null>(null);
+export const modalContent = writable<{
+	title: string;
+	component: unknown;
+	props?: Record<string, unknown>;
+} | null>(null);
 
 export function openModal(title: string, component: unknown, props?: Record<string, unknown>) {
 	modalContent.set({ title, component, props });
@@ -419,6 +427,7 @@ function createSiteSettingsStore() {
 					});
 				}
 			} catch {
+				// Keep the defaults when public site settings cannot be loaded.
 			}
 		},
 		updateSetting: (key: keyof SiteSettings, value: any) => {
