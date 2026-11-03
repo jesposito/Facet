@@ -28,9 +28,20 @@ echo "[backend] Backend dir: $BACKEND_DIR"
 # Environment setup
 export DATA_DIR="${DATA_DIR:-$PROJECT_ROOT/pb_data}"
 export ENCRYPTION_KEY="${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!}"
-export SEED_DATA="${SEED_DATA:-true}"
+export SEED_DATA="${SEED_DATA:-minimal}"
+export FACET_DEV_HOST="${FACET_DEV_HOST:-127.0.0.1}"
+
+# Air passes FACET_DEV_HOST to a shell command, so accept only hostname or
+# IPv4 characters. Docker dev sets 0.0.0.0 so published ports reach the server.
+case "$FACET_DEV_HOST" in
+    *[!A-Za-z0-9.-]* | -* | .* | *. | *..*)
+        echo "[backend] ERROR: FACET_DEV_HOST must be a hostname or IPv4 address"
+        exit 1
+        ;;
+esac
 
 echo "[backend] DATA_DIR: $DATA_DIR"
+echo "[backend] Listening on: $FACET_DEV_HOST:8090"
 
 # Ensure directories exist
 mkdir -p "$DATA_DIR"
@@ -76,9 +87,7 @@ needs_update() {
 
 echo "[backend] Checking Go modules..."
 
-FIRST_RUN=false
 if reason=$(needs_update); then
-    FIRST_RUN=true
     echo "[backend] Running go mod tidy ($reason)..."
     echo "[backend] This may take a few minutes on first run..."
 
@@ -98,18 +107,10 @@ else
     echo "[backend] Modules up to date (skipping go mod tidy)"
 fi
 
-# On first run, clean the Go build cache to ensure fresh compilation
-# This prevents stale compiled code from being used
-if [[ "$FIRST_RUN" == "true" ]]; then
-    echo "[backend] First run detected - cleaning build cache for fresh compilation..."
-    rm -rf "$PROJECT_ROOT/tmp/facet" 2>/dev/null || true
-    go clean -cache 2>/dev/null || true
-fi
-
 # Check if air is available
 if ! command -v air &> /dev/null; then
     echo "[backend] ERROR: air not found"
-    echo "[backend] Install with: go install github.com/air-verse/air@v1.61.7"
+    echo "[backend] Install with: go install github.com/air-verse/air@v1.67.4"
     exit 1
 fi
 

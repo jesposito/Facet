@@ -15,7 +15,8 @@ tmp_dir = "tmp"
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  full_bin = "DATA_DIR=../pb_data ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=true ./tmp/facet serve --http=0.0.0.0:8090 --dir=../pb_data"
+  # Listens on loopback unless FACET_DEV_HOST names another host or IPv4 address.
+  full_bin = 'DATA_DIR=../pb_data ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!} SEED_DATA=${SEED_DATA:-minimal} ./tmp/facet serve --http="${FACET_DEV_HOST:-127.0.0.1}:8090" --dir=../pb_data'
   include_ext = ["go", "tpl", "tmpl", "html"]
   kill_delay = "2s"
   log = "build-errors.log"

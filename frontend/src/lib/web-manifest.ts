@@ -1,4 +1,9 @@
-import { ACCENT_COLORS, DEFAULT_ACCENT_COLOR, SOFT_PREMIUM_DEFAULT_ACCENT, type AccentColor } from '$lib/colors';
+import {
+	ACCENT_COLORS,
+	DEFAULT_ACCENT_COLOR,
+	SOFT_PREMIUM_DEFAULT_ACCENT,
+	type AccentColor
+} from '$lib/colors';
 
 export type ManifestProfile = {
 	name?: unknown;
@@ -31,7 +36,10 @@ export type FacetWebManifest = {
 	icons: ManifestIcon[];
 };
 
-export function buildWebManifest(profile: ManifestProfile | null, settings: ManifestSiteSettings | null): FacetWebManifest {
+export function buildWebManifest(
+	profile: ManifestProfile | null,
+	settings: ManifestSiteSettings | null
+): FacetWebManifest {
 	const name = stringOrEmpty(profile?.name) || 'Facet';
 	const icons = uniqueIcons([
 		iconFromUrl(stringOrEmpty(profile?.avatar_url), 'any'),
@@ -46,13 +54,18 @@ export function buildWebManifest(profile: ManifestProfile | null, settings: Mani
 		start_url: '/',
 		scope: '/',
 		display: 'standalone',
-		background_color: isHexColor(profile?.hero_bg_color) ? String(profile?.hero_bg_color) : '#ffffff',
+		background_color: isHexColor(profile?.hero_bg_color)
+			? String(profile?.hero_bg_color)
+			: '#ffffff',
 		theme_color: resolveThemeColor(profile, settings),
 		icons
 	};
 }
 
-function resolveThemeColor(profile: ManifestProfile | null, settings: ManifestSiteSettings | null): string {
+function resolveThemeColor(
+	profile: ManifestProfile | null,
+	settings: ManifestSiteSettings | null
+): string {
 	if (isHexColor(profile?.custom_hex_color)) {
 		return String(profile?.custom_hex_color);
 	}

@@ -69,13 +69,13 @@ func SamplePayload(event string) map[string]any {
 		}
 	case EventPostPublished:
 		return map[string]any{
-			"post_id":  "sample_post_000",
-			"slug":     "hello-world",
-			"title":    "Sample Post Title",
-			"excerpt":  "Synthetic payload from the dispatch-test picker.",
-			"author":   "Site Owner",
-			"tags":     []string{"sample", "test"},
-			"is_test":  true,
+			"post_id": "sample_post_000",
+			"slug":    "hello-world",
+			"title":   "Sample Post Title",
+			"excerpt": "Synthetic payload from the dispatch-test picker.",
+			"author":  "Site Owner",
+			"tags":    []string{"sample", "test"},
+			"is_test": true,
 		}
 	case EventNewsletterSubscribed:
 		return map[string]any{

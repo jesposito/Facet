@@ -367,9 +367,7 @@
 		await tick();
 		if (btn.disabled) {
 			const opposite = direction === 'up' ? 'down' : 'up';
-			btn.parentElement
-				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
-				?.focus();
+			btn.parentElement?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)?.focus();
 		}
 	}
 
@@ -389,7 +387,10 @@
 			// Validate file size
 			if (isOversizedMediaUpload(file)) {
 				console.warn(`File ${file.name} exceeds 20MB limit`);
-				toasts.add('error', $t(oversizedMediaUploadMessageKey(file), { values: { name: file.name, limit: '20MB' } }));
+				toasts.add(
+					'error',
+					$t(oversizedMediaUploadMessageKey(file), { values: { name: file.name, limit: '20MB' } })
+				);
 				continue;
 			}
 
@@ -487,9 +488,13 @@
 	<div class="space-y-2">
 		<!-- Selected items display -->
 		{#if selectedItems.length > 0}
-			<div class="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+			<div
+				class="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+			>
 				{#each selectedItems as item, index (item.id)}
-					<div class="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+					<div
+						class="flex items-center gap-2 px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600"
+					>
 						{#if item.thumbnail_url || (isImage(item) && item.url)}
 							<img
 								src={item.thumbnail_url || getAbsoluteUrl(item.url || '')}
@@ -498,13 +503,27 @@
 								loading="lazy"
 							/>
 						{:else}
-							<div class="w-6 h-6 flex items-center justify-center rounded bg-gray-100 dark:bg-gray-600">
-								<svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+							<div
+								class="w-6 h-6 flex items-center justify-center rounded bg-gray-100 dark:bg-gray-600"
+							>
+								<svg
+									class="w-4 h-4 text-gray-400"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+									/>
 								</svg>
 							</div>
 						{/if}
-						<span class="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[120px]">{item.title}</span>
+						<span class="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[120px]"
+							>{item.title}</span
+						>
 						{#if selectedItems.length > 1}
 							<div class="flex items-center">
 								<button
@@ -513,10 +532,23 @@
 									class="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed dark:hover:text-gray-200"
 									onclick={(e) => moveItem(item, index, 'up', e.currentTarget)}
 									disabled={index === 0}
-									aria-label={$t('admin.media.multi_picker_move_up', { values: { title: item.title } })}
+									aria-label={$t('admin.media.multi_picker_move_up', {
+										values: { title: item.title }
+									})}
 								>
-									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+									<svg
+										class="h-4 w-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 15l7-7 7 7"
+										/>
 									</svg>
 								</button>
 								<button
@@ -525,10 +557,23 @@
 									class="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed dark:hover:text-gray-200"
 									onclick={(e) => moveItem(item, index, 'down', e.currentTarget)}
 									disabled={index === selectedItems.length - 1}
-									aria-label={$t('admin.media.multi_picker_move_down', { values: { title: item.title } })}
+									aria-label={$t('admin.media.multi_picker_move_down', {
+										values: { title: item.title }
+									})}
 								>
-									<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									<svg
+										class="h-4 w-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 9l-7 7-7-7"
+										/>
 									</svg>
 								</button>
 							</div>
@@ -540,7 +585,12 @@
 							aria-label={$t('admin.media.remove_item')}
 						>
 							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M6 18L18 6M6 6l12 12"
+								/>
 							</svg>
 						</button>
 					</div>
@@ -567,8 +617,14 @@
 					? $t('admin.media.multi_picker_modify_selection')
 					: $t('admin.media.multi_picker_select_from_library')}
 			</button>
-			<span class="text-sm text-gray-500 dark:text-gray-400">{$t('admin.media.multi_picker_or')}</span>
-			<label class="btn btn-secondary btn-sm cursor-pointer {uploading ? 'opacity-50 pointer-events-none' : ''}">
+			<span class="text-sm text-gray-500 dark:text-gray-400"
+				>{$t('admin.media.multi_picker_or')}</span
+			>
+			<label
+				class="btn btn-secondary btn-sm cursor-pointer {uploading
+					? 'opacity-50 pointer-events-none'
+					: ''}"
+			>
 				{#if uploading}
 					{$t('admin.media.uploading')}
 				{:else}
@@ -600,9 +656,13 @@
 
 	<!-- Media picker modal -->
 	{#if showPicker}
-		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-		<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="presentation" onclick={handleClosePicker}>
-			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+			role="presentation"
+			onclick={handleClosePicker}
+		>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
 			<div
 				class="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[80vh] flex flex-col"
 				role="dialog"
@@ -610,12 +670,16 @@
 				tabindex="-1"
 				onclick={(e) => e.stopPropagation()}
 			>
-				<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+				<div
+					class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+				>
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 						{$t('admin.media.multi_picker_modal_title')}
 						{#if workingSelection.length > 0}
 							<span class="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">
-								({$t('admin.media.multi_picker_selected_count', { values: { count: workingSelection.length } })})
+								({$t('admin.media.multi_picker_selected_count', {
+									values: { count: workingSelection.length }
+								})})
 							</span>
 						{/if}
 					</h3>
@@ -625,8 +689,19 @@
 						onclick={handleClosePicker}
 						aria-label={$t('shared.aria.close')}
 					>
-						<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						<svg
+							class="w-5 h-5"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
 						</svg>
 					</button>
 				</div>
@@ -658,7 +733,10 @@
 							<p class="text-gray-500 dark:text-gray-400 mb-2">
 								{$t('admin.media.picker_empty')}
 							</p>
-							<a href="/admin/media" class="text-primary-600 dark:text-primary-400 hover:underline text-sm">
+							<a
+								href="/admin/media"
+								class="text-primary-600 dark:text-primary-400 hover:underline text-sm"
+							>
 								{$t('admin.media.picker_go_to_library')}
 							</a>
 						</div>
@@ -681,23 +759,51 @@
 											loading="lazy"
 										/>
 									{:else}
-										<div class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-											<svg class="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+										<div
+											class="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800"
+										>
+											<svg
+												class="w-8 h-8 text-gray-400"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+												/>
 											</svg>
 										</div>
 									{/if}
-									<div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+									<div
+										class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2"
+									>
 										<p class="text-xs text-white truncate">{opt.title}</p>
 									</div>
 									{#if isSelected}
-										<div class="absolute top-2 right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-											<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										<div
+											class="absolute top-2 right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center"
+										>
+											<svg
+												class="w-4 h-4 text-white"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M5 13l4 4L19 7"
+												/>
 											</svg>
 										</div>
 									{:else}
-										<div class="absolute top-2 right-2 w-6 h-6 border-2 border-white/70 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+										<div
+											class="absolute top-2 right-2 w-6 h-6 border-2 border-white/70 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+										></div>
 									{/if}
 								</button>
 							{/each}

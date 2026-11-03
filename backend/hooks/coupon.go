@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -89,6 +90,9 @@ func RegisterCouponHooks(app *pocketbase.PocketBase, rl *services.RateLimitServi
 			coupon.Set("code", strings.ToUpper(strings.TrimSpace(req.Code)))
 			coupon.Set("discount_type", req.DiscountType)
 			coupon.Set("discount_value", req.DiscountValue)
+			if req.ApplicableType == "courses" && !services.CourseSalesAvailable {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "Course sales are only available on Facet Cloud"})
+			}
 			if req.ApplicableType != "" {
 				coupon.Set("applicable_type", req.ApplicableType)
 			} else {
@@ -158,6 +162,9 @@ func RegisterCouponHooks(app *pocketbase.PocketBase, rl *services.RateLimitServi
 				coupon.Set("discount_value", discountValue)
 			}
 			if applicableType, ok := req["applicable_type"].(string); ok {
+				if applicableType == "courses" && !services.CourseSalesAvailable {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "Course sales are only available on Facet Cloud"})
+				}
 				coupon.Set("applicable_type", applicableType)
 			}
 			if applicableIDs, ok := req["applicable_ids"]; ok {
@@ -263,6 +270,9 @@ func RegisterCouponHooks(app *pocketbase.PocketBase, rl *services.RateLimitServi
 // validateCoupon checks if a coupon code is valid for the given content.
 // Returns empty string if valid, or a reason string if invalid.
 func validateCoupon(app *pocketbase.PocketBase, code, contentType, contentID string) string {
+	if contentType == "courses" && !services.CourseSalesAvailable {
+		return "Course sales are only available on Facet Cloud"
+	}
 	couponRecords, err := app.FindRecordsByFilter(
 		"coupons",
 		"code = {:code}",
@@ -326,29 +336,47 @@ func validateCoupon(app *pocketbase.PocketBase, code, contentType, contentID str
 	return ""
 }
 
-// IncrementCouponUses increments the current_uses count for a coupon.
-// Called from the webhook handler after successful purchase.
-func IncrementCouponUses(app *pocketbase.PocketBase, couponCode string) {
+// IncrementCouponUses counts a paid checkout against a coupon. Called from
+// the webhook after Stripe confirms payment. The buyer has already paid, so
+// this counts the use even if it takes the coupon past max_uses. The update
+// is a single statement, so two webhooks at once both count.
+func IncrementCouponUses(app core.App, couponCode string) {
 	if couponCode == "" {
 		return
 	}
-
-	couponRecords, err := app.FindRecordsByFilter(
-		"coupons",
-		"code = {:code}",
-		"",
-		1,
-		0,
-		map[string]interface{}{"code": strings.ToUpper(strings.TrimSpace(couponCode))},
-	)
-	if err != nil || len(couponRecords) == 0 {
-		return
-	}
-
-	coupon := couponRecords[0]
-	coupon.Set("current_uses", coupon.GetInt("current_uses")+1)
-	if err := app.Save(coupon); err != nil {
+	_, err := app.DB().NewQuery("UPDATE coupons SET current_uses = current_uses + 1 WHERE code = {:code}").
+		Bind(dbx.Params{"code": strings.ToUpper(strings.TrimSpace(couponCode))}).
+		Execute()
+	if err != nil {
 		app.Logger().Error("Failed to increment coupon uses", "error", err, "code", couponCode)
+	}
+}
+
+// claimCouponUse takes one use of a coupon if any are left. Reading the
+// count and writing it back separately let every request in a burst see the
+// last free use, so a max_uses=1 coupon could be redeemed many times.
+func claimCouponUse(app core.App, couponCode string) bool {
+	result, err := app.DB().NewQuery(
+		"UPDATE coupons SET current_uses = current_uses + 1 " +
+			"WHERE code = {:code} AND (max_uses <= 0 OR current_uses < max_uses)").
+		Bind(dbx.Params{"code": couponCode}).
+		Execute()
+	if err != nil {
+		app.Logger().Error("Failed to claim coupon use", "error", err, "code", couponCode)
+		return false
+	}
+	n, err := result.RowsAffected()
+	return err == nil && n == 1
+}
+
+// releaseCouponUse gives back a use claimed for a redemption that failed.
+func releaseCouponUse(app core.App, couponCode string) {
+	_, err := app.DB().NewQuery(
+		"UPDATE coupons SET current_uses = current_uses - 1 WHERE code = {:code} AND current_uses > 0").
+		Bind(dbx.Params{"code": couponCode}).
+		Execute()
+	if err != nil {
+		app.Logger().Error("Failed to release coupon use", "error", err, "code", couponCode)
 	}
 }
 

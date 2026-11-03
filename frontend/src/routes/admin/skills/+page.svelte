@@ -548,8 +548,8 @@
 		savingOrder = true;
 		try {
 			// Save skill sort orders within categories
-			const updates: Promise<any>[] = [];
-			for (const [_, catItems] of reorderData) {
+			const updates: Promise<unknown>[] = [];
+			for (const catItems of reorderData.values()) {
 				catItems.forEach((item, index) => {
 					updates.push(collection('skills').update(item.id, { sort_order: index }));
 				});
@@ -558,7 +558,7 @@
 
 			// Save category order to site settings
 			const newCategoryOrder = categoryOrder.map((c) => c.name);
-			await fetch('/api/site-settings', {
+			const settingsResponse = await fetch('/api/site-settings', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
@@ -568,6 +568,11 @@
 					skills_category_order: newCategoryOrder
 				})
 			});
+			if (!settingsResponse.ok) {
+				throw new Error(
+					'Skill order within categories was saved, but the category order was not. Save the order again.'
+				);
+			}
 			savedCategoryOrder = newCategoryOrder;
 
 			toasts.add('success', 'Order saved');
@@ -577,7 +582,7 @@
 			await loadSkills();
 		} catch (err) {
 			console.error('Failed to save order:', err);
-			toasts.add('error', 'Failed to save order');
+			toasts.add('error', err instanceof Error ? err.message : 'Failed to save order');
 		} finally {
 			savingOrder = false;
 		}

@@ -10,10 +10,16 @@
 
 import type { PageServerLoad } from './$types';
 import { logger } from '$lib/logger';
+import { internalApiHeaders } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ fetch, parent }) => {
+export const load: PageServerLoad = async ({ fetch, parent, request, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const parentData = await parent();
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	const headers = {
+		...internalApiHeaders(request),
+		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+	};
 
 	// Common empty shape so TypeScript knows view can have properties (not just null)
 	const emptyView = null as {
@@ -33,9 +39,7 @@ export const load: PageServerLoad = async ({ fetch, parent }) => {
 	} | null;
 
 	try {
-		const response = await fetch(`${pbUrl}/api/homepage`, {
-			headers: { 'X-Internal': 'true' }
-		});
+		const response = await fetch(`${pbUrl}/api/homepage`, { headers });
 
 		if (!response.ok) {
 			const errorText = await response.text();

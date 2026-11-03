@@ -1,15 +1,57 @@
-# Portable project experiences v1
+# Project experience contract, version 1
 
-The exact TypeScript contract is `frontend/src/lib/experiences/types.ts`. The optional JSON field on `projects` is `experience`. Null selects the classic project. `enabled:false` retains the authored content while showing the original description. The original title, summary, description, visibility and draft fields retain their meanings. Do not duplicate the title inside the experience.
+This is the data format behind [project experiences](README.md). The exact TypeScript types are in [`frontend/src/lib/experiences/types.ts`](../../frontend/src/lib/experiences/types.ts), and the server enforces the same rules in [`backend/hooks/project_experience.go`](../../backend/hooks/project_experience.go). If this page and the code ever disagree, the code wins. Please fix this page.
 
-Version 1 uses `layout:immersive`, six named tones, a hero and ordered sections. Sections contain the six discriminated block types in the contract. All block, section, lesson and step IDs are unique across the document and match `[a-zA-Z][\w-]{0,63}`. They remain stable through reordering. Story field keys are unique within the activity and at most 32 characters.
+## Where it lives
 
-Story templates use `{fieldKey}` substitutions and `[[pause]]` for a pause. Substitution is plain text. No HTML interpolation or evaluation. Unknown placeholders remain visible as text. User input never goes to a server. Pause duration is 0–5000 milliseconds.
+`projects.experience` is an optional JSON field.
 
-Limits: JSON at most 500,000 bytes; 30 sections; 20 blocks per section; 30 lessons or steps per block; 12 story fields. IDs 64 characters, titles/labels 200, normal single-line metadata 500, prose/code/transcript/template 50,000, URLs 2,048. Empty strings and empty lists are valid during authoring; the renderer provides readable empty states. All arrays/objects must have the expected shape and only known fields. Strings render as escaped text except body/intro prose, which goes through the existing rich-text sanitizer.
+- `null` means the classic project page.
+- `enabled: false` keeps the authored content but shows the classic description.
+- The project's own title, summary, description, visibility and draft fields keep their usual meanings. Don't repeat the title inside the experience.
 
-Image/video/poster/caption URLs allow root-relative paths (no protocol-relative URLs, backslashes or control characters) and HTTPS without credentials. Hero actions additionally allow a section fragment. No arbitrary JavaScript, iframe documents, styles, remote server-side fetching or access tokens. Empty optional URLs are allowed. The renderer checks schemes again before using a URL.
+## Shape
 
-Server validation must cover native PocketBase writes, imports and duplicates, not only the admin UI. Project visibility rules apply before the experience is serialized. The public project detail and intentional public projection must carry this field; private/draft records must not leak it. Export/import must preserve it and rewrite managed media URLs using the existing media mapping. Media reference detection must inspect nested experience values before deleting an upload.
+Version 1 documents have `version`, `enabled`, `layout: "immersive"`, a `hero`, and an ordered list of `sections`.
 
-This is a portable proposal for Cloud coordination. Adaptation is possible before release; do not independently invent a second incompatible schema.
+- Tones: `paper`, `aqua`, `sand`, `green`, `pink`, `ink`.
+- Each section has an `id`, `title`, `intro`, `tone`, a `layout` of `stack` or `split`, and `blocks`.
+- Block types: `text`, `image`, `video` (with `lessons`), `code` (with `steps`), `disclosure` and `story`.
+- Every block, section, lesson and step ID is unique across the whole document, matches `[a-zA-Z][\w-]{0,63}`, and stays the same when items are reordered.
+- Story field keys are unique within their activity and at most 32 characters.
+
+## Story templates
+
+Templates use `{fieldKey}` for substitutions and `[[pause]]` for a pause. Substitution is plain text, with no HTML interpolation or evaluation. Unknown placeholders stay visible as typed. Visitor input never goes to a server. Pause length is 0–5000 milliseconds.
+
+## Limits
+
+| Limit | Value |
+|-------|-------|
+| Whole document | 500,000 bytes of JSON |
+| Sections | 30 |
+| Blocks per section | 20 |
+| Lessons or steps per block | 30 |
+| Story fields | 12 |
+| IDs | 64 characters |
+| Titles and labels | 200 characters |
+| Other single-line text | 500 characters |
+| Prose, code, transcripts, templates | 50,000 characters |
+| URLs | 2,048 characters |
+
+Empty strings and empty lists are valid while authoring, and the renderer shows readable empty states for them. Every object must have the expected shape and only known fields. Strings are rendered as escaped text, except section intros and text bodies, which go through the existing rich-text sanitiser.
+
+## URLs
+
+Image, video, poster and caption URLs may be root-relative paths (no protocol-relative `//` URLs, backslashes or control characters) or HTTPS URLs without embedded credentials. Hero actions may also be a fragment pointing at a section. Empty optional URLs are allowed. The renderer checks schemes again before using any URL.
+
+Not allowed: arbitrary JavaScript, iframe documents, inline styles, server-side fetching of remote URLs, and access tokens.
+
+## Rules for code that touches experiences
+
+- Validation must cover every write path: the admin, PocketBase's own record API, `/api/v1` writes, imports and duplication.
+- Apply the project's visibility and draft rules before serialising the experience. Private and draft projects must never leak it.
+- Export, import and duplication must keep the document and rewrite managed media URLs using the existing media mapping.
+- Media usage, replacement and unused-file detection must look inside nested experience values before deleting an upload.
+
+The contract was written so it could be shared with Facet Cloud. Change it by evolving this version deliberately, rather than introducing a second, incompatible schema.

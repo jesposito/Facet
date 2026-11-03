@@ -1,151 +1,99 @@
-import { pb } from '$lib/pocketbase';
 import type { RequestHandler } from './$types';
+import { publicOrigin } from '$lib/server/robots';
+import {
+	lastmod,
+	publicRecords,
+	renderSitemap,
+	type SitemapRecord,
+	type SitemapUrl
+} from '$lib/server/sitemap';
 
-export const GET: RequestHandler = async () => {
+async function getJson<T>(fetcher: typeof fetch, path: string): Promise<T> {
+	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
+	const response = await fetcher(`${pbUrl}${path}`, { headers: { 'X-Internal': 'true' } });
+	if (!response.ok) throw new Error(`Sitemap data request failed: ${path} (${response.status})`);
+	return (await response.json()) as T;
+}
+
+export const GET: RequestHandler = async ({ fetch, url }) => {
+	// Same origin choice as robots.txt, so the two never disagree.
+	const baseUrl = publicOrigin(process.env, url.origin);
 	try {
-		// Fetch all public content
-		const [projects, posts, talks, views] = await Promise.all([
-			pb.collection('projects').getFullList({
-				filter: 'visibility = "public" && is_draft = false',
-				fields: 'slug,updated'
-			}),
-			pb.collection('posts').getFullList({
-				filter: 'visibility = "public" && is_draft = false',
-				fields: 'slug,updated'
-			}),
-			pb.collection('talks').getFullList({
-				filter: 'visibility = "public"',
-				fields: 'slug,updated'
-			}),
-			pb.collection('views').getFullList({
-				filter: 'visibility = "public" && is_active = true',
-				fields: 'slug,updated'
-			})
+		const [homepage, postsData, talksData, navData] = await Promise.all([
+			getJson<{ projects?: SitemapRecord[] }>(fetch, '/api/homepage'),
+			getJson<{ posts?: SitemapRecord[] }>(fetch, '/api/posts'),
+			getJson<{ talks?: SitemapRecord[] }>(fetch, '/api/talks'),
+			getJson<{ items?: Array<{ slug?: string; updated?: string; visibility?: string }> }>(
+				fetch,
+				'/api/site-nav'
+			)
 		]);
+		const projects = publicRecords(homepage.projects || []);
+		const posts = publicRecords(postsData.posts || []);
+		const talks = publicRecords(talksData.talks || []);
+		const urls: SitemapUrl[] = [
+			{ loc: baseUrl, lastmod: lastmod(), priority: '1.0', changefreq: 'weekly' }
+		];
 
-		const baseUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:8080';
-
-		const urls: Array<{ loc: string; lastmod: string; priority: string; changefreq: string }> = [];
-
-		// Homepage - highest priority
-		urls.push({
-			loc: baseUrl,
-			lastmod: new Date().toISOString().split('T')[0],
-			priority: '1.0',
-			changefreq: 'weekly'
-		});
-
-		// Public views
-		for (const view of views) {
+		for (const view of navData.items || []) {
+			// Unlisted and private views are reachable only by link or login.
+			if (!view.slug || (view.visibility && view.visibility !== 'public')) continue;
 			urls.push({
-				loc: `${baseUrl}/${view.slug}`,
-				lastmod: new Date(view.updated).toISOString().split('T')[0],
+				loc: `${baseUrl}/${encodeURIComponent(view.slug)}`,
+				lastmod: lastmod(view.updated),
 				priority: '0.9',
 				changefreq: 'weekly'
 			});
 		}
-
-		// Projects index
-		if (projects.length > 0) {
-			urls.push({
-				loc: `${baseUrl}/projects`,
-				lastmod: new Date(projects[0].updated).toISOString().split('T')[0],
-				priority: '0.8',
-				changefreq: 'weekly'
-			});
-		}
-
-		// Individual projects
 		for (const project of projects) {
 			urls.push({
-				loc: `${baseUrl}/projects/${project.slug}`,
-				lastmod: new Date(project.updated).toISOString().split('T')[0],
+				loc: `${baseUrl}/projects/${encodeURIComponent(project.slug!)}`,
+				lastmod: lastmod(project.updated),
 				priority: '0.7',
 				changefreq: 'monthly'
 			});
 		}
-
-		// Posts index
 		if (posts.length > 0) {
 			urls.push({
 				loc: `${baseUrl}/posts`,
-				lastmod: new Date(posts[0].updated).toISOString().split('T')[0],
+				lastmod: lastmod(posts[0].updated),
 				priority: '0.8',
 				changefreq: 'weekly'
 			});
 		}
-
-		// Individual posts
 		for (const post of posts) {
 			urls.push({
-				loc: `${baseUrl}/posts/${post.slug}`,
-				lastmod: new Date(post.updated).toISOString().split('T')[0],
+				loc: `${baseUrl}/posts/${encodeURIComponent(post.slug!)}`,
+				lastmod: lastmod(post.updated),
 				priority: '0.7',
 				changefreq: 'monthly'
 			});
 		}
-
-		// Talks index
 		if (talks.length > 0) {
 			urls.push({
 				loc: `${baseUrl}/talks`,
-				lastmod: new Date(talks[0].updated).toISOString().split('T')[0],
+				lastmod: lastmod(talks[0].updated),
 				priority: '0.6',
 				changefreq: 'monthly'
 			});
 		}
-
-		// Individual talks
 		for (const talk of talks) {
-			if (talk.slug) {
-				urls.push({
-					loc: `${baseUrl}/talks/${talk.slug}`,
-					lastmod: new Date(talk.updated).toISOString().split('T')[0],
-					priority: '0.5',
-					changefreq: 'monthly'
-				});
-			}
+			urls.push({
+				loc: `${baseUrl}/talks/${encodeURIComponent(talk.slug!)}`,
+				lastmod: lastmod(talk.updated),
+				priority: '0.5',
+				changefreq: 'monthly'
+			});
 		}
 
-		// Generate XML
-		const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls
-	.map(
-		(url) => `  <url>
-    <loc>${url.loc}</loc>
-    <lastmod>${url.lastmod}</lastmod>
-    <changefreq>${url.changefreq}</changefreq>
-    <priority>${url.priority}</priority>
-  </url>`
-	)
-	.join('\n')}
-</urlset>`;
-
-		return new Response(sitemap, {
-			headers: {
-				'Content-Type': 'application/xml',
-				'Cache-Control': 'public, max-age=3600' // Cache for 1 hour
-			}
+		return new Response(renderSitemap(urls), {
+			headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=3600' }
 		});
 	} catch (error) {
 		console.error('Sitemap generation error:', error);
-		// Return minimal sitemap on error
-		const baseUrl = process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:8080';
-		const fallbackSitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>${baseUrl}</loc>
-    <lastmod>${new Date().toISOString().split('T')[0]}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-</urlset>`;
-
-		return new Response(fallbackSitemap, {
-			headers: {
-				'Content-Type': 'application/xml'
-			}
-		});
+		return new Response(
+			renderSitemap([{ loc: baseUrl, lastmod: lastmod(), priority: '1.0', changefreq: 'weekly' }]),
+			{ headers: { 'Content-Type': 'application/xml', 'Cache-Control': 'public, max-age=3600' } }
+		);
 	}
 };

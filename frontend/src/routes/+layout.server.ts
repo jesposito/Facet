@@ -12,31 +12,31 @@ import type { PlanConfig } from '$lib/stores/plan';
 import { logger } from '$lib/logger';
 import { SOFT_PREMIUM_DEFAULT_ACCENT } from '$lib/colors';
 import { DEFAULT_FONT_PACK } from '$lib/fonts';
+import { internalApiHeaders } from '$lib/server/public-api';
 
-export const load: LayoutServerLoad = async ({ fetch, locals }) => {
+export const load: LayoutServerLoad = async ({ fetch, locals, request }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
-
-	const {
-		faviconUrl,
-		customCSS,
-		defaultLocale,
-		showAvatar,
-		defaultThemeMode,
-		design,
-	} = locals.siteSettings ?? {
-		faviconUrl: null,
-		customCSS: null,
-		defaultLocale: null,
-		showAvatar: true,
-		defaultThemeMode: 'system',
-		design: 'classic' as const,
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	const contentHeaders = {
+		...internalApiHeaders(request),
+		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
 	};
+
+	const { faviconUrl, customCSS, defaultLocale, showAvatar, defaultThemeMode, design } =
+		locals.siteSettings ?? {
+			faviconUrl: null,
+			customCSS: null,
+			defaultLocale: null,
+			showAvatar: true,
+			defaultThemeMode: 'system',
+			design: 'classic' as const
+		};
 
 	// Fetch plan config server-side (new functionality - FOUC fix)
 	let planConfig: PlanConfig | null = null;
 	try {
 		const planResponse = await fetch(`${pbUrl}/api/plan`, {
-			headers: { 'X-Internal': 'true' },
+			headers: { 'X-Internal': 'true' }
 		});
 		if (planResponse.ok) {
 			planConfig = await planResponse.json();
@@ -63,11 +63,11 @@ export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 			slug: string;
 			label: string;
 			name: string;
-		}>,
+		}>
 	};
 	try {
 		const navResponse = await fetch(`${pbUrl}/api/site-nav`, {
-			headers: { 'X-Internal': 'true' },
+			headers: { 'X-Internal': 'true' }
 		});
 		if (navResponse.ok) {
 			const navData = await navResponse.json();
@@ -75,7 +75,7 @@ export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 				enabled: navData.enabled === true,
 				mode: navData.mode || 'bar',
 				position: navData.position || 'below',
-				items: navData.items || [],
+				items: navData.items || []
 			};
 			logger.debug('[LAYOUT SSR] Loaded site nav:', siteNav.enabled, siteNav.items.length, 'items');
 		} else {
@@ -83,6 +83,25 @@ export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 		}
 	} catch (error) {
 		logger.debug('[LAYOUT SSR] Failed to load site nav:', error);
+	}
+
+	// Feature switches decide whether public newsletter, course and discussion
+	// components render, so load them before first paint. Missing means on.
+	// The backend leaves the Google Analytics ID blank for visitors while the
+	// Analytics switch is off, so this request never hands one to the page.
+	let enabledFeatures: Record<string, boolean> | null = null;
+	let gaMeasurementId = '';
+	try {
+		const settingsResponse = await fetch(`${pbUrl}/api/site-settings`, {
+			headers: { 'X-Internal': 'true' }
+		});
+		if (settingsResponse.ok) {
+			const settingsData = await settingsResponse.json();
+			enabledFeatures = settingsData.enabled_features ?? null;
+			gaMeasurementId = settingsData.ga_measurement_id || '';
+		}
+	} catch (error) {
+		logger.debug('[LAYOUT SSR] Failed to load feature switches:', error);
 	}
 
 	// Fetch profile accent color and font pack server-side to eliminate flash on page load
@@ -93,7 +112,7 @@ export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 	let fontPackExplicit = false;
 	try {
 		const homepageResponse = await fetch(`${pbUrl}/api/homepage`, {
-			headers: { 'X-Internal': 'true' },
+			headers: contentHeaders
 		});
 		if (homepageResponse.ok) {
 			const homepage = await homepageResponse.json();
@@ -121,6 +140,8 @@ export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 		planConfig,
 		appUrl,
 		siteNav,
+		enabledFeatures,
+		gaMeasurementId,
 		accentColor,
 		customHexColor,
 		accentExplicit,
@@ -130,6 +151,6 @@ export const load: LayoutServerLoad = async ({ fetch, locals }) => {
 		defaultLocale,
 		showAvatar,
 		defaultThemeMode,
-		design,
+		design
 	};
 };

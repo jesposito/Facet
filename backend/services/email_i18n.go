@@ -7,22 +7,22 @@ import (
 // EmailStrings holds all translatable strings for email templates.
 type EmailStrings struct {
 	// Notification email (to admins)
-	NotifSubjectFrom      string // "New testimonial from {name}"
-	NotifSubjectFallback  string // "New testimonial submitted"
-	NotifHeader           string // "New Testimonial"
-	NotifAt               string // " at " (between title and company)
-	NotifRequestLabel     string // "Request:"
-	NotifSubmittedLabel   string // "Submitted:"
-	NotifReviewButton     string // "Review Testimonial"
-	NotifFooter           string // "This notification was sent by {site}. You received this because you are an admin."
-	NotifPlainHeader      string // "New Testimonial Submitted"
-	NotifPlainFrom        string // "From:"
-	NotifPlainTitle       string // "Title:"
-	NotifPlainRelation    string // "Relationship:"
-	NotifPlainRequest     string // "Request:"
-	NotifPlainSubmitted   string // "Submitted:"
-	NotifPlainContent     string // "Content:"
-	NotifPlainReview      string // "Review:"
+	NotifSubjectFrom     string // "New testimonial from {name}"
+	NotifSubjectFallback string // "New testimonial submitted"
+	NotifHeader          string // "New Testimonial"
+	NotifAt              string // " at " (between title and company)
+	NotifRequestLabel    string // "Request:"
+	NotifSubmittedLabel  string // "Submitted:"
+	NotifReviewButton    string // "Review Testimonial"
+	NotifFooter          string // "This notification was sent by {site}. You received this because you are an admin."
+	NotifPlainHeader     string // "New Testimonial Submitted"
+	NotifPlainFrom       string // "From:"
+	NotifPlainTitle      string // "Title:"
+	NotifPlainRelation   string // "Relationship:"
+	NotifPlainRequest    string // "Request:"
+	NotifPlainSubmitted  string // "Submitted:"
+	NotifPlainContent    string // "Content:"
+	NotifPlainReview     string // "Review:"
 
 	// Verification email (to submitter)
 	VerifySubject         string // "Verify your testimonial"

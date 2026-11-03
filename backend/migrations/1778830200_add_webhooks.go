@@ -87,10 +87,10 @@ func init() {
 		deliveries.DeleteRule = &adminRule
 
 		deliveries.Fields.Add(&core.RelationField{
-			Name:         "webhook_id",
-			MaxSelect:    1,
-			Required:     true,
-			CollectionId: webhooks.Id,
+			Name:          "webhook_id",
+			MaxSelect:     1,
+			Required:      true,
+			CollectionId:  webhooks.Id,
 			CascadeDelete: true,
 		})
 		deliveries.Fields.Add(&core.TextField{

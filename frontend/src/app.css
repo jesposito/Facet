@@ -353,7 +353,9 @@
 	   Typography: Editorial Design System
 	   Lora for headings, Plus Jakarta Sans for body
 	   ========================================================================== */
-	h1, h2, h3 {
+	h1,
+	h2,
+	h3 {
 		font-family: var(--font-heading);
 	}
 
@@ -488,12 +490,13 @@
 		width: 100%;
 	}
 
-	:is(.rich-content-safe, .prose-custom) iframe:is(
-		[src^="https://www.youtube.com/embed/"],
-		[src^="https://www.youtube-nocookie.com/embed/"],
-		[src^="https://player.vimeo.com/video/"],
-		[src^="https://www.loom.com/embed/"]
-	) {
+	:is(.rich-content-safe, .prose-custom)
+		iframe:is(
+			[src^='https://www.youtube.com/embed/'],
+			[src^='https://www.youtube-nocookie.com/embed/'],
+			[src^='https://player.vimeo.com/video/'],
+			[src^='https://www.loom.com/embed/']
+		) {
 		aspect-ratio: 16 / 9;
 		height: auto;
 	}
@@ -849,7 +852,12 @@
 		padding: 0;
 	}
 
-	h1, h2, h3, h4, h5, h6 {
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
 		font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 		color: #000 !important;
 		page-break-after: avoid;
@@ -879,7 +887,8 @@
 		margin-bottom: 0.1rem;
 	}
 
-	p, li {
+	p,
+	li {
 		orphans: 3;
 		widows: 3;
 		font-size: 10pt;
@@ -892,14 +901,14 @@
 
 	/* Hide all UI controls, navigation, and decorative elements */
 	.print\:hidden,
-	[class*="ThemeToggle"],
+	[class*='ThemeToggle'],
 	.fixed,
 	nav,
 	button,
 	.btn,
 	header .absolute,
 	.animate-pulse,
-	[aria-hidden="true"] {
+	[aria-hidden='true'] {
 		display: none !important;
 	}
 
@@ -912,7 +921,7 @@
 	#talks,
 	#testimonials,
 	#projects,
-	[id^="custom-"] {
+	[id^='custom-'] {
 		display: none !important;
 	}
 
@@ -934,14 +943,34 @@
 	}
 
 	/* Reset all padding classes */
-	.px-4, .px-6, .px-8, .py-4, .py-6, .py-8,
-	.py-12, .py-16, .py-24, .p-4, .p-6, .p-8 {
+	.px-4,
+	.px-6,
+	.px-8,
+	.py-4,
+	.py-6,
+	.py-8,
+	.py-12,
+	.py-16,
+	.py-24,
+	.p-4,
+	.p-6,
+	.p-8 {
 		padding: 0 !important;
 	}
 
 	/* Reset margins */
-	.my-4, .my-6, .my-8, .mb-4, .mb-6, .mb-8,
-	.mt-4, .mt-6, .mt-8, .m-4, .m-6, .m-8 {
+	.my-4,
+	.my-6,
+	.my-8,
+	.mb-4,
+	.mb-6,
+	.mb-8,
+	.mt-4,
+	.mt-6,
+	.mt-8,
+	.m-4,
+	.m-6,
+	.m-8 {
 		margin: 0 !important;
 	}
 
@@ -980,7 +1009,7 @@
 	}
 
 	/* Hide avatar for cleaner resume look */
-	header img[class*="rounded-full"],
+	header img[class*='rounded-full'],
 	header .rounded-full {
 		display: none !important;
 	}
@@ -999,7 +1028,7 @@
 
 	/* Show pipe separators between contact items */
 	header .flex-wrap > *:not(:last-child)::after {
-		content: " | ";
+		content: ' | ';
 		color: #999;
 		margin-left: 0.5rem;
 	}
@@ -1150,11 +1179,11 @@
 	}
 
 	.flex-wrap.gap-2 > *::after {
-		content: ", ";
+		content: ', ';
 	}
 
 	.flex-wrap.gap-2 > *:last-child::after {
-		content: "";
+		content: '';
 	}
 
 	/* Skill category headings */
@@ -1166,7 +1195,7 @@
 	}
 
 	.space-y-4 > div > h3::after {
-		content: ": ";
+		content: ': ';
 	}
 
 	/* ==========================================================================
@@ -1191,8 +1220,8 @@
 	   ========================================================================== */
 
 	/* Optionally hide blog posts from resume */
-	section:has(h2:contains("Posts")),
-	section:has(h2:contains("Blog")) {
+	section:has(h2:contains('Posts')),
+	section:has(h2:contains('Blog')) {
 		display: none !important;
 	}
 
@@ -1206,18 +1235,18 @@
 	}
 
 	/* Show URLs for important links */
-	main a[href^="http"]:not([href*="localhost"])::after {
-		content: " (" attr(href) ")";
+	main a[href^='http']:not([href*='localhost'])::after {
+		content: ' (' attr(href) ')';
 		font-size: 8pt;
 		color: #666;
 		word-break: break-all;
 	}
 
 	/* Don't duplicate for common platforms */
-	main a[href*="github.com"]::after,
-	main a[href*="linkedin.com"]::after,
-	main a[href*="twitter.com"]::after {
-		content: "" !important;
+	main a[href*='github.com']::after,
+	main a[href*='linkedin.com']::after,
+	main a[href*='twitter.com']::after {
+		content: '' !important;
 	}
 
 	/* ==========================================================================
@@ -1252,8 +1281,14 @@
 		color: #000 !important;
 	}
 
-	.dark h1, .dark h2, .dark h3, .dark h4,
-	.dark p, .dark span, .dark li, .dark a {
+	.dark h1,
+	.dark h2,
+	.dark h3,
+	.dark h4,
+	.dark p,
+	.dark span,
+	.dark li,
+	.dark a {
 		color: #000 !important;
 	}
 
@@ -1325,19 +1360,19 @@
 	   ========================================================================== */
 
 	/* Reset all colored backgrounds to transparent for print */
-	[class*="bg-primary"],
-	[class*="bg-accent"],
-	[class*="bg-blue-"],
-	[class*="bg-green-"],
-	[class*="bg-indigo-"],
-	[class*="bg-sky-"] {
+	[class*='bg-primary'],
+	[class*='bg-accent'],
+	[class*='bg-blue-'],
+	[class*='bg-green-'],
+	[class*='bg-indigo-'],
+	[class*='bg-sky-'] {
 		background: transparent !important;
 		color: #000 !important;
 	}
 
 	/* Skill badges (.rounded-full) - force clean black text on white */
 	#skills .rounded-full,
-	#skills [class*="bg-"] {
+	#skills [class*='bg-'] {
 		background: transparent !important;
 		color: #000 !important;
 		border: none !important;
@@ -1356,8 +1391,8 @@
 	   ========================================================================== */
 
 	#contacts,
-	[id="contacts"],
-	section:has(h2:contains("Contact")) {
+	[id='contacts'],
+	section:has(h2:contains('Contact')) {
 		display: block !important;
 	}
 
@@ -1374,11 +1409,15 @@
 	   ========================================================================== */
 
 	/* Avoid breaking inside key elements */
-	h1, h2, h3 {
+	h1,
+	h2,
+	h3 {
 		page-break-after: avoid;
 	}
 
-	article, .card, section {
+	article,
+	.card,
+	section {
 		page-break-inside: avoid;
 	}
 
@@ -1388,7 +1427,8 @@
 	}
 
 	/* Keep headers with content */
-	h2 + *, h3 + * {
+	h2 + *,
+	h3 + * {
 		page-break-before: avoid;
 	}
 }

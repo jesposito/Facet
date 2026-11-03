@@ -74,13 +74,13 @@
 	function filterFilesByAccept(files: File[], acceptPattern: string): File[] {
 		if (acceptPattern === '*/*' || !acceptPattern) return files;
 
-		const patterns = acceptPattern.split(',').map(p => p.trim().toLowerCase());
+		const patterns = acceptPattern.split(',').map((p) => p.trim().toLowerCase());
 
-		return files.filter(file => {
+		return files.filter((file) => {
 			const fileType = file.type.toLowerCase();
 			const fileName = file.name.toLowerCase();
 
-			return patterns.some(pattern => {
+			return patterns.some((pattern) => {
 				// Match by MIME type (e.g., 'image/*', 'image/png')
 				if (pattern.includes('/')) {
 					if (pattern.endsWith('/*')) {

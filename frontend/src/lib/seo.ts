@@ -79,13 +79,13 @@ export function generateArticleJsonLd(
 				'@type': 'Person',
 				name: author.name || undefined,
 				url: baseUrl
-		  }
+			}
 		: undefined;
 
 	let description: string | undefined = post.excerpt || undefined;
 	if (!description && typeof post.content === 'string' && post.content.length > 0) {
 		const stripped = post.content
-			.replace(/[#*_`\[\]()>~\-|]/g, '')
+			.replace(/[#*_`[\]()>~\-|]/g, '')
 			.replace(/\s+/g, ' ')
 			.trim();
 		description = stripped.length > 160 ? stripped.slice(0, 157) + '...' : stripped || undefined;

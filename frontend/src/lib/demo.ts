@@ -11,6 +11,7 @@ export async function isDemoMode(): Promise<boolean> {
 			return data.demo_mode || false;
 		}
 	} catch {
+		// Demo detection is optional; an unavailable status endpoint means normal mode.
 	}
 	return false;
 }

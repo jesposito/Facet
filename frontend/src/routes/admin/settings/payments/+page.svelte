@@ -157,11 +157,19 @@
 			if (result.success) {
 				toasts.add('success', $t('admin.settings_page.payments.test_success'));
 			} else {
-				toasts.add('error', $t('admin.settings_page.payments.test_failed', { values: { error: result.error || 'Unknown error' } }));
+				toasts.add(
+					'error',
+					$t('admin.settings_page.payments.test_failed', {
+						values: { error: result.error || 'Unknown error' }
+					})
+				);
 			}
 		} catch (err) {
 			console.error('Failed to test Stripe connection:', err);
-			toasts.add('error', $t('admin.settings_page.payments.test_failed', { values: { error: 'Network error' } }));
+			toasts.add(
+				'error',
+				$t('admin.settings_page.payments.test_failed', { values: { error: 'Network error' } })
+			);
 		} finally {
 			testing = false;
 		}
@@ -182,24 +190,45 @@
 	{#if !$hasPricing}
 		<!-- Feature not available -->
 		<div class="card p-8 text-center">
-			<div class="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-				<svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+			<div
+				class="w-12 h-12 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center"
+			>
+				<svg
+					class="w-6 h-6 text-gray-400"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+					/>
 				</svg>
 			</div>
-			<p class="text-gray-500 dark:text-gray-400">{$t('admin.settings_page.payments.feature_disabled')}</p>
+			<p class="text-gray-500 dark:text-gray-400">
+				{$t('admin.settings_page.payments.feature_disabled')}
+			</p>
 		</div>
 	{:else}
 		<div class="space-y-6">
 			<!-- Page header -->
 			<div>
-				<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{$t('admin.settings_page.payments.title')}</p>
-				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.settings_page.payments.description')}</p>
+				<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+					{$t('admin.settings_page.payments.title')}
+				</p>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					{$t('admin.settings_page.payments.description')}
+				</p>
 			</div>
 
 			<!-- Status card -->
 			<div class="card p-6">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.settings_page.payments.status')}</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+					{$t('admin.settings_page.payments.status')}
+				</h2>
 
 				{#if loading}
 					<div class="animate-pulse h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
@@ -207,7 +236,11 @@
 					<div class="flex items-center gap-3">
 						<span
 							class="inline-block w-3 h-3 rounded-full shrink-0
-								{statusColor === 'green' ? 'bg-green-500' : statusColor === 'yellow' ? 'bg-yellow-500' : 'bg-gray-400'}"
+								{statusColor === 'green'
+								? 'bg-green-500'
+								: statusColor === 'yellow'
+									? 'bg-yellow-500'
+									: 'bg-gray-400'}"
 						></span>
 						<span class="text-gray-700 dark:text-gray-300 font-medium">
 							{#if status.source === 'database'}
@@ -226,19 +259,34 @@
 			<div class="card p-6 space-y-6">
 				<!-- Secret Key -->
 				<div>
-					<label for="stripe-secret-key" class="label">{$t('admin.settings_page.payments.secret_key')}</label>
+					<label for="stripe-secret-key" class="label"
+						>{$t('admin.settings_page.payments.secret_key')}</label
+					>
 					{#if status.secret_key_set && !secretKeyEditing}
 						<div class="flex items-center gap-3">
 							<span class="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
-								<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+								<svg
+									class="w-4 h-4 shrink-0"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M5 13l4 4L19 7"
+									/>
 								</svg>
 								{$t('admin.settings_page.payments.secret_key_set')}
 							</span>
 							<button
 								type="button"
 								class="btn btn-sm btn-secondary"
-								onclick={() => { secretKeyEditing = true; }}
+								onclick={() => {
+									secretKeyEditing = true;
+								}}
 							>
 								{$t('admin.settings_page.payments.change')}
 							</button>
@@ -266,7 +314,10 @@
 								<button
 									type="button"
 									class="btn btn-secondary btn-sm"
-									onclick={() => { secretKeyEditing = false; secretKey = ''; }}
+									onclick={() => {
+										secretKeyEditing = false;
+										secretKey = '';
+									}}
 									disabled={secretKeySaving}
 								>
 									{$t('admin.settings_page.payments.change')}
@@ -278,19 +329,34 @@
 
 				<!-- Webhook Secret -->
 				<div>
-					<label for="stripe-webhook-secret" class="label">{$t('admin.settings_page.payments.webhook_secret')}</label>
+					<label for="stripe-webhook-secret" class="label"
+						>{$t('admin.settings_page.payments.webhook_secret')}</label
+					>
 					{#if status.webhook_secret_set && !webhookSecretEditing}
 						<div class="flex items-center gap-3">
 							<span class="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
-								<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+								<svg
+									class="w-4 h-4 shrink-0"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M5 13l4 4L19 7"
+									/>
 								</svg>
 								{$t('admin.settings_page.payments.webhook_secret_set')}
 							</span>
 							<button
 								type="button"
 								class="btn btn-sm btn-secondary"
-								onclick={() => { webhookSecretEditing = true; }}
+								onclick={() => {
+									webhookSecretEditing = true;
+								}}
 							>
 								{$t('admin.settings_page.payments.change')}
 							</button>
@@ -318,7 +384,10 @@
 								<button
 									type="button"
 									class="btn btn-secondary btn-sm"
-									onclick={() => { webhookSecretEditing = false; webhookSecret = ''; }}
+									onclick={() => {
+										webhookSecretEditing = false;
+										webhookSecret = '';
+									}}
 									disabled={webhookSecretSaving}
 								>
 									{$t('admin.settings_page.payments.change')}
@@ -329,7 +398,9 @@
 				</div>
 
 				<!-- Actions -->
-				<div class="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+				<div
+					class="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700"
+				>
 					{#if status.configured}
 						<button
 							type="button"
@@ -339,8 +410,19 @@
 						>
 							{#if testing}
 								<svg class="animate-spin h-4 w-4 mr-2 inline-block" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
 								</svg>
 							{/if}
 							{$t('admin.settings_page.payments.test_connection')}
@@ -361,10 +443,23 @@
 			</div>
 
 			<!-- Info box -->
-			<div class="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+			<div
+				class="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4"
+			>
 				<div class="flex gap-3">
-					<svg class="w-5 h-5 shrink-0 text-blue-500 dark:text-blue-400 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+					<svg
+						class="w-5 h-5 shrink-0 text-blue-500 dark:text-blue-400 mt-0.5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
 					</svg>
 					<p class="text-sm text-blue-700 dark:text-blue-300">
 						{$t('admin.settings_page.payments.env_fallback_info')}

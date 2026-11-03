@@ -17,6 +17,7 @@
 		welcome_html: string;
 		is_default: boolean;
 		is_active: boolean;
+		is_public?: boolean;
 		subscriber_count: number;
 		created: string;
 		updated: string;
@@ -62,6 +63,7 @@
 	let editWelcomeSubject = $state('');
 	let editWelcomeHtml = $state('');
 	let editIsActive = $state(true);
+	let editIsPublic = $state(false);
 	let editError = $state('');
 	let editSubmitting = $state(false);
 
@@ -136,7 +138,10 @@
 				return;
 			}
 			announce($t('admin.newsletter_lists.created_live', { values: { name: data.name } }));
-			toasts.add('success', $t('admin.newsletter_lists.created_toast', { values: { name: data.name } }));
+			toasts.add(
+				'success',
+				$t('admin.newsletter_lists.created_toast', { values: { name: data.name } })
+			);
 			newName = '';
 			newSlug = '';
 			newDescription = '';
@@ -163,6 +168,7 @@
 		editWelcomeSubject = list.welcome_subject;
 		editWelcomeHtml = list.welcome_html;
 		editIsActive = list.is_active;
+		editIsPublic = list.is_public === true || list.is_default;
 		editError = '';
 	}
 
@@ -184,7 +190,8 @@
 			reply_to: editReplyTo.trim(),
 			welcome_subject: editWelcomeSubject.trim(),
 			welcome_html: editWelcomeHtml,
-			is_active: editIsActive
+			is_active: editIsActive,
+			is_public: editIsPublic
 		};
 
 		editSubmitting = true;
@@ -292,9 +299,7 @@
 				aria-controls="new-list-form"
 				class="btn btn-primary"
 			>
-				{showNewForm
-					? $t('admin.newsletter_lists.cancel')
-					: $t('admin.newsletter_lists.new_list')}
+				{showNewForm ? $t('admin.newsletter_lists.cancel') : $t('admin.newsletter_lists.new_list')}
 			</button>
 		{:else}
 			<div
@@ -316,10 +321,7 @@
 			class="card p-4"
 			aria-labelledby="new-list-heading"
 		>
-			<h2
-				id="new-list-heading"
-				class="mb-3 text-base font-semibold text-gray-900 dark:text-white"
-			>
+			<h2 id="new-list-heading" class="mb-3 text-base font-semibold text-gray-900 dark:text-white">
 				{$t('admin.newsletter_lists.new_list_heading')}
 			</h2>
 			<div class="grid gap-3 sm:grid-cols-2">
@@ -441,10 +443,7 @@
 					<th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">
 						{$t('admin.newsletter_lists.col_status')}
 					</th>
-					<th
-						scope="col"
-						class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400"
-					>
+					<th scope="col" class="px-4 py-3 text-left font-medium text-gray-500 dark:text-gray-400">
 						{$t('admin.newsletter_lists.col_actions')}
 					</th>
 				</tr>
@@ -504,7 +503,9 @@
 									<button
 										type="button"
 										onclick={() => beginEdit(list)}
-										aria-label={$t('admin.newsletter_lists.edit_aria', { values: { name: list.name } })}
+										aria-label={$t('admin.newsletter_lists.edit_aria', {
+											values: { name: list.name }
+										})}
 										class="btn btn-ghost btn-sm"
 									>
 										{$t('admin.newsletter_lists.action_edit')}
@@ -555,9 +556,7 @@
 										</h2>
 										<div class="grid gap-3 sm:grid-cols-2">
 											<label class="block">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_name')}
 												</span>
 												<input
@@ -569,9 +568,7 @@
 												/>
 											</label>
 											<label class="block">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_slug')}
 												</span>
 												<input
@@ -584,9 +581,7 @@
 												/>
 											</label>
 											<label class="block sm:col-span-2">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_description')}
 												</span>
 												<input
@@ -597,9 +592,7 @@
 												/>
 											</label>
 											<label class="block">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_sender_name')}
 												</span>
 												<input
@@ -610,9 +603,7 @@
 												/>
 											</label>
 											<label class="block">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_reply_to')}
 												</span>
 												<input
@@ -622,9 +613,7 @@
 												/>
 											</label>
 											<label class="block sm:col-span-2">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_welcome_subject')}
 												</span>
 												<input
@@ -635,24 +624,42 @@
 												/>
 											</label>
 											<label class="block sm:col-span-2">
-												<span
-													class="block text-xs font-medium text-gray-700 dark:text-gray-300"
-												>
+												<span class="block text-xs font-medium text-gray-700 dark:text-gray-300">
 													{$t('admin.newsletter_lists.field_welcome_html')}
 												</span>
 												<textarea
 													rows="4"
 													bind:value={editWelcomeHtml}
-													class="input text-xs w-full mt-1 font-mono"
-												></textarea>
+													class="input text-xs w-full mt-1 font-mono"></textarea>
 											</label>
-											<label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+											<label
+												class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+											>
 												<input
 													type="checkbox"
 													bind:checked={editIsActive}
 													class="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
 												/>
 												<span>{$t('admin.newsletter_lists.field_active')}</span>
+											</label>
+											<label
+												class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+											>
+												<input
+													type="checkbox"
+													bind:checked={editIsPublic}
+													disabled={list.is_default}
+													class="h-4 w-4 rounded border-gray-300 dark:border-gray-600"
+												/>
+												<span>
+													{list.is_default
+														? $t('admin.newsletter_lists.field_public_default', {
+																default: 'Public signup form joins this list (the default list)'
+															})
+														: $t('admin.newsletter_lists.field_public', {
+																default: 'Visitors can join this list from the public signup form'
+															})}
+												</span>
 											</label>
 										</div>
 										{#if editError}
@@ -674,11 +681,7 @@
 													? $t('admin.newsletter_lists.saving')
 													: $t('admin.newsletter_lists.save_changes')}
 											</button>
-											<button
-												type="button"
-												onclick={cancelEdit}
-												class="btn btn-secondary btn-sm"
-											>
+											<button type="button" onclick={cancelEdit} class="btn btn-secondary btn-sm">
 												{$t('admin.newsletter_lists.cancel')}
 											</button>
 										</div>

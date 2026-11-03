@@ -15,7 +15,7 @@
 	onMount(() => {
 		const mq = window.matchMedia('(max-width: 767px)');
 		isMobile = mq.matches;
-		const handler = (e: MediaQueryListEvent) => isMobile = e.matches;
+		const handler = (e: MediaQueryListEvent) => (isMobile = e.matches);
 		mq.addEventListener('change', handler);
 		return () => mq.removeEventListener('change', handler);
 	});
@@ -35,7 +35,7 @@
 			const focusableElements = dialogEl?.querySelectorAll<HTMLElement>(
 				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 			);
-			
+
 			if (!focusableElements?.length) return;
 
 			const firstElement = focusableElements[0];
@@ -82,7 +82,11 @@
 			} else if (!isOpen && wasOpen) {
 				document.body.style.overflow = '';
 				// Restore focus to previous element
-				if (previousActiveElement && typeof previousActiveElement.focus === 'function' && document.contains(previousActiveElement)) {
+				if (
+					previousActiveElement &&
+					typeof previousActiveElement.focus === 'function' &&
+					document.contains(previousActiveElement)
+				) {
 					previousActiveElement.focus();
 				}
 				previousActiveElement = null;
@@ -106,68 +110,76 @@
 	     role re-fires its SR announcement and the cancel-button auto-focus
 	     runs again. -->
 	{#key $confirmDialog.contentKey}
-	<div
-		class="fixed inset-0 z-50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
-		onclick={handleOverlayClick}
-		onkeydown={handleKeydown}
-		role="presentation"
-	>
-		<!-- Dialog -->
 		<div
-			bind:this={dialogEl}
-			role="alertdialog"
-			aria-modal="true"
-			aria-labelledby="confirm-dialog-title"
-			aria-describedby="confirm-dialog-message"
-			class="bg-white dark:bg-gray-800 shadow-2xl w-full p-6 animate-fade-in transform transition-transform {isMobile ? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto' : 'rounded-xl max-w-md'}"
+			class="fixed inset-0 z-50 flex {isMobile
+				? 'flex-col justify-end'
+				: 'items-center justify-center'} p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+			onclick={handleOverlayClick}
+			onkeydown={handleKeydown}
+			role="presentation"
 		>
-			<!-- Icon and Title -->
-			<div class="flex items-start gap-4">
-				{#if $confirmDialog.options.danger}
-					<div class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400">
-						{@html icon('warning')}
+			<!-- Dialog -->
+			<div
+				bind:this={dialogEl}
+				role="alertdialog"
+				aria-modal="true"
+				aria-labelledby="confirm-dialog-title"
+				aria-describedby="confirm-dialog-message"
+				class="bg-white dark:bg-gray-800 shadow-2xl w-full p-6 animate-fade-in transform transition-transform {isMobile
+					? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto'
+					: 'rounded-xl max-w-md'}"
+			>
+				<!-- Icon and Title -->
+				<div class="flex items-start gap-4">
+					{#if $confirmDialog.options.danger}
+						<div
+							class="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400"
+						>
+							{@html icon('warning')}
+						</div>
+					{:else}
+						<div
+							class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400"
+						>
+							{@html icon('info')}
+						</div>
+					{/if}
+					<div class="flex-1 min-w-0">
+						<h2
+							id="confirm-dialog-title"
+							class="text-lg font-semibold text-gray-900 dark:text-white"
+						>
+							{$confirmDialog.options.title}
+						</h2>
+						<p
+							id="confirm-dialog-message"
+							class="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap"
+						>
+							{$confirmDialog.options.message}
+						</p>
 					</div>
-				{:else}
-					<div class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400">
-						{@html icon('info')}
-					</div>
-				{/if}
-				<div class="flex-1 min-w-0">
-					<h2
-						id="confirm-dialog-title"
-						class="text-lg font-semibold text-gray-900 dark:text-white"
+				</div>
+
+				<!-- Buttons -->
+				<div class="mt-6 flex justify-end gap-3">
+					<button
+						bind:this={cancelBtnEl}
+						type="button"
+						class="btn btn-secondary"
+						onclick={() => confirmDialog.respond(false)}
 					>
-						{$confirmDialog.options.title}
-					</h2>
-					<p
-						id="confirm-dialog-message"
-						class="mt-2 text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap"
+						{$confirmDialog.options.cancelText || $t('shared.actions.cancel')}
+					</button>
+					<button
+						type="button"
+						class="btn {$confirmDialog.options.danger ? 'btn-danger' : 'btn-primary'}"
+						onclick={() => confirmDialog.respond(true)}
 					>
-						{$confirmDialog.options.message}
-					</p>
+						{$confirmDialog.options.confirmText || $t('shared.actions.confirm')}
+					</button>
 				</div>
 			</div>
-
-			<!-- Buttons -->
-			<div class="mt-6 flex justify-end gap-3">
-				<button
-					bind:this={cancelBtnEl}
-					type="button"
-					class="btn btn-secondary"
-					onclick={() => confirmDialog.respond(false)}
-				>
-					{$confirmDialog.options.cancelText || $t('shared.actions.cancel')}
-				</button>
-				<button
-					type="button"
-					class="btn {$confirmDialog.options.danger ? 'btn-danger' : 'btn-primary'}"
-					onclick={() => confirmDialog.respond(true)}
-				>
-					{$confirmDialog.options.confirmText || $t('shared.actions.confirm')}
-				</button>
-			</div>
 		</div>
-	</div>
 	{/key}
 {/if}
 

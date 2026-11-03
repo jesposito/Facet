@@ -24,7 +24,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Release validation regression tests
-        run: python3 scripts/ci/test-push-validated-release.py
+        run: |
+          python3 scripts/ci/test-push-validated-release.py
+          python3 scripts/ci/test-dev-server.py
+          python3 scripts/ci/test-start-sh.py
       - uses: actions/setup-go@v7
         with:
           go-version-file: backend/go.mod
@@ -32,7 +35,12 @@ jobs:
       # go-fitz links its bundled MuPDF archive; no distro MuPDF install is needed.
       - name: Backend regression tests
         working-directory: backend
-        run: go test ./...
+        run: |
+          go test -race ./...
+          go vet ./...
+      - name: SMTP deadline patch regressions
+        working-directory: backend/third_party/mailyak-v3
+        run: go test -race ./...
       - name: Reachable Go vulnerabilities
         working-directory: backend
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
@@ -69,15 +77,18 @@ jobs:
         working-directory: frontend
         run: |
           npm run check
+          npm run lint
+          npm run i18n:validate
           npm run build
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - name: Fresh database and built-app browser smoke tests
         run: bash scripts/ci/run-browser-smoke.sh
       - uses: actions/upload-artifact@v7
-        if: failure()
+        if: always()
         with:
-          name: browser-smoke-failure
+          name: browser-smoke-logs
           path: |
             frontend/test-results
             /tmp/facet-smoke-*/logs
+          if-no-files-found: warn

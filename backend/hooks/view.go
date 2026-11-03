@@ -341,6 +341,7 @@ func fileURL(collectionID, recordID, filename string, transform string) string {
 func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
 	// Register views collection hooks for validation
 	registerViewsValidation(app, crypto)
+	purchaseService := services.NewPurchaseService(crypto)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		// Get view access info (for frontend to determine access)
@@ -373,6 +374,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			visibility := view.GetString("visibility")
 
 			isAuthenticated := e.Auth != nil
+			// Match /data: a private view doesn't exist for visitors, so its
+			// ID and name stay hidden too.
+			if visibility == "private" && !isAuthenticated {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
+			}
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"view_id":           view.Id,
 				"view_name":         view.GetString("name"),
@@ -418,57 +424,17 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			visibility := view.GetString("visibility")
 			shouldCountView := e.Auth == nil
 
-			// Check access based on visibility
-			switch visibility {
-			case "private":
-				// Private views return 404 to prevent leaking existence
-				// Only authenticated admin users can access private views
-				if e.Auth == nil {
-					return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
-				}
-
-			case "password":
-				if e.Auth != nil {
-					break
-				}
-				token := extractPasswordToken(e)
-				if token == "" {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "password token required"})
-				}
-
-				viewID, err := crypto.ValidateViewAccessJWT(token)
-				if err != nil {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired token"})
-				}
-
-				if viewID != view.Id {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "token not valid for this view"})
-				}
-
-			case "unlisted":
-				if e.Auth != nil {
-					break
-				}
-				shareToken := extractShareToken(e)
-				if shareToken == "" {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "share token required"})
-				}
-
-				valid, tokenRecord := validateShareToken(app, share, shareToken, view.Id)
-				if !valid {
+			tokenRecord, denial := checkViewAccess(app, crypto, share, e, view)
+			if denial != nil {
+				return e.JSON(denial.status, map[string]string{"error": denial.message})
+			}
+			if tokenRecord != nil {
+				if !consumeShareTokenUse(app, tokenRecord.Id) {
 					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
 				}
-
-				if tokenRecord != nil {
-					useCount := tokenRecord.GetInt("use_count")
-					tokenRecord.Set("use_count", useCount+1)
-					tokenRecord.Set("last_used_at", time.Now())
-					app.Save(tokenRecord)
-				}
-
-			case "public":
-				// Public views are accessible to everyone
+				issueShareVisitProof(e, crypto, tokenRecord)
 			}
+			access := newContentAccess(app, purchaseService, e)
 
 			if shouldCountView {
 				// Bot-gate and ~30-min dedup the raw view_count so bots and
@@ -478,8 +444,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// visitor is not forwarded), so they can't be keyed on the visitor —
 				// count those unconditionally, matching pre-change behavior. Direct
 				// (non-internal) hits are bot-gated and ~30-min deduped.
-				if e.Request.Header.Get("X-Internal") == "true" ||
-					services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id) {
+				// The Analytics switch covers the raw counter too, not just
+				// access_logs. If settings can't be read, don't count.
+				if services.IsFeatureEnabled(app, services.FeatureAnalytics, false) &&
+					(e.Request.Header.Get("X-Internal") == "true" ||
+						services.ShouldCountView(GetUserAgent(e), GetIP(e), view.Id)) {
 					// Increment view count and last_viewed_at in the background
 					viewID := view.Id
 					collection := viewsCollection
@@ -655,7 +624,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						record, err := app.FindRecordById(collectionName, customContentId)
 						if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
 							itemConfig := make(map[string]map[string]interface{})
-							sectionData[sectionName] = serializeRecordsWithOverrides(app, []*core.Record{record}, itemConfig, sectionName)
+							sectionData[sectionName] = serializeRecordsWithOverrides(app, []*core.Record{record}, itemConfig, sectionName, access)
 						}
 					}
 					continue
@@ -695,7 +664,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							dbx.Params{"list": listVal},
 						)
 						if err == nil {
-							sectionData[sectionName] = serializeRecordsWithOverrides(app, recs, itemConfig, sectionName)
+							sectionData[sectionName] = serializeRecordsWithOverrides(app, recs, itemConfig, sectionName, access)
 						}
 						continue
 					}
@@ -713,7 +682,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							}
 						}
 					}
-					sectionData[sectionName] = serializeRecordsWithOverrides(app, itemRecords, itemConfig, sectionName)
+					sectionData[sectionName] = serializeRecordsWithOverrides(app, itemRecords, itemConfig, sectionName, access)
 				}
 				// If no items selected (len(items) == 0), section remains empty - nothing shown
 			}
@@ -954,6 +923,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 		// Rate limited: normal tier (60/min) to prevent scraping
 		se.Router.GET("/api/homepage", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
 			response := make(map[string]interface{})
+			access := newContentAccess(app, purchaseService, e)
 
 			// Track analytics for unauthenticated users (skip SSR internal requests)
 			if e.Auth == nil && e.Request.Header.Get("X-Internal") != "true" {
@@ -1050,7 +1020,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil && len(experienceRecords) > 0 {
-					experience := serializeRecords(experienceRecords)
+					experience := serializeRecords(experienceRecords, access)
 					expCollectionID := experienceRecords[0].Collection().Id
 					for i, e := range experience {
 						// Prefer library URL over file upload
@@ -1078,7 +1048,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil && len(projectRecords) > 0 {
-					projects := serializeRecords(projectRecords)
+					projects := serializeRecords(projectRecords, access)
 					projectCollectionID := projectRecords[0].Collection().Id
 					// Add file URLs for cover images - prefer library URL over direct upload
 					for i, p := range projects {
@@ -1110,7 +1080,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil && len(educationRecords) > 0 {
-					education := serializeRecords(educationRecords)
+					education := serializeRecords(educationRecords, access)
 					eduCollectionID := educationRecords[0].Collection().Id
 					for i, e := range education {
 						// Prefer library URL over file upload
@@ -1124,7 +1094,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 					response["education"] = filterBySelectedItemsWithDefault(education, eduSelectedItems, eduConfigured)
 				} else if err == nil {
-					education := serializeRecords(educationRecords)
+					education := serializeRecords(educationRecords, access)
 					response["education"] = filterBySelectedItemsWithDefault(education, eduSelectedItems, eduConfigured)
 				}
 			}
@@ -1141,7 +1111,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
-					skills := serializeRecords(skillRecords)
+					skills := serializeRecords(skillRecords, access)
 					// Skills carry their own per-category sort_order set by the
 					// drag-and-drop reorder in admin/skills. Preserve that DB
 					// order; treat selectedItems as a visibility filter only.
@@ -1164,7 +1134,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				if err == nil {
 					response["posts_total_count"] = len(postRecords)
 					if len(postRecords) > 0 {
-						posts := serializeRecords(postRecords)
+						posts := serializeRecords(postRecords, access)
 						postCollectionID := postRecords[0].Collection().Id
 						// Add file URLs for cover images - prefer library URL over direct upload
 						for i, p := range posts {
@@ -1198,7 +1168,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				)
 				if err == nil {
 					response["talks_total_count"] = len(talkRecords)
-					talks := serializeRecords(talkRecords)
+					talks := serializeRecords(talkRecords, access)
 					response["talks"] = filterBySelectedItemsWithDefault(talks, talksSelectedItems, talksConfigured)
 				}
 			}
@@ -1215,7 +1185,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
-					certs := serializeRecords(certRecords)
+					certs := serializeRecords(certRecords, access)
 					response["certifications"] = filterBySelectedItemsWithDefault(certs, certsSelectedItems, certsConfigured)
 				}
 			}
@@ -1232,7 +1202,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					nil,
 				)
 				if err == nil {
-					awards := serializeRecords(awardRecords)
+					awards := serializeRecords(awardRecords, access)
 					response["awards"] = filterBySelectedItemsWithDefault(awards, awardsSelectedItems, awardsConfigured)
 				}
 			}
@@ -1307,6 +1277,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 						}
 					}
 
+					gatePaidContent(record, contentItem, access)
 					customContentItems = append(customContentItems, contentItem)
 				}
 
@@ -1336,7 +1307,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					testimonialsParams,
 				)
 				if err == nil {
-					testimonials := serializeRecords(testimonialRecords)
+					testimonials := serializeRecords(testimonialRecords, access)
 					// With a list set and no explicit picks, auto-show every approved
 					// testimonial from that list (#283: show automatically once approved).
 					// Once specific items are picked, those drive display (deselect-to-hide).
@@ -1348,12 +1319,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
-			// Fetch contacts - only public ones appear on homepage
+			// Contacts use view_visibility; contactVisibleInView filters restrictions below.
 			contactsEnabled, contactsSelectedItems, contactsConfigured := getSectionConfig(settings, "contacts")
 			if contactsEnabled {
 				contactRecords, err := app.FindRecordsByFilter(
 					getTableName(app, "contact_methods"),
-					"visibility = 'public'",
+					"",
 					"-is_primary,-sort_order",
 					100,
 					0,
@@ -1366,7 +1337,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 							visibleContacts = append(visibleContacts, contact)
 						}
 					}
-					contacts := serializeRecords(visibleContacts)
+					contacts := serializeRecords(visibleContacts, access)
 					response["contacts"] = filterBySelectedItemsWithDefault(contacts, contactsSelectedItems, contactsConfigured)
 				}
 			}
@@ -1401,9 +1372,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				})
 			}
 
-			// Fetch non-private, non-draft posts (public and unlisted)
-			// Use explicit OR to handle NULL visibility values
-			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
+			// Public, published posts only. Unlisted posts open from their
+			// direct link (/api/post/{slug}) but aren't listed, matching
+			// the RSS feed and the homepage.
+			filter := "visibility = 'public' && is_draft = false"
 
 			postRecords, err := app.FindRecordsByFilter(
 				"posts",
@@ -1417,7 +1389,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch posts"})
 			}
 
-			posts := serializeRecords(postRecords)
+			posts := serializeRecords(postRecords, newContentAccess(app, purchaseService, e))
 			if len(postRecords) > 0 {
 				postCollectionID := postRecords[0].Collection().Id
 				// Add file URLs for cover images - prefer library URL over direct upload
@@ -1627,20 +1599,24 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					url = record.GetString("event_url")
 				}
 
+				// A calendar feed has no buyer, so a paid talk keeps only its
+				// public details.
+				paid := requiresPurchase(record)
+
 				var descriptionParts []string
 				if eventName != "" {
 					descriptionParts = append(descriptionParts, fmt.Sprintf("Event: %s", eventName))
 				}
-				if desc != "" {
+				if desc != "" && !paid {
 					descriptionParts = append(descriptionParts, desc)
 				}
 				if record.GetString("event_url") != "" {
 					descriptionParts = append(descriptionParts, fmt.Sprintf("Event URL: %s", record.GetString("event_url")))
 				}
-				if record.GetString("slides_url") != "" {
+				if record.GetString("slides_url") != "" && !paid {
 					descriptionParts = append(descriptionParts, fmt.Sprintf("Slides: %s", record.GetString("slides_url")))
 				}
-				if record.GetString("video_url") != "" {
+				if record.GetString("video_url") != "" && !paid {
 					descriptionParts = append(descriptionParts, fmt.Sprintf("Video: %s", record.GetString("video_url")))
 				}
 				description := escapeICSText(strings.Join(descriptionParts, "\\n"))
@@ -1685,9 +1661,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				})
 			}
 
-			// Fetch non-private, non-draft talks (public and unlisted)
-			// Use explicit OR to handle NULL visibility values
-			filter := "(visibility = 'public' || visibility = 'unlisted') && is_draft = false"
+			// Public, published talks only. Unlisted talks open from their
+			// direct link (/api/talk/{slug}) but aren't listed, matching
+			// talks.ics and the homepage.
+			filter := "visibility = 'public' && is_draft = false"
 
 			talkRecords, err := app.FindRecordsByFilter(
 				"talks",
@@ -1701,7 +1678,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to fetch talks"})
 			}
 
-			talks := serializeRecords(talkRecords)
+			talks := serializeRecords(talkRecords, newContentAccess(app, purchaseService, e))
 
 			// Fetch profile data for page context
 			var profile map[string]interface{}
@@ -1990,6 +1967,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
+			gatePaidContent(post, response, newContentAccess(app, purchaseService, e))
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -2028,21 +2006,25 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			isDraft := project.GetBool("is_draft")
 			isAuthenticated := e.Auth != nil
 
+			// A private project can be opened from a view that shows it, but
+			// only by someone who can open that view. Drafts are never public.
 			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
 				allowed := false
-				if fromViewSlug != "" {
+				if fromViewSlug != "" && !isDraft {
 					viewRecords, err := app.FindRecordsByFilter(
 						viewsCollection,
-						"slug = {:slug}",
+						"slug = {:slug} && is_active = true",
 						"",
 						1,
 						0,
 						map[string]interface{}{"slug": fromViewSlug},
 					)
 					if err == nil && len(viewRecords) > 0 {
-						viewId := viewRecords[0].Id
-						if isVisibleInView(project, viewId) {
-							allowed = true
+						fromView := viewRecords[0]
+						// Opening a project doesn't count as another use of a
+						// share token; the visit to the view already did.
+						if _, denial := checkViewAccess(app, crypto, share, e, fromView); denial == nil {
+							allowed = isVisibleInView(project, fromView.Id)
 						}
 					}
 				}
@@ -2147,6 +2129,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["profile"] = profileData
 			}
 
+			gatePaidContent(project, response, newContentAccess(app, purchaseService, e))
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -2277,6 +2260,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
+			gatePaidContent(talk, response, newContentAccess(app, purchaseService, e))
 			return e.JSON(http.StatusOK, response)
 		}))
 

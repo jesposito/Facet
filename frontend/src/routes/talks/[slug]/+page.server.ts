@@ -8,18 +8,20 @@
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { navigationFacet } from '$lib/discovery';
+import { internalApiHeaders, parseMediaRefs } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, url, request, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
-	const fromView = url.searchParams.get('from');
+	const fromHints = url.searchParams.getAll('from');
+	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
 
-	// These requests originate in the server, like the homepage loader.
-	const headers: Record<string, string> = { 'X-Internal': 'true' };
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
-	if (pbAuthToken) {
-		headers['Authorization'] = `Bearer ${pbAuthToken}`;
-	}
+	const headers = {
+		...internalApiHeaders(request),
+		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+	};
 
 	try {
 		const response = await fetch(`${pbUrl}/api/talk/${slug}`, { headers });
@@ -30,7 +32,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 
 		const talk = await response.json();
 
-		const mediaRefs: any[] = talk.media_refs_expand || [];
+		const mediaRefs = parseMediaRefs(talk.media_refs_expand);
 
 		return {
 			talk: {
@@ -48,9 +50,13 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				created: talk.created,
 				updated: talk.updated,
 				visibility: talk.visibility || 'public',
-				is_draft: talk.is_draft || false
+				is_draft: talk.is_draft || false,
+				is_gated: talk.is_gated === true,
+				is_purchased: talk.is_purchased === true,
+				access_tier: talk.access_tier || 'free',
+				price: Number(talk.price) || 0
 			},
-			media_refs: mediaRefs,
+			media_refs: talk.is_gated === true ? [] : mediaRefs,
 			profile: talk.profile || null,
 			prev_talk: talk.prev_talk || null,
 			next_talk: talk.next_talk || null,

@@ -1,5 +1,7 @@
 # Soft Premium Redesign Backport Plan (Cloud → Self-Hosted Facet)
 
+> **Archived engineering record.** This plan is kept for historical context and is no longer maintained. Its status lines, version numbers, local paths and instructions describe the project as it was in mid-2026, not as it is now. For current behaviour, see the [documentation index](README.md).
+
 > **Status:** IMPLEMENTED (19 PRs; A2/A9 finishing; C7 deferred) · **Created:** 2026-06-23 · **Owner:** Jed
 > **Source product:** Facet Cloud (`/home/jed/dev/facets-sh`, `jesposito/facetcloud`, ~v3.68.x)
 > **Target product:** self-hosted Facet (`/home/jed/dev/Facet`, `jesposito/Facet`, ~v2.22.1)

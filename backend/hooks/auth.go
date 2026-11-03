@@ -61,6 +61,17 @@ func RegisterAdminAuth(app *pocketbase.PocketBase) {
 
 		return &AdminDeniedError{Message: "Admin access denied. Your email is not authorized."}
 	})
+
+	// Every user is an admin, so open sign-up would hand out admin accounts.
+	// The users create rule stays as PocketBase sets it because OAuth sign-in
+	// checks it when creating an allowlisted admin; OAuth doesn't pass through
+	// this hook, which only guards POST /api/collections/users/records.
+	app.OnRecordCreateRequest("users").BindFunc(func(e *core.RecordRequestEvent) error {
+		if !e.HasSuperuserAuth() {
+			return e.ForbiddenError("Admin accounts can't be created through the API.", nil)
+		}
+		return e.Next()
+	})
 }
 
 // AdminDeniedError represents an admin access denial

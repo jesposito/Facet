@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 
 	interface Props {
 		value: string;
@@ -35,7 +35,7 @@
 	onMount(async () => {
 		try {
 			const stored = localStorage.getItem('editor-preferred-mode');
-			currentMode = (stored === 'wysiwyg' || stored === 'markdown') ? stored : initialMode;
+			currentMode = stored === 'wysiwyg' || stored === 'markdown' ? stored : initialMode;
 			markdownText = value || '';
 
 			const { Editor } = await import('@tiptap/core');
@@ -53,7 +53,10 @@
 				// Disable Link in StarterKit to avoid duplicate extension (v3 includes it by default)
 				StarterKit.configure({ link: false }),
 				Markdown,
-				Link.configure({ openOnClick: false, HTMLAttributes: { class: 'text-primary-600 underline' } }),
+				Link.configure({
+					openOnClick: false,
+					HTMLAttributes: { class: 'text-primary-600 underline' }
+				}),
 				Image,
 				Placeholder.configure({ placeholder })
 			];
@@ -74,7 +77,7 @@
 
 			// Yield to let Svelte flush any pending $state changes to the DOM,
 			// ensuring editorElement is bound after any {#if} re-renders.
-			await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+			await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
 			if (destroyed) return;
 
 			// Only create editor if in WYSIWYG mode and element exists (CRIT #1 fix)
@@ -139,7 +142,10 @@
 		// Normalize both values to avoid false positives from whitespace differences
 		if (currentValue?.trim() !== editorMd?.trim()) {
 			isUpdatingFromProp = true;
-			editor.commands.setContent(currentValue || '', { contentType: 'markdown', emitUpdate: false });
+			editor.commands.setContent(currentValue || '', {
+				contentType: 'markdown',
+				emitUpdate: false
+			});
 			markdownText = currentValue || '';
 			isUpdatingFromProp = false;
 		}
@@ -172,6 +178,11 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		if (activeDialog && e.key === 'Escape') {
+			e.preventDefault();
+			closeDialog();
+			return;
+		}
 		if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'm' || e.key === 'M')) {
 			e.preventDefault();
 			toggleMode();
@@ -196,7 +207,12 @@
 	/** Validate URL against safe protocol allowlist */
 	function isSafeUrl(url: string): boolean {
 		const trimmed = url.trim().toLowerCase();
-		return trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('mailto:') || trimmed.startsWith('/');
+		return (
+			trimmed.startsWith('https://') ||
+			trimmed.startsWith('http://') ||
+			trimmed.startsWith('mailto:') ||
+			trimmed.startsWith('/')
+		);
 	}
 
 	// Inline dialog state (replaces window.prompt/alert)
@@ -207,28 +223,27 @@
 	let dialogRef: HTMLDivElement | undefined = $state();
 	let dialogPreviousFocus: HTMLElement | null = $state(null);
 
-	function openLinkDialog() {
-		activeDialog = 'link';
+	async function openDialog(type: Exclude<DialogType, null>) {
+		dialogPreviousFocus = document.activeElement as HTMLElement;
+		activeDialog = type;
 		dialogInput = '';
 		dialogError = '';
-		dialogPreviousFocus = document.activeElement as HTMLElement;
-		setTimeout(() => dialogRef?.querySelector<HTMLInputElement>('input')?.focus(), 50);
+		await tick();
+		dialogRef?.querySelector<HTMLInputElement>('input')?.focus();
+	}
+
+	function openLinkDialog() {
+		void openDialog('link');
 	}
 
 	function openImageDialog() {
-		activeDialog = 'image';
-		dialogInput = '';
-		dialogError = '';
-		dialogPreviousFocus = document.activeElement as HTMLElement;
-		setTimeout(() => dialogRef?.querySelector<HTMLInputElement>('input')?.focus(), 50);
+		void openDialog('image');
 	}
 
 	function confirmDialog() {
 		const url = dialogInput.trim();
 		if (!url) {
-			dialogError = activeDialog === 'link'
-				? 'Please enter a URL.'
-				: 'Please enter an image URL.';
+			dialogError = activeDialog === 'link' ? 'Please enter a URL.' : 'Please enter an image URL.';
 			return;
 		}
 		if (!isSafeUrl(url)) {
@@ -243,23 +258,18 @@
 		closeDialog();
 	}
 
-	function closeDialog() {
+	async function closeDialog() {
+		const previousFocus = dialogPreviousFocus;
+		dialogPreviousFocus = null;
 		activeDialog = null;
 		dialogInput = '';
 		dialogError = '';
-		requestAnimationFrame(() => {
-			if (dialogPreviousFocus && typeof dialogPreviousFocus.focus === 'function') {
-				dialogPreviousFocus.focus();
-			}
-			dialogPreviousFocus = null;
-		});
+		await tick();
+		if (previousFocus?.isConnected) previousFocus.focus();
 	}
 
 	function handleDialogKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			e.preventDefault();
-			closeDialog();
-		} else if (e.key === 'Tab' && dialogRef) {
+		if (e.key === 'Tab' && dialogRef) {
 			const focusable = dialogRef.querySelectorAll<HTMLElement>(
 				'button:not([disabled]), input:not([disabled])'
 			);
@@ -298,10 +308,16 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="markdown-editor border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+<div
+	class="markdown-editor border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800"
+>
 	<!-- Toolbar -->
 	{#if isMounted}
-		<div role="toolbar" aria-label="Text formatting" class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+		<div
+			role="toolbar"
+			aria-label="Text formatting"
+			class="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+		>
 			{#if currentMode === 'wysiwyg'}
 				<!-- Formatting buttons -->
 				<button
@@ -311,7 +327,18 @@
 					aria-label="Bold"
 					title="Bold (Ctrl+B)"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" /><path
+							d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"
+						/></svg
+					>
 				</button>
 				<button
 					type="button"
@@ -320,7 +347,21 @@
 					aria-label="Italic"
 					title="Italic (Ctrl+I)"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><line x1="19" y1="4" x2="10" y2="4" /><line x1="14" y1="20" x2="5" y2="20" /><line
+							x1="15"
+							y1="4"
+							x2="9"
+							y2="20"
+						/></svg
+					>
 				</button>
 
 				{#if toolbar === 'full'}
@@ -331,7 +372,18 @@
 						aria-label="Strikethrough"
 						title="Strikethrough"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M17.5 7.5c0-2-1.5-3.5-5.5-3.5S6.5 5 6.5 7.5c0 4 11 4 11 8 0 2.5-2 3.5-5.5 3.5S6 17.5 6 16"/></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><line x1="4" y1="12" x2="20" y2="12" /><path
+								d="M17.5 7.5c0-2-1.5-3.5-5.5-3.5S6.5 5 6.5 7.5c0 4 11 4 11 8 0 2.5-2 3.5-5.5 3.5S6 17.5 6 16"
+							/></svg
+						>
 					</button>
 				{/if}
 
@@ -376,7 +428,26 @@
 					aria-label="Bullet list"
 					title="Bullet list"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><line x1="9" y1="6" x2="20" y2="6" /><line x1="9" y1="12" x2="20" y2="12" /><line
+							x1="9"
+							y1="18"
+							x2="20"
+							y2="18"
+						/><circle cx="4" cy="6" r="1" fill="currentColor" /><circle
+							cx="4"
+							cy="12"
+							r="1"
+							fill="currentColor"
+						/><circle cx="4" cy="18" r="1" fill="currentColor" /></svg
+					>
 				</button>
 
 				{#if toolbar === 'full'}
@@ -387,7 +458,42 @@
 						aria-label="Ordered list"
 						title="Ordered list"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="2" y="8" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">1</text><text x="2" y="14" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">2</text><text x="2" y="20" font-size="8" fill="currentColor" stroke="none" font-family="sans-serif">3</text></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><line x1="10" y1="6" x2="21" y2="6" /><line x1="10" y1="12" x2="21" y2="12" /><line
+								x1="10"
+								y1="18"
+								x2="21"
+								y2="18"
+							/><text
+								x="2"
+								y="8"
+								font-size="8"
+								fill="currentColor"
+								stroke="none"
+								font-family="sans-serif">1</text
+							><text
+								x="2"
+								y="14"
+								font-size="8"
+								fill="currentColor"
+								stroke="none"
+								font-family="sans-serif">2</text
+							><text
+								x="2"
+								y="20"
+								font-size="8"
+								fill="currentColor"
+								stroke="none"
+								font-family="sans-serif">3</text
+							></svg
+						>
 					</button>
 
 					<button
@@ -397,7 +503,11 @@
 						aria-label="Blockquote"
 						title="Blockquote"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5 3.871 3.871 0 01-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5 3.871 3.871 0 01-2.748-1.179z"/></svg>
+						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"
+							><path
+								d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5 3.871 3.871 0 01-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5 3.871 3.871 0 01-2.748-1.179z"
+							/></svg
+						>
 					</button>
 				{/if}
 
@@ -410,7 +520,16 @@
 					aria-label="Inline code"
 					title="Inline code"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg
+					>
 				</button>
 
 				{#if toolbar === 'full'}
@@ -421,7 +540,18 @@
 						aria-label="Code block"
 						title="Code block"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="14 15 18 12 14 9"/><polyline points="10 9 6 12 10 15"/></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><rect x="3" y="3" width="18" height="18" rx="2" /><polyline
+								points="14 15 18 12 14 9"
+							/><polyline points="10 9 6 12 10 15" /></svg
+						>
 					</button>
 				{/if}
 
@@ -432,7 +562,18 @@
 					aria-label="Insert link"
 					title="Insert link"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" /><path
+							d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"
+						/></svg
+					>
 				</button>
 
 				{#if toolbar === 'full'}
@@ -443,7 +584,20 @@
 						aria-label="Insert image"
 						title="Insert image"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><rect x="3" y="3" width="18" height="18" rx="2" /><circle
+								cx="8.5"
+								cy="8.5"
+								r="1.5"
+							/><path d="M21 15l-5-5L5 21" /></svg
+						>
 					</button>
 
 					<button
@@ -453,7 +607,26 @@
 						aria-label="Insert table"
 						title="Insert table"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><rect x="3" y="3" width="18" height="18" rx="2" /><line
+								x1="3"
+								y1="9"
+								x2="21"
+								y2="9"
+							/><line x1="3" y1="15" x2="21" y2="15" /><line x1="9" y1="3" x2="9" y2="21" /><line
+								x1="15"
+								y1="3"
+								x2="15"
+								y2="21"
+							/></svg
+						>
 					</button>
 
 					<button
@@ -463,7 +636,14 @@
 						aria-label="Horizontal rule"
 						title="Horizontal rule"
 					>
-						<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+						<svg
+							class="w-4 h-4"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12" /></svg
+						>
 					</button>
 				{/if}
 
@@ -476,7 +656,16 @@
 					aria-label="Undo"
 					title="Undo (Ctrl+Z)"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><path d="M3 7v6h6" /><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" /></svg
+					>
 				</button>
 				<button
 					type="button"
@@ -485,7 +674,16 @@
 					aria-label="Redo"
 					title="Redo (Ctrl+Shift+Z)"
 				>
-					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13"/></svg>
+					<svg
+						class="w-4 h-4"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><path d="M21 7v6h-6" /><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13" /></svg
+					>
 				</button>
 			{/if}
 
@@ -501,10 +699,30 @@
 				title="Toggle editor mode (Ctrl+Shift+M)"
 			>
 				{#if currentMode === 'wysiwyg'}
-					<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+					<svg
+						class="w-3.5 h-3.5"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg
+					>
 					<span>Markdown</span>
 				{:else}
-					<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+					<svg
+						class="w-3.5 h-3.5"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><path d="M12 20h9" /><path
+							d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+						/></svg
+					>
 					<span>WYSIWYG</span>
 				{/if}
 			</button>
@@ -526,10 +744,9 @@
 			<textarea
 				class="w-full p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono text-sm resize-y focus:outline-none"
 				style="min-height: {minHeight}"
-				placeholder={placeholder}
+				{placeholder}
 				value={markdownText}
-				oninput={handleMarkdownInput}
-			></textarea>
+				oninput={handleMarkdownInput}></textarea>
 		{/if}
 	</div>
 
@@ -538,7 +755,9 @@
 		<div
 			class="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
 			role="presentation"
-			onclick={(e) => { if (e.target === e.currentTarget) closeDialog(); }}
+			onclick={(e) => {
+				if (e.target === e.currentTarget) closeDialog();
+			}}
 		>
 			<div
 				bind:this={dialogRef}
@@ -553,24 +772,42 @@
 					{activeDialog === 'link' ? 'Insert Link' : 'Insert Image'}
 				</h3>
 				<div>
-					<label for="editor-dialog-url" class="text-xs text-gray-600 dark:text-gray-400">URL</label>
+					<label for="editor-dialog-url" class="text-xs text-gray-600 dark:text-gray-400">URL</label
+					>
 					<input
 						id="editor-dialog-url"
 						type="url"
 						class="mt-1 block w-full px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-						placeholder={activeDialog === 'link' ? 'https://example.com' : 'https://example.com/image.jpg'}
+						placeholder={activeDialog === 'link'
+							? 'https://example.com'
+							: 'https://example.com/image.jpg'}
 						bind:value={dialogInput}
 						aria-invalid={dialogError ? 'true' : undefined}
 						aria-describedby={dialogError ? 'editor-dialog-error' : undefined}
-						onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmDialog(); } }}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								confirmDialog();
+							}
+						}}
 					/>
 					{#if dialogError}
-						<p id="editor-dialog-error" class="mt-1 text-xs text-red-600 dark:text-red-400">{dialogError}</p>
+						<p id="editor-dialog-error" class="mt-1 text-xs text-red-600 dark:text-red-400">
+							{dialogError}
+						</p>
 					{/if}
 				</div>
 				<div class="flex justify-end gap-2">
-					<button type="button" class="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onclick={closeDialog}>Cancel</button>
-					<button type="button" class="px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700 transition-colors" onclick={confirmDialog}>
+					<button
+						type="button"
+						class="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+						onclick={closeDialog}>Cancel</button
+					>
+					<button
+						type="button"
+						class="px-3 py-1.5 text-sm font-medium rounded-md bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+						onclick={confirmDialog}
+					>
 						{activeDialog === 'link' ? 'Insert Link' : 'Insert Image'}
 					</button>
 				</div>

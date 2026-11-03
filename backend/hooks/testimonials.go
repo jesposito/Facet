@@ -533,15 +533,16 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			var result []map[string]interface{}
 			for _, r := range records {
 				item := map[string]interface{}{
-					"id":                      r.Id,
-					"content":                 r.GetString("content"),
-					"relationship":            r.GetString("relationship"),
-					"author_name":             r.GetString("author_name"),
-					"author_title":            r.GetString("author_title"),
-					"author_company":          r.GetString("author_company"),
-					"verification_method":     r.GetString("verification_method"),
-					"verification_identifier": r.GetString("verification_identifier"),
-					"featured":                r.GetBool("featured"),
+					"id":             r.Id,
+					"content":        r.GetString("content"),
+					"relationship":   r.GetString("relationship"),
+					"author_name":    r.GetString("author_name"),
+					"author_title":   r.GetString("author_title"),
+					"author_company": r.GetString("author_company"),
+					// verification_identifier is the reviewer's email address, so
+					// public pages only learn how a testimonial was verified.
+					"verification_method": r.GetString("verification_method"),
+					"featured":            r.GetBool("featured"),
 				}
 
 				if photo := r.GetString("author_photo"); photo != "" {

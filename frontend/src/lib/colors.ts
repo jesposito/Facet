@@ -13,16 +13,17 @@ export type AccentColor = 'sky' | 'indigo' | 'emerald' | 'rose' | 'amber' | 'sla
  * Curated colors for admin-only tags to visually distinguish content items.
  * These are lighter/more subtle than accent colors for badge use.
  */
-export type TagColor = 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'pink' | 'orange' | 'teal' | 'gray';
+export type TagColor =
+	'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'pink' | 'orange' | 'teal' | 'gray';
 
 export interface TagColorInfo {
 	name: TagColor;
 	label: string;
-	bg: string;       // Background class (light mode)
-	bgDark: string;   // Background class (dark mode)
-	text: string;     // Text class (light mode)
+	bg: string; // Background class (light mode)
+	bgDark: string; // Background class (dark mode)
+	text: string; // Text class (light mode)
 	textDark: string; // Text class (dark mode)
-	border: string;   // Border class (light mode)
+	border: string; // Border class (light mode)
 	borderDark: string; // Border class (dark mode)
 }
 
@@ -119,7 +120,17 @@ export const TAG_COLORS: Record<TagColor, TagColorInfo> = {
 	}
 };
 
-export const TAG_COLOR_LIST: TagColor[] = ['blue', 'green', 'yellow', 'red', 'purple', 'pink', 'orange', 'teal', 'gray'];
+export const TAG_COLOR_LIST: TagColor[] = [
+	'blue',
+	'green',
+	'yellow',
+	'red',
+	'purple',
+	'pink',
+	'orange',
+	'teal',
+	'gray'
+];
 
 export const DEFAULT_TAG_COLOR: TagColor = 'blue';
 
@@ -289,7 +300,14 @@ export const SOFT_PREMIUM_DEFAULT_ACCENT = '#c2410c';
 /**
  * List of available accent colors for UI iteration
  */
-export const ACCENT_COLOR_LIST: AccentColor[] = ['sky', 'indigo', 'emerald', 'rose', 'amber', 'slate'];
+export const ACCENT_COLOR_LIST: AccentColor[] = [
+	'sky',
+	'indigo',
+	'emerald',
+	'rose',
+	'amber',
+	'slate'
+];
 
 /**
  * Get accent color info by name
@@ -457,7 +475,7 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 	}
 
 	function toHex(red: number, green: number, blue: number): string {
-		return '#' + [red, green, blue].map(c => c.toString(16).padStart(2, '0')).join('');
+		return '#' + [red, green, blue].map((c) => c.toString(16).padStart(2, '0')).join('');
 	}
 
 	// AAA clamp for the 600 shade: darken (mix toward black, which preserves hue
@@ -491,24 +509,25 @@ export function generatePaletteFromHex(hex: string): ColorScale {
 	// (0.30/0.45/0.60/0.80) are preserved for normal accents where 600's amount sits
 	// at or below 0.30.
 	const a600 = clamp600Amount();
-	const a700 = Math.max(0.30, a600 + 0.07);
-	const a800 = Math.max(0.45, a700 + 0.10);
-	const a900 = Math.max(0.60, a800 + 0.12);
-	const a950 = Math.max(0.80, a900 + 0.10);
-	const mixBlack = (amount: number) => toHex(mix(r, 0, amount), mix(g, 0, amount), mix(b, 0, amount));
+	const a700 = Math.max(0.3, a600 + 0.07);
+	const a800 = Math.max(0.45, a700 + 0.1);
+	const a900 = Math.max(0.6, a800 + 0.12);
+	const a950 = Math.max(0.8, a900 + 0.1);
+	const mixBlack = (amount: number) =>
+		toHex(mix(r, 0, amount), mix(g, 0, amount), mix(b, 0, amount));
 
 	return {
-		50:  toHex(mix(r, 255, 0.95), mix(g, 255, 0.95), mix(b, 255, 0.95)),
+		50: toHex(mix(r, 255, 0.95), mix(g, 255, 0.95), mix(b, 255, 0.95)),
 		100: toHex(mix(r, 255, 0.88), mix(g, 255, 0.88), mix(b, 255, 0.88)),
 		200: toHex(mix(r, 255, 0.73), mix(g, 255, 0.73), mix(b, 255, 0.73)),
 		300: toHex(mix(r, 255, 0.55), mix(g, 255, 0.55), mix(b, 255, 0.55)),
-		400: toHex(mix(r, 255, 0.30), mix(g, 255, 0.30), mix(b, 255, 0.30)),
+		400: toHex(mix(r, 255, 0.3), mix(g, 255, 0.3), mix(b, 255, 0.3)),
 		500: hex,
 		600: mixBlack(a600),
 		700: mixBlack(a700),
 		800: mixBlack(a800),
 		900: mixBlack(a900),
-		950: mixBlack(a950),
+		950: mixBlack(a950)
 	};
 }
 
@@ -640,7 +659,10 @@ export function generateTextInkCSSVars(textColor?: string | null): string {
  * Generate CSS custom properties for accent color (works server-side, no DOM needed).
  * Returns a CSS string that can be injected into <style> tags for SSR.
  */
-export function generateAccentCSSVars(colorName?: string | null, customHex?: string | null): string {
+export function generateAccentCSSVars(
+	colorName?: string | null,
+	customHex?: string | null
+): string {
 	let scale: ColorScale | null = null;
 
 	if (customHex) {

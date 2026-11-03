@@ -1,56 +1,46 @@
-# Contributing Translations to Facet
+# Contributing translations
 
-Thank you for helping make Facet accessible to more people around the world! This guide explains how anyone can contribute translations, regardless of technical experience.
+Thank you for helping Facet speak more languages. You don't need to be a programmer to help: if you can edit a text file on GitHub's website, you can translate.
 
-## Need Help?
+## Getting help
 
-**Join our Discord community!** If you have questions about translating, need clarification on what a phrase means, or want to coordinate with other translators, come chat with us:
+- **Discord:** [join Facet HQ](https://discord.gg/XD8eUudnmf) and ask in the translations channel, especially when a phrase is ambiguous out of context.
+- **GitHub:** [open an issue](https://github.com/jesposito/Facet/issues/new) and mention that it's about translations.
 
-- **Discord**: [Join the Facet Discord](https://discord.gg/XD8eUudnmf) (ask in #translations channel)
-- **GitHub Issues**: [Open an issue](https://github.com/jesposito/Facet/issues/new) with the `i18n` label
+## Current languages
 
----
+| Code | Language | Notes |
+|------|----------|-------|
+| `en` | English | The source. Every other file follows its keys. |
+| `de` | Deutsch (German) | |
+| `elvish` | Sindarin (Elvish) | For fun |
+| `klingon` | tlhIngan Hol (Klingon) | For fun |
+| `lolcat` | LOLcat | For fun |
 
-## For Non-Technical Contributors (No Coding Required!)
+Spanish, French, Japanese, Korean, Portuguese, Chinese and others would be very welcome.
 
-You can contribute translations directly through GitHub's website - no special software needed!
+## Translating on GitHub's website
 
-### Step 1: Create a GitHub Account
+### Improve an existing language
 
-If you don't have one, [sign up for free at GitHub.com](https://github.com/signup).
+1. Open [`frontend/src/locales`](frontend/src/locales) in the repository.
+2. Click your language's file, for example `de.json`.
+3. Click the pencil icon to edit. GitHub offers to make a copy (a "fork") for you.
+4. Make your changes, then click **Propose changes** and **Create pull request**.
 
-### Step 2: Find the Translation Files
+### Start a new language
 
-1. Go to the [Facet repository](https://github.com/jesposito/Facet)
-2. Navigate to: `frontend` → `src` → `locales`
-3. You'll see files like `en.json` (English), `de.json` (German), etc.
+1. Open `en.json` in [`frontend/src/locales`](frontend/src/locales) and copy its entire contents.
+2. Go back to the `locales` folder and choose **Add file → Create new file**.
+3. Name it with your language code and `.json`, for example `es.json` for Spanish or `pt-BR.json` for Brazilian Portuguese.
+4. Paste the English text and translate the values (see below).
+5. Propose the file and open a pull request. Say in the description that it's a new language, so a maintainer can register it.
 
-### Step 3: Choose Your Task
+You don't have to finish in one go. A partial translation is a fine start, and others can help complete it.
 
-**Option A: Improve an Existing Translation**
-1. Click on the file for your language (e.g., `de.json` for German)
-2. Click the pencil icon (Edit) in the top right
-3. Make your changes
-4. Scroll down and click "Propose changes"
-5. Click "Create pull request"
-6. Done! We'll review your changes.
+## How the files work
 
-**Option B: Add a New Language**
-1. Click on `en.json` (the English source file)
-2. Click the pencil icon to edit
-3. Select all the text (Ctrl+A or Cmd+A) and copy it (Ctrl+C or Cmd+C)
-4. Go back to the `locales` folder
-5. Click "Add file" → "Create new file"
-6. Name it with your language code + `.json` (e.g., `es.json` for Spanish, `ja.json` for Japanese)
-7. Paste the English content
-8. Replace the English text with your translations (see "How to Translate" below)
-9. Click "Propose new file"
-10. Click "Create pull request"
-11. **Important**: Mention in your PR that this is a new language so we can register it!
-
-### How to Translate (The JSON Format)
-
-Translation files look like this:
+Each file is JSON: keys on the left, text on the right.
 
 ```json
 {
@@ -63,158 +53,49 @@ Translation files look like this:
 }
 ```
 
-**The rules are simple:**
+| Leave as it is | Translate |
+|----------------|-----------|
+| Keys, the part before the colon: `"dashboard":` | The text in quotes after the colon: `"Dashboard"` becomes `"Tableau de bord"` |
+| Braces, brackets, commas and quote marks | |
+| Placeholders in curly braces: `{name}`, `{count}` | The words around them |
+| Brand names: Facet, GitHub, Google | |
 
-| Keep This (Don't Change!) | Translate This |
-|---------------------------|----------------|
-| `"dashboard":` | `"Dashboard"` → `"Tableau de bord"` |
-| `"homepage":` | `"Homepage"` → `"Page d'accueil"` |
-| All the `{` and `}` brackets | The text inside quotes after the `:` |
+Placeholders are filled in by the app. `"Hello, {name}!"` becomes `"Bonjour, {name}!"`, never `"Bonjour, {nom}!"`.
 
-**Example - Translating to French:**
+Some values contain small bits of HTML, such as `<strong>` or `<code>`. Keep the tags and translate the text between them.
 
-Before:
-```json
-"dashboard": "Dashboard",
-"homepage": "Homepage"
-```
+## Guidelines
 
-After:
-```json
-"dashboard": "Tableau de bord",
-"homepage": "Page d'accueil"
-```
+- Write what a native speaker would say, not a word-for-word copy of the English.
+- Keep the tone friendly and plain, like the English.
+- If you use machine translation as a starting point, read and correct every line.
+- When a phrase is ambiguous, ask, or explain your choice in the pull request.
 
-### Placeholders - Keep These!
+## For developers
 
-Some text has special parts in `{curly braces}` that get filled in automatically. **Keep these exactly as they are!**
+### Register a new language
 
-| You See | What It Means | Your Translation |
-|---------|---------------|------------------|
-| `"Hello, {name}!"` | `{name}` becomes the user's name | `"Bonjour, {name}!"` ✓ |
-| `"You have {count} items"` | `{count}` becomes a number | `"Vous avez {count} articles"` ✓ |
+A new language file needs registering in a few places before it appears in the app:
 
-**Wrong:** `"Bonjour, {nom}!"` ✗ (Don't translate the placeholder!)
-
-### What NOT to Translate
-
-- **Keys** (the part before the colon): `"dashboard"` stays `"dashboard"`
-- **Brand names**: "Facet", "GitHub", "Google", etc.
-- **Placeholders**: `{name}`, `{count}`, `{link}`, etc.
-
----
-
-## For Developers (Technical Setup)
-
-If you prefer working locally with git and want to test your translations:
-
-### Adding a New Language
-
-1. **Copy the English source file:**
-   ```bash
-   cp frontend/src/locales/en.json frontend/src/locales/XX.json
+1. **Frontend** ([`frontend/src/lib/i18n/index.ts`](frontend/src/lib/i18n/index.ts)):
+   ```ts
+   register('es', () => import('../../locales/es.json'));
    ```
-   Replace `XX` with your [ISO 639-1 language code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes).
+   Add the code to `SUPPORTED_LOCALES`, and its display name to `LOCALE_NAMES` if it isn't there already.
+2. **Default site language.** The `default_locale` setting only accepts the codes listed in its migration ([`1738000001_add_site_default_locale.go`](backend/migrations/1738000001_add_site_default_locale.go)). Add a new migration that extends the list, so owners can choose the language for visitors.
+3. **Emails.** Testimonial emails are translated in [`backend/services/email_i18n.go`](backend/services/email_i18n.go). Languages without an entry fall back to English.
 
-2. **Translate the values** in your new file (keep keys in English).
-
-3. **Register your locale** in `frontend/src/lib/i18n/index.ts`:
-   ```typescript
-   register('XX', () => import('../../locales/XX.json'));
-   ```
-
-4. **Add to supported locales** in the same file:
-   ```typescript
-   export const SUPPORTED_LOCALES = ['en', 'de', 'elvish', 'klingon', 'lolcat', 'XX'] as const;
-   ```
-
-5. **Add the display name**:
-   ```typescript
-   export const LOCALE_NAMES: Record<string, string> = {
-     // ... existing locales
-     XX: 'Language Name'
-   };
-   ```
-
-6. **Submit a Pull Request**.
-
-### Validation
-
-Before submitting, validate your translations:
+### Check your work
 
 ```bash
 cd frontend
 npm run i18n:validate
 ```
 
-This checks for missing keys, extra keys, and shows coverage percentage.
+This runs two checks: [`validate-translations.js`](scripts/validate-translations.js) compares every language with `en.json` and reports missing and extra keys with a coverage percentage, and [`check-i18n-values-params.mjs`](scripts/check-i18n-values-params.mjs) makes sure code that uses a placeholder actually supplies a value for it. The [i18n workflow](.github/workflows/i18n-check.yml) runs both on pull requests that touch translations or frontend code, with the first in strict `--ci` mode.
 
-### Testing Locally
+To see translations in the running app, start the [development environment](docs/DEV.md) and switch the language in the admin, or set the site's default language in **Site Settings**.
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## Thank you
 
-Then change the language in Settings to see your translations.
-
----
-
-## Translation Guidelines
-
-### Do
-
-- Use natural phrasing for your language (don't translate too literally)
-- Preserve the same JSON structure as `en.json`
-- Keep all placeholders like `{name}`, `{count}`, `{link}`
-- Include context in your PR description for ambiguous translations
-- Ask on Discord if you're unsure about context!
-
-### Don't
-
-- Change the keys (the part before the colon)
-- Remove or modify placeholders
-- Translate brand names
-- Use machine translation without careful review
-
----
-
-## Current Languages
-
-| Code | Language | Status |
-|------|----------|--------|
-| `en` | English | Source (complete) |
-| `de` | Deutsch (German) | Complete |
-| `elvish` | Sindarin (Elvish) | Complete (fun!) |
-| `klingon` | tlhIngan Hol (Klingon) | Complete (fun!) |
-| `lolcat` | LOLcat | Complete (fun!) |
-
-**Want to add a new language?** We'd love to have: Spanish, French, Japanese, Korean, Portuguese, Chinese, and more!
-
----
-
-## Language Codes Reference
-
-Use standard ISO 639-1 codes. For regional variants, add the country code:
-
-| Code | Language |
-|------|----------|
-| `es` | Spanish |
-| `fr` | French |
-| `ja` | Japanese |
-| `ko` | Korean |
-| `pt-BR` | Portuguese (Brazil) |
-| `zh-CN` | Chinese (Simplified) |
-| `zh-TW` | Chinese (Traditional) |
-| `it` | Italian |
-| `ru` | Russian |
-| `ar` | Arabic |
-
----
-
-## Thank You!
-
-All translation contributors are credited in release notes. You're helping make Facet accessible to more people around the world!
-
-Questions? Ask on **Discord** or open a **GitHub issue** with the `i18n` label.
+Translators make Facet usable by people who would otherwise be left out. When a new contributor's pull request is merged, the project's Discord gives them a welcome in its hall of fame.

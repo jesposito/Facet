@@ -73,16 +73,16 @@ func TestReservedSlugValidation(t *testing.T) {
 // TestReservedSlugsAreComprehensive verifies the reserved list covers critical paths.
 func TestReservedSlugsAreComprehensive(t *testing.T) {
 	criticalReserved := []string{
-		"admin",       // Admin dashboard
-		"api",         // Backend API
-		"s",           // Share link handler
-		"v",           // Legacy view route
-		"_app",        // SvelteKit internals
-		"_",           // PocketBase admin
-		"login",       // Auth path
-		"logout",      // Auth path
-		"auth",        // Auth path
-		"health",      // Health check
+		"admin",  // Admin dashboard
+		"api",    // Backend API
+		"s",      // Share link handler
+		"v",      // Legacy view route
+		"_app",   // SvelteKit internals
+		"_",      // PocketBase admin
+		"login",  // Auth path
+		"logout", // Auth path
+		"auth",   // Auth path
+		"health", // Health check
 	}
 
 	for _, slug := range criticalReserved {
@@ -121,9 +121,9 @@ func TestSlugValidationPreventsInjection(t *testing.T) {
 // TestCanonicalURLRouting verifies the URL model contract.
 func TestCanonicalURLRouting(t *testing.T) {
 	tests := []struct {
-		path           string
-		isSlugRoute    bool
-		description    string
+		path        string
+		isSlugRoute bool
+		description string
 	}{
 		{"/recruiter", true, "named views use root-level slugs"},
 		{"/my-resume", true, "hyphenated slugs work"},

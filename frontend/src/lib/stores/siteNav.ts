@@ -31,7 +31,9 @@ function createSiteNavStore() {
 	return {
 		subscribe,
 		/** Initialize from SSR layout data. Preserves mobileMenuOpen across re-inits. */
-		initFromSSR(data: { enabled: boolean; mode?: string; position?: string; items: SiteNavItem[] } | undefined) {
+		initFromSSR(
+			data: { enabled: boolean; mode?: string; position?: string; items: SiteNavItem[] } | undefined
+		) {
 			if (!data) return;
 			update((state) => ({
 				enabled: data.enabled,

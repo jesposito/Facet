@@ -25,20 +25,24 @@
 	let { contacts = [], viewId = '', layout = 'vertical' }: Props = $props();
 
 	// Filter contacts for this view
-	let visibleContacts = $derived(contacts.filter((contact) => {
-		// If view_visibility is empty or null, show on all views
-		if (!contact.view_visibility || Object.keys(contact.view_visibility).length === 0) {
-			return true;
-		}
-		// Otherwise, check if this view is explicitly enabled
-		return contact.view_visibility[viewId] === true;
-	}));
+	let visibleContacts = $derived(
+		contacts.filter((contact) => {
+			// If view_visibility is empty or null, show on all views
+			if (!contact.view_visibility || Object.keys(contact.view_visibility).length === 0) {
+				return true;
+			}
+			// Otherwise, check if this view is explicitly enabled
+			return contact.view_visibility[viewId] === true;
+		})
+	);
 
 	// Sort by sort_order (descending), then by is_primary
-	let sortedContacts = $derived([...visibleContacts].sort((a, b) => {
-		if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
-		return b.sort_order - a.sort_order;
-	}));
+	let sortedContacts = $derived(
+		[...visibleContacts].sort((a, b) => {
+			if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
+			return b.sort_order - a.sort_order;
+		})
+	);
 
 	// Get icon for contact type
 	function getIcon(contact: ContactMethod): string {
@@ -105,10 +109,7 @@
 			{#each sortedContacts as contact}
 				{@const href = buildContactHref(contact.type, contact.value)}
 				{@const linkType = getLinkType(contact.type)}
-				<div
-					class="contact-method {contact.is_primary ? 'primary' : ''}"
-					role="listitem"
-				>
+				<div class="contact-method {contact.is_primary ? 'primary' : ''}" role="listitem">
 					{#if contact.protection_level === 'none'}
 						<!-- No protection - direct link or copy-only for non-linkable types -->
 						{#if href}
@@ -135,17 +136,41 @@
 									type="button"
 									class="copy-button"
 									onclick={() => copyToClipboard(contact.value, contact.id)}
-									aria-label={$t('shared.aria.copy_contact', { values: { label: getLabel(contact) } })}
+									aria-label={$t('shared.aria.copy_contact', {
+										values: { label: getLabel(contact) }
+									})}
 									disabled={copyingId === contact.id}
 								>
 									{#if copyingId === contact.id}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+										<svg
+											class="w-4 h-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M5 13l4 4L19 7"
+											/>
 										</svg>
 										<span class="sr-only">{$t('public.contacts.copied')}</span>
 									{:else}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+										<svg
+											class="w-4 h-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+											/>
 										</svg>
 										<span class="sr-only">{$t('public.contacts.copy')}</span>
 									{/if}
@@ -155,53 +180,52 @@
 								{/if}
 							</div>
 						{/if}
-
-				{:else if contact.protection_level === 'obfuscation'}
-					<!-- CSS Obfuscation -->
-					<div class="contact-wrapper">
-						<ObfuscatedLink
-							type={linkType}
-							value={contact.value}
-							href={href}
-							label={getLabel(contact)}
-							icon={getIcon(contact)}
-						/>
-						{#if contact.is_primary}
-							<span class="primary-badge">{$t('public.contacts.primary')}</span>
-						{/if}
-					</div>
-
-				{:else if contact.protection_level === 'click_to_reveal'}
-					<!-- Click to Reveal -->
-					<div class="contact-wrapper">
-						<ClickToReveal
-							type={linkType}
-							value={contact.value}
-							href={href}
-							label={getLabel(contact)}
-							icon={getIcon(contact)}
-							contactId={contact.id}
-						/>
-						{#if contact.is_primary}
-							<span class="primary-badge">{$t('public.contacts.primary')}</span>
-						{/if}
-					</div>
-
-				{:else if contact.protection_level === 'captcha'}
-					<!-- CAPTCHA Protection -->
-					<div class="contact-wrapper">
-						<button type="button" class="captcha-button" disabled>
-							<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
-							<span>{getLabel(contact)}</span>
-							<span class="badge">{$t('public.contacts.captcha_required')}</span>
-						</button>
-						{#if contact.is_primary}
-							<span class="primary-badge">{$t('public.contacts.primary')}</span>
-						{/if}
-					</div>
-				{/if}
-			</div>
-		{/each}
+					{:else if contact.protection_level === 'obfuscation'}
+						<!-- CSS Obfuscation -->
+						<div class="contact-wrapper">
+							<ObfuscatedLink
+								type={linkType}
+								value={contact.value}
+								{href}
+								label={getLabel(contact)}
+								icon={getIcon(contact)}
+							/>
+							{#if contact.is_primary}
+								<span class="primary-badge">{$t('public.contacts.primary')}</span>
+							{/if}
+						</div>
+					{:else if contact.protection_level === 'click_to_reveal'}
+						<!-- Click to Reveal -->
+						<div class="contact-wrapper">
+							<ClickToReveal
+								type={linkType}
+								value={contact.value}
+								{href}
+								label={getLabel(contact)}
+								icon={getIcon(contact)}
+								contactId={contact.id}
+							/>
+							{#if contact.is_primary}
+								<span class="primary-badge">{$t('public.contacts.primary')}</span>
+							{/if}
+						</div>
+					{:else if contact.protection_level === 'captcha'}
+						<!-- CAPTCHA isn't implemented, so the API withholds the value and there is nothing to click -->
+						<div class="contact-wrapper">
+							<span class="captcha-unavailable" data-contact-unavailable>
+								<span class="icon" aria-hidden="true">{getIcon(contact)}</span>
+								<span>{getLabel(contact)}</span>
+								<span class="badge"
+									>{$t('public.contacts.unavailable', { default: 'Not available publicly' })}</span
+								>
+							</span>
+							{#if contact.is_primary}
+								<span class="primary-badge">{$t('public.contacts.primary')}</span>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/each}
 		</div>
 	</section>
 {/if}
@@ -310,17 +334,11 @@
 		margin-left: auto;
 	}
 
-	.captcha-button {
+	.captcha-unavailable {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
-		padding: 0.5rem 1rem;
-		border: 1px solid var(--border-color, #e5e7eb);
-		border-radius: 0.375rem;
-		background: var(--bg-secondary, #f9fafb);
 		color: var(--text-secondary, #6b7280);
-		cursor: not-allowed;
-		opacity: 0.6;
 	}
 
 	.badge {
@@ -371,9 +389,7 @@
 		color: #9ca3af;
 	}
 
-	:global(.dark) .captcha-button {
-		border-color: #374151;
-		background: #1f2937;
+	:global(.dark) .captcha-unavailable {
 		color: #9ca3af;
 	}
 

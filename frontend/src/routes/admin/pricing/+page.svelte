@@ -18,9 +18,8 @@
 	const CONTENT_TYPES = [
 		{ collection: 'posts', labelKey: 'admin.pricing.type_posts', titleField: 'title' },
 		{ collection: 'talks', labelKey: 'admin.pricing.type_talks', titleField: 'title' },
-		{ collection: 'courses', labelKey: 'admin.pricing.type_courses', titleField: 'title' },
 		{ collection: 'projects', labelKey: 'admin.pricing.type_projects', titleField: 'title' },
-		{ collection: 'custom_content', labelKey: 'admin.pricing.type_custom', titleField: 'title' },
+		{ collection: 'custom_content', labelKey: 'admin.pricing.type_custom', titleField: 'title' }
 	];
 
 	let items: ContentItem[] = $state([]);
@@ -33,7 +32,7 @@
 	let filterTier = $state('all');
 
 	let filteredItems = $derived(
-		items.filter(item => {
+		items.filter((item) => {
 			if (filterType !== 'all' && item.collection !== filterType) return false;
 			if (filterTier === 'free' && item.access_tier !== 'free') return false;
 			if (filterTier === 'paid' && item.access_tier !== 'paid') return false;
@@ -42,7 +41,7 @@
 	);
 
 	let allSelected = $derived(
-		filteredItems.length > 0 && filteredItems.every(i => selectedIds.has(i.id))
+		filteredItems.length > 0 && filteredItems.every((i) => selectedIds.has(i.id))
 	);
 
 	onMount(loadAll);
@@ -55,7 +54,7 @@
 				try {
 					const records = await pb.collection(ct.collection).getList(1, 200, {
 						sort: '-created',
-						fields: `id,${ct.titleField},access_tier,price,visibility,is_draft`,
+						fields: `id,${ct.titleField},access_tier,price,visibility,is_draft`
 					});
 					for (const r of records.items) {
 						allItems.push({
@@ -65,7 +64,7 @@
 							access_tier: r.access_tier || 'free',
 							price: r.price || 0,
 							visibility: r.visibility || 'public',
-							is_draft: r.is_draft || false,
+							is_draft: r.is_draft || false
 						});
 					}
 				} catch {
@@ -92,12 +91,12 @@
 		if (allSelected) {
 			selectedIds = new Set();
 		} else {
-			selectedIds = new Set(filteredItems.map(i => i.id));
+			selectedIds = new Set(filteredItems.map((i) => i.id));
 		}
 	}
 
 	function collectionLabel(collection: string): string {
-		const ct = CONTENT_TYPES.find(c => c.collection === collection);
+		const ct = CONTENT_TYPES.find((c) => c.collection === collection);
 		return ct ? $t(ct.labelKey) : collection;
 	}
 
@@ -108,15 +107,14 @@
 	}
 
 	async function applyBulkPricing() {
-		const selected = items.filter(i => selectedIds.has(i.id));
+		const selected = items.filter((i) => selectedIds.has(i.id));
 		if (selected.length === 0) {
 			toasts.add('error', $t('admin.pricing.error_no_selection'));
 			return;
 		}
 
-		const priceInCents = bulkTier === 'paid' && bulkPrice
-			? Math.round((parseFloat(bulkPrice) || 0) * 100)
-			: 0;
+		const priceInCents =
+			bulkTier === 'paid' && bulkPrice ? Math.round((parseFloat(bulkPrice) || 0) * 100) : 0;
 
 		if (bulkTier === 'paid' && priceInCents < 50) {
 			toasts.add('error', $t('admin.pricing.error_min_price'));
@@ -131,7 +129,7 @@
 			try {
 				await pb.collection(item.collection).update(item.id, {
 					access_tier: bulkTier,
-					price: bulkTier === 'paid' ? priceInCents : 0,
+					price: bulkTier === 'paid' ? priceInCents : 0
 				});
 				// Update local state
 				item.access_tier = bulkTier;
@@ -140,7 +138,10 @@
 			} catch (err) {
 				console.error(`Failed to update ${item.collection}/${item.id}:`, err);
 				failCount++;
-				toasts.add('error', $t('admin.pricing.error_update_item', { values: { title: item.title } }));
+				toasts.add(
+					'error',
+					$t('admin.pricing.error_update_item', { values: { title: item.title } })
+				);
 			}
 		}
 
@@ -162,7 +163,9 @@
 
 <div class="space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.pricing.page_title')}</h1>
+		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+			{$t('admin.pricing.page_title')}
+		</h1>
 		<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 			{$t('admin.pricing.description')}
 		</p>
@@ -186,12 +189,16 @@
 				<option value="free">{$t('admin.pricing.filter_free')}</option>
 				<option value="paid">{$t('admin.pricing.filter_paid')}</option>
 			</select>
-			<span class="text-sm text-gray-500">{$t('admin.pricing.item_count', { values: { count: filteredItems.length } })}</span>
+			<span class="text-sm text-gray-500"
+				>{$t('admin.pricing.item_count', { values: { count: filteredItems.length } })}</span
+			>
 		</div>
 
 		<!-- Bulk action bar -->
 		{#if selectedIds.size > 0}
-			<div class="card p-4 flex flex-wrap items-center gap-3 border-primary-500/50 bg-primary-50/10">
+			<div
+				class="card p-4 flex flex-wrap items-center gap-3 border-primary-500/50 bg-primary-50/10"
+			>
 				<span class="text-sm font-medium text-gray-900 dark:text-white">
 					{$t('admin.pricing.selected_count', { values: { count: selectedIds.size } })}
 				</span>
@@ -213,20 +220,27 @@
 						/>
 					</div>
 				{/if}
-				<button
-					class="btn btn-primary btn-sm"
-					onclick={applyBulkPricing}
-					disabled={saving}
-				>
+				<button class="btn btn-primary btn-sm" onclick={applyBulkPricing} disabled={saving}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					{$t('admin.pricing.apply')}
 				</button>
-				<button class="btn btn-secondary btn-sm" onclick={() => selectedIds = new Set()}>
+				<button class="btn btn-secondary btn-sm" onclick={() => (selectedIds = new Set())}>
 					{$t('admin.pricing.clear')}
 				</button>
 			</div>
@@ -246,16 +260,32 @@
 								aria-label={$t('admin.pricing.select_all')}
 							/>
 						</th>
-						<th scope="col" class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400">{$t('admin.pricing.col_title')}</th>
-						<th scope="col" class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell">{$t('admin.pricing.col_type')}</th>
-						<th scope="col" class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400">{$t('admin.pricing.col_tier')}</th>
-						<th scope="col" class="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-400">{$t('admin.pricing.col_price')}</th>
+						<th scope="col" class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400"
+							>{$t('admin.pricing.col_title')}</th
+						>
+						<th
+							scope="col"
+							class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400 hidden sm:table-cell"
+							>{$t('admin.pricing.col_type')}</th
+						>
+						<th scope="col" class="px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400"
+							>{$t('admin.pricing.col_tier')}</th
+						>
+						<th
+							scope="col"
+							class="px-4 py-3 text-right font-medium text-gray-600 dark:text-gray-400"
+							>{$t('admin.pricing.col_price')}</th
+						>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 					{#each filteredItems as item (item.id)}
 						<tr
-							class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors {selectedIds.has(item.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}"
+							class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors {selectedIds.has(
+								item.id
+							)
+								? 'bg-primary-50 dark:bg-primary-900/10'
+								: ''}"
 						>
 							<td class="w-10 px-4 py-3">
 								<input
@@ -268,18 +298,27 @@
 							</td>
 							<td class="px-4 py-3">
 								<div class="flex items-center gap-2">
-									<span class="font-medium text-gray-900 dark:text-white truncate max-w-xs">{item.title}</span>
+									<span class="font-medium text-gray-900 dark:text-white truncate max-w-xs"
+										>{item.title}</span
+									>
 									{#if item.is_draft}
-										<span class="px-1.5 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">{$t('admin.pricing.draft')}</span>
+										<span
+											class="px-1.5 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
+											>{$t('admin.pricing.draft')}</span
+										>
 									{/if}
 								</div>
 							</td>
 							<td class="px-4 py-3 hidden sm:table-cell">
-								<span class="text-gray-500 dark:text-gray-400">{collectionLabel(item.collection)}</span>
+								<span class="text-gray-500 dark:text-gray-400"
+									>{collectionLabel(item.collection)}</span
+								>
 							</td>
 							<td class="px-4 py-3">
 								<span class="px-2 py-0.5 text-xs rounded {tierBadgeClass(item.access_tier)}">
-									{item.access_tier === 'paid' ? $t('admin.pricing.tier_paid') : $t('admin.pricing.tier_free')}
+									{item.access_tier === 'paid'
+										? $t('admin.pricing.tier_paid')
+										: $t('admin.pricing.tier_free')}
 								</span>
 							</td>
 							<td class="px-4 py-3 text-right text-gray-900 dark:text-white">

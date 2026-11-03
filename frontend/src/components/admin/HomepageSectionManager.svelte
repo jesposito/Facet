@@ -12,7 +12,13 @@
 	import { onMount, tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import type { CustomContent } from '$lib/pocketbase';
-	import { pb, VALID_LAYOUTS, getValidWidthsForLayout, isWidthValidForLayout, type SectionWidth } from '$lib/pocketbase';
+	import {
+		pb,
+		VALID_LAYOUTS,
+		getValidWidthsForLayout,
+		isWidthValidForLayout,
+		type SectionWidth
+	} from '$lib/pocketbase';
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import SkillsCategoryManager from '$components/admin/SkillsCategoryManager.svelte';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
@@ -29,7 +35,11 @@
 
 	onMount(async () => {
 		if (browser) {
-			const { dndzone: dnd, TRIGGERS: trig, SHADOW_PLACEHOLDER_ITEM_ID: shadow } = await import('svelte-dnd-action');
+			const {
+				dndzone: dnd,
+				TRIGGERS: trig,
+				SHADOW_PLACEHOLDER_ITEM_ID: shadow
+			} = await import('svelte-dnd-action');
 			dndzone = dnd;
 			TRIGGERS = trig;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
@@ -46,13 +56,19 @@
 		experience: { labelKey: 'admin.view_editor.sections.experience', collection: 'experience' },
 		projects: { labelKey: 'admin.view_editor.sections.projects', collection: 'projects' },
 		education: { labelKey: 'admin.view_editor.sections.education', collection: 'education' },
-		certifications: { labelKey: 'admin.view_editor.sections.certifications', collection: 'certifications' },
+		certifications: {
+			labelKey: 'admin.view_editor.sections.certifications',
+			collection: 'certifications'
+		},
 		awards: { labelKey: 'admin.view_editor.sections.awards', collection: 'awards' },
 		skills: { labelKey: 'admin.view_editor.sections.skills', collection: 'skills' },
 		posts: { labelKey: 'admin.view_editor.sections.posts', collection: 'posts' },
 		talks: { labelKey: 'admin.view_editor.sections.talks', collection: 'talks' },
 		contacts: { labelKey: 'admin.view_editor.sections.contacts', collection: 'contact_methods' },
-		testimonials: { labelKey: 'admin.view_editor.sections.testimonials', collection: 'testimonials' }
+		testimonials: {
+			labelKey: 'admin.view_editor.sections.testimonials',
+			collection: 'testimonials'
+		}
 	};
 
 	// Props
@@ -63,38 +79,43 @@
 		customContentItems = [],
 		loading = false
 	}: {
-		sections: Record<string, {
-			enabled: boolean;
-			items: string[];
-			expanded: boolean;
-			layout: string;
-			width: string;
-			categoryOrder?: string[];
-			disabledCategories?: string[];
-			categoryDisplayModes?: Record<string, string>;
-			featuredId?: string;
-			list?: string;
-		}>;
+		sections: Record<
+			string,
+			{
+				enabled: boolean;
+				items: string[];
+				expanded: boolean;
+				layout: string;
+				width: string;
+				categoryOrder?: string[];
+				disabledCategories?: string[];
+				categoryDisplayModes?: Record<string, string>;
+				featuredId?: string;
+				list?: string;
+			}
+		>;
 		sectionOrder: Array<{ id: string; key: string }>;
-		sectionItems: Record<string, Array<{
-			id: string;
-			label: string;
-			visibility: string;
-			is_draft?: boolean;
-			data: Record<string, unknown>;
-			expand?: {
-				admin_tags?: Array<{ id: string; name: string; color: string }>;
-			};
-		}>>;
+		sectionItems: Record<
+			string,
+			Array<{
+				id: string;
+				label: string;
+				visibility: string;
+				is_draft?: boolean;
+				data: Record<string, unknown>;
+				expand?: {
+					admin_tags?: Array<{ id: string; name: string; color: string }>;
+				};
+			}>
+		>;
 		customContentItems: CustomContent[];
 		loading?: boolean;
 	} = $props();
 
 	// Build a map for quick custom content title lookup
-	$effect(() => {
-		customContentTitleMap = new Map(customContentItems.map(item => [item.id, item.title]));
-	});
-	let customContentTitleMap: Map<string, string> = $state(new Map());
+	let customContentTitleMap = $derived(
+		new Map(customContentItems.map((item) => [item.id, item.title]))
+	);
 
 	// Apply saved item order after dndzone loads
 	function applySavedItemOrder() {
@@ -105,7 +126,7 @@
 
 			if (savedOrder.length === 0 || allItems.length === 0) continue;
 
-			const itemMap = new Map(allItems.map(item => [item.id, item]));
+			const itemMap = new Map(allItems.map((item) => [item.id, item]));
 			const selectedItems: typeof allItems = [];
 			for (const id of savedOrder) {
 				const item = itemMap.get(id);
@@ -115,7 +136,7 @@
 			}
 
 			const selectedSet = new Set(savedOrder);
-			const unselectedItems = allItems.filter(item => !selectedSet.has(item.id));
+			const unselectedItems = allItems.filter((item) => !selectedSet.has(item.id));
 
 			sectionItems[key] = [...selectedItems, ...unselectedItems];
 			didUpdate = true;
@@ -174,7 +195,9 @@
 
 	function selectAllItems(sectionKey: string) {
 		// Only select public, non-draft items
-		const publicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'public' && !i.is_draft);
+		const publicItems = (sectionItems[sectionKey] || []).filter(
+			(i) => i.visibility === 'public' && !i.is_draft
+		);
 		sections[sectionKey].items = publicItems.map((i) => i.id);
 		updateSections();
 	}
@@ -194,7 +217,9 @@
 	async function loadTestimonialLists() {
 		try {
 			const res = await fetch('/api/testimonials/lists', {
-				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : undefined
+				headers: pb.authStore.isValid
+					? { Authorization: `Bearer ${pb.authStore.token}` }
+					: undefined
 			});
 			if (res.ok) {
 				const data = await res.json();
@@ -220,7 +245,7 @@
 
 	// Keyboard-accessible section reordering
 	function moveSection(sectionId: string, direction: 'up' | 'down') {
-		const idx = sectionOrder.findIndex(s => s.id === sectionId);
+		const idx = sectionOrder.findIndex((s) => s.id === sectionId);
 		if (idx === -1) return;
 		if (direction === 'up' && idx === 0) return;
 		if (direction === 'down' && idx === sectionOrder.length - 1) return;
@@ -232,30 +257,64 @@
 	}
 
 	// Drag-drop handlers for section reordering
-	function handleSectionDndConsider(e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>) {
+	function handleSectionDndConsider(
+		e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>
+	) {
 		sectionOrder = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 
-	function handleSectionDndFinalize(e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>) {
+	function handleSectionDndFinalize(
+		e: CustomEvent<{ items: typeof sectionOrder; info: { trigger: string } }>
+	) {
 		sectionOrder = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 
 	// Drag-drop handlers for item reordering within a section
 	// Note: dndzone now works with publicItems (filtered list)
-	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string } }>) {
+	function handleItemDndConsider(
+		sectionKey: string,
+		e: CustomEvent<{
+			items: Array<{
+				id: string;
+				label: string;
+				visibility: string;
+				is_draft?: boolean;
+				data: Record<string, unknown>;
+			}>;
+			info: { trigger: string };
+		}>
+	) {
 		// Update sectionItems with the reordered public items
 		const publicItems = e.detail.items;
 		// Non-public items = private, unlisted, or draft - keep them at the end (not shown in UI)
-		const nonPublicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility !== 'public' || i.is_draft);
+		const nonPublicItems = (sectionItems[sectionKey] || []).filter(
+			(i) => i.visibility !== 'public' || i.is_draft
+		);
 		sectionItems[sectionKey] = [...publicItems, ...nonPublicItems];
 		updateSectionItems();
 	}
 
-	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info: { trigger: string; id?: string } }>) {
+	function handleItemDndFinalize(
+		sectionKey: string,
+		e: CustomEvent<{
+			items: Array<{
+				id: string;
+				label: string;
+				visibility: string;
+				is_draft?: boolean;
+				data: Record<string, unknown>;
+			}>;
+			info: { trigger: string; id?: string };
+		}>
+	) {
 		const trigger = e.detail.info?.trigger;
-		const finalPublicItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		const finalPublicItems = e.detail.items.filter(
+			(item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID
+		);
 		// Non-public items = private, unlisted, or draft - keep them at the end (not shown in UI)
-		const nonPublicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility !== 'public' || i.is_draft);
+		const nonPublicItems = (sectionItems[sectionKey] || []).filter(
+			(i) => i.visibility !== 'public' || i.is_draft
+		);
 		sectionItems[sectionKey] = [...finalPublicItems, ...nonPublicItems];
 		updateSectionItems();
 
@@ -263,19 +322,25 @@
 			updateItemsOrderFromDisplay(sectionKey);
 			// Announce the dropped item's new position for screen-reader users.
 			const droppedId = e.detail.info?.id;
-			const droppedIdx = finalPublicItems.findIndex(i => i.id === droppedId);
+			const droppedIdx = finalPublicItems.findIndex((i) => i.id === droppedId);
 			if (droppedIdx !== -1) {
-				announceItemMove(finalPublicItems[droppedIdx].label, droppedIdx + 1, finalPublicItems.length);
+				announceItemMove(
+					finalPublicItems[droppedIdx].label,
+					droppedIdx + 1,
+					finalPublicItems.length
+				);
 			}
 		}
 	}
 
 	function updateItemsOrderFromDisplay(sectionKey: string) {
 		// Get the order from the public items
-		const publicItems = (sectionItems[sectionKey] || []).filter(i => i.visibility === 'public' && !i.is_draft);
-		const displayOrder = publicItems.map(i => i.id);
+		const publicItems = (sectionItems[sectionKey] || []).filter(
+			(i) => i.visibility === 'public' && !i.is_draft
+		);
+		const displayOrder = publicItems.map((i) => i.id);
 		const selectedSet = new Set(sections[sectionKey].items);
-		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
+		sections[sectionKey].items = displayOrder.filter((id) => selectedSet.has(id));
 		updateSections();
 	}
 
@@ -298,7 +363,7 @@
 		btn: HTMLButtonElement
 	) {
 		const allItems = sectionItems[sectionKey] || [];
-		const publicItems = allItems.filter(i => i.visibility === 'public' && !i.is_draft);
+		const publicItems = allItems.filter((i) => i.visibility === 'public' && !i.is_draft);
 		const targetIdx = direction === 'up' ? index - 1 : index + 1;
 		if (targetIdx < 0 || targetIdx >= publicItems.length) return;
 
@@ -308,7 +373,7 @@
 
 		// Rebuild sectionItems as [reordered public, ...non-public] (same shape the
 		// drag handlers maintain) then persist selection order via the shared path.
-		const nonPublicItems = allItems.filter(i => i.visibility !== 'public' || i.is_draft);
+		const nonPublicItems = allItems.filter((i) => i.visibility !== 'public' || i.is_draft);
 		sectionItems[sectionKey] = [...newPublic, ...nonPublicItems];
 		updateSectionItems();
 		updateItemsOrderFromDisplay(sectionKey);
@@ -320,9 +385,7 @@
 		await tick();
 		if (btn.disabled) {
 			const opposite = direction === 'up' ? 'down' : 'up';
-			btn.parentElement
-				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
-				?.focus();
+			btn.parentElement?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)?.focus();
 		}
 	}
 </script>
@@ -332,13 +395,17 @@
 	<ReorderAnnouncer bind:this={reorderAnnouncer} />
 	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.view_editor.sections.title')}</h2>
+			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+				{$t('admin.view_editor.sections.title')}
+			</h2>
 			<p class="text-sm text-gray-500">{$t('admin.homepage.sections_description')}</p>
 		</div>
 	</div>
 
 	{#if customContentItems.length > 0}
-		<div class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+		<div
+			class="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+		>
 			<p class="text-sm text-blue-700 dark:text-blue-300">
 				{@html $t('admin.homepage.custom_content_note')}
 			</p>
@@ -349,374 +416,512 @@
 		<div class="animate-pulse text-center py-8">{$t('admin.homepage.loading_sections')}</div>
 	{:else}
 		{#key dndLoaded}
-		<div
-			class="space-y-3"
-			use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'homepage-sections' }}
-			onconsider={handleSectionDndConsider}
-			onfinalize={handleSectionDndFinalize}
-		>
-			{#each sectionOrder as sectionItem (sectionItem.id)}
-					{@const sectionIdx = sectionOrder.findIndex(s => s.id === sectionItem.id)}
-				{@const sectionKey = sectionItem.key}
-				{@const isCustom = isCustomSection(sectionKey)}
-				{@const sectionLabelKey = getSectionLabelKey(sectionKey)}
-				{@const sectionLabel = sectionLabelKey ? $t(sectionLabelKey) : getCustomSectionTitle(sectionKey)}
-				{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false, layout: 'default', width: 'full' }}
-				{@const items = isCustom ? [] : (sectionItems[sectionKey] || [])}
-				{@const publicItems = items.filter(i => i.visibility === 'public' && !i.is_draft)}
-				{@const publicItemIds = new Set(publicItems.map(i => i.id))}
-				{@const selectedPublicCount = sectionConfig.items.filter(id => publicItemIds.has(id)).length}
-				{@const layoutKey = isCustom ? 'custom' : sectionKey}
+			<div
+				class="space-y-3"
+				use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'homepage-sections' }}
+				onconsider={handleSectionDndConsider}
+				onfinalize={handleSectionDndFinalize}
+			>
+				{#each sectionOrder as sectionItem (sectionItem.id)}
+					{@const sectionIdx = sectionOrder.findIndex((s) => s.id === sectionItem.id)}
+					{@const sectionKey = sectionItem.key}
+					{@const isCustom = isCustomSection(sectionKey)}
+					{@const sectionLabelKey = getSectionLabelKey(sectionKey)}
+					{@const sectionLabel = sectionLabelKey
+						? $t(sectionLabelKey)
+						: getCustomSectionTitle(sectionKey)}
+					{@const sectionConfig = sections[sectionKey] || {
+						enabled: false,
+						items: [],
+						expanded: false,
+						layout: 'default',
+						width: 'full'
+					}}
+					{@const items = isCustom ? [] : sectionItems[sectionKey] || []}
+					{@const publicItems = items.filter((i) => i.visibility === 'public' && !i.is_draft)}
+					{@const publicItemIds = new Set(publicItems.map((i) => i.id))}
+					{@const selectedPublicCount = sectionConfig.items.filter((id) =>
+						publicItemIds.has(id)
+					).length}
+					{@const layoutKey = isCustom ? 'custom' : sectionKey}
 
-				<div
-					class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
-					animate:flip={{ duration: flipDurationMs }}
-				>
-					<!-- Section Header -->
-					<div class="flex flex-wrap items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
-						<div class="flex items-center gap-3">
-							<!-- Drag Handle + Keyboard reorder -->
-							<div class="flex items-center gap-1">
-								<div class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700" title={$t('admin.view_editor.sections.drag_to_reorder')}>
-									<svg class="w-6 h-6 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-										<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-									</svg>
-								</div>
-								<button
-									type="button"
-									disabled={sectionIdx === 0}
-									onclick={() => moveSection(sectionItem.id, 'up')}
-									aria-label={$t('admin.view_editor.sections.move_up', { values: { section: sectionLabel } })}
-									class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-								>
-										<svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+					<div
+						class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
+						animate:flip={{ duration: flipDurationMs }}
+					>
+						<!-- Section Header -->
+						<div
+							class="flex flex-wrap items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50"
+						>
+							<div class="flex items-center gap-3">
+								<!-- Drag Handle + Keyboard reorder -->
+								<div class="flex items-center gap-1">
+									<div
+										class="cursor-grab active:cursor-grabbing p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+										title={$t('admin.view_editor.sections.drag_to_reorder')}
+									>
+										<svg
+											class="w-6 h-6 text-gray-600 dark:text-gray-300"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
+										</svg>
+									</div>
+									<button
+										type="button"
+										disabled={sectionIdx === 0}
+										onclick={() => moveSection(sectionItem.id, 'up')}
+										aria-label={$t('admin.view_editor.sections.move_up', {
+											values: { section: sectionLabel }
+										})}
+										class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+									>
+										<svg
+											class="w-4 h-4 text-gray-600 dark:text-gray-300"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="2"
+											><path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M5 15l7-7 7 7"
+											/></svg
+										>
 									</button>
 									<button
 										type="button"
 										disabled={sectionIdx === sectionOrder.length - 1}
 										onclick={() => moveSection(sectionItem.id, 'down')}
-										aria-label={$t('admin.view_editor.sections.move_down', { values: { section: sectionLabel } })}
+										aria-label={$t('admin.view_editor.sections.move_down', {
+											values: { section: sectionLabel }
+										})}
 										class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
 									>
-											<svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-										</button>
+										<svg
+											class="w-4 h-4 text-gray-600 dark:text-gray-300"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="2"
+											><path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M19 9l-7 7-7-7"
+											/></svg
+										>
+									</button>
 								</div>
-							<button
-								type="button"
-								class="w-10 h-6 rounded-full transition-colors relative
+								<button
+									type="button"
+									class="w-10 h-6 rounded-full transition-colors relative
 									{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-								onclick={() => toggleSection(sectionKey)}
-								aria-label={$t('admin.homepage.toggle_section', { values: { section: sectionLabel } })}
-							>
-								<span
-									class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
+									onclick={() => toggleSection(sectionKey)}
+									aria-label={$t('admin.homepage.toggle_section', {
+										values: { section: sectionLabel }
+									})}
+								>
+									<span
+										class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
 										{sectionConfig.enabled ? 'left-5' : 'left-1'}"
-								></span>
-							</button>
-							<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
-							{#if !isCustom}
-								<span class="text-xs text-gray-500">
-									{#if selectedPublicCount > 0}
-										{selectedPublicCount} {$t('admin.view_editor.sections.selected')}
-									{:else if sectionConfig.enabled}
-										{$t('admin.view_editor.sections.all_items', { values: { count: publicItems.length } })}
-									{:else}
-										{publicItems.length} {$t('admin.view_editor.sections.available')}
-									{/if}
-								</span>
-							{/if}
-						</div>
-
-						<div class="flex items-center gap-2">
-							<!-- Layout/Width Selectors -->
-							<div class="hidden lg:flex items-center gap-2">
-								{#if sectionConfig.enabled}
-									{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
-									{#if validWidths.length > 1}
-										<div class="flex items-center gap-1" title={$t('admin.homepage.section_width_title')}>
-											<select
-												class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-												value={sectionConfig.width}
-												onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
-												onclick={(e) => e.stopPropagation()}
-											>
-												{#each validWidths as widthOption}
-													<option value={widthOption.value}>{widthOption.label}</option>
-												{/each}
-											</select>
-										</div>
-									{/if}
-								{/if}
-
-								{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
-									{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
-									<select
-										class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-										value={sectionConfig.layout}
-										onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
-										onclick={(e) => e.stopPropagation()}
-										title={$t('admin.homepage.section_layout_title')}
-									>
-										{#each layoutConfig.layouts as layoutOption}
-											<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
-										{/each}
-									</select>
+									></span>
+								</button>
+								<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
+								{#if !isCustom}
+									<span class="text-xs text-gray-500">
+										{#if selectedPublicCount > 0}
+											{selectedPublicCount} {$t('admin.view_editor.sections.selected')}
+										{:else if sectionConfig.enabled}
+											{$t('admin.view_editor.sections.all_items', {
+												values: { count: publicItems.length }
+											})}
+										{:else}
+											{publicItems.length} {$t('admin.view_editor.sections.available')}
+										{/if}
+									</span>
 								{/if}
 							</div>
 
-							{#if sectionConfig.enabled && items.length > 0 && !isCustom}
-								<button
-									type="button"
-									class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
-									onclick={() => toggleSectionExpand(sectionKey)}
-									aria-label={$t(sectionConfig.expanded ? 'admin.homepage.collapse_section' : 'admin.homepage.expand_section', { values: { section: sectionLabel } })}
-								>
-									<svg
-										class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-									</svg>
-								</button>
-							{/if}
-						</div>
-					</div>
-
-					<!-- Section Items (expanded) -->
-					{#if sectionConfig.enabled && sectionConfig.expanded && publicItems.length > 0 && !isCustom}
-						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
-							{#if sectionKey === 'testimonials'}
-								<div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
-									<label for="list-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">
-										{$t('admin.homepage.testimonial_list_label')}
-									</label>
-									<input
-										id="list-{sectionKey}"
-										type="text"
-										value={sectionConfig.list || ''}
-										list="testimonial-lists-{sectionKey}"
-										placeholder={$t('admin.homepage.testimonial_list_placeholder')}
-										aria-describedby="list-help-{sectionKey}"
-										class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-										onchange={(e) => updateSectionList(sectionKey, e.currentTarget.value)}
-										onclick={(e) => e.stopPropagation()}
-									/>
-									<datalist id="testimonial-lists-{sectionKey}">
-										{#each existingLists as l (l)}
-											<option value={l}></option>
-										{/each}
-									</datalist>
-									<p id="list-help-{sectionKey}" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-										{$t('admin.homepage.testimonial_list_help')}
-									</p>
-								</div>
-							{/if}
-							<!-- Mobile Layout/Width Controls -->
-							<div class="lg:hidden grid grid-cols-1 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700">
-								{#if sectionConfig.enabled}
-									{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
-									{#if validWidths.length > 1}
-										<div>
-											<label for="width-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">{$t('admin.view_editor.sections.width_label')}</label>
-											<div class="flex items-center gap-2">
-												<div class="flex gap-0.5">
-													{#if sectionConfig.width === 'half'}
-														<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
-														<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													{:else if sectionConfig.width === 'third'}
-														<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
-														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													{:else}
-														<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
-													{/if}
-												</div>
+							<div class="flex items-center gap-2">
+								<!-- Layout/Width Selectors -->
+								<div class="hidden lg:flex items-center gap-2">
+									{#if sectionConfig.enabled}
+										{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
+										{#if validWidths.length > 1}
+											<div
+												class="flex items-center gap-1"
+												title={$t('admin.homepage.section_width_title')}
+											>
 												<select
-													id="width-mobile-{sectionKey}"
-													class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
 													value={sectionConfig.width}
 													onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+													onclick={(e) => e.stopPropagation()}
 												>
 													{#each validWidths as widthOption}
 														<option value={widthOption.value}>{widthOption.label}</option>
 													{/each}
 												</select>
 											</div>
-										</div>
+										{/if}
 									{/if}
 
-									{#if VALID_LAYOUTS[layoutKey]}
+									{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
 										{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
-										<div>
-											<label for="layout-mobile-{sectionKey}" class="text-xs font-medium text-gray-500 uppercase mb-1 block">{$t('admin.view_editor.sections.layout_label')}</label>
-											<select
-												id="layout-mobile-{sectionKey}"
-												class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
-												value={sectionConfig.layout}
-												onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+										<select
+											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+											value={sectionConfig.layout}
+											onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+											onclick={(e) => e.stopPropagation()}
+											title={$t('admin.homepage.section_layout_title')}
+										>
+											{#each layoutConfig.layouts as layoutOption}
+												<option value={layoutOption}
+													>{layoutConfig.labels[layoutOption] || layoutOption}</option
+												>
+											{/each}
+										</select>
+									{/if}
+								</div>
+
+								{#if sectionConfig.enabled && items.length > 0 && !isCustom}
+									<button
+										type="button"
+										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 min-w-[44px] min-h-[44px] flex items-center justify-center"
+										onclick={() => toggleSectionExpand(sectionKey)}
+										aria-label={$t(
+											sectionConfig.expanded
+												? 'admin.homepage.collapse_section'
+												: 'admin.homepage.expand_section',
+											{ values: { section: sectionLabel } }
+										)}
+									>
+										<svg
+											class="w-5 h-5 transition-transform {sectionConfig.expanded
+												? 'rotate-180'
+												: ''}"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M19 9l-7 7-7-7"
+											/>
+										</svg>
+									</button>
+								{/if}
+							</div>
+						</div>
+
+						<!-- Section Items (expanded) -->
+						{#if sectionConfig.enabled && sectionConfig.expanded && publicItems.length > 0 && !isCustom}
+							<div class="p-3 border-t border-gray-200 dark:border-gray-700">
+								{#if sectionKey === 'testimonials'}
+									<div
+										class="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700"
+									>
+										<label
+											for="list-{sectionKey}"
+											class="text-xs font-medium text-gray-500 uppercase mb-1 block"
+										>
+											{$t('admin.homepage.testimonial_list_label')}
+										</label>
+										<input
+											id="list-{sectionKey}"
+											type="text"
+											value={sectionConfig.list || ''}
+											list="testimonial-lists-{sectionKey}"
+											placeholder={$t('admin.homepage.testimonial_list_placeholder')}
+											aria-describedby="list-help-{sectionKey}"
+											class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+											onchange={(e) => updateSectionList(sectionKey, e.currentTarget.value)}
+											onclick={(e) => e.stopPropagation()}
+										/>
+										<datalist id="testimonial-lists-{sectionKey}">
+											{#each existingLists as l (l)}
+												<option value={l}></option>
+											{/each}
+										</datalist>
+										<p
+											id="list-help-{sectionKey}"
+											class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+										>
+											{$t('admin.homepage.testimonial_list_help')}
+										</p>
+									</div>
+								{/if}
+								<!-- Mobile Layout/Width Controls -->
+								<div
+									class="lg:hidden grid grid-cols-1 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700"
+								>
+									{#if sectionConfig.enabled}
+										{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
+										{#if validWidths.length > 1}
+											<div>
+												<label
+													for="width-mobile-{sectionKey}"
+													class="text-xs font-medium text-gray-500 uppercase mb-1 block"
+													>{$t('admin.view_editor.sections.width_label')}</label
+												>
+												<div class="flex items-center gap-2">
+													<div class="flex gap-0.5">
+														{#if sectionConfig.width === 'half'}
+															<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+															<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+														{:else if sectionConfig.width === 'third'}
+															<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+															<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+															<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+														{:else}
+															<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+														{/if}
+													</div>
+													<select
+														id="width-mobile-{sectionKey}"
+														class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+														value={sectionConfig.width}
+														onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
+													>
+														{#each validWidths as widthOption}
+															<option value={widthOption.value}>{widthOption.label}</option>
+														{/each}
+													</select>
+												</div>
+											</div>
+										{/if}
+
+										{#if VALID_LAYOUTS[layoutKey]}
+											{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
+											<div>
+												<label
+													for="layout-mobile-{sectionKey}"
+													class="text-xs font-medium text-gray-500 uppercase mb-1 block"
+													>{$t('admin.view_editor.sections.layout_label')}</label
+												>
+												<select
+													id="layout-mobile-{sectionKey}"
+													class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 w-full"
+													value={sectionConfig.layout}
+													onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+												>
+													{#each layoutConfig.layouts as layoutOption}
+														<option value={layoutOption}
+															>{layoutConfig.labels[layoutOption] || layoutOption}</option
+														>
+													{/each}
+												</select>
+											</div>
+										{/if}
+									{/if}
+								</div>
+
+								{#if sectionKey === 'skills'}
+									<!-- Skills use category-based management -->
+									<SkillsCategoryManager
+										items={sectionItems['skills'] || []}
+										bind:selectedItems={sections['skills'].items}
+										bind:categoryOrder={sections['skills'].categoryOrder}
+										bind:disabledCategories={sections['skills'].disabledCategories}
+										bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
+										sectionLayout={sections['skills'].layout || 'grouped'}
+										onUpdate={updateSections}
+									/>
+								{:else}
+									<!-- Standard items list for other sections -->
+									<div class="flex items-center justify-between mb-2">
+										<p class="text-xs text-gray-500">
+											{selectedPublicCount === 0
+												? $t('admin.view_editor.sections.select_all_hint')
+												: $t('admin.view_editor.sections.items_selected', {
+														values: { count: selectedPublicCount, total: publicItems.length }
+													})}
+										</p>
+										<div class="flex gap-2">
+											<button
+												type="button"
+												class="text-xs text-primary-600 hover:underline"
+												onclick={() => selectAllItems(sectionKey)}
 											>
-												{#each layoutConfig.layouts as layoutOption}
-													<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
-												{/each}
-											</select>
+												{$t('admin.view_editor.sections.select_all')}
+											</button>
+											<button
+												type="button"
+												class="text-xs text-gray-500 hover:underline"
+												onclick={() => clearAllItems(sectionKey)}
+											>
+												{$t('admin.view_editor.sections.clear')}
+											</button>
 										</div>
+									</div>
+
+									<div
+										class="space-y-1 max-h-64 overflow-y-auto"
+										use:dndzone={{
+											items: publicItems,
+											flipDurationMs,
+											type: `items-${sectionKey}`,
+											dragDisabled: false,
+											dropFromOthersDisabled: true
+										}}
+										onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+										onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
+									>
+										{#each publicItems as item, itemIdx (item.id)}
+											{@const isSelected = sectionConfig.items.includes(item.id)}
+											<div
+												class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+												animate:flip={{ duration: flipDurationMs }}
+											>
+												<div
+													class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+													title={$t('admin.view_editor.sections.drag_to_reorder')}
+												>
+													<svg
+														class="w-5 h-5 text-gray-500 dark:text-gray-400"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M4 8h16M4 16h16"
+														/>
+													</svg>
+												</div>
+												<!-- Keyboard-accessible reorder controls (complement drag) -->
+												<div class="flex flex-col flex-shrink-0">
+													<button
+														type="button"
+														data-move="up"
+														class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+														disabled={itemIdx === 0}
+														onclick={(e) =>
+															moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
+														aria-label={$t('admin.view_editor.sections.item_move_up', {
+															values: { item: item.label }
+														})}
+													>
+														<svg
+															class="w-3.5 h-3.5"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+															stroke-width="2.5"
+															aria-hidden="true"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M5 15l7-7 7 7"
+															/>
+														</svg>
+													</button>
+													<button
+														type="button"
+														data-move="down"
+														class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+														disabled={itemIdx === publicItems.length - 1}
+														onclick={(e) =>
+															moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
+														aria-label={$t('admin.view_editor.sections.item_move_down', {
+															values: { item: item.label }
+														})}
+													>
+														<svg
+															class="w-3.5 h-3.5"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+															stroke-width="2.5"
+															aria-hidden="true"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																d="M19 9l-7 7-7-7"
+															/>
+														</svg>
+													</button>
+												</div>
+												<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+												<label
+													class="flex items-center gap-2 flex-1 cursor-pointer"
+													onpointerdown={(e) => e.stopPropagation()}
+													onmousedown={(e) => e.stopPropagation()}
+													ontouchstart={(e) => e.stopPropagation()}
+												>
+													<input
+														type="checkbox"
+														checked={isSelected}
+														onchange={() => toggleItem(sectionKey, item.id)}
+														onclick={(e) => e.stopPropagation()}
+														class="w-4 h-4 text-primary-600 rounded border-gray-300"
+													/>
+													<div class="flex-1 min-w-0">
+														<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
+															{item.label}
+														</span>
+														{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
+															<div class="flex gap-1 mt-1 flex-wrap">
+																{#each item.expand.admin_tags as tag (tag.id)}
+																	<AdminTagBadge name={tag.name} color={tag.color} />
+																{/each}
+															</div>
+														{/if}
+													</div>
+												</label>
+											</div>
+										{/each}
+									</div>
+
+									{#if sectionKey === 'testimonials' && (sectionConfig.layout === 'featured' || sectionConfig.layout === 'carousel')}
+										{@const selectedTestimonials = (sectionItems['testimonials'] || []).filter(
+											(t) => sectionConfig.items.includes(t.id)
+										)}
+										{#if selectedTestimonials.length > 0}
+											<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+												<label
+													for="homepage-featured-testimonial"
+													class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+												>
+													{sectionConfig.layout === 'featured'
+														? $t('admin.view_editor.sections.featured_testimonial_label')
+														: $t('admin.view_editor.sections.primary_testimonial_label')}
+												</label>
+												<select
+													id="homepage-featured-testimonial"
+													class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+													value={sectionConfig.featuredId || ''}
+													onchange={(e) => {
+														sections['testimonials'].featuredId =
+															e.currentTarget.value || undefined;
+														updateSections();
+													}}
+												>
+													<option value=""
+														>{$t('admin.view_editor.sections.use_global_featured')}</option
+													>
+													{#each selectedTestimonials as testimonial}
+														<option value={testimonial.id}>{testimonial.label}</option>
+													{/each}
+												</select>
+											</div>
+										{/if}
 									{/if}
 								{/if}
 							</div>
-
-							{#if sectionKey === 'skills'}
-								<!-- Skills use category-based management -->
-								<SkillsCategoryManager
-									items={sectionItems['skills'] || []}
-									bind:selectedItems={sections['skills'].items}
-									bind:categoryOrder={sections['skills'].categoryOrder}
-									bind:disabledCategories={sections['skills'].disabledCategories}
-									bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
-									sectionLayout={sections['skills'].layout || 'grouped'}
-									onUpdate={updateSections}
-								/>
-							{:else}
-								<!-- Standard items list for other sections -->
-								<div class="flex items-center justify-between mb-2">
-									<p class="text-xs text-gray-500">
-										{selectedPublicCount === 0
-											? $t('admin.view_editor.sections.select_all_hint')
-											: $t('admin.view_editor.sections.items_selected', { values: { count: selectedPublicCount, total: publicItems.length } })}
-									</p>
-									<div class="flex gap-2">
-										<button
-											type="button"
-											class="text-xs text-primary-600 hover:underline"
-											onclick={() => selectAllItems(sectionKey)}
-										>
-											{$t('admin.view_editor.sections.select_all')}
-										</button>
-										<button
-											type="button"
-											class="text-xs text-gray-500 hover:underline"
-											onclick={() => clearAllItems(sectionKey)}
-										>
-											{$t('admin.view_editor.sections.clear')}
-										</button>
-									</div>
-								</div>
-
-								<div
-									class="space-y-1 max-h-64 overflow-y-auto"
-									use:dndzone={{
-										items: publicItems,
-										flipDurationMs,
-										type: `items-${sectionKey}`,
-										dragDisabled: false,
-										dropFromOthersDisabled: true
-									}}
-									onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
-									onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
-								>
-									{#each publicItems as item, itemIdx (item.id)}
-										{@const isSelected = sectionConfig.items.includes(item.id)}
-										<div
-											class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
-											animate:flip={{ duration: flipDurationMs }}
-										>
-											<div
-												class="cursor-grab active:cursor-grabbing p-1.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-												title={$t('admin.view_editor.sections.drag_to_reorder')}
-											>
-												<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-													<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-												</svg>
-											</div>
-											<!-- Keyboard-accessible reorder controls (complement drag) -->
-											<div class="flex flex-col flex-shrink-0">
-												<button
-													type="button"
-													data-move="up"
-													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-													disabled={itemIdx === 0}
-													onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
-													aria-label={$t('admin.view_editor.sections.item_move_up', { values: { item: item.label } })}
-												>
-													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-														<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
-													</svg>
-												</button>
-												<button
-													type="button"
-													data-move="down"
-													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-													disabled={itemIdx === publicItems.length - 1}
-													onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
-													aria-label={$t('admin.view_editor.sections.item_move_down', { values: { item: item.label } })}
-												>
-													<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-														<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-													</svg>
-												</button>
-											</div>
-											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-											<label
-												class="flex items-center gap-2 flex-1 cursor-pointer"
-												onpointerdown={(e) => e.stopPropagation()}
-												onmousedown={(e) => e.stopPropagation()}
-												ontouchstart={(e) => e.stopPropagation()}
-											>
-												<input
-													type="checkbox"
-													checked={isSelected}
-													onchange={() => toggleItem(sectionKey, item.id)}
-													onclick={(e) => e.stopPropagation()}
-													class="w-4 h-4 text-primary-600 rounded border-gray-300"
-												/>
-												<div class="flex-1 min-w-0">
-													<span class="block text-sm text-gray-700 dark:text-gray-300 truncate">
-														{item.label}
-													</span>
-													{#if item.expand?.admin_tags && item.expand.admin_tags.length > 0}
-														<div class="flex gap-1 mt-1 flex-wrap">
-															{#each item.expand.admin_tags as tag (tag.id)}
-																<AdminTagBadge name={tag.name} color={tag.color} />
-															{/each}
-														</div>
-													{/if}
-												</div>
-											</label>
-										</div>
-									{/each}
-								</div>
-
-								{#if sectionKey === 'testimonials' && (sectionConfig.layout === 'featured' || sectionConfig.layout === 'carousel')}
-									{@const selectedTestimonials = (sectionItems['testimonials'] || []).filter(t => sectionConfig.items.includes(t.id))}
-									{#if selectedTestimonials.length > 0}
-										<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-											<label for="homepage-featured-testimonial" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-												{sectionConfig.layout === 'featured' ? $t('admin.view_editor.sections.featured_testimonial_label') : $t('admin.view_editor.sections.primary_testimonial_label')}
-											</label>
-											<select
-												id="homepage-featured-testimonial"
-												class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-												value={sectionConfig.featuredId || ''}
-												onchange={(e) => {
-													sections['testimonials'].featuredId = e.currentTarget.value || undefined;
-													updateSections();
-												}}
-											>
-												<option value="">{$t('admin.view_editor.sections.use_global_featured')}</option>
-												{#each selectedTestimonials as testimonial}
-													<option value={testimonial.id}>{testimonial.label}</option>
-												{/each}
-											</select>
-										</div>
-									{/if}
-								{/if}
-							{/if}
-						</div>
-					{/if}
-				</div>
-			{/each}
-		</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
 		{/key}
 	{/if}
 </div>

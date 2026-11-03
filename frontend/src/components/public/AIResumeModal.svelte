@@ -48,11 +48,7 @@
 			// captured by the controller at show()-time so it survives any
 			// synchronous unmount of a parent popover that fired alongside.
 			const triggerEl = controller.trigger;
-			if (
-				triggerEl &&
-				typeof triggerEl.focus === 'function' &&
-				document.contains(triggerEl)
-			) {
+			if (triggerEl && typeof triggerEl.focus === 'function' && document.contains(triggerEl)) {
 				triggerEl.focus();
 			}
 		}
@@ -97,10 +93,7 @@
 	<!-- Panel wraps body content so backdrop-vs-panel click detection works. -->
 	<div bind:this={panelEl}>
 		<div class="p-4 border-b border-stone-200 dark:border-stone-700">
-			<h2
-				id="ai-resume-modal-title"
-				class="text-lg font-semibold text-stone-900 dark:text-white"
-			>
+			<h2 id="ai-resume-modal-title" class="text-lg font-semibold text-stone-900 dark:text-white">
 				{$t('public.resume_modal.title')}
 			</h2>
 			<p id="ai-resume-modal-desc" class="text-sm text-stone-600 dark:text-stone-300 mt-1">
@@ -169,9 +162,7 @@
 			{/if}
 		</div>
 
-		<div
-			class="p-4 border-t border-stone-200 dark:border-stone-700 flex justify-end gap-2"
-		>
+		<div class="p-4 border-t border-stone-200 dark:border-stone-700 flex justify-end gap-2">
 			<button type="button" class="btn btn-ghost" onclick={() => controller.dismiss()}>
 				{controller.downloadUrl
 					? $t('public.resume_modal.close')

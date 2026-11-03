@@ -3,6 +3,7 @@
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
+	import { smtpReadiness, type SmtpReadiness } from '$lib/newsletter/sends';
 
 	type Stats = {
 		total_active: number;
@@ -20,7 +21,7 @@
 	let stats: Stats | null = $state(null);
 	let lists: ListSummary[] = $state([]);
 	let loading = $state(true);
-	let smtpConfigured = $state(true);
+	let smtpStatus: SmtpReadiness = $state('ready');
 
 	function authHeaders(): Record<string, string> {
 		return pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
@@ -56,8 +57,7 @@
 		try {
 			const r = await fetch('/api/admin/newsletter/smtp-status', { headers: authHeaders() });
 			if (r.ok) {
-				const data = await r.json();
-				smtpConfigured = data.configured === true;
+				smtpStatus = smtpReadiness(await r.json());
 			}
 		} catch (err) {
 			console.debug('Failed to load SMTP status:', err);
@@ -81,7 +81,7 @@
 	</div>
 
 	<!-- SMTP warning (text label, not color-only) -->
-	{#if !smtpConfigured}
+	{#if smtpStatus !== 'ready'}
 		<div
 			class="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
 			role="alert"
@@ -102,10 +102,14 @@
 			</svg>
 			<div>
 				<p class="text-sm font-medium text-amber-800 dark:text-amber-300">
-					{$t('admin.newsletter.smtp_not_configured')}
+					{smtpStatus === 'not_ready'
+						? $t('admin.newsletter.smtp_not_ready')
+						: $t('admin.newsletter.smtp_not_configured')}
 				</p>
 				<p class="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
-					{$t('admin.newsletter.smtp_not_configured_hint')}
+					{smtpStatus === 'not_ready'
+						? $t('admin.newsletter.smtp_not_ready_hint')
+						: $t('admin.newsletter.smtp_not_configured_hint')}
 				</p>
 			</div>
 		</div>

@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"regexp"
 	"strings"
@@ -69,17 +68,9 @@ func hashIP(ip string) string {
 	return fmt.Sprintf("%x", h)
 }
 
-// getCommentIP extracts the client IP from the request (X-Forwarded-For or RemoteAddr).
+// getCommentIP returns the commenter's address for duplicate detection.
 func getCommentIP(e *core.RequestEvent) string {
-	if xff := e.Request.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.SplitN(xff, ",", 2)
-		return strings.TrimSpace(parts[0])
-	}
-	host, _, err := net.SplitHostPort(e.Request.RemoteAddr)
-	if err != nil {
-		return e.Request.RemoteAddr
-	}
-	return host
+	return services.ClientIP(e.Request)
 }
 
 // validateContentType checks if the given content type is allowed for comments.
@@ -96,8 +87,29 @@ func getSiteSettings(app core.App) *core.Record {
 	return records[0]
 }
 
+// commentTargetVisible reports whether visitors can see the content a thread
+// belongs to. Unlisted content counts, because its direct link is public.
+// Lessons follow their course.
+func commentTargetVisible(app core.App, contentType string, record *core.Record) bool {
+	if contentType != "lessons" {
+		return isRecordVisible(record)
+	}
+	if record.GetBool("is_draft") {
+		return false
+	}
+	module, err := app.FindRecordById("modules", record.GetString("module"))
+	if err != nil {
+		return false
+	}
+	course, err := app.FindRecordById("courses", module.GetString("course"))
+	if err != nil {
+		return false
+	}
+	return isRecordVisible(course)
+}
+
 // RegisterCommentHooks registers comment-related API endpoints for threaded discussions.
-func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig) {
+func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
 		// ========================================
@@ -116,6 +128,14 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 
 			if !validateContentType(contentType) {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
+			}
+
+			// Threads on private or draft content stay hidden from visitors.
+			if !isSuperuser(e) {
+				contentRecord, err := app.FindRecordById(contentType, contentID)
+				if err != nil || !commentTargetVisible(app, contentType, contentRecord) {
+					return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
+				}
 			}
 
 			// Pagination
@@ -176,7 +196,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 		})
 
 		// POST /api/comments/{content_type}/{content_id} — Submit a new comment
-		se.Router.POST("/api/comments/{content_type}/{content_id}", func(e *core.RequestEvent) error {
+		se.Router.POST("/api/comments/{content_type}/{content_id}", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			// Feature gate
 			if !planConfig.HasFeature("discussions") {
 				return respondNotFound(e, "Comments are not enabled")
@@ -189,9 +209,9 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid content type"})
 			}
 
-			// Verify content exists
+			// Verify content exists and visitors can see it
 			contentRecord, err := app.FindRecordById(contentType, contentID)
-			if err != nil {
+			if err != nil || !commentTargetVisible(app, contentType, contentRecord) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
 
@@ -381,10 +401,10 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			}
 
 			return e.JSON(http.StatusCreated, response)
-		})
+		}))
 
 		// POST /api/comments/{comment_id}/report — Report a comment
-		se.Router.POST("/api/comments/{comment_id}/report", func(e *core.RequestEvent) error {
+		se.Router.POST("/api/comments/{comment_id}/report", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			commentID := e.Request.PathValue("comment_id")
 
 			// Verify the comment exists
@@ -429,7 +449,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "received"})
-		})
+		}))
 
 		// ========================================
 		// Admin Comment Endpoints

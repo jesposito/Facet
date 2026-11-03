@@ -30,7 +30,9 @@
 
 	<div class="space-y-4">
 		<div>
-			<label for="wizard-name" class="label">{$t('admin.wizard.full_name')} {$t('admin.wizard.required_field')}</label>
+			<label for="wizard-name" class="label"
+				>{$t('admin.wizard.full_name')} {$t('admin.wizard.required_field')}</label
+			>
 			<input
 				type="text"
 				id="wizard-name"
@@ -42,7 +44,9 @@
 		</div>
 
 		<div>
-			<label for="wizard-headline" class="label">{$t('admin.wizard.professional_title')} {$t('admin.wizard.required_field')}</label>
+			<label for="wizard-headline" class="label"
+				>{$t('admin.wizard.professional_title')} {$t('admin.wizard.required_field')}</label
+			>
 			<input
 				type="text"
 				id="wizard-headline"
@@ -64,8 +68,7 @@
 				placeholder={$t('admin.wizard.brief_summary_placeholder')}
 				value={$setupWizard.profile.summary || ''}
 				oninput={handleSummaryChange}
-				rows={3}
-			></textarea>
+				rows={3}></textarea>
 			<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 				{$t('admin.wizard.brief_summary_help')}
 			</p>

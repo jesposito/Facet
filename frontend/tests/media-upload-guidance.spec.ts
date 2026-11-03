@@ -20,7 +20,11 @@ test.describe('media upload guidance', () => {
 	});
 
 	test('routes oversized non-video files to compression guidance', () => {
-		const file = { name: 'portfolio.pdf', size: MEDIA_UPLOAD_LIMIT_BYTES + 1, type: 'application/pdf' };
+		const file = {
+			name: 'portfolio.pdf',
+			size: MEDIA_UPLOAD_LIMIT_BYTES + 1,
+			type: 'application/pdf'
+		};
 
 		expect(oversizedMediaUploadMessageKey(file)).toBe('admin.media.toast_file_too_large_guidance');
 	});

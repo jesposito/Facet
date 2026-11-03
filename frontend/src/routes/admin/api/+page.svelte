@@ -4,6 +4,14 @@
 	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
+	import {
+		availableScopes,
+		scopeGroups,
+		defaultScopes,
+		isWriteScope,
+		parseOriginsInput,
+		type Scope
+	} from '$lib/apiKeyScopes';
 
 	// ---------------------------------------------------------------------------
 	// Types
@@ -20,16 +28,6 @@
 		created: string;
 	};
 
-	// Scopes available for the v1 read API. Must match the backend's `validScopes`.
-	const availableScopes = [
-		'read:profile',
-		'read:posts',
-		'read:projects',
-		'read:skills',
-		'read:experience',
-	] as const;
-	type Scope = (typeof availableScopes)[number];
-
 	// ---------------------------------------------------------------------------
 	// State
 	// ---------------------------------------------------------------------------
@@ -41,7 +39,8 @@
 
 	// Create form fields
 	let label = $state('');
-	let selectedScopes: Scope[] = $state(['read:profile']);
+	let selectedScopes: Scope[] = $state([...defaultScopes]);
+	let allowedOriginsText = $state('');
 	let expiresAt = $state('');
 
 	// One-time-reveal modal state
@@ -75,16 +74,14 @@
 		loading = true;
 		try {
 			const res = await fetch('/api/admin/api-keys', {
-				headers: pb.authStore.isValid
-					? { Authorization: `Bearer ${pb.authStore.token}` }
-					: {},
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
 			});
 			if (!res.ok) throw new Error('failed');
 			const json = await res.json();
 			apiKeys = (json.data || []).map((k: Partial<ApiKey>) => ({
 				...k,
 				scopes: k.scopes || [],
-				allowed_origins: k.allowed_origins || [],
+				allowed_origins: k.allowed_origins || []
 			})) as ApiKey[];
 		} catch (err) {
 			console.error('[admin/api] load failed', err);
@@ -96,7 +93,8 @@
 
 	function resetForm() {
 		label = '';
-		selectedScopes = ['read:profile'];
+		selectedScopes = [...defaultScopes];
+		allowedOriginsText = '';
 		expiresAt = '';
 	}
 
@@ -140,18 +138,23 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					...(pb.authStore.isValid
-						? { Authorization: `Bearer ${pb.authStore.token}` }
-						: {}),
+					...(pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {})
 				},
 				body: JSON.stringify({
 					label: trimmed,
 					scopes: selectedScopes,
-					expires_at: expiresAt || null,
-				}),
+					allowed_origins: parseOriginsInput(allowedOriginsText),
+					expires_at: expiresAt || null
+				})
 			});
 			if (!res.ok) {
 				const err = await res.json().catch(() => ({}));
+				// 400s carry a specific reason (bad origin, past expiry, ...)
+				// that is more useful than the generic message.
+				if (res.status === 400 && err.error) {
+					toasts.add('error', `${$t('admin.api_keys.errors.create_failed')}: ${err.error}`);
+					return;
+				}
 				throw new Error(err.error || 'failed');
 			}
 			const json = await res.json();
@@ -173,16 +176,14 @@
 			title: $t('admin.api_keys.revoke_confirm_title'),
 			message: $t('admin.api_keys.revoke_confirm_message', { values: { label: key.label } }),
 			confirmText: $t('admin.api_keys.revoke'),
-			danger: true,
+			danger: true
 		});
 		if (!ok) return;
 
 		try {
 			const res = await fetch(`/api/admin/api-keys/${key.id}`, {
 				method: 'DELETE',
-				headers: pb.authStore.isValid
-					? { Authorization: `Bearer ${pb.authStore.token}` }
-					: {},
+				headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
 			});
 			if (!res.ok) throw new Error('failed');
 			toasts.add('success', $t('admin.api_keys.key_revoked'));
@@ -239,8 +240,7 @@
 	}
 
 	function statusClass(k: ApiKey): string {
-		if (!k.is_active)
-			return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+		if (!k.is_active) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
 		if (k.expires_at && new Date(k.expires_at) < new Date())
 			return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200';
 		return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
@@ -302,24 +302,32 @@
 			<div id="api-keys-help-body" class="mt-3 space-y-3 text-sm text-gray-700 dark:text-gray-300">
 				<p>{$t('admin.api_keys.help.body')}</p>
 				<div>
-					<h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+					<h3
+						class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1"
+					>
 						{$t('admin.api_keys.help.scopes_title')}
 					</h3>
 					<ul class="space-y-1">
 						{#each availableScopes as scope}
 							<li class="flex gap-2">
-								<code class="font-mono text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">{scope}</code>
+								<code class="font-mono text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded"
+									>{scope}</code
+								>
 								<span>{$t(`admin.api_keys.scope_descriptions.${scope}`)}</span>
 							</li>
 						{/each}
 					</ul>
 				</div>
 				<div>
-					<h3 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">
+					<h3
+						class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1"
+					>
 						{$t('admin.api_keys.help.curl_title')}
 					</h3>
-					<pre class="text-xs bg-gray-900 text-green-400 p-3 rounded overflow-x-auto"><code>curl -H "Authorization: Bearer facet_..." \
-  https://your-site.example/api/v1/profile</code></pre>
+					<pre class="text-xs bg-gray-900 text-green-400 p-3 rounded overflow-x-auto"><code
+							>curl -H "Authorization: Bearer facet_..." \
+  https://your-site.example/api/v1/profile</code
+						></pre>
 				</div>
 			</div>
 		{/if}
@@ -328,7 +336,10 @@
 	<!-- Create form -->
 	{#if showForm}
 		<section class="card p-6 mb-6" aria-labelledby="api-key-form-heading">
-			<h2 id="api-key-form-heading" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+			<h2
+				id="api-key-form-heading"
+				class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+			>
 				{$t('admin.api_keys.new_key')}
 			</h2>
 			<form onsubmit={submitForm} class="space-y-4">
@@ -353,32 +364,72 @@
 					</p>
 				</div>
 
-				<fieldset>
-					<legend class="label">
+				<div>
+					<p class="label">
 						{$t('admin.api_keys.field_scopes')}
 						<span aria-hidden="true"> *</span>
-					</legend>
-					<div class="space-y-2 mt-1">
-						{#each availableScopes as scope}
-							{@const id = `scope-${scope.replace(':', '-')}`}
-							<label for={id} class="flex items-start gap-2 cursor-pointer">
-								<input
-									{id}
-									type="checkbox"
-									checked={selectedScopes.includes(scope)}
-									onchange={() => toggleScope(scope)}
-									class="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300 dark:border-gray-600"
-								/>
-								<span class="text-sm">
-									<code class="font-mono text-xs px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">{scope}</code>
-									<span class="text-gray-700 dark:text-gray-300 ml-1">
-										{$t(`admin.api_keys.scope_descriptions.${scope}`)}
-									</span>
-								</span>
-							</label>
+					</p>
+					<div class="grid gap-4 sm:grid-cols-2 mt-1">
+						{#each scopeGroups as group}
+							<fieldset
+								data-scope-group={group.kind}
+								aria-describedby={`scope-group-${group.kind}-help`}
+							>
+								<legend class="text-sm font-medium text-gray-900 dark:text-white">
+									{$t(`admin.api_keys.scope_group_${group.kind}`)}
+								</legend>
+								<p
+									id={`scope-group-${group.kind}-help`}
+									class="text-xs text-gray-500 dark:text-gray-400 mb-2"
+								>
+									{$t(`admin.api_keys.scope_group_${group.kind}_help`)}
+								</p>
+								<div class="space-y-2">
+									{#each group.scopes as scope}
+										{@const id = `scope-${scope.replace(':', '-')}`}
+										<label for={id} class="flex items-start gap-2 cursor-pointer">
+											<input
+												{id}
+												type="checkbox"
+												checked={selectedScopes.includes(scope)}
+												onchange={() => toggleScope(scope)}
+												class="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300 dark:border-gray-600"
+											/>
+											<span class="text-sm">
+												<code
+													class="font-mono text-xs px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded"
+													>{scope}</code
+												>
+												<span class="text-gray-700 dark:text-gray-300 ml-1">
+													{$t(`admin.api_keys.scope_descriptions.${scope}`)}
+												</span>
+											</span>
+										</label>
+									{/each}
+								</div>
+							</fieldset>
 						{/each}
 					</div>
-				</fieldset>
+					{#if selectedScopes.some(isWriteScope)}
+						<p class="text-xs text-amber-700 dark:text-amber-300 mt-2" role="note">
+							{$t('admin.api_keys.write_scope_warning')}
+						</p>
+					{/if}
+				</div>
+
+				<div>
+					<label for="api-key-origins" class="label">{$t('admin.api_keys.field_origins')}</label>
+					<textarea
+						id="api-key-origins"
+						bind:value={allowedOriginsText}
+						rows="2"
+						class="input font-mono text-xs"
+						aria-describedby="api-key-origins-help"
+						placeholder="https://example.com"></textarea>
+					<p id="api-key-origins-help" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						{$t('admin.api_keys.field_origins_help')}
+					</p>
+				</div>
 
 				<div>
 					<label for="api-key-expires" class="label">{$t('admin.api_keys.field_expires')}</label>
@@ -436,53 +487,101 @@
 				<div class="overflow-x-auto">
 					<table class="w-full text-sm">
 						<caption class="sr-only">{$t('admin.api_keys.table_caption')}</caption>
-						<thead class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+						<thead
+							class="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700"
+						>
 							<tr>
-								<th scope="col" class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									{$t('admin.api_keys.col_label')}
 								</th>
-								<th scope="col" class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									{$t('admin.api_keys.col_prefix')}
 								</th>
-								<th scope="col" class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									{$t('admin.api_keys.col_scopes')}
 								</th>
-								<th scope="col" class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									{$t('admin.api_keys.col_status')}
 								</th>
-								<th scope="col" class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									{$t('admin.api_keys.col_last_used')}
 								</th>
-								<th scope="col" class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-start py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									{$t('admin.api_keys.col_created')}
 								</th>
-								<th scope="col" class="text-end py-3 px-4 font-medium text-gray-500 dark:text-gray-400">
+								<th
+									scope="col"
+									class="text-end py-3 px-4 font-medium text-gray-500 dark:text-gray-400"
+								>
 									<span class="sr-only">{$t('admin.api_keys.col_actions')}</span>
 								</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each apiKeys as key (key.id)}
-								<tr class="border-b border-gray-100 dark:border-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+								<tr
+									class="border-b border-gray-100 dark:border-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/30"
+								>
 									<td class="py-3 px-4">
-										<span class="font-medium text-gray-900 dark:text-white {key.is_active ? '' : 'line-through opacity-70'}">
+										<span
+											class="font-medium text-gray-900 dark:text-white {key.is_active
+												? ''
+												: 'line-through opacity-70'}"
+										>
 											{key.label}
 										</span>
 									</td>
 									<td class="py-3 px-4">
-										<code class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded font-mono">{key.key_prefix}…</code>
+										<code class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded font-mono"
+											>{key.key_prefix}…</code
+										>
 									</td>
 									<td class="py-3 px-4">
 										<div class="flex flex-wrap gap-1">
 											{#each key.scopes as scope}
-												<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
+												<span
+													class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {isWriteScope(
+														scope
+													)
+														? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+														: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200'}"
+												>
 													{scope}
 												</span>
 											{/each}
 										</div>
+										{#if key.allowed_origins.length > 0}
+											<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+												{$t('admin.api_keys.origins_only', {
+													values: { origins: key.allowed_origins.join(', ') }
+												})}
+											</p>
+										{/if}
 									</td>
 									<td class="py-3 px-4">
-										<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {statusClass(key)}">
+										<span
+											class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {statusClass(
+												key
+											)}"
+										>
 											{statusLabel(key)}
 										</span>
 									</td>
@@ -498,7 +597,9 @@
 												type="button"
 												class="btn btn-ghost btn-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
 												onclick={() => revokeKey(key)}
-												aria-label={$t('admin.api_keys.revoke_aria', { values: { label: key.label } })}
+												aria-label={$t('admin.api_keys.revoke_aria', {
+													values: { label: key.label }
+												})}
 											>
 												{$t('admin.api_keys.revoke')}
 											</button>
@@ -531,7 +632,9 @@
 	}}
 >
 	{#if createdKey}
-		<div class="bg-white dark:bg-gray-800 rounded-lg p-6 border-2 border-amber-300 dark:border-amber-600">
+		<div
+			class="bg-white dark:bg-gray-800 rounded-lg p-6 border-2 border-amber-300 dark:border-amber-600"
+		>
 			<div class="flex items-start gap-3">
 				<svg
 					class="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
@@ -555,7 +658,10 @@
 						{$t('admin.api_keys.reveal_warning')}
 					</p>
 					<div class="mt-4 flex items-stretch gap-2">
-						<code class="flex-1 px-4 py-3 bg-gray-900 text-green-400 rounded font-mono text-sm break-all select-all">{createdKey}</code>
+						<code
+							class="flex-1 px-4 py-3 bg-gray-900 text-green-400 rounded font-mono text-sm break-all select-all"
+							>{createdKey}</code
+						>
 						<button
 							type="button"
 							class="btn {copied ? 'btn-success' : 'btn-primary'} shrink-0"

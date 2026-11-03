@@ -60,6 +60,10 @@ func init() {
 		alerts.Fields.Add(&core.DateField{
 			Name: "acknowledged_at",
 		})
+		alerts.Fields.Add(&core.AutodateField{
+			Name:     "created",
+			OnCreate: true,
+		})
 
 		// Auth rule — admin-only via PocketBase superuser auth.
 		authRule := "@request.auth.id != ''"
@@ -74,8 +78,12 @@ func init() {
 		}
 
 		// Indexes for the common query: unacknowledged-only, sorted by created desc.
-		app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_system_alerts_created ON system_alerts(created)").Execute()
-		app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_system_alerts_ack ON system_alerts(acknowledged_at)").Execute()
+		if _, err := app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_system_alerts_created ON system_alerts(created)").Execute(); err != nil {
+			return err
+		}
+		if _, err := app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_system_alerts_ack ON system_alerts(acknowledged_at)").Execute(); err != nil {
+			return err
+		}
 
 		return nil
 	}, func(app core.App) error {

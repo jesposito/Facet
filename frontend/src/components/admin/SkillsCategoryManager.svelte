@@ -23,7 +23,11 @@
 
 	onMount(async () => {
 		if (browser) {
-			const { dndzone: dnd, TRIGGERS: trig, SHADOW_PLACEHOLDER_ITEM_ID: shadow } = await import('svelte-dnd-action');
+			const {
+				dndzone: dnd,
+				TRIGGERS: trig,
+				SHADOW_PLACEHOLDER_ITEM_ID: shadow
+			} = await import('svelte-dnd-action');
 			dndzone = dnd;
 			TRIGGERS = trig;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadow;
@@ -117,10 +121,10 @@
 		// Don't sync during drag - let the drag operation control the items
 		if (isCategoryDragging) return;
 
-		const newItems = orderedCategories.map(name => ({ id: `cat-${name}`, name }));
+		const newItems = orderedCategories.map((name) => ({ id: `cat-${name}`, name }));
 		// Only update if the underlying categories changed (not during DnD)
-		const currentNames = categoryItems.map(c => c.name).join(',');
-		const newNames = newItems.map(c => c.name).join(',');
+		const currentNames = categoryItems.map((c) => c.name).join(',');
+		const newNames = newItems.map((c) => c.name).join(',');
 		if (currentNames !== newNames || categoryItems.length === 0) {
 			categoryItems = newItems;
 		}
@@ -140,16 +144,16 @@
 	function getSelectedCount(category: string): number {
 		const skills = groupedSkills[category] || [];
 		const selectedSet = new Set(_selectedItems);
-		return skills.filter(s => selectedSet.has(s.id)).length;
+		return skills.filter((s) => selectedSet.has(s.id)).length;
 	}
 
 	// Get total skills in a category (filtered by visibility unless showAllVisibilities is true)
 	function getSelectableSkillCount(category: string): number {
 		const skills = groupedSkills[category] || [];
 		if (showAllVisibilities) {
-			return skills.filter(s => !s.is_draft).length;
+			return skills.filter((s) => !s.is_draft).length;
 		}
-		return skills.filter(s => s.visibility === 'public' && !s.is_draft).length;
+		return skills.filter((s) => s.visibility === 'public' && !s.is_draft).length;
 	}
 
 	// Toggle category expanded state
@@ -166,7 +170,7 @@
 	function toggleCategoryEnabled(category: string) {
 		if (isCategoryDisabled(category)) {
 			// Enable: remove from disabled list
-			disabledCategories = _disabledCategories.filter(c => c !== category);
+			disabledCategories = _disabledCategories.filter((c) => c !== category);
 		} else {
 			// Disable: add to disabled list
 			disabledCategories = [..._disabledCategories, category];
@@ -197,7 +201,7 @@
 		if (idx === -1) {
 			selectedItems = [..._selectedItems, skillId];
 		} else {
-			selectedItems = _selectedItems.filter(id => id !== skillId);
+			selectedItems = _selectedItems.filter((id) => id !== skillId);
 		}
 		onUpdate();
 	}
@@ -206,8 +210,8 @@
 	function selectAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
 		const selectableSkillIds = skills
-			.filter(s => (showAllVisibilities || s.visibility === 'public') && !s.is_draft)
-			.map(s => s.id);
+			.filter((s) => (showAllVisibilities || s.visibility === 'public') && !s.is_draft)
+			.map((s) => s.id);
 		const currentSet = new Set(_selectedItems);
 		for (const id of selectableSkillIds) {
 			currentSet.add(id);
@@ -219,13 +223,15 @@
 	// Clear all skills in a category
 	function clearAllInCategory(category: string) {
 		const skills = groupedSkills[category] || [];
-		const skillIds = new Set(skills.map(s => s.id));
-		selectedItems = _selectedItems.filter(id => !skillIds.has(id));
+		const skillIds = new Set(skills.map((s) => s.id));
+		selectedItems = _selectedItems.filter((id) => !skillIds.has(id));
 		onUpdate();
 	}
 
 	// Handle category drag-and-drop
-	function handleCategoryDndConsider(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+	function handleCategoryDndConsider(
+		e: CustomEvent<{ items: Array<{ id: string; name: string }> }>
+	) {
 		// Mark as dragging to prevent effect from resetting items
 		isCategoryDragging = true;
 		// Filter shadow placeholder for visual consistency during drag.
@@ -233,11 +239,13 @@
 		categoryItems = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 	}
 
-	function handleCategoryDndFinalize(e: CustomEvent<{ items: Array<{ id: string; name: string }> }>) {
+	function handleCategoryDndFinalize(
+		e: CustomEvent<{ items: Array<{ id: string; name: string }> }>
+	) {
 		// Filter out placeholder and update both categoryItems and categoryOrder
-		const filteredItems = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		const filteredItems = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		categoryItems = filteredItems;
-		categoryOrder = filteredItems.map(c => c.name);
+		categoryOrder = filteredItems.map((c) => c.name);
 		// Clear dragging state after updating order
 		isCategoryDragging = false;
 		onUpdate();
@@ -245,7 +253,7 @@
 
 	// Keyboard-accessible category reordering (complements drag handles)
 	function moveCategory(categoryId: string, direction: 'up' | 'down') {
-		const idx = categoryItems.findIndex(c => c.id === categoryId);
+		const idx = categoryItems.findIndex((c) => c.id === categoryId);
 		if (idx === -1) return;
 		if (direction === 'up' && idx === 0) return;
 		if (direction === 'down' && idx === categoryItems.length - 1) return;
@@ -253,7 +261,7 @@
 		const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
 		[newItems[idx], newItems[targetIdx]] = [newItems[targetIdx], newItems[idx]];
 		categoryItems = newItems;
-		categoryOrder = newItems.map(c => c.name);
+		categoryOrder = newItems.map((c) => c.name);
 		onUpdate();
 	}
 
@@ -263,31 +271,34 @@
 		// otherwise the placeholder lives in `items` between consider events
 		// and could leak through `otherCategorySkills` if the drag spans
 		// categories.
-		const otherCategorySkills = items.filter(s => (s.data.category || 'Other') !== category);
+		const otherCategorySkills = items.filter((s) => (s.data.category || 'Other') !== category);
 		const reorderedSkills = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		items = [...otherCategorySkills, ...reorderedSkills];
 	}
 
-	function handleSkillDndFinalize(category: string, e: CustomEvent<{ items: SkillItem[]; info: { trigger: string; id?: string } }>) {
+	function handleSkillDndFinalize(
+		category: string,
+		e: CustomEvent<{ items: SkillItem[]; info: { trigger: string; id?: string } }>
+	) {
 		const trigger = e.detail.info?.trigger;
-		const finalSkills = e.detail.items.filter(item => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
+		const finalSkills = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 
 		// Update items with new order
-		const otherCategorySkills = items.filter(s => (s.data.category || 'Other') !== category);
+		const otherCategorySkills = items.filter((s) => (s.data.category || 'Other') !== category);
 		items = [...otherCategorySkills, ...finalSkills];
 
 		// Update selected items order to match display order
 		if (trigger === TRIGGERS.DROPPED_INTO_ZONE || trigger === TRIGGERS.DROPPED_INTO_ANOTHER) {
-			const displayOrder = finalSkills.map(s => s.id);
+			const displayOrder = finalSkills.map((s) => s.id);
 			const selectedSet = new Set(_selectedItems);
-			const categorySelectedInOrder = displayOrder.filter(id => selectedSet.has(id));
-			const otherSelected = _selectedItems.filter(id => !displayOrder.includes(id));
+			const categorySelectedInOrder = displayOrder.filter((id) => selectedSet.has(id));
+			const otherSelected = _selectedItems.filter((id) => !displayOrder.includes(id));
 			selectedItems = [...otherSelected, ...categorySelectedInOrder];
 			onUpdate();
 
 			// Announce the dropped skill's new position for screen-reader users.
 			const droppedId = e.detail.info?.id;
-			const droppedIdx = finalSkills.findIndex(s => s.id === droppedId);
+			const droppedIdx = finalSkills.findIndex((s) => s.id === droppedId);
 			if (droppedIdx !== -1) {
 				announceSkillMove(finalSkills[droppedIdx].label, droppedIdx + 1, finalSkills.length);
 			}
@@ -321,14 +332,14 @@
 		[reordered[index], reordered[targetIdx]] = [reordered[targetIdx], reordered[index]];
 
 		// Rebuild items in the same way the drag finalize handler does.
-		const otherCategorySkills = items.filter(s => (s.data.category || 'Other') !== category);
+		const otherCategorySkills = items.filter((s) => (s.data.category || 'Other') !== category);
 		items = [...otherCategorySkills, ...reordered];
 
 		// Sync selected items order to match the new display order.
-		const displayOrder = reordered.map(s => s.id);
+		const displayOrder = reordered.map((s) => s.id);
 		const selectedSet = new Set(_selectedItems);
-		const categorySelectedInOrder = displayOrder.filter(id => selectedSet.has(id));
-		const otherSelected = _selectedItems.filter(id => !displayOrder.includes(id));
+		const categorySelectedInOrder = displayOrder.filter((id) => selectedSet.has(id));
+		const otherSelected = _selectedItems.filter((id) => !displayOrder.includes(id));
 		selectedItems = [...otherSelected, ...categorySelectedInOrder];
 		onUpdate();
 
@@ -339,9 +350,7 @@
 		await tick();
 		if (btn.disabled) {
 			const opposite = direction === 'up' ? 'down' : 'up';
-			btn.parentElement
-				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
-				?.focus();
+			btn.parentElement?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)?.focus();
 		}
 	}
 
@@ -354,9 +363,9 @@
 	function getSelectableCategorySkills(category: string): SkillItem[] {
 		const skills = groupedSkills[category] || [];
 		if (showAllVisibilities) {
-			return skills.filter(s => !s.is_draft);
+			return skills.filter((s) => !s.is_draft);
 		}
-		return skills.filter(s => s.visibility === 'public' && !s.is_draft);
+		return skills.filter((s) => s.visibility === 'public' && !s.is_draft);
 	}
 </script>
 
@@ -385,7 +394,9 @@
 				{@const categorySkills = getSelectableCategorySkills(category)}
 
 				<div
-					class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 {isDisabled ? 'opacity-60' : ''}"
+					class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 {isDisabled
+						? 'opacity-60'
+						: ''}"
 					animate:flip={{ duration: flipDurationMs }}
 				>
 					<!-- Category Header -->
@@ -395,7 +406,13 @@
 							class="cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
 							title={$t('admin.view_editor.sections.drag_to_reorder')}
 						>
-							<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<svg
+								class="w-5 h-5 text-gray-500 dark:text-gray-400"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="2"
+							>
 								<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 							</svg>
 						</div>
@@ -407,9 +424,17 @@
 								class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
 								disabled={i === 0}
 								onclick={() => moveCategory(cat.id, 'up')}
-								aria-label={$t('admin.view_editor.sections.move_up', { values: { section: category } })}
+								aria-label={$t('admin.view_editor.sections.move_up', {
+									values: { section: category }
+								})}
 							>
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+								<svg
+									class="w-3.5 h-3.5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+								>
 									<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
 								</svg>
 							</button>
@@ -418,9 +443,17 @@
 								class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30"
 								disabled={i === categoryItems.length - 1}
 								onclick={() => moveCategory(cat.id, 'down')}
-								aria-label={$t('admin.view_editor.sections.move_down', { values: { section: category } })}
+								aria-label={$t('admin.view_editor.sections.move_down', {
+									values: { section: category }
+								})}
 							>
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+								<svg
+									class="w-3.5 h-3.5"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									stroke-width="2.5"
+								>
 									<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 								</svg>
 							</button>
@@ -432,7 +465,9 @@
 							class="w-9 h-5 rounded-full transition-colors relative flex-shrink-0
 								{isDisabled ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-600'}"
 							onclick={() => toggleCategoryEnabled(category)}
-							aria-label={$t('admin.view_editor.skills_categories.toggle_category', { values: { category } })}
+							aria-label={$t('admin.view_editor.skills_categories.toggle_category', {
+								values: { category }
+							})}
 						>
 							<span
 								class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
@@ -448,7 +483,8 @@
 						<!-- Skill Count -->
 						<span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
 							{#if selectedCount > 0 && selectedCount < selectableCount}
-								{selectedCount}/{selectableCount} {$t('admin.view_editor.skills_categories.selected')}
+								{selectedCount}/{selectableCount}
+								{$t('admin.view_editor.skills_categories.selected')}
 							{:else if selectedCount === selectableCount && selectableCount > 0}
 								{$t('admin.view_editor.skills_categories.all_selected')}
 							{:else}
@@ -463,11 +499,18 @@
 								value={getCategoryDisplayMode(category)}
 								onchange={(e) => updateCategoryDisplayMode(category, e.currentTarget.value)}
 								onclick={(e) => e.stopPropagation()}
-								aria-label={$t('admin.view_editor.skills_categories.display_mode_label', { values: { category } })}
+								aria-label={$t('admin.view_editor.skills_categories.display_mode_label', {
+									values: { category }
+								})}
 							>
-								<option value="">{$t('admin.view_editor.skills_categories.use_section_default')}</option>
-								<option value="grouped">{$t('admin.view_editor.skills_categories.layout_grouped')}</option>
-								<option value="bars">{$t('admin.view_editor.skills_categories.layout_bars')}</option>
+								<option value=""
+									>{$t('admin.view_editor.skills_categories.use_section_default')}</option
+								>
+								<option value="grouped"
+									>{$t('admin.view_editor.skills_categories.layout_grouped')}</option
+								>
+								<option value="bars">{$t('admin.view_editor.skills_categories.layout_bars')}</option
+								>
 							</select>
 						{/if}
 
@@ -487,7 +530,12 @@
 									viewBox="0 0 24 24"
 									stroke="currentColor"
 								>
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M19 9l-7 7-7-7"
+									/>
 								</svg>
 							</button>
 						{/if}
@@ -495,7 +543,9 @@
 
 					<!-- Expanded Skills List -->
 					{#if isExpanded && !isDisabled && categorySkills.length > 0}
-						<div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30">
+						<div
+							class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30"
+						>
 							<div class="flex items-center justify-between mb-2">
 								<p class="text-xs text-gray-500">
 									{selectedCount === 0
@@ -543,7 +593,13 @@
 											class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
 											title={$t('admin.view_editor.sections.drag_to_reorder')}
 										>
-											<svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+											<svg
+												class="w-4 h-4 text-gray-400"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+												stroke-width="2"
+											>
 												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
 											</svg>
 										</div>
@@ -556,9 +612,18 @@
 												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
 												disabled={skillIdx === 0}
 												onclick={(e) => moveSkill(category, skillIdx, 'up', e.currentTarget)}
-												aria-label={$t('admin.view_editor.skills_categories.skill_move_up', { values: { skill: skill.label } })}
+												aria-label={$t('admin.view_editor.skills_categories.skill_move_up', {
+													values: { skill: skill.label }
+												})}
 											>
-												<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+												<svg
+													class="w-3 h-3"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+													stroke-width="2.5"
+													aria-hidden="true"
+												>
 													<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
 												</svg>
 											</button>
@@ -568,9 +633,18 @@
 												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
 												disabled={skillIdx === categorySkills.length - 1}
 												onclick={(e) => moveSkill(category, skillIdx, 'down', e.currentTarget)}
-												aria-label={$t('admin.view_editor.skills_categories.skill_move_down', { values: { skill: skill.label } })}
+												aria-label={$t('admin.view_editor.skills_categories.skill_move_down', {
+													values: { skill: skill.label }
+												})}
 											>
-												<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+												<svg
+													class="w-3 h-3"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+													stroke-width="2.5"
+													aria-hidden="true"
+												>
 													<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
 												</svg>
 											</button>

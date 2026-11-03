@@ -15,15 +15,15 @@ func init() {
 
 		if uploadsCollection.Fields.GetByName("alt_text") == nil {
 			uploadsCollection.Fields.Add(&core.TextField{
-				Name:     "alt_text",
-				Max:      255,
+				Name: "alt_text",
+				Max:  255,
 			})
 		}
 
 		if uploadsCollection.Fields.GetByName("description") == nil {
 			uploadsCollection.Fields.Add(&core.TextField{
-				Name:     "description",
-				Max:      1000,
+				Name: "description",
+				Max:  1000,
 			})
 		}
 
@@ -40,15 +40,15 @@ func init() {
 
 		if externalCollection.Fields.GetByName("alt_text") == nil {
 			externalCollection.Fields.Add(&core.TextField{
-				Name:     "alt_text",
-				Max:      255,
+				Name: "alt_text",
+				Max:  255,
 			})
 		}
 
 		if externalCollection.Fields.GetByName("description") == nil {
 			externalCollection.Fields.Add(&core.TextField{
-				Name:     "description",
-				Max:      1000,
+				Name: "description",
+				Max:  1000,
 			})
 		}
 

@@ -1,280 +1,139 @@
-# Facet E2E Testing
+# Browser tests
 
-End-to-end tests for Facet using Playwright.
+Facet's end-to-end tests use [Playwright](https://playwright.dev/) with Chromium. They exercise public pages, the admin, and the backend API together, so they need a running Facet. They're separate from `make test`, which covers script regressions, Go tests and type checks ([development guide](../../docs/DEV.md#tests-and-checks)).
 
-## Test Structure
+## Before you run them
 
-```
-tests/
-├── config.ts              # Test configuration and environment variables
-├── helpers.ts             # Shared test utilities (auth, API helpers)
-├── admin-flows.spec.ts    # Admin-only tests (auth, views, share tokens)
-├── media-management.spec.ts # Media upload, orphan detection, bulk delete
-├── public-api.spec.ts     # Public APIs, feeds (RSS, iCal)
-├── seo-and-errors.spec.ts # SEO meta tags, error pages
-└── README.md              # This file
-```
-
-## Running Tests
-
-### Prerequisites
-
-1. **Start the development servers:**
+1. **Install the browser** once:
    ```bash
-   # From project root
-   make dev
-   # OR separately:
-   make backend   # Backend on :8090
-   make frontend  # Frontend on :5173
+   cd frontend
+   npx playwright install chromium
    ```
-
-2. **Set environment variables for admin tests:**
+2. **Start Facet** in another terminal with `make dev`. By default the tests expect the frontend at `http://localhost:5173` and the backend at `http://localhost:8090`.
+3. **Use a database you don't mind changing.** Many tests create, edit and delete content, and some change site-wide design settings. Don't point them at an instance with real content.
+4. **Give the tests an owner account** for anything behind sign-in:
    ```bash
-   export ADMIN_EMAIL="admin@example.com"
-   export ADMIN_PASSWORD="changeme123"
+   export ADMIN_EMAIL=admin@example.com
+   export ADMIN_PASSWORD='your-changed-password'
    ```
+   Sign in once in the browser first and change the default password. The admin dashboard won't do anything else until you have, and some tests need that done. Tests that need an account are skipped when these variables are missing.
 
-### Run All Tests
+Some tests need data that only the development profile provides. If a test reports that no views, projects or posts exist, load it with `make seed-dev`. That command **deletes `pb_data/` and rewrites `.env`** ([details](../../docs/DEV.md#make-targets)).
 
-```bash
-npm test
-# or
-npm run test:e2e
-```
+### Superuser tests
 
-### Run Specific Test Suites
+`hero-rail-layout.spec.ts` and `text-color-aaa.spec.ts` change fields through a PocketBase superuser. They default to `admin@localhost.dev` / `admin123`. Either create that superuser in your development database ([how](../../docs/DEV.md#what-make-dev-does)) or point the tests at yours with `PB_SUPERUSER_EMAIL` and `PB_SUPERUSER_PASSWORD`.
 
-```bash
-# Public tests only (no auth required)
-npm run test:public
+## Running
 
-# Admin tests only (requires ADMIN_EMAIL/ADMIN_PASSWORD)
-npm run test:admin
-```
+From `frontend/`:
 
-### Interactive Testing
+| Command                                      | Runs                                                 |
+| -------------------------------------------- | ---------------------------------------------------- |
+| `npm test` (or `npm run test:e2e`)           | Every spec                                           |
+| `npm run test:public`                        | `public-api.spec.ts` and `seo-and-errors.spec.ts`    |
+| `npm run test:admin`                         | `admin-flows.spec.ts` and `media-management.spec.ts` |
+| `npx playwright test tests/security.spec.ts` | One file                                             |
+| `npx playwright test -g "share token"`       | Tests whose names match                              |
+| `npm run test:ui`                            | Playwright's interactive runner                      |
+| `npm run test:headed`                        | With a visible browser                               |
+| `npm run test:debug`                         | Step through with the inspector                      |
 
-```bash
-# UI mode (visual test runner)
-npm run test:ui
-
-# Headed mode (see browser)
-npm run test:headed
-
-# Debug mode (step through tests)
-npm run test:debug
-```
-
-### Run Individual Test Files
-
-```bash
-npx playwright test tests/seo-and-errors.spec.ts
-npx playwright test tests/media-management.spec.ts --headed
-```
-
-## Test Coverage
-
-### Public API Tests (`public-api.spec.ts`)
-- ✅ Default view/homepage reachability
-- ✅ AI and AI Print capability endpoints
-- ✅ Posts and talks listings
-- ✅ RSS feed (posts)
-- ✅ iCal export (talks)
-
-### Admin Flow Tests (`admin-flows.spec.ts`)
-- ✅ Admin authentication
-- ✅ View listing and CRUD
-- ✅ Share token lifecycle (generate, validate, revoke)
-
-### Media Management Tests (`media-management.spec.ts`)
-- ✅ Media file listing
-- ✅ Orphan detection
-- ✅ Bulk delete validation (empty array, limit enforcement)
-- ✅ Bulk delete security (path traversal protection)
-- ✅ Bulk delete authentication requirement
-- ✅ External media collection access
-- ✅ Media rendering on project/post pages
-
-### SEO & Error Page Tests (`seo-and-errors.spec.ts`)
-- ✅ Sitemap.xml validity
-- ✅ Robots.txt format
-- ✅ Canonical URLs on all pages
-- ✅ Open Graph tags (homepage, projects, posts)
-- ✅ Twitter Card meta tags
-- ✅ JSON-LD structured data
-- ✅ Article metadata (published/modified times)
-- ✅ Custom 404 error page
-- ✅ Custom 500 error page (via /test-500)
-- ✅ Error page SVG illustrations
-- ✅ Error page navigation
+Tests run one at a time (`workers: 1`) because several change shared site settings ([config](../playwright.config.ts)). On CI, failed tests are retried twice. Traces, screenshots and videos are kept for failures under `test-results/`. Open a trace with `npx playwright show-trace <path-to-trace.zip>`.
 
 ## Configuration
 
-Tests use environment variables for configuration:
+| Variable                                      | Default                                                         | Used for                    |
+| --------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| `PLAYWRIGHT_BASE_URL`                         | `VITE_POCKETBASE_URL` if set, otherwise `http://localhost:5173` | Where pages are loaded from |
+| `API_BASE_URL`                                | `POCKETBASE_URL` if set, otherwise `http://localhost:8090`      | Direct backend calls        |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`               | (none)                                                          | Owner sign-in               |
+| `PB_SUPERUSER_EMAIL`, `PB_SUPERUSER_PASSWORD` | `admin@localhost.dev`, `admin123`                               | Superuser-only tests        |
+| `CI`                                          | (unset)                                                         | Enables retries             |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PLAYWRIGHT_BASE_URL` | `http://localhost:5173` | Frontend URL |
-| `API_BASE_URL` | `http://localhost:8090` | Backend API URL |
-| `ADMIN_EMAIL` | _(none)_ | Admin email for authenticated tests |
-| `ADMIN_PASSWORD` | _(none)_ | Admin password for authenticated tests |
+`PLAYWRIGHT_BASE_URL` falls back to `VITE_POCKETBASE_URL`, which is a backend address in normal use. If you've set `VITE_POCKETBASE_URL`, set `PLAYWRIGHT_BASE_URL` explicitly too.
 
-**Note:** Admin tests are automatically skipped if `ADMIN_EMAIL` or `ADMIN_PASSWORD` are not set.
+## What CI runs
 
-## Writing New Tests
+The [Security and tests workflow](../../.github/workflows/security-tests.yml) builds the frontend, then [`scripts/ci/run-browser-smoke.sh`](../../scripts/ci/run-browser-smoke.sh):
 
-### Example: Public API Test
+- builds the backend and starts it on a fresh temporary database with the development seed
+- starts the built SvelteKit server, plus a small Node proxy ([`smoke-proxy.mjs`](../../scripts/ci/smoke-proxy.mjs)) in place of Caddy
+- waits for `/health`, signs in with the default password, and changes it, as a real owner would
+- runs `public-api.spec.ts` first (before browser traffic uses up the anonymous rate-limit allowance), then `portfolio-portability.spec.ts`, then `admin-flows.spec.ts`, `booking-shortcodes.spec.ts`, `dependency-security.spec.ts` and `back-navigation.spec.ts`, then `project-experiences.spec.ts`
 
-```typescript
+Production rate limits stay switched on during these runs. The other specs are run by developers locally.
+
+## What's covered
+
+| Spec                                                                                                                                                 | Covers                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `public-api.spec.ts`                                                                                                                                 | Public endpoints, feeds (RSS, iCal), AI status endpoints                         |
+| `seo-and-errors.spec.ts`                                                                                                                             | Sitemap, robots, canonical URLs, Open Graph, Twitter cards, JSON-LD, error pages |
+| `admin-flows.spec.ts`                                                                                                                                | Owner sign-in, views, share-link lifecycle                                       |
+| `security.spec.ts`                                                                                                                                   | XSS handling, path traversal, authentication requirements, input validation      |
+| `media-management.spec.ts`, `media-replace.spec.ts`, `media-upload-guidance.spec.ts`                                                                 | Media listing, orphan detection and bulk delete, replacement, upload guidance    |
+| `portfolio-portability.spec.ts`                                                                                                                      | Rich content (embeds, long links, code) rendering responsively, and export       |
+| `project-experiences.spec.ts`                                                                                                                        | Project experiences in the editor and on public pages                            |
+| `booking-shortcodes.spec.ts`                                                                                                                         | Booking embeds written as Markdown shortcodes                                    |
+| `back-navigation.spec.ts`                                                                                                                            | Back-button journeys in the built app                                            |
+| `live-preview.spec.ts`                                                                                                                               | The admin live preview                                                           |
+| `testimonial-lists.spec.ts`                                                                                                                          | Testimonial lists                                                                |
+| `dependency-security.spec.ts`                                                                                                                        | The guarded dependency forks                                                     |
+| `backport-qa.spec.ts`                                                                                                                                | Accessibility, keyboard reordering, editor dialog and navigation checks          |
+| `custom-css-contrast.spec.ts`, `text-color-aaa.spec.ts`, `accent-aaa-clamp.spec.ts`                                                                  | Colour contrast rules                                                            |
+| `soft-premium-*.spec.ts`, `hero-rail-layout.spec.ts`, `footer-cta-toggle.spec.ts`, `admin-typography.spec.ts`, `admin-header-mobile-classes.spec.ts` | Design system, layouts and typography                                            |
+| `health-route.spec.ts`, `hooks-server-retry.spec.ts`, `web-manifest.spec.ts`, `focus-after-remove.spec.ts`                                           | Helper and server-hook behaviour                                                 |
+
+## Writing a test
+
+Put new specs in this folder as `<topic>.spec.ts`. Use [`config.ts`](config.ts) for URLs and credentials and [`helpers.ts`](helpers.ts) for common steps (`loginAsAdmin`, `fetchFirstView`, `setSiteDesign`, `patchFirstProfile`).
+
+A public API check:
+
+```ts
 import { test, expect } from '@playwright/test';
 import { apiBaseURL } from './config';
 
-test('my new public endpoint works', async ({ request }) => {
-  const response = await request.get(`${apiBaseURL}/api/my-endpoint`);
-  expect(response.ok()).toBeTruthy();
-  const data = await response.json();
-  expect(data).toHaveProperty('expectedField');
+test('public posts endpoint responds', async ({ request }) => {
+	const response = await request.get(`${apiBaseURL}/api/posts`);
+	expect(response.ok()).toBeTruthy();
 });
 ```
 
-### Example: Admin-Only Test
+A test that needs the owner:
 
-```typescript
+```ts
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin } from './helpers';
 import { apiBaseURL, adminEmail, adminPassword } from './config';
 
-const shouldRunAdmin = Boolean(adminEmail && adminPassword);
+test.describe('my admin feature', () => {
+	test.skip(!adminEmail || !adminPassword, 'Admin credentials required');
 
-test.describe('My admin feature', () => {
-  test.skip(!shouldRunAdmin, 'Admin credentials required');
-
-  test('can perform admin action', async ({ request }) => {
-    const { token } = await loginAsAdmin(request);
-
-    const response = await request.post(`${apiBaseURL}/api/admin/action`, {
-      headers: { Authorization: token },
-      data: { foo: 'bar' }
-    });
-
-    expect(response.ok()).toBeTruthy();
-  });
+	test('does the thing', async ({ request }) => {
+		const { token } = await loginAsAdmin(request);
+		const response = await request.get(`${apiBaseURL}/api/export?format=json`, {
+			headers: { Authorization: token }
+		});
+		expect(response.ok()).toBeTruthy();
+	});
 });
 ```
 
-### Example: UI Test
+Good habits:
 
-```typescript
-import { test, expect } from '@playwright/test';
-
-test('homepage displays correctly', async ({ page }) => {
-  await page.goto('/');
-
-  await expect(page.locator('h1')).toBeVisible();
-  await expect(page.locator('h1')).toContainText('Expected Text');
-
-  // Interact with the page
-  await page.click('button#my-button');
-  await expect(page.locator('.result')).toHaveText('Success');
-});
-```
-
-## Best Practices
-
-1. **Use descriptive test names** - Test names should clearly describe what's being tested
-2. **Skip gracefully** - Use `test.skip()` when prerequisites aren't met
-3. **Clean up after tests** - Delete created resources when possible
-4. **Test both success and failure** - Validate error handling
-5. **Use helpers** - Extract common patterns to `helpers.ts`
-6. **Avoid hardcoding** - Use config variables for URLs and credentials
-
-## CI/CD Integration
-
-Tests are configured to retry 2 times in CI environments:
-
-```typescript
-retries: process.env.CI ? 2 : 0
-```
-
-Test artifacts (traces, screenshots, videos) are captured on failure:
-
-```typescript
-use: {
-  trace: 'retain-on-failure',
-  screenshot: 'only-on-failure',
-  video: 'retain-on-failure'
-}
-```
-
-## Debugging Failed Tests
-
-1. **Run in headed mode** to see what's happening:
-   ```bash
-   npm run test:headed
-   ```
-
-2. **Use debug mode** to step through:
-   ```bash
-   npm run test:debug
-   ```
-
-3. **Check test artifacts** in `test-results/`:
-   - Screenshots
-   - Videos
-   - Trace files (view with `npx playwright show-trace trace.zip`)
-
-4. **Run specific test** to isolate issues:
-   ```bash
-   npx playwright test -g "specific test name"
-   ```
+- Skip clearly with `test.skip()` when a prerequisite is missing, rather than failing obscurely.
+- Clean up what you create, and restore any site setting you change.
+- Test the failure path as well as the happy one.
+- Keep URLs and credentials in `config.ts`, not in the spec.
 
 ## Troubleshooting
 
-### "ADMIN_EMAIL and ADMIN_PASSWORD are required"
+**Connection refused.** Check both servers are up: `curl http://localhost:5173` and `curl http://localhost:8090/api/health`.
 
-This is expected if you haven't set credentials. Admin tests will be skipped. To run them:
+**Lots of 429 responses.** The tests share the anonymous rate-limit allowance. Run the public API tests on their own, or restart the backend to reset the limits.
 
-```bash
-export ADMIN_EMAIL="admin@example.com"
-export ADMIN_PASSWORD="changeme123"
-npm run test:admin
-```
+**Admin tests are skipped.** Set `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
 
-### "No views/projects/posts available"
-
-Some tests require existing data. Run seed data:
-
-```bash
-make seed-dev
-```
-
-### Connection refused errors
-
-Make sure both frontend and backend are running:
-
-```bash
-# Check if services are up
-curl http://localhost:5173
-curl http://localhost:8090/api/health
-```
-
-### Browser not found
-
-Install Playwright browsers:
-
-```bash
-npx playwright install
-```
-
-## Future Test Ideas
-
-- [ ] GitHub import flow
-- [ ] AI enrichment (with mocked AI provider)
-- [ ] View editor drag-and-drop
-- [ ] Password-protected views
-- [ ] Media upload flow
-- [ ] Custom CSS application
-- [ ] Theme switching
-- [ ] Print stylesheet rendering
-- [ ] Export (JSON/YAML)
-- [ ] AI resume generation
+**Sign-in works in the browser but not in tests.** The tests sign in with the password you've set. Make sure `ADMIN_PASSWORD` matches, and that `ADMIN_EMAIL` is allowed by `ADMIN_EMAILS` if you've set that.

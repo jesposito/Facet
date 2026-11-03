@@ -33,7 +33,11 @@ export function discoveryCollectionHref(kind: PublishingKind, context: Context =
 }
 
 /** Cards in a list return to that list, including its current filter. */
-export function discoveryDetailHref(kind: PublishingKind, slug: string, context: Context = {}): string {
+export function discoveryDetailHref(
+	kind: PublishingKind,
+	slug: string,
+	context: Context = {}
+): string {
 	const params = new URLSearchParams({ return_to: discoveryCollectionHref(kind, context) });
 	const from = navigationFacet(context.fromView);
 	if (from) params.set('from', from);
@@ -41,28 +45,49 @@ export function discoveryDetailHref(kind: PublishingKind, slug: string, context:
 }
 
 /** A section belongs to either the homepage or a named Facet. */
-export function discoverySectionHref(kind: PublishingKind, slug: string, fromView?: string | null): string {
+export function discoverySectionHref(
+	kind: PublishingKind,
+	slug: string,
+	fromView?: string | null
+): string {
 	const from = navigationFacet(fromView);
 	const params = new URLSearchParams(from ? { from } : { return_to: '/' });
 	return `${paths[kind]}/${encodeURIComponent(slug)}?${params}`;
 }
 
-export function discoveryReturnHref(kind: PublishingKind, search: Search, fromView?: string | null): string {
+export function discoveryReturnHref(
+	kind: PublishingKind,
+	search: Search,
+	fromView?: string | null
+): string {
 	const from = navigationFacet(fromView);
 	// Self-hosted Facet has no projects index. Bare project links return home.
 	const fallback = from ? `/${from}` : kind === 'project' ? '/' : paths[kind];
 	if (search.getAll('return_to').length !== 1) return fallback;
 	const raw = search.get('return_to')!;
-	if (!raw || raw.length > 512 || !raw.startsWith('/') || raw.startsWith('//') || unsafeCharacters.test(raw)) return fallback;
+	if (
+		!raw ||
+		raw.length > 512 ||
+		!raw.startsWith('/') ||
+		raw.startsWith('//') ||
+		unsafeCharacters.test(raw)
+	)
+		return fallback;
 	if (raw === '/' || (from && raw === `/${from}`)) return raw;
 	if (kind === 'project') return fallback;
 	try {
 		const target = new URL(raw, 'https://facet.invalid');
 		// Require the literal collection path, rejecting normalized dot segments.
-		if (raw.split('?')[0] !== paths[kind] || target.origin !== 'https://facet.invalid' || target.hash) return fallback;
+		if (
+			raw.split('?')[0] !== paths[kind] ||
+			target.origin !== 'https://facet.invalid' ||
+			target.hash
+		)
+			return fallback;
 		const key = filterKeys[kind];
 		for (const name of target.searchParams.keys()) {
-			if ((name !== 'from' && name !== key) || target.searchParams.getAll(name).length !== 1) return fallback;
+			if ((name !== 'from' && name !== key) || target.searchParams.getAll(name).length !== 1)
+				return fallback;
 		}
 		const rawFrom = target.searchParams.get('from');
 		return discoveryCollectionHref(kind, {
@@ -75,10 +100,19 @@ export function discoveryReturnHref(kind: PublishingKind, search: Search, fromVi
 }
 
 type Translate = (key: string, options?: { values: Record<string, string> }) => string;
-export function discoveryDetailBack(kind: PublishingKind, search: Search, fromView: string | null, translate: Translate) {
+export function discoveryDetailBack(
+	kind: PublishingKind,
+	search: Search,
+	fromView: string | null,
+	translate: Translate
+) {
 	const href = discoveryReturnHref(kind, search, fromView);
 	const from = navigationFacet(fromView);
-	const destination = href === '/' ? translate('public.nav.home')
-		: from && href === `/${from}` ? from : translate(`public.sections.${paths[kind].slice(1)}`);
+	const destination =
+		href === '/'
+			? translate('public.nav.home')
+			: from && href === `/${from}`
+				? from
+				: translate(`public.sections.${paths[kind].slice(1)}`);
 	return { href, label: translate('public.nav.back_to', { values: { page: destination } }) };
 }

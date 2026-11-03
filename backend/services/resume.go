@@ -357,6 +357,19 @@ func (r *ResumeService) convertToDOCX(markdown string) ([]byte, error) {
 	return r.runPandoc(markdown, "docx")
 }
 
+// The resume markdown comes from an AI model, and visitors write part of its
+// prompt, so treat it as untrusted. Pandoc normally passes raw TeX, raw
+// blocks and TeX math straight to LaTeX, where \input{/some/file} would print
+// a server file into the PDF. With these extensions off, pandoc escapes them
+// and they appear as plain text.
+const pandocInputFormat = "markdown-raw_tex-raw_attribute-raw_html-tex_math_dollars-tex_math_single_backslash-tex_math_double_backslash"
+
+// pandocEnv also limits the LaTeX engine: kpathsea's paranoid mode refuses
+// absolute paths, parent directories and dotfiles, and shell escape is off.
+func pandocEnv() []string {
+	return append(os.Environ(), "openin_any=p", "openout_any=p", "shell_escape=f")
+}
+
 // runPandoc executes Pandoc to convert markdown to the target format
 func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error) {
 	// Check if Pandoc is available
@@ -393,6 +406,10 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 	// Build Pandoc command
 	args := []string{
 		tmpIn.Name(),
+		"-f", pandocInputFormat,
+		// The sandbox stops pandoc itself reading local files, such as an
+		// image path it would otherwise embed in a DOCX.
+		"--sandbox",
 		"-o", tmpOut,
 		"-V", "geometry:margin=0.75in",
 		"-V", "fontsize=11pt",
@@ -440,6 +457,7 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 	}
 
 	cmd := exec.Command("pandoc", args...)
+	cmd.Env = pandocEnv()
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -479,6 +497,7 @@ func (r *ResumeService) runPandoc(markdown string, format string) ([]byte, error
 			)
 
 			cmd = exec.Command("pandoc", args...)
+			cmd.Env = pandocEnv()
 			stderr.Reset()
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {

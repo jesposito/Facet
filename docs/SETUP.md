@@ -1,486 +1,199 @@
-# Facet Setup Guide
+# Install Facet and sign in
 
-This guide walks you through setting up Facet for the first time.
+This page gets one Facet instance running and gets you into the admin dashboard. It covers the published Docker image (the usual choice), building from source, and Unraid. Once it works on your own network, [Putting Facet on the internet](SELF-HOSTING-GUIDE.md) covers domains, HTTPS and Google/GitHub sign-in.
 
-## Prerequisites
+## What you need
 
-- Docker and Docker Compose
-- A domain (optional, recommended for production)
-- ~512MB RAM
+- A machine that can run Docker: a Linux server, NAS, Raspberry Pi (64-bit OS), Mac or Windows with Docker Desktop. Published images are built for `linux/amd64` and `linux/arm64` ([workflow](../.github/workflows/docker-publish.yml)).
+- Docker with the Compose plugin (`docker compose`). The older `docker-compose` command also works if that's what you have.
+- Some disk space. The image is fairly large because it bundles Pandoc and LaTeX for AI resume PDFs ([Dockerfile](../docker/Dockerfile)). Your own data starts small and grows with uploads.
 
-## Quick Start
+You don't need Go, Node.js or a database server. Everything runs inside one container.
 
-### 1. Clone the Repository
+## What runs inside the container
+
+One container runs three processes ([start script](../docker/start.sh)):
+
+- **Caddy** listens on port `8080` and is the only thing exposed.
+- **SvelteKit** (Node.js) renders pages on internal port `3000`.
+- **PocketBase** (the Go backend, with SQLite) serves the API on internal port `8090`.
+
+Two folders hold everything you care about:
+
+| Container path | What's in it | Why it matters |
+|----------------|--------------|----------------|
+| `/data` | SQLite database, settings, built-in backup archives, and `.encryption_key` if Facet generated one | Small but critical. Losing it loses your site. |
+| `/uploads` | Uploaded images, documents and generated files | Can grow large. Back it up alongside `/data`. |
+
+## Option 1: published image with Docker Compose (recommended)
+
+The `docker-compose.yml` at the root of this repository builds the image from source. To use the published image instead, create a folder with two files.
+
+```bash
+mkdir -p ~/facet && cd ~/facet
+```
+
+**`docker-compose.yml`**
+
+```yaml
+services:
+  facet:
+    image: ghcr.io/jesposito/facet:3
+    container_name: facet
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - ${DATA_PATH:-./data}:/data
+      - ${UPLOADS_PATH:-./uploads}:/uploads
+    environment:
+      # Core
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1/32}
+      ADMIN_ENABLED: ${ADMIN_ENABLED:-false}
+      # Optional sign-in providers
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      # Optional email
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_TLS: ${SMTP_TLS:-}
+      SMTP_AUTH_METHOD: ${SMTP_AUTH_METHOD:-}
+      SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-}
+      SMTP_SENDER_ADDRESS: ${SMTP_SENDER_ADDRESS:-}
+      # Optional AI provider (or add one in the admin UI instead)
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+      # Optional built-in backup schedule
+      BACKUP_HOUR: ${BACKUP_HOUR:-}
+      BACKUP_MAX_COUNT: ${BACKUP_MAX_COUNT:-}
+```
+
+The environment block lists each variable on purpose. Avoid `env_file: .env` here: `.env` contains `PORT`, and the container already uses `PORT` internally for the SvelteKit server, so passing yours through would make it collide with Caddy. Every variable is explained in the [configuration reference](CONFIGURATION.md).
+
+**`.env`** (in the same folder)
+
+```env
+# The address you'll type into your browser, with no trailing slash.
+APP_URL=http://localhost:8080
+
+# Your email. This becomes the first account and the only one allowed to sign in.
+ADMIN_EMAILS=you@example.com
+
+# Where your data lives on the host.
+DATA_PATH=./data
+UPLOADS_PATH=./uploads
+```
+
+Then start it:
+
+```bash
+docker compose up -d
+docker compose logs -f facet
+```
+
+The log prints a banner with the version, the storage location and the default login. When you see `Facet is running!`, press Ctrl+C to stop following the log (the container keeps running) and open `http://localhost:8080`.
+
+The `:3` tag follows the latest 3.x release. You can pin an exact release (for example `:3.6.0`) or use `:latest`. [Upgrades](UPGRADE.md#choosing-an-image-tag) explains the trade-off.
+
+## Option 2: a single `docker run`
+
+For a quick look on your own computer:
+
+```bash
+docker run -d --name facet -p 8080:8080 \
+  -v facet-data:/data \
+  -v facet-uploads:/uploads \
+  -e APP_URL=http://localhost:8080 \
+  -e ADMIN_EMAILS=you@example.com \
+  ghcr.io/jesposito/facet:3
+```
+
+Both folders are named Docker volumes, so they survive `docker rm`. Don't add `--rm` and don't leave out the `/uploads` mount. The image declares `/uploads` as a volume, so without a named mount Docker creates an anonymous one, and anonymous volumes are easy to lose.
+
+## Option 3: build from source with the repository's Compose file
+
+Use this if you want to run unreleased code or change the source.
 
 ```bash
 git clone https://github.com/jesposito/Facet.git
 cd Facet
-```
-
-### 2. Configure Environment
-
-```bash
 cp .env.example .env
+# edit .env: set APP_URL and ADMIN_EMAILS at minimum
+docker compose up -d --build
 ```
 
-Edit `.env` and set at minimum:
+`make prod` runs `docker compose up -d` and `make prod-down` stops it ([Makefile](../Makefile)).
 
-```env
-# Your admin email (for login)
-ADMIN_EMAILS=you@example.com
+The repository's [`docker-compose.yml`](../docker-compose.yml) passes through most variables in `.env.example`, including OAuth, SMTP, AI, Stripe, backup and proxy settings. It doesn't pass `FACET_FEATURE_COURSES` or `FACET_MANAGED`; add them to its `environment:` list if you need them ([Configuration](CONFIGURATION.md#does-the-variable-reach-the-container)).
 
-# Optional: Set your own encryption key (if not set, one is auto-generated and saved to /data/.encryption_key)
-# ENCRYPTION_KEY=your-32-byte-hex-key-here
-```
+## Option 4: Unraid
 
-### 3. Start the Container
+Facet is listed in Unraid Community Applications. Open **Apps**, search for **Facet**, and install it. The template is maintained in [jesposito/unraid_templates](https://github.com/jesposito/unraid_templates); see [unraid/README.md](../unraid/README.md) for the direct template URL.
 
-```bash
-docker-compose up -d
-```
+When you fill in the template:
 
-By default, the database and uploads are stored at `./data` on the host (mapped to `/data` in the container). Set `DATA_PATH=/absolute/host/path` in your `.env` if you want them elsewhere, and ensure that path is persisted/backed up.
+- Map `/data` to `/mnt/user/appdata/facet` and `/uploads` to wherever you keep larger files, for example `/mnt/user/appdata/facet/uploads`.
+- Set **ADMIN_EMAILS** to your email address.
+- Set **APP_URL** to the address you'll use, such as `http://tower.local:8080` on your network or `https://facet.example.com` behind a tunnel.
+- Set **TRUST_PROXY** to `true` only if traffic reaches Facet through a reverse proxy or tunnel. See [Configuration](CONFIGURATION.md#trust_proxy).
 
-### 4. Access Facet
+The container honours `PUID` and `PGID` (both default to `1000`) so files in your appdata share are owned by the user you choose. To include Facet in Unraid's appdata backups, make sure both mapped folders are covered. [Backups](UPGRADE.md#back-up-your-data) explains what each folder contains.
 
-- **Public profile**: `http://localhost:8080`
-- **Admin dashboard**: `http://localhost:8080/admin`
+## First login
 
-### 5. First Login
-
-For development, a default admin account is created automatically:
-
-| Email | Password |
-|-------|----------|
-| `admin@example.com` | `changeme123` |
-
-**Security Note**: On your first login with the default password, you'll be prompted to change it immediately. The modal cannot be dismissed until you set a secure password.
-
-**Resetting Admin Password**: If you forget your password or need to reset it to default:
-
-```bash
-# From your Docker container
-docker exec -it facet /app/facet reset-admin-password
-
-# Or specify a different email
-docker exec -it facet /app/facet reset-admin-password admin@yourdomain.com
-```
-
-This resets the password to `changeme123` and the user will be prompted to change it on next login.
-
-### 6. Try Demo Mode (Optional)
-
-Not sure where to start? After logging in, load **Demo Data** from **Admin → Settings → Demo Data** to instantly load Merlin Ambrosius's Arthurian-themed profile showcasing all features:
-
-- Multiple views for different audiences (recruiter, conference, consulting, personal, academic)
-- Blog posts and talks
-- Projects, experience, certifications, testimonials, and more
-- Features demonstrated: media embeds, different layouts, privacy controls
-
-**Your data is safe:** When you toggle demo mode ON, your original data is backed up. Toggle it OFF to restore your data exactly as it was (or keep the demo data as your starting point if you prefer).
-
-**Perfect for:**
-- Exploring what a complete profile looks like
-- Understanding how views and privacy controls work
-- Seeing examples of well-written content
-- Learning the interface before building your own profile
-
----
-
-## Authentication Options
-
-### Password Login (Default)
-
-Password authentication works out of the box. Add your email to `ADMIN_EMAILS` to authorize your account:
-
-```env
-ADMIN_EMAILS=you@example.com
-```
-
-### OAuth Login (Google/GitHub)
-
-Configure OAuth without opening the PocketBase admin UI by setting environment variables:
-
-```env
-# Required when enabling OAuth
-APP_URL=https://facet.yourdomain.com
-
-# Google
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-
-# GitHub
-GITHUB_CLIENT_ID=your-client-id
-GITHUB_CLIENT_SECRET=your-client-secret
-```
-
-On startup, Facet will automatically enable the providers you configure and the login page will only show available buttons.
-
-#### Getting OAuth Credentials
-
-**Google OAuth:**
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project (or select existing)
-3. Go to APIs & Services → Credentials
-4. Click "Create Credentials" → "OAuth 2.0 Client ID"
-5. Choose "Web application"
-6. Add authorized redirect URI: `https://yourdomain.com/api/oauth2-redirect`
-7. Save your Client ID and Client Secret
-
-**GitHub OAuth:**
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Click "New OAuth App"
-3. Fill in:
-   - Application name: Facet
-   - Homepage URL: https://yourdomain.com
-   - Authorization callback URL: `https://yourdomain.com/api/oauth2-redirect`
-4. Save your Client ID and Client Secret
-
----
-
-## Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `ENCRYPTION_KEY` | No | Auto-generated | 32-byte hex key (`openssl rand -hex 32`). If not set, auto-generated and saved to `/data/.encryption_key` |
-| `PORT` | No | `8080` | Public port |
-| `APP_URL` | No | `http://localhost:8080` | Your public URL |
-| `TRUST_PROXY` | No | `false` | Set `true` behind reverse proxy |
-| `ADMIN_EMAILS` | No | — | Comma-separated email allowlist |
-| `DATA_PATH` | No | `./data` | Database and uploads directory |
-| `UPLOADS_PATH` | No | `./uploads` | Upload file storage directory |
-| `ADMIN_ENABLED` | No | `false` | Enable PocketBase admin UI at `/_/` |
-| `SEED_DATA` | No | — | Seed mode: `dev` for development profile |
-| `SMTP_HOST` | No | — | SMTP server for email notifications |
-| `SMTP_PORT` | No | `587` | SMTP server port |
-| `SMTP_USERNAME` | No | — | SMTP authentication username |
-| `SMTP_PASSWORD` | No | — | SMTP authentication password |
-| `SMTP_TLS` | No | `true` | Enable TLS for SMTP |
-| `SMTP_SENDER_NAME` | No | `Facet` | Display name for outgoing emails |
-| `SMTP_SENDER_ADDRESS` | No | — | From address for outgoing emails |
-
----
-
-## Email Notifications (SMTP)
-
-Facet can send email notifications when testimonials are submitted and verification emails to testimonial submitters. Configure SMTP either via environment variables or in the admin UI at `/admin/settings/site`.
-
-### Option 1: Environment Variables
-
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=you@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_TLS=true
-SMTP_SENDER_NAME=Facet
-SMTP_SENDER_ADDRESS=noreply@yourdomain.com
-```
-
-### Option 2: Admin UI
-
-1. Go to Admin → Settings → Site Settings
-2. Scroll to the SMTP Configuration section
-3. Enter your SMTP server details
-4. Click "Send Test Email" to verify the configuration
-5. Save
-
-### Gmail Setup
-
-1. Enable 2-Step Verification on your Google account
-2. Generate an App Password: https://myaccount.google.com/apppasswords
-3. Use the app password (not your regular password) as `SMTP_PASSWORD`
-
-### What Gets Sent
-
-- **Admin notifications**: Styled HTML email when a new testimonial is submitted (sent to all admin emails)
-- **Verification emails**: When a testimonial submitter opts to verify their email address (15-minute expiry link)
-
-Emails support i18n — the language matches your site's configured locale (Settings → Site Settings → Default Locale).
-
----
-
-## AI Providers (Bring Your Own Key)
-
-Facet's AI features (resume parsing, the writing assistant, GitHub project enrichment, AI Print) are **bring-your-own-key**. Nothing is metered or billed by Facet — you supply your own credentials for OpenAI, Anthropic, or any OpenAI-compatible endpoint (including a local Ollama instance).
-
-Configure providers in the admin UI at **Admin → Settings → Integrations**, or pre-seed one at startup via environment variables:
-
-```env
-# Anthropic Claude
-ANTHROPIC_API_KEY=sk-ant-...
-
-# OpenAI
-OPENAI_API_KEY=sk-...
-
-# Ollama (local, no API key needed)
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2
-```
-
-If you skip this entirely, the AI panels simply don't appear. Facet works fully without AI. Provider keys are encrypted at rest with AES-256-GCM.
-
----
-
-## More Integrations
-
-These features are configured entirely from the admin UI once Facet is running:
-
-- **Public REST API + API keys** — `/admin/api` (build scripts against `/api/v1/*`)
-- **Webhooks** — `/admin/settings/webhooks` (POST a JSON envelope on post/comment/newsletter events)
-- **Newsletter** — `/admin/newsletter` (lists, broadcasts, subscribe flow)
-- **Comments moderation** — `/admin/comments`
-- **System alerts** — `/admin/alerts`
-- **TOTP 2FA** — `/admin/settings/account`
-
-See the [Self-Hosting Guide](SELF-HOSTING-GUIDE.md) for worked examples of the API and webhooks.
-
----
-
-## Reverse Proxy Setup
-
-### Cloudflare Tunnel
-
-1. Install cloudflared on your server
-2. Create a tunnel: `cloudflared tunnel create facet`
-3. Configure tunnel to point to `localhost:8080`
-4. Set in `.env`:
-   ```env
-   TRUST_PROXY=true
-   APP_URL=https://profile.yourdomain.com
-   ```
-
-### Nginx Proxy Manager
-
-1. Add a new proxy host
-2. Domain: profile.yourdomain.com
-3. Forward to: your-server-ip:8080
-4. Enable SSL
-5. Set in `.env`:
-   ```env
-   TRUST_PROXY=true
-   APP_URL=https://profile.yourdomain.com
-   ```
-
-### Traefik
-
-Add labels to `docker-compose.yml`:
-
-```yaml
-labels:
-  - "traefik.enable=true"
-  - "traefik.http.routers.facet.rule=Host(`profile.yourdomain.com`)"
-  - "traefik.http.routers.facet.entrypoints=websecure"
-  - "traefik.http.services.facet.loadbalancer.server.port=8080"
-```
-
----
-
-## Unraid Setup
-
-Facet works great on Unraid! You can install it via Community Applications or manually with Docker Compose.
-
-### Method 1: Community Applications (Recommended)
-
-1. **Install from Community Applications**
-   - Open Unraid WebUI
-   - Go to Apps tab
-   - Search for "Facet"
-   - Click Install
-
-2. **Configure Required Settings**
-   - **Port**: Leave as 8080 (or change if needed)
-   - **Data Path**: Default `/mnt/user/appdata/facet` (recommended)
-   - **Encryption Key**: Generate with `openssl rand -hex 32` in Unraid terminal
-     - SSH into Unraid: `ssh root@tower`
-     - Run: `openssl rand -hex 32`
-     - Copy the output
-   - **Admin Emails**: Your email address (e.g., `you@gmail.com`)
-   - **App URL**:
-     - Local only: `http://tower.local:8080`
-     - With Cloudflare Tunnel: `https://facet.yourdomain.com`
-
-3. **Optional: Enable OAuth Login**
-   - Expand "Show more settings"
-   - Enter Google or GitHub OAuth credentials (see OAuth section above)
-
-4. **Start the Container**
-   - Click "Apply"
-   - Wait for container to start
-
-5. **Access Facet**
-   - Local: `http://tower:8080`
-   - Or your configured domain
-
-### Method 2: Docker Compose
-
-1. **Prepare Directory**
+1. Open `/admin` on the address you set as `APP_URL`, for example `http://localhost:8080/admin`.
+2. On the first start with an empty database, Facet writes the email and random password to `/data/.admin-credentials` with mode `0600`. The startup log prints the exact file path, never the password. Read the file as the container's `facet` user:
    ```bash
-   mkdir -p /mnt/user/appdata/facet
-   cd /mnt/user/appdata/facet
+   docker exec -u facet facet cat /data/.admin-credentials
    ```
-
-2. **Create .env file**
+3. Sign in with:
+   - **Email:** the first address in `ADMIN_EMAILS`. If you left `ADMIN_EMAILS` empty, it's `admin@example.com`.
+   - **Password:** the one from the credentials file
+4. Change the password under **Settings**, then delete the private handoff file:
    ```bash
-   # Create .env file (encryption key is auto-generated if not set)
-   cat > .env << 'EOF'
-   DATA_PATH=/mnt/user/appdata/facet
-   APP_URL=http://tower.local:8080
-   TRUST_PROXY=false
-   ADMIN_EMAILS=your@email.com
-   PORT=8080
-   EOF
+   docker exec -u facet facet rm /data/.admin-credentials
    ```
 
-   > **Note:** The encryption key is automatically generated on first start and saved to `/data/.encryption_key`. Make sure your `/data` directory (i.e., `/mnt/user/appdata/facet`) is included in your Unraid backups. If you prefer to set it manually, add `ENCRYPTION_KEY=your-key-here` to the `.env` file.
+If you lost the credentials file, run `reset-admin-password` to create a new one ([Locked out](UPGRADE.md#locked-out)).
 
-3. **Create docker-compose.yml**
-   ```bash
-   wget https://raw.githubusercontent.com/jesposito/Facet/main/docker-compose.yml
-   ```
+The account is created only once, the first time Facet starts with an empty database ([seed code](../backend/hooks/seed.go)). Changing `ADMIN_EMAILS` later doesn't rename it, and the admin dashboard has no email-change screen. If you edit `ADMIN_EMAILS`, keep the account's original address in the comma-separated list, or you'll lock yourself out of password sign-in. [Recovery](UPGRADE.md#locked-out) covers what to do if that happens.
 
-4. **Start Container**
-   ```bash
-   docker-compose up -d
-   ```
+> **Set `ADMIN_EMAILS` before anyone else can reach Facet.** When it's empty, every account in Facet's `users` table can sign in with a password and has full control. [Security](SECURITY.md#who-can-sign-in) explains why.
 
-5. **Check Logs**
-   ```bash
-   docker-compose logs -f facet
-   ```
+## The encryption key
 
-### Unraid + Cloudflare Tunnel (Secure Remote Access)
+Facet encrypts AI provider keys, the GitHub token, Stripe secrets and two-factor secrets with a key you never have to type ([start script](../docker/start.sh)):
 
-For secure remote access without opening ports:
+1. If `ENCRYPTION_KEY` is set, Facet uses it. It must be at least 32 characters. Generate one with `openssl rand -hex 32`.
+2. Otherwise, if `/data/.encryption_key` exists, Facet reads it.
+3. Otherwise, Facet generates a key and saves it to `/data/.encryption_key` with mode 600. The key itself is never printed to the log. An existing key file is never overwritten.
 
-1. **Install Cloudflare Tunnel on Unraid**
-   - Install "cloudflared" from Community Applications
-   - Or follow [Cloudflare's Unraid guide](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
+If `/data/.encryption_key` exists but is empty, the container stops with an error instead of quietly making a new key. Restore the file from a backup, or delete it if you really want a fresh key.
 
-2. **Create Tunnel**
-   ```bash
-   cloudflared tunnel create facet
-   ```
+The automatic key lives inside `/data`, so a complete backup of `/data` includes it. If you lose the key, stored secrets have to be entered again and existing share links and API keys stop working. Your profile and content aren't affected ([details](UPGRADE.md#lost-encryption-key)). If you'd rather keep the key outside the data folder, set `ENCRYPTION_KEY` yourself and store it in a password manager.
 
-3. **Configure Tunnel**
-   - Point tunnel to `http://172.17.0.x:8080` (your Facet container IP)
-   - Get container IP: `docker inspect facet | grep IPAddress`
+## Your first ten minutes
 
-4. **Update Facet Settings**
-   In Unraid WebUI or .env:
-   ```env
-   APP_URL=https://facet.yourdomain.com
-   TRUST_PROXY=true
-   ```
+- **Profile:** add your name, headline and photo under **Profile**.
+- **Content:** fill in **Experience**, **Projects** and the other sections, or upload a résumé under **Import & AI** if you've [set up an AI provider](AI_FEATURES.md).
+- **Views:** create a view for each audience under **Views**. [Features](FEATURES.md#views) explains how views work.
+- **Try the demo:** the demo toggle in the admin header loads a sample profile so you can see a full site. Your own content is kept separately and comes back when you switch the demo off. While the demo is on, your public pages show the demo profile too ([Features](FEATURES.md#demo-mode)).
+- **Two-factor sign-in:** turn it on in **Account & Security**.
+- **Email:** if you want newsletters or email notifications, set up your own SMTP server with a sender address, and set `APP_URL` to your public address. Self-hosted Facet sends all email through that server only. A successful test means the server accepted it; check that it actually arrives ([Newsletter](AUDIENCE.md#before-you-start)).
+- **Backups:** read [Upgrades, backups and recovery](UPGRADE.md) before you put real work into Facet.
 
-5. **Add DNS Record**
-   - In Cloudflare dashboard, add CNAME for `facet.yourdomain.com` → your tunnel
+## Where to go next
 
-### Unraid Backup
-
-**Method 1: CA Backup Plugin (Recommended)**
-1. Install "CA Backup / Restore Appdata" from Community Applications
-2. Add `/mnt/user/appdata/facet` to backup list
-3. Schedule regular backups
-
-**Method 2: Manual Backup**
-```bash
-# Backup
-cd /mnt/user/appdata
-tar -czvf facet-backup-$(date +%Y%m%d).tar.gz facet/
-
-# Restore
-tar -xzvf facet-backup-20241203.tar.gz
-```
-
-**What to back up:**
-- `/mnt/user/appdata/facet/pb_data/` - Your database and PocketBase data
-- `/mnt/user/appdata/facet/data/pb_data/storage` - Your uploads
-- `.env` file - Your configuration
-
-### Unraid Troubleshooting
-
-**Container won't start:**
-```bash
-# Check logs
-docker logs facet
-
-# Check if port is in use
-netstat -tulpn | grep 8080
-
-# Verify encryption key is set
-docker exec facet env | grep ENCRYPTION_KEY
-```
-
-**Can't access from other devices:**
-- Check Unraid firewall settings
-- Verify container is running: `docker ps | grep facet`
-- Check container network: `docker inspect facet | grep IPAddress`
-
-**Share tokens not working behind reverse proxy:**
-- Ensure `TRUST_PROXY=true` is set
-- Check reverse proxy forwards `X-Forwarded-*` headers
-- Verify `APP_URL` matches your actual domain
-
-**Database locked errors:**
-- Stop container: `docker stop facet`
-- Check for zombie processes: `lsof | grep data.db`
-- Start container: `docker start facet`
-
----
-
-## First Steps After Setup
-
-1. **Edit your profile**: Go to Admin → Profile
-2. **Add experience**: Admin → Experience → Add
-3. **Import projects**: Admin → Import → Enter GitHub repo
-4. **Create views**: Admin → Views → Create view for specific audiences
-5. **Generate share links**: Admin → Views → (select view) → Share Tokens
-6. **Configure email** (optional): Admin → Settings → Site Settings → SMTP Configuration
-
----
-
-## Backup
-
-Everything lives in one directory:
-
-```bash
-# Stop, backup, restart
-docker-compose down
-tar -czvf facet-backup-$(date +%Y%m%d).tar.gz ./data
-docker-compose up -d
-```
-
----
-
-## Troubleshooting
-
-### "Connection refused" errors
-
-Check that the container started:
-```bash
-docker-compose logs facet
-```
-
-### OAuth redirects failing
-
-Ensure `APP_URL` in `.env` matches your actual domain and OAuth redirect URIs.
-
-### Uploads not persisting
-
-Check volume permissions:
-```bash
-ls -la ./data/
-```
-
-The container runs as UID 1000. Ensure the data directory is writable.
-
-### Need to reset everything
-
-```bash
-docker-compose down
-rm -rf ./data/*
-docker-compose up -d
-```
-
-Then set up admin account again.
+- [Putting Facet on the internet](SELF-HOSTING-GUIDE.md): domain, HTTPS, reverse proxy, tunnels, OAuth
+- [Configuration reference](CONFIGURATION.md): every environment variable
+- [Troubleshooting](TROUBLESHOOTING.md): when something doesn't start or sign-in fails

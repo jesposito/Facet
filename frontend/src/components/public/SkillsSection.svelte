@@ -10,7 +10,13 @@
 		categoryDisplayModes?: Record<string, string>;
 	}
 
-	let { items, layout = 'grouped', categoryOrder, disabledCategories, categoryDisplayModes }: Props = $props();
+	let {
+		items,
+		layout = 'grouped',
+		categoryOrder,
+		disabledCategories,
+		categoryDisplayModes
+	}: Props = $props();
 
 	// Get the effective layout for a category (per-category override or section default)
 	function getCategoryLayout(category: string): string {
@@ -20,20 +26,25 @@
 	// Filter out skills from disabled categories
 	let filteredItems = $derived.by(() => {
 		if (!disabledCategories?.length) return items;
-		return items.filter(skill => {
+		return items.filter((skill) => {
 			const category = skill.category || 'Other';
 			return !disabledCategories.includes(category);
 		});
 	});
 
-	let groupedSkills = $derived(filteredItems.reduce((acc, skill) => {
-		const category = skill.category || 'Other';
-		if (!acc[category]) {
-			acc[category] = [];
-		}
-		acc[category].push(skill);
-		return acc;
-	}, {} as Record<string, Skill[]>));
+	let groupedSkills = $derived(
+		filteredItems.reduce(
+			(acc, skill) => {
+				const category = skill.category || 'Other';
+				if (!acc[category]) {
+					acc[category] = [];
+				}
+				acc[category].push(skill);
+				return acc;
+			},
+			{} as Record<string, Skill[]>
+		)
+	);
 
 	let orderedCategories = $derived.by(() => {
 		const allCategories = Object.keys(groupedSkills);
@@ -69,9 +80,12 @@
 	// user-chosen accent_hue. Accent is used only in border + bg tint where opacity
 	// keeps it from impacting readability of the text on top.
 	const proficiencyColors: Record<string, string> = {
-		expert: 'bg-primary-50 dark:bg-primary-500/15 text-stone-900 dark:text-stone-100 border border-primary-300/70 dark:border-primary-400/40 font-semibold',
-		proficient: 'bg-stone-100 dark:bg-stone-700/40 text-stone-800 dark:text-stone-200 border border-stone-200/60 dark:border-stone-500/30 font-medium',
-		familiar: 'bg-stone-50 dark:bg-stone-700/30 text-stone-600 dark:text-stone-300 border border-stone-200/40 dark:border-stone-600/25'
+		expert:
+			'bg-primary-50 dark:bg-primary-500/15 text-stone-900 dark:text-stone-100 border border-primary-300/70 dark:border-primary-400/40 font-semibold',
+		proficient:
+			'bg-stone-100 dark:bg-stone-700/40 text-stone-800 dark:text-stone-200 border border-stone-200/60 dark:border-stone-500/30 font-medium',
+		familiar:
+			'bg-stone-50 dark:bg-stone-700/30 text-stone-600 dark:text-stone-300 border border-stone-200/40 dark:border-stone-600/25'
 	};
 
 	const proficiencyBarColors: Record<string, string> = {
@@ -111,9 +125,13 @@
 			<div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-3">
 				{#each orderedItems as skill, index (skill.id)}
 					<span
-						class="{cloudSizes[skill.proficiency || 'familiar']} text-stone-700 dark:text-stone-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default animate-fade-in opacity-0"
+						class="{cloudSizes[
+							skill.proficiency || 'familiar'
+						]} text-stone-700 dark:text-stone-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors cursor-default animate-fade-in opacity-0"
 						style="animation-delay: {index * 20}ms; animation-fill-mode: forwards;"
-						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
+						title={skill.proficiency
+							? `${skill.category || 'Skill'} - ${skill.proficiency}`
+							: skill.category}
 						itemprop="knowsAbout"
 					>
 						{skill.name}
@@ -121,16 +139,19 @@
 				{/each}
 			</div>
 		</div>
-
 	{:else if layout === 'flat'}
 		<!-- Flat List Layout -->
 		<div class="card p-6 animate-fade-in">
 			<div class="flex flex-wrap gap-2">
 				{#each orderedItems as skill, index (skill.id)}
 					<span
-						class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors duration-150 {proficiencyColors[skill.proficiency || 'familiar']} animate-fade-in opacity-0"
+						class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors duration-150 {proficiencyColors[
+							skill.proficiency || 'familiar'
+						]} animate-fade-in opacity-0"
 						style="animation-delay: {index * 20}ms; animation-fill-mode: forwards;"
-						title={skill.proficiency ? `${skill.category || 'Skill'} - ${skill.proficiency}` : skill.category}
+						title={skill.proficiency
+							? `${skill.category || 'Skill'} - ${skill.proficiency}`
+							: skill.category}
 						itemprop="knowsAbout"
 					>
 						{skill.name}
@@ -145,7 +166,6 @@
 				{/each}
 			</div>
 		</div>
-
 	{:else}
 		<!-- Per-category rendering with support for mixed layouts (grouped/bars) -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -156,15 +176,24 @@
 				{#if categoryLayout === 'bars'}
 					<!-- Bars layout for this category -->
 					<div class="card p-6 animate-fade-in relative overflow-hidden">
-						<div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500/60 via-primary-400/40 to-transparent" aria-hidden="true"></div>
+						<div
+							class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500/60 via-primary-400/40 to-transparent"
+							aria-hidden="true"
+						></div>
 						<h3 class="text-lg font-semibold text-stone-900 dark:text-white mb-4">
 							{category}
 						</h3>
 						<div class="space-y-4">
 							{#each skills as skill, skillIndex (skill.id)}
-								<div class="animate-fade-in opacity-0" style="animation-delay: {skillIndex * 40}ms; animation-fill-mode: forwards;">
+								<div
+									class="animate-fade-in opacity-0"
+									style="animation-delay: {skillIndex * 40}ms; animation-fill-mode: forwards;"
+								>
 									<div class="flex items-center justify-between mb-1">
-										<span class="text-sm font-medium text-stone-700 dark:text-stone-300" itemprop="knowsAbout">
+										<span
+											class="text-sm font-medium text-stone-700 dark:text-stone-300"
+											itemprop="knowsAbout"
+										>
 											{skill.name}
 										</span>
 										{#if skill.proficiency}
@@ -173,9 +202,13 @@
 											</span>
 										{/if}
 									</div>
-									<div class="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
+									<div
+										class="w-full h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden"
+									>
 										<div
-											class="h-full rounded-full transition-all duration-500 {proficiencyBarColors[skill.proficiency || 'familiar']} {proficiencyWidth[skill.proficiency || 'familiar']}"
+											class="h-full rounded-full transition-all duration-500 {proficiencyBarColors[
+												skill.proficiency || 'familiar'
+											]} {proficiencyWidth[skill.proficiency || 'familiar']}"
 										></div>
 									</div>
 								</div>
@@ -185,14 +218,19 @@
 				{:else}
 					<!-- Grouped (badges) layout for this category (default) -->
 					<div class="card p-6 animate-fade-in relative overflow-hidden">
-						<div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500/60 via-primary-400/40 to-transparent" aria-hidden="true"></div>
+						<div
+							class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500/60 via-primary-400/40 to-transparent"
+							aria-hidden="true"
+						></div>
 						<h3 class="text-lg font-semibold text-stone-900 dark:text-white mb-4">
 							{category}
 						</h3>
 						<div class="flex flex-wrap gap-2">
 							{#each skills as skill, skillIndex (skill.id)}
 								<span
-									class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors duration-150 {proficiencyColors[skill.proficiency || 'familiar']} animate-fade-in opacity-0"
+									class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full transition-colors duration-150 {proficiencyColors[
+										skill.proficiency || 'familiar'
+									]} animate-fade-in opacity-0"
 									style="animation-delay: {skillIndex * 20}ms; animation-fill-mode: forwards;"
 									title={skill.proficiency ? `Proficiency: ${skill.proficiency}` : undefined}
 									itemprop="knowsAbout"

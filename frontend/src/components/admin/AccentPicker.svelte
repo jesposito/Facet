@@ -57,7 +57,9 @@
 	// Index of the swatch that owns the radiogroup's tabstop.
 	// When a custom hex is active, no swatch is checked but roving tabindex still
 	// needs exactly one tabstop — fall back to the position of the named value or 0.
-	const focusedIndex = $derived(ACCENT_COLOR_LIST.indexOf(value) >= 0 ? ACCENT_COLOR_LIST.indexOf(value) : 0);
+	const focusedIndex = $derived(
+		ACCENT_COLOR_LIST.indexOf(value) >= 0 ? ACCENT_COLOR_LIST.indexOf(value) : 0
+	);
 
 	function normalizeHex(raw: string): string {
 		const trimmed = raw.trim();
@@ -75,7 +77,9 @@
 			hexError = '';
 			onhexchange?.('');
 		}
-		announce = $t('admin.accent_picker.announced_curated', { values: { name: ACCENT_COLORS[color].label } });
+		announce = $t('admin.accent_picker.announced_curated', {
+			values: { name: ACCENT_COLORS[color].label }
+		});
 		onchange?.(color);
 	}
 
@@ -125,7 +129,9 @@
 		hexCommitted = false;
 		hexError = '';
 		value = DEFAULT_ACCENT_COLOR;
-		announce = $t('admin.accent_picker.announced_curated', { values: { name: ACCENT_COLORS[DEFAULT_ACCENT_COLOR].label } });
+		announce = $t('admin.accent_picker.announced_curated', {
+			values: { name: ACCENT_COLORS[DEFAULT_ACCENT_COLOR].label }
+		});
 		onhexchange?.('');
 		onchange?.(DEFAULT_ACCENT_COLOR);
 	}
@@ -133,7 +139,7 @@
 	// WAI-ARIA APG radio pattern keyboard handler
 	async function handleSwatchKeyDown(e: KeyboardEvent) {
 		const last = ACCENT_COLOR_LIST.length - 1;
-		let next = focusedIndex;
+		let next: number;
 		switch (e.key) {
 			case 'ArrowRight':
 			case 'ArrowDown':
@@ -190,7 +196,13 @@
 			>
 				{#if isCheckedSwatch}
 					<div class="absolute inset-0 flex items-center justify-center">
-						<svg class="w-5 h-5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+						<svg
+							class="w-5 h-5 text-white drop-shadow"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="3"
+						>
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 						</svg>
 					</div>
@@ -203,7 +215,10 @@
 	<div class="flex flex-wrap gap-3">
 		{#each ACCENT_COLOR_LIST as color}
 			<span
-				class="w-12 text-center text-xs text-gray-600 dark:text-gray-400 {!hexCommitted && value === color ? 'font-semibold' : ''}"
+				class="w-12 text-center text-xs text-gray-600 dark:text-gray-400 {!hexCommitted &&
+				value === color
+					? 'font-semibold'
+					: ''}"
 				aria-hidden="true"
 			>
 				{ACCENT_COLORS[color].label}
@@ -213,7 +228,10 @@
 
 	<!-- Custom hex input -->
 	<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-		<label for="accent-hex-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+		<label
+			for="accent-hex-input"
+			class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+		>
 			{$t('admin.accent_picker.custom_label')}
 		</label>
 		<div class="flex items-center gap-2">
@@ -274,7 +292,9 @@
 
 	<!-- Live preview -->
 	<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mt-4">
-		<span class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium mb-3 block">
+		<span
+			class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium mb-3 block"
+		>
 			{$t('admin.settings_page.appearance.preview_label')}
 		</span>
 		<div class="flex flex-wrap items-center gap-4">

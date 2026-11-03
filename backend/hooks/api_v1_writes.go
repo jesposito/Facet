@@ -59,10 +59,10 @@ var apiV1WriteFields = map[string][]string{
 // RegisterAPIV1WriteHooks wires up the POST/PATCH/DELETE endpoints that
 // complement the read-only `/api/v1/*` surface registered in
 // RegisterAPIKeyHooks.
-func RegisterAPIV1WriteHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+func RegisterAPIV1WriteHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService) {
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		writeAuth := func(scope string, handler func(*core.RequestEvent) error) func(*core.RequestEvent) error {
-			return APIKeyMiddleware(app, crypto, scope)(handler)
+			return RateLimitMiddleware(rl, "normal")(APIKeyMiddleware(app, crypto, scope)(handler))
 		}
 
 		// -----------------------------------------------------------------
@@ -149,6 +149,7 @@ func apiV1Create(app core.App, e *core.RequestEvent, collection string, mapper f
 		app.Logger().Warn("api v1 create failed", "collection", collection, "error", err)
 		return respondJSON(e, http.StatusBadRequest, map[string]string{"error": "validation failed: " + err.Error()})
 	}
+	logAPIKeyAction(app, e, "create", collection, record)
 
 	return respondJSON(e, http.StatusCreated, mapper(record))
 }
@@ -177,6 +178,7 @@ func apiV1Update(app core.App, e *core.RequestEvent, collection string, mapper f
 		app.Logger().Warn("api v1 update failed", "collection", collection, "id", id, "error", err)
 		return respondJSON(e, http.StatusBadRequest, map[string]string{"error": "validation failed: " + err.Error()})
 	}
+	logAPIKeyAction(app, e, "update", collection, record)
 
 	return respondJSON(e, http.StatusOK, mapper(record))
 }
@@ -199,6 +201,7 @@ func apiV1Delete(app core.App, e *core.RequestEvent, collection string) error {
 		app.Logger().Warn("api v1 delete failed", "collection", collection, "id", id, "error", err)
 		return respondJSON(e, http.StatusInternalServerError, map[string]string{"error": "failed to delete"})
 	}
+	logAPIKeyAction(app, e, "delete", collection, record)
 
 	// 204 No Content — explicitly no body.
 	e.Response.WriteHeader(http.StatusNoContent)
@@ -225,15 +228,9 @@ func apiV1UpdateProfile(app core.App, e *core.RequestEvent) error {
 		app.Logger().Warn("api v1 profile update failed", "error", err)
 		return respondJSON(e, http.StatusBadRequest, map[string]string{"error": "validation failed: " + err.Error()})
 	}
+	logAPIKeyAction(app, e, "update", "profile", record)
 
-	// Mirror the shape of GET /api/v1/profile (see api_keys.go).
-	return respondJSON(e, http.StatusOK, map[string]any{
-		"name":     record.GetString("name"),
-		"headline": record.GetString("headline"),
-		"summary":  record.GetString("summary"),
-		"location": record.GetString("location"),
-		"updated":  record.GetString("updated"),
-	})
+	return respondJSON(e, http.StatusOK, mapProfileWrite(record))
 }
 
 // bindAPIBody decodes the JSON request body into a generic map. On parse

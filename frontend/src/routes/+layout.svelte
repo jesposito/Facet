@@ -22,6 +22,8 @@
 	import { isLoading as i18nLoading, t } from 'svelte-i18n';
 	import { initPlan, initPlanFromSSR, type PlanConfig } from '$lib/stores/plan';
 	import { siteNavStore } from '$lib/stores/siteNav';
+	import { setSiteFeatures, siteFeatures } from '$lib/stores/features';
+	import { injectGA, removeGA, shouldLoadGA } from '$lib/analytics/ga';
 
 	type DesignMode = 'classic' | 'soft-premium';
 
@@ -42,6 +44,8 @@
 					name: string;
 				}>;
 			};
+			enabledFeatures?: Record<string, boolean> | null;
+			gaMeasurementId?: string;
 			accentColor: string | null;
 			customHexColor: string | null;
 			accentExplicit: boolean;
@@ -63,6 +67,14 @@
 		if (data.planConfig) {
 			initPlanFromSSR(data.planConfig);
 		}
+	});
+
+	// Feature switches are site-wide, so seed them during SSR as well (effects
+	// don't run on the server) and refresh on every navigation.
+	// svelte-ignore state_referenced_locally
+	if (data.enabledFeatures) setSiteFeatures(data.enabledFeatures);
+	$effect(() => {
+		if (data.enabledFeatures) setSiteFeatures(data.enabledFeatures);
 	});
 
 	// Initialize site nav store from SSR data — updates on every navigation
@@ -132,21 +144,22 @@
 	// admin-configured CSS on mount. Without this, the effect would call
 	// applyCustomCSS('') and wipe the <style id="custom-css"> element
 	// immediately after onMount injected it (regression in v2.21.15).
-	// svelte-ignore state_referenced_locally -- intentional one-time SSR seed (see above); reassigned later, so $derived is not an option
+	// svelte-ignore state_referenced_locally
 	let customCSS = $state(data.customCSS ?? '');
 	let lastCustomCSS = $state('');
 	let mounted = $state(false);
-	let gaMeasurementId = $state('');
+	// svelte-ignore state_referenced_locally
+	let gaMeasurementId = $state(data.gaMeasurementId ?? '');
 	let gaInitialized = $state(false);
 	let accentStyleEl: HTMLStyleElement | null = $state(null);
 	let fontStyleEl: HTMLStyleElement | null = $state(null);
 	let fontLinkEl: HTMLLinkElement | null = $state(null);
 	let customPaletteLocked = false;
-	// svelte-ignore state_referenced_locally -- one-time SSR seed; data changes and live events reassign it below
+	// svelte-ignore state_referenced_locally
 	let currentAccentExplicit = $state(data.accentExplicit === true);
-	// svelte-ignore state_referenced_locally -- one-time SSR seed; data changes and live events reassign it below
+	// svelte-ignore state_referenced_locally
 	let currentFontPackExplicit = $state(data.fontPackExplicit === true);
-	// svelte-ignore state_referenced_locally -- one-time SSR seed; data changes and live events reassign it below
+	// svelte-ignore state_referenced_locally
 	let currentDesign = $state<DesignMode>(
 		data.design === 'soft-premium' ? 'soft-premium' : 'classic'
 	);
@@ -168,7 +181,7 @@
 	// runs during SSR, so the server-rendered HTML would always fall back to
 	// /favicon.png even when a custom favicon is configured. $state-with-initial
 	// is writable, so onMount/event-handlers below can still reassign it.
-	// svelte-ignore state_referenced_locally -- intentional SSR seed (see above); must stay writable, so $derived is not an option
+	// svelte-ignore state_referenced_locally
 	let faviconUrl = $state<string | null>(data.faviconUrl);
 
 	function normalizeDesign(design: string | null | undefined): DesignMode {
@@ -417,6 +430,7 @@
 				gaMeasurementId = data.ga_measurement_id || '';
 				// Add cache buster to favicon URL to prevent browser caching
 				faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
+				setSiteFeatures(data.enabled_features);
 				applyPaletteFromCSS(customCSS);
 				applyCustomCSS(customCSS);
 				return data.default_locale || undefined;
@@ -556,33 +570,23 @@
 		};
 	});
 
-	function injectGA(id: string) {
-		if (!browser || !id) return;
-		if (document.getElementById('ga-script')) return;
-
-		// GA4 snippet (minimal)
-		const script = document.createElement('script');
-		script.id = 'ga-script';
-		script.async = true;
-		script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(id)}`;
-		document.head.appendChild(script);
-
-		const inline = document.createElement('script');
-		inline.textContent = `
-		  window.dataLayer = window.dataLayer || [];
-		  function gtag(){dataLayer.push(arguments);}
-		  gtag('js', new Date());
-		  gtag('config', '${id.replace(/[^A-Za-z0-9-]/g, '')}');
-		`;
-		document.head.appendChild(inline);
-	}
 	$effect(() => {
 		if (mounted) {
 			applyCustomCSS(customCSS);
-			if (!gaInitialized && gaMeasurementId) {
-				injectGA(gaMeasurementId);
+		}
+	});
+	// Google Analytics loads only while the owner's Analytics switch is on.
+	// Switching it off mid-visit removes the snippet and opts this ID out.
+	$effect(() => {
+		if (!mounted || !browser) return;
+		if (shouldLoadGA($siteFeatures, gaMeasurementId)) {
+			if (!gaInitialized) {
+				injectGA(document, gaMeasurementId);
 				gaInitialized = true;
 			}
+		} else if (gaInitialized || document.getElementById('ga-script')) {
+			removeGA(document, gaMeasurementId);
+			gaInitialized = false;
 		}
 	});
 	// Ensure custom CSS stays last after accent updates

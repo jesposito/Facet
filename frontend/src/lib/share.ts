@@ -44,7 +44,9 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 		try {
 			await navigator.clipboard.writeText(text);
 			return true;
-		} catch {}
+		} catch {
+			// Fall through to the legacy textarea path when clipboard access is denied.
+		}
 	}
 
 	const textarea = document.createElement('textarea');

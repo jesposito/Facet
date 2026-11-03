@@ -159,7 +159,7 @@
 		{ value: 'certifications', labelKey: 'admin.media.filter_collection_certifications' },
 		{ value: 'media_library', labelKey: 'admin.media.filter_collection_media_library' },
 		{ value: 'view_exports', labelKey: 'admin.media.filter_collection_view_exports' },
-		{ value: 'resume_imports', labelKey: 'admin.media.filter_collection_resume_imports' },
+		{ value: 'resume_imports', labelKey: 'admin.media.filter_collection_resume_imports' }
 	];
 	let sortField: 'date' | 'name' | 'size' = $state('date');
 	let sortOrder: 'asc' | 'desc' = $state('desc');
@@ -198,8 +198,8 @@
 	// Validation only runs once the user has interacted (typed/blurred) so the form
 	// doesn't show an error before they've started typing.
 	let externalProvider = $derived.by(() => detectExternalMediaProvider(newExternal.url));
-	let externalUrlInvalid = $derived.by(() =>
-		newExternal.urlTouched && newExternal.url.trim() !== '' && externalProvider === null
+	let externalUrlInvalid = $derived.by(
+		() => newExternal.urlTouched && newExternal.url.trim() !== '' && externalProvider === null
 	);
 	let externalAutoThumbnail = $derived.by(() => getExternalMediaThumbnail(newExternal.url));
 	let uploadFile: File | null = $state(null);
@@ -207,7 +207,12 @@
 	let uploading = $state(false);
 	let uploadProgress = $state({ current: 0, total: 0 });
 
-	type FileProgress = { name: string; loaded: number; total: number; status: 'pending' | 'uploading' | 'done' | 'error' };
+	type FileProgress = {
+		name: string;
+		loaded: number;
+		total: number;
+		status: 'pending' | 'uploading' | 'done' | 'error';
+	};
 	let fileProgresses = $state<FileProgress[]>([]);
 
 	let externalPreviewFailed = $state(false);
@@ -252,14 +257,23 @@
 			url: item.url || '',
 			mime: item.mime || '',
 			thumbnail_url: item.thumbnail_url || '',
-			tag_ids: item.tags?.map(t => t.id) || [],
+			tag_ids: item.tags?.map((t) => t.id) || [],
 			saving: false
 		};
 	}
 
 	function closeEdit() {
 		editItem = null;
-		editForm = { title: '', alt_text: '', description: '', url: '', mime: '', thumbnail_url: '', tag_ids: [], saving: false };
+		editForm = {
+			title: '',
+			alt_text: '',
+			description: '',
+			url: '',
+			mime: '',
+			thumbnail_url: '',
+			tag_ids: [],
+			saving: false
+		};
 	}
 
 	function openReplace(item: MediaItem) {
@@ -309,7 +323,10 @@
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_replace_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.media.toast_replace_failed')
+			);
 		} finally {
 			replacing = false;
 		}
@@ -393,7 +410,10 @@
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_update_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.media.toast_update_failed')
+			);
 		} finally {
 			editForm.saving = false;
 		}
@@ -426,11 +446,13 @@
 			});
 			if (res.ok) {
 				const data = await res.json();
-				availableTags = (data.items || []).map((t: { id: string; name: string; color?: string }) => ({
-					id: t.id,
-					name: t.name,
-					color: t.color
-				}));
+				availableTags = (data.items || []).map(
+					(t: { id: string; name: string; color?: string }) => ({
+						id: t.id,
+						name: t.name,
+						color: t.color
+					})
+				);
 			}
 		} catch (e) {
 			console.error('Failed to load tags', e);
@@ -495,13 +517,16 @@
 	}
 
 	function copyUrl(url: string) {
-		const absolute = typeof window !== 'undefined' ? new URL(url, window.location.origin).toString() : url;
+		const absolute =
+			typeof window !== 'undefined' ? new URL(url, window.location.origin).toString() : url;
 		navigator.clipboard.writeText(absolute);
 		toasts.add('success', $t('admin.media.toast_url_copied'));
 	}
 
 	async function deleteFile(item: MediaItem, force = false) {
-		const deletedIndex = items.findIndex((it) => (it.record_id || it.relative_path) === (item.record_id || item.relative_path));
+		const deletedIndex = items.findIndex(
+			(it) => (it.record_id || it.relative_path) === (item.record_id || item.relative_path)
+		);
 		// Check if item is external media (either by flag or by collection name)
 		const isExternal = item.external || item.collection === 'external_media';
 
@@ -530,12 +555,20 @@
 				.slice(0, 5)
 				.map((u) => `• ${u.collection}: ${u.title}`)
 				.join('\n');
-			const moreText = usageDetails.length > 5 ? `\n...${$t('admin.media.usage_warning_more', { values: { count: usageDetails.length - 5 } })}` : '';
+			const moreText =
+				usageDetails.length > 5
+					? `\n...${$t('admin.media.usage_warning_more', { values: { count: usageDetails.length - 5 } })}`
+					: '';
 
 			const confirmed = await confirm({
 				title: $t('admin.media.confirm_force_delete_title'),
-				message: $t('admin.media.usage_warning_message', { values: { filename: item.display_name || item.filename, count: item.usage_count } }) +
-					'\n\n' + usageList + moreText,
+				message:
+					$t('admin.media.usage_warning_message', {
+						values: { filename: item.display_name || item.filename, count: item.usage_count }
+					}) +
+					'\n\n' +
+					usageList +
+					moreText,
 				confirmText: $t('admin.media.confirm_force_delete_button'),
 				danger: true
 			});
@@ -590,8 +623,11 @@
 
 					const forceConfirmed = await confirm({
 						title: $t('admin.media.confirm_force_delete_title'),
-						message: $t('admin.media.confirm_force_delete_message', { values: { count: usageCount } }) +
-							'\n\n' + usageList + moreText,
+						message:
+							$t('admin.media.confirm_force_delete_message', { values: { count: usageCount } }) +
+							'\n\n' +
+							usageList +
+							moreText,
 						confirmText: $t('admin.media.confirm_force_delete_button'),
 						danger: true
 					});
@@ -610,7 +646,12 @@
 
 				const result = await res.json().catch(() => ({}));
 				if (result.references_removed) {
-					toasts.add('success', $t('admin.media.toast_references_removed', { values: { count: result.references_removed } }));
+					toasts.add(
+						'success',
+						$t('admin.media.toast_references_removed', {
+							values: { count: result.references_removed }
+						})
+					);
 				} else {
 					toasts.add('success', $t('admin.media.toast_external_deleted'));
 				}
@@ -630,7 +671,7 @@
 							record_id: item.record_id,
 							field: item.field,
 							filename: item.filename
-					  };
+						};
 			const res = await fetch('/api/media', {
 				method: 'DELETE',
 				headers: {
@@ -657,7 +698,10 @@
 			});
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_delete_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.media.toast_delete_failed')
+			);
 		}
 	}
 
@@ -695,7 +739,9 @@
 	// Toggle selection for bulk operations
 	function toggleBulkSelection(item: MediaItem) {
 		if (!isSelectableForBulk(item)) return;
-		const idx = selectedItems.findIndex(s => s.id === item.record_id && s.collection === item.collection);
+		const idx = selectedItems.findIndex(
+			(s) => s.id === item.record_id && s.collection === item.collection
+		);
 		if (idx >= 0) {
 			selectedItems = selectedItems.filter((_, i) => i !== idx);
 		} else {
@@ -705,7 +751,7 @@
 
 	// Check if item is selected for bulk operations
 	function isSelectedForBulk(item: MediaItem): boolean {
-		return selectedItems.some(s => s.id === item.record_id && s.collection === item.collection);
+		return selectedItems.some((s) => s.id === item.record_id && s.collection === item.collection);
 	}
 
 	// Select all visible selectable items
@@ -713,7 +759,9 @@
 		const newSelections: SelectedItem[] = [];
 		items.forEach((item) => {
 			if (isSelectableForBulk(item)) {
-				if (!selectedItems.some(s => s.id === item.record_id && s.collection === item.collection)) {
+				if (
+					!selectedItems.some((s) => s.id === item.record_id && s.collection === item.collection)
+				) {
 					newSelections.push({ id: item.record_id, collection: item.collection });
 				}
 			}
@@ -760,7 +808,10 @@
 				throw new Error(body.message || body.error || 'Failed to update tags');
 			}
 			const result = await res.json();
-			toasts.add('success', $t('admin.media.bulk_tag_success', { values: { count: result.updated } }));
+			toasts.add(
+				'success',
+				$t('admin.media.bulk_tag_success', { values: { count: result.updated } })
+			);
 			closeBulkTagModal();
 			selectedItems = [];
 			await loadMedia();
@@ -801,7 +852,12 @@
 				throw new Error(respBody.message || respBody.error || 'Failed to delete files');
 			}
 			const result = await res.json().catch(() => ({}));
-			toasts.add('success', $t('admin.media.toast_bulk_deleted', { values: { count: result.deleted ?? selectedOrphans.size } }));
+			toasts.add(
+				'success',
+				$t('admin.media.toast_bulk_deleted', {
+					values: { count: result.deleted ?? selectedOrphans.size }
+				})
+			);
 			selectedOrphans = new Set();
 			await loadMedia();
 		} catch (err) {
@@ -815,29 +871,42 @@
 		if (selectedItems.length === 0) return;
 
 		// Get the actual media items for the selected IDs
-		const itemsToDelete = items.filter(item =>
-			selectedItems.some(s => s.id === item.record_id && s.collection === item.collection)
+		const itemsToDelete = items.filter((item) =>
+			selectedItems.some((s) => s.id === item.record_id && s.collection === item.collection)
 		);
 
 		// Check if any items are in use
-		const inUseItems = itemsToDelete.filter(item => (item.usage_count ?? 0) > 0);
-		const notInUseItems = itemsToDelete.filter(item => (item.usage_count ?? 0) === 0);
+		const inUseItems = itemsToDelete.filter((item) => (item.usage_count ?? 0) > 0);
+		const notInUseItems = itemsToDelete.filter((item) => (item.usage_count ?? 0) === 0);
 
 		// Build confirmation message
-		let message = $t('admin.media.confirm_bulk_delete_items', { values: { count: selectedItems.length } });
+		let message = $t('admin.media.confirm_bulk_delete_items', {
+			values: { count: selectedItems.length }
+		});
 
 		if (inUseItems.length > 0) {
 			const usageList = inUseItems
 				.slice(0, 5)
-				.map(item => {
-					const usedByText = item.used_by?.slice(0, 2).map(u => `${u.collection}: ${u.title}`).join(', ') || '';
+				.map((item) => {
+					const usedByText =
+						item.used_by
+							?.slice(0, 2)
+							.map((u) => `${u.collection}: ${u.title}`)
+							.join(', ') || '';
 					return `• ${item.display_name || item.filename} (${item.usage_count} uses${usedByText ? ': ' + usedByText : ''})`;
 				})
 				.join('\n');
-			const moreText = inUseItems.length > 5 ? `\n...${$t('admin.media.usage_warning_more', { values: { count: inUseItems.length - 5 } })}` : '';
+			const moreText =
+				inUseItems.length > 5
+					? `\n...${$t('admin.media.usage_warning_more', { values: { count: inUseItems.length - 5 } })}`
+					: '';
 
-			message += '\n\n' + $t('admin.media.bulk_delete_in_use_warning', { values: { count: inUseItems.length } }) +
-				'\n' + usageList + moreText;
+			message +=
+				'\n\n' +
+				$t('admin.media.bulk_delete_in_use_warning', { values: { count: inUseItems.length } }) +
+				'\n' +
+				usageList +
+				moreText;
 		}
 
 		const confirmed = await confirm({
@@ -897,10 +966,16 @@
 		}
 
 		if (deleted > 0) {
-			toasts.add('success', $t('admin.media.toast_bulk_items_deleted', { values: { count: deleted } }));
+			toasts.add(
+				'success',
+				$t('admin.media.toast_bulk_items_deleted', { values: { count: deleted } })
+			);
 		}
 		if (failed > 0) {
-			toasts.add('error', $t('admin.media.toast_bulk_delete_some_failed', { values: { count: failed } }));
+			toasts.add(
+				'error',
+				$t('admin.media.toast_bulk_delete_some_failed', { values: { count: failed } })
+			);
 		}
 
 		selectedItems = [];
@@ -989,7 +1064,10 @@
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_external_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.media.toast_external_failed')
+			);
 		} finally {
 			newExternal.saving = false;
 		}
@@ -1035,7 +1113,10 @@
 			await loadMedia();
 		} catch (err) {
 			console.error(err);
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.media.toast_upload_failed'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.media.toast_upload_failed')
+			);
 			error = $t('admin.media.toast_upload_failed');
 		} finally {
 			uploading = false;
@@ -1076,7 +1157,8 @@
 			xhr.onerror = () => resolve(false);
 
 			xhr.open('POST', '/api/collections/uploads/records');
-			if (pb.authStore.isValid) xhr.setRequestHeader('Authorization', `Bearer ${pb.authStore.token}`);
+			if (pb.authStore.isValid)
+				xhr.setRequestHeader('Authorization', `Bearer ${pb.authStore.token}`);
 			xhr.send(form);
 		});
 	}
@@ -1110,7 +1192,10 @@
 			if (file.size > MEDIA_UPLOAD_LIMIT_BYTES) {
 				failCount++;
 				fileProgresses[i] = { ...fileProgresses[i], status: 'error' };
-				toasts.add('error', $t(oversizedMediaUploadMessageKey(file), { values: { name: file.name, limit: '20MB' } }));
+				toasts.add(
+					'error',
+					$t(oversizedMediaUploadMessageKey(file), { values: { name: file.name, limit: '20MB' } })
+				);
 				continue;
 			}
 
@@ -1120,7 +1205,11 @@
 
 			if (success) {
 				successCount++;
-				fileProgresses[i] = { ...fileProgresses[i], loaded: fileProgresses[i].total, status: 'done' };
+				fileProgresses[i] = {
+					...fileProgresses[i],
+					loaded: fileProgresses[i].total,
+					status: 'done'
+				};
 			} else {
 				failCount++;
 				fileProgresses[i] = { ...fileProgresses[i], status: 'error' };
@@ -1195,8 +1284,15 @@
 				</select>
 			</div>
 			<div class="flex items-center gap-2">
-				<label class="label mb-0" for="collection-filter">{$t('admin.media.filter_collection')}</label>
-				<select id="collection-filter" class="input" bind:value={collectionFilter} onchange={resetAndLoad}>
+				<label class="label mb-0" for="collection-filter"
+					>{$t('admin.media.filter_collection')}</label
+				>
+				<select
+					id="collection-filter"
+					class="input"
+					bind:value={collectionFilter}
+					onchange={resetAndLoad}
+				>
 					{#each availableCollections as coll}
 						<option value={coll.value}>{$t(coll.labelKey)}</option>
 					{/each}
@@ -1221,7 +1317,12 @@
 			{#if availableTags.length > 0}
 				<div class="flex items-center gap-2">
 					<label class="label mb-0" for="tag-filter">{$t('admin.media.filter_tag')}</label>
-					<select id="tag-filter" class="input" bind:value={selectedTagFilter} onchange={resetAndLoad}>
+					<select
+						id="tag-filter"
+						class="input"
+						bind:value={selectedTagFilter}
+						onchange={resetAndLoad}
+					>
 						<option value="">{$t('admin.media.filter_tag_all')}</option>
 						{#each availableTags as tag}
 							<option value={tag.id}>{tag.name}</option>
@@ -1238,17 +1339,32 @@
 				</select>
 				<button
 					class="btn btn-ghost btn-sm px-2"
-					onclick={() => { sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'; resetAndLoad(); }}
-					title={sortOrder === 'asc' ? $t('admin.media.sort_ascending') : $t('admin.media.sort_descending')}
+					onclick={() => {
+						sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+						resetAndLoad();
+					}}
+					title={sortOrder === 'asc'
+						? $t('admin.media.sort_ascending')
+						: $t('admin.media.sort_descending')}
 				>
 					{sortOrder === 'asc' ? '↑' : '↓'}
 				</button>
 			</div>
 		</div>
-		<div class="flex items-center justify-end gap-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap">
-			<span>{$t('admin.media.stats_files', { values: { count: stats.totalFiles } })} • {humanSize(stats.totalSize)}</span>
-			<span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
-				{stats.orphanFiles === 1 ? $t('admin.media.stats_orphan', { values: { count: stats.orphanFiles } }) : $t('admin.media.stats_orphans', { values: { count: stats.orphanFiles } })}
+		<div
+			class="flex items-center justify-end gap-3 text-sm text-gray-600 dark:text-gray-400 flex-wrap"
+		>
+			<span
+				>{$t('admin.media.stats_files', { values: { count: stats.totalFiles } })} • {humanSize(
+					stats.totalSize
+				)}</span
+			>
+			<span
+				class="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+			>
+				{stats.orphanFiles === 1
+					? $t('admin.media.stats_orphan', { values: { count: stats.orphanFiles } })
+					: $t('admin.media.stats_orphans', { values: { count: stats.orphanFiles } })}
 			</span>
 			{#if totalPages > 1}
 				<span>{$t('admin.media.stats_page', { values: { page, total: totalPages } })}</span>
@@ -1256,27 +1372,42 @@
 		</div>
 		<div class="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400">
 			<div class="flex flex-wrap gap-3">
-				<span>{$t('admin.media.stats_storage', { values: { size: humanSize(stats.storageSize), count: stats.storageFiles } })}</span>
-				<span>{$t('admin.media.stats_referenced', { values: { size: humanSize(stats.referencedSize) } })}</span>
-				<span>{$t('admin.media.stats_orphan_size', { values: { size: humanSize(stats.orphanSize), count: stats.orphanFiles } })}</span>
+				<span
+					>{$t('admin.media.stats_storage', {
+						values: { size: humanSize(stats.storageSize), count: stats.storageFiles }
+					})}</span
+				>
+				<span
+					>{$t('admin.media.stats_referenced', {
+						values: { size: humanSize(stats.referencedSize) }
+					})}</span
+				>
+				<span
+					>{$t('admin.media.stats_orphan_size', {
+						values: { size: humanSize(stats.orphanSize), count: stats.orphanFiles }
+					})}</span
+				>
 			</div>
 			<div class="flex flex-wrap gap-2 items-center">
 				{#if selectedOrphans.size > 0}
-					<span class="text-gray-700 dark:text-gray-200">{$t('admin.media.selected_orphans', { values: { count: selectedOrphans.size } })}</span>
-					<button
-						class="btn btn-danger"
-						onclick={bulkDeleteSelected}
+					<span class="text-gray-700 dark:text-gray-200"
+						>{$t('admin.media.selected_orphans', { values: { count: selectedOrphans.size } })}</span
 					>
+					<button class="btn btn-danger" onclick={bulkDeleteSelected}>
 						{$t('admin.media.delete_selected')}
 					</button>
-					<button class="btn btn-ghost btn-sm" onclick={clearSelection}>{$t('admin.media.clear_selection')}</button>
+					<button class="btn btn-ghost btn-sm" onclick={clearSelection}
+						>{$t('admin.media.clear_selection')}</button
+					>
 				{:else if statusFilter !== 'referenced'}
 					<button class="btn btn-secondary btn-sm" onclick={selectVisibleOrphans}>
 						{$t('admin.media.select_visible_orphans')}
 					</button>
 				{/if}
 				{#if selectedItems.length > 0}
-					<span class="text-gray-700 dark:text-gray-200">{$t('admin.media.selected_items', { values: { count: selectedItems.length } })}</span>
+					<span class="text-gray-700 dark:text-gray-200"
+						>{$t('admin.media.selected_items', { values: { count: selectedItems.length } })}</span
+					>
 					{#if availableTags.length > 0}
 						<button class="btn btn-secondary" onclick={openBulkTagModal}>
 							{$t('admin.media.bulk_tag_button')}
@@ -1285,7 +1416,12 @@
 					<button class="btn btn-danger" onclick={bulkDeleteSelectedItems}>
 						{$t('admin.media.bulk_delete_button')}
 					</button>
-					<button class="btn btn-ghost btn-sm" onclick={() => { selectedItems = []; }}>{$t('admin.media.clear_selection')}</button>
+					<button
+						class="btn btn-ghost btn-sm"
+						onclick={() => {
+							selectedItems = [];
+						}}>{$t('admin.media.clear_selection')}</button
+					>
 				{:else if statusFilter !== 'orphans'}
 					<button class="btn btn-secondary btn-sm" onclick={selectVisibleForBulk}>
 						{$t('admin.media.select_visible')}
@@ -1296,7 +1432,9 @@
 	</div>
 
 	{#if error}
-		<div class="mb-4 p-3 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-sm">
+		<div
+			class="mb-4 p-3 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200 text-sm"
+		>
 			{error}
 		</div>
 	{/if}
@@ -1304,14 +1442,18 @@
 	<div class="card p-4 mb-4 space-y-3">
 		<div class="flex items-center justify-between">
 			<div>
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.media.upload_title')}</h2>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+					{$t('admin.media.upload_title')}
+				</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
 					{$t('admin.media.upload_description')}
 				</p>
 			</div>
 			{#if uploadProgress.total > 0}
 				<span class="text-sm text-gray-600 dark:text-gray-400">
-					{$t('admin.media.upload_progress', { values: { current: uploadProgress.current, total: uploadProgress.total } })}
+					{$t('admin.media.upload_progress', {
+						values: { current: uploadProgress.current, total: uploadProgress.total }
+					})}
 				</span>
 			{/if}
 		</div>
@@ -1319,11 +1461,17 @@
 			<div class="space-y-2">
 				{#each fileProgresses as fp}
 					<div class="flex items-center gap-2">
-						<span class="text-sm truncate w-32 text-gray-700 dark:text-gray-300" title={fp.name}>{fp.name}</span>
+						<span class="text-sm truncate w-32 text-gray-700 dark:text-gray-300" title={fp.name}
+							>{fp.name}</span
+						>
 						<div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden">
 							<div
-								class="h-full transition-all duration-200 {fp.status === 'error' ? 'bg-red-500' : fp.status === 'done' ? 'bg-green-500' : 'bg-primary-500'}"
-								style="width: {fp.total ? Math.round(fp.loaded / fp.total * 100) : 0}%"
+								class="h-full transition-all duration-200 {fp.status === 'error'
+									? 'bg-red-500'
+									: fp.status === 'done'
+										? 'bg-green-500'
+										: 'bg-primary-500'}"
+								style="width: {fp.total ? Math.round((fp.loaded / fp.total) * 100) : 0}%"
 							></div>
 						</div>
 						<span class="text-xs w-12 text-right text-gray-500 dark:text-gray-400">
@@ -1334,18 +1482,14 @@
 							{:else if fp.status === 'pending'}
 								—
 							{:else}
-								{fp.total ? Math.round(fp.loaded / fp.total * 100) : 0}%
+								{fp.total ? Math.round((fp.loaded / fp.total) * 100) : 0}%
 							{/if}
 						</span>
 					</div>
 				{/each}
 			</div>
 		{/if}
-		<DropZone
-			on:drop={handleDropZoneFiles}
-			disabled={uploading}
-			multiple={true}
-		/>
+		<DropZone on:drop={handleDropZoneFiles} disabled={uploading} multiple={true} />
 		<div class="text-xs text-gray-500 dark:text-gray-400 text-center">
 			{$t('admin.media.upload_description')}
 		</div>
@@ -1354,8 +1498,12 @@
 	<div class="card p-4 mb-4 space-y-3">
 		<div class="flex items-center justify-between">
 			<div>
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">{$t('admin.media.external_title')}</h2>
-				<p class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.media.external_description')}</p>
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+					{$t('admin.media.external_title')}
+				</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					{$t('admin.media.external_description')}
+				</p>
 				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 					{$t('admin.media.external_supported_providers')}
 				</p>
@@ -1402,7 +1550,9 @@
 						>
 							{#if newExternal.fetching}
 								<span class="inline-flex items-center gap-1">
-									<span class="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+									<span
+										class="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"
+									></span>
 									{$t('admin.media.fetching_metadata')}
 								</span>
 							{:else}
@@ -1417,7 +1567,9 @@
 					</p>
 				{:else if externalProvider}
 					<p id="ext-url-help" class="text-xs text-green-600 dark:text-green-400 mt-1">
-						{$t('admin.media.external_url_detected', { values: { provider: getExternalMediaProviderLabel(externalProvider) } })}
+						{$t('admin.media.external_url_detected', {
+							values: { provider: getExternalMediaProviderLabel(externalProvider) }
+						})}
 					</p>
 				{:else}
 					<p id="ext-url-help" class="sr-only">{$t('admin.media.external_url_help')}</p>
@@ -1425,30 +1577,58 @@
 			</div>
 			<div>
 				<label class="label" for="ext-title">{$t('admin.media.external_title_label')}</label>
-				<input id="ext-title" class="input" bind:value={newExternal.title} placeholder={$t('admin.media.external_title_placeholder')} />
+				<input
+					id="ext-title"
+					class="input"
+					bind:value={newExternal.title}
+					placeholder={$t('admin.media.external_title_placeholder')}
+				/>
 			</div>
 			<div>
 				<label class="label" for="ext-mime">{$t('admin.media.mime_label')}</label>
-				<input id="ext-mime" class="input" bind:value={newExternal.mime} placeholder={$t('admin.media.mime_placeholder')} />
+				<input
+					id="ext-mime"
+					class="input"
+					bind:value={newExternal.mime}
+					placeholder={$t('admin.media.mime_placeholder')}
+				/>
 			</div>
 			<div class="md:col-span-2">
 				<label class="label" for="ext-thumb">{$t('admin.media.thumbnail_label')}</label>
-				<input id="ext-thumb" class="input" bind:value={newExternal.thumbnail_url} placeholder={$t('admin.media.thumbnail_placeholder')} />
+				<input
+					id="ext-thumb"
+					class="input"
+					bind:value={newExternal.thumbnail_url}
+					placeholder={$t('admin.media.thumbnail_placeholder')}
+				/>
 			</div>
 			{#if newExternal.url.trim() && externalProvider}
 				{@const previewUrl = newExternal.url.trim()}
 				{@const userThumb = newExternal.thumbnail_url.trim()}
 				{@const thumbUrl = userThumb || externalAutoThumbnail || ''}
-				{@const providerIconName = (externalProvider === 'youtube' || externalProvider === 'vimeo' || externalProvider === 'spotify' || externalProvider === 'soundcloud' || externalProvider === 'loom' || externalProvider === 'codepen' || externalProvider === 'figma') ? externalProvider : 'globe'}
+				{@const providerIconName =
+					externalProvider === 'youtube' ||
+					externalProvider === 'vimeo' ||
+					externalProvider === 'spotify' ||
+					externalProvider === 'soundcloud' ||
+					externalProvider === 'loom' ||
+					externalProvider === 'codepen' ||
+					externalProvider === 'figma'
+						? externalProvider
+						: 'globe'}
 				<div class="lg:col-span-4">
 					{#key previewUrl}
 						<div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
 							{#if thumbUrl && !externalPreviewFailed}
 								<img
 									src={thumbUrl}
-									alt={$t('admin.media.preview_alt', { values: { provider: getExternalMediaProviderLabel(externalProvider) } })}
+									alt={$t('admin.media.preview_alt', {
+										values: { provider: getExternalMediaProviderLabel(externalProvider) }
+									})}
 									class="max-h-48 mx-auto rounded"
-									onerror={() => { externalPreviewFailed = true; }}
+									onerror={() => {
+										externalPreviewFailed = true;
+									}}
 								/>
 							{:else}
 								<div class="flex flex-col items-center justify-center h-32 gap-3">
@@ -1458,7 +1638,12 @@
 									<span class="text-sm text-gray-600 dark:text-gray-400">
 										{getExternalMediaProviderLabel(externalProvider)}
 									</span>
-									<a href={previewUrl} target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+									<a
+										href={previewUrl}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="btn btn-secondary btn-sm"
+									>
 										{$t('admin.media.open_link')}
 									</a>
 								</div>
@@ -1478,121 +1663,169 @@
 		<div class="card overflow-hidden">
 			<div class="overflow-x-auto">
 				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-						<thead class="bg-gray-50 dark:bg-gray-800">
-							<tr>
-								<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-8"></th>
-								<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-14">{$t('admin.media.table_preview')}</th>
-								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">{$t('admin.media.table_file')}</th>
-								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-20">{$t('admin.media.table_type')}</th>
-								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-20">{$t('admin.media.table_size')}</th>
-								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-24">{$t('admin.media.table_uploaded')}</th>
-								<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-24">{$t('admin.media.table_used_by')}</th>
-								<th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase w-28">{$t('admin.media.table_actions')}</th>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-							{#each items as item}
-								<tr class="hover:bg-gray-50 dark:hover:bg-gray-800" data-row-id={item.record_id || item.relative_path} tabindex="-1">
-									<td class="px-2 py-2">
-										{#if item.orphan && item.relative_path}
-											<input
-												type="checkbox"
-												class="w-4 h-4 text-primary-600 rounded border-gray-300"
-												checked={selectedOrphans.has(item.relative_path)}
-												onchange={() => toggleSelection(item)}
+					<thead class="bg-gray-50 dark:bg-gray-800">
+						<tr>
+							<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-8"
+							></th>
+							<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-14"
+								>{$t('admin.media.table_preview')}</th
+							>
+							<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase"
+								>{$t('admin.media.table_file')}</th
+							>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-20"
+								>{$t('admin.media.table_type')}</th
+							>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-20"
+								>{$t('admin.media.table_size')}</th
+							>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-24"
+								>{$t('admin.media.table_uploaded')}</th
+							>
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-24"
+								>{$t('admin.media.table_used_by')}</th
+							>
+							<th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase w-28"
+								>{$t('admin.media.table_actions')}</th
+							>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+						{#each items as item}
+							<tr
+								class="hover:bg-gray-50 dark:hover:bg-gray-800"
+								data-row-id={item.record_id || item.relative_path}
+								tabindex="-1"
+							>
+								<td class="px-2 py-2">
+									{#if item.orphan && item.relative_path}
+										<input
+											type="checkbox"
+											class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											checked={selectedOrphans.has(item.relative_path)}
+											onchange={() => toggleSelection(item)}
+										/>
+									{:else if isSelectableForBulk(item)}
+										<input
+											type="checkbox"
+											class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											checked={isSelectedForBulk(item)}
+											onchange={() => toggleBulkSelection(item)}
+										/>
+									{/if}
+								</td>
+								<td class="px-2 py-2">
+									<div
+										class="w-10 h-10 relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center"
+									>
+										{#if hasThumbnail(item)}
+											<img
+												src={getThumbnailUrl(item)}
+												alt=""
+												class="w-full h-full object-cover"
+												loading="lazy"
+												onerror={(e) => {
+													(e.target as HTMLImageElement).style.display = 'none';
+												}}
 											/>
-										{:else if isSelectableForBulk(item)}
-											<input
-												type="checkbox"
-												class="w-4 h-4 text-primary-600 rounded border-gray-300"
-												checked={isSelectedForBulk(item)}
-												onchange={() => toggleBulkSelection(item)}
-											/>
+											{#if isVideo(item)}
+												<div class="absolute inset-0 flex items-center justify-center bg-black/30">
+													<span class="text-white">{@html icon('play')}</span>
+												</div>
+											{/if}
+										{:else}
+											<span class="text-gray-400 dark:text-gray-500">
+												{@html icon(
+													getProviderIcon(item) as keyof typeof import('$lib/icons').icons
+												)}
+											</span>
 										{/if}
-									</td>
-									<td class="px-2 py-2">
-										<div class="w-10 h-10 relative rounded overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-											{#if hasThumbnail(item)}
-												<img
-													src={getThumbnailUrl(item)}
-													alt=""
-													class="w-full h-full object-cover"
-													loading="lazy"
-													onerror={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-												/>
-												{#if isVideo(item)}
-													<div class="absolute inset-0 flex items-center justify-center bg-black/30">
-														<span class="text-white">{@html icon('play')}</span>
-													</div>
-												{/if}
-											{:else}
-												<span class="text-gray-400 dark:text-gray-500">
-													{@html icon(getProviderIcon(item) as keyof typeof import('$lib/icons').icons)}
-												</span>
-											{/if}
-										</div>
-									</td>
-									<td class="px-3 py-2">
-										<div class="flex items-center gap-2 min-w-0">
-											<div class="min-w-0 flex-1 max-w-[200px] lg:max-w-[300px]">
-												<a
-													class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2 text-sm"
-													href={item.url}
-													target="_blank"
-													rel="noopener noreferrer"
-													title={item.display_name || item.filename}
+									</div>
+								</td>
+								<td class="px-3 py-2">
+									<div class="flex items-center gap-2 min-w-0">
+										<div class="min-w-0 flex-1 max-w-[200px] lg:max-w-[300px]">
+											<a
+												class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2 text-sm"
+												href={item.url}
+												target="_blank"
+												rel="noopener noreferrer"
+												title={item.display_name || item.filename}
+											>
+												{item.display_name || item.filename}
+											</a>
+											{#if item.display_name && item.display_name !== item.filename}
+												<span class="text-xs text-gray-500 dark:text-gray-400 truncate block"
+													>{item.filename}</span
 												>
-													{item.display_name || item.filename}
-												</a>
-												{#if item.display_name && item.display_name !== item.filename}
-													<span class="text-xs text-gray-500 dark:text-gray-400 truncate block">{item.filename}</span>
-												{/if}
-											</div>
-											{#if item.orphan}
-												<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0">
-													{$t('admin.media.badge_orphan')}
-												</span>
-											{:else if item.external || item.collection === 'external_media'}
-												<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0">
-													{$t('admin.media.badge_external')}
-												</span>
-											{/if}
-											{#if item.tags && item.tags.length > 0}
-												{#each item.tags.slice(0, 2) as tag}
-													<span
-														class="inline-flex items-center px-1.5 py-0.5 text-xs rounded shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
-													>
-														{#if tag.color}
-															<span class="w-1.5 h-1.5 rounded-full mr-1" style="background-color: {tag.color}"></span>
-														{/if}
-														{tag.name}
-													</span>
-												{/each}
-												{#if item.tags.length > 2}
-													<span class="text-xs text-gray-500 dark:text-gray-400">+{item.tags.length - 2}</span>
-												{/if}
 											{/if}
 										</div>
-									</td>
+										{#if item.orphan}
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 shrink-0"
+											>
+												{$t('admin.media.badge_orphan')}
+											</span>
+										{:else if item.external || item.collection === 'external_media'}
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200 shrink-0"
+											>
+												{$t('admin.media.badge_external')}
+											</span>
+										{/if}
+										{#if item.tags && item.tags.length > 0}
+											{#each item.tags.slice(0, 2) as tag}
+												<span
+													class="inline-flex items-center px-1.5 py-0.5 text-xs rounded shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+												>
+													{#if tag.color}
+														<span
+															class="w-1.5 h-1.5 rounded-full mr-1"
+															style="background-color: {tag.color}"
+														></span>
+													{/if}
+													{tag.name}
+												</span>
+											{/each}
+											{#if item.tags.length > 2}
+												<span class="text-xs text-gray-500 dark:text-gray-400"
+													>+{item.tags.length - 2}</span
+												>
+											{/if}
+										{/if}
+									</div>
+								</td>
 								<td class="px-3 py-2 hidden md:table-cell">
-									<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+									<span
+										class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+									>
 										{mimeLabel(item.mime)}
 									</span>
 								</td>
 								<td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hidden lg:table-cell">
-								{humanSize(item.size)}{#if item.width && item.height}<span class="text-gray-400 dark:text-gray-500 mx-1">•</span><span class="text-xs">{item.width}×{item.height}</span>{/if}
-							</td>
+									{humanSize(item.size)}{#if item.width && item.height}<span
+											class="text-gray-400 dark:text-gray-500 mx-1">•</span
+										><span class="text-xs">{item.width}×{item.height}</span>{/if}
+								</td>
 								<td class="px-3 py-2 text-xs text-gray-700 dark:text-gray-200 hidden lg:table-cell">
 									{formatDate(item.uploaded_at, { month: 'short', day: 'numeric' })}
 								</td>
 								<td class="px-3 py-2 text-sm hidden md:table-cell">
 									{#if !item.orphan && item.usage_count && item.usage_count > 0}
 										<div class="group relative">
-											<span class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 cursor-help">
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 text-xs rounded bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200 cursor-help"
+											>
 												{$t('admin.media.used_by_count', { values: { count: item.usage_count } })}
 											</span>
 											{#if item.used_by && item.used_by.length > 0}
-												<div class="hidden group-hover:block absolute z-10 right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] max-w-[250px]">
+												<div
+													class="hidden group-hover:block absolute z-10 right-0 top-full mt-1 p-2 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 min-w-[180px] max-w-[250px]"
+												>
 													<ul class="text-xs text-gray-600 dark:text-gray-300 space-y-1">
 														{#each item.used_by.slice(0, 5) as usage}
 															<li class="truncate" title="{usage.collection}: {usage.title}">
@@ -1607,30 +1840,53 @@
 											{/if}
 										</div>
 									{:else if item.orphan}
-										<span class="text-amber-600 dark:text-amber-400 text-xs">{$t('admin.media.badge_orphan')}</span>
+										<span class="text-amber-600 dark:text-amber-400 text-xs"
+											>{$t('admin.media.badge_orphan')}</span
+										>
 									{:else}
 										<span class="text-gray-400 dark:text-gray-500 text-xs">—</span>
 									{/if}
 								</td>
 								<td class="px-2 py-2">
 									<div class="flex items-center justify-end gap-1">
-										<button class="btn btn-ghost btn-sm" onclick={() => openPreview(item)} title={$t('admin.media.preview_button')}>
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick={() => openPreview(item)}
+											title={$t('admin.media.preview_button')}
+										>
 											{@html icon('eye')}
 										</button>
 										{#if isEditable(item)}
-											<button class="btn btn-ghost btn-sm" onclick={() => openEdit(item)} title={$t('admin.media.edit_button')}>
+											<button
+												class="btn btn-ghost btn-sm"
+												onclick={() => openEdit(item)}
+												title={$t('admin.media.edit_button')}
+											>
 												{@html icon('edit')}
 											</button>
 										{/if}
 										{#if isReplaceable(item)}
-											<button class="btn btn-ghost btn-sm" onclick={() => openReplace(item)} title={$t('admin.media.replace_button')} aria-label={$t('admin.media.replace_button')}>
+											<button
+												class="btn btn-ghost btn-sm"
+												onclick={() => openReplace(item)}
+												title={$t('admin.media.replace_button')}
+												aria-label={$t('admin.media.replace_button')}
+											>
 												{@html icon('swap')}
 											</button>
 										{/if}
-										<button class="btn btn-ghost btn-sm" onclick={() => copyUrl(item.url)} title={$t('admin.media.copy_url_button')}>
+										<button
+											class="btn btn-ghost btn-sm"
+											onclick={() => copyUrl(item.url)}
+											title={$t('admin.media.copy_url_button')}
+										>
 											{@html icon('copy')}
 										</button>
-										<button class="btn btn-danger-ghost btn-sm" onclick={() => deleteFile(item)} title={$t('admin.media.delete_button')}>
+										<button
+											class="btn btn-danger-ghost btn-sm"
+											onclick={() => deleteFile(item)}
+											title={$t('admin.media.delete_button')}
+										>
 											{@html icon('trash')}
 										</button>
 									</div>
@@ -1641,13 +1897,31 @@
 				</table>
 			</div>
 			{#if totalPages > 1}
-				<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
+				<div
+					class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300"
+				>
 					<div>{$t('admin.media.pagination_page', { values: { page, total: totalPages } })}</div>
 					<div class="flex items-center gap-2">
-						<button class="btn btn-ghost btn-sm" onclick={() => { page = Math.max(1, page - 1); loadMedia(); }} disabled={page === 1}>
+						<button
+							class="btn btn-ghost btn-sm"
+							onclick={() => {
+								page = Math.max(1, page - 1);
+								loadMedia();
+							}}
+							disabled={page === 1}
+						>
 							{$t('admin.media.pagination_previous')}
 						</button>
-						<button class="btn btn-ghost btn-sm" onclick={() => { if (page < totalPages) { page += 1; loadMedia(); } }} disabled={page >= totalPages}>
+						<button
+							class="btn btn-ghost btn-sm"
+							onclick={() => {
+								if (page < totalPages) {
+									page += 1;
+									loadMedia();
+								}
+							}}
+							disabled={page >= totalPages}
+						>
 							{$t('admin.media.pagination_next')}
 						</button>
 					</div>
@@ -1662,7 +1936,7 @@
 {#if editItem}
 	<div
 		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-		onmousedown={(e) => editModalMouseDownTarget = e.target}
+		onmousedown={(e) => (editModalMouseDownTarget = e.target)}
 		onclick={(e) => {
 			if (e.target === e.currentTarget && editModalMouseDownTarget === e.currentTarget) {
 				closeEdit();
@@ -1675,8 +1949,12 @@
 		aria-labelledby="edit-modal-title"
 		tabindex="-1"
 	>
-		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
-			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+		<div
+			class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in"
+		>
+			<div
+				class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600"
+			>
 				<h2 id="edit-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
 					{$t('admin.media.edit_modal_title')}
 				</h2>
@@ -1688,11 +1966,19 @@
 					{@html icon('x')}
 				</button>
 			</div>
-			
-			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); saveEdit(); }}>
+
+			<form
+				class="p-4 space-y-4"
+				onsubmit={(e) => {
+					e.preventDefault();
+					saveEdit();
+				}}
+			>
 				{#if editItem.thumbnail_url || (editItem.mime?.startsWith('image/') && editItem.url)}
 					<div class="flex justify-center">
-						<div class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+						<div
+							class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
+						>
 							<img
 								src={editItem.thumbnail_url || editItem.url}
 								alt=""
@@ -1710,65 +1996,78 @@
 						bind:value={editForm.title}
 						placeholder={$t('admin.media.edit_title_placeholder')}
 					/>
-					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_title_help')}</p>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						{$t('admin.media.edit_title_help')}
+					</p>
 				</div>
 				<!-- Alt text, description, and tags available for all media items -->
 				<div>
 					<label class="label" for="edit-alt-text">{$t('admin.media.edit_alt_text_label')}</label>
-						<input
-							id="edit-alt-text"
-							class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
-							bind:value={editForm.alt_text}
-							placeholder={$t('admin.media.edit_alt_text_placeholder')}
-							maxlength="255"
-						/>
-						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_alt_text_help')}</p>
-					</div>
+					<input
+						id="edit-alt-text"
+						class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
+						bind:value={editForm.alt_text}
+						placeholder={$t('admin.media.edit_alt_text_placeholder')}
+						maxlength="255"
+					/>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						{$t('admin.media.edit_alt_text_help')}
+					</p>
+				</div>
+				<div>
+					<label class="label" for="edit-description"
+						>{$t('admin.media.edit_description_label')}</label
+					>
+					<textarea
+						id="edit-description"
+						class="input min-h-[80px] transition-shadow focus:ring-2 focus:ring-primary-500/20"
+						bind:value={editForm.description}
+						placeholder={$t('admin.media.edit_description_placeholder')}
+						maxlength="1000"
+						rows="3"></textarea>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						{$t('admin.media.edit_description_help')}
+					</p>
+				</div>
+				{#if availableTags.length > 0}
 					<div>
-						<label class="label" for="edit-description">{$t('admin.media.edit_description_label')}</label>
-						<textarea
-							id="edit-description"
-							class="input min-h-[80px] transition-shadow focus:ring-2 focus:ring-primary-500/20"
-							bind:value={editForm.description}
-							placeholder={$t('admin.media.edit_description_placeholder')}
-							maxlength="1000"
-							rows="3"
-						></textarea>
-						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_description_help')}</p>
-					</div>
-					{#if availableTags.length > 0}
-						<div>
-							<span class="label">{$t('admin.media.edit_tags_label')}</span>
-							<div class="flex flex-wrap gap-2">
-								{#each availableTags as tag}
-									<label
-										class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1 dark:focus-within:ring-offset-gray-900 {editForm.tag_ids.includes(tag.id) ? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300' : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
-									>
-										<input
-											type="checkbox"
-											class="sr-only peer"
-											checked={editForm.tag_ids.includes(tag.id)}
-											onchange={() => {
-												if (editForm.tag_ids.includes(tag.id)) {
-													editForm.tag_ids = editForm.tag_ids.filter(id => id !== tag.id);
-												} else {
-													editForm.tag_ids = [...editForm.tag_ids, tag.id];
-												}
-											}}
-										/>
-										{#if tag.color}
-											<span
-												class="w-2.5 h-2.5 rounded-full shrink-0"
-												style="background-color: {tag.color}"
-											></span>
-										{/if}
-										<span class="text-sm text-gray-900 dark:text-gray-100">{tag.name}</span>
-									</label>
-								{/each}
-							</div>
-							<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.edit_tags_help')}</p>
+						<span class="label">{$t('admin.media.edit_tags_label')}</span>
+						<div class="flex flex-wrap gap-2">
+							{#each availableTags as tag}
+								<label
+									class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1 dark:focus-within:ring-offset-gray-900 {editForm.tag_ids.includes(
+										tag.id
+									)
+										? 'bg-white dark:bg-gray-900 border-primary-500 dark:border-primary-500 text-primary-800 dark:text-primary-300'
+										: 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}"
+								>
+									<input
+										type="checkbox"
+										class="sr-only peer"
+										checked={editForm.tag_ids.includes(tag.id)}
+										onchange={() => {
+											if (editForm.tag_ids.includes(tag.id)) {
+												editForm.tag_ids = editForm.tag_ids.filter((id) => id !== tag.id);
+											} else {
+												editForm.tag_ids = [...editForm.tag_ids, tag.id];
+											}
+										}}
+									/>
+									{#if tag.color}
+										<span
+											class="w-2.5 h-2.5 rounded-full shrink-0"
+											style="background-color: {tag.color}"
+										></span>
+									{/if}
+									<span class="text-sm text-gray-900 dark:text-gray-100">{tag.name}</span>
+								</label>
+							{/each}
 						</div>
-					{/if}
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+							{$t('admin.media.edit_tags_help')}
+						</p>
+					</div>
+				{/if}
 				{#if editItem.external || editItem.collection === 'external_media'}
 					<div>
 						<label class="label" for="edit-url">{$t('admin.media.edit_url_label')}</label>
@@ -1790,7 +2089,9 @@
 							/>
 						</div>
 						<div>
-							<label class="label" for="edit-thumbnail">{$t('admin.media.edit_thumbnail_label')}</label>
+							<label class="label" for="edit-thumbnail"
+								>{$t('admin.media.edit_thumbnail_label')}</label
+							>
 							<input
 								id="edit-thumbnail"
 								class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
@@ -1811,7 +2112,9 @@
 					>
 						{#if editForm.saving}
 							<span class="inline-flex items-center gap-2">
-								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<span
+									class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+								></span>
 								{$t('admin.media.saving')}
 							</span>
 						{:else}
@@ -1827,7 +2130,7 @@
 {#if replaceItem}
 	<div
 		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
-		onmousedown={(e) => replaceModalMouseDownTarget = e.target}
+		onmousedown={(e) => (replaceModalMouseDownTarget = e.target)}
 		onclick={(e) => {
 			if (e.target === e.currentTarget && replaceModalMouseDownTarget === e.currentTarget) {
 				closeReplace();
@@ -1841,8 +2144,12 @@
 		aria-describedby="replace-modal-desc"
 		tabindex="-1"
 	>
-		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
-			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+		<div
+			class="card bg-white dark:bg-gray-900 shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in"
+		>
+			<div
+				class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600"
+			>
 				<h2 id="replace-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
 					{$t('admin.media.replace_modal_title')}
 				</h2>
@@ -1855,13 +2162,21 @@
 				</button>
 			</div>
 
-			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); replaceMedia(); }}>
+			<form
+				class="p-4 space-y-4"
+				onsubmit={(e) => {
+					e.preventDefault();
+					replaceMedia();
+				}}
+			>
 				<p id="replace-modal-desc" class="text-sm text-gray-600 dark:text-gray-300">
 					{$t('admin.media.replace_modal_help')}
 				</p>
 				{#if replaceItem.mime?.startsWith('image/') && replaceItem.url}
 					<div class="flex justify-center">
-						<div class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
+						<div
+							class="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
+						>
 							<img
 								src={replaceItem.url}
 								alt={$t('admin.media.replace_current_image_alt')}
@@ -1880,7 +2195,9 @@
 						class="input transition-shadow focus:ring-2 focus:ring-primary-500/20"
 						onchange={handleReplaceFileChange}
 					/>
-					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{$t('admin.media.replace_file_help')}</p>
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						{$t('admin.media.replace_file_help')}
+					</p>
 				</div>
 				{#if (replaceItem.usage_count ?? 0) > 0}
 					<p class="text-xs text-gray-500 dark:text-gray-400">
@@ -1899,7 +2216,9 @@
 					>
 						{#if replacing}
 							<span class="inline-flex items-center gap-2">
-								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<span
+									class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+								></span>
 								{$t('admin.media.replacing')}
 							</span>
 						{:else}
@@ -1922,8 +2241,12 @@
 		aria-labelledby="bulk-tag-modal-title"
 		tabindex="-1"
 	>
-		<div class="card bg-white dark:bg-gray-900 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in">
-			<div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+		<div
+			class="card bg-white dark:bg-gray-900 shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-scale-in"
+		>
+			<div
+				class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600"
+			>
 				<h2 id="bulk-tag-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">
 					{$t('admin.media.bulk_tag_title', { values: { count: selectedItems.length } })}
 				</h2>
@@ -1936,13 +2259,23 @@
 				</button>
 			</div>
 
-			<form class="p-4 space-y-4" onsubmit={(e) => { e.preventDefault(); executeBulkTag(); }}>
+			<form
+				class="p-4 space-y-4"
+				onsubmit={(e) => {
+					e.preventDefault();
+					executeBulkTag();
+				}}
+			>
 				<div>
 					<span class="label">{$t('admin.media.bulk_tag_add_label')}</span>
 					<div class="flex flex-wrap gap-2">
 						{#each availableTags as tag}
 							<label
-								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1 dark:focus-within:ring-offset-gray-900 {bulkTagForm.addTags.includes(tag.id) ? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
+								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1 dark:focus-within:ring-offset-gray-900 {bulkTagForm.addTags.includes(
+									tag.id
+								)
+									? 'border-green-500 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200'
+									: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
 							>
 								<input
 									type="checkbox"
@@ -1950,11 +2283,11 @@
 									checked={bulkTagForm.addTags.includes(tag.id)}
 									onchange={() => {
 										if (bulkTagForm.addTags.includes(tag.id)) {
-											bulkTagForm.addTags = bulkTagForm.addTags.filter(id => id !== tag.id);
+											bulkTagForm.addTags = bulkTagForm.addTags.filter((id) => id !== tag.id);
 										} else {
 											bulkTagForm.addTags = [...bulkTagForm.addTags, tag.id];
 											// Remove from remove if adding
-											bulkTagForm.removeTags = bulkTagForm.removeTags.filter(id => id !== tag.id);
+											bulkTagForm.removeTags = bulkTagForm.removeTags.filter((id) => id !== tag.id);
 										}
 									}}
 								/>
@@ -1978,7 +2311,11 @@
 					<div class="flex flex-wrap gap-2">
 						{#each availableTags as tag}
 							<label
-								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1 dark:focus-within:ring-offset-gray-900 {bulkTagForm.removeTags.includes(tag.id) ? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
+								class="inline-flex items-center gap-1.5 px-2 py-1 rounded cursor-pointer transition-all border focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-1 dark:focus-within:ring-offset-gray-900 {bulkTagForm.removeTags.includes(
+									tag.id
+								)
+									? 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200'
+									: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'}"
 							>
 								<input
 									type="checkbox"
@@ -1986,11 +2323,11 @@
 									checked={bulkTagForm.removeTags.includes(tag.id)}
 									onchange={() => {
 										if (bulkTagForm.removeTags.includes(tag.id)) {
-											bulkTagForm.removeTags = bulkTagForm.removeTags.filter(id => id !== tag.id);
+											bulkTagForm.removeTags = bulkTagForm.removeTags.filter((id) => id !== tag.id);
 										} else {
 											bulkTagForm.removeTags = [...bulkTagForm.removeTags, tag.id];
 											// Remove from add if removing
-											bulkTagForm.addTags = bulkTagForm.addTags.filter(id => id !== tag.id);
+											bulkTagForm.addTags = bulkTagForm.addTags.filter((id) => id !== tag.id);
 										}
 									}}
 								/>
@@ -2016,11 +2353,14 @@
 					<button
 						type="submit"
 						class="btn btn-primary transition-transform active:scale-95"
-						disabled={bulkTagForm.saving || (bulkTagForm.addTags.length === 0 && bulkTagForm.removeTags.length === 0)}
+						disabled={bulkTagForm.saving ||
+							(bulkTagForm.addTags.length === 0 && bulkTagForm.removeTags.length === 0)}
 					>
 						{#if bulkTagForm.saving}
 							<span class="inline-flex items-center gap-2">
-								<span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<span
+									class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+								></span>
 								{$t('admin.media.saving')}
 							</span>
 						{:else}

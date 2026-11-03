@@ -120,9 +120,7 @@
 	}
 
 	function toggleEventInForm(ev: string) {
-		newEvents = newEvents.includes(ev)
-			? newEvents.filter((e) => e !== ev)
-			: [...newEvents, ev];
+		newEvents = newEvents.includes(ev) ? newEvents.filter((e) => e !== ev) : [...newEvents, ev];
 	}
 
 	function resetForm() {
@@ -200,9 +198,7 @@
 				body: JSON.stringify({ is_active: !wh.is_active })
 			});
 			if (!res.ok) throw new Error('failed');
-			toasts.success(
-				wh.is_active ? $t('admin.webhooks.disabled') : $t('admin.webhooks.enabled')
-			);
+			toasts.success(wh.is_active ? $t('admin.webhooks.disabled') : $t('admin.webhooks.enabled'));
 			await loadWebhooks();
 		} catch {
 			toasts.error($t('admin.webhooks.update_error'));
@@ -375,8 +371,13 @@
 		</div>
 	{:else}
 		<section aria-labelledby="dispatch-test-heading" class="mb-8">
-			<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-				<h2 id="dispatch-test-heading" class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+			<div
+				class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+			>
+				<h2
+					id="dispatch-test-heading"
+					class="text-lg font-semibold text-gray-900 dark:text-white mb-1"
+				>
 					{$t('admin.webhooks.dispatch_test_heading')}
 				</h2>
 				<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -386,9 +387,18 @@
 				{#if registeredEvents.length === 0}
 					<p class="text-sm text-gray-500">{$t('admin.webhooks.dispatch_test_no_events')}</p>
 				{:else}
-					<form onsubmit={(e) => { e.preventDefault(); dispatchTest(); }} class="flex flex-wrap items-end gap-3">
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							dispatchTest();
+						}}
+						class="flex flex-wrap items-end gap-3"
+					>
 						<div class="flex-1 min-w-[240px]">
-							<label for="dispatch-event-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+							<label
+								for="dispatch-event-select"
+								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+							>
 								{$t('admin.webhooks.dispatch_test_event_label')}
 							</label>
 							<select
@@ -410,32 +420,84 @@
 							disabled={dispatching || !dispatchEvent}
 							aria-busy={dispatching ? 'true' : undefined}
 						>
-							{dispatching ? $t('admin.webhooks.dispatch_test_dispatching') : $t('admin.webhooks.dispatch_test_button')}
+							{dispatching
+								? $t('admin.webhooks.dispatch_test_dispatching')
+								: $t('admin.webhooks.dispatch_test_button')}
 						</button>
 					</form>
 
 					<div aria-live="polite" aria-atomic="true" class="mt-3 min-h-[1.5rem]">
 						{#if dispatchError}
-							<p role="alert" class="text-sm text-red-700 dark:text-red-300 flex items-start gap-1.5">
-								<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+							<p
+								role="alert"
+								class="text-sm text-red-700 dark:text-red-300 flex items-start gap-1.5"
+							>
+								<svg
+									class="w-4 h-4 mt-0.5 flex-shrink-0"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+									/>
 								</svg>
 								<span>{dispatchError}</span>
 							</p>
 						{:else if dispatchResult}
 							{#if dispatchResult.enqueued === 0}
-								<p role="status" class="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-1.5">
-									<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+								<p
+									role="status"
+									class="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-1.5"
+								>
+									<svg
+										class="w-4 h-4 mt-0.5 flex-shrink-0"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+										/>
 									</svg>
-									<span>{$t('admin.webhooks.dispatch_test_result_zero', { values: { event: dispatchResult.event } })}</span>
+									<span
+										>{$t('admin.webhooks.dispatch_test_result_zero', {
+											values: { event: dispatchResult.event }
+										})}</span
+									>
 								</p>
 							{:else}
-								<p role="status" class="text-sm text-green-700 dark:text-green-300 flex items-start gap-1.5">
-									<svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+								<p
+									role="status"
+									class="text-sm text-green-700 dark:text-green-300 flex items-start gap-1.5"
+								>
+									<svg
+										class="w-4 h-4 mt-0.5 flex-shrink-0"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/>
 									</svg>
-									<span>{$t('admin.webhooks.dispatch_test_result_success', { values: { event: dispatchResult.event, count: dispatchResult.enqueued } })}</span>
+									<span
+										>{$t('admin.webhooks.dispatch_test_result_success', {
+											values: { event: dispatchResult.event, count: dispatchResult.enqueued }
+										})}</span
+									>
 								</p>
 							{/if}
 						{/if}
@@ -462,58 +524,133 @@
 			</div>
 
 			{#if webhooks.length === 0}
-				<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
+				<div
+					class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center"
+				>
 					<p class="text-gray-500 dark:text-gray-400">{$t('admin.webhooks.empty_state')}</p>
 				</div>
 			{:else}
-				<div class="overflow-x-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+				<div
+					class="overflow-x-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+				>
 					<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 						<caption class="sr-only">{$t('admin.webhooks.table_caption')}</caption>
 						<thead class="bg-gray-50 dark:bg-gray-900">
 							<tr>
-								<th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{$t('admin.webhooks.col_label')}</th>
-								<th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{$t('admin.webhooks.col_url')}</th>
-								<th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{$t('admin.webhooks.col_events')}</th>
-								<th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{$t('admin.webhooks.col_status')}</th>
-								<th scope="col" class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{$t('admin.webhooks.col_last_delivered')}</th>
-								<th scope="col" class="px-4 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">{$t('admin.webhooks.col_actions')}</th>
+								<th
+									scope="col"
+									class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+									>{$t('admin.webhooks.col_label')}</th
+								>
+								<th
+									scope="col"
+									class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+									>{$t('admin.webhooks.col_url')}</th
+								>
+								<th
+									scope="col"
+									class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+									>{$t('admin.webhooks.col_events')}</th
+								>
+								<th
+									scope="col"
+									class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+									>{$t('admin.webhooks.col_status')}</th
+								>
+								<th
+									scope="col"
+									class="px-4 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+									>{$t('admin.webhooks.col_last_delivered')}</th
+								>
+								<th
+									scope="col"
+									class="px-4 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider"
+									>{$t('admin.webhooks.col_actions')}</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
 							{#each webhooks as wh (wh.id)}
 								<tr class="bg-white dark:bg-gray-800">
-									<td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{wh.label}</td>
+									<td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white"
+										>{wh.label}</td
+									>
 									<td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 font-mono">
 										<span title={wh.url}>{truncate(wh.url, 48)}</span>
 									</td>
 									<td class="px-4 py-3">
-										<ul class="flex flex-wrap gap-1" aria-label={$t('admin.webhooks.events_for_row', { values: { label: wh.label } })}>
+										<ul
+											class="flex flex-wrap gap-1"
+											aria-label={$t('admin.webhooks.events_for_row', {
+												values: { label: wh.label }
+											})}
+										>
 											{#each wh.events as ev}
-												<li class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">{ev}</li>
+												<li
+													class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+												>
+													{ev}
+												</li>
 											{/each}
 										</ul>
 									</td>
 									<td class="px-4 py-3 text-sm">
 										{#if !wh.is_active && wh.failure_count >= 10}
-											<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+											<span
+												class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+											>
+												<svg
+													class="w-3.5 h-3.5"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+													aria-hidden="true"
+													><path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+													/></svg
+												>
 												{$t('admin.webhooks.status_auto_disabled')}
 											</span>
 										{:else if wh.is_active}
-											<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">{$t('admin.webhooks.status_active')}</span>
+											<span
+												class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+												>{$t('admin.webhooks.status_active')}</span
+											>
 										{:else}
-											<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">{$t('admin.webhooks.status_disabled')}</span>
+											<span
+												class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+												>{$t('admin.webhooks.status_disabled')}</span
+											>
 										{/if}
 										{#if wh.failure_count > 0}
 											<div class="mt-1">
-												<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-													<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495z" clip-rule="evenodd"/></svg>
-													{$t('admin.webhooks.failure_count', { values: { count: wh.failure_count } })}
+												<span
+													class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+												>
+													<svg
+														class="w-3 h-3"
+														fill="currentColor"
+														viewBox="0 0 20 20"
+														aria-hidden="true"
+														><path
+															fill-rule="evenodd"
+															d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495z"
+															clip-rule="evenodd"
+														/></svg
+													>
+													{$t('admin.webhooks.failure_count', {
+														values: { count: wh.failure_count }
+													})}
 												</span>
 											</div>
 										{/if}
 									</td>
-									<td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{fmtDate(wh.last_delivered_at)}</td>
+									<td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400"
+										>{fmtDate(wh.last_delivered_at)}</td
+									>
 									<td class="px-4 py-3 text-sm text-right">
 										<div class="inline-flex gap-2">
 											<button
@@ -523,13 +660,17 @@
 												disabled={testing === wh.id}
 												aria-label={$t('admin.webhooks.test_aria', { values: { label: wh.label } })}
 											>
-												{testing === wh.id ? $t('admin.webhooks.testing') : $t('admin.webhooks.test')}
+												{testing === wh.id
+													? $t('admin.webhooks.testing')
+													: $t('admin.webhooks.test')}
 											</button>
 											<button
 												type="button"
 												class="btn btn-sm btn-secondary"
 												onclick={() => openDeliveries(wh)}
-												aria-label={$t('admin.webhooks.deliveries_aria', { values: { label: wh.label } })}
+												aria-label={$t('admin.webhooks.deliveries_aria', {
+													values: { label: wh.label }
+												})}
 											>
 												{$t('admin.webhooks.deliveries')}
 											</button>
@@ -544,20 +685,32 @@
 												type="button"
 												class="btn btn-sm btn-danger"
 												onclick={() => deleteWebhook(wh)}
-												aria-label={$t('admin.webhooks.delete_aria', { values: { label: wh.label } })}
+												aria-label={$t('admin.webhooks.delete_aria', {
+													values: { label: wh.label }
+												})}
 											>
 												{$t('shared.actions.delete')}
 											</button>
 										</div>
 										{#if testResults[wh.id]}
 											<div
-												class="mt-2 text-left p-2 rounded text-xs font-mono whitespace-pre-wrap break-all {testResults[wh.id].succeeded ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'}"
+												class="mt-2 text-left p-2 rounded text-xs font-mono whitespace-pre-wrap break-all {testResults[
+													wh.id
+												].succeeded
+													? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+													: 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200'}"
 												role="status"
 												aria-live="polite"
 											>
-												<strong>{$t('admin.webhooks.test_result_status', { values: { code: testResults[wh.id].status_code } })}</strong>
+												<strong
+													>{$t('admin.webhooks.test_result_status', {
+														values: { code: testResults[wh.id].status_code }
+													})}</strong
+												>
 												{#if testResults[wh.id].error}
-													<div>{$t('admin.webhooks.test_error_prefix')}: {testResults[wh.id].error}</div>
+													<div>
+														{$t('admin.webhooks.test_error_prefix')}: {testResults[wh.id].error}
+													</div>
 												{/if}
 												{#if testResults[wh.id].response_body}
 													<div class="mt-1">{truncate(testResults[wh.id].response_body, 300)}</div>
@@ -574,23 +727,49 @@
 		</section>
 
 		{#if showAddForm}
-			<section aria-labelledby="new-webhook-heading" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-				<h2 id="new-webhook-heading" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{$t('admin.webhooks.new_form_heading')}</h2>
+			<section
+				aria-labelledby="new-webhook-heading"
+				class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6"
+			>
+				<h2
+					id="new-webhook-heading"
+					class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+				>
+					{$t('admin.webhooks.new_form_heading')}
+				</h2>
 
 				{#if createdSecret}
-					<div class="mb-4 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded" role="status" aria-live="polite">
-						<h3 class="font-semibold text-amber-900 dark:text-amber-100">{$t('admin.webhooks.secret_heading')}</h3>
-						<p class="text-sm text-amber-800 dark:text-amber-200 mt-1">{$t('admin.webhooks.secret_warning')}</p>
+					<div
+						class="mb-4 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded"
+						role="status"
+						aria-live="polite"
+					>
+						<h3 class="font-semibold text-amber-900 dark:text-amber-100">
+							{$t('admin.webhooks.secret_heading')}
+						</h3>
+						<p class="text-sm text-amber-800 dark:text-amber-200 mt-1">
+							{$t('admin.webhooks.secret_warning')}
+						</p>
 						<div class="mt-2 flex items-center gap-2">
-							<code class="flex-1 p-2 bg-white dark:bg-gray-900 rounded text-xs font-mono break-all">{createdSecret}</code>
-							<button type="button" class="btn btn-sm btn-secondary" onclick={copySecret}>{$t('shared.actions.copy')}</button>
+							<code class="flex-1 p-2 bg-white dark:bg-gray-900 rounded text-xs font-mono break-all"
+								>{createdSecret}</code
+							>
+							<button type="button" class="btn btn-sm btn-secondary" onclick={copySecret}
+								>{$t('shared.actions.copy')}</button
+							>
 						</div>
-						<button type="button" class="mt-3 btn btn-secondary" onclick={resetForm}>{$t('shared.actions.close')}</button>
+						<button type="button" class="mt-3 btn btn-secondary" onclick={resetForm}
+							>{$t('shared.actions.close')}</button
+						>
 					</div>
 				{:else}
 					<form onsubmit={createWebhook} novalidate>
 						<div class="mb-4">
-							<label for="wh-label" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('admin.webhooks.label_field')}</label>
+							<label
+								for="wh-label"
+								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+								>{$t('admin.webhooks.label_field')}</label
+							>
 							<input
 								id="wh-label"
 								type="text"
@@ -603,7 +782,11 @@
 						</div>
 
 						<div class="mb-4">
-							<label for="wh-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{$t('admin.webhooks.url_field')}</label>
+							<label
+								for="wh-url"
+								class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+								>{$t('admin.webhooks.url_field')}</label
+							>
 							<input
 								id="wh-url"
 								type="url"
@@ -615,14 +798,20 @@
 								aria-invalid={urlError ? 'true' : 'false'}
 								aria-describedby={urlError ? 'wh-url-error' : 'wh-url-hint'}
 							/>
-							<p id="wh-url-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{$t('admin.webhooks.url_hint')}</p>
+							<p id="wh-url-hint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+								{$t('admin.webhooks.url_hint')}
+							</p>
 							{#if urlError}
-								<p id="wh-url-error" class="mt-1 text-xs text-red-600 dark:text-red-400">{urlError}</p>
+								<p id="wh-url-error" class="mt-1 text-xs text-red-600 dark:text-red-400">
+									{urlError}
+								</p>
 							{/if}
 						</div>
 
 						<fieldset class="mb-4">
-							<legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{$t('admin.webhooks.events_field')}</legend>
+							<legend class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+								>{$t('admin.webhooks.events_field')}</legend
+							>
 							{#if registeredEvents.length === 0}
 								<p class="text-sm text-gray-500">{$t('admin.webhooks.no_events_available')}</p>
 							{:else}
@@ -645,12 +834,19 @@
 						<div class="mb-4">
 							<label class="flex items-center gap-2 text-sm">
 								<input type="checkbox" bind:checked={newActive} class="rounded text-primary-600" />
-								<span class="text-gray-800 dark:text-gray-200">{$t('admin.webhooks.active_field')}</span>
+								<span class="text-gray-800 dark:text-gray-200"
+									>{$t('admin.webhooks.active_field')}</span
+								>
 							</label>
 						</div>
 
 						<div class="flex gap-2 justify-end">
-							<button type="button" class="btn btn-secondary" onclick={resetForm} disabled={creating}>{$t('shared.actions.cancel')}</button>
+							<button
+								type="button"
+								class="btn btn-secondary"
+								onclick={resetForm}
+								disabled={creating}>{$t('shared.actions.cancel')}</button
+							>
 							<button type="submit" class="btn btn-primary" disabled={creating || !!urlError}>
 								{creating ? $t('admin.webhooks.creating') : $t('admin.webhooks.create')}
 							</button>
@@ -683,8 +879,13 @@
 			tabindex="-1"
 			onkeydown={onDialogKeydown}
 		>
-			<header class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 id="deliveries-dialog-heading" class="text-lg font-semibold text-gray-900 dark:text-white">
+			<header
+				class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+			>
+				<h2
+					id="deliveries-dialog-heading"
+					class="text-lg font-semibold text-gray-900 dark:text-white"
+				>
 					{$t('admin.webhooks.deliveries_for', { values: { label: deliveriesFor.label } })}
 				</h2>
 				<button type="button" class="btn btn-sm btn-secondary" onclick={closeDeliveries}>
@@ -700,11 +901,21 @@
 					<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 						<thead class="bg-gray-50 dark:bg-gray-900">
 							<tr>
-								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase">{$t('admin.webhooks.col_event')}</th>
-								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase">{$t('admin.webhooks.col_response_code')}</th>
-								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase">{$t('admin.webhooks.col_attempts')}</th>
-								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase">{$t('admin.webhooks.col_succeeded')}</th>
-								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase">{$t('admin.webhooks.col_when')}</th>
+								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase"
+									>{$t('admin.webhooks.col_event')}</th
+								>
+								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase"
+									>{$t('admin.webhooks.col_response_code')}</th
+								>
+								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase"
+									>{$t('admin.webhooks.col_attempts')}</th
+								>
+								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase"
+									>{$t('admin.webhooks.col_succeeded')}</th
+								>
+								<th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase"
+									>{$t('admin.webhooks.col_when')}</th
+								>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -723,19 +934,34 @@
 											<span class="text-sm">{d.attempt_count}</span>
 											<span class="text-sm">
 												{#if d.succeeded}
-													<span class="text-green-700 dark:text-green-400">{$t('admin.webhooks.succeeded')}</span>
+													<span class="text-green-700 dark:text-green-400"
+														>{$t('admin.webhooks.succeeded')}</span
+													>
 												{:else}
-													<span class="text-red-700 dark:text-red-400">{$t('admin.webhooks.failed')}</span>
+													<span class="text-red-700 dark:text-red-400"
+														>{$t('admin.webhooks.failed')}</span
+													>
 												{/if}
 											</span>
 											<span class="text-sm text-gray-500">{fmtDate(d.created)}</span>
 										</button>
 										{#if expandedDelivery === d.id}
-											<div id={'delivery-detail-' + d.id} class="px-3 py-3 bg-gray-50 dark:bg-gray-900/50">
-												<h3 class="text-sm font-semibold mb-1 text-gray-900 dark:text-white">{$t('admin.webhooks.request_body')}</h3>
-												<pre class="text-xs font-mono bg-white dark:bg-gray-900 p-2 rounded overflow-x-auto whitespace-pre-wrap break-all">{d.request_body || '—'}</pre>
-												<h3 class="text-sm font-semibold mt-3 mb-1 text-gray-900 dark:text-white">{$t('admin.webhooks.response_body')}</h3>
-												<pre class="text-xs font-mono bg-white dark:bg-gray-900 p-2 rounded overflow-x-auto whitespace-pre-wrap break-all">{d.response_body || '—'}</pre>
+											<div
+												id={'delivery-detail-' + d.id}
+												class="px-3 py-3 bg-gray-50 dark:bg-gray-900/50"
+											>
+												<h3 class="text-sm font-semibold mb-1 text-gray-900 dark:text-white">
+													{$t('admin.webhooks.request_body')}
+												</h3>
+												<pre
+													class="text-xs font-mono bg-white dark:bg-gray-900 p-2 rounded overflow-x-auto whitespace-pre-wrap break-all">{d.request_body ||
+														'—'}</pre>
+												<h3 class="text-sm font-semibold mt-3 mb-1 text-gray-900 dark:text-white">
+													{$t('admin.webhooks.response_body')}
+												</h3>
+												<pre
+													class="text-xs font-mono bg-white dark:bg-gray-900 p-2 rounded overflow-x-auto whitespace-pre-wrap break-all">{d.response_body ||
+														'—'}</pre>
 											</div>
 										{/if}
 									</td>
@@ -744,21 +970,32 @@
 						</tbody>
 					</table>
 
-					<nav class="mt-4 flex items-center justify-between" aria-label={$t('admin.webhooks.pagination_aria')}>
+					<nav
+						class="mt-4 flex items-center justify-between"
+						aria-label={$t('admin.webhooks.pagination_aria')}
+					>
 						<button
 							type="button"
 							class="btn btn-sm btn-secondary"
 							disabled={deliveryPage <= 1}
-							onclick={async () => { deliveryPage--; await loadDeliveries(); }}
+							onclick={async () => {
+								deliveryPage--;
+								await loadDeliveries();
+							}}
 						>
 							{$t('admin.webhooks.prev_page')}
 						</button>
-						<span class="text-sm text-gray-600 dark:text-gray-400">{$t('admin.webhooks.page_n', { values: { page: deliveryPage } })}</span>
+						<span class="text-sm text-gray-600 dark:text-gray-400"
+							>{$t('admin.webhooks.page_n', { values: { page: deliveryPage } })}</span
+						>
 						<button
 							type="button"
 							class="btn btn-sm btn-secondary"
 							disabled={deliveries.length < 25}
-							onclick={async () => { deliveryPage++; await loadDeliveries(); }}
+							onclick={async () => {
+								deliveryPage++;
+								await loadDeliveries();
+							}}
 						>
 							{$t('admin.webhooks.next_page')}
 						</button>

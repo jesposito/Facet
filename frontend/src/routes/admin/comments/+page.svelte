@@ -283,7 +283,9 @@
 		>
 			{$t('admin.comments.pending')}
 			{#if pendingCount > 0}
-				<span class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200">
+				<span
+					class="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-yellow-200 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200"
+				>
 					{pendingCount}
 				</span>
 			{/if}
@@ -340,13 +342,25 @@
 				{$t('admin.comments.selected_count', { values: { count: selectedIds.size } })}
 			</span>
 			<div class="flex items-center gap-2 ml-auto">
-				<button type="button" class="btn btn-sm bg-green-700 hover:bg-green-800 text-white" onclick={() => bulkAction('approve')}>
+				<button
+					type="button"
+					class="btn btn-sm bg-green-700 hover:bg-green-800 text-white"
+					onclick={() => bulkAction('approve')}
+				>
 					{$t('admin.comments.bulk_approve')}
 				</button>
-				<button type="button" class="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white" onclick={() => bulkAction('reject')}>
+				<button
+					type="button"
+					class="btn btn-sm bg-gray-600 hover:bg-gray-700 text-white"
+					onclick={() => bulkAction('reject')}
+				>
 					{$t('admin.comments.bulk_reject')}
 				</button>
-				<button type="button" class="btn btn-sm bg-orange-700 hover:bg-orange-800 text-white" onclick={() => bulkAction('spam')}>
+				<button
+					type="button"
+					class="btn btn-sm bg-orange-700 hover:bg-orange-800 text-white"
+					onclick={() => bulkAction('spam')}
+				>
 					{$t('admin.comments.bulk_spam')}
 				</button>
 				<button type="button" class="btn btn-danger btn-sm" onclick={() => bulkAction('delete')}>
@@ -359,16 +373,41 @@
 	<!-- Comment List -->
 	<div class="card">
 		{#if loading}
-			<div class="flex items-center justify-center py-12" role="status" aria-label="Loading comments">
-				<svg class="animate-spin h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+			<div
+				class="flex items-center justify-center py-12"
+				role="status"
+				aria-label="Loading comments"
+			>
+				<svg
+					class="animate-spin h-6 w-6 text-primary-600"
+					fill="none"
+					viewBox="0 0 24 24"
+					aria-hidden="true"
+				>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
 				</svg>
 			</div>
 		{:else if comments.length === 0}
 			<div class="text-center py-12 px-6">
-				<svg class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+				<svg
+					class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-4"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="1.5"
+						d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+					/>
 				</svg>
 				<h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
 					{getEmptyMessage()}
@@ -391,7 +430,9 @@
 
 			<!-- Comment cards -->
 			{#each comments as comment (comment.id)}
-				<div class="flex gap-3 px-4 py-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+				<div
+					class="flex gap-3 px-4 py-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+				>
 					<!-- Checkbox -->
 					<div class="pt-0.5">
 						<input
@@ -407,18 +448,28 @@
 					<div class="flex-1 min-w-0">
 						<!-- Author + meta row -->
 						<div class="flex items-center gap-2 mb-1 flex-wrap">
-							<span class="font-medium text-sm text-gray-900 dark:text-white">{comment.author_name}</span>
+							<span class="font-medium text-sm text-gray-900 dark:text-white"
+								>{comment.author_name}</span
+							>
 							<span class="text-xs text-gray-400 dark:text-gray-500">{comment.author_email}</span>
-							<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {getStatusClass(comment.status)}">
+							<span
+								class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {getStatusClass(
+									comment.status
+								)}"
+							>
 								{$t(`admin.comments.${comment.status}`)}
 							</span>
 							{#if comment.is_pinned}
-								<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+								<span
+									class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+								>
 									{$t('admin.comments.pin')}
 								</span>
 							{/if}
 							{#if comment.report_count > 0}
-								<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+								<span
+									class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+								>
 									{$t('admin.comments.reports')}: {comment.report_count}
 								</span>
 							{/if}
@@ -429,7 +480,10 @@
 							<span class="capitalize">{comment.content_type}</span>
 							{#if comment.content_title}
 								&mdash;
-								<a href="/admin/{comment.content_type}s/{comment.content_id}" class="text-primary-600 dark:text-primary-400 hover:underline">
+								<a
+									href="/admin/{comment.content_type}s/{comment.content_id}"
+									class="text-primary-600 dark:text-primary-400 hover:underline"
+								>
 									{comment.content_title}
 								</a>
 							{/if}
@@ -456,8 +510,19 @@
 								aria-label={$t('admin.comments.approve')}
 								title={$t('admin.comments.approve')}
 							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M5 13l4 4L19 7"
+									/>
 								</svg>
 							</button>
 						{/if}
@@ -469,8 +534,19 @@
 								aria-label={$t('admin.comments.reject')}
 								title={$t('admin.comments.reject')}
 							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18L18 6M6 6l12 12"
+									/>
 								</svg>
 							</button>
 						{/if}
@@ -482,8 +558,19 @@
 								aria-label={$t('admin.comments.mark_spam')}
 								title={$t('admin.comments.mark_spam')}
 							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
+									/>
 								</svg>
 							</button>
 						{/if}
@@ -494,8 +581,19 @@
 							aria-label={comment.is_pinned ? $t('admin.comments.unpin') : $t('admin.comments.pin')}
 							title={comment.is_pinned ? $t('admin.comments.unpin') : $t('admin.comments.pin')}
 						>
-							<svg class="w-4 h-4" fill={comment.is_pinned ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+							<svg
+								class="w-4 h-4"
+								fill={comment.is_pinned ? 'currentColor' : 'none'}
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+								/>
 							</svg>
 						</button>
 						<button
@@ -505,8 +603,19 @@
 							aria-label={$t('admin.comments.delete')}
 							title={$t('admin.comments.delete')}
 						>
-							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+							<svg
+								class="w-4 h-4"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								aria-hidden="true"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+								/>
 							</svg>
 						</button>
 					</div>
@@ -515,12 +624,24 @@
 
 			<!-- Pagination -->
 			{#if totalPages > 1}
-				<nav class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700" aria-label="Comment pagination">
+				<nav
+					class="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700"
+					aria-label="Comment pagination"
+				>
 					<p class="text-sm text-gray-500 dark:text-gray-400">
-						Showing {(currentPage - 1) * perPage + 1} to {Math.min(currentPage * perPage, totalItems)} of {totalItems}
+						Showing {(currentPage - 1) * perPage + 1} to {Math.min(
+							currentPage * perPage,
+							totalItems
+						)} of {totalItems}
 					</p>
 					<div class="flex gap-1">
-						<button type="button" class="btn btn-ghost btn-sm" disabled={currentPage <= 1} onclick={() => goToPage(currentPage - 1)} aria-label="Previous page">
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm"
+							disabled={currentPage <= 1}
+							onclick={() => goToPage(currentPage - 1)}
+							aria-label="Previous page"
+						>
 							&laquo;
 						</button>
 						{#each Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -536,7 +657,13 @@
 								{p}
 							</button>
 						{/each}
-						<button type="button" class="btn btn-ghost btn-sm" disabled={currentPage >= totalPages} onclick={() => goToPage(currentPage + 1)} aria-label="Next page">
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm"
+							disabled={currentPage >= totalPages}
+							onclick={() => goToPage(currentPage + 1)}
+							aria-label="Next page"
+						>
 							&raquo;
 						</button>
 					</div>

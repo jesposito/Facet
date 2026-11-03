@@ -6,7 +6,16 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/env';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
-	import { pb, type ViewSection, type Profile, type SectionWidth, VALID_LAYOUTS, VALID_WIDTHS, getValidWidthsForLayout, isWidthValidForLayout } from '$lib/pocketbase';
+	import {
+		pb,
+		type ViewSection,
+		type Profile,
+		type SectionWidth,
+		VALID_LAYOUTS,
+		VALID_WIDTHS,
+		getValidWidthsForLayout,
+		isWidthValidForLayout
+	} from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
 	import { toasts } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -29,7 +38,8 @@
 	// Load DnD functionality when in browser
 	onMount(async () => {
 		if (browser) {
-			const { dndzone: dnd, SHADOW_PLACEHOLDER_ITEM_ID: shadowId } = await import('svelte-dnd-action');
+			const { dndzone: dnd, SHADOW_PLACEHOLDER_ITEM_ID: shadowId } =
+				await import('svelte-dnd-action');
 			dndzone = dnd;
 			SHADOW_PLACEHOLDER_ITEM_ID = shadowId;
 		}
@@ -64,12 +74,23 @@
 	// Get custom section title
 	function getCustomSectionTitle(sectionKey: string): string {
 		const customId = sectionKey.replace('custom:', '');
-		const item = customContentItems.find(c => c.id === customId);
+		const item = customContentItems.find((c) => c.id === customId);
 		return item ? `Custom: ${item.title}` : `Custom: ${customId.slice(0, 8)}...`;
 	}
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = [
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'testimonials',
+		'contacts'
+	];
 
 	let loading = $state(true);
 	let saving = $state(false);
@@ -110,31 +131,43 @@
 	let generatingToken = $state(false);
 
 	// Sections configuration with layout and width support (itemConfig empty for new views)
-	let sections: Record<string, { enabled: boolean; items: string[]; expanded: boolean; layout: string; width: SectionWidth; itemConfig: Record<string, { overrides?: Record<string, string | string[]> }>; categoryOrder?: string[]; disabledCategories?: string[]; categoryDisplayModes?: Record<string, string> }> = $state({});
+	let sections: Record<
+		string,
+		{
+			enabled: boolean;
+			items: string[];
+			expanded: boolean;
+			layout: string;
+			width: SectionWidth;
+			itemConfig: Record<string, { overrides?: Record<string, string | string[]> }>;
+			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
+		}
+	> = $state({});
 
 	// Section order for drag-drop
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
 	const flipDurationMs = 200;
 
 	// Available items for each section (with full data for preview)
-	let sectionItems: Record<string, Array<{
-		id: string;
-		label: string;
-		visibility: string;
-		is_draft?: boolean;
-		data: Record<string, unknown>;
-	}>> = $state({});
+	let sectionItems: Record<
+		string,
+		Array<{
+			id: string;
+			label: string;
+			visibility: string;
+			is_draft?: boolean;
+			data: Record<string, unknown>;
+		}>
+	> = $state({});
 
 	// Simple pattern - admin layout handles auth
 	onMount(async () => {
 		// Load custom content FIRST since initializeSections() needs it
 		await loadCustomContentItems();
 		initializeSections();
-		await Promise.all([
-			loadSectionItems(),
-			loadProfile(),
-			checkAiProviders()
-		]);
+		await Promise.all([loadSectionItems(), loadProfile(), checkAiProviders()]);
 		loading = false;
 	});
 
@@ -144,7 +177,7 @@
 			const records = await collection('custom_content').getList(1, 100, {
 				sort: 'sort_order'
 			});
-			customContentItems = records.items.map(item => {
+			customContentItems = records.items.map((item) => {
 				const record = item as any;
 				return {
 					id: record.id,
@@ -192,7 +225,17 @@
 		// Start with all sections enabled by default for new views, with default layout and full width
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-			sections[key] = { enabled: true, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {}, categoryOrder: undefined, disabledCategories: undefined, categoryDisplayModes: undefined };
+			sections[key] = {
+				enabled: true,
+				items: [],
+				expanded: false,
+				layout: defaultLayout,
+				width: 'full',
+				itemConfig: {},
+				categoryOrder: undefined,
+				disabledCategories: undefined,
+				categoryDisplayModes: undefined
+			};
 		}
 
 		// Add custom content sections (each custom content item is its own section)
@@ -200,13 +243,20 @@
 			const sectionKey = `custom:${item.id}`;
 			const defaultLayout = VALID_LAYOUTS['custom']?.default || 'default';
 			// Custom content sections start disabled by default for new views
-			sections[sectionKey] = { enabled: false, items: [], expanded: false, layout: defaultLayout, width: 'full', itemConfig: {} };
+			sections[sectionKey] = {
+				enabled: false,
+				items: [],
+				expanded: false,
+				layout: defaultLayout,
+				width: 'full',
+				itemConfig: {}
+			};
 		}
 
 		// Initialize section order (standard sections first, then custom content)
-		const customSectionKeys = customContentItems.map(item => `custom:${item.id}`);
+		const customSectionKeys = customContentItems.map((item) => `custom:${item.id}`);
 		const allSections = [...DEFAULT_SECTION_ORDER, ...customSectionKeys];
-		sectionOrder = allSections.map(key => ({ id: `section-${key}`, key }));
+		sectionOrder = allSections.map((key) => ({ id: `section-${key}`, key }));
 	}
 
 	async function loadSectionItems() {
@@ -221,8 +271,8 @@
 					id: item.id,
 					label: getItemLabel(key, item),
 					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: (item as Record<string, unknown>).visibility as string || 'private',
-					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					visibility: ((item as Record<string, unknown>).visibility as string) || 'private',
+					is_draft: ((item as Record<string, unknown>).is_draft as boolean) || false,
 					data: item as Record<string, unknown>
 				}));
 			} catch (err) {
@@ -251,7 +301,7 @@
 			case 'contacts':
 				return `${item.label || item.type} - ${item.value}`;
 			default:
-				return item.title as string || item.name as string || item.id as string;
+				return (item.title as string) || (item.name as string) || (item.id as string);
 		}
 	}
 
@@ -319,7 +369,7 @@
 
 	// Drag-drop handlers for section reordering
 	function moveSection(sectionId: string, direction: 'up' | 'down') {
-		const idx = sectionOrder.findIndex(s => s.id === sectionId);
+		const idx = sectionOrder.findIndex((s) => s.id === sectionId);
 		if (idx === -1) return;
 		if (direction === 'up' && idx === 0) return;
 		if (direction === 'down' && idx === sectionOrder.length - 1) return;
@@ -339,28 +389,51 @@
 	}
 
 	// Drag-drop handlers for item reordering within a section
-	function handleItemDndConsider(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }> }>) {
+	function handleItemDndConsider(
+		sectionKey: string,
+		e: CustomEvent<{
+			items: Array<{
+				id: string;
+				label: string;
+				visibility: string;
+				is_draft?: boolean;
+				data: Record<string, unknown>;
+			}>;
+		}>
+	) {
 		// Only update visual state during consider - don't commit selection changes
 		sectionItems[sectionKey] = e.detail.items;
 	}
 
-	function handleItemDndFinalize(sectionKey: string, e: CustomEvent<{ items: Array<{ id: string; label: string; visibility: string; is_draft?: boolean; data: Record<string, unknown> }>; info?: { id?: string } }>) {
+	function handleItemDndFinalize(
+		sectionKey: string,
+		e: CustomEvent<{
+			items: Array<{
+				id: string;
+				label: string;
+				visibility: string;
+				is_draft?: boolean;
+				data: Record<string, unknown>;
+			}>;
+			info?: { id?: string };
+		}>
+	) {
 		sectionItems[sectionKey] = e.detail.items;
 		// Only commit order changes on finalize (drag complete)
 		updateItemsOrderFromDisplay(sectionKey);
 		// Announce the dropped item's new position for screen-reader users.
 		const droppedId = e.detail.info?.id;
 		const list = sectionItems[sectionKey] || [];
-		const droppedIdx = list.findIndex(i => i.id === droppedId);
+		const droppedIdx = list.findIndex((i) => i.id === droppedId);
 		if (droppedIdx !== -1) {
 			announceItemMove(list[droppedIdx].label, droppedIdx + 1, list.length);
 		}
 	}
 
 	function updateItemsOrderFromDisplay(sectionKey: string) {
-		const displayOrder = sectionItems[sectionKey]?.map(i => i.id) || [];
+		const displayOrder = sectionItems[sectionKey]?.map((i) => i.id) || [];
 		const selectedSet = new Set(sections[sectionKey].items);
-		sections[sectionKey].items = displayOrder.filter(id => selectedSet.has(id));
+		sections[sectionKey].items = displayOrder.filter((id) => selectedSet.has(id));
 		updateSections();
 	}
 
@@ -393,17 +466,12 @@
 		await tick();
 		if (btn.disabled) {
 			const opposite = direction === 'up' ? 'down' : 'up';
-			btn.parentElement
-				?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)
-				?.focus();
+			btn.parentElement?.querySelector<HTMLButtonElement>(`[data-move="${opposite}"]`)?.focus();
 		}
 	}
 
 	// Apply imported items to sections after resume import
 	async function applyImportedToSections(imported: Record<string, string[]>) {
-		// First, refresh section items to include the newly imported records
-		await loadSectionItems();
-
 		// Map from import response keys to section keys (they match in this case)
 		const importToSectionMap: Record<string, string> = {
 			experience: 'experience',
@@ -433,8 +501,14 @@
 			}
 		}
 
+		// Select the imported IDs before refreshing the item lists. The refresh
+		// makes one request per section, and a Create click during it would
+		// otherwise save the facet without the imported items.
 		updateSections();
 		toasts.add('success', 'Imported items have been selected in your facet.');
+
+		// Refresh section items so the newly imported records show up in the lists
+		await loadSectionItems();
 	}
 
 	// Token generation functions
@@ -506,11 +580,32 @@
 
 		// Check for reserved slugs
 		const reservedSlugs = [
-			'admin', 'api', 's', 'v', '_app', '_', 'assets', 'static',
-			'favicon.ico', 'robots.txt', 'sitemap.xml',
-			'health', 'healthz', 'ready', 'login', 'logout',
-			'auth', 'oauth', 'callback', 'home', 'index', 'default', 'profile',
-			'projects', 'posts', 'new'
+			'admin',
+			'api',
+			's',
+			'v',
+			'_app',
+			'_',
+			'assets',
+			'static',
+			'favicon.ico',
+			'robots.txt',
+			'sitemap.xml',
+			'health',
+			'healthz',
+			'ready',
+			'login',
+			'logout',
+			'auth',
+			'oauth',
+			'callback',
+			'home',
+			'index',
+			'default',
+			'profile',
+			'projects',
+			'posts',
+			'new'
 		];
 		if (reservedSlugs.includes(slug.toLowerCase())) {
 			toasts.add('error', `"${slug}" is a reserved slug. Please choose another.`);
@@ -520,29 +615,31 @@
 		saving = true;
 		try {
 			// Build sections array in current order with layout and width
-			const sectionsData: ViewSection[] = sectionOrder
-				.map(({ key }) => {
-					const sectionData: ViewSection = {
-						section: key,
-						enabled: sections[key]?.enabled || false,
-						items: sections[key]?.items || [],
-						layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default',
-						width: sections[key]?.width || 'full'
-					};
-					// Include skills section settings if set
-					if (key === 'skills') {
-						if (sections[key]?.categoryOrder?.length) {
-							sectionData.categoryOrder = sections[key].categoryOrder;
-						}
-						if (sections[key]?.disabledCategories?.length) {
-							sectionData.disabledCategories = sections[key].disabledCategories;
-						}
-						if (sections[key]?.categoryDisplayModes && Object.keys(sections[key].categoryDisplayModes).length > 0) {
-							sectionData.categoryDisplayModes = sections[key].categoryDisplayModes;
-						}
+			const sectionsData: ViewSection[] = sectionOrder.map(({ key }) => {
+				const sectionData: ViewSection = {
+					section: key,
+					enabled: sections[key]?.enabled || false,
+					items: sections[key]?.items || [],
+					layout: sections[key]?.layout || VALID_LAYOUTS[key]?.default || 'default',
+					width: sections[key]?.width || 'full'
+				};
+				// Include skills section settings if set
+				if (key === 'skills') {
+					if (sections[key]?.categoryOrder?.length) {
+						sectionData.categoryOrder = sections[key].categoryOrder;
 					}
-					return sectionData;
-				});
+					if (sections[key]?.disabledCategories?.length) {
+						sectionData.disabledCategories = sections[key].disabledCategories;
+					}
+					if (
+						sections[key]?.categoryDisplayModes &&
+						Object.keys(sections[key].categoryDisplayModes).length > 0
+					) {
+						sectionData.categoryDisplayModes = sections[key].categoryDisplayModes;
+					}
+				}
+				return sectionData;
+			});
 
 			const data = {
 				name: name.trim(),
@@ -604,9 +701,24 @@
 		<!-- Header -->
 		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
 			<div class="flex items-center gap-4">
-				<a href="/admin/views" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label={$t('admin.views.back_to_views')}>
-					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+				<a
+					href="/admin/views"
+					class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+					aria-label={$t('admin.views.back_to_views')}
+				>
+					<svg
+						class="w-5 h-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 19l-7-7 7-7"
+						/>
 					</svg>
 				</a>
 				<h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Create Facet</h1>
@@ -616,15 +728,36 @@
 				<button
 					type="button"
 					class="btn btn-ghost hidden lg:flex items-center gap-2"
-					onclick={() => showPreview = !showPreview}
+					onclick={() => (showPreview = !showPreview)}
 					title={showPreview ? 'Hide preview' : 'Show preview'}
 				>
-					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<svg
+						class="w-5 h-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
 						{#if showPreview}
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+							/>
 						{:else}
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+							/>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+							/>
 						{/if}
 					</svg>
 					<span>{showPreview ? 'Hide' : 'Show'} Preview</span>
@@ -633,21 +766,48 @@
 					<button
 						type="button"
 						class="btn btn-secondary text-sm flex items-center gap-2"
-						onclick={() => showImportModal = true}
+						onclick={() => (showImportModal = true)}
 						title="Import from resume"
 					>
-						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+						<svg
+							class="w-4 h-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							aria-hidden="true"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+							/>
 						</svg>
 						<span class="hidden sm:inline">Import Resume</span>
 						<span class="sm:hidden">Import</span>
 					</button>
 				{/if}
-				<button type="button" class="btn btn-primary text-sm" onclick={handleSubmit} disabled={saving}>
+				<button
+					type="button"
+					class="btn btn-primary text-sm"
+					onclick={handleSubmit}
+					disabled={saving}
+				>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					Create
@@ -659,693 +819,874 @@
 		<div class="editor-layout" class:with-preview={showPreview}>
 			<!-- Editor Pane -->
 			<div class="editor-pane">
-		<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 sm:space-y-6">
-			<!-- Basic Info -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
+				<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 sm:space-y-6">
+					<!-- Basic Info -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Basic Information</h2>
 
-				<div>
-					<label for="name" class="label">Name *</label>
-					<input
-						type="text"
-						id="name"
-						bind:value={name}
-						oninput={handleNameInput}
-						class="input"
-						placeholder="Recruiter View"
-						required
-					/>
-					<p class="text-xs text-gray-500 mt-1">Internal name for this view</p>
-				</div>
-
-				<div>
-					<label for="slug" class="label">URL Slug *</label>
-					<div class="flex items-center gap-2">
-						<span class="text-gray-500 text-sm">/</span>
-						<input
-							type="text"
-							id="slug"
-							bind:value={slug}
-							class="input flex-1"
-							placeholder="recruiter"
-							required
-						/>
-					</div>
-					<p class="text-xs text-gray-500 mt-1">Public URL will be: /{slug}</p>
-				</div>
-
-				<div>
-					<label for="description" class="label">Description</label>
-					<textarea
-						id="description"
-						bind:value={description}
-						class="input min-h-[80px]"
-						placeholder="Internal notes about this view..."
-					></textarea>
-					<p class="text-xs text-gray-500 mt-1">Private notes (not shown publicly)</p>
-				</div>
-
-				<VisibilitySelector bind:value={visibility} includePassword />
-
-				{#if visibility === 'password'}
-					<div>
-						<label for="password" class="label">Password *</label>
-						<input
-							type="password"
-							id="password"
-							bind:value={password}
-							class="input"
-							placeholder="Enter password for this view"
-							required
-							autocomplete="new-password"
-						/>
-						<p class="text-xs text-gray-500 mt-1">Visitors will need this password to access this view</p>
-					</div>
-				{/if}
-
-				<!-- Inline Share Token Generation Panel -->
-				{#if visibility === 'unlisted' || visibility === 'private'}
-					<div class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-						<div class="flex items-center gap-2 mb-3">
-							{@html icon('link')}
-							<h3 class="font-medium text-gray-900 dark:text-white">Generate Share Link</h3>
-						</div>
-						<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-							{visibility === 'unlisted'
-								? 'This view will be unlisted — only people with a share link can access it.'
-								: 'This view will be private — generate a share link for specific access.'}
-						</p>
-
-						<!-- Token Generation Form -->
-						<div class="space-y-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-							<label class="flex items-start gap-3">
-								<input
-									type="checkbox"
-									bind:checked={generateTokenAfterCreate}
-									class="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300"
-								/>
-								<div>
-									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Generate share link when creating this view</span>
-									<p class="text-xs text-gray-500 mt-0.5">You'll be redirected to the view editor to copy the link</p>
-								</div>
-							</label>
-
-							{#if generateTokenAfterCreate}
-								<div class="pt-2 space-y-3 border-t border-gray-200 dark:border-gray-700">
-									<div>
-										<label for="token_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-											Link Name (optional)
-										</label>
-										<input
-											type="text"
-											id="token_name"
-											bind:value={newTokenName}
-											placeholder="e.g., Sent to Company X"
-											class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
-										/>
-										<p class="text-xs text-gray-500 mt-1">A label to help you remember who this link was shared with.</p>
-									</div>
-
-									<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-										<div>
-											<label for="token_expires" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-												Expiration
-											</label>
-											<input
-												type="datetime-local"
-												id="token_expires"
-												bind:value={newTokenExpires}
-												class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
-											/>
-										</div>
-										<div>
-											<label for="token_max_uses" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-												Max Uses
-											</label>
-											<input
-												type="number"
-												id="token_max_uses"
-												bind:value={newTokenMaxUses}
-												min="0"
-												placeholder="0 = unlimited"
-												class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
-											/>
-										</div>
-									</div>
-								</div>
-							{/if}
-						</div>
-
-						<p class="text-xs text-gray-500 mt-3">
-							{@html icon('info')} You can also generate additional share links from the view editor after creation.
-						</p>
-					</div>
-				{/if}
-			</div>
-
-			<!-- Hero Overrides -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
-				<p class="text-sm text-gray-500 -mt-2">Override your profile headline, summary, and location for this view</p>
-
-				<div>
-					<label for="hero_headline" class="label">Custom Headline</label>
-					<input
-						type="text"
-						id="hero_headline"
-						bind:value={heroHeadline}
-						class="input"
-						placeholder="Leave empty to use profile headline"
-					/>
-				</div>
-
-				<div>
-					<label for="hero_summary" class="label">Custom Summary</label>
-					<textarea
-						id="hero_summary"
-						bind:value={heroSummary}
-						class="input min-h-[120px]"
-						placeholder="Leave empty to use profile summary (Markdown supported)"
-					></textarea>
-				</div>
-
-				<div>
-					<label for="hero_location" class="label">Custom Location</label>
-					<input
-						type="text"
-						id="hero_location"
-						bind:value={heroLocation}
-						class="input"
-						placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
-					/>
-				</div>
-			</div>
-
-			<!-- Call to Action -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<div class="flex items-start justify-between gap-4">
-					<div>
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
-						<p class="text-sm text-gray-500">Add a prominent button to this view</p>
-					</div>
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							class="sr-only peer"
-							bind:checked={ctaEnabled}
-						/>
-						<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-					</label>
-				</div>
-
-				{#if ctaEnabled}
-					<div>
-						<label for="cta_text" class="label">Description</label>
-						<input
-							type="text"
-							id="cta_text"
-							bind:value={ctaText}
-							class="input"
-							placeholder="Ready to work together?"
-						/>
-						<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
-					</div>
-
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div>
-							<label for="cta_button_text" class="label">Button Label</label>
+							<label for="name" class="label">Name *</label>
 							<input
 								type="text"
-								id="cta_button_text"
-								bind:value={ctaButtonText}
+								id="name"
+								bind:value={name}
+								oninput={handleNameInput}
 								class="input"
-								placeholder="Get in touch"
+								placeholder="Recruiter View"
+								required
 							/>
+							<p class="text-xs text-gray-500 mt-1">Internal name for this view</p>
 						</div>
+
 						<div>
-							<label for="cta_url" class="label">Button URL</label>
-							<input
-								type="url"
-								id="cta_url"
-								bind:value={ctaUrl}
-								class="input"
-								placeholder="https://..."
-							/>
+							<label for="slug" class="label">URL Slug *</label>
+							<div class="flex items-center gap-2">
+								<span class="text-gray-500 text-sm">/</span>
+								<input
+									type="text"
+									id="slug"
+									bind:value={slug}
+									class="input flex-1"
+									placeholder="recruiter"
+									required
+								/>
+							</div>
+							<p class="text-xs text-gray-500 mt-1">Public URL will be: /{slug}</p>
 						</div>
-					</div>
-				{:else}
-					<p class="text-sm text-gray-500 dark:text-gray-400 italic">
-						CTA button is disabled for this view. Enable the toggle above to configure it.
-					</p>
-				{/if}
-			</div>
 
-			<!-- Settings -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+						<div>
+							<label for="description" class="label">Description</label>
+							<textarea
+								id="description"
+								bind:value={description}
+								class="input min-h-[80px]"
+								placeholder="Internal notes about this view..."></textarea>
+							<p class="text-xs text-gray-500 mt-1">Private notes (not shown publicly)</p>
+						</div>
 
-				<!-- Accent Color Override -->
-				<div class="pt-2">
-					<span class="label mb-3 block">Accent Color</span>
-					<div class="flex flex-wrap items-center gap-3" role="group" aria-label={$t('admin.view_editor.aria.accent_color_label')}>
-						<!-- Use Global Option -->
-						<button
-							type="button"
-							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
-								{accentColor === null
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => accentColor = null}
-						>
-							<div class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"></div>
-							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use global</span>
-							{#if accentColor === null}
-								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</button>
+						<VisibilitySelector bind:value={visibility} includePassword />
 
-						<!-- Color Swatches -->
-						{#each ACCENT_COLOR_LIST as color}
-							{@const colorInfo = ACCENT_COLORS[color]}
-							<button
-								type="button"
-								class="relative group"
-								onclick={() => accentColor = color}
-								title="{colorInfo.label} - {colorInfo.description}"
+						{#if visibility === 'password'}
+							<div>
+								<label for="password" class="label">Password *</label>
+								<input
+									type="password"
+									id="password"
+									bind:value={password}
+									class="input"
+									placeholder="Enter password for this view"
+									required
+									autocomplete="new-password"
+								/>
+								<p class="text-xs text-gray-500 mt-1">
+									Visitors will need this password to access this view
+								</p>
+							</div>
+						{/if}
+
+						<!-- Inline Share Token Generation Panel -->
+						{#if visibility === 'unlisted' || visibility === 'private'}
+							<div
+								class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
 							>
+								<div class="flex items-center gap-2 mb-3">
+									{@html icon('link')}
+									<h3 class="font-medium text-gray-900 dark:text-white">Generate Share Link</h3>
+								</div>
+								<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+									{visibility === 'unlisted'
+										? 'This view will be unlisted — only people with a share link can access it.'
+										: 'This view will be private — generate a share link for specific access.'}
+								</p>
+
+								<!-- Token Generation Form -->
 								<div
-									class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
-										{accentColor === color
-										? 'ring-2 ring-gray-900 dark:ring-white scale-110'
-										: 'hover:scale-105'}"
-									style="background-color: {colorInfo.scale[500]}"
+									class="space-y-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700"
 								>
-									{#if accentColor === color}
-										<div class="absolute inset-0 flex items-center justify-center">
-											<svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-											</svg>
+									<label class="flex items-start gap-3">
+										<input
+											type="checkbox"
+											bind:checked={generateTokenAfterCreate}
+											class="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300"
+										/>
+										<div>
+											<span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+												>Generate share link when creating this view</span
+											>
+											<p class="text-xs text-gray-500 mt-0.5">
+												You'll be redirected to the view editor to copy the link
+											</p>
+										</div>
+									</label>
+
+									{#if generateTokenAfterCreate}
+										<div class="pt-2 space-y-3 border-t border-gray-200 dark:border-gray-700">
+											<div>
+												<label
+													for="token_name"
+													class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+												>
+													Link Name (optional)
+												</label>
+												<input
+													type="text"
+													id="token_name"
+													bind:value={newTokenName}
+													placeholder="e.g., Sent to Company X"
+													class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+												/>
+												<p class="text-xs text-gray-500 mt-1">
+													A label to help you remember who this link was shared with.
+												</p>
+											</div>
+
+											<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+												<div>
+													<label
+														for="token_expires"
+														class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+													>
+														Expiration
+													</label>
+													<input
+														type="datetime-local"
+														id="token_expires"
+														bind:value={newTokenExpires}
+														class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+													/>
+												</div>
+												<div>
+													<label
+														for="token_max_uses"
+														class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+													>
+														Max Uses
+													</label>
+													<input
+														type="number"
+														id="token_max_uses"
+														bind:value={newTokenMaxUses}
+														min="0"
+														placeholder="0 = unlimited"
+														class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
+													/>
+												</div>
+											</div>
 										</div>
 									{/if}
 								</div>
-							</button>
-						{/each}
-					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if accentColor}
-							Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
-						{:else}
-							Inherits from global profile setting
+
+								<p class="text-xs text-gray-500 mt-3">
+									{@html icon('info')} You can also generate additional share links from the view editor
+									after creation.
+								</p>
+							</div>
 						{/if}
-					</p>
-				</div>
-
-				<!-- Font Pack Override -->
-				<div class="pt-4">
-					<span class="label mb-3 block">Typography</span>
-					<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Font pack selection">
-						<button
-							type="button"
-							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
-								{fontPack === null
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => fontPack = null}
-						>
-							<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
-							{#if fontPack === null}
-								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</button>
-
-						{#each FONT_PACK_LIST as pack}
-							{@const packInfo = FONT_PACKS[pack]}
-							<button
-								type="button"
-								class="px-3 py-2 rounded-lg border transition-all text-sm
-									{fontPack === pack
-									? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-									: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-								onclick={() => fontPack = pack}
-								title={packInfo.description}
-								aria-pressed={fontPack === pack}
-							>
-								{packInfo.label}
-							</button>
-						{/each}
 					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if fontPack}
-							Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
-						{:else}
-							Inherits typography from global profile settings
-						{/if}
-					</p>
-				</div>
 
-				<!-- Hero Layout Override -->
-				<div class="pt-4">
-					<span class="label mb-3 block">Hero Layout</span>
-					<div class="flex flex-wrap items-center gap-2" role="group" aria-label="Hero layout selection">
-						<button
-							type="button"
-							class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
-								{heroLayout === null
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => heroLayout = null}
-						>
-							<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
-							{#if heroLayout === null}
-								<svg class="w-4 h-4 text-gray-900 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							{/if}
-						</button>
+					<!-- Hero Overrides -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
+						<p class="text-sm text-gray-500 -mt-2">
+							Override your profile headline, summary, and location for this view
+						</p>
 
-						{#each [
-							{ id: 'standard', label: 'Image & Gradient' },
-							{ id: 'centered', label: 'Centered' },
-							{ id: 'split', label: 'Split' },
-							{ id: 'minimal', label: 'Minimal' },
-							{ id: 'stacked', label: 'Stacked' },
-							{ id: 'rail', label: 'Rail' }
-						] as layoutOption}
-							<button
-								type="button"
-								class="px-3 py-2 rounded-lg border transition-all text-sm
-									{heroLayout === layoutOption.id
-									? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-									: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-								onclick={() => heroLayout = layoutOption.id}
-								aria-pressed={heroLayout === layoutOption.id}
-							>
-								{layoutOption.label}
-							</button>
-						{/each}
-					</div>
-					<p class="text-xs text-gray-500 mt-2">
-						{#if heroLayout}
-							Using <strong>{heroLayout}</strong> layout for this view
-						{:else}
-							Inherits hero layout from global profile settings
-						{/if}
-					</p>
-				</div>
-
-				<div class="flex flex-col gap-3 pt-2">
-					<label class="flex items-center gap-3">
-						<input
-							type="checkbox"
-							bind:checked={isActive}
-							class="w-4 h-4 text-primary-600 rounded border-gray-300"
-						/>
 						<div>
-							<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
-							<p class="text-xs text-gray-500">Inactive views are not accessible publicly</p>
+							<label for="hero_headline" class="label">Custom Headline</label>
+							<input
+								type="text"
+								id="hero_headline"
+								bind:value={heroHeadline}
+								class="input"
+								placeholder="Leave empty to use profile headline"
+							/>
 						</div>
-					</label>
 
+						<div>
+							<label for="hero_summary" class="label">Custom Summary</label>
+							<textarea
+								id="hero_summary"
+								bind:value={heroSummary}
+								class="input min-h-[120px]"
+								placeholder="Leave empty to use profile summary (Markdown supported)"></textarea>
+						</div>
+
+						<div>
+							<label for="hero_location" class="label">Custom Location</label>
+							<input
+								type="text"
+								id="hero_location"
+								bind:value={heroLocation}
+								class="input"
+								placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
+							/>
+						</div>
 					</div>
-			</div>
 
-			<!-- Sections -->
-			<div class="card p-4 sm:p-6 space-y-4">
-				<!-- Polite live region for keyboard + drag reorder announcements -->
-				<ReorderAnnouncer bind:this={reorderAnnouncer} />
-				<div class="flex items-center justify-between">
-					<div>
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Content Sections</h2>
-						<p class="text-sm text-gray-500">Choose which sections to show and drag to reorder.</p>
+					<!-- Call to Action -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<div class="flex items-start justify-between gap-4">
+							<div>
+								<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
+								<p class="text-sm text-gray-500">Add a prominent button to this view</p>
+							</div>
+							<label class="relative inline-flex items-center cursor-pointer">
+								<input type="checkbox" class="sr-only peer" bind:checked={ctaEnabled} />
+								<div
+									class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+								></div>
+							</label>
+						</div>
+
+						{#if ctaEnabled}
+							<div>
+								<label for="cta_text" class="label">Description</label>
+								<input
+									type="text"
+									id="cta_text"
+									bind:value={ctaText}
+									class="input"
+									placeholder="Ready to work together?"
+								/>
+								<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
+							</div>
+
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label for="cta_button_text" class="label">Button Label</label>
+									<input
+										type="text"
+										id="cta_button_text"
+										bind:value={ctaButtonText}
+										class="input"
+										placeholder="Get in touch"
+									/>
+								</div>
+								<div>
+									<label for="cta_url" class="label">Button URL</label>
+									<input
+										type="url"
+										id="cta_url"
+										bind:value={ctaUrl}
+										class="input"
+										placeholder="https://..."
+									/>
+								</div>
+							</div>
+						{:else}
+							<p class="text-sm text-gray-500 dark:text-gray-400 italic">
+								CTA button is disabled for this view. Enable the toggle above to configure it.
+							</p>
+						{/if}
 					</div>
-				</div>
 
-				<div
-					class="space-y-3"
-					use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'sections' }}
-					onconsider={handleSectionDndConsider}
-					onfinalize={handleSectionDndFinalize}
-				>
-					{#each sectionOrder as sectionItem (sectionItem.id)}
-																{@const sectionIdx = sectionOrder.findIndex(s => s.id === sectionItem.id)}
-						{@const sectionKey = sectionItem.key}
-						{@const isCustom = isCustomSection(sectionKey)}
-						{@const sectionDef = SECTION_DEFS[sectionKey]}
-						{@const sectionLabel = isCustom ? getCustomSectionTitle(sectionKey) : (sectionDef?.label || sectionKey)}
-						{@const layoutKey = isCustom ? 'custom' : sectionKey}
-						{@const sectionConfig = sections[sectionKey] || { enabled: false, items: [], expanded: false }}
-						{@const items = sectionItems[sectionKey] || []}
-						{@const publicItems = items.filter(i => i.visibility !== 'private' && !i.is_draft)}
-						{@const publicItemIds = new Set(publicItems.map(i => i.id))}
-						{@const selectedPublicCount = sectionConfig.items.filter(id => publicItemIds.has(id)).length}
+					<!-- Settings -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
 
-						<div
-							class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
-							animate:flip={{ duration: flipDurationMs }}
-						>
-							<!-- Section Header -->
-							<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
-								<div class="flex items-center gap-3">
-																<!-- Drag Handle + Keyboard reorder -->
-																<div class="flex items-center gap-1">
-																	<div class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700" title="Drag to reorder">
-																		<svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-																			<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-																		</svg>
-																	</div>
-																	<button
-																		type="button"
-																		disabled={sectionIdx === 0}
-																		onclick={() => moveSection(sectionItem.id, 'up')}
-																		aria-label={$t('admin.view_editor.sections.move_up', { values: { section: sectionLabel } })}
-																		class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-																	>
-																		<svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
-																	</button>
-																	<button
-																		type="button"
-																		disabled={sectionIdx === sectionOrder.length - 1}
-																		onclick={() => moveSection(sectionItem.id, 'down')}
-																		aria-label={$t('admin.view_editor.sections.move_down', { values: { section: sectionLabel } })}
-																		class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
-																	>
-																		<svg class="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-																	</button>
-																</div>
+						<!-- Accent Color Override -->
+						<div class="pt-2">
+							<span class="label mb-3 block">Accent Color</span>
+							<div
+								class="flex flex-wrap items-center gap-3"
+								role="group"
+								aria-label={$t('admin.view_editor.aria.accent_color_label')}
+							>
+								<!-- Use Global Option -->
 								<button
 									type="button"
-									class="w-10 h-6 rounded-full transition-colors relative
-										{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
-									onclick={() => toggleSection(sectionKey)}
-									aria-label={$t('admin.homepage.toggle_section', { values: { section: sectionLabel } })}
+									class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all
+								{accentColor === null
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									onclick={() => (accentColor = null)}
 								>
-									<span
-										class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
-											{sectionConfig.enabled ? 'left-5' : 'left-1'}"
-									></span>
-								</button>
-								<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
-									<span class="text-xs text-gray-500">
-										{#if selectedPublicCount > 0}
-											{selectedPublicCount} selected
-										{:else if sectionConfig.enabled}
-											all items ({publicItems.length})
-										{:else}
-											{publicItems.length} available
-										{/if}
-									</span>
-								</div>
-
-								<div class="flex items-center gap-2">
-									<!-- Width Selector with visual indicator -->
-									{#if sectionConfig.enabled}
-										{@const validWidths = getValidWidthsForLayout(layoutKey, sectionConfig.layout)}
-										{#if validWidths.length > 1}
-											<div class="flex items-center gap-1" title="Section width - controls side-by-side layout">
-												<!-- Width icon indicator -->
-												<div class="flex gap-0.5">
-													{#if sectionConfig.width === 'half'}
-														<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
-														<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													{:else if sectionConfig.width === 'third'}
-														<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
-														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-														<div class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
-													{:else}
-														<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
-													{/if}
-												</div>
-												<select
-													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-													value={sectionConfig.width}
-													onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
-													onclick={stopPropagation(bubble('click'))}
-												>
-													{#each validWidths as widthOption}
-														<option value={widthOption.value}>{widthOption.label}</option>
-													{/each}
-												</select>
-											</div>
-										{/if}
-									{/if}
-
-									<!-- Layout Selector -->
-									{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
-										{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
-										<select
-											class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-											value={sectionConfig.layout}
-											onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
-											onclick={stopPropagation(bubble('click'))}
-											title="Section layout"
-										>
-											{#each layoutConfig.layouts as layoutOption}
-												<option value={layoutOption}>{layoutConfig.labels[layoutOption] || layoutOption}</option>
-											{/each}
-										</select>
-									{/if}
-
-								{#if sectionConfig.enabled && items.length > 0}
-									<button
-										type="button"
-										class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-										onclick={() => toggleSectionExpand(sectionKey)}
-										aria-label={$t(sectionConfig.expanded ? 'admin.homepage.collapse_section' : 'admin.homepage.expand_section', { values: { section: sectionLabel } })}
+									<div
+										class="w-5 h-5 rounded-full bg-gradient-to-r from-primary-400 to-primary-600 border-2 border-white shadow-sm"
+									></div>
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+										>Use global</span
 									>
+									{#if accentColor === null}
 										<svg
-											class="w-5 h-5 transition-transform {sectionConfig.expanded ? 'rotate-180' : ''}"
+											class="w-4 h-4 text-gray-900 dark:text-white"
 											fill="none"
 											viewBox="0 0 24 24"
 											stroke="currentColor"
-											aria-hidden="true"
+											stroke-width="3"
 										>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 										</svg>
+									{/if}
+								</button>
+
+								<!-- Color Swatches -->
+								{#each ACCENT_COLOR_LIST as color}
+									{@const colorInfo = ACCENT_COLORS[color]}
+									<button
+										type="button"
+										class="relative group"
+										onclick={() => (accentColor = color)}
+										title="{colorInfo.label} - {colorInfo.description}"
+									>
+										<div
+											class="w-10 h-10 rounded-lg transition-all duration-200 ring-offset-2 ring-offset-white dark:ring-offset-gray-900
+										{accentColor === color ? 'ring-2 ring-gray-900 dark:ring-white scale-110' : 'hover:scale-105'}"
+											style="background-color: {colorInfo.scale[500]}"
+										>
+											{#if accentColor === color}
+												<div class="absolute inset-0 flex items-center justify-center">
+													<svg
+														class="w-4 h-4 text-white"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="3"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M5 13l4 4L19 7"
+														/>
+													</svg>
+												</div>
+											{/if}
+										</div>
 									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if accentColor}
+									Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
+								{:else}
+									Inherits from global profile setting
 								{/if}
+							</p>
+						</div>
+
+						<!-- Font Pack Override -->
+						<div class="pt-4">
+							<span class="label mb-3 block">Typography</span>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="group"
+								aria-label="Font pack selection"
+							>
+								<button
+									type="button"
+									class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+								{fontPack === null
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									onclick={() => (fontPack = null)}
+								>
+									<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+									{#if fontPack === null}
+										<svg
+											class="w-4 h-4 text-gray-900 dark:text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+										</svg>
+									{/if}
+								</button>
+
+								{#each FONT_PACK_LIST as pack}
+									{@const packInfo = FONT_PACKS[pack]}
+									<button
+										type="button"
+										class="px-3 py-2 rounded-lg border transition-all text-sm
+									{fontPack === pack
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+										onclick={() => (fontPack = pack)}
+										title={packInfo.description}
+										aria-pressed={fontPack === pack}
+									>
+										{packInfo.label}
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if fontPack}
+									Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
+								{:else}
+									Inherits typography from global profile settings
+								{/if}
+							</p>
+						</div>
+
+						<!-- Hero Layout Override -->
+						<div class="pt-4">
+							<span class="label mb-3 block">Hero Layout</span>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="group"
+								aria-label="Hero layout selection"
+							>
+								<button
+									type="button"
+									class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all text-sm
+								{heroLayout === null
+										? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800'
+										: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+									onclick={() => (heroLayout = null)}
+								>
+									<span class="font-medium text-gray-700 dark:text-gray-300">Global</span>
+									{#if heroLayout === null}
+										<svg
+											class="w-4 h-4 text-gray-900 dark:text-white"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+										</svg>
+									{/if}
+								</button>
+
+								{#each [{ id: 'standard', label: 'Image & Gradient' }, { id: 'centered', label: 'Centered' }, { id: 'split', label: 'Split' }, { id: 'minimal', label: 'Minimal' }, { id: 'stacked', label: 'Stacked' }, { id: 'rail', label: 'Rail' }] as layoutOption}
+									<button
+										type="button"
+										class="px-3 py-2 rounded-lg border transition-all text-sm
+									{heroLayout === layoutOption.id
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+										onclick={() => (heroLayout = layoutOption.id)}
+										aria-pressed={heroLayout === layoutOption.id}
+									>
+										{layoutOption.label}
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{#if heroLayout}
+									Using <strong>{heroLayout}</strong> layout for this view
+								{:else}
+									Inherits hero layout from global profile settings
+								{/if}
+							</p>
+						</div>
+
+						<div class="flex flex-col gap-3 pt-2">
+							<label class="flex items-center gap-3">
+								<input
+									type="checkbox"
+									bind:checked={isActive}
+									class="w-4 h-4 text-primary-600 rounded border-gray-300"
+								/>
+								<div>
+									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+									<p class="text-xs text-gray-500">Inactive views are not accessible publicly</p>
+								</div>
+							</label>
+						</div>
+					</div>
+
+					<!-- Sections -->
+					<div class="card p-4 sm:p-6 space-y-4">
+						<!-- Polite live region for keyboard + drag reorder announcements -->
+						<ReorderAnnouncer bind:this={reorderAnnouncer} />
+						<div class="flex items-center justify-between">
+							<div>
+								<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+									Content Sections
+								</h2>
+								<p class="text-sm text-gray-500">
+									Choose which sections to show and drag to reorder.
+								</p>
 							</div>
 						</div>
 
-						<!-- Section Items -->
-							{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0}
-								<div class="p-3 border-t border-gray-200 dark:border-gray-700">
-									<div class="flex items-center justify-between mb-2">
-										<p class="text-xs text-gray-500">
-											{selectedPublicCount === 0
-												? 'All public items will be shown. Select and drag items to customize order.'
-												: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
-										</p>
-										<div class="flex gap-2">
+						<div
+							class="space-y-3"
+							use:dndzone={{ items: sectionOrder, flipDurationMs, type: 'sections' }}
+							onconsider={handleSectionDndConsider}
+							onfinalize={handleSectionDndFinalize}
+						>
+							{#each sectionOrder as sectionItem (sectionItem.id)}
+								{@const sectionIdx = sectionOrder.findIndex((s) => s.id === sectionItem.id)}
+								{@const sectionKey = sectionItem.key}
+								{@const isCustom = isCustomSection(sectionKey)}
+								{@const sectionDef = SECTION_DEFS[sectionKey]}
+								{@const sectionLabel = isCustom
+									? getCustomSectionTitle(sectionKey)
+									: sectionDef?.label || sectionKey}
+								{@const layoutKey = isCustom ? 'custom' : sectionKey}
+								{@const sectionConfig = sections[sectionKey] || {
+									enabled: false,
+									items: [],
+									expanded: false
+								}}
+								{@const items = sectionItems[sectionKey] || []}
+								{@const publicItems = items.filter(
+									(i) => i.visibility !== 'private' && !i.is_draft
+								)}
+								{@const publicItemIds = new Set(publicItems.map((i) => i.id))}
+								{@const selectedPublicCount = sectionConfig.items.filter((id) =>
+									publicItemIds.has(id)
+								).length}
+
+								<div
+									class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900"
+									animate:flip={{ duration: flipDurationMs }}
+								>
+									<!-- Section Header -->
+									<div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50">
+										<div class="flex items-center gap-3">
+											<!-- Drag Handle + Keyboard reorder -->
+											<div class="flex items-center gap-1">
+												<div
+													class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+													title="Drag to reorder"
+												>
+													<svg
+														class="w-5 h-5 text-gray-600 dark:text-gray-300"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="2"
+														aria-hidden="true"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M4 8h16M4 16h16"
+														/>
+													</svg>
+												</div>
+												<button
+													type="button"
+													disabled={sectionIdx === 0}
+													onclick={() => moveSection(sectionItem.id, 'up')}
+													aria-label={$t('admin.view_editor.sections.move_up', {
+														values: { section: sectionLabel }
+													})}
+													class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+												>
+													<svg
+														class="w-4 h-4 text-gray-600 dark:text-gray-300"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="2"
+														><path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M5 15l7-7 7 7"
+														/></svg
+													>
+												</button>
+												<button
+													type="button"
+													disabled={sectionIdx === sectionOrder.length - 1}
+													onclick={() => moveSection(sectionItem.id, 'down')}
+													aria-label={$t('admin.view_editor.sections.move_down', {
+														values: { section: sectionLabel }
+													})}
+													class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+												>
+													<svg
+														class="w-4 h-4 text-gray-600 dark:text-gray-300"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="2"
+														><path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M19 9l-7 7-7-7"
+														/></svg
+													>
+												</button>
+											</div>
 											<button
 												type="button"
-												class="text-xs text-primary-600 hover:underline"
-												onclick={() => selectAllItems(sectionKey)}
+												class="w-10 h-6 rounded-full transition-colors relative
+										{sectionConfig.enabled ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}"
+												onclick={() => toggleSection(sectionKey)}
+												aria-label={$t('admin.homepage.toggle_section', {
+													values: { section: sectionLabel }
+												})}
 											>
-												Select All
+												<span
+													class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm
+											{sectionConfig.enabled ? 'left-5' : 'left-1'}"
+												></span>
 											</button>
-											<button
-												type="button"
-												class="text-xs text-gray-500 hover:underline"
-												onclick={() => clearAllItems(sectionKey)}
-											>
-												Clear
-											</button>
+											<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
+											<span class="text-xs text-gray-500">
+												{#if selectedPublicCount > 0}
+													{selectedPublicCount} selected
+												{:else if sectionConfig.enabled}
+													all items ({publicItems.length})
+												{:else}
+													{publicItems.length} available
+												{/if}
+											</span>
+										</div>
+
+										<div class="flex items-center gap-2">
+											<!-- Width Selector with visual indicator -->
+											{#if sectionConfig.enabled}
+												{@const validWidths = getValidWidthsForLayout(
+													layoutKey,
+													sectionConfig.layout
+												)}
+												{#if validWidths.length > 1}
+													<div
+														class="flex items-center gap-1"
+														title="Section width - controls side-by-side layout"
+													>
+														<!-- Width icon indicator -->
+														<div class="flex gap-0.5">
+															{#if sectionConfig.width === 'half'}
+																<div class="w-2 h-4 bg-primary-500 rounded-sm"></div>
+																<div class="w-2 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"></div>
+															{:else if sectionConfig.width === 'third'}
+																<div class="w-1.5 h-4 bg-primary-500 rounded-sm"></div>
+																<div
+																	class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"
+																></div>
+																<div
+																	class="w-1.5 h-4 bg-gray-300 dark:bg-gray-600 rounded-sm"
+																></div>
+															{:else}
+																<div class="w-5 h-4 bg-primary-500 rounded-sm"></div>
+															{/if}
+														</div>
+														<select
+															class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+															value={sectionConfig.width}
+															onchange={(e) =>
+																updateSectionWidth(sectionKey, e.currentTarget.value)}
+															onclick={stopPropagation(bubble('click'))}
+														>
+															{#each validWidths as widthOption}
+																<option value={widthOption.value}>{widthOption.label}</option>
+															{/each}
+														</select>
+													</div>
+												{/if}
+											{/if}
+
+											<!-- Layout Selector -->
+											{#if sectionConfig.enabled && VALID_LAYOUTS[layoutKey]}
+												{@const layoutConfig = VALID_LAYOUTS[layoutKey]}
+												<select
+													class="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+													value={sectionConfig.layout}
+													onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
+													onclick={stopPropagation(bubble('click'))}
+													title="Section layout"
+												>
+													{#each layoutConfig.layouts as layoutOption}
+														<option value={layoutOption}
+															>{layoutConfig.labels[layoutOption] || layoutOption}</option
+														>
+													{/each}
+												</select>
+											{/if}
+
+											{#if sectionConfig.enabled && items.length > 0}
+												<button
+													type="button"
+													class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+													onclick={() => toggleSectionExpand(sectionKey)}
+													aria-label={$t(
+														sectionConfig.expanded
+															? 'admin.homepage.collapse_section'
+															: 'admin.homepage.expand_section',
+														{ values: { section: sectionLabel } }
+													)}
+												>
+													<svg
+														class="w-5 h-5 transition-transform {sectionConfig.expanded
+															? 'rotate-180'
+															: ''}"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														aria-hidden="true"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M19 9l-7 7-7-7"
+														/>
+													</svg>
+												</button>
+											{/if}
 										</div>
 									</div>
 
-									<div
-										class="space-y-1 max-h-48 overflow-y-auto"
-										use:dndzone={{ items: sectionItems[sectionKey] || [], flipDurationMs, type: `items-${sectionKey}` }}
-										onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
-										onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
-									>
-										{#each items as item, itemIdx (item.id)}
-											{@const isSelected = sectionConfig.items.includes(item.id)}
-											<div
-												class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
-												animate:flip={{ duration: flipDurationMs }}
-											>
-												<!-- Drag Handle for Items -->
-												<!-- svelte-ignore a11y_no_static_element_interactions -->
-												<!-- svelte-ignore a11y_click_events_have_key_events -->
-												<div
-													class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-													title="Drag to reorder"
-													role="presentation"
-													onclick={(e) => e.stopPropagation()}
-												>
-													<svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-														<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-													</svg>
-												</div>
-												<!-- Keyboard-accessible reorder controls (complement drag) -->
-												<div class="flex flex-col flex-shrink-0">
+									<!-- Section Items -->
+									{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0}
+										<div class="p-3 border-t border-gray-200 dark:border-gray-700">
+											<div class="flex items-center justify-between mb-2">
+												<p class="text-xs text-gray-500">
+													{selectedPublicCount === 0
+														? 'All public items will be shown. Select and drag items to customize order.'
+														: `${selectedPublicCount} of ${publicItems.length} items selected. Drag to reorder.`}
+												</p>
+												<div class="flex gap-2">
 													<button
 														type="button"
-														data-move="up"
-														class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-														disabled={itemIdx === 0}
-														onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
-														aria-label={$t('admin.view_editor.sections.item_move_up', { values: { item: item.label } })}
+														class="text-xs text-primary-600 hover:underline"
+														onclick={() => selectAllItems(sectionKey)}
 													>
-														<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-															<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
-														</svg>
+														Select All
 													</button>
 													<button
 														type="button"
-														data-move="down"
-														class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-														disabled={itemIdx === items.length - 1}
-														onclick={(e) => moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
-														aria-label={$t('admin.view_editor.sections.item_move_down', { values: { item: item.label } })}
+														class="text-xs text-gray-500 hover:underline"
+														onclick={() => clearAllItems(sectionKey)}
 													>
-														<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-															<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-														</svg>
+														Clear
 													</button>
 												</div>
-												<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-												<label
-													class="flex items-center gap-2 flex-1 cursor-pointer"
-													onpointerdown={(e) => e.stopPropagation()}
-													onmousedown={(e) => e.stopPropagation()}
-												>
-													<input
-														type="checkbox"
-														checked={isSelected}
-														onchange={() => toggleItem(sectionKey, item.id)}
-														class="w-4 h-4 text-primary-600 rounded border-gray-300"
-													/>
-													<span class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">
-														{item.label}
-													</span>
-												</label>
-												{#if item.visibility !== 'public'}
-													<span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded">
-														{item.visibility}
-													</span>
-												{/if}
-												{#if item.is_draft}
-													<span class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">
-														draft
-													</span>
-												{/if}
 											</div>
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			</div>
 
-			</form>
+											<div
+												class="space-y-1 max-h-48 overflow-y-auto"
+												use:dndzone={{
+													items: sectionItems[sectionKey] || [],
+													flipDurationMs,
+													type: `items-${sectionKey}`
+												}}
+												onconsider={(e: any) => handleItemDndConsider(sectionKey, e)}
+												onfinalize={(e: any) => handleItemDndFinalize(sectionKey, e)}
+											>
+												{#each items as item, itemIdx (item.id)}
+													{@const isSelected = sectionConfig.items.includes(item.id)}
+													<div
+														class="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 bg-white dark:bg-gray-900"
+														animate:flip={{ duration: flipDurationMs }}
+													>
+														<!-- Drag Handle for Items -->
+														<div
+															class="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+															title="Drag to reorder"
+															role="presentation"
+															onclick={(e) => e.stopPropagation()}
+														>
+															<svg
+																class="w-4 h-4 text-gray-500 dark:text-gray-400"
+																fill="none"
+																viewBox="0 0 24 24"
+																stroke="currentColor"
+																stroke-width="2"
+																aria-hidden="true"
+															>
+																<path
+																	stroke-linecap="round"
+																	stroke-linejoin="round"
+																	d="M4 8h16M4 16h16"
+																/>
+															</svg>
+														</div>
+														<!-- Keyboard-accessible reorder controls (complement drag) -->
+														<div class="flex flex-col flex-shrink-0">
+															<button
+																type="button"
+																data-move="up"
+																class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+																disabled={itemIdx === 0}
+																onclick={(e) =>
+																	moveSectionItem(sectionKey, itemIdx, 'up', e.currentTarget)}
+																aria-label={$t('admin.view_editor.sections.item_move_up', {
+																	values: { item: item.label }
+																})}
+															>
+																<svg
+																	class="w-3 h-3"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																	stroke="currentColor"
+																	stroke-width="2.5"
+																	aria-hidden="true"
+																>
+																	<path
+																		stroke-linecap="round"
+																		stroke-linejoin="round"
+																		d="M5 15l7-7 7 7"
+																	/>
+																</svg>
+															</button>
+															<button
+																type="button"
+																data-move="down"
+																class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+																disabled={itemIdx === items.length - 1}
+																onclick={(e) =>
+																	moveSectionItem(sectionKey, itemIdx, 'down', e.currentTarget)}
+																aria-label={$t('admin.view_editor.sections.item_move_down', {
+																	values: { item: item.label }
+																})}
+															>
+																<svg
+																	class="w-3 h-3"
+																	fill="none"
+																	viewBox="0 0 24 24"
+																	stroke="currentColor"
+																	stroke-width="2.5"
+																	aria-hidden="true"
+																>
+																	<path
+																		stroke-linecap="round"
+																		stroke-linejoin="round"
+																		d="M19 9l-7 7-7-7"
+																	/>
+																</svg>
+															</button>
+														</div>
+														<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+														<label
+															class="flex items-center gap-2 flex-1 cursor-pointer"
+															onpointerdown={(e) => e.stopPropagation()}
+															onmousedown={(e) => e.stopPropagation()}
+														>
+															<input
+																type="checkbox"
+																checked={isSelected}
+																onchange={() => toggleItem(sectionKey, item.id)}
+																class="w-4 h-4 text-primary-600 rounded border-gray-300"
+															/>
+															<span
+																class="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate"
+															>
+																{item.label}
+															</span>
+														</label>
+														{#if item.visibility !== 'public'}
+															<span
+																class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300 rounded"
+															>
+																{item.visibility}
+															</span>
+														{/if}
+														{#if item.is_draft}
+															<span
+																class="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded"
+															>
+																draft
+															</span>
+														{/if}
+													</div>
+												{/each}
+											</div>
+										</div>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+				</form>
 			</div>
 
 			<!-- Preview Pane -->
@@ -1353,27 +1694,57 @@
 				<div class="preview-pane">
 					<div class="sticky top-4">
 						<div class="flex items-center justify-between mb-3 px-1">
-							<h2 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Live Preview</h2>
+							<h2
+								class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide"
+							>
+								Live Preview
+							</h2>
 							<!-- Phase 6.2.2: Desktop/Mobile toggle -->
 							<div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
 								<button
 									type="button"
-									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									onclick={() => previewMode = 'desktop'}
+									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'desktop'
+										? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+										: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+									onclick={() => (previewMode = 'desktop')}
 									title="Desktop preview"
 								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+										/>
 									</svg>
 								</button>
 								<button
 									type="button"
-									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
-									onclick={() => previewMode = 'mobile'}
+									class="px-2 py-1 text-xs rounded-md transition-colors {previewMode === 'mobile'
+										? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+										: 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}"
+									onclick={() => (previewMode = 'mobile')}
 									title="Mobile preview"
 								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+									<svg
+										class="w-4 h-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+										/>
 									</svg>
 								</button>
 							</div>
@@ -1404,7 +1775,7 @@
 			showImportModal = false;
 			applyImportedToSections(imported);
 		}}
-		onClose={() => showImportModal = false}
+		onClose={() => (showImportModal = false)}
 	/>
 {/if}
 

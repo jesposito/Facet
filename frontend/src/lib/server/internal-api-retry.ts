@@ -15,7 +15,8 @@ export async function fetchWith503Retry(
 	options: RetryOptions
 ): Promise<Response> {
 	const backoffsMs = options.backoffsMs ?? DEFAULT_BACKOFFS_MS;
-	const sleep = options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+	const sleep =
+		options.sleep ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
 	for (let attempt = 0; attempt <= backoffsMs.length; attempt += 1) {
 		const response = await fetchFn(request.clone());
@@ -34,7 +35,10 @@ export async function fetchWith503Retry(
 	return fetchFn(request);
 }
 
-export function isRetryableInternalApiRequest(request: Request, apiOrigins: readonly string[]): boolean {
+export function isRetryableInternalApiRequest(
+	request: Request,
+	apiOrigins: readonly string[]
+): boolean {
 	const method = request.method.toUpperCase();
 	if (method !== 'GET' && method !== 'HEAD') {
 		return false;
@@ -54,7 +58,10 @@ export function isRetryableInternalApiRequest(request: Request, apiOrigins: read
 	});
 }
 
-export function parseRetryAfterMs(value: string | null, now: () => number = Date.now): number | null {
+export function parseRetryAfterMs(
+	value: string | null,
+	now: () => number = Date.now
+): number | null {
 	if (!value) {
 		return null;
 	}

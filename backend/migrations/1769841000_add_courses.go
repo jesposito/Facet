@@ -193,6 +193,9 @@ func init() {
 		lessons.Fields.Add(&core.BoolField{
 			Name: "is_preview",
 		})
+		lessons.Fields.Add(&core.BoolField{
+			Name: "comments_enabled",
+		})
 		lessons.Fields.Add(&core.FileField{
 			Name:      "attachments",
 			MaxSize:   52428800, // 50MB per file

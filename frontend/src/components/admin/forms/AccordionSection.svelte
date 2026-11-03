@@ -63,8 +63,17 @@
 			class="w-full flex items-center gap-3 px-5 py-4 text-start hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset"
 		>
 			{#if iconPath}
-				<span class="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0">
-					<svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+				<span
+					class="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0"
+				>
+					<svg
+						class="w-5 h-5 text-primary-600 dark:text-primary-400"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+						aria-hidden="true"
+					>
 						<path stroke-linecap="round" stroke-linejoin="round" d={iconPath} />
 					</svg>
 				</span>
@@ -80,7 +89,9 @@
 			{/if}
 			{#if !hideChevron}
 				<svg
-					class="w-[18px] h-[18px] text-stone-400 flex-shrink-0 transition-transform duration-200 {open ? 'rotate-180' : ''}"
+					class="w-[18px] h-[18px] text-stone-400 flex-shrink-0 transition-transform duration-200 {open
+						? 'rotate-180'
+						: ''}"
 					fill="none"
 					viewBox="0 0 24 24"
 					stroke="currentColor"

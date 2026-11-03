@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
 	import { browser } from '$app/env';
+	import { derived } from 'svelte/store';
 	import { hasFeature } from '$lib/stores/plan';
+	import { siteFeatures } from '$lib/stores/features';
 	import CommentForm from './CommentForm.svelte';
 	import CommentThread, { type Comment } from './CommentThread.svelte';
 	import ReportModal from './ReportModal.svelte';
@@ -13,7 +15,13 @@
 
 	let { contentType, contentId }: Props = $props();
 
-	const hasDiscussions = hasFeature('discussions');
+	const planHasDiscussions = hasFeature('discussions');
+	// The plan must include discussions and the owner must not have switched
+	// them off in Settings → Features.
+	const hasDiscussions = derived(
+		[planHasDiscussions, siteFeatures],
+		([$plan, $features]) => $plan && $features.discussions
+	);
 
 	let comments = $state<Comment[]>([]);
 	let loading = $state(true);
@@ -44,7 +52,9 @@
 		if (!browser) return;
 		loading = true;
 		try {
-			const resp = await fetch(`/api/comments/${contentType}/${contentId}?page=${pageNum}&per_page=${PAGE_SIZE}`);
+			const resp = await fetch(
+				`/api/comments/${contentType}/${contentId}?page=${pageNum}&per_page=${PAGE_SIZE}`
+			);
 			if (!resp.ok) throw new Error('Failed to load comments');
 			const data = await resp.json();
 			const fetched: Comment[] = data.comments || [];
@@ -104,30 +114,49 @@
 {#if $hasDiscussions}
 	<section class="mt-12" aria-label={$t('comments.title')}>
 		<h3 class="text-xl font-semibold text-stone-900 dark:text-white mb-6 flex items-center gap-2">
-			<svg class="w-5 h-5 text-stone-600 dark:text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+			<svg
+				class="w-5 h-5 text-stone-600 dark:text-stone-300"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke="currentColor"
+				aria-hidden="true"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+				/>
 			</svg>
 			{$t('comments.title')}
 			{#if totalComments > 0}
-				<span class="text-base font-normal text-stone-600 dark:text-stone-300 ms-2">({totalComments})</span>
+				<span class="text-base font-normal text-stone-600 dark:text-stone-300 ms-2"
+					>({totalComments})</span
+				>
 			{/if}
 		</h3>
 
 		<!-- New comment form -->
 		<div class="mb-8">
-			<CommentForm
-				{contentType}
-				{contentId}
-				onSubmit={handleCommentSubmitted}
-			/>
+			<CommentForm {contentType} {contentId} onSubmit={handleCommentSubmitted} />
 		</div>
 
 		<!-- Loading state -->
 		{#if loading && comments.length === 0}
 			<div class="flex items-center justify-center py-8" role="status" aria-live="polite">
-				<svg class="animate-spin h-6 w-6 text-stone-500" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-					<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+				<svg
+					class="animate-spin h-6 w-6 text-stone-500"
+					fill="none"
+					viewBox="0 0 24 24"
+					aria-hidden="true"
+				>
+					<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+					></circle>
+					<path
+						class="opacity-75"
+						fill="currentColor"
+						d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+					></path>
 				</svg>
 				<span class="sr-only">{$t('shared.loading') ?? 'Loading'}</span>
 			</div>
@@ -175,9 +204,25 @@
 						class="px-6 py-2 text-sm font-medium text-stone-600 dark:text-stone-300 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 rounded-lg border border-stone-200 dark:border-stone-700 transition-colors disabled:opacity-50"
 					>
 						{#if loading}
-							<svg class="animate-spin inline-block h-4 w-4 me-2" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<svg
+								class="animate-spin inline-block h-4 w-4 me-2"
+								fill="none"
+								viewBox="0 0 24 24"
+								aria-hidden="true"
+							>
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								></circle>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
 							</svg>
 						{/if}
 						{$t('comments.load_more')}
@@ -189,10 +234,6 @@
 
 	<!-- Report modal -->
 	{#if reportingCommentId}
-		<ReportModal
-			commentId={reportingCommentId}
-			open={true}
-			onClose={closeReport}
-		/>
+		<ReportModal commentId={reportingCommentId} open={true} onClose={closeReport} />
 	{/if}
 {/if}

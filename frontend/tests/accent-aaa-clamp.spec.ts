@@ -1,12 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-// Verifies the universal AAA accent clamp. The clamp lives in
-// generatePaletteFromHex (src/lib/colors.ts), which both the SSR accent emitter
-// and the client accent applier use for custom-hex accents. We exercise the real
-// bundled module through the Vite dev server so this tests the exact code the
-// product ships — no mocks.
-const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
-const COLORS_MOD = '/src/lib/colors.ts';
+import { generatePaletteFromHex } from '../src/lib/colors';
 
 function whiteContrast(hex: string) {
 	const h = hex.trim().replace('#', '');
@@ -19,36 +12,21 @@ function whiteContrast(hex: string) {
 	return { ratio: 1.05 / (lum + 0.05), r, g, b };
 }
 
-test('generatePaletteFromHex clamps white-on-600 to AAA (7:1), preserving hue', async ({ page }) => {
-	await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-	// Import the real source module via Vite (dev server transforms TS).
-	const palettes = await page.evaluate(async (modUrl) => {
-		const mod = (await import(/* @vite-ignore */ modUrl)) as {
-			generatePaletteFromHex: (hex: string) => Record<string, string>;
-		};
-		const hexes = [
-			'#ffe600', // pale yellow — worst case for white text
-			'#22d3ee', // cyan
-			'#a3e635', // lime
-			'#f472b6', // pink
-			'#0ea5e9', // sky (default-ish)
-			'#7c3aed' // violet (already dark enough)
-		];
-		return hexes.map((h) => ({ h, scale: mod.generatePaletteFromHex(h) }));
-	}, COLORS_MOD);
+test('generatePaletteFromHex clamps white-on-600 to AAA (7:1), preserving hue', () => {
+	const hexes = ['#ffe600', '#22d3ee', '#a3e635', '#f472b6', '#0ea5e9', '#7c3aed'];
+	const palettes = hexes.map((h) => ({ h, scale: generatePaletteFromHex(h) }));
 
 	for (const { h, scale } of palettes) {
 		const six = scale['600'];
 		expect(six, `${h} produced 600=${six}`).toMatch(/^#[0-9a-fA-F]{6}$/);
 		const { ratio, r, g, b } = whiteContrast(six);
-		// AAA (epsilon for 8-bit rounding).
-		expect(ratio, `white-on-600 for ${h} -> ${six} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(6.9);
-		// Hue preserved (mixing toward black keeps channel spread; not desaturated to gray).
+		expect(ratio, `white-on-600 for ${h} -> ${six} = ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(
+			6.9
+		);
 		expect(Math.max(r, g, b) - Math.min(r, g, b), `${h} -> ${six} kept hue`).toBeGreaterThan(6);
 	}
 });
 
-// Relative luminance (WCAG) of a #rrggbb hex, used to assert a monotonic ramp.
 function relLuminance(hex: string) {
 	const h = hex.trim().replace('#', '');
 	const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -59,28 +37,13 @@ function relLuminance(hex: string) {
 	return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
 }
 
-test('palette ramp is monotonic from 600 to 950 even for pale accents whose 600 clamps deep', async ({ page }) => {
-	await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-	const palettes = await page.evaluate(async (modUrl) => {
-		const mod = (await import(/* @vite-ignore */ modUrl)) as {
-			generatePaletteFromHex: (hex: string) => Record<string, string>;
-		};
-		const hexes = [
-			'#ffe066', // pale yellow: clamp600 drives 600 well past the nominal 700 mix
-			'#22d3ee', // pale cyan
-			'#ffe600', // worst-case pale yellow
-			'#a3e635', // lime
-			'#c2410c', // Soft Premium default terracotta (must not regress)
-			'#1e3a8a' // deep blue (600 stays at nominal)
-		];
-		return hexes.map((h) => ({ h, scale: mod.generatePaletteFromHex(h) }));
-	}, COLORS_MOD);
+test('palette ramp is monotonic from 600 to 950 even for pale accents whose 600 clamps deep', () => {
+	const hexes = ['#ffe066', '#22d3ee', '#ffe600', '#a3e635', '#c2410c', '#1e3a8a'];
+	const palettes = hexes.map((h) => ({ h, scale: generatePaletteFromHex(h) }));
 
 	for (const { h, scale } of palettes) {
 		const steps = ['500', '600', '700', '800', '900', '950'] as const;
 		const lums = steps.map((s) => relLuminance(scale[s]));
-		// Each darker step must be strictly darker (lower luminance) than the
-		// previous one (no inversion). Epsilon covers 8-bit rounding.
 		for (let i = 1; i < steps.length; i++) {
 			expect(
 				lums[i],
@@ -90,20 +53,9 @@ test('palette ramp is monotonic from 600 to 950 even for pale accents whose 600 
 	}
 });
 
-test('clamp only deepens — a hue already dark enough is left at its nominal 600', async ({ page }) => {
-	await page.goto(`${BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-	const { darkSix, paleSix } = await page.evaluate(async (modUrl) => {
-		const mod = (await import(/* @vite-ignore */ modUrl)) as {
-			generatePaletteFromHex: (hex: string) => Record<string, string>;
-		};
-		return {
-			// #1e3a8a (deep blue) already clears 7:1 at the nominal 0.15 darkening.
-			darkSix: mod.generatePaletteFromHex('#1e3a8a')['600'],
-			paleSix: mod.generatePaletteFromHex('#ffe600')['600']
-		};
-	}, COLORS_MOD);
-	// Deep blue: nominal 0.15 mix toward black of #1e3a8a = #1a3175.
+test('clamp only deepens — a hue already dark enough is left at its nominal 600', () => {
+	const darkSix = generatePaletteFromHex('#1e3a8a')['600'];
+	const paleSix = generatePaletteFromHex('#ffe600')['600'];
 	expect(darkSix.toLowerCase()).toBe('#1a3175');
-	// Pale yellow had to be deepened well past the nominal mix.
 	expect(whiteContrast(paleSix).ratio).toBeGreaterThanOrEqual(6.9);
 });

@@ -6,15 +6,24 @@
  */
 
 import type { PageServerLoad } from './$types';
+import type { Profile } from '$lib/pocketbase';
 import { logger } from '$lib/logger';
+import { navigationFacet } from '$lib/discovery';
+import { internalApiHeaders, parsePublicTalks } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+export const load: PageServerLoad = async ({ fetch, url, request, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const year = url.searchParams.get('year');
-	const fromView = url.searchParams.get('from');
+	const fromHints = url.searchParams.getAll('from');
+	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	const headers = {
+		...internalApiHeaders(request),
+		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+	};
 
 	try {
-		const response = await fetch(`${pbUrl}/api/talks`, { headers: { 'X-Internal': 'true' } });
+		const response = await fetch(`${pbUrl}/api/talks`, { headers });
 
 		if (!response.ok) {
 			let landingPageMessage = '';
@@ -49,8 +58,11 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			};
 		}
 
-		const data = await response.json();
-		let talks = data.talks || [];
+		const data = (await response.json()) as { talks?: unknown; profile?: Profile | null };
+		const publicTalks = parsePublicTalks(data.talks).filter(
+			(talk) => talk.visibility === 'public' && !talk.is_draft
+		);
+		let talks = publicTalks;
 		const profile = data.profile || null;
 
 		const allYears = new Set<string>();

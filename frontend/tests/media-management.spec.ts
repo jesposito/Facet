@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { apiBaseURL, adminEmail, adminPassword } from './config';
-import { loginAsAdmin } from './helpers';
+import { createPublicProjectAndPost, deletePublicProjectAndPost, loginAsAdmin } from './helpers';
 
 const shouldRunAdmin = Boolean(adminEmail && adminPassword);
 
@@ -16,21 +16,22 @@ test.describe('Media management', () => {
 
 		expect(mediaRes.ok()).toBeTruthy();
 		const media = await mediaRes.json();
-		expect(media).toHaveProperty('files');
-		expect(Array.isArray(media.files)).toBeTruthy();
+		expect(media).toHaveProperty('items');
+		expect(Array.isArray(media.items)).toBeTruthy();
 	});
 
 	test('can detect orphaned media files', async ({ request }) => {
 		const { token } = await loginAsAdmin(request);
 
-		const orphansRes = await request.get(`${apiBaseURL}/api/media/orphans`, {
+		const orphansRes = await request.get(`${apiBaseURL}/api/media?orphans=1`, {
 			headers: { Authorization: token }
 		});
 
 		expect(orphansRes.ok()).toBeTruthy();
 		const orphans = await orphansRes.json();
-		expect(orphans).toHaveProperty('orphans');
-		expect(Array.isArray(orphans.orphans)).toBeTruthy();
+		expect(orphans).toHaveProperty('items');
+		expect(Array.isArray(orphans.items)).toBeTruthy();
+		expect(orphans.stats).toHaveProperty('orphanFiles');
 	});
 
 	test('bulk delete endpoint validates request', async ({ request }) => {
@@ -49,7 +50,7 @@ test.describe('Media management', () => {
 
 		expect(emptyRes.status()).toBe(400);
 		const emptyBody = await emptyRes.json();
-		expect(emptyBody.message).toContain('no orphans');
+		expect(emptyBody.message).toMatch(/no orphans/i);
 	});
 
 	test('bulk delete endpoint enforces limit', async ({ request }) => {
@@ -128,63 +129,27 @@ test.describe('Media management', () => {
 });
 
 test.describe('Media public rendering', () => {
-	test('project pages handle media_refs gracefully', async ({ request, page }) => {
-		// Get a public project
-		const projectsRes = await request.get(`${apiBaseURL}/api/projects`);
-		if (!projectsRes.ok()) {
-			test.skip(true, 'No projects API available');
-			return;
-		}
+	let token: string;
+	let fixture: Awaited<ReturnType<typeof createPublicProjectAndPost>> | undefined;
 
-		const projectsData = await projectsRes.json();
-		const projects = projectsData?.projects || [];
+	test.beforeAll(async ({ request }) => {
+		({ token } = await loginAsAdmin(request));
+		fixture = await createPublicProjectAndPost(request, token);
+	});
 
-		if (projects.length === 0) {
-			test.skip(true, 'No projects available');
-			return;
-		}
+	test.afterAll(async ({ request }) => {
+		if (fixture) await deletePublicProjectAndPost(request, token, fixture);
+	});
 
-		const project = projects[0];
-		if (!project.slug) {
-			test.skip(true, 'Project has no slug');
-			return;
-		}
-
-		// Visit project page - should not error even if media_refs is missing
-		const response = await page.goto(`/projects/${project.slug}`);
+	test('project pages handle media_refs gracefully', async ({ page }) => {
+		const response = await page.goto(`/projects/${fixture!.projectSlug}`);
 		expect(response?.status()).toBe(200);
-
-		// Page should load successfully
 		await expect(page.locator('h1')).toBeVisible();
 	});
 
-	test('post pages handle media_refs gracefully', async ({ request, page }) => {
-		// Get a public post
-		const postsRes = await request.get(`${apiBaseURL}/api/posts`);
-		if (!postsRes.ok()) {
-			test.skip(true, 'No posts API available');
-			return;
-		}
-
-		const postsData = await postsRes.json();
-		const posts = postsData?.posts || [];
-
-		if (posts.length === 0) {
-			test.skip(true, 'No posts available');
-			return;
-		}
-
-		const post = posts[0];
-		if (!post.slug) {
-			test.skip(true, 'Post has no slug');
-			return;
-		}
-
-		// Visit post page - should not error even if media_refs is missing
-		const response = await page.goto(`/posts/${post.slug}`);
+	test('post pages handle media_refs gracefully', async ({ page }) => {
+		const response = await page.goto(`/posts/${fixture!.postSlug}`);
 		expect(response?.status()).toBe(200);
-
-		// Page should load successfully
 		await expect(page.locator('h1')).toBeVisible();
 	});
 });

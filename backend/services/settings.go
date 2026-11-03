@@ -180,6 +180,49 @@ type SiteSettings struct {
 	Record                *core.Record
 }
 
+// Feature switches stored in site_settings.enabled_features.
+const (
+	FeatureAnalytics   = "analytics"
+	FeatureCourses     = "courses"
+	FeatureNewsletter  = "newsletter"
+	FeatureDiscussions = "discussions"
+)
+
+// KnownFeatures lists every switch the owner can turn off.
+var KnownFeatures = []string{FeatureAnalytics, FeatureCourses, FeatureNewsletter, FeatureDiscussions}
+
+// FeatureEnabled reports whether a feature is on. Every feature is on unless
+// the owner saved it as false, so a missing key, an empty map and a record
+// from before the field existed all mean "on".
+func (s *SiteSettings) FeatureEnabled(name string) bool {
+	if s == nil || s.EnabledFeatures == nil {
+		return true
+	}
+	enabled, ok := s.EnabledFeatures[name]
+	return !ok || enabled
+}
+
+// ResolvedFeatures returns every known feature with its effective value, so
+// clients never have to guess what a missing key means.
+func (s *SiteSettings) ResolvedFeatures() map[string]bool {
+	resolved := make(map[string]bool, len(KnownFeatures))
+	for _, name := range KnownFeatures {
+		resolved[name] = s.FeatureEnabled(name)
+	}
+	return resolved
+}
+
+// IsFeatureEnabled loads site settings and reports whether name is on.
+// fallback is returned when settings can't be read: callers protecting
+// privacy pass false, callers keeping the site working pass true.
+func IsFeatureEnabled(app core.App, name string, fallback bool) bool {
+	settings, err := LoadSiteSettings(app)
+	if err != nil || settings == nil {
+		return fallback
+	}
+	return settings.FeatureEnabled(name)
+}
+
 // loadDefaultThemeMode returns the default_theme_mode field, falling back to
 // "system" when the field isn't present (pre-migration records) or is empty.
 // Valid values are: "system", "light", "dark".
@@ -506,9 +549,19 @@ func UpdateSiteSettings(app core.App, updates map[string]any, logger *slog.Logge
 			logger.Warn("default_theme_mode field missing on site_settings, skipping update")
 		}
 	}
-	if features, ok := updates["enabled_features"]; ok {
+	if features, ok := updates["enabled_features"].(map[string]bool); ok {
 		if settings.Record.Collection().Fields.GetByName("enabled_features") != nil {
-			settings.Record.Set("enabled_features", features)
+			// Merge onto the saved switches so a partial update doesn't
+			// silently turn other features back on. Unknown keys are dropped.
+			merged := settings.ResolvedFeatures()
+			for _, name := range KnownFeatures {
+				if enabled, present := features[name]; present {
+					merged[name] = enabled
+				}
+			}
+			settings.Record.Set("enabled_features", merged)
+		} else if logger != nil {
+			logger.Warn("enabled_features field missing on site_settings, skipping update")
 		}
 	}
 

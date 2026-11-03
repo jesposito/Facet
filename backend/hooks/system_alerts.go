@@ -21,6 +21,7 @@ package hooks
 // emitting an alert never breaks the hot path that triggered it.
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -54,7 +55,21 @@ type SystemAlertInput struct {
 // CreateSystemAlert persists a new alert. Failures are logged but never
 // propagated — the caller's primary operation must not fail just because the
 // alert sink is unavailable.
+//
+// Alerts are deduplicated by event: while an unacknowledged alert with the same
+// event exists, further emits are dropped. A failure that repeats on every boot
+// therefore shows up once until the admin acknowledges it.
 func CreateSystemAlert(app core.App, input SystemAlertInput) {
+	createSystemAlert(app, input)
+}
+
+// createSystemAlert is CreateSystemAlert reporting whether a new record was
+// written, so tests can tell a deduplicated emit from a failed one.
+//
+// The "is one already open?" check and the insert run in one transaction.
+// PocketBase runs transactions on its single-connection nonconcurrent pool, so
+// two concurrent emits for the same event cannot both see zero open alerts.
+func createSystemAlert(app core.App, input SystemAlertInput) bool {
 	severity := strings.TrimSpace(input.Severity)
 	if severity == "" {
 		severity = SeverityInfo
@@ -68,29 +83,45 @@ func CreateSystemAlert(app core.App, input SystemAlertInput) {
 	if event == "" || title == "" {
 		app.Logger().Warn("system_alerts: refusing to create alert with empty event or title",
 			"event", event, "title", title)
-		return
+		return false
 	}
 
-	collection, err := app.FindCollectionByNameOrId("system_alerts")
+	created := false
+	err := app.RunInTransaction(func(txApp core.App) error {
+		collection, err := txApp.FindCollectionByNameOrId("system_alerts")
+		if err != nil {
+			return fmt.Errorf("collection lookup: %w", err)
+		}
+
+		open, err := txApp.CountRecords(collection, dbx.HashExp{"event": event, "acknowledged_at": ""})
+		if err != nil {
+			return fmt.Errorf("dedupe lookup: %w", err)
+		}
+		if open > 0 {
+			return nil
+		}
+
+		record := core.NewRecord(collection)
+		record.Set("severity", severity)
+		record.Set("event", event)
+		record.Set("title", title)
+		if input.Details != "" {
+			record.Set("details", input.Details)
+		}
+		if len(input.Metadata) > 0 {
+			record.Set("metadata", input.Metadata)
+		}
+		if err := txApp.Save(record); err != nil {
+			return fmt.Errorf("save: %w", err)
+		}
+		created = true
+		return nil
+	})
 	if err != nil {
-		app.Logger().Error("system_alerts: collection lookup failed", "error", err)
-		return
+		app.Logger().Error("system_alerts: create failed", "event", event, "error", err)
+		return false
 	}
-
-	record := core.NewRecord(collection)
-	record.Set("severity", severity)
-	record.Set("event", event)
-	record.Set("title", title)
-	if input.Details != "" {
-		record.Set("details", input.Details)
-	}
-	if len(input.Metadata) > 0 {
-		record.Set("metadata", input.Metadata)
-	}
-
-	if err := app.Save(record); err != nil {
-		app.Logger().Error("system_alerts: save failed", "event", event, "error", err)
-	}
+	return created
 }
 
 // RegisterSystemAlertHooks wires the admin endpoints for listing,
@@ -258,4 +289,3 @@ func serializeAlert(r *core.Record) map[string]any {
 		"created":         r.GetString("created"),
 	}
 }
-

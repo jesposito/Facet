@@ -88,7 +88,7 @@ export function createAIResumeController(opts: {
 		ai_configured: false,
 		pandoc_installed: false
 	});
-	let config = $state<AIPrintConfig>({
+	const config = $state<AIPrintConfig>({
 		format: 'pdf',
 		target_role: '',
 		style: 'chronological',

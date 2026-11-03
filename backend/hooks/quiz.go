@@ -2,15 +2,19 @@ package hooks
 
 import (
 	"encoding/json"
+	"errors"
 	"facet/services"
-	"fmt"
 	"math/rand"
 	"net/http"
 	"time"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
+
+var errQuizAttemptsExhausted = errors.New("maximum attempts exceeded")
 
 // RegisterQuizHooks registers quiz-related API endpoints
 func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig, crypto *services.CryptoService, rl *services.RateLimitService) {
@@ -28,39 +32,16 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 		// GET /api/courses/{slug}/lessons/{lessonId}/quiz - Get quiz for a lesson
 		se.Router.GET("/api/courses/{slug}/lessons/{lessonId}/quiz", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
 			lessonID := e.Request.PathValue("lessonId")
 
-			// Find course by slug
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-			course := courseRecords[0]
-
-			// Check access (purchase or enrollment)
-			buyerEmail, err := checkQuizAccess(app, purchaseService, e, course)
+			// Same checks as the lesson itself: visibility, purchase or
+			// enrolment, drip schedule and sequential access
+			course, buyerEmail, err := requireCourseLearner(app, purchaseService, e, e.Request.PathValue("slug"))
 			if err != nil {
-				return respondUnauthorized(e, "authentication required")
+				return err
 			}
-
-			// Find lesson
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-
-			// Verify lesson belongs to this course
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != course.Id {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
+			if _, err := requireCourseLesson(app, e, course, lessonID, buyerEmail); err != nil {
+				return err
 			}
 
 			// Find quiz for this lesson
@@ -142,12 +123,12 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 			response := map[string]interface{}{
 				"id":                  quiz.Id,
-				"title":              quiz.GetString("title"),
-				"passing_score":      quiz.GetFloat("passing_score"),
+				"title":               quiz.GetString("title"),
+				"passing_score":       quiz.GetFloat("passing_score"),
 				"randomize_questions": quiz.GetBool("randomize_questions"),
-				"max_attempts":       quiz.GetInt("max_attempts"),
-				"questions":          questions,
-				"attempts_used":      attemptCount,
+				"max_attempts":        quiz.GetInt("max_attempts"),
+				"questions":           questions,
+				"attempts_used":       attemptCount,
 			}
 			if previousAttempt != nil {
 				response["previous_attempt"] = previousAttempt
@@ -158,39 +139,16 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 		// POST /api/courses/{slug}/lessons/{lessonId}/quiz/submit - Submit quiz answers
 		se.Router.POST("/api/courses/{slug}/lessons/{lessonId}/quiz/submit", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
-			slug := e.Request.PathValue("slug")
 			lessonID := e.Request.PathValue("lessonId")
 
-			// Find course by slug
-			courseRecords, err := app.FindRecordsByFilter(
-				"courses",
-				"slug = {:slug}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"slug": slug},
-			)
-			if err != nil || len(courseRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-			course := courseRecords[0]
-
-			// Check access
-			buyerEmail, err := checkQuizAccess(app, purchaseService, e, course)
+			// Checked before anything is recorded, so a refused submission
+			// leaves no attempt and no progress behind
+			course, buyerEmail, err := requireCourseLearner(app, purchaseService, e, e.Request.PathValue("slug"))
 			if err != nil {
-				return respondUnauthorized(e, "authentication required")
+				return err
 			}
-
-			// Find lesson
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-
-			// Verify lesson belongs to this course
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != course.Id {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
+			if _, err := requireCourseLesson(app, e, course, lessonID, buyerEmail); err != nil {
+				return err
 			}
 
 			// Find quiz
@@ -250,6 +208,16 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 			// Reject empty submissions
 			if len(req.Answers) == 0 {
 				return e.JSON(http.StatusBadRequest, map[string]string{"error": "no answers submitted"})
+			}
+
+			// Each question scores once. Repeating a known correct answer
+			// would otherwise push the score past 100%.
+			answeredQuestions := make(map[string]bool, len(req.Answers))
+			for _, answer := range req.Answers {
+				if answeredQuestions[answer.QuestionID] {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "each question can only be answered once"})
+				}
+				answeredQuestions[answer.QuestionID] = true
 			}
 
 			// Build question lookup and calculate total points from ALL questions
@@ -323,7 +291,26 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 			attempt.Set("passed", passed)
 			attempt.Set("answers", answerData)
 
-			if err := app.Save(attempt); err != nil {
+			// The check above is a quick answer for the common case.
+			// Concurrent submissions all pass it, so the limit is enforced
+			// again here, with the count and the save in one transaction.
+			err = app.RunInTransaction(func(txApp core.App) error {
+				if maxAttempts > 0 {
+					used, err := txApp.CountRecords("quiz_attempts",
+						dbx.NewExp("quiz = {:quiz} AND buyer_email = {:email}", dbx.Params{"quiz": quiz.Id, "email": buyerEmail}))
+					if err != nil {
+						return err
+					}
+					if int(used) >= maxAttempts {
+						return errQuizAttemptsExhausted
+					}
+				}
+				return txApp.Save(attempt)
+			})
+			if errors.Is(err, errQuizAttemptsExhausted) {
+				return respondForbidden(e, "maximum attempts exceeded")
+			}
+			if err != nil {
 				app.Logger().Error("Failed to save quiz attempt", "error", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save attempt"})
 			}
@@ -413,12 +400,12 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"id":                  quiz.Id,
-				"lesson":             quiz.GetString("lesson"),
-				"title":              quiz.GetString("title"),
-				"passing_score":      quiz.GetFloat("passing_score"),
+				"lesson":              quiz.GetString("lesson"),
+				"title":               quiz.GetString("title"),
+				"passing_score":       quiz.GetFloat("passing_score"),
 				"randomize_questions": quiz.GetBool("randomize_questions"),
-				"max_attempts":       quiz.GetInt("max_attempts"),
-				"questions":          questions,
+				"max_attempts":        quiz.GetInt("max_attempts"),
+				"questions":           questions,
 			})
 		})
 
@@ -789,96 +776,10 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 	})
 }
 
-// checkQuizAccess verifies the request has purchase/enrollment access to a course.
-// Returns the buyer email if access is granted, or an error if not.
-func checkQuizAccess(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, course *core.Record) (string, error) {
-	token := extractPurchaseCookie(e)
-	if token == "" {
-		return "", fmt.Errorf("no token")
-	}
-
-	purchaseIDs, buyerEmail, err := purchaseService.ValidatePurchaseJWT(token)
-	if err != nil {
-		return "", err
-	}
-
-	if course.GetString("access_tier") == "paid" {
-		// Check purchase
-		purchaseRecords, err := app.FindRecordsByFilter(
-			"purchases",
-			"content_type = 'courses' && content_id = {:id} && status = 'completed'",
-			"",
-			1,
-			0,
-			map[string]interface{}{"id": course.Id},
-		)
-		if err != nil || len(purchaseRecords) == 0 {
-			return "", fmt.Errorf("purchase required")
-		}
-		purchase := purchaseRecords[0]
-		if !purchaseService.HasPurchaseAccess(purchaseIDs, purchase.Id) {
-			return "", fmt.Errorf("purchase required")
-		}
-	} else if course.GetBool("require_enrollment") {
-		// Free course with enrollment requirement - check enrollment
-		enrollRecords, err := app.FindRecordsByFilter(
-			"course_progress",
-			"course = {:course} && buyer_email = {:email}",
-			"", 1, 0,
-			map[string]interface{}{"course": course.Id, "email": buyerEmail},
-		)
-		if err != nil || len(enrollRecords) == 0 {
-			return "", fmt.Errorf("enrollment required")
-		}
-	}
-	// Free course without enrollment requirement - always accessible
-
-	return buyerEmail, nil
-}
-
-// stripCorrectAnswers removes is_correct from quiz option objects
-func stripCorrectAnswers(rawOptions interface{}) interface{} {
-	if rawOptions == nil {
-		return nil
-	}
-
-	// rawOptions might be a JSON string or already parsed
-	var options []map[string]interface{}
-
-	switch v := rawOptions.(type) {
-	case []interface{}:
-		for _, opt := range v {
-			if optMap, ok := opt.(map[string]interface{}); ok {
-				stripped := map[string]interface{}{
-					"text": optMap["text"],
-				}
-				options = append(options, stripped)
-			}
-		}
-		return options
-	case string:
-		if err := json.Unmarshal([]byte(v), &options); err != nil {
-			return rawOptions
-		}
-		stripped := make([]map[string]interface{}, 0, len(options))
-		for _, opt := range options {
-			stripped = append(stripped, map[string]interface{}{
-				"text": opt["text"],
-			})
-		}
-		return stripped
-	default:
-		return rawOptions
-	}
-}
-
-// checkAnswer verifies if the selected answer index matches the correct option
-func checkAnswer(question *core.Record, selectedAnswer int) bool {
-	rawOptions := question.Get("options")
-	if rawOptions == nil {
-		return false
-	}
-
+// parseQuizOptions reads a question's options. A record loaded from the
+// database holds them as types.JSONRaw; a record built in memory may hold a
+// parsed slice or a JSON string.
+func parseQuizOptions(rawOptions interface{}) []map[string]interface{} {
 	var options []map[string]interface{}
 
 	switch v := rawOptions.(type) {
@@ -888,13 +789,40 @@ func checkAnswer(question *core.Record, selectedAnswer int) bool {
 				options = append(options, optMap)
 			}
 		}
+	case []map[string]interface{}:
+		options = v
+	case types.JSONRaw:
+		if err := json.Unmarshal(v, &options); err != nil {
+			return nil
+		}
 	case string:
 		if err := json.Unmarshal([]byte(v), &options); err != nil {
-			return false
+			return nil
 		}
-	default:
-		return false
 	}
+	return options
+}
+
+// stripCorrectAnswers keeps only the text of each option, so learners can't
+// read the answer key. Options it can't read come back empty.
+func stripCorrectAnswers(rawOptions interface{}) interface{} {
+	if rawOptions == nil {
+		return nil
+	}
+
+	options := parseQuizOptions(rawOptions)
+	stripped := make([]map[string]interface{}, 0, len(options))
+	for _, opt := range options {
+		stripped = append(stripped, map[string]interface{}{
+			"text": opt["text"],
+		})
+	}
+	return stripped
+}
+
+// checkAnswer verifies if the selected answer index matches the correct option
+func checkAnswer(question *core.Record, selectedAnswer int) bool {
+	options := parseQuizOptions(question.Get("options"))
 
 	if selectedAnswer < 0 || selectedAnswer >= len(options) {
 		return false

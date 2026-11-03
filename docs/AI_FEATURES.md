@@ -1,589 +1,148 @@
-# AI Features Documentation
+# AI features
 
-**Last Updated:** 2026-01-26
+Facet can use an AI model to help you write, to turn an existing résumé into structured content, to summarise GitHub projects, and to produce tailored résumés from a view. All of it is optional. Without an AI provider, the AI buttons simply don't appear and everything else works the same.
 
-This document provides comprehensive documentation for all AI-powered features in Facet. These features are optional and require configuration of at least one AI provider.
+Self-hosted Facet is **bring your own provider**. You connect your own Anthropic, OpenAI or OpenAI-compatible account, or a local Ollama server. Facet has no AI service of its own, no credits and no quotas. Requests go straight from your server to the provider you chose, and they're billed to your account with that provider.
 
----
+## Contents
 
-## Table of Contents
+- [Connect a provider](#connect-a-provider)
+- [Writing assistant](#writing-assistant)
+- [Résumé import](#résumé-import)
+- [GitHub project enrichment](#github-project-enrichment)
+- [AI résumé generation (AI Print)](#ai-résumé-generation-ai-print)
+- [What gets sent to the provider](#what-gets-sent-to-the-provider)
+- [Troubleshooting](#troubleshooting)
+- [API reference](#api-reference)
 
-1. [Overview](#overview)
-2. [AI Provider Configuration](#ai-provider-configuration)
-3. [AI Print (Resume Generation)](#ai-print-resume-generation)
-4. [AI Project Enrichment](#ai-project-enrichment)
-5. [AI Content Improvement](#ai-content-improvement)
-6. [AI Writing Assistant](#ai-writing-assistant)
-7. [Resume Upload & AI Parsing](#resume-upload--ai-parsing)
-8. [API Reference](#api-reference)
-9. [Environment Variables](#environment-variables)
-10. [Troubleshooting](#troubleshooting)
+## Connect a provider
 
-> **See Also:** [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md) for detailed documentation on the 5-tone AI Writing Assistant with critique mode.
+Go to **Settings → Integrations** and add a provider.
 
----
+| Type | Needs an API key | Base URL | Notes |
+|------|------------------|----------|-------|
+| `anthropic` | Yes | No | Claude models |
+| `openai` | Yes | Optional | OpenAI models |
+| `ollama` | No | Yes, e.g. `http://192.168.1.20:11434` | Runs models on your own hardware, so nothing leaves your network |
+| `custom` | Usually | Yes | Any service with an OpenAI-compatible API |
 
-## Overview
+The form suggests a few model names for each type. Model names change often, so use **Fetch models** to load the list your account actually offers, or type a model name yourself. **Test connection** sends a short request to confirm everything works. If you add more than one provider, mark one as the default.
 
-Facet includes optional AI-powered features that enhance content creation and resume generation. All AI features:
+Keys are encrypted before they're saved and are never sent back to the browser ([Security](SECURITY.md#whats-encrypted)).
 
-- Are **completely optional** - Facet works fully without any AI configuration
-- Are **bring-your-own-key** - You supply your own provider credentials. There are no managed AI credits, monthly token quotas, or platform-provided providers. Use OpenAI, Anthropic Claude, or a local Ollama instance.
-- Support **multiple providers** - OpenAI, Anthropic Claude, Ollama (local), or custom OpenAI-compatible APIs
-- Use **encrypted API key storage** - Keys are encrypted at rest using AES-256-GCM
-- Follow **privacy-conscious prompts** - AI prompts emphasize factual content without inventing information
+**Ollama in Docker:** inside the Facet container, `localhost` means the container itself, not your computer. Point the base URL at your machine's network address, or at `http://host.docker.internal:11434` on Docker Desktop.
 
-> **Bring your own key:** Self-hosted Facet does not include any hosted or managed AI. Add your own provider key under **Admin > Settings > Integrations** (`/admin/settings/integrations`) before AI features become available.
+### Setting a provider with environment variables
 
-### Supported AI Providers
+As a shortcut, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `OLLAMA_BASE_URL` (with optional `OLLAMA_MODEL`) create a provider automatically the first time the admin checks AI status, as long as no provider exists yet ([source](../backend/hooks/ai.go)). They're named "Claude (Auto)", "OpenAI (Auto)" and "Ollama (Auto)". Anthropic gets `claude-sonnet-4-20250514` and OpenAI gets `gpt-4o`, which you can change in the dashboard.
 
-| Provider | Type | API Key Required | Custom Model | Custom URL |
-|----------|------|------------------|--------------|------------|
-| OpenAI | `openai` | Yes | Optional | Optional |
-| Anthropic Claude | `anthropic` | Yes | Optional | No |
-| Ollama (local) | `ollama` | No | Optional | Required |
-| Custom (OpenAI-compatible) | `custom` | Varies | Required | Required |
+After that first time the variables aren't read again, so edit the provider in the dashboard rather than the variable. If you use the repository's `docker-compose.yml`, add these variables to its `environment:` list first ([why](CONFIGURATION.md#does-the-variable-reach-the-container)).
 
----
+## Writing assistant
 
-## AI Provider Configuration
+An AI button sits beside the main text fields on the **Experience**, **Projects**, **Education**, **Posts**, **Talks**, **Custom Content**, **Courses** and **Homepage** pages. It uses the rest of the form (job title, company, technologies and so on) as context.
 
-### Admin UI Configuration
+It has two modes.
 
-Navigate to **Admin > Settings > Integrations** (`/admin/settings/integrations`) to configure providers through the UI.
+**Rewrite** in one of five tones:
 
-**Adding a Provider:**
+| Tone | Sounds like |
+|------|-------------|
+| Executive | Direct and results-focused, for senior audiences |
+| Professional | Polished and businesslike. The default. |
+| Technical | Precise and detailed, for specialists |
+| Conversational | Friendly and personal |
+| Creative | Engaging, with more storytelling |
 
-1. Click "Add Provider"
-2. Fill in the required fields:
-   - **Name**: Display name (e.g., "OpenAI GPT-4o")
-   - **Type**: Select from openai, anthropic, ollama, or custom
-   - **API Key**: Your provider's API key (encrypted before storage)
-   - **Model**: Select from presets or enter custom model name
-   - **Base URL**: Required for Ollama and custom providers
-3. Click "Add Provider"
-4. Optionally test the connection with "Test Connection"
-5. Set as default if this should be the primary provider
+You see the suggestion before anything changes, and you can accept, edit or discard it.
 
-**Model Presets by Provider:**
+**Critique** leaves your text alone and returns it with bracketed notes where it's weak, for example `[Quantify this: how much faster?]` or `[Avoid "leverage": say what you actually did]`. It's for when you'd rather improve your own writing than have it replaced.
 
-| Provider | Available Models |
-|----------|------------------|
-| OpenAI | gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1, o1-mini |
-| Anthropic | claude-sonnet-4-20250514, claude-opus-4-20250514, claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022 |
-| Ollama | llama3.2, llama3.1, mistral, codellama, phi3 |
-| Custom | (user-specified) |
+The prompts ask the model to write plainly: no em dashes, none of the usual AI vocabulary ("delve", "leverage", "utilize", "synergy" and friends), active verbs, and no invented facts or numbers. Models don't always comply, so read what comes back.
 
-### Auto-Configuration from Environment
+## Résumé import
 
-Facet automatically creates AI providers from environment variables on first access if no providers exist:
+Under **Import & AI**, upload a résumé as a PDF or Word (`.docx`) file, up to 10 MB ([source](../backend/hooks/resume_upload.go)). Facet extracts the text on your server, sends it to your AI provider, and turns the reply into:
 
-```bash
-# Anthropic (recommended)
-ANTHROPIC_API_KEY=sk-ant-...
+- experience (company, title, dates, description)
+- education
+- skills, grouped into categories
+- projects
+- certifications
+- awards and talks
 
-# OpenAI
-OPENAI_API_KEY=sk-...
+You review what was found before importing, and Facet skips entries that duplicate ones you already have, reporting how many it skipped ([source](../backend/hooks/resume_upload.go)).
 
-# Ollama (local)
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2  # Optional, defaults to llama3.2
-```
+Scanned PDFs (pictures of text) don't work, because there's no text to extract.
 
-When environment variables are detected, providers are created automatically with names like "Claude (Auto)" or "OpenAI (Auto)".
+## GitHub project enrichment
 
-### API Key Security
+When you import a GitHub repository as a project, Facet can ask your AI provider for a summary, 3–5 highlights, tags, technical highlights and a short case-study outline. You choose how much to send ([source](../backend/services/ai.go)):
 
-- API keys are **never stored in plaintext**
-- Keys are encrypted using AES-256-GCM before storage
-- Encryption key is set via the `ENCRYPTION_KEY` environment variable or auto-generated on first start (saved to `/data/.encryption_key`)
-- The `api_key` field is marked as a "hidden" field in PocketBase (not returned in API responses)
-- Only the `api_key_encrypted` field is stored
+| Privacy mode | Sent to the provider |
+|--------------|----------------------|
+| Full | Name, description, languages, topics, and the README up to 10,000 bytes |
+| Summary | The same, but only the start of the README |
+| None | Nothing. No AI enrichment. |
 
----
+Everything lands in a proposal for you to review before it's saved, and fields you've locked are never overwritten.
 
-## AI Print (Resume Generation)
+## AI résumé generation (AI Print)
 
-AI Print generates professionally formatted resumes (PDF or DOCX) from your view data using AI optimization.
+The print menu on your public pages offers an **AI résumé**. Facet sends the view's content to your AI provider with résumé-writing instructions, then converts the result to PDF or Word with Pandoc ([source](../backend/services/resume.go)).
 
-### How It Works
+| Option | Choices |
+|--------|---------|
+| Format | PDF or DOCX |
+| Style | Chronological, functional or hybrid |
+| Length | One page, two pages, or full |
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  View Data  │ ──▶ │   AI API    │ ──▶ │   Pandoc    │ ──▶ │  PDF/DOCX   │
-│  (JSON)     │     │  (Optimize) │     │  (Convert)  │     │  (Download) │
-└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
-```
+The target role comes from the view's hero headline, so a recruiter view produces a résumé aimed at the role you chose. Item overrides in the view are respected. Generated files are kept, and you can list and delete them for each view.
 
-1. **Collect**: Gathers complete view data including profile, all sections, and item-level overrides
-2. **Optimize**: Sends data to AI with resume-specific formatting prompts
-3. **Convert**: AI returns optimized markdown, Pandoc converts to PDF or DOCX
-4. **Download**: File is stored and download URL is returned
+**Visitors can use this too.** Anyone who can open a view can generate a résumé from it, and each generation is a request on **your** AI account. The endpoint applies the same access check as the view itself, so an unlisted view needs its share link and a password view needs its password ([source](../backend/hooks/resume.go)). Anonymous use is limited to 5 generations an hour per client address ([client address](../backend/services/clientip.go)). If that cost matters to you, leave AI providers unconfigured until you need them.
 
-### Features
+PDF output needs Pandoc and LaTeX, which the Docker image includes. On a development machine without them, the option reports itself as unavailable.
 
-- **Target Role Optimization**: Uses the view's hero_headline to tailor content for the intended role
-- **Resume Styles**: Chronological, Functional, or Hybrid layouts
-- **Length Control**: One-page, Two-page, or Full resume options
-- **Format Options**: PDF (via LaTeX) or DOCX (Microsoft Word)
-- **View Overrides**: Respects item-level field overrides configured in the view editor
-- **Public Access**: Recruiters can generate resumes from public/unlisted views
-- **Rate Limiting**: Public users limited to 5 generations per hour per IP
+## What gets sent to the provider
 
-### Accessing AI Print
+| Feature | Data sent |
+|---------|-----------|
+| Writing assistant | The text you're editing, plus related fields from the same form |
+| Résumé import | The full text extracted from your résumé |
+| GitHub enrichment | Repository details and README, according to the privacy mode |
+| AI Print | The view's content: profile, and every section and item the view shows |
 
-**From Public View Pages:**
-- Navigate to any public view (e.g., `/recruiter`)
-- Click the Print button dropdown
-- Select "AI Resume" to open the generation modal
-- Target role is automatically set from the view's hero_headline
-
-**From the Root Page:**
-- Navigate to the root URL (`/`)
-- Click the Print button dropdown
-- Select "AI Resume" to open the generation modal
-- Target role uses the default view's hero_headline or profile headline
-
-### Generation Modal Options (Public Pages)
-
-| Option | Values | Description |
-|--------|--------|-------------|
-| Format | PDF, DOCX | Output file format |
-| Style | Chronological, Functional, Hybrid | Resume organization style |
-| Length | One Page, Two Pages, Full | Resume length constraint |
-
-> **Note:** On public pages, the target role is automatically set from the view's `hero_headline` (configured by the profile owner in the view editor). This ensures recruiters see the resume tailored to the role the profile owner intended, without the ability to override it.
-
-### Requirements
-
-AI Print requires:
-- At least one active AI provider configured
-- Pandoc installed (included in Docker image)
-- For PDF: LaTeX (pdflatex) with texlive packages
-
-### AI Writing Style
-
-The AI prompt enforces professional writing standards:
-- Direct, human-like writing (not AI-sounding)
-- No em dashes, corporate buzzwords, or marketing speak
-- Action verbs for achievements (led, built, designed, implemented)
-- Quantified achievements where data is provided
-- Focus on impact and results, not just responsibilities
-
----
-
-## AI Project Enrichment
-
-During GitHub import, AI can enrich project data with professional summaries and highlights.
-
-### What Gets Generated
-
-| Field | Description |
-|-------|-------------|
-| `summary` | 2-3 sentence professional project summary |
-| `bullets` | 3-5 key features or achievements |
-| `tags` | Relevant technology/category tags |
-| `tech_highlights` | 2-3 notable technical aspects |
-| `case_study` | Brief case study outline (3-4 bullet points) |
-
-### Privacy Modes
-
-| Mode | Data Sent to AI |
-|------|-----------------|
-| `full` | Title, description, README (up to 10,000 chars), languages, topics |
-| `summary` | Title, description, README (first 500 chars), languages, topics |
-| `none` | No AI enrichment performed |
-
-### Usage
-
-1. Import a project from GitHub
-2. During the review step, enable AI enrichment
-3. Select a privacy mode
-4. AI generates enriched content for review before saving
-
----
-
-## AI Content Improvement
-
-General-purpose content improvement available throughout the admin interface.
-
-### Content Types Supported
-
-| Type | Output Format |
-|------|---------------|
-| `headline` | Single line, under 100 characters |
-| `summary` | 2-4 sentences |
-| `description` | 2-3 paragraphs |
-| `bullets` | JSON array of 3-5 strings |
-| `experience` | JSON with description + bullets |
-| `project` | JSON with summary + description |
-| `education` | Brief description paragraph |
-
-### Actions
-
-| Action | Behavior |
-|--------|----------|
-| `improve` | Enhance existing content to be more professional |
-| `generate` | Create new content based on context provided |
-| `expand` | Add more detail while maintaining accuracy |
-| `shorten` | Condense content while keeping key points |
-
-### API Usage
-
-```bash
-POST /api/ai/improve
-Authorization: <your-auth-token>
-Content-Type: application/json
-
-{
-  "content_type": "summary",
-  "content": "I am a developer who makes things.",
-  "context": {
-    "name": "Jane Doe",
-    "title": "Software Engineer"
-  },
-  "action": "improve"
-}
-```
-
----
-
-## AI Writing Assistant
-
-The AI Writing Assistant provides intelligent content rewriting with 5 distinct tones and a critique mode. It's integrated across all content forms in the admin panel.
-
-**Tones Available:**
-- **Executive** - Direct, results-focused, suitable for senior leadership
-- **Professional** - Polished, business-appropriate, general professional contexts
-- **Technical** - Precise, detailed, suitable for technical audiences
-- **Conversational** - Friendly, approachable, personal connection
-- **Creative** - Engaging, memorable, marketing-oriented
-
-**Critique Mode:**
-Instead of rewriting, provides inline feedback with `[bracketed suggestions]` for improvement.
-
-**Where It's Available:**
-- Experience descriptions and bullets
-- Project summaries and descriptions
-- Profile headline and summary
-- Education descriptions
-- Post content
-- Talk descriptions
-
-For detailed documentation, see [AI_WRITING_ASSISTANT.md](AI_WRITING_ASSISTANT.md).
-
----
-
-## Resume Upload & AI Parsing
-
-Upload PDF or DOCX resume files and have AI automatically extract structured data to populate your Facet profile.
-
-**Supported Formats:**
-- PDF (text-based, not scanned images)
-- DOCX (Microsoft Word)
-
-**Extracted Data:**
-- Work experience (company, title, dates, description)
-- Education (institution, degree, field, dates)
-- Skills (with automatic categorization)
-- Certifications
-- Contact information
-
-**How It Works:**
-1. Navigate to **Admin > Import & AI**
-2. Upload resume file (PDF/DOCX, max 10MB)
-3. AI parses and extracts structured data
-4. Review extracted data in proposal view
-5. Accept, modify, or reject each extracted item
-6. Smart deduplication prevents duplicate entries
-
-**Security:**
-- Files stored with SHA256 hash for duplicate detection
-- Original files can be deleted after parsing
-- All parsing happens server-side, not sent to external services beyond AI provider
-
----
-
-## API Reference
-
-### Status Endpoints
-
-#### Check AI Availability
-```
-GET /api/ai/status
-```
-Returns whether AI features are available and the default provider.
-
-**Response:**
-```json
-{
-  "available": true,
-  "provider_count": 1,
-  "default_provider": {
-    "id": "abc123",
-    "name": "OpenAI GPT-4o",
-    "type": "openai",
-    "model": "gpt-4o-mini"
-  }
-}
-```
-
-#### Check AI Print Availability
-```
-GET /api/ai-print/status
-```
-Returns whether AI Print (resume generation) is available.
-
-**Response:**
-```json
-{
-  "available": true,
-  "pandoc_installed": true,
-  "ai_configured": true,
-  "supported_formats": ["pdf", "docx"]
-}
-```
-
-### Provider Management
-
-#### Test Provider Connection
-```
-POST /api/ai/test/{id}
-Authorization: required
-```
-Tests connectivity to an AI provider.
-
-**Response:**
-```json
-{
-  "success": true
-}
-```
-or
-```json
-{
-  "success": false,
-  "error": "Invalid API key"
-}
-```
-
-### Content Generation
-
-#### Improve Content
-```
-POST /api/ai/improve
-Authorization: required
-```
-Improves or generates content using AI.
-
-**Request Body:**
-```json
-{
-  "content_type": "summary|headline|description|bullets|experience|project|education",
-  "content": "existing content to improve",
-  "context": {
-    "name": "...",
-    "title": "...",
-    "company": "..."
-  },
-  "action": "improve|generate|expand|shorten",
-  "provider_id": "optional-provider-id"
-}
-```
-
-#### Enrich Project
-```
-POST /api/ai/enrich
-Authorization: required
-```
-Enriches project data from GitHub import.
-
-**Request Body:**
-```json
-{
-  "provider_id": "optional",
-  "title": "Project Name",
-  "description": "Short description",
-  "readme": "Full README content",
-  "languages": {"Go": 5000, "TypeScript": 3000},
-  "topics": ["backend", "api"],
-  "privacy_mode": "full|summary|none"
-}
-```
-
-### Resume Generation
-
-#### Generate Resume
-```
-POST /api/view/{slug}/generate
-Authorization: optional (public for public/unlisted views)
-Rate Limit: 5/hour per IP for unauthenticated users
-```
-Generates a resume from view data.
-
-**Request Body:**
-```json
-{
-  "format": "pdf|docx",
-  "target_role": "Senior Software Engineer",
-  "style": "chronological|functional|hybrid",
-  "length": "one-page|two-page|full",
-  "emphasis": ["leadership", "technical"],
-  "provider_id": "optional"
-}
-```
-
-**Response:**
-```json
-{
-  "export_id": "abc123",
-  "status": "completed",
-  "format": "pdf",
-  "download_url": "/api/files/view_exports/abc123/resume.pdf",
-  "generated_at": "2026-01-01T12:00:00Z"
-}
-```
-
-#### List Exports
-```
-GET /api/view/{slug}/exports
-Authorization: required
-```
-Lists all generated exports for a view.
-
-#### Delete Export
-```
-DELETE /api/view/{slug}/exports/{exportId}
-Authorization: required
-```
-Deletes a generated export.
-
----
-
-## Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `ENCRYPTION_KEY` | 32-byte key for API key encryption (auto-generated if not set) | No |
-| `ANTHROPIC_API_KEY` | Auto-configures Anthropic Claude | No |
-| `OPENAI_API_KEY` | Auto-configures OpenAI | No |
-| `OLLAMA_BASE_URL` | Auto-configures Ollama | No |
-| `OLLAMA_MODEL` | Model for Ollama (default: llama3.2) | No |
-
-### Generating an Encryption Key
-
-```bash
-# Generate a secure 32-byte key
-openssl rand -base64 32
-
-# Or using Go
-go run -e 'import "crypto/rand"; import "encoding/base64"; b := make([]byte, 32); rand.Read(b); fmt.Println(base64.StdEncoding.EncodeToString(b))'
-```
-
----
+Each provider handles that data under its own terms. Ollama keeps it on your own hardware.
 
 ## Troubleshooting
 
-### "No AI provider configured"
+**The AI buttons don't appear.** No provider is active. Add one in **Settings → Integrations** and make sure it's switched on.
 
-**Cause:** No active AI providers exist in the database.
+**"Connection test failed".** Check the key, the model name, and for Ollama or custom providers the base URL. From inside Docker, `localhost` won't reach a service on your host.
 
-**Solution:**
-1. Go to Admin > Settings > Integrations (`/admin/settings/integrations`)
-2. Add a provider with your own API key
-3. Ensure the provider is marked as "Active"
+**PDF generation fails.** Check the container log for lines starting with `[AI-PRINT]`. Facet retries with a second LaTeX engine before giving up. DOCX is a useful fallback.
 
-Or set environment variables for auto-configuration:
-```bash
-ANTHROPIC_API_KEY=sk-ant-your-key
-```
+**Rate limit messages.** Either your provider is throttling you (see its dashboard), or anonymous visitors have used the 5 hourly AI Print generations.
 
-### "PDF generation requires pdflatex"
+**Odd or poorly formatted text.** Smaller local models struggle with the structured replies Facet asks for. Try a larger model, then edit the result.
 
-**Cause:** LaTeX is not installed in the container.
+## API reference
 
-**Solution:**
-- Rebuild the container - the Dockerfile includes texlive packages
-- Or use DOCX format instead (doesn't require LaTeX)
+All endpoints need a signed-in owner, except the two status checks and AI Print generation.
 
-### "PDF generation requires LaTeX package 'lmodern.sty'"
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/ai/status` | Whether an active provider exists (also creates one from environment variables if none exist) |
+| `POST` | `/api/ai/models` | List models available from a provider |
+| `POST` | `/api/ai/test/{id}` | Test a saved provider |
+| `POST` | `/api/ai/rewrite` | Writing assistant rewrite |
+| `POST` | `/api/ai/critique` | Writing assistant critique |
+| `POST` | `/api/ai/improve` | Improve, generate, expand or shorten a field |
+| `POST` | `/api/ai/enrich` | GitHub project enrichment |
+| `POST` | `/api/resume/upload`, `/api/resume/import` | Résumé import |
+| `GET` | `/api/ai-print/status` | Whether AI Print is available (Pandoc and a provider) |
+| `POST` | `/api/view/{slug}/generate` | Generate an AI résumé (public, rate limited) |
+| `GET` | `/api/view/{slug}/exports` | List generated résumés for a view |
+| `DELETE` | `/api/view/{slug}/exports/{exportId}` | Delete a generated résumé |
 
-**Cause:** The lmodern LaTeX package is not installed.
-
-**Solution:**
-1. Rebuild your container (Dockerfile includes lmodern package)
-2. Or use DOCX format as an alternative
-
-### "Connection test failed"
-
-**Cause:** Unable to connect to the AI provider.
-
-**Possible Solutions:**
-1. Verify API key is correct
-2. Check network connectivity
-3. For Ollama: ensure the service is running and URL is correct
-4. For custom providers: verify the base URL is correct
-
-### "Rate limit exceeded"
-
-**Cause:** Too many resume generations from the same IP address.
-
-**Solution:**
-- Wait for the rate limit window to reset (1 hour)
-- Authenticated users bypass rate limiting
-- Rate limit is 5 generations per hour per IP
-
-### AI returns poorly formatted content
-
-**Cause:** AI model quality or prompt interpretation issues.
-
-**Solutions:**
-1. Try a different model (e.g., gpt-4o instead of gpt-4o-mini)
-2. Use Anthropic Claude for better formatting
-3. Retry generation - results can vary
-
----
-
-## Database Schema
-
-### ai_providers Collection
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | text | Display name |
-| `type` | select | openai, anthropic, ollama, custom |
-| `api_key` | text (hidden) | Plaintext key (cleared after encryption) |
-| `api_key_encrypted` | text | Encrypted API key |
-| `base_url` | url | Custom API endpoint |
-| `model` | text | Model identifier |
-| `is_active` | bool | Provider is available for use |
-| `is_default` | bool | Default provider for AI operations |
-| `test_status` | text | Last connection test result |
-| `last_test` | date | Timestamp of last test |
-
-### view_exports Collection
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `view` | relation | Link to views collection |
-| `format` | select | pdf, docx |
-| `file` | file | Generated document file |
-| `ai_provider` | relation | Provider used for generation |
-| `generated_at` | date | Generation timestamp |
-| `generation_config` | json | Target role, style, length, emphasis |
-| `status` | select | pending, processing, completed, failed |
-| `error_message` | text | Error details if failed |
-
----
-
-## Security Considerations
-
-1. **API Keys**: Encrypted at rest using AES-256-GCM
-2. **Authentication**: Most AI endpoints require authentication
-3. **Rate Limiting**: Public resume generation is rate-limited
-4. **Data Privacy**: AI prompts explicitly instruct not to invent information
-5. **View Visibility**: Resume generation respects view visibility settings
-
----
-
-*For questions or issues, see the main [README](../README.md) or open an issue on GitHub.*
+For working on the writing-assistant component itself, see the [development guide](DEV.md#ai-writing-assistant-component).

@@ -1,9 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const uiBaseURL =
-	process.env.PLAYWRIGHT_BASE_URL ||
-	process.env.VITE_POCKETBASE_URL ||
-	'http://localhost:5173';
+	process.env.PLAYWRIGHT_BASE_URL || process.env.VITE_POCKETBASE_URL || 'http://localhost:5173';
+
+const sourceUnitTests = [
+	'accent-aaa-clamp.spec.ts',
+	'access-context.spec.ts',
+	'api-key-scopes.spec.ts',
+	'custom-css-contrast.spec.ts',
+	'google-analytics.spec.ts',
+	'health-route.spec.ts',
+	'hooks-server-retry.spec.ts',
+	'media-upload-guidance.spec.ts',
+	'newsletter-helpers.spec.ts',
+	'smoke-proxy.spec.ts',
+	'smoke-script.spec.ts',
+	'web-manifest.spec.ts'
+].map((file) => `**/${file}`);
 
 export default defineConfig({
 	testDir: './tests',
@@ -24,7 +37,16 @@ export default defineConfig({
 	},
 	projects: [
 		{
+			name: 'source-unit',
+			testMatch: sourceUnitTests
+		},
+		{
+			name: 'public-api',
+			testMatch: '**/public-api.spec.ts'
+		},
+		{
 			name: 'chromium',
+			testIgnore: [...sourceUnitTests, '**/public-api.spec.ts'],
 			use: { ...devices['Desktop Chrome'] }
 		}
 	]

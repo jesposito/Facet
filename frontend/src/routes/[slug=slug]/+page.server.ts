@@ -14,15 +14,37 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getShareToken, getPasswordToken, setPasswordToken, setShareToken, isSecureRequest } from '$lib/tokens';
+import {
+	getShareToken,
+	getPasswordToken,
+	setPasswordToken,
+	setShareToken,
+	getShareVisit,
+	storeShareVisit,
+	SHARE_VISIT_HEADER,
+	isSecureRequest
+} from '$lib/tokens';
+import { internalApiHeaders } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals, request, parent }) => {
+export const load: PageServerLoad = async ({
+	params,
+	cookies,
+	url,
+	fetch,
+	locals,
+	request,
+	setHeaders,
+	parent
+}) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
+	if (url.searchParams.has('t')) {
+		setHeaders({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+	}
 
 	const shareToken = getShareToken(cookies);
 	const passwordToken = getPasswordToken(cookies);
-	
+
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 
 	// Check for URL token (legacy ?t= parameter)
@@ -40,7 +62,9 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			const result = await validateResponse.json();
 			if (result.valid) {
 				// Store token in cookie and redirect to clean URL
-				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60, isSecureRequest(url, request));
+				const secure = isSecureRequest(url, request);
+				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60, secure);
+				storeShareVisit(cookies, validateResponse, secure);
 				throw redirect(302, `/${slug}`);
 			}
 		}
@@ -50,15 +74,15 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 	const effectiveShareToken = shareToken;
 
 	try {
-		const accessHeaders: Record<string, string> = {};
+		const accessHeaders: Record<string, string> = internalApiHeaders(request);
 		if (pbAuthToken) {
 			accessHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
 		}
-		
+
 		const response = await fetch(`${pbUrl}/api/view/${slug}/access`, {
-			headers: { ...accessHeaders, 'X-Internal': 'true' }
+			headers: accessHeaders
 		});
-		
+
 		if (!response.ok) {
 			throw error(404, 'Not Found');
 		}
@@ -103,9 +127,13 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			};
 		}
 
-		const dataHeaders: Record<string, string> = {};
+		const dataHeaders: Record<string, string> = internalApiHeaders(request);
 		if (effectiveShareToken) {
 			dataHeaders['X-Share-Token'] = effectiveShareToken;
+			const shareVisit = getShareVisit(cookies);
+			if (shareVisit) {
+				dataHeaders[SHARE_VISIT_HEADER] = shareVisit;
+			}
 		}
 		if (pbAuthToken) {
 			dataHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
@@ -113,7 +141,7 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			dataHeaders['Authorization'] = `Bearer ${passwordToken}`;
 		}
 
-		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: { ...dataHeaders, 'X-Internal': 'true' } });
+		const dataResponse = await fetch(`${pbUrl}/api/view/${slug}/data`, { headers: dataHeaders });
 
 		if (!dataResponse.ok) {
 			if (dataResponse.status === 401 || dataResponse.status === 403) {
@@ -148,6 +176,9 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 			throw error(404, 'Not Found');
 		}
 
+		// A share token use was counted for this request; keep the visit open.
+		storeShareVisit(cookies, dataResponse, isSecureRequest(url, request));
+
 		const viewData = await dataResponse.json();
 
 		// Profile data comes from the API response (no direct PocketBase access)
@@ -172,11 +203,13 @@ export const load: PageServerLoad = async ({ params, cookies, url, fetch, locals
 				hero_spacing: viewData.hero_spacing || null,
 				hero_bg_color: viewData.hero_bg_color || null
 			},
-			profile: profile ? {
-				...profile,
-				hero_image: profile.hero_image_url || null,
-				avatar: profile.avatar_url || null
-			} : null,
+			profile: profile
+				? {
+						...profile,
+						hero_image: profile.hero_image_url || null,
+						avatar: profile.avatar_url || null
+					}
+				: null,
 			sections: viewData.sections || {},
 			sectionOrder: viewData.section_order || [],
 			sectionLayouts: viewData.section_layouts || {},

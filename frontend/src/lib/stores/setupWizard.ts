@@ -60,10 +60,13 @@ function createSetupWizardStore() {
 	function persistFlags(state: WizardState) {
 		if (!browser) return;
 		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify({
-				dismissedPermanently: state.dismissedPermanently,
-				completedWizard: state.completedWizard
-			}));
+			localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({
+					dismissedPermanently: state.dismissedPermanently,
+					completedWizard: state.completedWizard
+				})
+			);
 		} catch {
 			/* localStorage may be unavailable */
 		}
@@ -72,69 +75,79 @@ function createSetupWizardStore() {
 	return {
 		subscribe,
 
-		open: () => update(s => {
-			// Never reopen if already dismissed or completed
-			if (s.dismissedPermanently || s.completedWizard) return s;
-			return { ...s, isOpen: true };
-		}),
+		open: () =>
+			update((s) => {
+				// Never reopen if already dismissed or completed
+				if (s.dismissedPermanently || s.completedWizard) return s;
+				return { ...s, isOpen: true };
+			}),
 
-		close: () => update(s => {
-			// Any close is a permanent dismiss — prevent the wizard from nagging
-			const newState = { ...s, isOpen: false, dismissedPermanently: true };
-			persistFlags(newState);
-			return newState;
-		}),
-		
-		nextStep: () => update(s => ({ 
-			...s, 
-			currentStep: Math.min(s.currentStep + 1, 3) 
-		})),
-		
-		previousStep: () => update(s => ({ 
-			...s, 
-			currentStep: Math.max(s.currentStep - 1, 1) 
-		})),
-		
-		setStep: (step: number) => update(s => ({ 
-			...s, 
-			currentStep: Math.min(Math.max(step, 1), 3) 
-		})),
-		
-		updateProfile: (profile: Partial<Profile>) => update(s => ({ 
-			...s, 
-			profile: { ...s.profile, ...profile } 
-		})),
-		
-		updateNewView: (view: Partial<WizardState['newView']>) => update(s => ({ 
-			...s, 
-			newView: { ...s.newView, ...view } 
-		})),
-		
-		selectTemplate: (templateId: string | null) => update(s => ({ 
-			...s, 
-			selectedTemplate: templateId 
-		})),
-		
-		dismissPermanently: () => update(s => {
-			const newState = { ...s, isOpen: false, dismissedPermanently: true };
-			persistFlags(newState);
-			return newState;
-		}),
-		
-		complete: () => update(s => {
-			const newState = { 
-				...s, 
-				isOpen: false, 
-				completedWizard: true,
-				currentStep: 1,
-				profile: {},
-				newView: defaultState.newView,
-				selectedTemplate: null
-			};
-			persistFlags(newState);
-			return newState;
-		}),
-		
+		close: () =>
+			update((s) => {
+				// Any close is a permanent dismiss — prevent the wizard from nagging
+				const newState = { ...s, isOpen: false, dismissedPermanently: true };
+				persistFlags(newState);
+				return newState;
+			}),
+
+		nextStep: () =>
+			update((s) => ({
+				...s,
+				currentStep: Math.min(s.currentStep + 1, 3)
+			})),
+
+		previousStep: () =>
+			update((s) => ({
+				...s,
+				currentStep: Math.max(s.currentStep - 1, 1)
+			})),
+
+		setStep: (step: number) =>
+			update((s) => ({
+				...s,
+				currentStep: Math.min(Math.max(step, 1), 3)
+			})),
+
+		updateProfile: (profile: Partial<Profile>) =>
+			update((s) => ({
+				...s,
+				profile: { ...s.profile, ...profile }
+			})),
+
+		updateNewView: (view: Partial<WizardState['newView']>) =>
+			update((s) => ({
+				...s,
+				newView: { ...s.newView, ...view }
+			})),
+
+		selectTemplate: (templateId: string | null) =>
+			update((s) => ({
+				...s,
+				selectedTemplate: templateId
+			})),
+
+		dismissPermanently: () =>
+			update((s) => {
+				const newState = { ...s, isOpen: false, dismissedPermanently: true };
+				persistFlags(newState);
+				return newState;
+			}),
+
+		complete: () =>
+			update((s) => {
+				const newState = {
+					...s,
+					isOpen: false,
+					completedWizard: true,
+					currentStep: 1,
+					profile: {},
+					newView: defaultState.newView,
+					selectedTemplate: null
+				};
+				persistFlags(newState);
+				return newState;
+			}),
+
 		reset: () => {
 			set(defaultState);
 			if (browser) {
@@ -150,14 +163,11 @@ function createSetupWizardStore() {
 
 export const setupWizard = createSetupWizardStore();
 
-export const canProceed = derived(
-	setupWizard,
-	($wizard) => ({
-		step1: !!$wizard.profile.name?.trim() && !!$wizard.profile.headline?.trim(),
-		step2: !!$wizard.selectedTemplate && !!$wizard.newView.name?.trim(),
-		step3: true
-	})
-);
+export const canProceed = derived(setupWizard, ($wizard) => ({
+	step1: !!$wizard.profile.name?.trim() && !!$wizard.profile.headline?.trim(),
+	step2: !!$wizard.selectedTemplate && !!$wizard.newView.name?.trim(),
+	step3: true
+}));
 
 export const viewTemplates = [
 	{
@@ -204,13 +214,13 @@ export function shouldShowWizard(
 	isDemoMode: boolean
 ): boolean {
 	const state = get(setupWizard);
-	
+
 	if (isDemoMode) return false;
 	if (state.dismissedPermanently || state.completedWizard) return false;
-	
+
 	const hasBasicProfile = !!profile?.name && !!profile?.headline;
 	const hasViews = views.length > 0;
-	
+
 	return !hasBasicProfile || !hasViews;
 }
 

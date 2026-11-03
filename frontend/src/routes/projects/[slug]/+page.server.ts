@@ -1,28 +1,29 @@
-/**
- * Project detail route: /projects/[slug]
- *
- * Displays a single project with full details.
- * Only public, non-draft projects are accessible.
- * Private/unlisted/draft projects return 404 (non-discoverable).
- */
+/** Project detail route: /projects/[slug]. */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
+import { navigationFacet } from '$lib/discovery';
+import { buildTokenHeaders, getPasswordToken, getShareToken, getShareVisit } from '$lib/tokens';
+import { internalApiHeaders, parseMediaRefs } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, url, request, locals, cookies }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
-	const fromView = url.searchParams.get('from');
+	const fromHints = url.searchParams.getAll('from');
+	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
 
-	// These requests originate in the server, like the homepage loader.
-	const headers: Record<string, string> = { 'X-Internal': 'true' };
+	const headers: Record<string, string> = {
+		...internalApiHeaders(request),
+		...buildTokenHeaders(getShareToken(cookies), getPasswordToken(cookies), getShareVisit(cookies))
+	};
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 	if (pbAuthToken) {
 		headers['Authorization'] = `Bearer ${pbAuthToken}`;
 	}
+	const accessQuery = fromView ? `?from=${encodeURIComponent(fromView)}` : '';
 
 	try {
-		const response = await fetch(`${pbUrl}/api/project/${slug}`, { headers });
+		const response = await fetch(`${pbUrl}/api/project/${slug}${accessQuery}`, { headers });
 
 		if (!response.ok) {
 			throw error(404, 'Not Found');
@@ -30,7 +31,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 
 		const project = await response.json();
 
-		const mediaRefs: any[] = project.media_refs_expand || [];
+		const mediaRefs = parseMediaRefs(project.media_refs_expand);
 
 		return {
 			project: {
@@ -45,13 +46,21 @@ export const load: PageServerLoad = async ({ params, fetch, url, locals }) => {
 				categories: project.categories || [],
 				is_featured: project.is_featured,
 				cover_image_url: project.cover_image_url || null,
-				media_urls: project.media_urls || [],
+				cover_image_thumb_url:
+					typeof project.cover_image_thumb_url === 'string' ? project.cover_image_thumb_url : null,
+				cover_image_large_url:
+					typeof project.cover_image_large_url === 'string' ? project.cover_image_large_url : null,
+				media_urls: project.is_gated === true ? [] : project.media_urls || [],
 				visibility: project.visibility || 'public',
 				is_draft: project.is_draft || false,
 				related_experience: project.related_experience_expand || [],
-				related_education: project.related_education_expand || []
+				related_education: project.related_education_expand || [],
+				is_gated: project.is_gated === true,
+				is_purchased: project.is_purchased === true,
+				access_tier: project.access_tier || 'free',
+				price: Number(project.price) || 0
 			},
-			media_refs: mediaRefs,
+			media_refs: project.is_gated === true ? [] : mediaRefs,
 			profile: project.profile || null,
 			fromView: fromView || null,
 			isAuthenticated: project.is_authenticated || false

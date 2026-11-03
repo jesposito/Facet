@@ -1,832 +1,217 @@
-# Facet Development Guide
+# Development guide
 
-This guide covers development setup for Facet, a PocketBase + SvelteKit application.
+How to run Facet from source, make changes, and check them. For running Facet as an owner, use the [install guide](SETUP.md) instead. For proposing changes, see [Contributing](../CONTRIBUTING.md).
 
-## Quick Start (Codespaces)
+## Requirements
 
-1. Click "Open in Codespaces" from GitHub
-2. Wait for the devcontainer to build (~2 min first time, ~15s thereafter)
-3. Services start automatically via `postStartCommand`
-4. Open the forwarded ports when prompted:
-   - **Frontend**: http://localhost:5173
-   - **PocketBase Admin**: http://localhost:8090/_/
+| Tool | Version | Why |
+|------|---------|-----|
+| Linux | any recent distribution, or WSL2 | The `make dev` supervisor reads `/proc`, so it only runs on Linux |
+| Python | 3 | Runs the development supervisor and its tests |
+| Go | 1.27.3, as in [`backend/go.mod`](../backend/go.mod) | Backend |
+| Node.js | 24, as in [`.nvmrc`](../.nvmrc). `package.json` accepts `>=24 <25`. | Frontend |
+| [Air](https://github.com/air-verse/air) | `go install github.com/air-verse/air@v1.67.4` | Rebuilds the backend when Go files change |
+| A C compiler (`gcc`) | | The PDF text extractor used for résumé import ([go-fitz](https://github.com/gen2brain/go-fitz)) is built with cgo. It bundles its own MuPDF library, so you don't need MuPDF installed. |
+| GNU coreutils, curl, Make, Bash | | Used by the scripts |
+| Pandoc and LaTeX | optional | Only for testing AI résumé PDFs |
 
-**Default credentials** (dev only, auto-created on first run):
+On macOS, the individual `make backend` and `make frontend` targets may work with GNU coreutils installed, but `make dev` won't. Linux or WSL2 is the supported path.
 
-| Admin Panel | URL | Email | Password |
-|-------------|-----|-------|----------|
-| Facet Admin | http://localhost:5173/admin | `admin@example.com` | `changeme123` |
-| PocketBase Admin | http://localhost:8090/_/ | `admin@localhost.dev` | `admin123` |
-
-If credentials don't work, reset the database: `rm -rf pb_data && ./scripts/start-dev.sh`
-
-## Quick Start (Local)
-
-### Prerequisites
-
-- Go 1.27.3+
-- Node.js 24 LTS
-- [Air](https://github.com/air-verse/air) for Go hot reload
+## First run
 
 ```bash
-# Install air
-go install github.com/air-verse/air@v1.61.7
-```
-
-### Running Locally
-
-```bash
-# Start everything with hot reload
-make dev
-
-# Or start services individually
-make backend   # Start backend with air
-make frontend  # Start frontend with Vite HMR
-```
-
-### Using Docker Compose
-
-```bash
-# Start development environment
-make dev-docker
-
-# View logs
-make dev-logs
-
-# Stop
-make dev-down
-```
-
-## Ports and URLs
-
-| Service | Port | URL | Description |
-|---------|------|-----|-------------|
-| Frontend | 5173 | http://localhost:5173 | SvelteKit dev server with HMR |
-| Backend API | 8090 | http://localhost:8090 | PocketBase API |
-| PB Admin | 8090 | http://localhost:8090/_/ | PocketBase admin UI |
-
-## Project Structure
-
-```
-Facet/
-├── backend/           # Go + PocketBase hooks
-│   ├── hooks/         # PocketBase event hooks
-│   ├── services/      # Business logic
-│   ├── migrations/    # Database migrations
-│   └── main.go        # Entry point
-├── frontend/          # SvelteKit application
-│   ├── src/
-│   │   ├── routes/    # SvelteKit routes
-│   │   ├── params/    # Param matchers (slug validation)
-│   │   └── lib/       # Shared components
-│   └── package.json
-├── scripts/           # Development scripts
-│   ├── start-dev.sh   # Start all services
-│   ├── dev-backend.sh # Backend with caching
-│   └── dev-frontend.sh# Frontend with caching
-├── docker/            # Docker configurations
-├── pb_data/           # PocketBase data (gitignored)
-└── docs/              # Documentation
-```
-
-## Development Best Practices
-
-### Verbose Logging for In-Development Features
-
-**REQUIREMENT**: All new features MUST include verbose debug logging during development.
-
-When implementing new features, especially those involving:
-- API integrations (AI providers, external services)
-- Data transformations (encryption, parsing, serialization)
-- Multi-step workflows (import pipelines, export generation)
-- PocketBase hooks and middleware
-
-Add logging at each step of the flow:
-
-```go
-// ✅ GOOD - Verbose logging during development
-func processData(input string) (string, error) {
-    log.Println("[DEBUG] processData called with input len:", len(input))
-
-    transformed, err := transform(input)
-    if err != nil {
-        log.Println("[ERROR] transform failed:", err)
-        return "", err
-    }
-    log.Println("[DEBUG] transform succeeded, output len:", len(transformed))
-
-    result, err := validate(transformed)
-    if err != nil {
-        log.Println("[ERROR] validate failed:", err)
-        return "", err
-    }
-    log.Println("[DEBUG] validate succeeded")
-
-    return result, nil
-}
-```
-
-**Why this matters**: Silent failures are the hardest bugs to track. During the AI integration work, we spent hours debugging issues that would have been immediately obvious with proper logging:
-
-- API keys not being received (PocketBase hidden field issue)
-- JSON parsing failures (AI returning arrays instead of strings)
-- Hook chain not continuing (`e.Next()` missing)
-
-**When to remove**: After a feature is stable and well-tested, verbose logging can be reduced. Keep error logging permanently.
-
-### Feature Development Checklist
-
-Before marking a feature complete:
-
-- [ ] Verbose logging added at each step of the flow
-- [ ] Error cases logged with context (input values, state)
-- [ ] Tested with real data (not just happy path)
-- [ ] Edge cases documented (e.g., "AI may return array or string")
-- [ ] Troubleshooting notes added to DEV.md if gotchas discovered
-
-## URL Routing Model
-
-Facet uses a LinkedIn-style URL structure for public profiles:
-
-### Public Routes
-
-| Route | Purpose | Example |
-|-------|---------|---------|
-| `/` | Default profile view | Homepage |
-| `/<slug>` | Named view | `/recruiter`, `/investor` |
-| `/s/<token>` | Share link entry | Validates token, sets cookie, redirects to `/<slug>` |
-| `/v/<slug>` | Legacy route | 301 redirects to `/<slug>` |
-
-### Default View
-
-The homepage (`/`) renders the "default view", determined by:
-
-1. A view with `is_default=true` AND `is_active=true` AND `visibility='public'`
-2. Fallback: The first public active view (by creation date)
-3. Fallback: Legacy homepage aggregation (all public content)
-
-Only one view can be marked as default at a time (enforced by backend hook).
-
-### Reserved Slugs
-
-These slugs are protected and cannot be used for views:
-
-```
-admin, api, s, v, projects, posts, talks,
-_app, _, assets, static,
-favicon.ico, robots.txt, sitemap.xml,
-health, healthz, ready,
-login, logout, auth, oauth, callback,
-home, index, default, profile
-```
-
-Protection is enforced at:
-- **Frontend**: `src/params/slug.ts` param matcher
-- **Backend**: Views collection create/update hooks
-
-### Share Link Flow
-
-```
-1. User receives: /s/<token>
-2. Server validates token (POST /api/share/validate)
-3. Sets httpOnly cookie (me_share_token, SameSite=Lax)
-4. 302 redirect to /<slug>
-5. Token NOT in final URL (security: no history/referer leakage)
-```
-
-## Development Workflow
-
-### Hot Reload
-
-Both frontend and backend support hot reload:
-
-- **Frontend**: Vite HMR automatically refreshes on `.svelte`, `.ts`, `.css` changes
-- **Backend**: Air watches `.go` files and rebuilds automatically
-
-### Optimized Startup
-
-The dev scripts use **lockfile hash caching** to skip unnecessary installs:
-
-```bash
-# First run: installs dependencies, saves hash
-[frontend] Installing dependencies (node_modules missing)...
-
-# Subsequent runs: skips install if lockfile unchanged
-[frontend] Dependencies up to date (skipping npm install)
-```
-
-To force a fresh install:
-```bash
-make dev-reset  # Clears all caches
-make dev        # Reinstalls everything
-```
-
-## Common Tasks
-
-### Running Tests
-
-```bash
-make test           # All tests
-make test-backend   # Go tests only
-make test-frontend  # SvelteKit checks only
-```
-
-### Linting and Formatting
-
-```bash
-make lint  # Run linters
-make fmt   # Format code
-```
-
-### Building for Production
-
-```bash
-make build  # Build Docker image
-```
-
-## Codespaces Networking Limitations
-
-Some Codespaces environments have network restrictions that block access to `storage.googleapis.com`, which is used by the default Go module proxy (`proxy.golang.org`).
-
-**Symptoms:**
-- `go mod tidy` times out with DNS lookup errors for `storage.googleapis.com`
-- `go build` fails with "missing go.sum entry" errors
-- Downloads hang indefinitely
-
-**Solution (already configured):**
-
-The devcontainer is configured to use `goproxy.cn` as a fallback proxy:
-
-```bash
-# Set in devcontainer.json containerEnv
-GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
-GOSUMDB=off
-```
-
-If you're running outside the devcontainer and encounter these issues:
-
-```bash
-# Set environment variables
-export GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
-export GOSUMDB=off
-
-# Then run your go commands
-go mod tidy
-go build ./...
-```
-
-**Alternative: Vendor dependencies (offline-first)**
-
-For truly offline development, you can vendor all dependencies:
-
-```bash
-# In backend/
-go mod vendor
-
-# Build with vendored deps
-go build -mod=vendor ./...
-```
-
-Note: Vendoring adds ~50MB to the repository but guarantees zero network dependencies after clone.
-
-## Troubleshooting
-
-### "air: command not found"
-
-Install air globally:
-```bash
-go install github.com/air-verse/air@v1.61.7
-```
-
-### "go: cannot find main module"
-
-This occurs when air runs from the wrong directory. The root `.air.toml` is configured to handle this. Ensure you're running from the project root:
-```bash
-cd /path/to/Facet
+git clone https://github.com/jesposito/Facet.git
+cd Facet
 make dev
 ```
 
-### Port Already in Use
+The first run downloads Go modules and npm packages, so it takes a while. Then open **http://127.0.0.1:5173**, go to `/admin`, and sign in with the account and password in `pb_data/.admin-credentials` (mode `0600`). The backend log prints the exact path, not the password. `make seed-dev` sets `SEED_DATA=dev`, which uses the fixed local-only password `changeme123` instead; Facet makes you change it before the admin APIs answer. Delete the credentials file after reading it and signing in.
 
-Stop any existing services:
+You don't need a `.env` file. If one exists, `make dev` loads it first, so values such as `ADMIN_EMAILS` or AI keys apply to your development instance too.
+
+## What `make dev` does
+
+`make dev` runs [`scripts/start-dev.sh`](../scripts/start-dev.sh), which sets development defaults and hands over to the Python supervisor, [`scripts/dev-server.py`](../scripts/dev-server.py):
+
+| Setting | Default in development |
+|---------|------------------------|
+| `DATA_DIR` | `pb_data/` in the checkout |
+| `ENCRYPTION_KEY` | a fixed development-only key |
+| `SEED_DATA` | `minimal`: just the first account |
+
+The supervisor then:
+
+1. takes a lock for this checkout, so you can't start two sessions of the same checkout by accident
+2. checks that ports 8090 and 5173 are free on `127.0.0.1`, and stops with a message if not
+3. starts the backend through [`scripts/dev-backend.sh`](../scripts/dev-backend.sh), which runs `go mod tidy` only when `go.mod` or `go.sum` changed, then Air. Backend output goes to `tmp/backend.log`.
+4. waits up to three minutes for `http://127.0.0.1:8090/api/health`
+5. starts the frontend through [`scripts/dev-frontend.sh`](../scripts/dev-frontend.sh), which runs `npm ci` only when `package-lock.json` changed, then Vite on `127.0.0.1:5173`. Frontend output stays in your terminal.
+
+Both servers listen on loopback only, so they aren't reachable from other machines. Vite forwards `/api` and `/_` to the backend.
+
+To stop, press Ctrl+C, or run `make stop` from another terminal. `make stop` only stops the session this checkout's supervisor started. It never kills unrelated processes on those ports, and it's safe to run when nothing is running. If something else holds port 8090 or 5173, stop it yourself.
+
+Your data in `pb_data/` survives restarts.
+
+| Address | What |
+|---------|------|
+| http://127.0.0.1:5173 | The site, with hot reload |
+| http://127.0.0.1:5173/admin | The admin dashboard |
+| http://127.0.0.1:8090/api/health | Backend health |
+| http://127.0.0.1:8090/_/ | PocketBase dashboard (always available in development) |
+
+The PocketBase dashboard needs a superuser, which Facet never creates. Make one from the `backend/` folder:
+
 ```bash
-# Find process using port
-lsof -i :8090
-lsof -i :5173
-
-# Kill it
-kill <PID>
-
-# Or use make
-make dev-down
+cd backend
+ENCRYPTION_KEY='dev-only-key-do-not-use-in-production!!' \
+  go run . superuser upsert admin@localhost.dev 'a-local-password' --dir=../pb_data
 ```
 
-### Slow Startup in Codespaces
+Some browser tests expect this superuser ([browser tests](../frontend/tests/README.md#superuser-tests)).
 
-If startup is slow (>30s), check:
+Air deletes the `tmp/` folder, including `tmp/backend.log`, when the session stops. Copy the log first if you need it afterwards.
 
-1. **Named volumes exist**: The devcontainer uses named volumes for node_modules and Go modules
-2. **Hash files are valid**: Check `frontend/node_modules/.lockfile-hash` and `backend/.gomod-hash`
-3. **Force reset**: `make dev-reset && make dev`
+## Make targets
 
-### File Watching Not Working
+From the [Makefile](../Makefile):
 
-In Codespaces, file watching may need polling. The devcontainer is configured with appropriate `files.watcherExclude` settings. If issues persist:
+| Target | What it does | Touches your data? |
+|--------|--------------|--------------------|
+| `make dev` (or `dev-up`) | Start backend and frontend as above | No |
+| `make stop` (or `kill`) | Stop this checkout's `make dev` session | No |
+| `make backend` / `make frontend` | Run one side on its own, without the supervisor | No |
+| `make dev-reset` | Clear the dependency hashes and `.svelte-kit`, so the next `make dev` reinstalls | **No**, `pb_data/` is kept |
+| `make seed-dev` | Stop, **delete `pb_data/`**, ask about sign-in options, **overwrite `.env`**, and start with the development profile | **Yes, destructive** |
+| `make seed-clear` | Stop and **delete `pb_data/`** | **Yes, destructive** |
+| `make backup` | Archive a stopped development `pb_data/` (and `uploads/` if present) into `backups/` | Reads only |
+| `make test` | Script regressions, Go tests, Svelte type checks | No |
+| `make test-scripts` / `test-backend` / `test-frontend` | One part of `make test` | No |
+| `make lint` | `go vet`, then Prettier check and ESLint | No |
+| `make fmt` | `gofmt -w` and Prettier write | Rewrites source files |
+| `make clean` | Remove build output. Refuses while `make dev` is running. | No |
+| `make deps` | Download Go modules and install npm packages | No |
+| `make gen-key` | Print a new random encryption key | No |
+| `make build` (or `docker-build`) | Build the production image as `facet:latest` | No |
+| `make docker-run` | Run that image with `./data` and `./uploads` (needs `ENCRYPTION_KEY` set) | Uses `./data` |
+| `make prod` / `prod-logs` / `prod-down` | Production Compose up, logs, down | Uses Compose volumes |
+| `make dev-docker` / `dev-down` / `dev-logs` | Docker-based development (see below) | Uses `pb_data/` |
 
-1. Check that `node_modules`, `pb_data`, and `.git` are excluded from watching
-2. Try restarting the terminal
+`make seed-dev` replaces your whole `.env` with the handful of values it asks about. Copy anything else you need out of `.env` first.
 
-### Database Issues
+## Seed data
 
-Reset the database:
-```bash
-rm -rf pb_data
-make dev  # Will recreate with seed data
+| `SEED_DATA` | Result on an empty database |
+|-------------|-----------------------------|
+| `minimal` or unset | One account: the first `ADMIN_EMAILS` address, then `DEV_ADMIN_EMAIL`, then `admin@example.com`, with a random password in `pb_data/.admin-credentials` |
+| `dev` | The same account with the fixed password `changeme123`, plus the maintainer's own profile, used for development and screenshots. Never use it on a reachable instance. |
+
+Seeding only runs when the database has no accounts, so changing `SEED_DATA` on an existing `pb_data/` does nothing. Demo data is separate and loaded from the admin header toggle ([Features](FEATURES.md#demo-mode)).
+
+## Docker-based development
+
+`make dev-docker` runs [`docker-compose.dev.yml`](../docker-compose.dev.yml): a Go container with Air for the backend and a Node container for Vite, sharing `pb_data/` with native development. It defaults `SEED_DATA` to `dev`.
+
+Inside the containers, both services set `FACET_DEV_HOST=0.0.0.0` so their ports can be published. Compose publishes them on your machine's loopback only, at `127.0.0.1:8090` and `127.0.0.1:5173`. The two containers sit on Compose's default network, and the frontend sets `POCKETBASE_URL=http://backend:8090`. Vite's `/api` and `/_` proxy and SvelteKit's server code both use that address. Native development leaves `POCKETBASE_URL` unset, so the proxy uses `http://127.0.0.1:8090`. `POCKETBASE_URL` has no `VITE_` prefix, so it stays on the server and never reaches the browser bundle. Vite refuses to start if `POCKETBASE_URL` isn't a plain `http(s)` origin, such as one with a path or credentials in it.
+
+## Tests and checks
+
+| Command | Covers |
+|---------|--------|
+| `make test-scripts` | [`scripts/ci/test-dev-server.py`](../scripts/ci/test-dev-server.py) (supervisor safety) and [`scripts/ci/test-push-validated-release.py`](../scripts/ci/test-push-validated-release.py) (release script) |
+| `make test-backend` | `go test -v ./...` in `backend/` |
+| `make test-frontend` | `npm run check`: SvelteKit sync and `svelte-check` type checking |
+| `make lint` | `go vet ./...`, `prettier --check .` and `eslint .` in `frontend/` |
+| `cd frontend && npm run i18n:validate` | Translation key parity and parameters |
+| `cd frontend && npm run test:dependencies` | Tests for the vendored `braces` and `deepmerge` forks |
+
+`make test` doesn't run the browser tests. Those need running servers and are described in [frontend/tests/README.md](../frontend/tests/README.md). CI runs everything, including browser smoke tests against a freshly built app ([Contributing](../CONTRIBUTING.md#what-ci-checks)).
+
+## Where things are
+
+```text
+backend/            Go + PocketBase
+  main.go           startup, hook registration, CLI commands
+  hooks/            HTTP routes and record hooks, one file per feature
+  services/         shared logic (crypto, AI, email, storage, webhooks, ...)
+  migrations/       schema changes, applied automatically
+frontend/           SvelteKit app
+  src/routes/       public pages and /admin
+  src/components/   public/, admin/, shared/
+  src/lib/          client, stores, i18n, view editor, experiences
+  src/locales/      translations
+  tests/            Playwright browser tests
+docker/             production Dockerfile, Caddyfile, start script, Caddy build
+scripts/            dev scripts, CI scripts, i18n validators
+docs/               these pages
 ```
 
-### PocketBase `app.Save()` Silently Fails in GET Handlers
+[Architecture](ARCHITECTURE.md) explains how the pieces connect.
 
-**Symptoms:**
-- `app.Save(record)` returns `nil` (success) but record is not persisted
-- Record gets an ID assigned, suggesting save worked
-- But database shows no new row (check with SQL logs or direct query)
-- Only happens in GET request handlers, works fine in POST handlers
+## Adding a migration
 
-**Cause:**
-PocketBase v0.23+ has internal transaction/context behavior that prevents writes during GET requests. The `app.Save()` call appears to succeed but silently skips the actual INSERT.
+Migrations live in [`backend/migrations`](../backend/migrations) as Go files named `<unix timestamp>_<description>.go`. They run automatically on startup in both development and production, so:
 
-**Solution:**
-Use direct SQL inserts via `app.DB().NewQuery()`:
+- Make each one safe to run against existing data, and idempotent where you can (check whether a field exists before adding it).
+- Give it a working down function where practical. Facet never runs down migrations automatically, so owners rely on backups to roll back.
+- Lock new collections' access rules. Direct collection access should need sign-in, or be backend-only, with public data served through custom endpoints.
+- Think about demo mode. If the collection holds content that views display, it probably needs a `demo_` twin.
+
+## PocketBase notes
+
+These have caught contributors before.
+
+**Record hooks must call `e.Next()`.** In `BindFunc` handlers, return `e.Next()` to continue the chain. Returning `nil` silently stops the operation.
 
 ```go
-import "github.com/pocketbase/dbx"
-
-// Instead of app.Save(record), use:
-query := `INSERT INTO my_table (id, name, value)
-          VALUES ({:id}, {:name}, {:value})`
-
-_, err := app.DB().NewQuery(query).Bind(dbx.Params{
-    "id":    "unique-id",
-    "name":  "example",
-    "value": 123,
-}).Execute()
-```
-
-**Important notes:**
-- Don't include `created` or `updated` columns - PocketBase manages these automatically
-- Use `dbx.Params{}` map for parameter binding (not variadic args)
-- This workaround is used in `backend/hooks/ai.go` for AI provider auto-configuration
-
-**Alternative approaches that DON'T work:**
-- `app.RunInTransaction()` - same silent failure
-- `app.SaveNoValidate()` - same behavior
-- Goroutine with delay - race conditions
-- `OnBootstrap` hook - different context, still fails
-
-See: `backend/hooks/ai.go:240-280` for a working implementation.
-
-### PocketBase Record Hooks Must Call `e.Next()`
-
-**Symptoms:**
-- Record create/update appears to succeed (API returns 200 with record data)
-- But the record is not actually persisted to the database
-- Listing records shows empty results
-- Getting record by ID returns 404
-
-**Cause:**
-In PocketBase v0.23+, record hooks using `BindFunc` must explicitly call `e.Next()` to continue the hook chain and complete the operation. Without this call, the record modification process silently stops.
-
-**Solution:**
-Always return `e.Next()` at the end of your hook handlers:
-
-```go
-// ✅ CORRECT - calls e.Next() to continue
 app.OnRecordCreate("my_collection").BindFunc(func(e *core.RecordEvent) error {
-    // Your logic here
-    if err := doSomething(e.Record); err != nil {
-        return err  // Return error to abort
+    if err := validate(e.Record); err != nil {
+        return err // abort with an error
     }
-    return e.Next()  // REQUIRED: continue the hook chain
-})
-
-// ❌ WRONG - returns nil instead of e.Next()
-app.OnRecordCreate("my_collection").BindFunc(func(e *core.RecordEvent) error {
-    doSomething(e.Record)
-    return nil  // This silently aborts the save!
+    return e.Next() // continue
 })
 ```
 
-**Applies to these hook types:**
-- `OnRecordCreate`
-- `OnRecordUpdate`
-- `OnRecordDelete`
-- `OnRecordAuthWithPasswordRequest`
-- `OnRecordAuthWithOAuth2Request`
-- Any other `BindFunc` hooks
+**Hidden fields aren't populated in record events.** Fields marked `Hidden: true` aren't available in `OnRecordCreate`/`OnRecordUpdate`. Use the `...Request` hooks and read the request body, as [`hooks/ai.go`](../backend/hooks/ai.go) does to encrypt provider keys.
 
-**Note:** Router hooks (like `OnServe`) also need `se.Next()`, but for different reasons (to continue the middleware chain).
+**Writes from some request contexts.** Several places in Facet use direct SQL inserts with `app.DB().NewQuery(...)` because `app.Save()` didn't persist records when called from certain `GET` handlers and `OnServe` hooks (see the comments in [`hooks/seed.go`](../backend/hooks/seed.go) and [`hooks/ai.go`](../backend/hooks/ai.go)). If a save seems to succeed but nothing is stored, check the context it runs in.
 
-See: `backend/hooks/ai.go:201-214` and `backend/hooks/view.go:1232-1267` for correct implementations.
+**Collection rules don't apply to server code.** `app.FindRecordsByFilter()` and friends run with full authority. Any endpoint that returns data to visitors must apply visibility and draft rules itself.
 
-### PocketBase Hidden Fields Not Accessible in Record Hooks
+**JS SDK.** The frontend uses PocketBase JS SDK 0.28 with a 0.40 backend. Some code still reads `pb.authStore.model`, the older name for `pb.authStore.record`. Use `record` in new code.
 
-**Symptoms:**
-- `record.GetString("my_hidden_field")` returns empty string in hooks
-- Field data was sent in the request body
-- Field is defined with `Hidden: true` in the schema
+## SvelteKit notes
 
-**Cause:**
-In PocketBase v0.23+, fields marked as `Hidden: true` are not auto-populated into the record before hooks run. The `OnRecordCreate` and `OnRecordUpdate` hooks only receive fields that aren't hidden.
+**Links back to `/` from the posts and talks index pages** use `data-sveltekit-reload`, forcing a full page load. Client-side navigation to the root page has failed there in the past. If you find the cause, remove the workaround and update this note.
 
-**Solution:**
-Use `OnRecordCreateRequest` / `OnRecordUpdateRequest` hooks instead, which have access to the raw request body:
+**Static files beat routes.** A file in `frontend/static/` is served instead of a route at the same path. `robots.txt` is a route ([`src/routes/robots.txt/+server.ts`](../frontend/src/routes/robots.txt/+server.ts)) so it can include your sitemap address; adding a `static/robots.txt` would silently replace it.
 
-```go
-// ❌ WRONG - hidden fields not available in RecordEvent
-app.OnRecordCreate("ai_providers").BindFunc(func(e *core.RecordEvent) error {
-    apiKey := e.Record.GetString("api_key")  // Always empty for hidden fields!
-    return e.Next()
-})
+## AI writing assistant component
 
-// ✅ CORRECT - access request body directly
-app.OnRecordCreateRequest("ai_providers").BindFunc(func(e *core.RecordRequestEvent) error {
-    info, _ := e.RequestInfo()
-    if apiKey, ok := info.Body["api_key"].(string); ok {
-        // Process the hidden field value
-        e.Record.Set("api_key_encrypted", encrypt(apiKey))
-    }
-    return e.Next()
-})
-```
-
-**Note:** This is used in `backend/hooks/ai.go` to encrypt API keys before saving to `api_key_encrypted`.
-
-### AI Integration
-
-Facet supports AI-powered content enrichment using configurable providers (OpenAI, Anthropic, Ollama, or custom).
-
-**AI Integration Points:**
-
-| Feature | Endpoint | Description |
-|---------|----------|-------------|
-| GitHub Import Enrichment | `/api/ai/enrich` | Generates summaries, bullets, and tags from README |
-| Content Improvement | `/api/ai/improve` | Improves headlines, summaries, descriptions, etc. |
-| Connection Test | `/api/ai/test/{id}` | Tests if an AI provider is configured correctly |
-
-**AI Response Parsing:**
-
-The AI may return JSON with varying types for certain fields. The parser in `backend/services/ai.go` handles this flexibly:
-
-- `case_study` can be string OR array (converted to bullet points)
-- Arrays are parsed item-by-item to handle mixed types
-- Markdown code blocks are stripped before parsing
-
-**AI Prompt Guidelines:**
-
-All AI prompts include these style rules to avoid AI-sounding language:
-
-```
-IMPORTANT WRITING STYLE RULES:
-- Write like a human, not an AI. Be direct and natural.
-- NEVER use em dashes (—). Use commas, periods, or "and" instead.
-- NEVER use words like "delve", "leverage", "utilize", "spearheaded", "synergy", "cutting-edge"
-- Avoid corporate buzzwords and marketing speak
-- Use simple, clear language over fancy vocabulary
-```
-
-See: `backend/services/ai.go:buildPrompt()` and `backend/hooks/ai.go:buildImprovementPrompt()`
-
-**Lessons Learned (AI Debugging):**
-
-These issues caused significant debugging time and should be avoided in future AI work:
-
-1. **PocketBase Hidden Fields Block API Input**
-   - Fields with `Hidden: true` are NOT received in API requests
-   - We thought `Hidden` only affected API responses, but it blocks input too
-   - Solution: Use `OnRecordCreateRequest` hooks to access raw request body
-   - See: `backend/hooks/ai.go` for the correct pattern
-
-2. **AI Models Return Inconsistent Types**
-   - Asked for `case_study: string`, got `case_study: ["bullet 1", "bullet 2"]`
-   - Never assume AI will follow schema exactly
-   - Solution: Use flexible parsing with type switches (see `parseEnrichmentResponse`)
-
-3. **Silent Failures in Hook Chains**
-   - Missing `e.Next()` causes request to hang or fail silently
-   - No error message, no log output, just broken functionality
-   - Solution: ALWAYS call `e.Next()` in BindFunc hooks
-
-4. **Encryption Without Verification**
-   - API key was "encrypted" but we never logged that it was received
-   - Added logging revealed the key was never making it to the hook
-   - Solution: Log input AND output at each transformation step
-
-**AI Print Implementation Considerations:**
-
-When implementing AI Print (Phase 4.2), watch for these potential issues:
-
-| Concern | Risk | Mitigation |
-|---------|------|------------|
-| View data serialization | Large views may exceed token limits | Truncate sections, log payload size |
-| Resume prompt formatting | AI may not follow markdown structure | Validate markdown before Pandoc |
-| Pandoc conversion | May fail silently on malformed input | Log input/output, capture stderr |
-| File storage | PocketBase file upload may fail | Log file size, verify upload success |
-| Provider selection | User may not have AI configured | Check status before showing "Generate" button |
-| Timeout handling | Large resumes may exceed 60s timeout | Increase timeout, show progress indicator |
-
-**Required Logging for AI Print:**
-
-```go
-// Example of required verbose logging
-func (h *ViewHooks) generateResume(ctx context.Context, viewID string) error {
-    log.Printf("[AI-PRINT] Starting resume generation for view: %s", viewID)
-
-    viewData, err := h.getViewData(viewID)
-    if err != nil {
-        log.Printf("[AI-PRINT] Failed to get view data: %v", err)
-        return err
-    }
-    log.Printf("[AI-PRINT] View data retrieved, sections: %d, total size: %d bytes",
-        len(viewData.Sections), len(viewData.ToJSON()))
-
-    aiResponse, err := h.ai.GenerateResume(ctx, provider, viewData)
-    if err != nil {
-        log.Printf("[AI-PRINT] AI generation failed: %v", err)
-        return err
-    }
-    log.Printf("[AI-PRINT] AI response received, markdown length: %d", len(aiResponse))
-
-    // ... continue with Pandoc, file storage, etc.
-}
-```
-
-### PocketBase API 400 Errors with Sort Parameters
-
-**Symptoms:**
-- `ClientResponseError 400: Something went wrong while processing your request`
-- Error occurs on `getList()` calls with `sort` parameter
-- Manual fetch without sort works, but SDK calls with sort fail
-
-**Cause:**
-PocketBase collections in this setup do NOT have automatic `created` or `updated` fields. Attempting to sort by these non-existent fields causes a 400 error.
-
-**Solution:**
-Use fields that actually exist on the collection:
-
-```javascript
-// ❌ Wrong - 'created' field doesn't exist
-pb.collection('posts').getList(1, 100, { sort: '-created' })
-
-// ✅ Correct - use existing fields or '-id' (time-ordered)
-pb.collection('posts').getList(1, 100, { sort: '-published_at' })
-pb.collection('views').getList(1, 50, { sort: '-id' })
-```
-
-**Debugging tip:** Check what fields exist on a collection:
-```javascript
-pb.collection('posts').getList(1, 1).then(d => {
-  console.log('Fields:', Object.keys(d.items[0]));
-});
-```
-
-**Note:** PocketBase record IDs are time-ordered (like ULIDs), so `sort: '-id'` gives newest-first ordering and always works.
-
-### SvelteKit Client-Side Navigation 404 on Root Route
-
-**Symptoms:**
-- Clicking a link to `/` (root route) results in a 404 error
-- Full page loads to `/` work correctly (e.g., opening in new tab, browser refresh)
-- Server-side logs show the page loading successfully, but browser shows 404
-- Only affects client-side navigation (SvelteKit's internal routing)
-
-**Cause:**
-SvelteKit's client-side navigation to the root route (`/`) can fail in certain configurations, particularly when:
-- The root page has a complex server load function with multiple API calls
-- There are parameterized routes like `[slug=slug]` that might interfere
-- The root page uses default view resolution with fallback logic
-
-This appears to be related to how SvelteKit handles client-side data fetching for the root route. The server-side load function executes correctly (visible in server logs), but the client-side navigation fails to render the page.
-
-**What works vs. what doesn't:**
-
-| Navigation Type | Example | Works? |
-|-----------------|---------|--------|
-| Full page load | Browser refresh, `target="_blank"` link | ✅ Yes |
-| Direct URL entry | Typing `/` in address bar | ✅ Yes |
-| Client-side navigation | Regular `<a href="/">` link | ❌ 404 |
-| Client-side with reload | `<a href="/" data-sveltekit-reload>` | ✅ Yes |
-
-**Solution:**
-Use `data-sveltekit-reload` attribute on links that navigate to the root route:
+[`AIContentHelper.svelte`](../frontend/src/components/admin/AIContentHelper.svelte) adds the rewrite and critique menu to a field. It hides itself when no AI provider is available.
 
 ```svelte
-<!-- ❌ Client-side navigation - may 404 -->
-<a href="/">Back to Profile</a>
-
-<!-- ✅ Forces full page load - always works -->
-<a href="/" data-sveltekit-reload>Back to Profile</a>
+<AIContentHelper
+  fieldType="description"
+  content={description}
+  context={{ role: title, company, location }}
+  on:apply={(e) => (description = e.detail.content)}
+/>
 ```
 
-**Implementation locations:**
-- `frontend/src/routes/posts/+page.svelte` - Back to Profile button
-- `frontend/src/routes/talks/+page.svelte` - Back to Profile button
+| Prop | Type | Purpose |
+|------|------|---------|
+| `content` | string | Current field text |
+| `fieldType` | string | What the text is, such as `description`, `bullets`, `summary` or `headline`. Shapes the prompt. |
+| `context` | object of strings | Related form values to give the model context |
+| `disabled` | boolean | Disable the button |
+| `size` | `'sm'` or `'md'` | Button size |
 
-**Debugging:**
-Navigation events are logged to the browser console:
-- `[NAVIGATION] Before navigate:` - shows source and destination
-- `[NAVIGATION] After navigate:` - confirms successful navigation
-- `[ROOT PAGE CLIENT] Page mounted` - confirms root page rendered
+It emits `apply` with `{ content }` when the owner accepts a suggestion. Prompts live in [`hooks/ai.go`](../backend/hooks/ai.go). Keep the plain-writing rules in them, and never let a prompt invite the model to invent facts.
 
-These logs are added via `beforeNavigate` and `afterNavigate` hooks in `+layout.svelte`.
+## Debugging tips
 
-**Note:** This is a workaround, not a root cause fix. The `data-sveltekit-reload` attribute causes a full page reload instead of client-side navigation, which has slightly more overhead but works reliably. If you identify the root cause of the client-side navigation failure, please update this documentation.
-
-## VS Code Tasks
-
-The project includes VS Code tasks (`.vscode/tasks.json`):
-
-- `Ctrl+Shift+B`: Run default build task (dev:up)
-- `Ctrl+Shift+P` → "Tasks: Run Task" for all available tasks
-
-Available tasks:
-- `dev:up` - Start all services
-- `dev:backend` - Start backend only
-- `dev:frontend` - Start frontend only
-- `dev:reset` - Clear caches
-- `test` - Run all tests
-- `build:docker` - Build production image
-
-## Dependency Versions
-
-### PocketBase Version Compatibility
-
-**Critical:** The frontend SDK version must be compatible with the backend PocketBase version.
-
-| Component | Version | Notes |
-|-----------|---------|-------|
-| Backend (Go) | PocketBase v0.37.4 | Set in `backend/go.mod` |
-| Frontend SDK | pocketbase ^0.21.0 | Set in `frontend/package.json` |
-
-**Why this matters:**
-- SDK v0.22+ renamed `authStore.model` → `authStore.record`
-- SDK v0.21.5 is verified with the current PocketBase backend in this repo
-- Using mismatched versions causes 400 errors on authenticated requests
-
-**If upgrading PocketBase or the frontend SDK:**
-1. Check the [PocketBase JS SDK releases](https://github.com/pocketbase/js-sdk/releases) for compatible SDK version
-2. Update `frontend/package.json` to match
-3. If upgrading past v0.22, change `authStore.model` → `authStore.record` in:
-   - `frontend/src/lib/pocketbase.ts`
-   - `frontend/src/routes/admin/login/+page.svelte`
-
-### Other Key Dependencies
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| SvelteKit | 2.5 | Frontend framework |
-| Svelte | 5.55 | Component framework |
-| Vite | 7.3 | Build tool |
-| Tailwind CSS | 3.4 | Styling |
-| TypeScript | 5.5 | Type checking |
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and customize:
-
-```bash
-cp .env.example .env
-```
-
-Key variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ENCRYPTION_KEY` | Auto-generated | AES-256-GCM key for AI tokens. Auto-generated and saved to `/data/.encryption_key` if not set |
-| `SEED_DATA` | — | Seed mode: `dev` for dev profile, unset for no seeding |
-| `DATA_PATH` | `./data` | Database and config directory |
-| `UPLOADS_PATH` | `./uploads` | Upload file storage directory |
-| `APP_URL` | `http://localhost:8080` | Public URL (OAuth callbacks, link generation) |
-
-## Seed Data
-
-Facet has two ways to load sample data:
-
-### Development Seed (Jedidiah Esposito)
-
-For development and testing, use `make seed-dev` to load real-world profile data. The script now:
-- Lets you choose auth mode: password-only, Google, GitHub, or both.
-- Defaults APP_URL to your Codespace URL (if present) or localhost, with an option to override.
-- Reuses any existing `.env` values for APP_URL/ADMIN_EMAILS and Google/GitHub creds; only prompts for missing fields.
-- Writes the chosen values into `.env` and starts the dev stack with those env vars.
-
-- **Role**: Front-End Lead | Product Engineering Lead
-- **Experience**: NZ Police, Ryman Healthcare, Okta, Amazon, ChefSteps
-- **Projects**: Facet, MCP Servers, Voice Assistant, Home Infrastructure
-- **Skills**: SvelteKit, TypeScript, MCP, LLMs, Agile
-- **View**: `/front-end-lead` with LinkedIn CTA
-
-```bash
-# Load dev seed data
-make seed-dev
-
-# Example: enable both Google and GitHub during the prompt; the script will store
-# APP_URL/ADMIN_EMAILS and the provider IDs/secrets into .env for reuse.
-
-# Just clear database (no restart)
-make seed-clear
-```
-
-### Homepage visibility toggle
-
-From **Admin > Settings**, you can turn off the public homepage (`/`) while keeping shared views accessible via their direct URLs. When disabled, `/`, `/posts`, and `/talks` show a private landing message (customizable in the settings panel). Use this when you want to share specific views without exposing a public homepage.
-
-### Demo Data (Admin UI)
-
-New users can load demo data via **Admin > Settings > Demo Data**. This loads a fun
-Arthurian-themed profile (Merlin Ambrosius, Chief Wizard) to demonstrate all features.
-
-The demo data can be loaded and cleared at any time from the admin settings page.
-This is useful for:
-- Seeing what a complete profile looks like
-- Testing views and layouts
-- Demonstrating the platform to others
-
-| `SEED_DATA` env | Behavior |
-|-----------------|----------|
-| `dev` | Auto-seeds Jedidiah Esposito profile (development) |
-| (unset) | No auto-seeding (production default) |
-
-**Note:** The `SEED_DATA=demo` option has been removed. Demo data is now managed via the admin UI.
-
-## Architecture Overview
-
-```
-┌─────────────────┐     ┌─────────────────┐
-│   SvelteKit     │────▶│   PocketBase    │
-│   (Frontend)    │ API │   (Backend)     │
-│   Port 5173     │     │   Port 8090     │
-└─────────────────┘     └─────────────────┘
-                              │
-                              ▼
-                        ┌───────────┐
-                        │  SQLite   │
-                        │ (pb_data) │
-                        └───────────┘
-```
-
-For detailed architecture, see [ARCHITECTURE.md](ARCHITECTURE.md).
-
-## Development Phases
-
-### Phase A: Identity Polish (Complete)
-
-*Tag: `phase-identity-polish`*
-
-Focused exclusively on language, voice, and identity. No functional changes.
-
-Changes:
-- All page titles updated from "X | Admin" to "X | Facet"
-- Removed "Admin" badge from header
-- Login copy: "Sign in to manage your profile"
-- Footer fallback: "OwnProfile" → "Facet"
-- Import button: "Create Import Proposal" → "Review & Import"
-- Removed "(admin only)" from visibility dropdown
-
-### Phase B: First-Run Warmth (Complete)
-
-*Tag: `phase-first-run-warmth`*
-
-Improved empty states and first-run experience. No wizards or progress trackers.
-
-Changes:
-- Dashboard: "This is your space" welcome message when empty (replaces 0/0/0/0 stats)
-- Activity: "Nothing here yet — and that's okay" empty state
-- Profile hero: Removed "?" avatar fallback when no profile
-- Profile hero: Removed "Welcome" heading when no name set
-- Views: Descriptive empty state explaining what views do
-- Contact links: "Add links to help people reach you"
-- AI providers: Gentle guidance about optional enrichment
-
-### Phase C: Visual Calm (Complete)
-
-*Tag: `phase-visual-calm`*
-
-Consistent icons, refined button styles, and improved tagline. No emoji icons in UI.
-
-Changes:
-- Created `$lib/icons.ts` with consistent SVG icons (check, x, info, warning, eye, trash, copy, lock, download, star, gitFork, brain, zap, toggleOn, toggleOff)
-- Replaced all emoji icons across admin pages with SVG icons
-- Added `btn-danger` and `btn-danger-ghost` styles for destructive actions
-- Login tagline: "A simple home for your story." (replaces tech-focused copy)
-- Improved hover states on destructive action buttons
-
-Files modified:
-- `frontend/src/lib/icons.ts` (new)
-- `frontend/src/app.css`
-- `frontend/src/components/shared/Toast.svelte`
-- `frontend/src/routes/admin/views/+page.svelte`
-- `frontend/src/routes/admin/import/+page.svelte`
-- `frontend/src/routes/admin/review/[id]/+page.svelte`
-- `frontend/src/routes/admin/settings/+page.svelte`
-- `frontend/src/routes/admin/profile/+page.svelte`
-- `frontend/src/routes/admin/login/+page.svelte`
+- Backend logs during `make dev`: `tail -f tmp/backend.log`.
+- Air's build errors: `tmp/build-errors.log`.
+- Logging: use `app.Logger()` with structured fields, and log enough context on errors to diagnose them later. Avoid logging secrets, tokens or personal data.
+- A fresh database: `make stop`, then move `pb_data/` aside (`mv pb_data pb_data.old`) and `make dev`. Moving rather than deleting means you can go back.

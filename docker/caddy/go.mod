@@ -2,7 +2,16 @@ module facet/caddy
 
 go 1.27.3
 
-require github.com/caddyserver/caddy/v2 v2.11.7
+require (
+	github.com/caddyserver/caddy/v2 v2.11.7
+	go.step.sm/crypto v0.91.0
+)
+
+// go-jose v3 has no release fixing GHSA-mgcc-cww5-fp2q. This is v3.0.5 with
+// the RSA JWK bounds checks from upstream v4.1.6 (a0111f8) backported. Remove
+// it once go.step.sm/crypto and smallstep/certificates ship on go-jose v4.
+// See third_party/go-jose-v3/FACET-PATCH.md.
+replace github.com/go-jose/go-jose/v3 v3.0.5 => ./third_party/go-jose-v3
 
 require (
 	cel.dev/cel-go v0.32.0 // indirect
@@ -45,7 +54,7 @@ require (
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.4 // indirect
-	github.com/go-chi/chi/v5 v5.3.2 // indirect
+	github.com/go-chi/chi/v5 v5.5.0 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.5 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
@@ -144,13 +153,12 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.46.0 // indirect
 	go.opentelemetry.io/otel/trace v1.46.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
-	go.step.sm/crypto v0.91.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.58.1-0.20261009181718-2f1f834330b2 // indirect
 	golang.org/x/crypto/x509roots/fallback v0.0.0-20260929172509-b39ff6d641ec // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
 	golang.org/x/net v0.62.0 // indirect

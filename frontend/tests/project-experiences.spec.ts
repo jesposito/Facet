@@ -292,7 +292,13 @@ test.describe('native project experiences', () => {
 				.evaluate((el) => el.getBoundingClientRect().width)
 		).toBeLessThanOrEqual(390);
 		await editor.getByRole('button', { name: 'Return to editor' }).click();
+		const saveResponse = page.waitForResponse(
+			(response) =>
+				response.request().method() === 'PATCH' &&
+				new URL(response.url()).pathname === `/api/collections/projects/records/${id}`
+		);
 		await page.getByRole('button', { name: /update project|save project|save changes/i }).click();
+		expect((await saveResponse).ok()).toBeTruthy();
 		const saved = await (
 			await request.get(`${apiBaseURL}/api/collections/projects/records/${id}`, {
 				headers: { Authorization: token }

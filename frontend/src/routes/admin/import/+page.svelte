@@ -18,7 +18,9 @@
 	let showTechnicalDetails = $state(false);
 	let importVisibility: 'private' | 'unlisted' | 'public' = $state('private');
 	let resumeProviderId = $state('');
-	let aiProviders: Array<{ id: string; name: string; type: string; is_default?: boolean }> = $state([]);
+	let aiProviders: Array<{ id: string; name: string; type: string; is_default?: boolean }> = $state(
+		[]
+	);
 	let aiProvidersLoaded = $state(false);
 
 	// Selection state: section name -> array of booleans aligned with parsed[section]
@@ -45,6 +47,7 @@
 	let step = $state(1);
 	let loading = $state(false);
 	let error = $state('');
+	let aiWarning = $state('');
 	let repoUrl = $state('');
 	let githubToken = $state('');
 	let preview: Record<string, unknown> | null = $state(null);
@@ -52,7 +55,7 @@
 	let selectedProvider = $state('');
 	let privacyMode: 'full' | 'summary' | 'none' = $state('summary');
 	let providers: Array<{ id: string; name: string; type: string }> = $state([]);
-	let proposalId = '';
+	let proposalId = $state('');
 
 	$effect(() => {
 		loadAIProviders();
@@ -84,8 +87,7 @@
 	function isAcceptableResumeFile(file: File): boolean {
 		return (
 			file.type === 'application/pdf' ||
-			file.type ===
-				'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+			file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
 			file.name.endsWith('.pdf') ||
 			file.name.endsWith('.docx')
 		);
@@ -401,6 +403,7 @@
 	async function handleImport() {
 		loading = true;
 		error = '';
+		aiWarning = '';
 		try {
 			const response = await fetch('/api/github/import', {
 				method: 'POST',
@@ -419,6 +422,13 @@
 			}
 			const result = await response.json();
 			proposalId = result.proposal_id;
+			// Clear the one-import token as soon as GitHub has been read.
+			githubToken = '';
+			if (typeof result.ai_error === 'string' && result.ai_error) {
+				// Stay here so the warning is read before the review page.
+				aiWarning = result.ai_error;
+				return;
+			}
 			toasts.add('success', 'Import proposal created! Review the changes below.');
 			goto(`/admin/review/${proposalId}`);
 		} catch (err) {
@@ -439,11 +449,16 @@
 		<p>{$t('admin.import.resume_intro')}</p>
 	</PageHelp>
 
-	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">{$t('admin.import.page_title')}</h1>
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+		{$t('admin.import.page_title')}
+	</h1>
 
 	<!-- Resume Upload Section -->
 	<section class="card p-6 mb-8" aria-labelledby="resume-section-heading">
-		<h2 id="resume-section-heading" class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+		<h2
+			id="resume-section-heading"
+			class="text-lg font-semibold text-gray-900 dark:text-white mb-4"
+		>
 			{$t('admin.import.resume_section_title')}
 		</h2>
 
@@ -534,7 +549,9 @@
 
 		{#if rawTextFallback}
 			<!-- Raw-text fallback (malformed JSON from AI) -->
-			<div class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+			<div
+				class="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+			>
 				<h3 class="font-semibold text-blue-900 dark:text-blue-100">
 					{$t('admin.import.raw_fallback_title')}
 				</h3>
@@ -545,8 +562,7 @@
 					readonly
 					class="mt-3 w-full h-64 p-2 text-xs font-mono bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-700 rounded"
 					value={rawTextFallback}
-					aria-label={$t('admin.import.raw_fallback_title')}
-				></textarea>
+					aria-label={$t('admin.import.raw_fallback_title')}></textarea>
 				<div class="mt-2 flex gap-2">
 					<button type="button" class="btn btn-sm btn-secondary" onclick={copyRawText}>
 						{$t('admin.import.raw_fallback_copy')}
@@ -618,7 +634,10 @@
 				{:else}
 					<div class="space-y-3">
 						<p class="text-gray-700 dark:text-gray-300">
-							<label for="resumeFile" class="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer">
+							<label
+								for="resumeFile"
+								class="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+							>
 								{$t('admin.import.resume_choose_file')}
 							</label>
 							{$t('admin.import.resume_or_drag')}
@@ -638,7 +657,9 @@
 
 			{#if aiProviders.length > 1}
 				<div class="mt-4">
-					<label for="resumeProvider" class="label">{$t('admin.import.provider_select_label')}</label>
+					<label for="resumeProvider" class="label"
+						>{$t('admin.import.provider_select_label')}</label
+					>
 					<select id="resumeProvider" bind:value={resumeProviderId} class="input">
 						{#each aiProviders as p}
 							<option value={p.id}>{p.name} ({p.type})</option>
@@ -651,18 +672,39 @@
 				<legend class="label mb-2">{$t('admin.import.visibility_label')}</legend>
 				<div class="flex flex-wrap gap-4">
 					<label class="flex items-center gap-2 cursor-pointer">
-						<input type="radio" bind:group={importVisibility} value="private" class="text-primary-600" />
-						<span class="text-sm text-gray-700 dark:text-gray-300">{$t('admin.import.visibility_private')}</span>
+						<input
+							type="radio"
+							bind:group={importVisibility}
+							value="private"
+							class="text-primary-600"
+						/>
+						<span class="text-sm text-gray-700 dark:text-gray-300"
+							>{$t('admin.import.visibility_private')}</span
+						>
 						<span class="text-xs text-gray-500">{$t('admin.import.visibility_private_hint')}</span>
 					</label>
 					<label class="flex items-center gap-2 cursor-pointer">
-						<input type="radio" bind:group={importVisibility} value="unlisted" class="text-primary-600" />
-						<span class="text-sm text-gray-700 dark:text-gray-300">{$t('admin.import.visibility_unlisted')}</span>
+						<input
+							type="radio"
+							bind:group={importVisibility}
+							value="unlisted"
+							class="text-primary-600"
+						/>
+						<span class="text-sm text-gray-700 dark:text-gray-300"
+							>{$t('admin.import.visibility_unlisted')}</span
+						>
 						<span class="text-xs text-gray-500">{$t('admin.import.visibility_unlisted_hint')}</span>
 					</label>
 					<label class="flex items-center gap-2 cursor-pointer">
-						<input type="radio" bind:group={importVisibility} value="public" class="text-primary-600" />
-						<span class="text-sm text-gray-700 dark:text-gray-300">{$t('admin.import.visibility_public')}</span>
+						<input
+							type="radio"
+							bind:group={importVisibility}
+							value="public"
+							class="text-primary-600"
+						/>
+						<span class="text-sm text-gray-700 dark:text-gray-300"
+							>{$t('admin.import.visibility_public')}</span
+						>
 						<span class="text-xs text-gray-500">{$t('admin.import.visibility_public_hint')}</span>
 					</label>
 				</div>
@@ -685,7 +727,9 @@
 				<div class="mt-2 text-xs text-gray-500">
 					<span>{$t('admin.import.preview_filename')} <strong>{parsedFilename}</strong></span>
 					{#if parsedResume?.metadata?.confidence}
-						<span class="ml-3">{$t('admin.import.preview_confidence')} {parsedResume.metadata.confidence}</span>
+						<span class="ml-3"
+							>{$t('admin.import.preview_confidence')} {parsedResume.metadata.confidence}</span
+						>
 					{/if}
 				</div>
 				{#if Array.isArray(parsedResume?.metadata?.warnings) && parsedResume.metadata.warnings.length > 0}
@@ -720,13 +764,20 @@
 											</span>
 										</span>
 										<svg
-											class="w-4 h-4 transition-transform {sectionOpen[section] ? 'rotate-180' : ''}"
+											class="w-4 h-4 transition-transform {sectionOpen[section]
+												? 'rotate-180'
+												: ''}"
 											fill="none"
 											viewBox="0 0 24 24"
 											stroke="currentColor"
 											aria-hidden="true"
 										>
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M19 9l-7 7-7-7"
+											/>
 										</svg>
 									</button>
 								</h4>
@@ -770,9 +821,13 @@
 														})}
 													/>
 													<label for={`item-${section}-${i}`} class="text-sm flex-1 cursor-pointer">
-														<span class="block font-medium text-gray-900 dark:text-white">{label}</span>
+														<span class="block font-medium text-gray-900 dark:text-white"
+															>{label}</span
+														>
 														{#if itemDetail(section, item)}
-															<span class="block text-xs text-gray-500">{itemDetail(section, item)}</span>
+															<span class="block text-xs text-gray-500"
+																>{itemDetail(section, item)}</span
+															>
 														{/if}
 													</label>
 												</li>
@@ -824,7 +879,9 @@
 					})}
 				</p>
 				<div class="mt-3 flex gap-2">
-					<a href="/admin/experience" class="btn btn-sm btn-primary">{$t('admin.import.review_experience')}</a>
+					<a href="/admin/experience" class="btn btn-sm btn-primary"
+						>{$t('admin.import.review_experience')}</a
+					>
 					<button type="button" class="btn btn-sm btn-secondary" onclick={startOver}>
 						{$t('admin.import.start_over')}
 					</button>
@@ -856,7 +913,11 @@
 						{i + 1}
 					</div>
 					{#if i < 3}
-						<div class="w-12 h-1 mx-2 {step > i + 1 ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'}"></div>
+						<div
+							class="w-12 h-1 mx-2 {step > i + 1
+								? 'bg-primary-600'
+								: 'bg-gray-200 dark:bg-gray-700'}"
+						></div>
 					{/if}
 				</div>
 			{/each}
@@ -887,16 +948,34 @@
 							GitHub Token
 							<span class="text-gray-500 font-normal">(optional, for private repos)</span>
 						</label>
-						<input type="password" id="token" bind:value={githubToken} class="input" placeholder="ghp_..." />
+						<input
+							type="password"
+							id="token"
+							bind:value={githubToken}
+							class="input"
+							placeholder="ghp_..."
+						/>
 						<p class="text-xs text-gray-500 mt-1">
-							Token is used only for this import and not stored unless you choose to save it.
+							Used only for this import and never saved. Leave it blank to use the token saved in
+							Settings, if there is one.
 						</p>
 					</div>
 					<button class="btn btn-primary" onclick={handlePreview} disabled={loading}>
 						{#if loading}
 							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								></circle>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
 							</svg>
 							Parsing…
 						{:else}
@@ -932,7 +1011,8 @@
 					{#if preview.topics && Array.isArray(preview.topics) && preview.topics.length > 0}
 						<div class="flex flex-wrap gap-1 mt-3">
 							{#each preview.topics as topic}
-								<span class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded">{topic}</span>
+								<span class="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 rounded">{topic}</span
+								>
 							{/each}
 						</div>
 					{/if}
@@ -964,7 +1044,11 @@
 					<div class="pl-7 space-y-4">
 						{#if providers.length === 0}
 							<p class="text-gray-600 dark:text-gray-400 text-sm">
-								You can <a href="/admin/settings#integrations" class="text-primary-600 dark:text-primary-400 underline">configure an AI provider</a> to automatically generate descriptions.
+								You can <a
+									href="/admin/settings#integrations"
+									class="text-primary-600 dark:text-primary-400 underline"
+									>configure an AI provider</a
+								> to automatically generate descriptions.
 							</p>
 						{:else}
 							<div>
@@ -989,13 +1073,45 @@
 						{/if}
 					</div>
 				{/if}
+				{#if aiWarning && proposalId}
+					<div
+						class="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 text-sm space-y-2"
+						role="alert"
+						data-testid="github-ai-warning"
+					>
+						<p>{aiWarning}</p>
+						<div class="flex flex-wrap gap-3">
+							<a href={`/admin/review/${proposalId}`} class="btn btn-primary"
+								>Review imported project</a
+							>
+							<a href="/admin/settings#integrations" class="btn btn-secondary">Check AI provider</a>
+						</div>
+					</div>
+				{/if}
 				<div class="flex gap-3 pt-4">
 					<button class="btn btn-secondary" onclick={() => (step = 2)}>Back</button>
-					<button class="btn btn-primary" onclick={handleImport} disabled={loading || (useAI && providers.length === 0)}>
+					<button
+						class="btn btn-primary"
+						onclick={handleImport}
+						disabled={loading ||
+							(useAI && providers.length === 0) ||
+							Boolean(aiWarning && proposalId)}
+					>
 						{#if loading}
 							<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								></circle>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
 							</svg>
 							Importing…
 						{:else}

@@ -2,10 +2,61 @@
 
 All notable changes to Facet will be documented in this file.
 
+## Unreleased
+
+Not yet released. Entries describe the code on this branch and may change before a version is tagged.
+
+**Upgrade notes:**
+
+- Preserve media URLs during legacy URL-to-text field conversion. Repair missing lesson comment flags and log timestamps; old log rows keep unknown creation times.
+- Bound SMTP connection, TLS negotiation and delivery to 30 seconds, and update newsletter list counts without background writes.
+- New installs get a random owner password in a private `.admin-credentials` file in the data directory. Setup and password-reset commands print the file path, never the password. Delete the handoff file after reading it. Accounts still on `changeme123` must change it before admin APIs answer.
+- Courses are now on by default for self-hosted sites. Set `FACET_FEATURE_COURSES=false` to keep them off.
+- Selling courses is Facet Cloud-only. Self-hosted sites keep free course authoring, enrolment, quizzes and certificates, but the server refuses every course checkout (including 100% coupons) before any coupon, purchase or Stripe side effect, whatever `FACET_MANAGED` says. The course price and paid-tier controls are gone from the admin and the buy button from public course pages. Imported paid courses stay paid and locked, with a notice that they can't be bought here; earlier buyers keep access. A course session Stripe reports as already paid (started before this build) is still recorded and its access link emailed, since the buyer was charged; no new course checkout can be started. Other paid content is unchanged.
+- `SMTP_TLS` now follows the port when unset: implicit TLS on 465, STARTTLS elsewhere. Set it explicitly if your provider needs something else.
+- Behind a reverse proxy or tunnel, set `TRUSTED_PROXIES` to your proxy's address range, or every visitor shares one rate-limit bucket.
+- Checkout success and cancel addresses must match `APP_URL`. Checkout answers 503 if no app URL is set.
+- `/api/v1` projects no longer include `status`, which was always empty. Read responses gain the schema's real fields, such as `proficiency`, `summary`, `links`, `content` and `tags`; `level`, `url` and `is_current` stay as derived values.
+
+**API keys:**
+
+- A key's allowed origins are now enforced for browser requests, and entries are checked and tidied when the key is created. The allowlist is checked on the authenticated request, separately from PocketBase's CORS preflight handling; it does not replace keeping the key secret.
+- Expiry dates are validated. A date on its own lasts to the end of that day in UTC.
+- Recording a key's last use can no longer undo a revocation that happens at the same moment.
+- `/api/v1` is rate limited per IP, writes made with a key appear in the audit log, and paid post and project content is withheld as it is on the site.
+
+**Security and sign-in:**
+
+- `reset-admin-password` sets a random password and signs out every session for the account. Two-factor sign-in stays on. It refuses to run while an unread `.admin-credentials` file exists, never overwrites one, and removes only its own file if saving the account fails.
+- The server enforces the two-factor session and the default-password change, not just the admin UI.
+- Client addresses come from Caddy's `trusted_proxies`; headers a visitor can set, such as `CF-Connecting-IP`, are no longer used.
+- Contact values at the CAPTCHA protection level are removed from public page data.
+- The generated encryption key is never printed. A new key file is created with mode 600, and an empty key file stops startup.
+
+**Courses, payments and newsletter:**
+
+- Public course pages, enrolment with email verification, drip and sequential release, and one shared access check for quizzes, completion and progress.
+- Paid access links are delivered to the buyer's inbox and work for buyers with more than 100 purchases. Partial refunds keep access; full refunds end it.
+- Newsletter sign-up is double opt-in and joins the chosen public list on confirmation. Sends can target one list and use request keys so retries don't send twice.
+- Personal placeholders are refused inside newsletter links.
+- The Analytics, Courses, Newsletter and Discussions switches are now enforced.
+
+**Reliability:**
+
+- The container start script waits for health checks, stops the remaining processes if one exits, and shuts down within `FACET_SHUTDOWN_TIMEOUT` seconds.
+- Backup listing and startup content repair report errors instead of treating them as "nothing found". A failed repair raises a system alert and retries at the next start.
+- SMTP settings from the environment are saved during bootstrap, and only when they've changed.
+
+**Development:**
+
+- Node 24, Air v1.67.4, and a musl build tag for the Alpine development image.
+
+**Testing note:** payment and email behaviour is covered by tests with signed fake Stripe events and a captured mailer. It hasn't been verified against a live Stripe account or external SMTP server.
 
 ## v3.6.0 - October 30, 2026
 
 **New Features:**
+
 - Add native project experiences and visual authoring
 - Allow projects to contain native video or audio chapters, code walkthroughs, disclosures, images and editable story activities
 - Provide templates, media selection, keyboard reordering and a preview using the public renderer in the section editor
@@ -16,6 +67,7 @@ All notable changes to Facet will be documented in this file.
 - Add one optional field during migration while leaving existing project content intact
 
 **Other Changes:**
+
 - Conduct full Go suite validation and Svelte check
 - Perform production frontend build and 36 fresh-database browser/API checks
 - Cover new tests for authoring/save/reopen, preview, video/audio playback, captions, source escaping, story input, export, duplication, disabled fallback and private/draft access
@@ -26,56 +78,58 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v3.5.2 - October 28, 2026
 
 **Bugs Fixed:**
+
 - Fix fixed-width video embeds to fit project, talk and custom-content pages
 - Fix CSS error for over 20,000 Unicode characters
 - Fix text clipping to preserve UTF-8 boundaries
 
 **New Features:**
+
 - Protect public portfolio fields and preserve rich content
 
 **Pull Requests:** [#518](https://github.com/jesposito/Facet/pull/518),
 
 ---
 
-
 ## v3.5.1 - October 28, 2026
 
 **Bugs Fixed:**
+
 - Fix public Back destinations and admin history
 
 **Pull Requests:** [#517](https://github.com/jesposito/Facet/pull/517),
 
 ---
 
-
 ## v3.5.0 - October 25, 2026
 
 **Other Changes:**
+
 - Internal improvements and maintenance
 
 ---
 
-
 ## v3.4.11 - October 23, 2026
 
 **Bugs Fixed:**
+
 - Fix ARM release scan failure by selecting the target architecture for registry image scans
 
 **Pull Requests:** [#514](https://github.com/jesposito/Facet/pull/514),
 
 ---
 
-
 ## v3.4.10 - October 23, 2026
 
 **Bugs Fixed:**
+
 - Remove vulnerable runtime npm tooling and gate image publication
 
 **New Features:**
+
 - Scan both architecture images during PR builds and before release manifests receive public tags
 - Start the packaged runtime with fresh storage and verify frontend/backend health through Caddy
 - Ensure that node works and npm/npx are absent
@@ -84,10 +138,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v3.4.9 - October 23, 2026
 
 **Bugs Fixed:**
+
 - Patch self-hosted dependencies and restore security checks
 - Batch dependency maintenance and unblock the security release
 - Report verified release checks and stop redundant retries
@@ -96,289 +150,292 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v3.4.8 - July 16, 2026
 
 **Other Changes:**
+
 - Update vulnerable Go dependencies and toolchain
 
 **Pull Requests:** [#489](https://github.com/jesposito/Facet/pull/489),
 
 ---
 
-
 ## v3.4.7 - July 08, 2026
 
 **Bugs Fixed:**
+
 - Backport portable Facet Cloud fixes
 
 **Pull Requests:** [#488](https://github.com/jesposito/Facet/pull/488),
 
 ---
 
-
 ## v3.4.6 - July 07, 2026
 
 **Other Changes:**
+
 - localize formatted month names
 
 **Pull Requests:** [#487](https://github.com/jesposito/Facet/pull/487),
 
 ---
 
-
 ## v3.4.5 - July 07, 2026
 
 **Bugs Fixed:**
+
 - fix Ollama model sync
 
 **Pull Requests:** [#486](https://github.com/jesposito/Facet/pull/486),
 
 ---
 
-
 ## v3.4.4 - July 07, 2026
 
 **Bugs Fixed:**
+
 - preserve content language on small Ollama models
 
 **Pull Requests:** [#485](https://github.com/jesposito/Facet/pull/485),
 
 ---
 
-
 ## v3.4.3 - July 06, 2026
 
 **Other Changes:**
+
 - restore theme controls
 
 **Pull Requests:** [#484](https://github.com/jesposito/Facet/pull/484),
 
 ---
 
-
 ## v3.4.2 - July 04, 2026
 
 **Bugs Fixed:**
+
 - Preserve AI writing language and fix security alerts
 
 **Pull Requests:** [#483](https://github.com/jesposito/Facet/pull/483),
 
 ---
 
-
 ## v3.4.1 - June 25, 2026
 
 **Other Changes:**
+
 - architecture and data-model diagrams
 
 **Pull Requests:** [#482](https://github.com/jesposito/Facet/pull/482),
 
 ---
 
-
 ## v3.4.0 - June 24, 2026
 
 **New Features:**
+
 - operator toggle for the "Let's work together" CTA band
 
 **Pull Requests:** [#481](https://github.com/jesposito/Facet/pull/481),
 
 ---
 
-
 ## v3.3.0 - June 24, 2026
 
 **New Features:**
+
 - replace a library image and propagate everywhere (#348)
 
 **Pull Requests:** [#480](https://github.com/jesposito/Facet/pull/480),
 
 ---
 
-
 ## v3.2.0 - June 24, 2026
 
 **New Features:**
+
 - testimonial lists — funnel testimonials to facets (#283)
 
 **Pull Requests:** [#479](https://github.com/jesposito/Facet/pull/479),
 
 ---
 
-
 ## v3.1.3 - June 24, 2026
 
 **Bugs Fixed:**
+
 - allow same-origin iframes in CSP frame-src
 
 **Pull Requests:** [#478](https://github.com/jesposito/Facet/pull/478),
 
 ---
 
-
 ## v3.1.2 - June 24, 2026
 
 **Other Changes:**
+
 - refresh repository documentation; remove obsolete files
 
 **Pull Requests:** [#477](https://github.com/jesposito/Facet/pull/477),
 
 ---
 
-
 ## v3.1.1 - June 24, 2026
 
 **Bugs Fixed:**
+
 - allow same-origin framing so live preview renders (X-Frame-Options)
 
 **Pull Requests:** [#476](https://github.com/jesposito/Facet/pull/476),
 
 ---
 
-
 ## v3.1.0 - June 24, 2026
 
 **New Features:**
+
 - redesign parity bundle — live preview, rail layout, AAA text color + regression fixes
 
 **Pull Requests:** [#475](https://github.com/jesposito/Facet/pull/475),
 
 ---
 
-
 ## v3.0.0 - June 23, 2026
 
 **New Features:**
+
 - make Soft Premium the only design; font selector governs fonts
 
 **Pull Requests:** [#470](https://github.com/jesposito/Facet/pull/470),
 
 ---
 
-
 ## v2.23.0 - June 23, 2026
 
 **New Features:**
+
 - Soft Premium redesign backport (full — redesign + Track A + harness)
 
 **Pull Requests:** [#467](https://github.com/jesposito/Facet/pull/467),
 
 ---
 
-
 ## v2.22.1 - June 06, 2026
 
 **Other Changes:**
+
 - serialize runs + resilient CHANGELOG push
 
 **Pull Requests:** [#446](https://github.com/jesposito/Facet/pull/446),
 
 ---
 
-
 ## v2.22.0 - June 06, 2026
 
 **Bugs Fixed:**
+
 - preserve paragraph spacing on markdown round-trip (#443)
 
 **New Features:**
+
 - one-time restore of editor-flattened content (#443)
 
 **Pull Requests:** [#444](https://github.com/jesposito/Facet/pull/444),[#445](https://github.com/jesposito/Facet/pull/445),
 
 ---
 
-
 ## v2.21.18 - June 05, 2026
 
 **Other Changes:**
+
 - Self-hosted Facet issue sweep: #407 #400 #406 #405 #403 #375 #404 + a11y hardening
 
 **Pull Requests:** [#442](https://github.com/jesposito/Facet/pull/442),
 
 ---
 
-
 ## v2.21.17 - May 17, 2026
 
 **Bugs Fixed:**
+
 - gate courses OFF self-hosted, extend export to 44 collections, fix #259 skill sort_order
 
 **Pull Requests:** [#440](https://github.com/jesposito/Facet/pull/440),
 
 ---
 
-
 ## v2.21.16 - May 16, 2026
 
 **Bugs Fixed:**
+
 - restore custom CSS application + clean up preexisting type errors
 
 **Pull Requests:** [#439](https://github.com/jesposito/Facet/pull/439),
 
 ---
 
-
 ## v2.21.15 - May 16, 2026
 
 **New Features:**
+
 - add Discord badge to README
 
 **Pull Requests:** [#438](https://github.com/jesposito/Facet/pull/438),
 
 ---
 
-
 ## v2.21.13 - May 16, 2026
 
 **Bugs Fixed:**
+
 - patch 11 security advisories (svelte, dompurify, postcss, aws-sdk, x/image)
 
 **Other Changes:**
+
 - remove stale local template, point to canonical
 
 **Pull Requests:** [#436](https://github.com/jesposito/Facet/pull/436),[#437](https://github.com/jesposito/Facet/pull/437),
 
 ---
 
-
 ## v2.21.12 - May 16, 2026
 
 **Other Changes:**
+
 - Backport: Tier 2 + Tier 3 (API keys, webhooks, alerts, newsletter, AI BYO-key)
 
 **Pull Requests:** [#435](https://github.com/jesposito/Facet/pull/435),
 
 ---
 
-
 ## v2.21.11 - April 13, 2026
 
 **Bugs Fixed:**
+
 - Restore SSR favicon rendering on public pages
 
 **Pull Requests:** [#433](https://github.com/jesposito/Facet/pull/433),
 
 ---
 
-
 ## v2.21.10 - April 07, 2026
 
 **Bugs Fixed:**
+
 - Patch bump Vite 7.3.1 -> 7.3.2 to fix CVE-2026-39363
 
 **Pull Requests:** [#431](https://github.com/jesposito/Facet/pull/431),
 
 ---
 
-
 ## v2.21.9 - March 30, 2026
 
 **Bugs Fixed:**
+
 - Fix rapid-click issues in SSR and navigation
 
 **New Features:**
+
 - Add cloud version of +page.server.ts with X-Internal and proper error handling
 - Add cloud version of [slug]/+page.server.ts with siteNavEnabled
 - Add cloud version of +layout.server.ts with appUrl and debug logging
@@ -389,24 +446,25 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.21.8 - March 30, 2026
 
 **Bugs Fixed:**
+
 - Fix missing X-Internal header on SSR fetches to prevent rate limit 404s on rapid navigation
 
 **Pull Requests:** [#429](https://github.com/jesposito/Facet/pull/429),
 
 ---
 
-
 ## v2.21.7 - March 30, 2026
 
 **Bugs Fixed:**
+
 - Fix nav vanishing on SPA navigation
 - Fix WelcomePage flash during rapid nav
 
 **New Features:**
+
 - Implement store-based state management for siteNav
 - Add CTA fallback rendering when nav is disabled
 
@@ -414,63 +472,64 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.21.6 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Prevent WelcomePage flash during rapid SPA navigation
 
 **Pull Requests:** [#427](https://github.com/jesposito/Facet/pull/427),
 
 ---
 
-
 ## v2.21.5 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Handle AbortError in load functions to prevent 404 flash on rapid navigation
 
 **Pull Requests:** [#426](https://github.com/jesposito/Facet/pull/426),
 
 ---
 
-
 ## v2.21.4 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Fix font settings to affect public frontend pages
 
 **Pull Requests:** [#425](https://github.com/jesposito/Facet/pull/425),
 
 ---
 
-
 ## v2.21.3 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Fix siteNav rendering issue during SSR by passing siteNav via await parent()
 
 **Pull Requests:** [#424](https://github.com/jesposito/Facet/pull/424),
 
 ---
 
-
 ## v2.21.2 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Eliminate site nav pop-in with SSR data
 
 **Pull Requests:** [#423](https://github.com/jesposito/Facet/pull/423),
 
 ---
 
-
 ## v2.21.1 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Fix experience timeline border alignment
 
 **New Features:**
+
 - Add larger position dots to experience timeline
 - Add tighter bullet spacing in experience timeline
 - Add CSS class hooks for experience timeline
@@ -479,23 +538,24 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.21.0 - March 29, 2026
 
 **Bugs Fixed:**
+
 - Fix public display components to properly render markdown output
 
 **New Features:**
+
 - Replace plain textarea elements with TipTap-based WYSIWYG MarkdownEditor across all admin content pages
 
 **Pull Requests:** [#420](https://github.com/jesposito/Facet/pull/420),
 
 ---
 
-
 ## v2.20.0 - March 28, 2026
 
 **New Features:**
+
 - Add font packs with 7 curated font combinations
 - Add 5 hero section layout variants
 - Add TipTap-based WYSIWYG MarkdownEditor component
@@ -514,10 +574,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.19.0 - March 28, 2026
 
 **New Features:**
+
 - Backport production-proven features from the Facet Cloud fork to self-hosted Facet
 - Add plan system with feature gating for all new capabilities
 - Add feature toggles admin page for per-feature enable/disable
@@ -556,6 +616,7 @@ All notable changes to Facet will be documented in this file.
 - Add 540+ new translation keys across all locales
 
 **Other Changes:**
+
 - Make architecture decisions for self-hosted version
 - Verify build and test processes for new features
 
@@ -563,10 +624,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.10 - March 27, 2026
 
 **New Features:**
+
 - Add company_group_id field to experience collection with auto-population from normalized company name
 - Group multiple positions at the same company under a shared company header in all 3 public layouts
 - Support manual grouping via company_group_id for edge cases
@@ -579,38 +640,40 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.9 - March 19, 2026
 
 **Bugs Fixed:**
+
 - Upgrade google.golang.org/grpc v1.68.0 → v1.79.3 (critical authorization bypass #33)
 - Upgrade dompurify 3.3.1 → 3.3.3 (medium XSS vulnerability #29)
-- Upgrade devalue 5.6.3 → 5.6.4 (moderate prototype pollution #30, low __proto__ #31)
+- Upgrade devalue 5.6.3 → 5.6.4 (moderate prototype pollution #30, low **proto** #31)
 
 **Other Changes:**
+
 - Upgrade flatted 3.3.3 → 3.4.2 (transitive dev dep)
 
 **Pull Requests:** [#416](https://github.com/jesposito/Facet/pull/416),
 
 ---
 
-
 ## v2.18.8 - March 08, 2026
 
 **Bugs Fixed:**
+
 - Fix login redirect loop caused by stale auth cookies
 
 **Pull Requests:** [#415](https://github.com/jesposito/Facet/pull/415),
 
 ---
 
-
 ## v2.18.7 - March 08, 2026
 
 **Bugs Fixed:**
+
 - Fix login loop caused by redundant authRefresh
 
 **New Features:**
+
 - Add freshLogin flag to skip redundant authRefresh() call after successful auth
 - Discriminate 401 vs 500 errors in the layout auth catch block
 
@@ -618,10 +681,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.6 - February 26, 2026
 
 **Bugs Fixed:**
+
 - Patch Go stdlib CVEs and npm vulnerabilities
 - Resolve 21 stdlib CVEs in Go backend
 - Fix rollup path traversal vulnerability
@@ -634,10 +697,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.5 - February 18, 2026
 
 **Bugs Fixed:**
+
 - Fix homepage route to use dedicated admin configuration page
 - Remove 'Default' badge from facets admin list
 - Remove sort-to-top logic from facets admin list
@@ -646,20 +709,20 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.4 - February 17, 2026
 
 **Bugs Fixed:**
+
 - Fix PocketBase 'Acme' branding in built-in auth emails
 
 **Pull Requests:** [#411](https://github.com/jesposito/Facet/pull/411),
 
 ---
 
-
 ## v2.18.3 - February 17, 2026
 
 **Bugs Fixed:**
+
 - Fix autodate fields on all collections
 - Add migration to fix autodate fields on all 27 base collections and backfill existing records with empty created timestamps
 - Add defensive guard in formatRelativeDate on the tokens page to handle empty/invalid date strings gracefully
@@ -668,10 +731,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.2 - February 17, 2026
 
 **New Features:**
+
 - Add shared VisibilitySelector component with descriptions
 - Replace duplicated <select> blocks across 11 admin pages
 - Add 5 new i18n keys for visibility descriptions across all locale files
@@ -680,13 +743,14 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.1 - February 17, 2026
 
 **New Features:**
+
 - Add Contact Methods as a top-level sidebar link
 
 **Other Changes:**
+
 - Restructure navSections, SECTION_IDS, and primarySections in AdminSidebar.svelte
 - Update all 5 locale files with new section names (portfolio/content)
 
@@ -694,18 +758,18 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.18.0 - February 14, 2026
 
 **Other Changes:**
+
 - Internal improvements and maintenance
 
 ---
 
-
 ## v2.18.0 - February 15, 2026
 
 **New Features:**
+
 - Add email notifications to admins when new testimonials are submitted
 - Add email verification flow for testimonial submitters (15-minute expiry tokens)
 - Add SMTP settings management in admin UI (/admin/settings/site) with test email button
@@ -715,6 +779,7 @@ All notable changes to Facet will be documented in this file.
 - Add SafeGo utility for background goroutines with panic recovery
 
 **Bugs Fixed:**
+
 - Fix notification email link pointing to localhost instead of public URL (use request headers instead of AppURL)
 - Fix skill deduplication on resume import creating duplicates
 - Fix mirror cleanup matching causing incorrect media deletions
@@ -725,10 +790,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.17.2 - February 12, 2026
 
 **Bugs Fixed:**
+
 - Fix custom content rendering by adding parseMarkdown() sanitization to all layout variants
 - Fix cover images missing on homepage by adding data.sections fallback for default view data path
 - Fix gallery layout for attached images by refactoring mediaRefCard snippet
@@ -739,10 +804,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.17.1 - February 12, 2026
 
 **Bugs Fixed:**
+
 - Fix 500 error on POST /api/admin/backup caused by symlinks to directories
 - Add StoreKeyActiveBackup check returning 409 Conflict when another backup/restore is running
 - Expand OnBackupCreate and OnBackupRestore exclude lists to skip pb_data and data directories
@@ -751,13 +816,14 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.17.0 - February 11, 2026
 
 **Bugs Fixed:**
+
 - Fix race condition preventing new custom content blocks from appearing
 
 **New Features:**
+
 - Add optional TOTP-based two-factor authentication
 - Remove demo mode UI toggle
 - Address 8 security findings from self-audit and Oracle review
@@ -766,14 +832,15 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.16.2 - February 10, 2026
 
 **Bugs Fixed:**
+
 - Fix homepage visitor counter
 - Fix navbar pill timing
 
 **New Features:**
+
 - Add content visibility hint on homepage
 - Rework encryption banner
 
@@ -781,10 +848,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.16.1 - February 10, 2026
 
 **Bugs Fixed:**
+
 - Fix HTTP authentication broken for self-hosters
 - Fix crypto.randomUUID crash on HTTP
 - Fix profile create/update race with setup wizard
@@ -796,6 +863,7 @@ All notable changes to Facet will be documented in this file.
 - Fix cleanup date format mismatch
 
 **New Features:**
+
 - Add automated backup system with daily scheduled backups and manual backup button
 - Add encryption key management with warning banner for auto-generated keys
 - Add security test coverage with real table-driven tests
@@ -806,10 +874,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.16.0 - February 06, 2026
 
 **New Features:**
+
 - Add ATSContent component for hidden plain-text resume content
 - Enhance ProfileHero with Person schema microdata
 - Enhance ExperienceSection with Occupation schema microdata
@@ -822,16 +890,17 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.15.9 - February 02, 2026
 
 **Bugs Fixed:**
+
 - Fix usage counts showing '1' or '—' even when media was used in multiple places
 - Fix testimonials field name
 - Add missing collection filters for orphan detection
 - Fix i18n validation by adding 18 missing filter_collection translation keys
 
 **New Features:**
+
 - Add new MultiMediaPicker component with modal grid UX for selecting attached media
 - Add new SingleMediaPicker component for cover image selection with consistent modal UI
 - Improve unified image upload handling across all collections
@@ -843,15 +912,16 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.15.8 - February 01, 2026
 
 **Bugs Fixed:**
+
 - Fix orphan detection for testimonials and media library collections
 - Resolve author photo URLs for testimonials
 - Fix dark mode tag styling in media gallery metadata editor
 
 **New Features:**
+
 - Show media description below the media when present
 - Hide source URL for uploaded files
 - Simplify card layout by removing unnecessary icon box headers
@@ -859,36 +929,39 @@ All notable changes to Facet will be documented in this file.
 - Add image lightbox with click-to-zoom and navigation
 
 **Other Changes:**
+
 - Disable Docker build caching
 
 **Pull Requests:** [#377](https://github.com/jesposito/Facet/pull/377),
 
 ---
 
-
 ## v2.15.7 - January 31, 2026
 
 **Bugs Fixed:**
+
 - Fix company logo picker showing job title instead of company name (#340)
 - Fix media picker checkboxes not showing as selected when editing items with attached media (#363)
 - Fix cover images not being clickable on posts and projects sections (#365)
 
 **New Features:**
+
 - Add media descriptions display in media picker (#355)
 - Add i18n support for testimonial submission and verification pages (#368)
 - Add optional profile picture upload for testimonial submissions (#370)
 
 **Other Changes:**
+
 - Disable "Verify with Email" button with "(Coming Soon)" text until email infrastructure is ready (#371)
 
 **Pull Requests:** [#372](https://github.com/jesposito/Facet/pull/372)
 
 ---
 
-
 ## v2.15.6 - January 31, 2026
 
 **Bugs Fixed:**
+
 - Add thumbnail preview for posts with cover images in the admin list
 
 **Pull Requests:** [#367](https://github.com/jesposito/Facet/pull/367),
@@ -898,37 +971,39 @@ All notable changes to Facet will be documented in this file.
 ## v2.15.1 - v2.15.5 - January 30, 2026
 
 **Other Changes:**
+
 - Internal improvements to CI/CD and changelog generation
 
 ---
 
-
 ## v2.15.0 - January 30, 2026
 
 **Bugs Fixed:**
+
 - Fix cover images from library in public view and admin list, prevent duplicate external media, detect favicon orphans, ensure all non-orphan media can be selected, prevent recursive thumbnails, eliminate welcome page flash, and improve timeline layout for logos.
 
 **New Features:**
+
 - Deliver media library improvements including image dimensions, metadata editing, media tagging, recently used section, auto-fetch metadata, thumbnail generation, bulk operations, and usage filter.
 
 **Pull Requests:** [#359](https://github.com/jesposito/Facet/pull/359),
 
 ---
 
-
 ## v2.14.0 - January 30, 2026
 
 **New Features:**
+
 - Implement media library improvements including upload progress bars, sorting options, type filtering, and preview before save. Reorganize sidebar for better navigation.
 
 **Pull Requests:** [#352](https://github.com/jesposito/Facet/pull/352),
 
 ---
 
-
 ## v2.13.3 - January 30, 2026
 
 **Bugs Fixed:**
+
 - Fix Certifications button to display the correct i18n label instead of a raw key.
 - Fix cover image selection to persist after navigation and browser crashes.
 - Fix rename modal to remain open when selecting text.
@@ -937,30 +1012,30 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.13.2 - January 29, 2026
 
 **Bugs Fixed:**
+
 - Fix About page mobile layout overflow by adjusting header stacking and allowing version/notification container to wrap.
 
 **Pull Requests:** [#346](https://github.com/jesposito/Facet/pull/346),
 
 ---
 
-
 ## v2.13.1 - January 29, 2026
 
 **Bugs Fixed:**
+
 - Fix favicon persistence across page refreshes, ensuring it updates correctly and shows consistently on mobile and desktop.
 
 **Pull Requests:** [#345](https://github.com/jesposito/Facet/pull/345),
 
 ---
 
-
 ## v2.13.0 - January 29, 2026
 
 **Bugs Fixed:**
+
 - Fix users unable to delete media referenced by content with force-delete confirmation.
 - Fix skills dropdown to allow selection of all skills (public, unlisted, private) on facets/views.
 - Fix homepage settings to prevent wiping of Custom CSS field.
@@ -969,6 +1044,7 @@ All notable changes to Facet will be documented in this file.
 - Fix favicon upload persistence across navigation.
 
 **New Features:**
+
 - Overhaul Media Manager with unified MediaPicker, including thumbnail previews, drag-and-drop uploads, inline previews, and usage tracking.
 - Add media library selection for logos and cover images in content editors.
 - Add missing mobile layout/width controls in homepage section manager.
@@ -977,58 +1053,62 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.12.0 - January 28, 2026
 
 **Bugs Fixed:**
+
 - Fix skills category drag-and-drop not reordering properly.
 - Add missing dropdown in homepage content sections editor.
 - Fix skills visibility filter to show only public skills in category manager.
 - Fix stale 'update available' notifications after upgrading.
 
 **New Features:**
+
 - Add micro-interactions, improved loading states, and visual refinements across the admin interface.
 
 **Pull Requests:** [#330](https://github.com/jesposito/Facet/pull/330),
 
 ---
 
-
 ## v2.11.2 - January 28, 2026
 
 **Bugs Fixed:**
+
 - Fix skill categories disappearing after drag & drop reordering
 - Fix testimonial 'Featured Highlight' layout in dark mode
 
 **New Features:**
+
 - Add per-category display mode for skills
 
 **Other Changes:**
+
 - Update button styling on About page to ensure consistency
 
 **Pull Requests:** [#329](https://github.com/jesposito/Facet/pull/329),
 
 ---
 
-
 ## v2.11.1 - January 27, 2026
 
 **Bugs Fixed:**
+
 - Fix missing i18n keys for About page and GitHub Action race condition causing empty changelog entries
 
 **Pull Requests:** [#326](https://github.com/jesposito/Facet/pull/326),
 
 ---
 
-
 ## v2.11.0 - January 27, 2026
 
 **New Features:**
+
 - Add hybrid skill category management with drag-to-reorder categories and per-skill selection
 - Complete internationalization for all public-facing pages and components
 - Add default locale setting to site settings for language persistence
 
 **Other Changes:**
+
 - Improve button styling consistency with borders on secondary and ghost buttons
 - Fix race condition in view editor for custom content loading
 
@@ -1036,45 +1116,44 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.10.1 - January 27, 2026
 
 **Other Changes:**
+
 - Add explicit permissions to workflow files to satisfy GitHub's code scanning security requirements
 
 **Pull Requests:** [#322](https://github.com/jesposito/Facet/pull/322),
 
 ---
 
-
 ## v2.10.0 - January 27, 2026
 
 **New Features:**
+
 - Implement complete i18n support for Facet, enabling multi-language support with 5 complete translations including English, German, and three fantasy languages.
 
 **Pull Requests:** [#320](https://github.com/jesposito/Facet/pull/320),
 
 ---
 
-
 ## v2.9.1 - January 27, 2026
 
 ---
 
-
 ## v2.9.0 - January 27, 2026
 
 **New Features:**
+
 - Allow users to upload a custom favicon to replace the default Facet icon in browser tabs
 
 **Pull Requests:** [#319](https://github.com/jesposito/Facet/pull/319),
 
 ---
 
-
 ## v2.8.23 - January 27, 2026
 
 **Bugs Fixed:**
+
 - Fix vertical alignment of contact method icons with protection level 'none'
 - Fix contact methods rendering in dark mode
 - Fix type errors in AdminSidebar version check
@@ -1082,36 +1161,37 @@ All notable changes to Facet will be documented in this file.
 - Fix section ordering to respect configured order and add missing 'awards' to DEFAULT_SECTION_ORDER
 
 **New Features:**
+
 - Add global CTA toggle in admin homepage settings and per-facet CTA toggle in facet editor
 - Add cover image upload field to posts admin page and display current cover image preview
 - Add proper URL validation for external links
 
 **Other Changes:**
+
 - Remove confusing dot indicators from testimonials carousel and add endless loop navigation
 
 **Pull Requests:** [#316](https://github.com/jesposito/Facet/pull/316),
 
 ---
 
-
 ## v2.8.22 - January 26, 2026
 
 ---
 
-
 ## v2.8.21 - January 26, 2026
 
 **Bugs Fixed:**
+
 - Fix for AI hallucinations in changelog generation
 
 **Pull Requests:** [#305](https://github.com/jesposito/Facet/pull/305),
 
 ---
 
-
 ## v2.8.20 - January 26, 2026
 
 **Other Changes:**
+
 - Update ARCHITECTURE.md with 11 missing collections and 20+ missing admin routes
 - Update DESIGN.md with new content collections and expanded admin navigation
 - Update ROADMAP.md with version notifications, custom content, and automated changelog status
@@ -1122,72 +1202,76 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.8.19 - January 26, 2026
 
 **Bugs Fixed:**
+
 - Fix AI changelog generator creating duplicate/fabricated entries by filtering already-documented PRs
 
 **New Features:**
+
 - Add 'Update available' badge to admin sidebar and About page when a newer version is released
 - Check GitHub API for latest release on page load and cache for 24 hours
 - Show accent-colored badge in sidebar under version number
 - Show badge with new version number on About Facet page
 
 **Other Changes:**
+
 - Pass recent changelog context to AI to prevent semantic duplicates
 
 **Pull Requests:** [#303](https://github.com/jesposito/Facet/pull/303),
 
 ---
 
-
 ## v2.8.18 - January 26, 2026
 
 **Bugs Fixed:**
+
 - Fix navigation toggle not persisting state
 - Fix mobile layout issues
 - Fix error when uploading large files
 - Fix broken links in the help section
 
 **New Features:**
+
 - Add usage badges to admin items
 - Introduce dark mode option for user profiles
 - Add ability to filter portfolio items by category
 
 **Other Changes:**
+
 - Update documentation for dark mode feature
 - Refactor file upload component for better performance
 - Improve CI/CD pipeline for faster deployments
 
-**Pull Requests:** [#123](),[#124](),[#125](),[#126](),[#127](),[#128](),[#129](),
+**Pull Requests:** [#123](<>),[#124](<>),[#125](<>),[#126](<>),[#127](<>),[#128](<>),[#129](<>),
 
 ---
-
 
 ## v2.8.17 - January 26, 2026
 
 **New Features:**
+
 - Add info icon for About Facet
 
 **Pull Requests:** [#301](https://github.com/jesposito/Facet/pull/301),
 
 ---
 
-
 ## v2.8.16 - January 26, 2026
 
 **Other Changes:**
+
 - Add actions:write permission to trigger Docker workflow
 
 **Pull Requests:** [#300](https://github.com/jesposito/Facet/pull/300),
 
 ---
 
-
 ## v2.8.14 - January 26, 2026
 
 **Other Changes:**
+
 - Remove extra separator between changelog sections
 - Rename duplicate v2.8.12 to v2.8.11
 
@@ -1195,14 +1279,15 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.8.13 - January 26, 2026
 
 **Bugs Fixed:**
+
 - Fix YAML syntax error by using printf for prompt construction
 - Fix changelog header from 'Unreleased' to 'v2.8.12'
 
 **Other Changes:**
+
 - Add git config commands at the start of 'Update CHANGELOG' step
 - Add git pull origin main before creating the tag to ensure it points to the changelog commit
 - Reorder steps in auto-tag workflow to commit changelog before creating the tag
@@ -1213,10 +1298,10 @@ All notable changes to Facet will be documented in this file.
 
 ---
 
-
 ## v2.8.12 - January 26, 2026
 
 **Bugs Fixed:**
+
 - Fix YAML syntax error by using printf for prompt construction
 - Fix YAML syntax error in auto-tag workflow by moving AI prompt to a separate file
 - Fix YAML syntax error by converting AI prompt to heredoc syntax
@@ -1225,6 +1310,7 @@ All notable changes to Facet will be documented in this file.
 - Fix visibility of floating buttons on public pages
 
 **New Features:**
+
 - Add AI prompt template for changelog generation
 - Add 60-second timeouts to AI API calls to prevent workflow hangs
 - Add automated changelog generation to the auto-tag workflow
@@ -1234,6 +1320,7 @@ All notable changes to Facet will be documented in this file.
 - Make site nav toggles save immediately to database
 
 **Other Changes:**
+
 - Fix changelog header from 'Unreleased' to 'v2.8.12'
 - Update auto-tag workflow to read prompt from file
 - Add gitignore entry to ignore generated static/CHANGELOG.md
@@ -1246,6 +1333,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.8.11 - January 26, 2026
 
 **Bugs Fixed:**
+
 - Fix site nav toggle state not persisting to database
 - Fix PocketBase auto-cancellation issue with $cancelKey
 - Fix anchor links not scrolling to correct position
@@ -1260,6 +1348,7 @@ All notable changes to Facet will be documented in this file.
 - Fix frontend Docker build missing version
 
 **New Features:**
+
 - Add custom content sections for portfolio views
 - Add site navigation toggles for homepage customization
 - Add version display to admin sidebar footer
@@ -1277,6 +1366,7 @@ All notable changes to Facet will be documented in this file.
 - Add generic "Other" contact method type
 
 **Other Changes:**
+
 - Improve admin UX with better form layouts
 - Improve CTA button support across views
 - Update P0/P1/P2 audit items
@@ -1288,10 +1378,12 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.6 - January 24, 2026
 
 **Bugs Fixed:**
+
 - Fix sticky navigation jumping on scroll
 - Fix various UI settings bugs
 
 **New Features:**
+
 - Complete UI settings implementation
 
 **Pull Requests:** [#248](https://github.com/jesposito/Facet/pull/248)
@@ -1301,9 +1393,11 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.5 - January 24, 2026
 
 **Bugs Fixed:**
+
 - Fix sticky navigation behavior
 
 **New Features:**
+
 - Add UI setting to hide login button on public pages
 - Add demo mode toggle in settings
 
@@ -1314,10 +1408,12 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.4 - January 23, 2026
 
 **Bugs Fixed:**
+
 - Fix admin email display in startup logs
 - Fix Unraid template configuration
 
 **Other Changes:**
+
 - Remove Admin UI (Advanced) setting from Unraid template
 - Update Unraid template to match corrected version
 
@@ -1328,6 +1424,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.3 - January 21, 2026
 
 **Other Changes:**
+
 - Move Testimonials section below Your Information and Your Voice in sidebar
 
 **Pull Requests:** [#236](https://github.com/jesposito/Facet/pull/236)
@@ -1337,6 +1434,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.2 - January 21, 2026
 
 **Other Changes:**
+
 - Clarify profile help text about public content visibility
 
 **Pull Requests:** [#235](https://github.com/jesposito/Facet/pull/235)
@@ -1346,9 +1444,11 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.1 - January 21, 2026
 
 **Bugs Fixed:**
+
 - Fix SSR/proxy issues in view editor
 
 **Other Changes:**
+
 - Refactor view editor into smaller components for better maintainability
 
 **Pull Requests:** [#234](https://github.com/jesposito/Facet/pull/234)
@@ -1358,6 +1458,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.7.0 - January 21, 2026
 
 **New Features:**
+
 - Add resume/CV import functionality for new users
 - Import LinkedIn, JSON Resume, and other formats
 
@@ -1368,9 +1469,11 @@ All notable changes to Facet will be documented in this file.
 ## v2.6.1 - January 20, 2026
 
 **Bugs Fixed:**
+
 - Fix various view editor bugs
 
 **New Features:**
+
 - Add share token regeneration in view editor
 - Improve view editor delete functionality
 
@@ -1381,6 +1484,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.6.0 - January 20, 2026
 
 **New Features:**
+
 - Add delete functionality for views with Danger Zone confirmation
 - Add view deletion with proper cleanup
 
@@ -1391,6 +1495,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.5.2 - January 20, 2026
 
 **Bugs Fixed:**
+
 - Fix drag handle deselection in view editor
 - Fix item ordering bugs in view content
 
@@ -1401,10 +1506,12 @@ All notable changes to Facet will be documented in this file.
 ## v2.5.1 - January 20, 2026
 
 **New Features:**
+
 - Add per-view location override for hero section
 - Add view content ordering/reordering
 
 **Other Changes:**
+
 - Remove obsolete planning documentation
 - Update documentation for Testimonials feature
 
@@ -1415,6 +1522,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.5.0 - January 17, 2026
 
 **New Features:**
+
 - Add Testimonials feature for social proof collection
 - Collect and display client/colleague testimonials
 - Testimonial approval workflow
@@ -1426,6 +1534,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.4.0 - January 17, 2026
 
 **New Features:**
+
 - Add Quick Share to Social feature
 - One-click sharing to LinkedIn, Twitter, and other platforms
 
@@ -1436,6 +1545,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.3.0 - January 17, 2026
 
 **New Features:**
+
 - Add Setup Wizard for new user onboarding
 - Guided walkthrough for initial profile setup
 
@@ -1446,14 +1556,17 @@ All notable changes to Facet will be documented in this file.
 ## v2.2.0 - January 17, 2026
 
 **Bugs Fixed:**
+
 - Fix JWT tampering test reliability
 
 **New Features:**
+
 - Add Contextual Help for admin pages
 - Add Mobile UX overhaul for admin panel
 - Responsive admin interface improvements
 
 **Other Changes:**
+
 - Comprehensive roadmap update with new feature phases
 
 **Pull Requests:** [#212](https://github.com/jesposito/Facet/pull/212), [#211](https://github.com/jesposito/Facet/pull/211), [#210](https://github.com/jesposito/Facet/pull/210)
@@ -1463,11 +1576,13 @@ All notable changes to Facet will be documented in this file.
 ## v2.1.0 - January 16, 2026
 
 **Bugs Fixed:**
+
 - Fix menu display bug
 - Fix visibility access control issues
 - Fix Unraid template login credentials documentation
 
 **Other Changes:**
+
 - Remove DateInstalled tag for CA validation compliance
 - Add live demo link to documentation
 - Update framework versions in docs
@@ -1479,6 +1594,7 @@ All notable changes to Facet will be documented in this file.
 ## v2.0.0 - January 10, 2026
 
 **Bugs Fixed:**
+
 - Fix UX dialog system issues
 - Fix cookie security vulnerability (CVE-2024-47764)
 - Fix admin projects image 404s in demo mode
@@ -1488,6 +1604,7 @@ All notable changes to Facet will be documented in this file.
 - Fix view_visibility JSON parsing
 
 **New Features:**
+
 - Upgrade to Svelte 5 and Vite 7
 - Replace native confirm dialogs with accessible styled modals
 - Add per-view hero images
@@ -1497,6 +1614,7 @@ All notable changes to Facet will be documented in this file.
 - Add self-hosting guide
 
 **Other Changes:**
+
 - Fix esbuild security vulnerability via framework upgrade
 - Clean up Caddyfile configuration
 - Improve accessibility (a11y) throughout

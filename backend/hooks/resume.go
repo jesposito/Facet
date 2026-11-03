@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"facet/internal/textlimit"
 	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
@@ -59,10 +60,11 @@ func (rl *rateLimiter) allow(key string) bool {
 }
 
 // RegisterResumeHooks registers AI Print (resume generation) endpoints
-func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService) {
 	ai := services.NewAIService(crypto)
 	resume := services.NewResumeService(ai)
 	limiter := newRateLimiter(5, time.Hour) // 5 generations per hour per IP
+	purchaseService := services.NewPurchaseService(crypto)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
@@ -86,13 +88,16 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 
 		// Generate a resume from a view
 		// POST /api/view/{slug}/generate
-		// Public endpoint - allows recruiters to generate resumes from public views
+		// Visitors can generate from any view they could open: the same
+		// password token or share token that /data accepts works here.
 		se.Router.POST("/api/view/{slug}/generate", func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
+			isAuthenticated := e.Auth != nil
 
-			// Rate limit by IP (skip for authenticated users)
-			if e.Auth == nil {
-				clientIP := e.Request.RemoteAddr
+			// Rate limit by client address (skip for the site owner). Each
+			// generation costs an AI call and a LaTeX run.
+			if !isAuthenticated {
+				clientIP := services.ClientIP(e.Request)
 				if !limiter.allow(clientIP) {
 					log.Printf("[AI-PRINT] Rate limit exceeded for IP: %s", clientIP)
 					return e.JSON(http.StatusTooManyRequests, map[string]string{
@@ -101,20 +106,21 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				}
 			}
 
-			// Find the view
-			views, err := app.FindRecordsByFilter("views", "slug = {:slug}", "", 1, 0, map[string]interface{}{"slug": slug})
+			// Find the view. Visitors only reach active views, like /data.
+			filter := "slug = {:slug}"
+			if !isAuthenticated {
+				filter += " && is_active = true"
+			}
+			views, err := app.FindRecordsByFilter("views", filter, "", 1, 0, map[string]interface{}{"slug": slug})
 			if err != nil || len(views) == 0 {
 				log.Printf("[AI-PRINT] View not found: %s", slug)
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 			}
 			view := views[0]
 
-			// Check view visibility - only allow public/unlisted views for unauthenticated users
-			visibility := view.GetString("visibility")
-			isAuthenticated := e.Auth != nil
-			if !isAuthenticated && visibility != "public" && visibility != "unlisted" {
-				log.Printf("[AI-PRINT] Unauthorized access to non-public view: %s", slug)
-				return e.JSON(http.StatusForbidden, map[string]string{"error": "this view requires authentication"})
+			// Generating doesn't use up a share token; opening the view did.
+			if _, denial := checkViewAccess(app, crypto, share, e, view); denial != nil {
+				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
 
 			// Parse request body
@@ -141,7 +147,24 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 			if req.Length == "" {
 				req.Length = "two-page"
 			}
-
+			if req.Format != "pdf" && req.Format != "docx" {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "format must be pdf or docx"})
+			}
+			// Visitors get the site's default provider. Choosing one is an
+			// owner setting.
+			if !isAuthenticated {
+				req.ProviderID = ""
+			}
+			// These go into the AI prompt. Keep them to what the form needs.
+			req.TargetRole = textlimit.Bytes(req.TargetRole, 200)
+			req.Style = textlimit.Bytes(req.Style, 40)
+			req.Length = textlimit.Bytes(req.Length, 40)
+			if len(req.Emphasis) > 10 {
+				req.Emphasis = req.Emphasis[:10]
+			}
+			for i := range req.Emphasis {
+				req.Emphasis[i] = textlimit.Bytes(req.Emphasis[i], 100)
+			}
 
 			// Check Pandoc availability
 			if !resume.CheckPandocAvailable() {
@@ -183,7 +206,7 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 			}
 
 			// Fetch view data
-			viewData, err := collectViewData(app, view)
+			viewData, err := collectViewData(app, view, newContentAccess(app, purchaseService, e))
 			if err != nil {
 				log.Printf("[AI-PRINT] Failed to collect view data: %v", err)
 				exportRecord.Set("status", "failed")
@@ -231,7 +254,6 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				log.Printf("[AI-PRINT] Failed to save export record with file: %v", err)
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save export"})
 			}
-
 
 			// Build download URL
 			downloadURL := "/api/files/" + exportsCollection.Id + "/" + exportRecord.Id + "/" + exportRecord.GetString("file")
@@ -325,8 +347,10 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 	})
 }
 
-// collectViewData gathers all view data for resume generation
-func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.ViewData, error) {
+// collectViewData gathers the view's content for resume generation. Records
+// go through the same public projection as /api/view/{slug}/data, so the
+// prompt never holds a field the visitor couldn't already read on the page.
+func collectViewData(app *pocketbase.PocketBase, view *core.Record, access contentAccess) (*services.ViewData, error) {
 	viewData := &services.ViewData{
 		Profile:      make(map[string]interface{}),
 		Sections:     make(map[string][]map[string]interface{}),
@@ -341,8 +365,8 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.V
 		viewData.HeroSummary = summary
 	}
 
-	// Get profile
-	profileRecords, err := app.FindRecordsByFilter("profile", "", "", 1, 0, nil)
+	// Get profile (the same record /data shows)
+	profileRecords, err := app.FindRecordsByFilter("profile", "visibility != 'private'", "", 1, 0, nil)
 	if err == nil && len(profileRecords) > 0 {
 		profile := profileRecords[0]
 		viewData.Profile["name"] = profile.GetString("name")
@@ -412,30 +436,7 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record) (*services.V
 			}
 		}
 
-		// Convert records to maps with overrides applied
-		var sectionItems []map[string]interface{}
-		for _, record := range records {
-			item := make(map[string]interface{})
-
-			// Copy all fields
-			for key, value := range record.FieldsData() {
-				item[key] = value
-			}
-			item["id"] = record.Id
-
-			// Apply overrides if present
-			if overrides, hasOverrides := itemConfig[record.Id]; hasOverrides {
-				for key, value := range overrides {
-					if key != "id" && value != nil && value != "" {
-						item[key] = value
-					}
-				}
-			}
-
-			sectionItems = append(sectionItems, item)
-		}
-
-		viewData.Sections[sectionName] = sectionItems
+		viewData.Sections[sectionName] = serializeRecordsWithOverrides(app, records, itemConfig, sectionName, access)
 	}
 
 	return viewData, nil

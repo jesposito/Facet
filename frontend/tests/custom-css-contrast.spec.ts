@@ -24,7 +24,9 @@ test.describe('custom CSS contrast warning', () => {
 	});
 
 	test('parses rgb colors', () => {
-		const result = analyzeCustomCSSContrast('.hero { color: rgb(230, 230, 230); background-color: rgb(255, 255, 255); }');
+		const result = analyzeCustomCSSContrast(
+			'.hero { color: rgb(230, 230, 230); background-color: rgb(255, 255, 255); }'
+		);
 
 		expect(result.shouldWarn).toBe(true);
 		expect(result.lowContrastPairs).toBe(1);

@@ -32,29 +32,6 @@ var (
 	ErrIsDirectory  = errors.New("refusing to delete directories")
 )
 
-// libraryURLFields is the authoritative map of every collection + field that
-// references library media via a *_library_url field. It is the single source
-// of truth used both for reporting media usage (findLibraryURLUsage) and for
-// propagating a media replacement to every referencing record (replaceMedia).
-//
-// Each *_library_url field has a corresponding cached file field obtained by
-// stripping the "_library_url" suffix (e.g. cover_image_library_url ->
-// cover_image). The render path prefers the *_library_url value over the file
-// field, so repointing the URL is what actually moves the reference; the stale
-// cached file field is cleared so it can no longer shadow the new image.
-var libraryURLFields = map[string][]string{
-	"experience":     {"company_logo_library_url"},
-	"education":      {"institution_logo_library_url"},
-	"projects":       {"cover_image_library_url"},
-	"posts":          {"cover_image_library_url"},
-	"talks":          {"cover_image_library_url"},
-	"profile":        {"hero_image_library_url", "avatar_library_url"},
-	"views":          {"hero_image_library_url"},
-	"site_settings":  {"favicon_library_url"},
-	"custom_content": {"cover_image_library_url"},
-	"testimonials":   {"author_photo_library_url"},
-}
-
 // collectionsWithImageFields lists collections that have image file fields
 // and should have thumbnails generated automatically.
 var collectionsWithImageFields = []string{
@@ -1211,7 +1188,7 @@ func replaceLibraryURLReferences(app *pocketbase.PocketBase, oldURL, newURL stri
 	}
 
 	updated := 0
-	for collName, fields := range libraryURLFields {
+	for collName, fields := range services.LibraryURLFields {
 		collection, err := app.FindCollectionByNameOrId(collName)
 		if err != nil {
 			continue
@@ -1289,9 +1266,9 @@ func findLibraryURLUsage(app *pocketbase.PocketBase, fileURL string) services.Me
 	// Track already-added records to avoid duplicates
 	seen := make(map[string]bool)
 
-	// Collections and their library URL fields (shared package-level map, also
-	// used by replaceMedia for repointing references).
-	for collName, fields := range libraryURLFields {
+	// Collections and their library URL fields (shared with replaceMedia and
+	// orphaned upload cleanup).
+	for collName, fields := range services.LibraryURLFields {
 		collection, err := app.FindCollectionByNameOrId(collName)
 		if err != nil {
 			continue

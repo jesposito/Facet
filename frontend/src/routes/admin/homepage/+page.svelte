@@ -3,8 +3,8 @@
 
 	import { browser } from '$app/env';
 	import { onMount, onDestroy } from 'svelte';
-import { t } from 'svelte-i18n';
-import { brandName } from '$lib/stores/plan';
+	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { flip } from 'svelte/animate';
 	import { pb, type View, type CustomContent, VALID_LAYOUTS } from '$lib/pocketbase';
 	import { collection } from '$lib/stores/demo';
@@ -31,12 +31,24 @@ import { brandName } from '$lib/stores/plan';
 		if (typeof window === 'undefined') return;
 		const hash = window.location.hash;
 		const hashTargets: Record<string, () => void> = {
-			'#profile-section': () => { profileOpen = true; },
-			'#brand-section': () => { brandOpen = true; },
-			'#hero-section': () => { heroOpen = true; },
-			'#nav-section': () => { navOpen = true; },
-			'#section-order': () => { sectionOpen = true; },
-			'#visibility-section': () => { visibilityOpen = true; }
+			'#profile-section': () => {
+				profileOpen = true;
+			},
+			'#brand-section': () => {
+				brandOpen = true;
+			},
+			'#hero-section': () => {
+				heroOpen = true;
+			},
+			'#nav-section': () => {
+				navOpen = true;
+			},
+			'#section-order': () => {
+				sectionOpen = true;
+			},
+			'#visibility-section': () => {
+				visibilityOpen = true;
+			}
 		};
 		const expand = hashTargets[hash];
 		if (expand) {
@@ -59,7 +71,6 @@ import { brandName } from '$lib/stores/plan';
 		}
 	});
 
-
 	// Import DnD safely - only in browser (for site navigation reordering)
 	let navDndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
 	let NAV_DND_TRIGGERS: any = $state({});
@@ -81,7 +92,18 @@ import { brandName } from '$lib/stores/plan';
 	};
 
 	// Default section order
-	const DEFAULT_SECTION_ORDER = ['experience', 'projects', 'education', 'certifications', 'awards', 'skills', 'posts', 'talks', 'testimonials', 'contacts'];
+	const DEFAULT_SECTION_ORDER = [
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'testimonials',
+		'contacts'
+	];
 
 	// Homepage visibility settings
 	let settingsLoading = $state(true);
@@ -106,31 +128,37 @@ import { brandName } from '$lib/stores/plan';
 	let sectionOrder: Array<{ id: string; key: string }> = $state([]);
 
 	// Sections configuration - per-section settings
-	let sections: Record<string, {
-		enabled: boolean;
-		items: string[];
-		expanded: boolean;
-		layout: string;
-		width: string;
-		// Skills-specific settings
-		categoryOrder?: string[];
-		disabledCategories?: string[];
-		categoryDisplayModes?: Record<string, string>;
-		// Testimonials-specific: auto-include approved testimonials from this list (#283)
-		list?: string;
-	}> = $state({});
+	let sections: Record<
+		string,
+		{
+			enabled: boolean;
+			items: string[];
+			expanded: boolean;
+			layout: string;
+			width: string;
+			// Skills-specific settings
+			categoryOrder?: string[];
+			disabledCategories?: string[];
+			categoryDisplayModes?: Record<string, string>;
+			// Testimonials-specific: auto-include approved testimonials from this list (#283)
+			list?: string;
+		}
+	> = $state({});
 
 	// Available items for each section
-	let sectionItems: Record<string, Array<{
-		id: string;
-		label: string;
-		visibility: string;
-		is_draft?: boolean;
-		data: Record<string, unknown>;
-		expand?: {
-			admin_tags?: Array<{ id: string; name: string; color: string }>;
-		};
-	}>> = $state({});
+	let sectionItems: Record<
+		string,
+		Array<{
+			id: string;
+			label: string;
+			visibility: string;
+			is_draft?: boolean;
+			data: Record<string, unknown>;
+			expand?: {
+				admin_tags?: Array<{ id: string; name: string; color: string }>;
+			};
+		}>
+	> = $state({});
 
 	// Custom content for homepage
 	let customContentItems: CustomContent[] = $state([]);
@@ -194,7 +222,13 @@ import { brandName } from '$lib/stores/plan';
 			NAV_DND_TRIGGERS = trig;
 			navDndLoaded = true;
 		}
-		await Promise.all([loadSettings(), loadProfile(), loadCustomContent(), loadSectionItems(), loadPublicViews()]);
+		await Promise.all([
+			loadSettings(),
+			loadProfile(),
+			loadCustomContent(),
+			loadSectionItems(),
+			loadPublicViews()
+		]);
 		// Reconcile after all data is loaded — sectionOrder (from loadSettings) + customContentItems (from loadCustomContent) are both stable now
 		reconcileCustomContent();
 	});
@@ -324,7 +358,7 @@ import { brandName } from '$lib/stores/plan';
 	// This avoids a race condition where loadSettings overwrites sectionOrder after loadCustomContent
 	// has already added new custom items, or vice versa.
 	function reconcileCustomContent() {
-		const existingKeys = new Set(sectionOrder.map(s => s.key));
+		const existingKeys = new Set(sectionOrder.map((s) => s.key));
 		let nextId = sectionOrder.length;
 		for (const item of customContentItems) {
 			const key = `custom:${item.id}`;
@@ -360,8 +394,8 @@ import { brandName } from '$lib/stores/plan';
 					id: item.id,
 					label: getItemLabel(key, item as Record<string, unknown>),
 					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: (item as Record<string, unknown>).visibility as string || 'private',
-					is_draft: (item as Record<string, unknown>).is_draft as boolean || false,
+					visibility: ((item as Record<string, unknown>).visibility as string) || 'private',
+					is_draft: ((item as Record<string, unknown>).is_draft as boolean) || false,
 					data: item as Record<string, unknown>,
 					expand: (item as any).expand || {}
 				}));
@@ -397,7 +431,7 @@ import { brandName } from '$lib/stores/plan';
 			case 'testimonials':
 				return `${item.author_name}${item.author_company ? ` - ${item.author_company}` : ''}`;
 			default:
-				return item.title as string || item.name as string || item.id as string;
+				return (item.title as string) || (item.name as string) || (item.id as string);
 		}
 	}
 
@@ -466,11 +500,16 @@ import { brandName } from '$lib/stores/plan';
 				ctaButtonText = (profile.cta_button_text as string) || '';
 				heroLayout = (profile.hero_layout as string) || '';
 				heroSpacing = (profile.hero_spacing as string) || '';
-				heroBgColor = ((profile as unknown as { hero_bg_color?: string }).hero_bg_color) || '';
-				accentColor = ((profile as unknown as { accent_color?: string }).accent_color as AccentColor) || DEFAULT_ACCENT_COLOR;
-				customHexColor = (profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
+				heroBgColor = (profile as unknown as { hero_bg_color?: string }).hero_bg_color || '';
+				accentColor =
+					((profile as unknown as { accent_color?: string }).accent_color as AccentColor) ||
+					DEFAULT_ACCENT_COLOR;
+				customHexColor =
+					(profile as unknown as { custom_hex_color?: string }).custom_hex_color || '';
 				textColor = (profile as unknown as { text_color?: string }).text_color || '';
-				fontPack = ((profile as unknown as { font_pack?: string }).font_pack as FontPack) || DEFAULT_FONT_PACK;
+				fontPack =
+					((profile as unknown as { font_pack?: string }).font_pack as FontPack) ||
+					DEFAULT_FONT_PACK;
 
 				if (profile.avatar) {
 					avatarUrl = `/api/files/${profile.collectionId}/${profile.id}/${profile.avatar}`;
@@ -484,8 +523,8 @@ import { brandName } from '$lib/stores/plan';
 			const views = await collection('views').getList(1, 100, {
 				$cancelKey: 'homepage-views-overrides'
 			});
-			viewsOverridingHeadline = (views.items as unknown as View[]).filter(v => v.hero_headline);
-			viewsOverridingSummary = (views.items as unknown as View[]).filter(v => v.hero_summary);
+			viewsOverridingHeadline = (views.items as unknown as View[]).filter((v) => v.hero_headline);
+			viewsOverridingSummary = (views.items as unknown as View[]).filter((v) => v.hero_summary);
 		} catch (err) {
 			console.error('Failed to load profile:', err);
 		} finally {
@@ -615,19 +654,22 @@ import { brandName } from '$lib/stores/plan';
 			}
 
 			// Save section order and section configuration
-			const orderKeys = sectionOrder.map(s => s.key);
+			const orderKeys = sectionOrder.map((s) => s.key);
 
 			// Build homepage_sections for API (without expanded state, only persistent config)
-			const homepageSections: Record<string, {
-				enabled: boolean;
-				items: string[];
-				layout: string;
-				width: string;
-				categoryOrder?: string[];
-				disabledCategories?: string[];
-				categoryDisplayModes?: Record<string, string>;
-				list?: string;
-			}> = {};
+			const homepageSections: Record<
+				string,
+				{
+					enabled: boolean;
+					items: string[];
+					layout: string;
+					width: string;
+					categoryOrder?: string[];
+					disabledCategories?: string[];
+					categoryDisplayModes?: Record<string, string>;
+					list?: string;
+				}
+			> = {};
 			for (const [key, config] of Object.entries(sections)) {
 				homepageSections[key] = {
 					enabled: config.enabled,
@@ -653,13 +695,13 @@ import { brandName } from '$lib/stores/plan';
 
 			// Also build homepage_custom_content for backwards compatibility
 			const customContentConfig = customContentItems
-				.filter(item => {
+				.filter((item) => {
 					const sectionKey = `custom:${item.id}`;
 					return sections[sectionKey]?.enabled !== false;
 				})
-				.map(item => ({ id: item.id, enabled: true }));
+				.map((item) => ({ id: item.id, enabled: true }));
 
-			await fetch('/api/site-settings', {
+			const settingsResponse = await fetch('/api/site-settings', {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
@@ -677,6 +719,15 @@ import { brandName } from '$lib/stores/plan';
 					site_nav_items: siteNavItems
 				})
 			});
+			if (!settingsResponse.ok) {
+				const result = (await settingsResponse.json().catch(() => null)) as {
+					error?: unknown;
+				} | null;
+				const detail = typeof result?.error === 'string' ? ` ${result.error}` : '';
+				throw new Error(
+					`Failed to save homepage settings. Your profile changes were saved, but homepage settings were not.${detail}`
+				);
+			}
 
 			toasts.add('success', 'Homepage saved successfully');
 
@@ -698,7 +749,9 @@ import { brandName } from '$lib/stores/plan';
 			// Show detailed error for PocketBase ClientResponseError
 			const pbErr = err as { status?: number; data?: Record<string, unknown>; message?: string };
 			if (pbErr.status === 400 && pbErr.data && Object.keys(pbErr.data).length > 0) {
-				const details = Object.entries(pbErr.data).map(([k, v]) => `${k}: ${(v as { message?: string })?.message || v}`).join(', ');
+				const details = Object.entries(pbErr.data)
+					.map(([k, v]) => `${k}: ${(v as { message?: string })?.message || v}`)
+					.join(', ');
 				toasts.add('error', `Failed to save: ${details}`);
 			} else if (pbErr.status === 403 || pbErr.status === 401) {
 				toasts.add('error', 'Session expired. Please refresh the page and try again.');
@@ -787,9 +840,7 @@ import { brandName } from '$lib/stores/plan';
 	}
 
 	// Site navigation helpers - use derived state for reactivity
-	let navItemsByViewId = $derived(
-		new Map(siteNavItems.map(item => [item.viewId, item]))
-	);
+	let navItemsByViewId = $derived(new Map(siteNavItems.map((item) => [item.viewId, item])));
 
 	// Ordered nav items for DnD - this is a $state array that DnD can mutate directly
 	type OrderedNavItem = { id: string; viewId: string; view: View };
@@ -798,7 +849,7 @@ import { brandName } from '$lib/stores/plan';
 
 	// Build the ordered nav items list from current state
 	function buildOrderedNavItems(): OrderedNavItem[] {
-		const viewsById = new Map(publicViews.map(v => [v.id, v]));
+		const viewsById = new Map(publicViews.map((v) => [v.id, v]));
 		const result: OrderedNavItem[] = [];
 		const seenViewIds = new Set<string>();
 
@@ -838,39 +889,41 @@ import { brandName } from '$lib/stores/plan';
 	}
 
 	// DnD handlers for site navigation reordering
-	function handleNavDndConsider(e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>) {
+	function handleNavDndConsider(
+		e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>
+	) {
 		// Just update the display array during drag - don't touch siteNavItems yet
 		orderedNavItems = e.detail.items;
 	}
 
-	function handleNavDndFinalize(e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>) {
-		// Update the display array
+	async function handleNavDndFinalize(
+		e: CustomEvent<{ items: OrderedNavItem[]; info: { trigger: string } }>
+	) {
+		const previousItems = siteNavItems.map((item) => ({ ...item }));
 		orderedNavItems = e.detail.items;
-
-		// Now sync back to siteNavItems and save
 		syncNavItemsFromDisplay();
-		saveSiteNavSettings();
+		if (!(await saveSiteNavSettings())) {
+			siteNavItems = previousItems;
+			orderedNavItems = buildOrderedNavItems();
+		}
 	}
 
 	function syncNavItemsFromDisplay() {
 		// Rebuild siteNavItems in the new order from orderedNavItems, preserving enabled/label state
-		const currentNavItemsByViewId = new Map(siteNavItems.map(item => [item.viewId, item]));
+		const currentNavItemsByViewId = new Map(siteNavItems.map((item) => [item.viewId, item]));
 		const newNavItems: typeof siteNavItems = [];
 		for (const item of orderedNavItems) {
 			const existing = currentNavItemsByViewId.get(item.viewId);
 			if (existing) {
-				// Keep existing state
 				newNavItems.push({ ...existing });
 			} else {
-				// New item - not yet in siteNavItems, add with defaults
 				newNavItems.push({ viewId: item.viewId, enabled: false, label: '' });
 			}
 		}
 		siteNavItems = newNavItems;
 	}
 
-	// Save site nav settings immediately to database
-	async function saveSiteNavSettings() {
+	async function saveSiteNavSettings(): Promise<boolean> {
 		try {
 			const response = await fetch('/api/site-settings', {
 				method: 'PUT',
@@ -889,43 +942,51 @@ import { brandName } from '$lib/stores/plan';
 			});
 
 			if (!response.ok) {
-				const result = await response.json();
-				toasts.add('error', result.error || 'Failed to save site nav settings');
+				const result = (await response.json().catch(() => null)) as { error?: unknown } | null;
+				console.error('Failed to save site nav settings:', result?.error || response.status);
+				toasts.add('error', 'Failed to save site nav settings');
+				return false;
 			}
+			return true;
 		} catch (err) {
 			console.error('Failed to save site nav settings:', err);
 			toasts.add('error', 'Failed to save site nav settings');
+			return false;
 		}
 	}
 
 	async function toggleSiteNavEnabled() {
-		siteNavEnabled = !siteNavEnabled;
-		await saveSiteNavSettings();
+		const previous = siteNavEnabled;
+		siteNavEnabled = !previous;
+		if (!(await saveSiteNavSettings())) siteNavEnabled = previous;
 	}
 
 	async function toggleSiteCtaEnabled() {
-		siteCtaEnabled = !siteCtaEnabled;
-		await saveSiteNavSettings();
+		const previous = siteCtaEnabled;
+		siteCtaEnabled = !previous;
+		if (!(await saveSiteNavSettings())) siteCtaEnabled = previous;
 	}
 
 	async function toggleFooterCtaEnabled() {
-		footerCtaEnabled = !footerCtaEnabled;
-		await saveSiteNavSettings();
+		const previous = footerCtaEnabled;
+		footerCtaEnabled = !previous;
+		if (!(await saveSiteNavSettings())) footerCtaEnabled = previous;
 	}
 
 	async function toggleNavItem(viewId: string) {
-		const existing = siteNavItems.find(item => item.viewId === viewId);
+		const previousItems = siteNavItems.map((item) => ({ ...item }));
+		const existing = siteNavItems.find((item) => item.viewId === viewId);
 		if (existing) {
 			existing.enabled = !existing.enabled;
 			siteNavItems = [...siteNavItems];
 		} else {
 			siteNavItems = [...siteNavItems, { viewId, enabled: true, label: '' }];
 		}
-		await saveSiteNavSettings();
+		if (!(await saveSiteNavSettings())) siteNavItems = previousItems;
 	}
 
 	async function updateNavItemLabel(viewId: string, label: string) {
-		const existing = siteNavItems.find(item => item.viewId === viewId);
+		const existing = siteNavItems.find((item) => item.viewId === viewId);
 		if (existing) {
 			existing.label = label;
 			siteNavItems = [...siteNavItems];
@@ -942,8 +1003,12 @@ import { brandName } from '$lib/stores/plan';
 
 <div class="max-w-3xl mx-auto">
 	<!-- Sticky save header (cloud parity) -->
-	<div class="sticky top-16 z-10 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 px-4 py-3 -mx-4 -mt-4 lg:-mt-6 mb-6">
-		<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 max-w-3xl mx-auto">
+	<div
+		class="sticky top-16 z-10 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm border-b border-stone-200 dark:border-stone-700 px-4 py-3 -mx-4 -mt-4 lg:-mt-6 mb-6"
+	>
+		<div
+			class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 max-w-3xl mx-auto"
+		>
 			<div class="min-w-0">
 				<div class="flex items-baseline gap-3">
 					<h1 class="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white">Homepage</h1>
@@ -953,12 +1018,33 @@ import { brandName } from '$lib/stores/plan';
 				</p>
 			</div>
 			<div class="flex items-center gap-2 shrink-0">
-				<a href="/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm sm:btn-md">View</a>
+				<a
+					href="/"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="btn btn-secondary btn-sm sm:btn-md">View</a
+				>
 				<button type="button" class="btn btn-primary" disabled={saving} onclick={handleSubmit}>
 					{#if saving}
-						<svg class="animate-spin -ml-1 mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+						<svg
+							class="animate-spin -ml-1 mr-1 h-4 w-4"
+							fill="none"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 					{/if}
 					Save Homepage
@@ -969,8 +1055,14 @@ import { brandName } from '$lib/stores/plan';
 
 	<PageHelp pageKey="homepage">
 		<p><strong>Homepage</strong> controls what visitors see at your root URL.</p>
-		<p>Enable or disable public access, customize the landing page message for when your site is hidden, and edit your core profile information that appears across all facets.</p>
-		<p><strong>Tip:</strong> Hide your homepage while building your profile, then enable it when you're ready to go live.</p>
+		<p>
+			Enable or disable public access, customize the landing page message for when your site is
+			hidden, and edit your core profile information that appears across all facets.
+		</p>
+		<p>
+			<strong>Tip:</strong> Hide your homepage while building your profile, then enable it when you're
+			ready to go live.
+		</p>
 	</PageHelp>
 
 	<!-- Profile Section -->
@@ -1012,11 +1104,17 @@ import { brandName } from '$lib/stores/plan';
 								placeholder="e.g., Senior Software Engineer at Company"
 							/>
 							{#if viewsOverridingHeadline.length > 0}
-								<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+								<div
+									class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md"
+								>
 									<p class="text-sm text-amber-800 dark:text-amber-200">
-										<strong>Note:</strong> {viewsOverridingHeadline.length === 1 ? 'This view has' : 'These views have'} a custom headline that overrides this value:
+										<strong>Note:</strong>
+										{viewsOverridingHeadline.length === 1 ? 'This view has' : 'These views have'} a custom
+										headline that overrides this value:
 										{#each viewsOverridingHeadline as view, i}
-											<a href="/admin/views/{view.id}" class="underline hover:no-underline">{view.name}</a>{i < viewsOverridingHeadline.length - 1 ? ', ' : ''}
+											<a href="/admin/views/{view.id}" class="underline hover:no-underline"
+												>{view.name}</a
+											>{i < viewsOverridingHeadline.length - 1 ? ', ' : ''}
 										{/each}
 									</p>
 								</div>
@@ -1044,14 +1142,25 @@ import { brandName } from '$lib/stores/plan';
 									on:apply={(e) => (summary = e.detail.content)}
 								/>
 							</div>
-							<MarkdownEditor bind:value={summary} toolbar="compact" minHeight="150px" placeholder="Tell your story... (Markdown supported)" />
+							<MarkdownEditor
+								bind:value={summary}
+								toolbar="compact"
+								minHeight="150px"
+								placeholder="Tell your story... (Markdown supported)"
+							/>
 							<p class="text-xs text-gray-500 mt-1">Markdown formatting is supported</p>
 							{#if viewsOverridingSummary.length > 0}
-								<div class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+								<div
+									class="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md"
+								>
 									<p class="text-sm text-amber-800 dark:text-amber-200">
-										<strong>Note:</strong> {viewsOverridingSummary.length === 1 ? 'This view has' : 'These views have'} a custom summary that overrides this value:
+										<strong>Note:</strong>
+										{viewsOverridingSummary.length === 1 ? 'This view has' : 'These views have'} a custom
+										summary that overrides this value:
 										{#each viewsOverridingSummary as view, i}
-											<a href="/admin/views/{view.id}" class="underline hover:no-underline">{view.name}</a>{i < viewsOverridingSummary.length - 1 ? ', ' : ''}
+											<a href="/admin/views/{view.id}" class="underline hover:no-underline"
+												>{view.name}</a
+											>{i < viewsOverridingSummary.length - 1 ? ', ' : ''}
 										{/each}
 									</p>
 								</div>
@@ -1072,7 +1181,9 @@ import { brandName } from '$lib/stores/plan';
 							</div>
 
 							{#if contactLinks.length === 0}
-								<p class="text-gray-500 dark:text-gray-400 text-sm">Add links to help people reach you.</p>
+								<p class="text-gray-500 dark:text-gray-400 text-sm">
+									Add links to help people reach you.
+								</p>
 							{:else}
 								<div class="space-y-3">
 									{#each contactLinks as link, i}
@@ -1116,12 +1227,16 @@ import { brandName } from '$lib/stores/plan';
 						<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
 							<div class="flex items-start justify-between gap-4">
 								<div class="flex-1">
-									<h4 class="text-base font-semibold text-gray-900 dark:text-white mb-1">Call to Action</h4>
+									<h4 class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+										Call to Action
+									</h4>
 									<p class="text-sm text-gray-600 dark:text-gray-400">
 										{#if siteCtaEnabled}
 											Add a prominent banner to your homepage and public facets.
 										{:else}
-											The call-to-action is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span> site-wide.
+											The call-to-action is <span
+												class="font-medium text-amber-600 dark:text-amber-400">hidden</span
+											> site-wide.
 										{/if}
 									</p>
 								</div>
@@ -1133,14 +1248,19 @@ import { brandName } from '$lib/stores/plan';
 										onchange={toggleSiteCtaEnabled}
 										disabled={settingsLoading}
 									/>
-									<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+									<div
+										class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+									></div>
 								</label>
 							</div>
 
 							<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
 								<div class="flex items-start justify-between gap-4">
 									<div class="flex-1">
-										<h4 id="footer-cta-label" class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+										<h4
+											id="footer-cta-label"
+											class="text-base font-semibold text-gray-900 dark:text-white mb-1"
+										>
 											{$t('admin.homepage.footer_cta_title')}
 										</h4>
 										<p class="text-sm text-gray-600 dark:text-gray-400">
@@ -1160,7 +1280,9 @@ import { brandName } from '$lib/stores/plan';
 											disabled={settingsLoading}
 											aria-labelledby="footer-cta-label"
 										/>
-										<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+										<div
+											class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+										></div>
 									</label>
 								</div>
 							</div>
@@ -1225,15 +1347,20 @@ import { brandName } from '$lib/stores/plan';
 							onhexchange={(hex) => saveCustomHexColor(hex)}
 						/>
 						<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-							<TextColorPicker
-								value={textColor}
-								onchange={(hex) => saveTextColor(hex)}
-							/>
+							<TextColorPicker value={textColor} onchange={(hex) => saveTextColor(hex)} />
 						</div>
 						<div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-							<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">{$t('admin.homepage.font_pack_title')}</span>
-							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.font_pack_description')}</p>
-							<div class="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label={$t('admin.homepage.font_pack_title')}>
+							<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1"
+								>{$t('admin.homepage.font_pack_title')}</span
+							>
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+								{$t('admin.homepage.font_pack_description')}
+							</p>
+							<div
+								class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+								role="radiogroup"
+								aria-label={$t('admin.homepage.font_pack_title')}
+							>
 								{#each FONT_PACK_LIST as packName (packName)}
 									{@const pack = FONT_PACKS[packName]}
 									{@const isChecked = fontPack === packName}
@@ -1244,16 +1371,25 @@ import { brandName } from '$lib/stores/plan';
 										onclick={() => saveFontPack(packName)}
 										class="flex flex-col items-start gap-2 p-4 rounded-lg border-2 text-start transition-colors min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 dark:focus-visible:ring-primary-400
 											{isChecked
-												? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
-												: 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'}"
+											? 'border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800'
+											: 'border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500'}"
 									>
-										<span class="text-base font-semibold" style="font-family: '{pack.heading}', {pack.headingFallback}">
+										<span
+											class="text-base font-semibold"
+											style="font-family: '{pack.heading}', {pack.headingFallback}"
+										>
 											{pack.label}
 										</span>
-										<span class="text-xs text-gray-500 dark:text-gray-400" style="font-family: '{pack.body}', {pack.bodyFallback}">
+										<span
+											class="text-xs text-gray-500 dark:text-gray-400"
+											style="font-family: '{pack.body}', {pack.bodyFallback}"
+										>
 											{pack.description}
 										</span>
-										<span class="text-xs text-gray-400 dark:text-gray-500" style="font-family: '{pack.code}', {pack.codeFallback}">
+										<span
+											class="text-xs text-gray-400 dark:text-gray-500"
+											style="font-family: '{pack.code}', {pack.codeFallback}"
+										>
 											{pack.heading} · {pack.body} · {pack.code}
 										</span>
 									</button>
@@ -1273,358 +1409,463 @@ import { brandName } from '$lib/stores/plan';
 					iconPath="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
 				>
 					<div class="space-y-6">
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-					<div>
-						<span class="label">Avatar</span>
-						<div class="flex items-start gap-4">
-							<div class="relative">
-								{#if avatarUrl}
-									<img
-										src={avatarUrl}
-										alt="Avatar"
-										class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
-									/>
-								<button
-									type="button"
-									onclick={removeAvatar}
-									class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-									title="Remove avatar"
-								>
-									{@html icon('x')}
-								</button>
-							{:else}
-								<div class="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
-									{@html icon('image')}
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+							<div>
+								<span class="label">Avatar</span>
+								<div class="flex items-start gap-4">
+									<div class="relative">
+										{#if avatarUrl}
+											<img
+												src={avatarUrl}
+												alt="Avatar"
+												class="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+											/>
+											<button
+												type="button"
+												onclick={removeAvatar}
+												class="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+												title="Remove avatar"
+											>
+												{@html icon('x')}
+											</button>
+										{:else}
+											<div
+												class="w-24 h-24 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400"
+											>
+												{@html icon('image')}
+											</div>
+										{/if}
+									</div>
+									<div class="flex-1">
+										<input
+											type="file"
+											id="avatar"
+											accept="image/jpeg,image/png,image/webp,image/svg+xml"
+											onchange={handleAvatarChange}
+											class="hidden"
+										/>
+										<label for="avatar" class="btn btn-secondary btn-sm cursor-pointer">
+											{avatarUrl ? 'Change' : 'Upload'} Avatar
+										</label>
+										<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+											JPG, PNG, WebP or SVG. Max 5MB.
+										</p>
+									</div>
 								</div>
+							</div>
+
+							<div>
+								<span class="label">Hero Image</span>
+								<div class="space-y-3">
+									{#if heroImageUrl}
+										<div class="relative">
+											<img
+												src={heroImageUrl}
+												alt="Hero"
+												class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+											/>
+											<button
+												type="button"
+												onclick={removeHeroImage}
+												class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+												title="Remove hero image"
+											>
+												{@html icon('x')}
+											</button>
+										</div>
+									{:else}
+										<div
+											class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400"
+										>
+											{@html icon('image')}
+										</div>
+									{/if}
+									<div>
+										<input
+											type="file"
+											id="hero_image"
+											accept="image/jpeg,image/png,image/webp,image/gif"
+											onchange={handleHeroImageChange}
+											class="hidden"
+										/>
+										<label for="hero_image" class="btn btn-secondary btn-sm cursor-pointer">
+											{heroImageUrl ? 'Change' : 'Upload'} Hero Image
+										</label>
+										<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+											JPG, PNG, WebP or GIF. Max 10MB.
+										</p>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Hero Layout -->
+						<div class="pt-4">
+							<span class="label mb-3 block"
+								>{$t('admin.settings_page.appearance.hero_layout_title')}</span
+							>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="group"
+								aria-label={$t('admin.settings_page.appearance.hero_layout_title')}
+							>
+								{#each heroLayoutOptions as layoutOption}
+									<button
+										type="button"
+										class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11
+								{heroLayout === layoutOption.id
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+										onclick={() => (heroLayout = layoutOption.id)}
+										aria-pressed={heroLayout === layoutOption.id}
+									>
+										{$t(layoutOption.labelKey)}
+									</button>
+								{/each}
+							</div>
+							<p class="text-xs text-gray-500 mt-2">
+								{$t('admin.settings_page.appearance.hero_layout_description')}
+							</p>
+						</div>
+
+						<!-- Hero Spacing -->
+						<div class="pt-4">
+							<span class="label mb-1 block">{$t('admin.homepage.hero_spacing_title')}</span>
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+								{$t('admin.homepage.hero_spacing_description')}
+							</p>
+							<div
+								class="flex flex-wrap items-center gap-2"
+								role="group"
+								aria-label={$t('admin.homepage.hero_spacing_title')}
+							>
+								{#each heroSpacingOptions as spacingOption}
+									<button
+										type="button"
+										class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11
+								{(heroSpacing || 'default') === spacingOption.id
+											? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
+											: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
+										onclick={() => (heroSpacing = spacingOption.id)}
+										aria-pressed={(heroSpacing || 'default') === spacingOption.id}
+									>
+										{$t(spacingOption.labelKey)}
+									</button>
+								{/each}
+							</div>
+						</div>
+
+						<!-- Hero Background Color (used when no hero image is set) -->
+						<div class="pt-4">
+							<label for="hero-bg-color" class="label mb-1 block"
+								>{$t('admin.homepage.hero_bg_color_title')}</label
+							>
+							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+								{$t('admin.homepage.hero_bg_color_description')}
+							</p>
+							<div class="flex items-center gap-2">
+								<span
+									class="inline-block w-11 h-11 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0"
+									style="background-color: {heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor)
+										? heroBgColor
+										: '#1f2937'}"
+									aria-hidden="true"
+								></span>
+								<input
+									id="hero-bg-color"
+									type="text"
+									bind:value={heroBgColor}
+									onblur={() => {
+										const trimmed = heroBgColor.trim();
+										if (trimmed && !/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
+											heroBgError = $t('admin.accent_picker.custom_invalid');
+										} else {
+											heroBgError = '';
+											if (trimmed && !trimmed.startsWith('#')) heroBgColor = '#' + trimmed;
+										}
+									}}
+									placeholder="#1f2937"
+									maxlength="7"
+									spellcheck="false"
+									autocomplete="off"
+									autocapitalize="off"
+									autocorrect="off"
+									aria-invalid={heroBgError !== ''}
+									aria-describedby="hero-bg-error"
+									class="input flex-1 font-mono"
+								/>
+								{#if heroBgColor}
+									<button
+										type="button"
+										onclick={() => {
+											heroBgColor = '';
+											heroBgError = '';
+										}}
+										class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-11"
+									>
+										{$t('admin.accent_picker.reset')}
+									</button>
 								{/if}
 							</div>
-							<div class="flex-1">
-								<input
-									type="file"
-									id="avatar"
-									accept="image/jpeg,image/png,image/webp,image/svg+xml"
-									onchange={handleAvatarChange}
-									class="hidden"
-								/>
-								<label for="avatar" class="btn btn-secondary btn-sm cursor-pointer">
-									{avatarUrl ? 'Change' : 'Upload'} Avatar
-								</label>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-									JPG, PNG, WebP or SVG. Max 5MB.
-								</p>
-							</div>
+							<p
+								id="hero-bg-error"
+								role="status"
+								aria-live="polite"
+								aria-atomic="true"
+								class="text-sm text-red-600 dark:text-red-400 mt-1 min-h-[1.25rem]"
+							>
+								{heroBgError}
+							</p>
 						</div>
-					</div>
-
-					<div>
-						<span class="label">Hero Image</span>
-						<div class="space-y-3">
-							{#if heroImageUrl}
-								<div class="relative">
-									<img
-										src={heroImageUrl}
-										alt="Hero"
-										class="w-full h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
-									/>
-								<button
-									type="button"
-									onclick={removeHeroImage}
-									class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-									title="Remove hero image"
-								>
-									{@html icon('x')}
-								</button>
-							</div>
-						{:else}
-							<div class="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-400">
-								{@html icon('image')}
-							</div>
-							{/if}
-							<div>
-								<input
-									type="file"
-									id="hero_image"
-									accept="image/jpeg,image/png,image/webp,image/gif"
-									onchange={handleHeroImageChange}
-									class="hidden"
-								/>
-								<label for="hero_image" class="btn btn-secondary btn-sm cursor-pointer">
-									{heroImageUrl ? 'Change' : 'Upload'} Hero Image
-								</label>
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-									JPG, PNG, WebP or GIF. Max 10MB.
-								</p>
-							</div>
-						</div>
-					</div>
-				</div>
-
-			<!-- Hero Layout -->
-			<div class="pt-4">
-				<span class="label mb-3 block">{$t('admin.settings_page.appearance.hero_layout_title')}</span>
-				<div class="flex flex-wrap items-center gap-2" role="group" aria-label={$t('admin.settings_page.appearance.hero_layout_title')}>
-					{#each heroLayoutOptions as layoutOption}
-						<button
-							type="button"
-							class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11
-								{heroLayout === layoutOption.id
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => heroLayout = layoutOption.id}
-							aria-pressed={heroLayout === layoutOption.id}
-						>
-							{$t(layoutOption.labelKey)}
-						</button>
-					{/each}
-				</div>
-				<p class="text-xs text-gray-500 mt-2">
-					{$t('admin.settings_page.appearance.hero_layout_description')}
-				</p>
-			</div>
-
-			<!-- Hero Spacing -->
-			<div class="pt-4">
-				<span class="label mb-1 block">{$t('admin.homepage.hero_spacing_title')}</span>
-				<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.hero_spacing_description')}</p>
-				<div class="flex flex-wrap items-center gap-2" role="group" aria-label={$t('admin.homepage.hero_spacing_title')}>
-					{#each heroSpacingOptions as spacingOption}
-						<button
-							type="button"
-							class="px-3 py-2 rounded-lg border transition-all text-sm min-h-11
-								{(heroSpacing || 'default') === spacingOption.id
-								? 'border-gray-900 dark:border-white bg-gray-100 dark:bg-gray-800 font-medium'
-								: 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'}"
-							onclick={() => heroSpacing = spacingOption.id}
-							aria-pressed={(heroSpacing || 'default') === spacingOption.id}
-						>
-							{$t(spacingOption.labelKey)}
-						</button>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Hero Background Color (used when no hero image is set) -->
-			<div class="pt-4">
-				<label for="hero-bg-color" class="label mb-1 block">{$t('admin.homepage.hero_bg_color_title')}</label>
-				<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.hero_bg_color_description')}</p>
-				<div class="flex items-center gap-2">
-					<span
-						class="inline-block w-11 h-11 rounded-lg border border-gray-300 dark:border-gray-600 shrink-0"
-						style="background-color: {heroBgColor && /^#[0-9a-fA-F]{6}$/.test(heroBgColor) ? heroBgColor : '#1f2937'}"
-						aria-hidden="true"
-					></span>
-					<input
-						id="hero-bg-color"
-						type="text"
-						bind:value={heroBgColor}
-						onblur={() => {
-							const trimmed = heroBgColor.trim();
-							if (trimmed && !/^#?[0-9a-fA-F]{6}$/.test(trimmed)) {
-								heroBgError = $t('admin.accent_picker.custom_invalid');
-							} else {
-								heroBgError = '';
-								if (trimmed && !trimmed.startsWith('#')) heroBgColor = '#' + trimmed;
-							}
-						}}
-						placeholder="#1f2937"
-						maxlength="7"
-						spellcheck="false"
-						autocomplete="off"
-						autocapitalize="off"
-						autocorrect="off"
-						aria-invalid={heroBgError !== ''}
-						aria-describedby="hero-bg-error"
-						class="input flex-1 font-mono"
-					/>
-					{#if heroBgColor}
-						<button
-							type="button"
-							onclick={() => { heroBgColor = ''; heroBgError = ''; }}
-							class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-h-11"
-						>
-							{$t('admin.accent_picker.reset')}
-						</button>
-					{/if}
-				</div>
-				<p
-					id="hero-bg-error"
-					role="status"
-					aria-live="polite"
-					aria-atomic="true"
-					class="text-sm text-red-600 dark:text-red-400 mt-1 min-h-[1.25rem]"
-				>{heroBgError}</p>
-			</div>
 					</div>
 				</AccordionSection>
 			</div>
 
 			<!-- Site Navigation (collapsible) -->
-		<div id="nav-section">
-			<AccordionSection
-				title="Site Navigation"
-				description="Turn your Facet into a multi-page website. Navigation buttons appear on your homepage and all public facets."
-				bind:open={navOpen}
-				iconPath="M4 6h16M4 12h16M4 18h7"
-			>
-				{#snippet badge()}
-					<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {siteNavEnabled ? 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300' : 'bg-stone-100 text-stone-700 dark:bg-stone-700 dark:text-stone-300'}">
-						{siteNavEnabled ? `On · ${enabledNavCount}` : 'Off'}
-					</span>
-				{/snippet}
-				<div class="space-y-4">
-				<div class="flex items-start justify-between gap-4">
-					<div class="flex-1">
-						<p class="text-sm text-gray-600 dark:text-gray-400">
-							{#if siteNavEnabled}
-								Navigation is <span class="font-medium text-primary-600 dark:text-primary-400">enabled</span> with {enabledNavCount} facet{enabledNavCount === 1 ? '' : 's'} active.
-							{:else}
-								Navigation is <span class="font-medium text-stone-500 dark:text-stone-400">disabled</span>. Toggle to enable.
-							{/if}
-						</p>
-					</div>
-					<label class="relative inline-flex items-center cursor-pointer">
-						<input
-							type="checkbox"
-							class="sr-only peer"
-							checked={siteNavEnabled}
-							onchange={toggleSiteNavEnabled}
-							disabled={settingsLoading}
-							aria-label="Enable site navigation"
-						/>
-						<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-					</label>
-				</div>
-
-				{#if siteNavEnabled}
-					<!-- Navigation Style (bar vs chips) -->
-					<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-						<div class="mb-6">
-							<span class="block text-sm font-medium text-gray-900 dark:text-white mb-1">{$t('admin.homepage.nav_mode_title')}</span>
-							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.nav_mode_description')}</p>
-							<div class="flex flex-wrap gap-2" role="radiogroup" aria-label={$t('admin.homepage.nav_mode_title')}>
-								{#each ['bar', 'chips'] as modeOption}
-									<button
-										type="button"
-										role="radio"
-										aria-checked={siteNavMode === modeOption}
-										onclick={() => { siteNavMode = modeOption; saveSiteNavSettings(); }}
-										class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-11
-											{siteNavMode === modeOption
-												? 'bg-primary-600 text-white border-primary-600'
-												: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}"
-									>
-										<span class="block font-medium">{$t(`admin.homepage.nav_mode_${modeOption}`)}</span>
-										<span class="block text-xs opacity-80">{$t(`admin.homepage.nav_mode_${modeOption}_description`)}</span>
-									</button>
-								{/each}
-							</div>
-						</div>
-
-						<!-- Navigation Position (above vs below hero) -->
-						<div class="mb-4">
-							<span class="block text-sm font-medium text-gray-900 dark:text-white mb-1">{$t('admin.homepage.nav_position_title')}</span>
-							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{$t('admin.homepage.nav_position_description')}</p>
-							<div class="flex flex-wrap gap-2" role="radiogroup" aria-label={$t('admin.homepage.nav_position_title')}>
-								{#each ['below', 'above'] as positionOption}
-									<button
-										type="button"
-										role="radio"
-										aria-checked={siteNavPosition === positionOption}
-										onclick={() => { siteNavPosition = positionOption; saveSiteNavSettings(); }}
-										class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-11
-											{siteNavPosition === positionOption
-												? 'bg-primary-600 text-white border-primary-600'
-												: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}"
-									>
-										<span class="block font-medium">{$t(`admin.homepage.nav_position_${positionOption}`)}</span>
-										<span class="block text-xs opacity-80">{$t(`admin.homepage.nav_position_${positionOption}_description`)}</span>
-									</button>
-								{/each}
-							</div>
-						</div>
-
-						{#if publicViewsLoading}
-							<div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-								<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-								</svg>
-								Loading facets...
-							</div>
-						{:else if publicViews.length === 0}
-							<p class="text-sm text-gray-500 dark:text-gray-400">
-								No public facets available. Create a public facet to add navigation buttons.
-							</p>
-						{:else}
-							<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-								Select which facets to show in navigation. Drag to reorder. You can customize the button labels.
-							</p>
-							{#key navDndLoaded}
-							<div
-								class="space-y-3"
-								use:navDndzone={{ items: orderedNavItems, flipDurationMs: navFlipDurationMs, type: 'site-nav-items' }}
-								onconsider={handleNavDndConsider}
-								onfinalize={handleNavDndFinalize}
-							>
-								{#each orderedNavItems as item (item.id)}
-									<div
-										class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
-										animate:flip={{ duration: navFlipDurationMs }}
-									>
-										<div class="flex items-center gap-3 flex-1 min-w-0">
-											<!-- Drag Handle -->
-											<div class="cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 shrink-0" title="Drag to reorder">
-												<svg class="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-													<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-												</svg>
-											</div>
-											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-											<label
-												class="relative inline-flex items-center cursor-pointer shrink-0"
-												onpointerdown={(e) => e.stopPropagation()}
-												onmousedown={(e) => e.stopPropagation()}
-												ontouchstart={(e) => e.stopPropagation()}
-											>
-												<input
-													type="checkbox"
-													class="sr-only peer"
-													checked={isNavItemEnabled(item.viewId)}
-													onchange={() => toggleNavItem(item.viewId)}
-												/>
-												<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-											</label>
-											<div class="flex-1 min-w-0">
-												<span class="font-medium text-gray-900 dark:text-white truncate block">{item.view.name}</span>
-												<span class="text-xs text-gray-500 dark:text-gray-400">/{item.view.slug}</span>
-											</div>
-										</div>
-										<!-- svelte-ignore a11y_no_static_element_interactions -->
-										<div
-											class="sm:w-48"
-											onpointerdown={(e) => e.stopPropagation()}
-											onmousedown={(e) => e.stopPropagation()}
-											ontouchstart={(e) => e.stopPropagation()}
+			<div id="nav-section">
+				<AccordionSection
+					title="Site Navigation"
+					description="Turn your Facet into a multi-page website. Navigation buttons appear on your homepage and all public facets."
+					bind:open={navOpen}
+					iconPath="M4 6h16M4 12h16M4 18h7"
+				>
+					{#snippet badge()}
+						<span
+							class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {siteNavEnabled
+								? 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300'
+								: 'bg-stone-100 text-stone-700 dark:bg-stone-700 dark:text-stone-300'}"
+						>
+							{siteNavEnabled ? `On · ${enabledNavCount}` : 'Off'}
+						</span>
+					{/snippet}
+					<div class="space-y-4">
+						<div class="flex items-start justify-between gap-4">
+							<div class="flex-1">
+								<p class="text-sm text-gray-600 dark:text-gray-400">
+									{#if siteNavEnabled}
+										Navigation is <span class="font-medium text-primary-600 dark:text-primary-400"
+											>enabled</span
 										>
-											<input
-												type="text"
-												class="input input-sm w-full"
-												placeholder={item.view.name}
-												value={getNavItemLabel(item.viewId)}
-												oninput={(e) => updateNavItemLabel(item.viewId, e.currentTarget.value)}
-											/>
-										</div>
-									</div>
-								{/each}
+										with {enabledNavCount} facet{enabledNavCount === 1 ? '' : 's'} active.
+									{:else}
+										Navigation is <span class="font-medium text-stone-500 dark:text-stone-400"
+											>disabled</span
+										>. Toggle to enable.
+									{/if}
+								</p>
 							</div>
-							{/key}
-							<p class="text-xs text-gray-500 mt-3">
-								Navigation appears on all public pages. The CTA button will move to the right side of the navigation bar.
-							</p>
+							<label class="relative inline-flex items-center cursor-pointer">
+								<!-- The invisible input covers the switch so pointer clicks land on the real control -->
+								<input
+									type="checkbox"
+									class="peer absolute inset-0 z-10 m-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+									checked={siteNavEnabled}
+									onchange={toggleSiteNavEnabled}
+									disabled={settingsLoading}
+									aria-label="Enable site navigation"
+								/>
+								<div
+									class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+								></div>
+							</label>
+						</div>
+
+						{#if siteNavEnabled}
+							<!-- Navigation Style (bar vs chips) -->
+							<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+								<div class="mb-6">
+									<span class="block text-sm font-medium text-gray-900 dark:text-white mb-1"
+										>{$t('admin.homepage.nav_mode_title')}</span
+									>
+									<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+										{$t('admin.homepage.nav_mode_description')}
+									</p>
+									<div
+										class="flex flex-wrap gap-2"
+										role="radiogroup"
+										aria-label={$t('admin.homepage.nav_mode_title')}
+									>
+										{#each ['bar', 'chips'] as modeOption}
+											<button
+												type="button"
+												role="radio"
+												aria-checked={siteNavMode === modeOption}
+												onclick={() => {
+													siteNavMode = modeOption;
+													saveSiteNavSettings();
+												}}
+												class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-11
+											{siteNavMode === modeOption
+													? 'bg-primary-600 text-white border-primary-600'
+													: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}"
+											>
+												<span class="block font-medium"
+													>{$t(`admin.homepage.nav_mode_${modeOption}`)}</span
+												>
+												<span class="block text-xs opacity-80"
+													>{$t(`admin.homepage.nav_mode_${modeOption}_description`)}</span
+												>
+											</button>
+										{/each}
+									</div>
+								</div>
+
+								<!-- Navigation Position (above vs below hero) -->
+								<div class="mb-4">
+									<span class="block text-sm font-medium text-gray-900 dark:text-white mb-1"
+										>{$t('admin.homepage.nav_position_title')}</span
+									>
+									<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+										{$t('admin.homepage.nav_position_description')}
+									</p>
+									<div
+										class="flex flex-wrap gap-2"
+										role="radiogroup"
+										aria-label={$t('admin.homepage.nav_position_title')}
+									>
+										{#each ['below', 'above'] as positionOption}
+											<button
+												type="button"
+												role="radio"
+												aria-checked={siteNavPosition === positionOption}
+												onclick={() => {
+													siteNavPosition = positionOption;
+													saveSiteNavSettings();
+												}}
+												class="px-4 py-2 rounded-lg border text-sm font-medium transition-colors min-h-11
+											{siteNavPosition === positionOption
+													? 'bg-primary-600 text-white border-primary-600'
+													: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'}"
+											>
+												<span class="block font-medium"
+													>{$t(`admin.homepage.nav_position_${positionOption}`)}</span
+												>
+												<span class="block text-xs opacity-80"
+													>{$t(`admin.homepage.nav_position_${positionOption}_description`)}</span
+												>
+											</button>
+										{/each}
+									</div>
+								</div>
+
+								{#if publicViewsLoading}
+									<div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+										<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+											<circle
+												class="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+											></circle>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
+										</svg>
+										Loading facets...
+									</div>
+								{:else if publicViews.length === 0}
+									<p class="text-sm text-gray-500 dark:text-gray-400">
+										No public facets available. Create a public facet to add navigation buttons.
+									</p>
+								{:else}
+									<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+										Select which facets to show in navigation. Drag to reorder. You can customize
+										the button labels.
+									</p>
+									{#key navDndLoaded}
+										<div
+											class="space-y-3"
+											use:navDndzone={{
+												items: orderedNavItems,
+												flipDurationMs: navFlipDurationMs,
+												type: 'site-nav-items'
+											}}
+											onconsider={handleNavDndConsider}
+											onfinalize={handleNavDndFinalize}
+										>
+											{#each orderedNavItems as item (item.id)}
+												<div
+													class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+													animate:flip={{ duration: navFlipDurationMs }}
+												>
+													<div class="flex items-center gap-3 flex-1 min-w-0">
+														<!-- Drag Handle -->
+														<div
+															class="cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 shrink-0"
+															title="Drag to reorder"
+														>
+															<svg
+																class="w-5 h-5 text-gray-500 dark:text-gray-400"
+																fill="none"
+																viewBox="0 0 24 24"
+																stroke="currentColor"
+																stroke-width="2"
+															>
+																<path
+																	stroke-linecap="round"
+																	stroke-linejoin="round"
+																	d="M4 8h16M4 16h16"
+																/>
+															</svg>
+														</div>
+														<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+														<label
+															class="relative inline-flex items-center cursor-pointer shrink-0"
+															onpointerdown={(e) => e.stopPropagation()}
+															onmousedown={(e) => e.stopPropagation()}
+															ontouchstart={(e) => e.stopPropagation()}
+														>
+															<input
+																type="checkbox"
+																class="sr-only peer"
+																checked={isNavItemEnabled(item.viewId)}
+																onchange={() => toggleNavItem(item.viewId)}
+															/>
+															<div
+																class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+															></div>
+														</label>
+														<div class="flex-1 min-w-0">
+															<span class="font-medium text-gray-900 dark:text-white truncate block"
+																>{item.view.name}</span
+															>
+															<span class="text-xs text-gray-500 dark:text-gray-400"
+																>/{item.view.slug}</span
+															>
+														</div>
+													</div>
+													<!-- svelte-ignore a11y_no_static_element_interactions -->
+													<div
+														class="sm:w-48"
+														onpointerdown={(e) => e.stopPropagation()}
+														onmousedown={(e) => e.stopPropagation()}
+														ontouchstart={(e) => e.stopPropagation()}
+													>
+														<input
+															type="text"
+															class="input input-sm w-full"
+															placeholder={item.view.name}
+															value={getNavItemLabel(item.viewId)}
+															oninput={(e) =>
+																updateNavItemLabel(item.viewId, e.currentTarget.value)}
+														/>
+													</div>
+												</div>
+											{/each}
+										</div>
+									{/key}
+									<p class="text-xs text-gray-500 mt-3">
+										Navigation appears on all public pages. The CTA button will move to the right
+										side of the navigation bar.
+									</p>
+								{/if}
+							</div>
 						{/if}
 					</div>
-				{/if}
-				</div>
 				</AccordionSection>
 			</div>
 
@@ -1640,9 +1881,9 @@ import { brandName } from '$lib/stores/plan';
 						<div class="animate-pulse text-center py-4">Loading sections...</div>
 					{:else}
 						<HomepageSectionManager
-							bind:sections={sections}
-							bind:sectionOrder={sectionOrder}
-							bind:sectionItems={sectionItems}
+							bind:sections
+							bind:sectionOrder
+							bind:sectionItems
 							{customContentItems}
 							loading={settingsLoading || customContentLoading}
 						/>
@@ -1666,11 +1907,13 @@ import { brandName } from '$lib/stores/plan';
 								</h4>
 								<p class="text-sm text-gray-600 dark:text-gray-400">
 									{#if homepageEnabled}
-										Your homepage is <span class="font-medium text-green-600 dark:text-green-400">visible</span>.
-										Visitors can see your public profile and content.
+										Your homepage is <span class="font-medium text-green-600 dark:text-green-400"
+											>visible</span
+										>. Visitors can see your public profile and content.
 									{:else}
-										Your homepage is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span>.
-										Visitors see a custom message instead.
+										Your homepage is <span class="font-medium text-amber-600 dark:text-amber-400"
+											>hidden</span
+										>. Visitors see a custom message instead.
 									{/if}
 								</p>
 							</div>
@@ -1682,7 +1925,9 @@ import { brandName } from '$lib/stores/plan';
 									disabled={settingsSaving || settingsLoading}
 									aria-label="Homepage visibility"
 								/>
-								<div class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+								<div
+									class="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+								></div>
 							</label>
 						</div>
 
@@ -1695,9 +1940,10 @@ import { brandName } from '$lib/stores/plan';
 									bind:value={landingPageMessage}
 									placeholder="This profile is being set up."
 									disabled={settingsSaving}
-									maxlength="2000"
-								></textarea>
-								<p class="text-xs text-gray-500 mt-1">{landingPageMessage.length}/2000 characters</p>
+									maxlength="2000"></textarea>
+								<p class="text-xs text-gray-500 mt-1">
+									{landingPageMessage.length}/2000 characters
+								</p>
 							</div>
 						{/if}
 
@@ -1708,7 +1954,11 @@ import { brandName } from '$lib/stores/plan';
 										{$t('admin.homepage.show_avatar_title')}
 									</h4>
 									<p class="text-sm text-gray-600 dark:text-gray-400">
-										{$t(showAvatar ? 'admin.homepage.show_avatar_on' : 'admin.homepage.show_avatar_off')}
+										{$t(
+											showAvatar
+												? 'admin.homepage.show_avatar_on'
+												: 'admin.homepage.show_avatar_off'
+										)}
 									</p>
 								</div>
 								<label class="relative inline-flex items-center cursor-pointer">
@@ -1719,7 +1969,9 @@ import { brandName } from '$lib/stores/plan';
 										disabled={settingsSaving || settingsLoading}
 										aria-label={$t('admin.homepage.show_avatar_title')}
 									/>
-									<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+									<div
+										class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
+									></div>
 								</label>
 							</div>
 						</div>
@@ -1732,10 +1984,17 @@ import { brandName } from '$lib/stores/plan';
 									</h4>
 									<p class="text-sm text-gray-600 dark:text-gray-400">
 										{#if hideLoginButton}
-											The login button is <span class="font-medium text-amber-600 dark:text-amber-400">hidden</span> from public visitors.
-											You can still access <code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">/admin/login</code> directly.
+											The login button is <span
+												class="font-medium text-amber-600 dark:text-amber-400">hidden</span
+											>
+											from public visitors. You can still access
+											<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs"
+												>/admin/login</code
+											> directly.
 										{:else}
-											The login button is <span class="font-medium text-green-600 dark:text-green-400">visible</span> on your homepage.
+											The login button is <span
+												class="font-medium text-green-600 dark:text-green-400">visible</span
+											> on your homepage.
 										{/if}
 									</p>
 								</div>
@@ -1747,7 +2006,9 @@ import { brandName } from '$lib/stores/plan';
 										disabled={settingsSaving || settingsLoading}
 										aria-label="Hide login button"
 									/>
-									<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+									<div
+										class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"
+									></div>
 								</label>
 							</div>
 						</div>
@@ -1765,7 +2026,6 @@ import { brandName } from '$lib/stores/plan';
 					</div>
 				</AccordionSection>
 			</div>
-
 		</form>
 	{/if}
 </div>

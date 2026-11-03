@@ -6,15 +6,24 @@
  */
 
 import type { PageServerLoad } from './$types';
+import type { Profile } from '$lib/pocketbase';
 import { logger } from '$lib/logger';
+import { navigationFacet } from '$lib/discovery';
+import { internalApiHeaders, parsePublicPosts } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ fetch, url }) => {
+export const load: PageServerLoad = async ({ fetch, url, request, locals }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const tag = url.searchParams.get('tag');
-	const fromView = url.searchParams.get('from');
+	const fromHints = url.searchParams.getAll('from');
+	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	const headers = {
+		...internalApiHeaders(request),
+		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+	};
 
 	try {
-		const response = await fetch(`${pbUrl}/api/posts`, { headers: { 'X-Internal': 'true' } });
+		const response = await fetch(`${pbUrl}/api/posts`, { headers });
 
 		if (!response.ok) {
 			let landingPageMessage = '';
@@ -49,8 +58,11 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 			};
 		}
 
-		const data = await response.json();
-		let posts = data.posts || [];
+		const data = (await response.json()) as { posts?: unknown; profile?: Profile | null };
+		const publicPosts = parsePublicPosts(data.posts).filter(
+			(post) => post.visibility === 'public' && !post.is_draft
+		);
+		let posts = publicPosts;
 		const profile = data.profile || null;
 
 		if (tag) {
@@ -60,7 +72,7 @@ export const load: PageServerLoad = async ({ fetch, url }) => {
 		}
 
 		const allTags = new Set<string>();
-		(data.posts || []).forEach((post: { tags?: string[] }) => {
+		publicPosts.forEach((post) => {
 			post.tags?.forEach((t: string) => allTags.add(t));
 		});
 

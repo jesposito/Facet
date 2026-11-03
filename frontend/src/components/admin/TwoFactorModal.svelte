@@ -137,7 +137,9 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <div
-	class="fixed inset-0 bg-black/50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 z-50"
+	class="fixed inset-0 bg-black/50 flex {isMobile
+		? 'flex-col justify-end'
+		: 'items-center justify-center'} p-4 z-50"
 	role="presentation"
 	onclick={handleOverlayClick}
 >
@@ -152,9 +154,22 @@
 	>
 		<div class="mb-6">
 			<div class="flex items-center gap-3 mb-2">
-				<div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-					<svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+				<div
+					class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center"
+				>
+					<svg
+						class="w-5 h-5 text-primary-600 dark:text-primary-400"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						aria-hidden="true"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+						/>
 					</svg>
 				</div>
 				<h2 id="two-factor-title" class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -162,12 +177,16 @@
 				</h2>
 			</div>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
-				{useRecoveryCode ? $t('admin.two_factor.recovery_description') : $t('admin.two_factor.description')}
+				{useRecoveryCode
+					? $t('admin.two_factor.recovery_description')
+					: $t('admin.two_factor.description')}
 			</p>
 		</div>
 
 		{#if error}
-			<div class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+			<div
+				class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm"
+			>
 				{error}
 			</div>
 		{/if}
@@ -175,7 +194,9 @@
 		<form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
 			<div>
 				<label for="totp-code" class="label">
-					{useRecoveryCode ? $t('admin.two_factor.recovery_label') : $t('admin.two_factor.code_label')}
+					{useRecoveryCode
+						? $t('admin.two_factor.recovery_label')
+						: $t('admin.two_factor.code_label')}
 				</label>
 				<input
 					type="text"
@@ -194,8 +215,19 @@
 				<button type="submit" class="btn btn-primary w-full" disabled={loading || !code.trim()}>
 					{#if loading}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 						{$t('admin.two_factor.verifying')}
 					{:else}
@@ -206,10 +238,18 @@
 		</form>
 
 		<div class="mt-4 flex items-center justify-between">
-			<button type="button" class="text-sm text-primary-600 dark:text-primary-400 hover:underline" onclick={toggleMode}>
+			<button
+				type="button"
+				class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+				onclick={toggleMode}
+			>
 				{useRecoveryCode ? $t('admin.two_factor.use_totp') : $t('admin.two_factor.use_recovery')}
 			</button>
-			<button type="button" class="text-sm text-gray-500 dark:text-gray-400 hover:underline" onclick={onLogout}>
+			<button
+				type="button"
+				class="text-sm text-gray-500 dark:text-gray-400 hover:underline"
+				onclick={onLogout}
+			>
 				{$t('admin.two_factor.logout_link')}
 			</button>
 		</div>

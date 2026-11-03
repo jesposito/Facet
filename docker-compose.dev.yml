@@ -18,10 +18,13 @@ services:
       - ./pb_data:/app/pb_data
       - go-cache:/go/pkg/mod
       - go-build-cache:/root/.cache/go-build
+    # Published on host loopback only.
     ports:
-      - "8090:8090"
+      - "127.0.0.1:8090:8090"
     environment:
       - DATA_DIR=/app/pb_data
+      # Inside the container, listen on all interfaces so published ports work.
+      - FACET_DEV_HOST=0.0.0.0
       # DEV ONLY: This key is for local development. Never use in production.
       # Production requires a unique key: openssl rand -hex 32
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-only-key-do-not-use-in-production!!}
@@ -36,18 +39,22 @@ services:
       start_period: 30s
 
   frontend:
-    image: node:20-alpine
+    image: node:24-alpine
     container_name: facet-frontend-dev
-    working_dir: /app
+    working_dir: /app/frontend
     volumes:
-      - ./frontend:/app:cached
-      - ./scripts:/scripts:cached
-      - frontend-node-modules:/app/node_modules
+      - ./frontend:/app/frontend:cached
+      - ./scripts:/app/scripts:cached
+      - frontend-node-modules:/app/frontend/node_modules
+    # Published on host loopback only.
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     environment:
+      - FACET_DEV_HOST=0.0.0.0
+      # Vite's /api and /_ proxy and SvelteKit server code reach PocketBase
+      # by its Compose service name on the shared default network.
       - POCKETBASE_URL=http://backend:8090
-    command: sh -c "chmod +x /scripts/dev-frontend.sh && /scripts/dev-frontend.sh"
+    command: sh /app/scripts/dev-frontend.sh
     depends_on:
       backend:
         condition: service_healthy

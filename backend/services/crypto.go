@@ -227,3 +227,78 @@ func (c *CryptoService) ValidateViewAccessJWT(tokenString string) (string, error
 
 	return claims.ViewID, nil
 }
+
+// JWTShareVisitAudience marks a share visit proof. A separate audience keeps a
+// visit proof from passing as a password view token, and the reverse.
+const JWTShareVisitAudience = "share-visit"
+
+// ShareVisitClaims identify one visit admitted through a share token. TokenID
+// and TokenHash pin the proof to the share_tokens record that was spent.
+type ShareVisitClaims struct {
+	ViewID    string `json:"vid"`
+	TokenID   string `json:"tid"`
+	TokenHash string `json:"th"`
+	jwt.RegisteredClaims
+}
+
+// ShareVisitTokenFingerprint condenses a stored token hash for a visit proof,
+// so the proof doesn't carry the stored hash itself.
+func (c *CryptoService) ShareVisitTokenFingerprint(tokenHash string) string {
+	h := hmac.New(sha256.New, c.jwtKey)
+	h.Write([]byte("share-visit:" + tokenHash))
+	return base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+}
+
+// GenerateShareVisitProof signs a proof that a visit spent a use of a share
+// token. It expires at expiresAt.
+func (c *CryptoService) GenerateShareVisitProof(viewID, tokenID, tokenHash string, expiresAt time.Time) (string, error) {
+	if viewID == "" || tokenID == "" || tokenHash == "" {
+		return "", errors.New("missing share visit fields")
+	}
+	jtiBytes := make([]byte, 16)
+	if _, err := rand.Read(jtiBytes); err != nil {
+		return "", err
+	}
+	now := time.Now()
+	claims := ShareVisitClaims{
+		ViewID:    viewID,
+		TokenID:   tokenID,
+		TokenHash: c.ShareVisitTokenFingerprint(tokenHash),
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    JWTIssuer,
+			Audience:  jwt.ClaimStrings{JWTShareVisitAudience},
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			ID:        base64.RawURLEncoding.EncodeToString(jtiBytes),
+		},
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(c.jwtKey)
+}
+
+// ValidateShareVisitProof checks a proof's signature, audience and expiry. The
+// caller must still check the share token record it names.
+func (c *CryptoService) ValidateShareVisitProof(tokenString string) (*ShareVisitClaims, error) {
+	if tokenString == "" {
+		return nil, errors.New("proof required")
+	}
+	claims := &ShareVisitClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if token.Method != jwt.SigningMethodHS256 {
+			return nil, errors.New("invalid signing method")
+		}
+		return c.jwtKey, nil
+	})
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid proof")
+	}
+	if claims.Issuer != JWTIssuer || !claims.VerifyAudience(JWTShareVisitAudience, true) {
+		return nil, errors.New("invalid proof")
+	}
+	if claims.ExpiresAt == nil || !claims.ExpiresAt.After(time.Now()) {
+		return nil, errors.New("proof expired")
+	}
+	if claims.ViewID == "" || claims.TokenID == "" || claims.TokenHash == "" {
+		return nil, errors.New("invalid proof")
+	}
+	return claims, nil
+}

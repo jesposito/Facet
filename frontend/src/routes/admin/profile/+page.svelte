@@ -12,4 +12,8 @@
 	];
 </script>
 
-<SectionLanding titleKey="admin.section.profile.title" descKey="admin.section.profile.description" {cards} />
+<SectionLanding
+	titleKey="admin.section.profile.title"
+	descKey="admin.section.profile.description"
+	{cards}
+/>

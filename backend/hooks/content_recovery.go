@@ -42,10 +42,33 @@ func runContentRecoveryOnce(app *pocketbase.PocketBase) {
 	// Let startup settle before doing backup I/O.
 	time.Sleep(30 * time.Second)
 
-	report, err := services.RunContentRecovery(app, true)
+	finishContentRecovery(app, marker, func() (*services.RecoveryReport, error) {
+		return services.RunContentRecovery(app, true)
+	})
+}
+
+// contentRecoveryFailedEvent is the system_alerts event for a failed pass.
+const contentRecoveryFailedEvent = "content_recovery_failed"
+
+// finishContentRecovery runs one recovery pass and writes the completion marker
+// only when the pass succeeds. A failure leaves the marker absent so the next
+// boot retries, and raises a (deduplicated) admin alert so it is not buried in
+// the logs.
+func finishContentRecovery(app core.App, marker string, run func() (*services.RecoveryReport, error)) {
+	report, err := run()
 	if err != nil {
 		// Non-fatal: log and leave the marker absent so it retries next boot.
 		app.Logger().Error("content-recovery: pass failed, will retry next boot", "error", err)
+		msg := err.Error()
+		if len(msg) > 1500 {
+			msg = msg[:1500] + "…" // details field holds at most 2000 characters
+		}
+		CreateSystemAlert(app, SystemAlertInput{
+			Severity: SeverityWarning,
+			Event:    contentRecoveryFailedEvent,
+			Title:    "Content recovery could not finish",
+			Details:  "The one-time paragraph-spacing recovery (#443) stopped before finishing and will retry on the next restart. Error: " + msg,
+		})
 		return
 	}
 

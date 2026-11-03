@@ -29,9 +29,9 @@ const defaultConfig: PlanConfig = {
 		basic_analytics: true,
 		analytics: true,
 		badge_forced: false,
-		// Courses default OFF self-hosted: public /courses/[slug] route is not implemented
-		// in this repo (cloud only). Backend authority via /api/plan can flip this on
-		// when FACET_FEATURE_COURSES=true is set on the server.
+		// Placeholder until /api/plan answers. The server is the authority: courses
+		// are on by default for self-hosted sites, and FACET_FEATURE_COURSES=false
+		// turns them off.
 		courses: false,
 		api: true,
 		custom_domain: true,
@@ -47,7 +47,9 @@ export const planInitialized = writable<boolean>(false);
 export const isManaged = derived(planConfig, ($config) => $config.managed);
 export const currentPlan = derived(planConfig, ($config) => $config.plan);
 export const planFeatures = derived(planConfig, ($config) => $config.features);
-export const brandName = derived(planConfig, ($config) => ($config.managed ? 'Facet Cloud' : 'Facet'));
+export const brandName = derived(planConfig, ($config) =>
+	$config.managed ? 'Facet Cloud' : 'Facet'
+);
 export const isDemoMode = derived(planConfig, ($config) => $config.demo_mode === true);
 
 // Features that are not fully implemented in the self-hosted build and must

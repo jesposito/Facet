@@ -115,7 +115,7 @@
 	onMount(() => {
 		const mq = window.matchMedia('(max-width: 767px)');
 		isMobile = mq.matches;
-		const handler = (e: MediaQueryListEvent) => isMobile = e.matches;
+		const handler = (e: MediaQueryListEvent) => (isMobile = e.matches);
 		mq.addEventListener('change', handler);
 
 		previousActiveElement = document.activeElement as HTMLElement;
@@ -140,14 +140,18 @@
 
 <!-- Modal overlay (cannot be dismissed) -->
 <div
-	class="fixed inset-0 bg-black/50 flex {isMobile ? 'flex-col justify-end' : 'items-center justify-center'} p-4 z-50"
+	class="fixed inset-0 bg-black/50 flex {isMobile
+		? 'flex-col justify-end'
+		: 'items-center justify-center'} p-4 z-50"
 	role="dialog"
 	aria-modal="true"
 	aria-labelledby="password-change-title"
 >
 	<div
 		bind:this={dialogEl}
-		class="card w-full p-6 transform transition-transform {isMobile ? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto' : 'max-w-md'}"
+		class="card w-full p-6 transform transition-transform {isMobile
+			? 'rounded-t-2xl rounded-b-none max-h-[90vh] overflow-y-auto'
+			: 'max-w-md'}"
 	>
 		<div class="mb-6">
 			<h2 id="password-change-title" class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -159,7 +163,10 @@
 		</div>
 
 		{#if error}
-			<div role="alert" class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm">
+			<div
+				role="alert"
+				class="mb-4 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm"
+			>
 				{error}
 			</div>
 		{/if}
@@ -167,7 +174,9 @@
 		<form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
 			<!-- Current Password -->
 			<div>
-				<label for="current-password" class="label">{$t('admin.password_modal.current_password_label')}</label>
+				<label for="current-password" class="label"
+					>{$t('admin.password_modal.current_password_label')}</label
+				>
 				<input
 					type="password"
 					id="current-password"
@@ -183,7 +192,9 @@
 
 			<!-- New Password -->
 			<div>
-				<label for="new-password" class="label">{$t('admin.password_modal.new_password_label')}</label>
+				<label for="new-password" class="label"
+					>{$t('admin.password_modal.new_password_label')}</label
+				>
 				<input
 					type="password"
 					id="new-password"
@@ -211,7 +222,11 @@
 									? 'text-yellow-600 dark:text-yellow-400'
 									: 'text-green-600 dark:text-green-400'}"
 						>
-							{passwordStrength === 'weak' ? $t('admin.password_modal.strength_weak') : passwordStrength === 'medium' ? $t('admin.password_modal.strength_medium') : $t('admin.password_modal.strength_strong')}
+							{passwordStrength === 'weak'
+								? $t('admin.password_modal.strength_weak')
+								: passwordStrength === 'medium'
+									? $t('admin.password_modal.strength_medium')
+									: $t('admin.password_modal.strength_strong')}
 						</span>
 					</div>
 				{/if}
@@ -222,7 +237,9 @@
 
 			<!-- Confirm Password -->
 			<div>
-				<label for="confirm-password" class="label">{$t('admin.password_modal.confirm_password_label')}</label>
+				<label for="confirm-password" class="label"
+					>{$t('admin.password_modal.confirm_password_label')}</label
+				>
 				<input
 					type="password"
 					id="confirm-password"
@@ -235,11 +252,26 @@
 
 			<!-- Submit Button -->
 			<div class="pt-4">
-				<button type="submit" class="btn btn-primary w-full" disabled={loading || !newPassword || !confirmPassword}>
+				<button
+					type="submit"
+					class="btn btn-primary w-full"
+					disabled={loading || !newPassword || !confirmPassword}
+				>
 					{#if loading}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
 						</svg>
 						{$t('admin.password_modal.changing')}
 					{:else}

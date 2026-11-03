@@ -47,7 +47,9 @@
 	// Live clamped inks — exactly what hooks.server.ts injects and the page renders.
 	const ink = $derived(normalized ? deriveTextInk(normalized) : null);
 
-	const selectedIndex = $derived(SUGGESTIONS.findIndex((s) => s.hex.toLowerCase() === normalized.toLowerCase()));
+	const selectedIndex = $derived(
+		SUGGESTIONS.findIndex((s) => s.hex.toLowerCase() === normalized.toLowerCase())
+	);
 	// Roving tabstop owner: the selected suggestion, else the first.
 	const focusedIndex = $derived(selectedIndex >= 0 ? selectedIndex : 0);
 
@@ -101,7 +103,7 @@
 
 	async function handleSwatchKeyDown(e: KeyboardEvent) {
 		const last = SUGGESTIONS.length - 1;
-		let next = focusedIndex;
+		let next: number;
 		switch (e.key) {
 			case 'ArrowRight':
 			case 'ArrowDown':
@@ -160,7 +162,13 @@
 			>
 				{#if isChecked}
 					<div class="absolute inset-0 flex items-center justify-center">
-						<svg class="w-5 h-5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+						<svg
+							class="w-5 h-5 text-white drop-shadow"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+							stroke-width="3"
+						>
 							<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
 						</svg>
 					</div>
@@ -171,7 +179,10 @@
 
 	<!-- Custom hex input -->
 	<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-		<label for="text-color-hex-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+		<label
+			for="text-color-hex-input"
+			class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+		>
 			{$t('admin.text_color_picker.custom_label')}
 		</label>
 		<div class="flex items-center gap-2">
@@ -186,7 +197,12 @@
 				bind:value={hexInput}
 				oninput={handleHexInput}
 				onblur={commitHex}
-				onkeydown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitHex(); } }}
+				onkeydown={(e) => {
+					if (e.key === 'Enter') {
+						e.preventDefault();
+						commitHex();
+					}
+				}}
 				placeholder={$t('admin.text_color_picker.custom_placeholder')}
 				maxlength="7"
 				spellcheck="false"
@@ -228,13 +244,18 @@
 	     "what you pick is what you get, and it is always readable". -->
 	{#if ink}
 		<div class="rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 mt-4">
-			<span class="block px-4 pt-3 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium">
+			<span
+				class="block px-4 pt-3 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide font-medium"
+			>
 				{$t('admin.text_color_picker.preview_label')}
 			</span>
 			<div class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700 mt-3">
 				<!-- Light mode preview (clamped vs white surface) -->
 				<div class="p-4" style="background-color: #ffffff;">
-					<span class="block text-[10px] uppercase tracking-wide font-semibold mb-2" style="color: #6b7280;">
+					<span
+						class="block text-[10px] uppercase tracking-wide font-semibold mb-2"
+						style="color: #6b7280;"
+					>
 						{$t('admin.text_color_picker.preview_light')} · {ink.light}
 					</span>
 					<span class="block text-lg font-bold" style="color: {ink.light};">
@@ -246,7 +267,10 @@
 				</div>
 				<!-- Dark mode preview (clamped vs dark surface) -->
 				<div class="p-4" style="background-color: #221e1a;">
-					<span class="block text-[10px] uppercase tracking-wide font-semibold mb-2" style="color: #ada199;">
+					<span
+						class="block text-[10px] uppercase tracking-wide font-semibold mb-2"
+						style="color: #ada199;"
+					>
 						{$t('admin.text_color_picker.preview_dark')} · {ink.dark}
 					</span>
 					<span class="block text-lg font-bold" style="color: {ink.dark};">

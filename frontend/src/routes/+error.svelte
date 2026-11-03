@@ -61,7 +61,11 @@
 	};
 </script>
 
-<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+<div
+	id="main-content"
+	role="main"
+	class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4"
+>
 	<div class="text-center max-w-2xl">
 		{#if is404}
 			<!-- 404: I Didn't Build That Facet -->

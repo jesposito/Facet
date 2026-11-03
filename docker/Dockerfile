@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/go.mod backend/go.sum ./
+# PocketBase SMTP transport with bounded connection and exchange deadlines.
+COPY backend/third_party/mailyak-v3 ./third_party/mailyak-v3
 RUN go mod download
 
 COPY backend/ ./
@@ -55,6 +57,8 @@ RUN npm run build
 FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS caddy-builder
 WORKDIR /caddy-build
 COPY docker/caddy/go.mod docker/caddy/go.sum ./
+# go.mod replaces go-jose v3 with this patched local copy.
+COPY docker/caddy/third_party ./third_party
 RUN go mod download
 COPY docker/caddy/main.go ./
 RUN CGO_ENABLED=0 go build -trimpath -o /caddy .
@@ -103,22 +107,22 @@ WORKDIR /app
 COPY --from=caddy-builder /caddy /usr/bin/caddy
 
 # Copy backend binary
-COPY --from=backend-builder /facet ./facet
+COPY --from=backend-builder --chown=root:root /facet ./facet
 
 # Copy demo assets for demo mode
-COPY --from=backend-builder /build/seeds/demo_assets ./backend/seeds/demo_assets
+COPY --from=backend-builder --chown=root:root /build/seeds/demo_assets ./backend/seeds/demo_assets
 
 # Copy frontend build
-COPY --from=frontend-builder /build/build ./frontend/build
-COPY --from=frontend-builder /build/package.json ./frontend/
-COPY --from=frontend-builder /build/node_modules ./frontend/node_modules
+COPY --from=frontend-builder --chown=root:root /build/build ./frontend/build
+COPY --from=frontend-builder --chown=root:root /build/package.json ./frontend/
+COPY --from=frontend-builder --chown=root:root /build/node_modules ./frontend/node_modules
 # Local dependency overrides are symlinks into vendor, including deepmerge.
-COPY --from=frontend-builder /build/vendor ./frontend/vendor
+COPY --from=frontend-builder --chown=root:root /build/vendor ./frontend/vendor
 RUN node -e "require('./frontend/node_modules/deepmerge'); require('./frontend/node_modules/braces')"
 
 # Copy Caddy config and startup script
-COPY docker/Caddyfile ./Caddyfile
-COPY docker/start.sh ./start.sh
+COPY --chown=root:root docker/Caddyfile ./Caddyfile
+COPY --chown=root:root docker/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
 # Create data and uploads directories (ownership set at runtime via PUID/PGID)

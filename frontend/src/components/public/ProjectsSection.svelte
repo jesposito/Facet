@@ -36,20 +36,21 @@
 		}
 	};
 
-const isLinkable = (project: Project) => {
-	const visibility = (project as unknown as Record<string, string>).visibility;
-	// Public projects are always linkable. Unlisted projects are linkable when shown on a view (viewSlug present)
-	// since they're explicitly included in that view's content.
-	if (!project.slug) return false;
-	if (visibility === 'public') return true;
-	if (visibility === 'unlisted' && viewSlug) return true;
-	return false;
-};
+	const isLinkable = (project: Project) => {
+		const visibility = (project as unknown as Record<string, string>).visibility;
+		// Public projects are always linkable. Unlisted and private projects are linkable only when shown on a
+		// view (viewSlug present): the backend only returns them for a view that explicitly selected them and
+		// the visitor is authorized for, and the detail page re-checks access for that ?from= view.
+		if (!project.slug) return false;
+		if (visibility === 'public') return true;
+		if ((visibility === 'unlisted' || visibility === 'private') && viewSlug) return true;
+		return false;
+	};
 
-const projectHref = (project: Project) => {
-	if (!isLinkable(project)) return null;
-	return discoverySectionHref('project', project.slug!, viewSlug);
-};
+	const projectHref = (project: Project) => {
+		if (!isLinkable(project)) return null;
+		return discoverySectionHref('project', project.slug!, viewSlug);
+	};
 
 	function getLinkIcon(type: string) {
 		switch (type.toLowerCase()) {
@@ -89,7 +90,10 @@ const projectHref = (project: Project) => {
 				<div class="grid md:grid-cols-2 gap-0">
 					{#if thumbSrc(featuredItem)}
 						{#if isLinkable(featuredItem)}
-							<a href={projectHref(featuredItem)} class="block aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+							<a
+								href={projectHref(featuredItem)}
+								class="block aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700"
+							>
 								<img
 									src={largeSrc(featuredItem)}
 									srcset={`${thumbSrc(featuredItem)} 640w, ${largeSrc(featuredItem)} 1280w`}
@@ -99,7 +103,9 @@ const projectHref = (project: Project) => {
 								/>
 							</a>
 						{:else}
-							<div class="aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+							<div
+								class="aspect-video md:aspect-auto md:h-full overflow-hidden bg-gray-100 dark:bg-gray-700"
+							>
 								<img
 									src={largeSrc(featuredItem)}
 									srcset={`${thumbSrc(featuredItem)} 640w, ${largeSrc(featuredItem)} 1280w`}
@@ -110,8 +116,14 @@ const projectHref = (project: Project) => {
 							</div>
 						{/if}
 					{:else}
-						<div class="sp-plate aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
-							<span class="sp-plate__initial text-6xl font-bold text-white/50" style="font-size:clamp(3.5rem,8vw,6rem)">
+						<div
+							class="sp-plate aspect-video md:aspect-auto md:h-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
+							aria-hidden="true"
+						>
+							<span
+								class="sp-plate__initial text-6xl font-bold text-white/50"
+								style="font-size:clamp(3.5rem,8vw,6rem)"
+							>
 								{initial(featuredItem.title)}
 							</span>
 						</div>
@@ -119,19 +131,24 @@ const projectHref = (project: Project) => {
 
 					<div class="p-6 flex flex-col justify-center">
 						<div class="flex items-start justify-between gap-2">
-								<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
-							{#if isLinkable(featuredItem)}
-								<a href={projectHref(featuredItem)} class="hover:text-primary-600 dark:hover:text-primary-400">
+							<h3 class="text-2xl font-semibold text-gray-900 dark:text-white">
+								{#if isLinkable(featuredItem)}
+									<a
+										href={projectHref(featuredItem)}
+										class="hover:text-primary-600 dark:hover:text-primary-400"
+									>
+										{featuredItem.title}
+									</a>
+								{:else}
 									{featuredItem.title}
-								</a>
-							{:else}
-								{featuredItem.title}
-							{/if}
-						</h3>
-						<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
-							{$t('public.projects.featured')}
-						</span>
-					</div>
+								{/if}
+							</h3>
+							<span
+								class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
+							>
+								{$t('public.projects.featured')}
+							</span>
+						</div>
 
 						{#if featuredItem.summary}
 							<div class="mt-3 prose-custom text-gray-600 dark:text-gray-400">
@@ -142,7 +159,9 @@ const projectHref = (project: Project) => {
 						{#if featuredItem.tech_stack && featuredItem.tech_stack.length > 0}
 							<div class="mt-4 flex flex-wrap gap-2">
 								{#each featuredItem.tech_stack as tech}
-									<span class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+									<span
+										class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+									>
 										{tech}
 									</span>
 								{/each}
@@ -175,7 +194,10 @@ const projectHref = (project: Project) => {
 						<article class="card overflow-hidden group animate-fade-in">
 							{#if thumbSrc(project)}
 								{#if isLinkable(project)}
-									<a href={projectHref(project)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+									<a
+										href={projectHref(project)}
+										class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700"
+									>
 										<img
 											src={largeSrc(project)}
 											srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
@@ -196,50 +218,61 @@ const projectHref = (project: Project) => {
 									</div>
 								{/if}
 							{:else}
-								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
-									<span class="sp-plate__initial text-5xl font-bold text-white/50">{initial(project.title)}</span>
+								<div
+									class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
+									aria-hidden="true"
+								>
+									<span class="sp-plate__initial text-5xl font-bold text-white/50"
+										>{initial(project.title)}</span
+									>
 								</div>
 							{/if}
 
 							<div class="p-5">
-							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-								{#if isLinkable(project)}
-									<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
+								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+									{#if isLinkable(project)}
+										<a
+											href={projectHref(project)}
+											class="hover:text-primary-600 dark:hover:text-primary-400"
+										>
+											{project.title}
+										</a>
+									{:else}
 										{project.title}
-									</a>
-								{:else}
-									{project.title}
-								{/if}
-							</h3>
-
-							{#if project.summary}
-								<div class="mt-2 prose-custom text-gray-600 dark:text-gray-400 text-sm line-clamp-3">
-									{@html parseMarkdown(project.summary)}
-								</div>
-							{/if}
-
-							{#if project.tech_stack && project.tech_stack.length > 0}
-								<div class="mt-3 flex flex-wrap gap-1.5">
-									{#each project.tech_stack.slice(0, 3) as tech}
-										<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
-											{tech}
-										</span>
-									{/each}
-									{#if project.tech_stack.length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500">
-											+{project.tech_stack.length - 3}
-										</span>
 									{/if}
-								</div>
-							{/if}
-						</div>
-					</article>
-				{/each}
-			</div>
-		{/if}
-	</div>
+								</h3>
 
-{:else if layout === 'list'}
+								{#if project.summary}
+									<div
+										class="mt-2 prose-custom text-gray-600 dark:text-gray-400 text-sm line-clamp-3"
+									>
+										{@html parseMarkdown(project.summary)}
+									</div>
+								{/if}
+
+								{#if project.tech_stack && project.tech_stack.length > 0}
+									<div class="mt-3 flex flex-wrap gap-1.5">
+										{#each project.tech_stack.slice(0, 3) as tech}
+											<span
+												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+											>
+												{tech}
+											</span>
+										{/each}
+										{#if project.tech_stack.length > 3}
+											<span class="px-2 py-0.5 text-xs text-gray-500">
+												+{project.tech_stack.length - 3}
+											</span>
+										{/if}
+									</div>
+								{/if}
+							</div>
+						</article>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{:else if layout === 'list'}
 		<!-- List Layout -->
 		<div class="space-y-4">
 			{#each items as project (project.id)}
@@ -247,7 +280,10 @@ const projectHref = (project: Project) => {
 					<div class="flex flex-col sm:flex-row">
 						{#if thumbSrc(project)}
 							{#if isLinkable(project)}
-								<a href={projectHref(project)} class="block sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<a
+									href={projectHref(project)}
+									class="block sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700"
+								>
 									<img
 										src={largeSrc(project)}
 										srcset={`${thumbSrc(project)} 480w, ${largeSrc(project)} 960w`}
@@ -257,7 +293,9 @@ const projectHref = (project: Project) => {
 									/>
 								</a>
 							{:else}
-								<div class="sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
+								<div
+									class="sm:w-48 sm:shrink-0 aspect-video sm:aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700"
+								>
 									<img
 										src={largeSrc(project)}
 										srcset={`${thumbSrc(project)} 480w, ${largeSrc(project)} 960w`}
@@ -273,7 +311,10 @@ const projectHref = (project: Project) => {
 							<div class="flex items-start justify-between gap-2">
 								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 									{#if isLinkable(project)}
-										<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
+										<a
+											href={projectHref(project)}
+											class="hover:text-primary-600 dark:hover:text-primary-400"
+										>
 											{project.title}
 										</a>
 									{:else}
@@ -281,7 +322,9 @@ const projectHref = (project: Project) => {
 									{/if}
 								</h3>
 								{#if project.is_featured}
-									<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+									<span
+										class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
+									>
 										{$t('public.projects.featured')}
 									</span>
 								{/if}
@@ -297,7 +340,9 @@ const projectHref = (project: Project) => {
 								{#if project.tech_stack && project.tech_stack.length > 0}
 									<div class="flex flex-wrap gap-1.5">
 										{#each project.tech_stack.slice(0, 5) as tech}
-											<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+											<span
+												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+											>
 												{tech}
 											</span>
 										{/each}
@@ -330,7 +375,6 @@ const projectHref = (project: Project) => {
 				</article>
 			{/each}
 		</div>
-
 	{:else if layout === 'grid-2'}
 		<!-- 2-Column Grid Layout -->
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -338,7 +382,10 @@ const projectHref = (project: Project) => {
 				<article class="card overflow-hidden group animate-fade-in">
 					{#if thumbSrc(project)}
 						{#if isLinkable(project)}
-							<a href={projectHref(project)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+							<a
+								href={projectHref(project)}
+								class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700"
+							>
 								<img
 									src={largeSrc(project)}
 									srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
@@ -359,16 +406,24 @@ const projectHref = (project: Project) => {
 							</div>
 						{/if}
 					{:else}
-								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
-									<span class="sp-plate__initial text-6xl font-bold text-white/50">{initial(project.title)}</span>
-								</div>
-							{/if}
+						<div
+							class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
+							aria-hidden="true"
+						>
+							<span class="sp-plate__initial text-6xl font-bold text-white/50"
+								>{initial(project.title)}</span
+							>
+						</div>
+					{/if}
 
 					<div class="p-6">
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-xl font-semibold text-gray-900 dark:text-white">
 								{#if isLinkable(project)}
-									<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
+									<a
+										href={projectHref(project)}
+										class="hover:text-primary-600 dark:hover:text-primary-400"
+									>
 										{project.title}
 									</a>
 								{:else}
@@ -376,7 +431,9 @@ const projectHref = (project: Project) => {
 								{/if}
 							</h3>
 							{#if project.is_featured}
-								<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+								<span
+									class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
+								>
 									Featured
 								</span>
 							{/if}
@@ -391,7 +448,9 @@ const projectHref = (project: Project) => {
 						{#if project.tech_stack && project.tech_stack.length > 0}
 							<div class="mt-4 flex flex-wrap gap-2">
 								{#each project.tech_stack.slice(0, 5) as tech}
-									<span class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+									<span
+										class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+									>
 										{tech}
 									</span>
 								{/each}
@@ -422,7 +481,6 @@ const projectHref = (project: Project) => {
 				</article>
 			{/each}
 		</div>
-
 	{:else}
 		<!-- Default: 3-Column Grid Layout -->
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -430,7 +488,10 @@ const projectHref = (project: Project) => {
 				<article class="card overflow-hidden group animate-fade-in">
 					{#if thumbSrc(project)}
 						{#if isLinkable(project)}
-							<a href={projectHref(project)} class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700">
+							<a
+								href={projectHref(project)}
+								class="block aspect-video overflow-hidden bg-gray-100 dark:bg-gray-700"
+							>
 								<img
 									src={largeSrc(project)}
 									srcset={`${thumbSrc(project)} 640w, ${largeSrc(project)} 1280w`}
@@ -451,16 +512,24 @@ const projectHref = (project: Project) => {
 							</div>
 						{/if}
 					{:else}
-								<div class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center" aria-hidden="true">
-									<span class="sp-plate__initial text-5xl font-bold text-white/50">{initial(project.title)}</span>
-								</div>
-							{/if}
+						<div
+							class="sp-plate aspect-video bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center"
+							aria-hidden="true"
+						>
+							<span class="sp-plate__initial text-5xl font-bold text-white/50"
+								>{initial(project.title)}</span
+							>
+						</div>
+					{/if}
 
 					<div class="p-5">
 						<div class="flex items-start justify-between gap-2">
 							<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 								{#if isLinkable(project)}
-									<a href={projectHref(project)} class="hover:text-primary-600 dark:hover:text-primary-400">
+									<a
+										href={projectHref(project)}
+										class="hover:text-primary-600 dark:hover:text-primary-400"
+									>
 										{project.title}
 									</a>
 								{:else}
@@ -468,7 +537,9 @@ const projectHref = (project: Project) => {
 								{/if}
 							</h3>
 							{#if project.is_featured}
-								<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded">
+								<span
+									class="shrink-0 px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
+								>
 									Featured
 								</span>
 							{/if}
@@ -483,7 +554,9 @@ const projectHref = (project: Project) => {
 						{#if project.tech_stack && project.tech_stack.length > 0}
 							<div class="mt-3 flex flex-wrap gap-1.5">
 								{#each project.tech_stack.slice(0, 4) as tech}
-									<span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+									<span
+										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+									>
 										{tech}
 									</span>
 								{/each}
@@ -523,8 +596,12 @@ const projectHref = (project: Project) => {
 	   Every selector is gated by [data-design='soft-premium'] so the classic
 	   look is untouched. */
 	:global([data-design='soft-premium']) .sp-plate {
-		background:
-			radial-gradient(120% 120% at 30% 20%, var(--surface-2) 0%, var(--chip) 55%, var(--bg) 100%);
+		background: radial-gradient(
+			120% 120% at 30% 20%,
+			var(--surface-2) 0%,
+			var(--chip) 55%,
+			var(--bg) 100%
+		);
 		border-radius: var(--r-4);
 		position: relative;
 		overflow: hidden;

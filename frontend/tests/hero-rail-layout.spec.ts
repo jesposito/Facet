@@ -1,33 +1,22 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import { apiBaseURL } from './config';
+import { loginAsAdmin } from './helpers';
 
 /**
  * Rail hero layout end-to-end certification.
  *
- * The rail layout renders the hero as a sticky ~320px left <aside> sidebar and
- * flows page content in the right column via a 2-column grid. This spec drives
- * the real running stack:
- *   - A PB superuser PATCHes profile.hero_layout = 'rail'
+ * The rail layout renders the hero as a sticky ~320px left header and flows
+ * page content in the right column via a 2-column grid. This spec drives the
+ * real running stack:
+ *   - The seeded owner PATCHes profile.hero_layout = 'rail'
  *   - The public page is loaded at a desktop viewport
- *   - We assert the rail <aside> is present, sits in the left column (~320px),
+ *   - We assert the rail header is present, sits in the left column (~320px),
  *     and the page uses the 2-col grid
- *   - We then reset to 'standard' and assert the rail <aside> is gone, proving
+ *   - We then reset to 'standard' and assert the rail header is gone, proving
  *     other layouts are unaffected.
  *
  * The suite is serial (playwright.config workers: 1); run with --workers=1.
  */
-
-const PB_SUPERUSER = process.env.PB_SUPERUSER_EMAIL || 'admin@localhost.dev';
-const PB_SUPERUSER_PW = process.env.PB_SUPERUSER_PASSWORD || 'admin123';
-
-async function superuserToken(request: APIRequestContext): Promise<string> {
-	const res = await request.post(
-		`${apiBaseURL}/api/collections/_superusers/auth-with-password`,
-		{ data: { identity: PB_SUPERUSER, password: PB_SUPERUSER_PW } }
-	);
-	expect(res.ok(), 'PB superuser auth must succeed').toBeTruthy();
-	return (await res.json()).token as string;
-}
 
 async function profileId(request: APIRequestContext, token: string): Promise<string> {
 	const res = await request.get(`${apiBaseURL}/api/collections/profile/records?perPage=1`, {
@@ -60,7 +49,7 @@ test.describe('rail hero layout', () => {
 	let id: string;
 
 	test.beforeAll(async ({ request }) => {
-		token = await superuserToken(request);
+		({ token } = await loginAsAdmin(request));
 		id = await profileId(request, token);
 	});
 
@@ -94,20 +83,16 @@ test.describe('rail hero layout', () => {
 		});
 		// Two resolved track widths => 2-column grid is active (rail col + content col).
 		const tracks = gridTemplate.trim().split(/\s+/).filter(Boolean);
-		expect(
-			tracks.length,
-			`rail wrapper uses a 2-col grid (got "${gridTemplate}")`
-		).toBe(2);
+		expect(tracks.length, `rail wrapper uses a 2-col grid (got "${gridTemplate}")`).toBe(2);
 
 		// Content must flow in the right column, to the right of the sidebar.
 		const main = page.locator('main#main-content');
 		await expect(main).toBeVisible();
 		const mainBox = await main.boundingBox();
 		expect(mainBox, 'main has a layout box').not.toBeNull();
-		expect(
-			mainBox!.x,
-			'main content sits to the right of the rail sidebar'
-		).toBeGreaterThan(box!.x + box!.width - 1);
+		expect(mainBox!.x, 'main content sits to the right of the rail sidebar').toBeGreaterThan(
+			box!.x + box!.width - 1
+		);
 	});
 
 	test('switching back to standard removes the rail sidebar (other layouts unaffected)', async ({

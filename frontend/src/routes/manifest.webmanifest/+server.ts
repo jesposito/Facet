@@ -1,5 +1,9 @@
 import type { RequestHandler } from './$types';
-import { buildWebManifest, type ManifestProfile, type ManifestSiteSettings } from '$lib/web-manifest';
+import {
+	buildWebManifest,
+	type ManifestProfile,
+	type ManifestSiteSettings
+} from '$lib/web-manifest';
 
 export const GET: RequestHandler = async ({ fetch }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';

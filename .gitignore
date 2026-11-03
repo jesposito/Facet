@@ -139,3 +139,6 @@ AGENTS.md
 .kimi/
 .gemini/
 .aider*
+
+# Python validation scripts
+__pycache__/

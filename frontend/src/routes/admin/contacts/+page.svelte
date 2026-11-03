@@ -190,10 +190,18 @@
 		},
 		{
 			value: 'captcha',
-			label: 'CAPTCHA (Coming Soon)',
-			description: 'Cloudflare Turnstile - not yet implemented'
+			label: 'CAPTCHA (not available)',
+			description:
+				'Verification is not built yet. Visitors see the label only and the value is withheld from public pages.'
 		}
 	];
+
+	// CAPTCHA has no working verification, so it can't be chosen for a new
+	// setting. A contact already saved with it keeps the option checked so the
+	// form shows the truth, with an explanation and a one-click replacement.
+	function protectionUnavailable(level: ProtectionLevel): boolean {
+		return level === 'captcha' && protectionLevel !== 'captcha';
+	}
 
 	// Lifecycle
 	onMount(() => {
@@ -523,15 +531,44 @@
 					<legend class="label">
 						Protection Level <span class="text-red-500">*</span>
 					</legend>
+					{#if protectionLevel === 'captcha'}
+						<div
+							class="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-900 dark:text-amber-200"
+							role="note"
+							data-testid="captcha-unavailable-note"
+						>
+							<p>
+								This contact uses CAPTCHA protection, which isn't available yet. Visitors can't
+								reveal it, so public pages show the label and keep the value private.
+							</p>
+							<button
+								type="button"
+								class="mt-2 underline font-medium"
+								onclick={() => (protectionLevel = 'click_to_reveal')}
+							>
+								Switch to Click to Reveal
+							</button>
+						</div>
+					{/if}
 					<div class="space-y-2">
 						{#each protectionLevels as level}
 							<label
-								class="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {protectionLevel ===
+								class="flex items-start space-x-3 p-3 border rounded-lg transition-colors {protectionUnavailable(
+									level.value
+								)
+									? 'cursor-not-allowed opacity-60'
+									: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'} {protectionLevel ===
 								level.value
 									? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
 									: 'border-gray-300 dark:border-gray-700'}"
 							>
-								<input type="radio" bind:group={protectionLevel} value={level.value} class="mt-1" />
+								<input
+									type="radio"
+									bind:group={protectionLevel}
+									value={level.value}
+									disabled={protectionUnavailable(level.value)}
+									class="mt-1"
+								/>
 								<div class="flex-1">
 									<div class="font-medium">{level.label}</div>
 									<div class="text-sm text-gray-600 dark:text-gray-400">{level.description}</div>
@@ -760,7 +797,10 @@
 					<strong>CSS Obfuscation:</strong> Hides contact from simple scrapers using CSS tricks
 				</li>
 				<li><strong>Click to Reveal:</strong> Requires user interaction to display contact</li>
-				<li><strong>CAPTCHA:</strong> Cloudflare Turnstile verification required (coming soon)</li>
+				<li>
+					<strong>CAPTCHA:</strong> Not available yet. Existing CAPTCHA contacts show only their label
+					publicly; switch them to Click to Reveal so visitors can reach you.
+				</li>
 			</ul>
 		</div>
 	{/if}

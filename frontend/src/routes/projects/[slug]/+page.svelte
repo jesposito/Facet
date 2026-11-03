@@ -1,19 +1,21 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { discoveryDetailBack } from '$lib/discovery';
+	import ImageLightbox from '$components/public/ImageLightbox.svelte';
+	import PurchaseGate from '$components/public/PurchaseGate.svelte';
 	import { t } from 'svelte-i18n';
 
-import type { PageData } from './$types';
-import { parseMarkdown, isFilename } from '$lib/utils';
-import { browser } from '$app/env';
-import ThemeToggle from '$components/shared/ThemeToggle.svelte';
-import ShareButton from '$components/shared/ShareButton.svelte';
-import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
-import Footer from '$components/public/Footer.svelte';
-import ExperienceRenderer from '$lib/experiences/ExperienceRenderer.svelte';
-import { readExperience, safeExperienceUrl } from '$lib/experiences/types';
-import type { RecordModel } from 'pocketbase';
-import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
+	import type { PageData } from './$types';
+	import { parseMarkdown, isFilename } from '$lib/utils';
+	import { browser } from '$app/env';
+	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
+	import ShareButton from '$components/shared/ShareButton.svelte';
+	import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
+	import Footer from '$components/public/Footer.svelte';
+	import ExperienceRenderer from '$lib/experiences/ExperienceRenderer.svelte';
+	import { readExperience, safeExperienceUrl } from '$lib/experiences/types';
+	import type { RecordModel } from 'pocketbase';
+	import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
 	interface Props {
 		data: PageData;
@@ -21,57 +23,65 @@ import { getCanonicalUrl, generateOpenGraphTags } from '$lib/seo';
 
 	let { data }: Props = $props();
 
-let experience = $derived(readExperience(data.project.experience));
+	let experience = $derived(readExperience(data.project.experience));
 
-// SEO metadata
-let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
-let canonicalUrl = $derived(getCanonicalUrl(baseUrl, `projects/${data.project.slug}`));
-let ogTags = $derived(generateOpenGraphTags({
-	title: data.project.title,
-	description: data.project.summary || '',
-	image: data.project.cover_image_url || undefined,
-	url: canonicalUrl,
-	type: 'article',
-	siteName: data.profile?.name || 'Facet'
-}));
-let mediaRefs = $derived(((data as any).media_refs as Array<RecordModel & {
-	url?: string;
-	title?: string;
-	mime?: string;
-	description?: string;
-	alt_text?: string;
-	type?: string;
-	provider?: string;
-}>) || []);
+	// SEO metadata
+	let baseUrl = $derived(browser ? window.location.origin : 'http://localhost:8080');
+	let canonicalUrl = $derived(getCanonicalUrl(baseUrl, `projects/${data.project.slug}`));
+	let ogTags = $derived(
+		generateOpenGraphTags({
+			title: data.project.title,
+			description: data.project.summary || '',
+			image: data.project.cover_image_url || undefined,
+			url: canonicalUrl,
+			type: 'article',
+			siteName: data.profile?.name || 'Facet'
+		})
+	);
+	let mediaRefs = $derived(
+		(data.media_refs as Array<
+			RecordModel & {
+				url?: string;
+				title?: string;
+				mime?: string;
+				description?: string;
+				alt_text?: string;
+				type?: string;
+				provider?: string;
+			}
+		>) || []
+	);
 
-interface RelatedItem {
-	id: string;
-	title?: string;
-	company?: string;
-	location?: string;
-	institution?: string;
-	degree?: string;
-	field?: string;
-	start_date?: string;
-	end_date?: string;
-}
+	interface RelatedItem {
+		id: string;
+		title?: string;
+		company?: string;
+		location?: string;
+		institution?: string;
+		degree?: string;
+		field?: string;
+		start_date?: string;
+		end_date?: string;
+	}
 
-let relatedExperience = $derived(((data.project as any).related_experience as RelatedItem[]) || []);
-let relatedEducation = $derived(((data.project as any).related_education as RelatedItem[]) || []);
-let hasRelated = $derived(relatedExperience.length > 0 || relatedEducation.length > 0);
+	let relatedExperience = $derived((data.project.related_experience as RelatedItem[]) || []);
+	let relatedEducation = $derived((data.project.related_education as RelatedItem[]) || []);
+	let hasRelated = $derived(relatedExperience.length > 0 || relatedEducation.length > 0);
 
-function relatedDateRange(start?: string, end?: string): string {
-	const fmt = (d?: string) => (d ? String(d).slice(0, 7).replace(/-01$/, '') : '');
-	const startLabel = fmt(start);
-	const endLabel = end ? fmt(end) : $t('shared.time.present');
-	if (!startLabel && !end) return '';
-	return [startLabel, endLabel].filter(Boolean).join(' – ');
-}
+	function relatedDateRange(start?: string, end?: string): string {
+		const fmt = (d?: string) => (d ? String(d).slice(0, 7).replace(/-01$/, '') : '');
+		const startLabel = fmt(start);
+		const endLabel = end ? fmt(end) : $t('shared.time.present');
+		if (!startLabel && !end) return '';
+		return [startLabel, endLabel].filter(Boolean).join(' – ');
+	}
 
 	// Lightbox state
 	let lightboxOpen = $state(false);
 	let lightboxIndex = $state(0);
-	let imageMedia = $derived(mediaRefs.filter(m => m.url && /\.(png|jpe?g|webp|gif|avif)$/i.test(m.url)));
+	let imageMedia = $derived(
+		mediaRefs.filter((m) => m.url && /\.(png|jpe?g|webp|gif|avif)$/i.test(m.url))
+	);
 
 	function openLightbox(index: number) {
 		lightboxIndex = index;
@@ -82,31 +92,9 @@ function relatedDateRange(start?: string, end?: string): string {
 		lightboxOpen = false;
 	}
 
-	function nextImage() {
-		if (imageMedia.length > 0) {
-			lightboxIndex = (lightboxIndex + 1) % imageMedia.length;
-		}
-	}
-
-	function prevImage() {
-		if (imageMedia.length > 0) {
-			lightboxIndex = (lightboxIndex - 1 + imageMedia.length) % imageMedia.length;
-		}
-	}
-
-	function handleLightboxKeydown(e: KeyboardEvent) {
-		if (!lightboxOpen) return;
-		if (e.key === 'Escape') closeLightbox();
-		if (e.key === 'ArrowRight') nextImage();
-		if (e.key === 'ArrowLeft') prevImage();
-	}
-
-
 	let back = $derived(discoveryDetailBack('project', page.url.searchParams, data.fromView, $t));
-	let projectThumb =
-		$derived((data.project as Record<string, string>).cover_image_thumb_url ?? data.project.cover_image_url);
-	let projectLarge =
-		$derived((data.project as Record<string, string>).cover_image_large_url ?? data.project.cover_image_url);
+	let projectThumb = $derived(data.project.cover_image_thumb_url ?? data.project.cover_image_url);
+	let projectLarge = $derived(data.project.cover_image_large_url ?? data.project.cover_image_url);
 
 	function isYouTube(url?: string): string | null {
 		if (!url) return null;
@@ -121,41 +109,40 @@ function relatedDateRange(start?: string, end?: string): string {
 		}
 	}
 
-function isVimeo(url?: string): string | null {
-	if (!url) return null;
-	try {
-		const u = new URL(url);
-		if (u.hostname.includes('vimeo.com')) {
-			const parts = u.pathname.split('/').filter(Boolean);
-			return parts.pop() || null;
+	function isVimeo(url?: string): string | null {
+		if (!url) return null;
+		try {
+			const u = new URL(url);
+			if (u.hostname.includes('vimeo.com')) {
+				const parts = u.pathname.split('/').filter(Boolean);
+				return parts.pop() || null;
+			}
+			return null;
+		} catch {
+			return null;
 		}
-		return null;
-	} catch {
-		return null;
 	}
-}
 
-const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
-const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
-const getHost = (url?: string) => {
-	if (!url) return '';
-	try {
-		return new URL(url, 'http://localhost').host || '';
-	} catch {
-		return '';
-	}
-};
-const getFileName = (url?: string) => {
-	if (!url) return 'Media';
-	try {
-		const path = url.split('?')[0];
-		const parts = path.split('/');
-		return decodeURIComponent(parts[parts.length - 1] || url);
-	} catch {
-		return url;
-	}
-};
-
+	const isImage = (url?: string) => !!url && /\.(png|jpe?g|webp|gif|avif)$/i.test(url);
+	const isVideoFile = (url?: string) => !!url && /\.(mp4|webm|mov)$/i.test(url);
+	const getHost = (url?: string) => {
+		if (!url) return '';
+		try {
+			return new URL(url, 'http://localhost').host || '';
+		} catch {
+			return '';
+		}
+	};
+	const getFileName = (url?: string) => {
+		if (!url) return 'Media';
+		try {
+			const path = url.split('?')[0];
+			const parts = path.split('/');
+			return decodeURIComponent(parts[parts.length - 1] || url);
+		} catch {
+			return url;
+		}
+	};
 
 	function getLinkIcon(type: string) {
 		switch (type.toLowerCase()) {
@@ -184,14 +171,14 @@ const getFileName = (url?: string) => {
 
 	<!-- Open Graph and Twitter Card meta tags -->
 	{#each Object.entries(ogTags) as [property, content]}
-		<meta property={property} content={content} />
+		<meta {property} {content} />
 	{/each}
 </svelte:head>
 
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
 	<div class="fixed top-4 right-4 z-40 flex items-center gap-2 print:hidden">
 		{#if data.project.visibility === 'public'}
-			<ShareButton 
+			<ShareButton
 				url={browser ? window.location.href : `/projects/${data.project.slug}`}
 				title={`${data.project.title} | ${data.profile?.name || 'Portfolio'}`}
 				text={data.project.summary || data.project.title}
@@ -202,321 +189,308 @@ const getFileName = (url?: string) => {
 
 	<!-- Hero section with cover image -->
 	{#if experience}
-		<ExperienceRenderer {experience} title={data.project.title} summary={data.project.summary} backHref={back.href} backLabel={back.label} />
+		<ExperienceRenderer
+			{experience}
+			title={data.project.title}
+			summary={data.project.summary}
+			backHref={back.href}
+			backLabel={back.label}
+		/>
 		{#if data.project.links?.length}
 			<nav aria-label="Project links" class="max-w-5xl mx-auto px-6 py-8 flex flex-wrap gap-6">
-				{#each data.project.links as link}{#if safeExperienceUrl(link.url,true)}<a class="underline underline-offset-4" href={safeExperienceUrl(link.url,true)}>{link.type || 'Related link'} ↗</a>{/if}{/each}
+				{#each data.project.links as link}{#if safeExperienceUrl(link.url, true)}<a
+							class="underline underline-offset-4"
+							href={safeExperienceUrl(link.url, true)}>{link.type || 'Related link'} ↗</a
+						>{/if}{/each}
 			</nav>
 		{/if}
 	{:else}
-	<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-		{#if data.project.cover_image_url}
-			<div class="absolute inset-0">
-				<img
-					src={projectLarge}
-					srcset={`${projectThumb ?? data.project.cover_image_url} 640w, ${projectLarge} 1280w, ${data.project.cover_image_url} 1600w`}
-					sizes="100vw"
-					alt=""
-					class="w-full h-full object-cover opacity-30"
-				/>
-				<div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"></div>
-			</div>
-		{/if}
-
-		<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-			<!-- Back navigation -->
-			<a
-				href={back.href}
-
-				class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
-			>
-				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-				</svg>
-				<span>{back.label}</span>
-			</a>
-
-			<!-- Project title and badges -->
-			<div class="flex flex-wrap items-start gap-3 mb-4">
-				<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold">
-					{data.project.title}
-				</h1>
-				{#if data.project.is_featured}
-					<span class="px-3 py-1 text-sm font-medium bg-yellow-500 text-yellow-900 rounded-full">
-						Featured
-					</span>
-				{/if}
-				{#if (data as any).isAuthenticated && ((data.project as any).visibility !== 'public' || (data.project as any).is_draft)}
-					<VisibilityBadge visibility={(data.project as any).visibility} isDraft={(data.project as any).is_draft} />
-				{/if}
-			</div>
-
-			<!-- Summary -->
-			{#if data.project.summary}
-				<p class="text-xl text-gray-300 max-w-3xl">
-					{data.project.summary}
-				</p>
-			{/if}
-
-			<!-- Links -->
-			{#if data.project.links && data.project.links.length > 0}
-				<div class="flex flex-wrap items-center gap-3 mt-6">
-					{#each data.project.links as link}
-						<a
-							href={link.url}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-						>
-							{@html getLinkIcon(link.type)}
-							<span class="capitalize">{link.type}</span>
-						</a>
-					{/each}
+		<header class="relative bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+			{#if data.project.cover_image_url}
+				<div class="absolute inset-0">
+					<img
+						src={projectLarge}
+						srcset={`${projectThumb ?? data.project.cover_image_url} 640w, ${projectLarge} 1280w, ${data.project.cover_image_url} 1600w`}
+						sizes="100vw"
+						alt=""
+						class="w-full h-full object-cover opacity-30"
+					/>
+					<div
+						class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent"
+					></div>
 				</div>
 			{/if}
-		</div>
-	</header>
 
-	<!-- Main content -->
-	<main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-		<!-- Tech stack -->
-		{#if data.project.tech_stack && data.project.tech_stack.length > 0}
-			<section class="mb-10">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tech Stack</h2>
-				<div class="flex flex-wrap gap-2">
-					{#each data.project.tech_stack as tech}
-						<span class="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-white rounded-full">
-							{tech}
+			<div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+				<!-- Back navigation -->
+				<a
+					href={back.href}
+					class="inline-flex items-center gap-2 text-gray-300 hover:text-white mb-6 transition-colors"
+				>
+					<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M10 19l-7-7m0 0l7-7m-7 7h18"
+						/>
+					</svg>
+					<span>{back.label}</span>
+				</a>
+
+				<!-- Project title and badges -->
+				<div class="flex flex-wrap items-start gap-3 mb-4">
+					<h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold">
+						{data.project.title}
+					</h1>
+					{#if data.project.is_featured}
+						<span class="px-3 py-1 text-sm font-medium bg-yellow-500 text-yellow-900 rounded-full">
+							Featured
 						</span>
-					{/each}
+					{/if}
+					{#if data.isAuthenticated && (data.project.visibility !== 'public' || data.project.is_draft)}
+						<VisibilityBadge visibility={data.project.visibility} isDraft={data.project.is_draft} />
+					{/if}
 				</div>
-			</section>
-		{/if}
 
-		<!-- Categories -->
-		{#if data.project.categories && data.project.categories.length > 0}
-			<section class="mb-10">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Categories</h2>
-				<div class="flex flex-wrap gap-2">
-					{#each data.project.categories as category}
-						<span class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full">
-							{category}
-						</span>
-					{/each}
+				<!-- Summary -->
+				{#if data.project.summary}
+					<p class="text-xl text-gray-300 max-w-3xl">
+						{data.project.summary}
+					</p>
+				{/if}
+
+				<!-- Links -->
+				{#if data.project.links && data.project.links.length > 0}
+					<div class="flex flex-wrap items-center gap-3 mt-6">
+						{#each data.project.links as link}
+							<a
+								href={link.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+							>
+								{@html getLinkIcon(link.type)}
+								<span class="capitalize">{link.type}</span>
+							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</header>
+
+		<!-- Main content -->
+		<main id="main-content" class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+			{#if data.project.is_gated}
+				<div class="mb-10">
+					<PurchaseGate
+						contentType="projects"
+						contentId={data.project.id}
+						slug={data.project.slug}
+						title={data.project.title}
+						price={data.project.price}
+					/>
 				</div>
-			</section>
-		{/if}
+			{/if}
 
-		<!-- Description (Markdown) -->
-		{#if data.project.description}
-			<section class="mb-10">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h2>
-				<div class="rich-content-safe prose prose-lg dark:prose-invert max-w-none">
-					{@html parseMarkdown(data.project.description)}
-				</div>
-			</section>
-		{/if}
+			<!-- Tech stack -->
+			{#if data.project.tech_stack && data.project.tech_stack.length > 0}
+				<section class="mb-10">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tech Stack</h2>
+					<div class="flex flex-wrap gap-2">
+						{#each data.project.tech_stack as tech}
+							<span
+								class="px-3 py-1.5 text-sm bg-primary-100 dark:bg-primary-800 text-primary-800 dark:text-white rounded-full"
+							>
+								{tech}
+							</span>
+						{/each}
+					</div>
+				</section>
+			{/if}
 
-		<!-- Related experience / education -->
-		{#if hasRelated}
-			<section class="mb-10">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-					{$t('public.projects.related_heading')}
-				</h2>
-				<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-					{#each relatedExperience as item (item.id)}
-						<div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-							<p class="font-medium text-gray-900 dark:text-white">{item.title}</p>
-							{#if item.company}
-								<p class="text-sm text-gray-600 dark:text-gray-300">{item.company}</p>
-							{/if}
-							{#if relatedDateRange(item.start_date, item.end_date)}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-									{relatedDateRange(item.start_date, item.end_date)}
+			<!-- Categories -->
+			{#if data.project.categories && data.project.categories.length > 0}
+				<section class="mb-10">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Categories</h2>
+					<div class="flex flex-wrap gap-2">
+						{#each data.project.categories as category}
+							<span
+								class="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full"
+							>
+								{category}
+							</span>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
+			<!-- Description (Markdown) -->
+			{#if data.project.description}
+				<section class="mb-10">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">About</h2>
+					<div class="rich-content-safe prose prose-lg dark:prose-invert max-w-none">
+						{@html parseMarkdown(data.project.description)}
+					</div>
+				</section>
+			{/if}
+
+			<!-- Related experience / education -->
+			{#if hasRelated}
+				<section class="mb-10">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+						{$t('public.projects.related_heading')}
+					</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						{#each relatedExperience as item (item.id)}
+							<div
+								class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+							>
+								<p class="font-medium text-gray-900 dark:text-white">{item.title}</p>
+								{#if item.company}
+									<p class="text-sm text-gray-600 dark:text-gray-300">{item.company}</p>
+								{/if}
+								{#if relatedDateRange(item.start_date, item.end_date)}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+										{relatedDateRange(item.start_date, item.end_date)}
+									</p>
+								{/if}
+							</div>
+						{/each}
+						{#each relatedEducation as item (item.id)}
+							<div
+								class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+							>
+								<p class="font-medium text-gray-900 dark:text-white">
+									{item.degree || item.institution}
 								</p>
-							{/if}
-						</div>
-					{/each}
-					{#each relatedEducation as item (item.id)}
-						<div class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-							<p class="font-medium text-gray-900 dark:text-white">
-								{item.degree || item.institution}
-							</p>
-							{#if item.degree && item.institution}
-								<p class="text-sm text-gray-600 dark:text-gray-300">{item.institution}</p>
-							{/if}
-							{#if relatedDateRange(item.start_date, item.end_date)}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-									{relatedDateRange(item.start_date, item.end_date)}
-								</p>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			</section>
-		{/if}
+								{#if item.degree && item.institution}
+									<p class="text-sm text-gray-600 dark:text-gray-300">{item.institution}</p>
+								{/if}
+								{#if relatedDateRange(item.start_date, item.end_date)}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+										{relatedDateRange(item.start_date, item.end_date)}
+									</p>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
 
-		<!-- Media gallery -->
-		{#if data.project.media_urls && data.project.media_urls.length > 0}
-			<section class="mb-10">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Gallery</h2>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-					{#each data.project.media_urls as mediaUrl}
-						<a
-							href={mediaUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							class="block aspect-video overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 hover:opacity-90 transition-opacity"
-						>
-							<img
-								src={mediaUrl}
-								alt="Project media"
-								class="w-full h-full object-cover"
-							/>
-						</a>
-					{/each}
-				</div>
-			</section>
-		{/if}
+			<!-- Media gallery -->
+			{#if data.project.media_urls && data.project.media_urls.length > 0}
+				<section class="mb-10">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Gallery</h2>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+						{#each data.project.media_urls as mediaUrl}
+							<a
+								href={mediaUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="block aspect-video overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 hover:opacity-90 transition-opacity"
+							>
+								<img src={mediaUrl} alt="Project media" class="w-full h-full object-cover" />
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
 
-		{#if mediaRefs && mediaRefs.length > 0}
-			<section class="mb-10 space-y-3">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h2>
-				<div class="grid gap-4 md:grid-cols-2">
-					{#each mediaRefs as media}
-						{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
-						<div class="card overflow-hidden">
-							{#if isYouTube(media.url)}
-								<div class="aspect-video bg-black/10">
-									<iframe
-										src={`https://www.youtube.com/embed/${isYouTube(media.url) ?? ''}`}
-										title={media.title || 'YouTube'}
-										allowfullscreen
-										loading="lazy"
-										class="w-full h-full"
-									></iframe>
-								</div>
-							{:else if isVimeo(media.url)}
-								<div class="aspect-video bg-black/10">
-									<iframe
-										src={`https://player.vimeo.com/video/${isVimeo(media.url) ?? ''}`}
-										title={media.title || 'Vimeo'}
-										allowfullscreen
-										loading="lazy"
-										class="w-full h-full"
-									></iframe>
-								</div>
-							{:else if isImage(media.url)}
-								<button
-									type="button"
-									onclick={() => openLightbox(imageMedia.findIndex(m => m.url === media.url))}
-									class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden"
-								>
-									<img src={media.url || ''} alt={media.alt_text || media.title || ''} class="w-full h-full object-cover" loading="lazy" />
-								</button>
-							{:else if isVideoFile(media.url)}
-								<video src={media.url || ''} controls class="w-full">
-									<track kind="captions" srclang="en" label="captions" />
-								</video>
-							{:else if media.url}
-								<div class="p-4">
-									<a href={media.url} class="text-primary-600 dark:text-primary-300 hover:underline text-sm inline-flex items-center gap-1" target="_blank" rel="noopener noreferrer">
-										<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 6h8m0 0v8m0-8-9.5 9.5a3 3 0 0 1-4.243 0l-.757-.757a3 3 0 0 1 0-4.243L12 6Z"/></svg>
-										{media.title || getFileName(media.url)}
-									</a>
-								</div>
-							{/if}
-							{#if displayTitle || media.description || (media.provider && media.provider !== 'upload')}
-								<div class="p-3 space-y-1">
-									{#if displayTitle}
-										<p class="text-sm font-medium text-gray-900 dark:text-white">{displayTitle}</p>
-									{/if}
-									{#if media.description}
-										<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
-									{/if}
-									{#if media.url && media.provider && media.provider !== 'upload'}
-										<p class="text-xs text-gray-500 dark:text-gray-400">Source: {getHost(media.url)}</p>
-									{/if}
-								</div>
-							{/if}
-						</div>
-					{/each}
-				</div>
-			</section>
-		{/if}
-	</main>
-
+			{#if mediaRefs && mediaRefs.length > 0}
+				<section class="mb-10 space-y-3">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Image Gallery</h2>
+					<div class="grid gap-4 md:grid-cols-2">
+						{#each mediaRefs as media}
+							{@const displayTitle = media.title && !isFilename(media.title) ? media.title : ''}
+							<div class="card overflow-hidden">
+								{#if isYouTube(media.url)}
+									<div class="aspect-video bg-black/10">
+										<iframe
+											src={`https://www.youtube.com/embed/${isYouTube(media.url) ?? ''}`}
+											title={media.title || 'YouTube'}
+											allowfullscreen
+											loading="lazy"
+											class="w-full h-full"
+										></iframe>
+									</div>
+								{:else if isVimeo(media.url)}
+									<div class="aspect-video bg-black/10">
+										<iframe
+											src={`https://player.vimeo.com/video/${isVimeo(media.url) ?? ''}`}
+											title={media.title || 'Vimeo'}
+											allowfullscreen
+											loading="lazy"
+											class="w-full h-full"
+										></iframe>
+									</div>
+								{:else if isImage(media.url)}
+									<button
+										type="button"
+										onclick={() => openLightbox(imageMedia.findIndex((m) => m.url === media.url))}
+										class="w-full cursor-zoom-in gallery-thumb bg-gray-100 dark:bg-gray-800 overflow-hidden"
+									>
+										<img
+											src={media.url || ''}
+											alt={media.alt_text || media.title || ''}
+											class="w-full h-full object-cover"
+											loading="lazy"
+										/>
+									</button>
+								{:else if isVideoFile(media.url)}
+									<video src={media.url || ''} controls class="w-full">
+										<track kind="captions" srclang="en" label="captions" />
+									</video>
+								{:else if media.url}
+									<div class="p-4">
+										<a
+											href={media.url}
+											class="text-primary-600 dark:text-primary-300 hover:underline text-sm inline-flex items-center gap-1"
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											<svg
+												class="w-4 h-4"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												><path
+													d="M10 6h8m0 0v8m0-8-9.5 9.5a3 3 0 0 1-4.243 0l-.757-.757a3 3 0 0 1 0-4.243L12 6Z"
+												/></svg
+											>
+											{media.title || getFileName(media.url)}
+										</a>
+									</div>
+								{/if}
+								{#if displayTitle || media.description || (media.provider && media.provider !== 'upload')}
+									<div class="p-3 space-y-1">
+										{#if displayTitle}
+											<p class="text-sm font-medium text-gray-900 dark:text-white">
+												{displayTitle}
+											</p>
+										{/if}
+										{#if media.description}
+											<p class="text-xs text-gray-600 dark:text-gray-300">{media.description}</p>
+										{/if}
+										{#if media.url && media.provider && media.provider !== 'upload'}
+											<p class="text-xs text-gray-500 dark:text-gray-400">
+												Source: {getHost(media.url)}
+											</p>
+										{/if}
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				</section>
+			{/if}
+		</main>
 	{/if}
 	<!-- Footer -->
 	<Footer profile={data.profile} />
 </div>
 
-<!-- Lightbox Modal -->
-<svelte:window onkeydown={handleLightboxKeydown} />
-
-{#if lightboxOpen && imageMedia[lightboxIndex]}
-	<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
-	<div
-		class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-		onclick={closeLightbox}
-		oncontextmenu={(e) => e.preventDefault()}
-	>
-		<!-- Close button -->
-		<button
-			type="button"
-			onclick={closeLightbox}
-			class="absolute top-4 right-4 p-2 text-white/70 hover:text-white transition-colors"
-			aria-label={$t('public.lightbox.close')}
-		>
-			<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-			</svg>
-		</button>
-
-		<!-- Previous button -->
-		{#if imageMedia.length > 1}
-			<button
-				type="button"
-				onclick={(e) => { e.stopPropagation(); prevImage(); }}
-				class="absolute left-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label={$t('public.lightbox.previous_image')}
-			>
-				<svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-				</svg>
-			</button>
-
-			<!-- Next button -->
-			<button
-				type="button"
-				onclick={(e) => { e.stopPropagation(); nextImage(); }}
-				class="absolute right-4 p-2 text-white/70 hover:text-white transition-colors"
-				aria-label={$t('public.lightbox.next_image')}
-			>
-				<svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-				</svg>
-			</button>
-		{/if}
-
-		<!-- Image container -->
-		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
-		<img
-			src={imageMedia[lightboxIndex].url || ''}
-			alt={imageMedia[lightboxIndex].title || imageMedia[lightboxIndex].alt_text || ''}
-			class="max-h-[90vh] max-w-[90vw] object-contain"
-			onclick={(e) => e.stopPropagation()}
-			oncontextmenu={(e) => e.preventDefault()}
-		/>
-
-		<!-- Image counter and title -->
-		<div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-white">
-			{#if imageMedia[lightboxIndex].title && !isFilename(imageMedia[lightboxIndex].title)}
-				<p class="text-lg font-medium mb-1">{imageMedia[lightboxIndex].title}</p>
-			{/if}
-			{#if imageMedia.length > 1}
-				<p class="text-sm text-white/70">{lightboxIndex + 1} / {imageMedia.length}</p>
-			{/if}
-		</div>
-	</div>
+{#if lightboxOpen}
+	<ImageLightbox images={imageMedia} bind:index={lightboxIndex} onClose={closeLightbox} />
 {/if}

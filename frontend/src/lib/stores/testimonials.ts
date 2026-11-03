@@ -9,9 +9,9 @@ let refreshTimeout: ReturnType<typeof setTimeout> | null = null;
 
 export async function refreshTestimonialsPendingCount() {
 	try {
-		const pb = await import('$lib/pocketbase').then(m => m.pb);
+		const pb = await import('$lib/pocketbase').then((m) => m.pb);
 		if (!pb.authStore.isValid) {
-			testimonialsStore.update(store => ({ ...store, pendingCount: 0 }));
+			testimonialsStore.update((store) => ({ ...store, pendingCount: 0 }));
 			return;
 		}
 
@@ -23,12 +23,12 @@ export async function refreshTestimonialsPendingCount() {
 		const response = await fetchWithTimeout('/api/testimonials/pending-count', { headers });
 		if (response.ok) {
 			const data = await response.json();
-			testimonialsStore.update(store => ({ ...store, pendingCount: data.count || 0 }));
+			testimonialsStore.update((store) => ({ ...store, pendingCount: data.count || 0 }));
 		} else {
-			testimonialsStore.update(store => ({ ...store, pendingCount: 0 }));
+			testimonialsStore.update((store) => ({ ...store, pendingCount: 0 }));
 		}
 	} catch {
-		testimonialsStore.update(store => ({ ...store, pendingCount: 0 }));
+		testimonialsStore.update((store) => ({ ...store, pendingCount: 0 }));
 	}
 }
 

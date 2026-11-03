@@ -35,18 +35,18 @@
 		{
 			id: 'system',
 			labelKey: 'admin.settings_page.appearance.default_theme_system',
-			descKey: 'admin.settings_page.appearance.default_theme_system_desc',
+			descKey: 'admin.settings_page.appearance.default_theme_system_desc'
 		},
 		{
 			id: 'light',
 			labelKey: 'admin.settings_page.appearance.default_theme_light',
-			descKey: 'admin.settings_page.appearance.default_theme_light_desc',
+			descKey: 'admin.settings_page.appearance.default_theme_light_desc'
 		},
 		{
 			id: 'dark',
 			labelKey: 'admin.settings_page.appearance.default_theme_dark',
-			descKey: 'admin.settings_page.appearance.default_theme_dark_desc',
-		},
+			descKey: 'admin.settings_page.appearance.default_theme_dark_desc'
+		}
 	];
 
 	const DESIGN_OPTIONS: Array<{
@@ -57,13 +57,13 @@
 		{
 			id: 'classic',
 			labelKey: 'admin.settings_page.appearance.design_classic',
-			descKey: 'admin.settings_page.appearance.design_classic_desc',
+			descKey: 'admin.settings_page.appearance.design_classic_desc'
 		},
 		{
 			id: 'soft-premium',
 			labelKey: 'admin.settings_page.appearance.design_soft_premium',
-			descKey: 'admin.settings_page.appearance.design_soft_premium_desc',
-		},
+			descKey: 'admin.settings_page.appearance.design_soft_premium_desc'
+		}
 	];
 
 	// Favicon state
@@ -86,7 +86,7 @@
 		auth_method: 'PLAIN',
 		tls: true,
 		sender_name: '',
-		sender_address: '',
+		sender_address: ''
 	});
 	let smtpTestRecipient = $state('');
 
@@ -115,7 +115,11 @@
 	async function loadSiteSettings() {
 		try {
 			// Add cache buster to prevent browser from caching stale settings
-			const response = await fetch(`/api/site-settings?_=${Date.now()}`);
+			// Signed in, so the saved Google Analytics ID comes back even
+			// while the Analytics switch hides it from visitors.
+			const response = await fetch(`/api/site-settings?_=${Date.now()}`, {
+				headers: { Authorization: pb.authStore.token || '' }
+			});
 			if (response.ok) {
 				const data = await response.json();
 				customCSS = data.custom_css || '';
@@ -142,9 +146,9 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || '',
+					Authorization: pb.authStore.token || ''
 				},
-				body: JSON.stringify({ design: nextDesign }),
+				body: JSON.stringify({ design: nextDesign })
 			});
 			const result = await response.json();
 			if (!response.ok) {
@@ -164,7 +168,7 @@
 
 	async function handleDesignKeydown(event: KeyboardEvent, index: number) {
 		const last = DESIGN_OPTIONS.length - 1;
-		let next = index;
+		let next: number;
 		switch (event.key) {
 			case 'ArrowRight':
 			case 'ArrowDown':
@@ -197,13 +201,16 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || '',
+					Authorization: pb.authStore.token || ''
 				},
-				body: JSON.stringify({ default_theme_mode: mode }),
+				body: JSON.stringify({ default_theme_mode: mode })
 			});
 			const result = await response.json();
 			if (!response.ok) {
-				toasts.add('error', result.error || $t('admin.settings_page.appearance.default_theme_error'));
+				toasts.add(
+					'error',
+					result.error || $t('admin.settings_page.appearance.default_theme_error')
+				);
 				return;
 			}
 			const saved = result.default_theme_mode;
@@ -232,17 +239,20 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token || '',
+					Authorization: pb.authStore.token || ''
 				},
 				body: JSON.stringify({
 					custom_css: customCSS,
-					ga_measurement_id: gaMeasurementId,
-				}),
+					ga_measurement_id: gaMeasurementId
+				})
 			});
 
 			const result = await response.json();
 			if (!response.ok) {
-				toasts.add('error', result.error || result.message || $t('admin.settings_page.settings_error'));
+				toasts.add(
+					'error',
+					result.error || result.message || $t('admin.settings_page.settings_error')
+				);
 				return;
 			}
 
@@ -270,8 +280,8 @@
 			toasts.add(
 				'error',
 				$t('admin.settings_page.appearance.favicon_size_error', {
-					values: { size: Math.round(file.size / 1024) },
-				}),
+					values: { size: Math.round(file.size / 1024) }
+				})
 			);
 			input.value = ''; // Reset input
 			return;
@@ -304,9 +314,9 @@
 			const response = await fetch('/api/site-settings/favicon', {
 				method: 'POST',
 				headers: {
-					Authorization: pb.authStore.token || '',
+					Authorization: pb.authStore.token || ''
 				},
-				body: formData,
+				body: formData
 			});
 
 			const result = await response.json();
@@ -347,7 +357,7 @@
 			title: $t('admin.settings_page.appearance.favicon_remove_title'),
 			message: $t('admin.settings_page.appearance.favicon_remove_message'),
 			confirmText: $t('admin.settings_page.appearance.favicon_remove_button'),
-			danger: true,
+			danger: true
 		});
 		if (!confirmed) return;
 
@@ -356,13 +366,16 @@
 			const response = await fetch('/api/site-settings/favicon', {
 				method: 'DELETE',
 				headers: {
-					Authorization: pb.authStore.token || '',
-				},
+					Authorization: pb.authStore.token || ''
+				}
 			});
 
 			if (!response.ok) {
 				const result = await response.json();
-				toasts.add('error', result.error || $t('admin.settings_page.appearance.favicon_remove_error'));
+				toasts.add(
+					'error',
+					result.error || $t('admin.settings_page.appearance.favicon_remove_error')
+				);
 				return;
 			}
 
@@ -388,7 +401,7 @@
 	async function loadSMTPSettings() {
 		try {
 			const response = await fetch('/api/smtp-settings', {
-				headers: { Authorization: pb.authStore.token },
+				headers: { Authorization: pb.authStore.token }
 			});
 			if (response.ok) {
 				const data = await response.json();
@@ -402,7 +415,7 @@
 					auth_method: data.auth_method || 'PLAIN',
 					tls: data.tls !== undefined ? data.tls : true,
 					sender_name: data.sender_name || '',
-					sender_address: data.sender_address || '',
+					sender_address: data.sender_address || ''
 				};
 			}
 		} catch (err) {
@@ -423,7 +436,7 @@
 				auth_method: smtpSettings.auth_method,
 				tls: smtpSettings.tls,
 				sender_name: smtpSettings.sender_name,
-				sender_address: smtpSettings.sender_address,
+				sender_address: smtpSettings.sender_address
 			};
 			// Only send password if the user typed something
 			if (smtpSettings.password) {
@@ -434,9 +447,9 @@
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token,
+					Authorization: pb.authStore.token
 				},
-				body: JSON.stringify(payload),
+				body: JSON.stringify(payload)
 			});
 
 			const result = await response.json();
@@ -463,9 +476,9 @@
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					Authorization: pb.authStore.token,
+					Authorization: pb.authStore.token
 				},
-				body: JSON.stringify({ recipient: smtpTestRecipient }),
+				body: JSON.stringify({ recipient: smtpTestRecipient })
 			});
 
 			const result = await response.json();
@@ -475,8 +488,8 @@
 				toasts.add(
 					'error',
 					$t('admin.settings_page.email.test_error_toast', {
-						values: { error: result.error },
-					}),
+						values: { error: result.error }
+					})
 				);
 			}
 		} catch (err) {
@@ -484,8 +497,8 @@
 			toasts.add(
 				'error',
 				$t('admin.settings_page.email.test_error_toast', {
-					values: { error: 'Network error' },
-				}),
+					values: { error: 'Network error' }
+				})
 			);
 		} finally {
 			smtpTesting = false;
@@ -496,7 +509,7 @@
 		exporting = format;
 		try {
 			const response = await fetch(`/api/export?format=${format}`, {
-				headers: { Authorization: pb.authStore.token },
+				headers: { Authorization: pb.authStore.token }
 			});
 
 			if (!response.ok) {
@@ -526,12 +539,15 @@
 			toasts.add(
 				'success',
 				$t('admin.settings_page.general.export_downloaded', {
-					values: { filename },
-				}),
+					values: { filename }
+				})
 			);
 		} catch (err) {
 			console.error('Export failed:', err);
-			toasts.add('error', err instanceof Error ? err.message : $t('admin.settings_page.general.export_error'));
+			toasts.add(
+				'error',
+				err instanceof Error ? err.message : $t('admin.settings_page.general.export_error')
+			);
 		} finally {
 			exporting = null;
 		}
@@ -564,7 +580,10 @@
 			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
 				{$t('admin.settings_page.appearance.brand_card_description')}
 			</p>
-			<a href="/admin/homepage#brand-section" class="btn btn-secondary inline-flex items-center gap-2">
+			<a
+				href="/admin/homepage#brand-section"
+				class="btn btn-secondary inline-flex items-center gap-2"
+			>
 				{$t('admin.settings_page.appearance.brand_card_cta')}
 				<span aria-hidden="true">→</span>
 			</a>
@@ -616,13 +635,19 @@
 							</div>
 						{/if}
 						{#if option.id === 'classic'}
-							<div class="mb-3 h-16 rounded-lg border border-gray-200 bg-white p-3" aria-hidden="true">
+							<div
+								class="mb-3 h-16 rounded-lg border border-gray-200 bg-white p-3"
+								aria-hidden="true"
+							>
 								<div class="h-2 w-16 rounded-full bg-sky-600"></div>
 								<div class="mt-3 h-2 w-full rounded-full bg-gray-200"></div>
 								<div class="mt-2 h-2 w-2/3 rounded-full bg-gray-100"></div>
 							</div>
 						{:else}
-							<div class="mb-3 h-16 rounded-lg border border-[#ddd1ca] bg-[#fbf8f4] p-3" aria-hidden="true">
+							<div
+								class="mb-3 h-16 rounded-lg border border-[#ddd1ca] bg-[#fbf8f4] p-3"
+								aria-hidden="true"
+							>
 								<div class="h-2 w-16 rounded-full bg-[#c2410c]"></div>
 								<div class="mt-3 h-2 w-full rounded-full bg-[#ece4de]"></div>
 								<div class="mt-2 h-2 w-2/3 rounded-full bg-[#ddd1ca]"></div>
@@ -726,8 +751,19 @@
 								class="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full shadow"
 								aria-label={$t('admin.settings_page.appearance.favicon_remove_label')}
 							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+								<svg
+									class="w-4 h-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M6 18L18 6M6 6l12 12"
+									/>
 								</svg>
 							</button>
 						{/if}
@@ -755,10 +791,27 @@
 					</label>
 					{#if faviconFile}
 						<div class="flex gap-2">
-							<button type="button" class="btn btn-primary btn-sm" onclick={saveFavicon} disabled={faviconSaving}>
+							<button
+								type="button"
+								class="btn btn-primary btn-sm"
+								onclick={saveFavicon}
+								disabled={faviconSaving}
+							>
 								{#if faviconSaving}
-									<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+									<svg
+										class="animate-spin -ml-1 mr-2 h-4 w-4"
+										fill="none"
+										viewBox="0 0 24 24"
+										aria-hidden="true"
+									>
+										<circle
+											class="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											stroke-width="4"
+										></circle>
 										<path
 											class="opacity-75"
 											fill="currentColor"
@@ -926,7 +979,8 @@
 					<div
 						class="bg-gray-50 dark:bg-gray-800/60 rounded-lg p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs text-gray-800 dark:text-gray-200"
 					>
-						<pre class="whitespace-pre-wrap">{`:root { --color-primary-500: #6366f1; } /* swap accent */
+						<pre
+							class="whitespace-pre-wrap">{`:root { --color-primary-500: #6366f1; } /* swap accent */
 body { font-family: 'Inter', sans-serif; }
 .card { border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
 .section-title { letter-spacing: 0.01em; }
@@ -982,7 +1036,14 @@ body { font-family: 'Inter', sans-serif; }
 				>
 					{#if exporting === 'yaml'}
 						<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
 							<path
 								class="opacity-75"
 								fill="currentColor"
@@ -1001,7 +1062,14 @@ body { font-family: 'Inter', sans-serif; }
 				>
 					{#if exporting === 'json'}
 						<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
 							<path
 								class="opacity-75"
 								fill="currentColor"
@@ -1087,15 +1155,23 @@ body { font-family: 'Inter', sans-serif; }
 				<div class="space-y-4">
 					<!-- Enable toggle -->
 					<label class="flex items-center gap-3">
-						<input type="checkbox" bind:checked={smtpSettings.enabled} class="w-4 h-4" disabled={smtpSaving} />
-						<span class="font-medium text-gray-900 dark:text-white">{$t('admin.settings_page.email.enable_label')}</span
+						<input
+							type="checkbox"
+							bind:checked={smtpSettings.enabled}
+							class="w-4 h-4"
+							disabled={smtpSaving}
+						/>
+						<span class="font-medium text-gray-900 dark:text-white"
+							>{$t('admin.settings_page.email.enable_label')}</span
 						>
 					</label>
 
 					{#if smtpSettings.enabled}
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								<label for="smtp-host" class="label">{$t('admin.settings_page.email.host_label')}</label>
+								<label for="smtp-host" class="label"
+									>{$t('admin.settings_page.email.host_label')}</label
+								>
 								<input
 									type="text"
 									id="smtp-host"
@@ -1106,7 +1182,9 @@ body { font-family: 'Inter', sans-serif; }
 								/>
 							</div>
 							<div>
-								<label for="smtp-port" class="label">{$t('admin.settings_page.email.port_label')}</label>
+								<label for="smtp-port" class="label"
+									>{$t('admin.settings_page.email.port_label')}</label
+								>
 								<input
 									type="number"
 									id="smtp-port"
@@ -1122,7 +1200,9 @@ body { font-family: 'Inter', sans-serif; }
 
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								<label for="smtp-username" class="label">{$t('admin.settings_page.email.username_label')}</label>
+								<label for="smtp-username" class="label"
+									>{$t('admin.settings_page.email.username_label')}</label
+								>
 								<input
 									type="text"
 									id="smtp-username"
@@ -1133,7 +1213,9 @@ body { font-family: 'Inter', sans-serif; }
 								/>
 							</div>
 							<div>
-								<label for="smtp-password" class="label">{$t('admin.settings_page.email.password_label')}</label>
+								<label for="smtp-password" class="label"
+									>{$t('admin.settings_page.email.password_label')}</label
+								>
 								<input
 									type="password"
 									id="smtp-password"
@@ -1149,15 +1231,27 @@ body { font-family: 'Inter', sans-serif; }
 
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								<label for="smtp-auth" class="label">{$t('admin.settings_page.email.auth_method_label')}</label>
-								<select id="smtp-auth" bind:value={smtpSettings.auth_method} class="input" disabled={smtpSaving}>
+								<label for="smtp-auth" class="label"
+									>{$t('admin.settings_page.email.auth_method_label')}</label
+								>
+								<select
+									id="smtp-auth"
+									bind:value={smtpSettings.auth_method}
+									class="input"
+									disabled={smtpSaving}
+								>
 									<option value="PLAIN">PLAIN</option>
 									<option value="LOGIN">LOGIN</option>
 								</select>
 							</div>
 							<div class="flex items-end pb-1">
 								<label class="flex items-center gap-2">
-									<input type="checkbox" bind:checked={smtpSettings.tls} class="w-4 h-4" disabled={smtpSaving} />
+									<input
+										type="checkbox"
+										bind:checked={smtpSettings.tls}
+										class="w-4 h-4"
+										disabled={smtpSaving}
+									/>
 									<span>{$t('admin.settings_page.email.tls_label')}</span>
 								</label>
 							</div>
@@ -1165,7 +1259,9 @@ body { font-family: 'Inter', sans-serif; }
 
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								<label for="smtp-sender-name" class="label">{$t('admin.settings_page.email.sender_name_label')}</label>
+								<label for="smtp-sender-name" class="label"
+									>{$t('admin.settings_page.email.sender_name_label')}</label
+								>
 								<input
 									type="text"
 									id="smtp-sender-name"
@@ -1191,7 +1287,9 @@ body { font-family: 'Inter', sans-serif; }
 						</div>
 
 						<!-- Save + Test -->
-						<div class="flex flex-wrap items-end gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+						<div
+							class="flex flex-wrap items-end gap-4 pt-2 border-t border-gray-200 dark:border-gray-700"
+						>
 							<button class="btn btn-primary" onclick={saveSMTPSettings} disabled={smtpSaving}>
 								{smtpSaving
 									? $t('admin.settings_page.email.saving_button')
@@ -1219,7 +1317,14 @@ body { font-family: 'Inter', sans-serif; }
 								>
 									{#if smtpTesting}
 										<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-											<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+											<circle
+												class="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+											></circle>
 											<path
 												class="opacity-75"
 												fill="currentColor"
@@ -1238,7 +1343,9 @@ body { font-family: 'Inter', sans-serif; }
 							{$t('admin.settings_page.email.not_configured_warning')}
 						</p>
 						<button class="btn btn-primary mt-2" onclick={saveSMTPSettings} disabled={smtpSaving}>
-							{smtpSaving ? $t('admin.settings_page.email.saving_button') : $t('admin.settings_page.email.save_button')}
+							{smtpSaving
+								? $t('admin.settings_page.email.saving_button')
+								: $t('admin.settings_page.email.save_button')}
 						</button>
 					{/if}
 				</div>

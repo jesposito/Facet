@@ -2,7 +2,34 @@
 # Single entry point that routes to internal services
 # Designed for use behind reverse proxies (Cloudflare Tunnel, nginx, etc.)
 
+{
+    servers {
+        # Client addresses. Caddy only believes X-Forwarded-For from the
+        # proxies listed in TRUSTED_PROXIES (space-separated CIDRs, such as
+        # your Cloudflare Tunnel or Nginx Proxy Manager container's network).
+        # It reads the header right to left and stops at the first address it
+        # doesn't trust, so a visitor can't prepend a fake one. With the
+        # default, only loopback is trusted, which in practice means every
+        # connection is taken at face value.
+        trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
+        trusted_proxies_strict
+        client_ip_headers X-Forwarded-For
+    }
+}
+
+# The backend keys rate limits on X-Forwarded-For when the request comes from
+# loopback, so Caddy replaces it with the one client address it settled on.
+(backend) {
+    reverse_proxy localhost:8090 {
+        header_up X-Forwarded-For {client_ip}
+    }
+}
+
 :8080 {
+    # X-Internal marks the frontend's own server-side calls, which go straight
+    # to :8090 and never through Caddy. Nothing arriving here may carry it.
+    request_header -X-Internal
+
     # =========================================================================
     # PHASE 5A: Minimal safe security headers
     # See docs/SECURITY.md for rationale and Phase 5B options
@@ -17,8 +44,8 @@
         # (DENY blocked even same-origin frames, breaking the preview.)
         X-Frame-Options "SAMEORIGIN"
 
-        # Control referrer information - safe default per OWASP
-        Referrer-Policy "strict-origin-when-cross-origin"
+        # Preserve stricter route policies on token-bearing pages.
+        ?Referrer-Policy "strict-origin-when-cross-origin"
 
         # Disable browser features not used by Facet
         Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
@@ -46,27 +73,26 @@
     }
 
     # Uploaded files (images, etc.) — cacheable, served by PocketBase
+    # The backend sets Cache-Control per file: private, no-store for
+    # protected (paid) files. The ? only fills it in when the backend didn't.
     handle /api/files/* {
-        header Cache-Control "public, max-age=86400"
-        reverse_proxy localhost:8090
+        header ?Cache-Control "public, max-age=86400"
+        import backend
     }
 
     # API and PocketBase routes go to backend (no caching)
     handle /api/* {
         header Cache-Control "no-store, no-cache"
-        # Strip X-Internal header from external requests to prevent spoofing.
-        # SSR bypasses Caddy (goes direct to :8090), so legitimate internal requests are unaffected.
-        request_header -X-Internal
-        reverse_proxy localhost:8090
+        import backend
     }
 
     # Static feeds served by backend
     handle /rss.xml {
-        reverse_proxy localhost:8090
+        import backend
     }
 
     handle /talks.ics {
-        reverse_proxy localhost:8090
+        import backend
     }
 
     # Version files - no caching to ensure updates are seen immediately
@@ -85,7 +111,7 @@
         @admin_disabled expression `{env.ADMIN_ENABLED} != "true"`
         respond @admin_disabled "Not Found" 404
 
-        reverse_proxy localhost:8090
+        import backend
     }
 
     # SvelteKit immutable assets (content-hashed filenames, safe to cache forever)

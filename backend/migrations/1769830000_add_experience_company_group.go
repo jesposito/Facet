@@ -14,8 +14,8 @@ func init() {
 
 		if expCollection.Fields.GetByName("company_group_id") == nil {
 			expCollection.Fields.Add(&core.TextField{
-				Name:    "company_group_id",
-				Max:     50,
+				Name: "company_group_id",
+				Max:  50,
 			})
 
 			if err := app.Save(expCollection); err != nil {

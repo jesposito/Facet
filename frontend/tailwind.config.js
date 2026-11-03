@@ -59,8 +59,8 @@ export default {
 					700: 'rgb(var(--gray-700-rgb) / <alpha-value>)',
 					800: 'rgb(var(--gray-800-rgb) / <alpha-value>)',
 					900: 'rgb(var(--gray-900-rgb) / <alpha-value>)',
-					950: 'rgb(var(--gray-950-rgb) / <alpha-value>)',
-				},
+					950: 'rgb(var(--gray-950-rgb) / <alpha-value>)'
+				}
 			},
 			fontFamily: {
 				sans: ['var(--font-body)'],
@@ -69,16 +69,16 @@ export default {
 			},
 			fontSize: {
 				'display-sm': ['2.25rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
-				'display': ['3rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+				display: ['3rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
 				'display-lg': ['3.75rem', { lineHeight: '1.05', letterSpacing: '-0.025em' }],
 				'display-xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.03em' }]
 			},
 			boxShadow: {
-				'editorial': '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06)',
+				editorial: '0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06)',
 				'editorial-md': '0 2px 6px rgba(0,0,0,0.05), 0 8px 24px rgba(0,0,0,0.08)',
 				'editorial-lg': '0 4px 12px rgba(0,0,0,0.06), 0 16px 40px rgba(0,0,0,0.1)',
 				'editorial-xl': '0 8px 24px rgba(0,0,0,0.08), 0 32px 64px rgba(0,0,0,0.12)',
-				'glow': '0 0 20px rgba(var(--glow-rgb, 14,165,233), 0.35), 0 0 60px rgba(var(--glow-rgb, 14,165,233), 0.15)'
+				glow: '0 0 20px rgba(var(--glow-rgb, 14,165,233), 0.35), 0 0 60px rgba(var(--glow-rgb, 14,165,233), 0.15)'
 			},
 			// UX Delight: Standardized transition timing
 			transitionDuration: {

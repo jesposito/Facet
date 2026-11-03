@@ -133,8 +133,8 @@ func TestCleanupKeepsExperienceMediaAndDeletesUnusedUpload(t *testing.T) {
 	if err := app.Save(project); err != nil {
 		t.Fatal(err)
 	}
-	if removed := cleanupOrphanedUploads(&pocketbase.PocketBase{App: app}); removed != 1 {
-		t.Fatalf("removed %d uploads, want only the unused upload", removed)
+	if removed, err := cleanupOrphanedUploads(&pocketbase.PocketBase{App: app}); err != nil || removed != 1 {
+		t.Fatalf("removed %d uploads (err %v), want only the unused upload", removed, err)
 	}
 	if _, err := app.FindRecordById("uploads", kept.Id); err != nil {
 		t.Fatalf("used media deleted: %v", err)

@@ -1,15 +1,18 @@
 package hooks
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"facet/services"
 
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
@@ -112,8 +115,13 @@ func contactVisibleInView(record *core.Record, viewID string) bool {
 	return len(visibility) == 0 || visibility[viewID]
 }
 
+// A per-view override can show a private item on one view. It never publishes
+// a draft.
 func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
 	if section == "contacts" && !contactVisibleInView(record, viewId) {
+		return false
+	}
+	if record.GetBool("is_draft") {
 		return false
 	}
 	if isRecordVisible(record) {
@@ -169,7 +177,9 @@ func isVisibleInView(record *core.Record, viewId string) bool {
 	return false
 }
 
-func serializeRecords(records []*core.Record) []map[string]interface{} {
+// serializeRecords projects records for public responses. Paid fields are
+// removed unless access allows them; pass nil where no buyer can be identified.
+func serializeRecords(records []*core.Record, access contentAccess) []map[string]interface{} {
 	var result []map[string]interface{}
 	for _, record := range records {
 		item := make(map[string]interface{})
@@ -188,12 +198,14 @@ func serializeRecords(records []*core.Record) []map[string]interface{} {
 			}
 		}
 
+		gatePaidContent(record, item, access)
+		redactUnavailableProtection(record, item)
 		result = append(result, item)
 	}
 	return result
 }
 
-func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.Record, itemConfig map[string]map[string]interface{}, sectionName string) []map[string]interface{} {
+func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.Record, itemConfig map[string]map[string]interface{}, sectionName string, access contentAccess) []map[string]interface{} {
 	var result []map[string]interface{}
 	overridableFields := getOverridableFields(sectionName)
 
@@ -294,6 +306,8 @@ func serializeRecordsWithOverrides(app *pocketbase.PocketBase, records []*core.R
 			}
 		}
 
+		gatePaidContent(record, item, access)
+		redactUnavailableProtection(record, item)
 		result = append(result, item)
 	}
 	return result
@@ -369,6 +383,144 @@ func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService
 	}
 
 	return true, tokenRecord
+}
+
+// consumeShareTokenUse counts one use of a share token, unless the token has
+// none left. Checking use_count and saving use_count+1 as separate steps let
+// a burst of requests all pass the check, so a single-use link opened in
+// parallel worked many times. A conditional UPDATE does both at once.
+func consumeShareTokenUse(app core.App, tokenID string) bool {
+	result, err := app.DB().NewQuery(
+		"UPDATE share_tokens SET use_count = use_count + 1, last_used_at = {:now} " +
+			"WHERE id = {:id} AND is_active = TRUE AND (max_uses <= 0 OR use_count < max_uses)").
+		Bind(dbx.Params{"id": tokenID, "now": types.NowDateTime().String()}).
+		Execute()
+	if err != nil {
+		app.Logger().Warn("Failed to record share token use", "error", err, "token_id", tokenID)
+		return false
+	}
+	n, err := result.RowsAffected()
+	return err == nil && n == 1
+}
+
+// A share visit proof lets the visitor who spent a use of a share token keep
+// browsing that view (its projects, a return to the view) after the token runs
+// out of uses. It is issued only after a use is counted, and only for
+// shareVisitProofTTL or until the token expires, whichever is sooner.
+const (
+	shareVisitProofTTL          = 30 * time.Minute
+	shareVisitHeader            = "X-Share-Visit"
+	shareVisitExpiresHeader     = "X-Share-Visit-Expires"
+	shareVisitProofHeaderMaxLen = 2048
+)
+
+func extractShareVisitProof(e *core.RequestEvent) string {
+	proof := e.Request.Header.Get(shareVisitHeader)
+	if len(proof) > shareVisitProofHeaderMaxLen {
+		return ""
+	}
+	return proof
+}
+
+// issueShareVisitProof adds a visit proof to the response for a token use the
+// caller has just counted. Failure only costs the visitor later navigation.
+func issueShareVisitProof(e *core.RequestEvent, crypto *services.CryptoService, tokenRecord *core.Record) {
+	expiresAt := time.Now().Add(shareVisitProofTTL)
+	if tokenExpiry := tokenRecord.GetDateTime("expires_at"); !tokenExpiry.IsZero() && tokenExpiry.Time().Before(expiresAt) {
+		expiresAt = tokenExpiry.Time()
+	}
+	if !expiresAt.After(time.Now()) {
+		return
+	}
+	proof, err := crypto.GenerateShareVisitProof(tokenRecord.GetString("view_id"), tokenRecord.Id, tokenRecord.GetString("token_hash"), expiresAt)
+	if err != nil {
+		return
+	}
+	e.Response.Header().Set(shareVisitHeader, proof)
+	e.Response.Header().Set(shareVisitExpiresHeader, expiresAt.UTC().Format(time.RFC3339))
+}
+
+// validShareVisit reports whether proof admits a visit to view made with the
+// raw share token. The token record is read fresh on every call, so revoking,
+// deleting or expiring the token ends the visit; only the use limit is not
+// rechecked, since the visit already spent its use.
+func validShareVisit(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, proof, token string, view *core.Record) bool {
+	if proof == "" || token == "" {
+		return false
+	}
+	claims, err := crypto.ValidateShareVisitProof(proof)
+	if err != nil || claims.ViewID != view.Id {
+		return false
+	}
+	tokenRecord, err := app.FindRecordById("share_tokens", claims.TokenID)
+	if err != nil || tokenRecord == nil || !tokenRecord.GetBool("is_active") {
+		return false
+	}
+	if tokenRecord.GetString("view_id") != view.Id {
+		return false
+	}
+	tokenHash := tokenRecord.GetString("token_hash")
+	if !share.ValidateTokenHMAC(token, tokenHash) {
+		return false
+	}
+	if subtle.ConstantTimeCompare([]byte(crypto.ShareVisitTokenFingerprint(tokenHash)), []byte(claims.TokenHash)) != 1 {
+		return false
+	}
+	expiresAt := tokenRecord.GetDateTime("expires_at")
+	return expiresAt.IsZero() || time.Now().Before(expiresAt.Time())
+}
+
+// viewAccessDenial explains why a request may not read a view.
+type viewAccessDenial struct {
+	status  int
+	message string
+}
+
+// checkViewAccess applies a view's visibility to the current request. It
+// returns the share token record that granted access to an unlisted view, so
+// the caller can decide whether that request counts as a use of the token.
+// A request carrying a valid share visit proof is part of a visit that was
+// already counted; it is admitted with no record, so nothing is spent again.
+// The site owner can read every view.
+func checkViewAccess(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, e *core.RequestEvent, view *core.Record) (*core.Record, *viewAccessDenial) {
+	if e.Auth != nil {
+		return nil, nil
+	}
+
+	switch view.GetString("visibility") {
+	case "private":
+		// 404 rather than 401 so private views can't be discovered.
+		return nil, &viewAccessDenial{http.StatusNotFound, "view not found"}
+
+	case "password":
+		token := extractPasswordToken(e)
+		if token == "" {
+			return nil, &viewAccessDenial{http.StatusUnauthorized, "password token required"}
+		}
+		viewID, err := crypto.ValidateViewAccessJWT(token)
+		if err != nil {
+			return nil, &viewAccessDenial{http.StatusUnauthorized, "invalid or expired token"}
+		}
+		if viewID != view.Id {
+			return nil, &viewAccessDenial{http.StatusUnauthorized, "token not valid for this view"}
+		}
+
+	case "unlisted":
+		shareToken := extractShareToken(e)
+		if shareToken == "" {
+			return nil, &viewAccessDenial{http.StatusUnauthorized, "share token required"}
+		}
+		if validShareVisit(app, crypto, share, extractShareVisitProof(e), shareToken, view) {
+			return nil, nil
+		}
+		valid, tokenRecord := validateShareToken(app, share, shareToken, view.Id)
+		if !valid {
+			return nil, &viewAccessDenial{http.StatusUnauthorized, "invalid or expired share token"}
+		}
+		return tokenRecord, nil
+	}
+
+	return nil, nil
 }
 
 func resolveBaseURL(e *core.RequestEvent) string {
@@ -496,6 +648,9 @@ func filterBySelectedItemsWithDefault(items []map[string]interface{}, selectedIt
 func incrementHomepageViewCount(app core.App, e *core.RequestEvent) {
 	pb, ok := app.(*pocketbase.PocketBase)
 	if !ok {
+		return
+	}
+	if !services.IsFeatureEnabled(app, services.FeatureAnalytics, false) {
 		return
 	}
 	// Bot-gate and ~30-min dedup so bots and rapid repeat hits from the same

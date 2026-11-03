@@ -64,6 +64,10 @@ func init() {
 			Name: "utm_campaign",
 			Max:  255,
 		})
+		accessLogs.Fields.Add(&core.AutodateField{
+			Name:     "created",
+			OnCreate: true,
+		})
 
 		// Admin-only via nil rules — custom endpoints handle access
 		accessLogs.ListRule = nil
@@ -77,8 +81,12 @@ func init() {
 		}
 
 		// Add indexes for common query patterns
-		app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_access_logs_created ON access_logs(created)").Execute()
-		app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_access_logs_view ON access_logs(view_id)").Execute()
+		if _, err := app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_access_logs_created ON access_logs(created)").Execute(); err != nil {
+			return err
+		}
+		if _, err := app.DB().NewQuery("CREATE INDEX IF NOT EXISTS idx_access_logs_view ON access_logs(view_id)").Execute(); err != nil {
+			return err
+		}
 
 		return nil
 	}, func(app core.App) error {
