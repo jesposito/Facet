@@ -326,6 +326,9 @@ test.describe('project design presentation in the browser', () => {
 		expect(await block.locator('video').evaluate((v: HTMLVideoElement) => v.error?.code)).toBe(4);
 		await expect(block.getByRole('status')).toContainText("This recording couldn't load.");
 		await expect(block.getByRole('status')).toContainText('You can read the transcript below.');
+		await block.getByRole('button', { name: 'First ink chapter' }).click();
+		expect(await block.locator('video').evaluate((v: HTMLVideoElement) => v.error?.code)).toBe(4);
+		await expect(block.getByRole('status')).toContainText("This recording couldn't load.");
 		await block.locator('details > summary').click();
 		await expect(block.locator('.experience-transcript')).toHaveText(
 			'A transcript for first ink chapter.'

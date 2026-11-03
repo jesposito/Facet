@@ -15,9 +15,10 @@
 	let player: HTMLMediaElement | undefined = $state();
 	let failed = $state(false);
 	function choose(id: string) {
+		const changingChapter = active?.id !== id;
 		player?.pause();
 		selected = id;
-		failed = false;
+		if (changingChapter) failed = false;
 	}
 	$effect(() => {
 		const current = player;
