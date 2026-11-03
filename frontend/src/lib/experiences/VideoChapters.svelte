@@ -21,6 +21,8 @@
 	}
 	$effect(() => {
 		const current = player;
+		// Server-rendered media can fail before hydration attaches onerror.
+		if (current?.error) failed = true;
 		return () => current?.pause();
 	});
 </script>
@@ -63,7 +65,7 @@
 				{:else}<p class="experience-empty">A video will appear here once it has been added.</p>{/if}
 			{/key}
 		</div>
-		{#if failed}<p role="status">
+		{#if failed}<p class="experience-media-status" role="status">
 				This recording couldn't load.{#if active.transcript}
 					You can read the transcript below.{/if}
 			</p>{/if}
@@ -85,7 +87,7 @@
 			</div>
 		{/if}
 		<h4>{active.title}</h4>
-		{#if active.description}<p>{active.description}</p>{/if}
+		{#if active.description}<p class="experience-description">{active.description}</p>{/if}
 		{#if active.credit}<p class="experience-credit">{active.credit}</p>{/if}
 		{#if active.transcript}<details>
 				<summary>Read the transcript</summary>

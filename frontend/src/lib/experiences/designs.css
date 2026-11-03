@@ -731,7 +731,7 @@
 		.experience-video[data-presentation='spotlight']
 		.experience-player {
 		grid-column: 1;
-		grid-row: 2/6;
+		grid-row: 2/7;
 	}
 	.project-experience[data-design-preset] .experience-video[data-presentation='spotlight'] > h4 {
 		grid-column: 2;
@@ -741,27 +741,33 @@
 	}
 	.project-experience[data-design-preset]
 		.experience-video[data-presentation='spotlight']
-		> p:not(.experience-credit) {
+		> .experience-media-status {
 		grid-column: 2;
 		grid-row: 3;
 	}
 	.project-experience[data-design-preset]
 		.experience-video[data-presentation='spotlight']
-		> .experience-credit {
+		> .experience-description {
 		grid-column: 2;
 		grid-row: 4;
 	}
 	.project-experience[data-design-preset]
 		.experience-video[data-presentation='spotlight']
-		> details {
+		> .experience-credit {
 		grid-column: 2;
 		grid-row: 5;
 	}
 	.project-experience[data-design-preset]
 		.experience-video[data-presentation='spotlight']
+		> details {
+		grid-column: 2;
+		grid-row: 6;
+	}
+	.project-experience[data-design-preset]
+		.experience-video[data-presentation='spotlight']
 		.experience-chapters {
 		grid-column: 1/-1;
-		grid-row: 6;
+		grid-row: 7;
 		margin-bottom: 0;
 	}
 }
@@ -861,6 +867,7 @@
 .project-experience[data-design-preset='technical'] .experience-chapters button {
 	border: 0;
 	background: var(--design-aqua);
+	color: var(--design-ink);
 	min-height: 48px;
 	padding: 14px 20px;
 	border-radius: 0;
