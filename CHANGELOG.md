@@ -2,6 +2,29 @@
 
 All notable changes to Facet will be documented in this file.
 
+
+## v3.6.1 - November 03, 2026
+
+**Bugs Fixed:**
+- Fix API-key revocation races
+
+**New Features:**
+- Enforce owner sessions, password changes and two-factor checks on the server
+- Complete purchase delivery through verified email links, safe checkout redirects, resend states, coupon redemption and refund handling
+- Keep self-hosted courses and the free learner experience
+- Preserve final-use share visits with a signed, expiring and revocable proof
+- Keep every self-hosted email on owner-configured SMTP and block the host sendmail fallback
+- Improve keyboard/focus behavior, mobile navigation, paid-content gates, truthful error and save states
+- Harden backups, recovery, media cleanup, client-IP handling, process startup and shutdown, encryption-key storage, and production response headers
+- Update the Go, PocketBase, Node and frontend dependency stack
+
+**Other Changes:**
+- Rewrite the owner, installation, configuration, security, API, feature, recovery and contributor documentation
+
+**Pull Requests:** [#521](https://github.com/jesposito/Facet/pull/521),
+
+---
+
 ## Unreleased
 
 Not yet released. Entries describe the code on this branch and may change before a version is tagged.
