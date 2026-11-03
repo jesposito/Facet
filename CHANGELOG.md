@@ -3,6 +3,31 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.7.0 - November 03, 2026
+
+**New Features:**
+- Add reusable project designs and layout controls
+- Offer Playful, Technical and Editorial designs in the visual editor
+- Allow authors to choose page width, section heading placement, video presentation and story layout
+- Ensure preview and published pages share the renderer
+- Include bundled fonts with their OFL licences
+- Add optional, strictly validated fields in version-one format
+- Explain built-in-design prerequisite for extra layout controls
+- Preserve stored choices in Original
+- Handle media failures before client initialization
+- Retain errors when reselecting the same chapter
+- Keep chapter labels readable with or without thumbnails
+- Match preview palettes and responsive typography with published pages
+- Ensure split layouts stack consistently across section colors
+- Keep keyboard focus visible
+- Follow mobile tab order
+- Keep personalized story text while hiding controls during printing
+
+**Pull Requests:** [#520](https://github.com/jesposito/Facet/pull/520),
+
+---
+
+
 ## v3.6.1 - November 03, 2026
 
 **Bugs Fixed:**
