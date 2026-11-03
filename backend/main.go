@@ -205,8 +205,9 @@ Example:
 	app.RootCmd.AddCommand(&cobra.Command{
 		Use:   "reset-admin-password [email]",
 		Short: "Give an admin user a new random password",
-		Long: `Sets a new random password for the specified admin user, prints it
-once, and signs out every existing session for that account.
+		Long: `Sets a new random password for the specified admin user, writes it
+to a private file in the data directory, and signs out every existing session
+for that account.
 
 If no email is provided, resets the password for admin@example.com.
 
@@ -219,7 +220,7 @@ Example:
 				email = args[0]
 			}
 
-			password, err := hooks.ResetAdminPassword(app, email)
+			_, err := hooks.ResetAdminPassword(app, email)
 			if err != nil {
 				log.Fatalf("ERROR: %v", err)
 			}
@@ -227,11 +228,10 @@ Example:
 			fmt.Println("========================================")
 			fmt.Printf("Password reset successful for: %s\n", email)
 			fmt.Println("========================================")
-			fmt.Printf("New password: %s\n", password)
-			fmt.Println("")
-			fmt.Println("This is shown once. Sign in and change it")
-			fmt.Println("under Settings. Existing sessions for this")
-			fmt.Println("account have been signed out.")
+			fmt.Printf("Credentials file: %s\n", hooks.AdminCredentialsPath(app.DataDir()))
+			fmt.Println("Read the file, sign in and change the password under Settings.")
+			fmt.Println("Delete the credentials file after reading it.")
+			fmt.Println("Existing sessions for this account have been signed out.")
 			fmt.Println("========================================")
 		},
 	})

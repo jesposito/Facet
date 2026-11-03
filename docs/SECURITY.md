@@ -25,11 +25,11 @@ Facet doesn't change the `users` table's own PocketBase access rules. Treat an e
 
 ### The first account
 
-On first start with an empty database, Facet creates one account with the first address in `ADMIN_EMAILS` (or `admin@example.com`) and a random 20-character password. The password is printed once in the startup log; it isn't stored anywhere you can read it later ([seed](../backend/hooks/seed.go)). Treat that log as sensitive until you've changed the password under **Settings**. Passwords are stored as bcrypt hashes by PocketBase.
+On first start with an empty database, Facet creates one account with the first address in `ADMIN_EMAILS` (or `admin@example.com`) and a random 20-character password. The password is written to `.admin-credentials` in the data directory with mode `0600`; the startup log identifies the file but never contains the password ([seed](../backend/hooks/seed.go)). Read the file, change the password under **Settings**, then delete the file. Passwords are stored as bcrypt hashes by PocketBase.
 
 Older releases seeded every install with the published password `changeme123`. Only `SEED_DATA=dev` still does that, for local testing. Any account still using it is treated as signed out by admin APIs until the password is changed ([session guard](../backend/hooks/admin_session.go)), so an upgraded install that never changed it has to do so before anything else works.
 
-`reset-admin-password` gives an account a new random password, prints it once, and signs out every existing session for that account. Two-factor sign-in stays on, but any existing two-factor browser session is cleared ([source](../backend/hooks/seed.go)).
+`reset-admin-password` gives an account a new random password, writes it to the same private handoff file before changing the account, and signs out every existing session for that account. The command prints the file path, not the password. Two-factor sign-in stays on, but any existing two-factor browser session is cleared ([source](../backend/hooks/seed.go)). Delete the handoff file after reading it and signing in.
 
 ### Facet accounts and the PocketBase dashboard
 

@@ -9,7 +9,7 @@ Facet doesn't handle HTTPS certificates itself. Its built-in Caddy listens on pl
 Check these first. Each takes a minute, and together they close the easy ways in.
 
 - `ADMIN_EMAILS` is set to your address ([why](SECURITY.md#who-can-sign-in)).
-- You've signed in and changed the first-run password from the startup log (or, on an install from an older release, replaced `changeme123`).
+- You've signed in with the first-run password from `/data/.admin-credentials`, changed it, and deleted the handoff file (or, on an install from an older release, replaced `changeme123`).
 - Two-factor sign-in is on (**Account & Security**).
 - `ADMIN_ENABLED` is `false`, so PocketBase's raw database dashboard isn't public.
 - You have a backup plan for both `/data` and `/uploads` ([backups](UPGRADE.md#back-up-your-data)).

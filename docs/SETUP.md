@@ -152,19 +152,19 @@ The container honours `PUID` and `PGID` (both default to `1000`) so files in you
 ## First login
 
 1. Open `/admin` on the address you set as `APP_URL`, for example `http://localhost:8080/admin`.
-2. Find the password in the container log. On the first start with an empty database, Facet prints a block like this once:
-   ```text
-   Created the admin account
-   Email:    you@example.com
-   Password: <20 random characters>
+2. On the first start with an empty database, Facet writes the email and random password to `/data/.admin-credentials` with mode `0600`. The startup log prints the exact file path, never the password. Read the file as the container's `facet` user:
+   ```bash
+   docker exec -u facet facet cat /data/.admin-credentials
    ```
-   Read it with `docker logs facet` (or `docker compose logs facet`). It isn't shown again, so copy it now.
 3. Sign in with:
    - **Email:** the first address in `ADMIN_EMAILS`. If you left `ADMIN_EMAILS` empty, it's `admin@example.com`.
-   - **Password:** the one from the log
-4. Change the password under **Settings**. The log still contains the old one, so treat the log as sensitive until you do.
+   - **Password:** the one from the credentials file
+4. Change the password under **Settings**, then delete the private handoff file:
+   ```bash
+   docker exec -u facet facet rm /data/.admin-credentials
+   ```
 
-If you missed the log line, run `reset-admin-password` to get a new one ([Locked out](UPGRADE.md#locked-out)).
+If you lost the credentials file, run `reset-admin-password` to create a new one ([Locked out](UPGRADE.md#locked-out)).
 
 The account is created only once, the first time Facet starts with an empty database ([seed code](../backend/hooks/seed.go)). Changing `ADMIN_EMAILS` later doesn't rename it, and the admin dashboard has no email-change screen. If you edit `ADMIN_EMAILS`, keep the account's original address in the comma-separated list, or you'll lock yourself out of password sign-in. [Recovery](UPGRADE.md#locked-out) covers what to do if that happens.
 

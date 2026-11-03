@@ -10,7 +10,7 @@ Not yet released. Entries describe the code on this branch and may change before
 
 - Preserve media URLs during legacy URL-to-text field conversion. Repair missing lesson comment flags and log timestamps; old log rows keep unknown creation times.
 - Bound SMTP connection, TLS negotiation and delivery to 30 seconds, and update newsletter list counts without background writes.
-- New installs get a random owner password, printed once in the startup log, instead of `changeme123`. Accounts still on `changeme123` must change it before admin APIs answer.
+- New installs get a random owner password in a private `.admin-credentials` file in the data directory. Setup and password-reset commands print the file path, never the password. Delete the handoff file after reading it. Accounts still on `changeme123` must change it before admin APIs answer.
 - Courses are now on by default for self-hosted sites. Set `FACET_FEATURE_COURSES=false` to keep them off.
 - `SMTP_TLS` now follows the port when unset: implicit TLS on 465, STARTTLS elsewhere. Set it explicitly if your provider needs something else.
 - Behind a reverse proxy or tunnel, set `TRUSTED_PROXIES` to your proxy's address range, or every visitor shares one rate-limit bucket.

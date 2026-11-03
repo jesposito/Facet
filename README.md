@@ -40,7 +40,7 @@ docker run -d --name facet -p 127.0.0.1:8080:8080 \
   ghcr.io/jesposito/facet:3
 ```
 
-Facet creates an `admin@example.com` account with a random password and prints it once in the log. Read it with `docker logs facet`, then open http://localhost:8080/admin and sign in. The demo toggle in the admin header loads a complete sample site to explore.
+Facet creates an `admin@example.com` account with a random password in `/data/.admin-credentials` (mode `0600`), not in the log. Read it with `docker exec facet cat /data/.admin-credentials`, then open http://localhost:8080/admin and sign in. Change the password under **Settings**, then delete the handoff file with `docker exec facet rm /data/.admin-credentials`. The demo toggle in the admin header loads a complete sample site to explore.
 
 To keep Facet running properly, with your own email as the login, a domain and backups, follow the [install guide](docs/SETUP.md).
 

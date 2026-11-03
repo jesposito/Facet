@@ -25,7 +25,7 @@ cd Facet
 make dev
 ```
 
-The first run downloads Go modules and npm packages, so it takes a while. Then open **http://127.0.0.1:5173**, go to `/admin`, and sign in with the account and password printed in the backend log. `make seed-dev` sets `SEED_DATA=dev`, which uses the fixed local-only password `changeme123` instead; Facet makes you change it before the admin APIs answer.
+The first run downloads Go modules and npm packages, so it takes a while. Then open **http://127.0.0.1:5173**, go to `/admin`, and sign in with the account and password in `pb_data/.admin-credentials` (mode `0600`). The backend log prints the exact path, not the password. `make seed-dev` sets `SEED_DATA=dev`, which uses the fixed local-only password `changeme123` instead; Facet makes you change it before the admin APIs answer. Delete the credentials file after reading it and signing in.
 
 You don't need a `.env` file. If one exists, `make dev` loads it first, so values such as `ADMIN_EMAILS` or AI keys apply to your development instance too.
 
@@ -103,7 +103,7 @@ From the [Makefile](../Makefile):
 
 | `SEED_DATA` | Result on an empty database |
 |-------------|-----------------------------|
-| `minimal` or unset | One account: the first `ADMIN_EMAILS` address, then `DEV_ADMIN_EMAIL`, then `admin@example.com`, with a random password printed once in the log |
+| `minimal` or unset | One account: the first `ADMIN_EMAILS` address, then `DEV_ADMIN_EMAIL`, then `admin@example.com`, with a random password in `pb_data/.admin-credentials` |
 | `dev` | The same account with the fixed password `changeme123`, plus the maintainer's own profile, used for development and screenshots. Never use it on a reachable instance. |
 
 Seeding only runs when the database has no accounts, so changing `SEED_DATA` on an existing `pb_data/` does nothing. Demo data is separate and loaded from the admin header toggle ([Features](FEATURES.md#demo-mode)).

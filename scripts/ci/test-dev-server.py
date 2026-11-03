@@ -41,6 +41,13 @@ class DevelopmentSafetyTests(unittest.TestCase):
             with socket.create_connection(('127.0.0.1', port), timeout=1):
                 pass
 
+    def test_port_preflight_defaults_empty_host_to_loopback(self):
+        with patch.object(dev.socket, 'socket') as socket_factory:
+            dev.check_ports([8090], host='')
+            socket_factory.return_value.__enter__.return_value.bind.assert_called_once_with(
+                ('127.0.0.1', 8090)
+            )
+
     def test_shutdown_only_signals_owned_process_groups(self):
         owned = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)
         other = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'], start_new_session=True)

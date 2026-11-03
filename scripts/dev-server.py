@@ -27,7 +27,7 @@ def dev_host(value=None):
 
     The value reaches shell commands run by Air, so anything else is refused.
     """
-    host = os.environ.get('FACET_DEV_HOST', '') if value is None else value
+    host = os.environ.get('FACET_DEV_HOST', DEFAULT_HOST) if value is None else value
     if host == '':
         return DEFAULT_HOST
     try:
@@ -72,6 +72,8 @@ def active_supervisor(state_path=STATE):
 
 
 def check_ports(ports=(8090, 5173), host=DEFAULT_HOST):
+    # Keep direct callers on the same validated, loopback-default path as run().
+    host = dev_host(host)
     for port in ports:
         with socket.socket() as sock:
             try:

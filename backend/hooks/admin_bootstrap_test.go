@@ -54,17 +54,16 @@ func TestFirstRunAdminGetsAPrivatePassword(t *testing.T) {
 		t.Fatal("a fresh install still uses the published default password")
 	}
 
-	// The operator reads the password from the server log, once.
-	m := loggedPassword.FindStringSubmatch(out.String())
-	if m == nil {
-		t.Fatalf("password not in the startup log:\n%s", redactPasswords(out.String()))
+	password := readTestAdminPassword(t, f.app.DataDir())
+	if strings.Contains(out.String(), password) || loggedPassword.MatchString(out.String()) {
+		t.Fatal("startup log exposed the private password")
 	}
-	if len(m[1]) < 20 || !user.ValidatePassword(m[1]) {
-		t.Fatalf("logged password (%d chars) doesn't sign in", len(m[1]))
+	if len(password) < 20 || !user.ValidatePassword(password) {
+		t.Fatal("credential file does not contain a valid random password")
 	}
 	h := f.serve(t)
-	if code := signIn(t, h, "owner@example.com", m[1]); code != http.StatusOK {
-		t.Fatalf("signing in with the logged password returned %d", code)
+	if code := signIn(t, h, "owner@example.com", password); code != http.StatusOK {
+		t.Fatalf("signing in with the private credential returned %d", code)
 	}
 	if code := signIn(t, h, "owner@example.com", defaultAdminPassword); code == http.StatusOK {
 		t.Fatal("the published default password signs in")

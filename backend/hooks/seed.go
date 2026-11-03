@@ -64,7 +64,7 @@ func seedMinimalData(app *pocketbase.PocketBase) error {
 	log.Println("")
 
 	// Create the owner account with a password nobody else knows. It's
-	// printed once to the server log, which only the operator can read.
+	// handed to the operator in a private file inside the data directory.
 	if err := createDefaultUser(app, newAdminPassword()); err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}
@@ -641,6 +641,10 @@ func createDefaultUser(app *pocketbase.PocketBase, password string) error {
 	}
 	tokenKey := hex.EncodeToString(tokenBytes)
 
+	if err := writeAdminCredentials(app.DataDir(), email, password); err != nil {
+		return fmt.Errorf("prepare admin credentials: %w", err)
+	}
+
 	// Direct SQL INSERT
 	query := `INSERT INTO users (id, email, name, password, tokenKey, verified, emailVisibility, avatar, password_changed_from_default)
 	          VALUES ({:id}, {:email}, {:name}, {:password}, {:tokenKey}, 1, 0, '', 0)`
@@ -654,14 +658,18 @@ func createDefaultUser(app *pocketbase.PocketBase, password string) error {
 	}).Execute()
 
 	if err != nil {
+		if cleanupErr := removeAdminCredentials(app.DataDir()); cleanupErr != nil {
+			return fmt.Errorf("insert user: %v; %w", err, cleanupErr)
+		}
 		return fmt.Errorf("insert user: %w", err)
 	}
 
 	log.Println("========================================")
 	log.Println("  Created the admin account")
 	log.Printf("  Email:    %s\n", email)
-	log.Printf("  Password: %s\n", password)
-	log.Println("  This is shown once. Sign in and change it under Settings.")
+	log.Printf("  Credentials file: %s\n", AdminCredentialsPath(app.DataDir()))
+	log.Println("  Read the file, sign in and change the password under Settings.")
+	log.Println("  Delete the credentials file after reading it.")
 	log.Printf("  Lost it? Run: facet reset-admin-password %s --dir=<data dir>", email)
 	log.Println("========================================")
 	log.Println("")
@@ -675,16 +683,19 @@ func newAdminPassword() string {
 	return security.RandomString(20)
 }
 
-// ResetAdminPassword gives an account a new random password and returns it
-// for the operator's terminal. Changing the token key signs out every
-// existing session, and clearing the 2FA session means a stolen 2FA cookie
-// stops working too. 2FA itself stays on.
+// ResetAdminPassword gives an account a new random password and writes it to
+// the operator's private credentials file before changing the account.
+// Changing the token key signs out every existing session, and clearing the
+// 2FA session means a stolen 2FA cookie stops working too. 2FA itself stays on.
 func ResetAdminPassword(app core.App, email string) (string, error) {
 	user, err := app.FindAuthRecordByEmail("users", email)
 	if err != nil {
 		return "", fmt.Errorf("user with email '%s' not found: %w", email, err)
 	}
 	password := newAdminPassword()
+	if err := writeAdminCredentials(app.DataDir(), email, password); err != nil {
+		return "", fmt.Errorf("prepare admin credentials: %w", err)
+	}
 	user.SetPassword(password)
 	user.RefreshTokenKey()
 	if user.Collection().Fields.GetByName("totp_session_nonce") != nil {
@@ -692,6 +703,9 @@ func ResetAdminPassword(app core.App, email string) (string, error) {
 		user.Set("totp_session_expires", "")
 	}
 	if err := app.Save(user); err != nil {
+		if cleanupErr := removeAdminCredentials(app.DataDir()); cleanupErr != nil {
+			return "", fmt.Errorf("save password reset: %v; %w", err, cleanupErr)
+		}
 		return "", fmt.Errorf("save password reset: %w", err)
 	}
 	return password, nil
