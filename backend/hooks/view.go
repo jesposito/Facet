@@ -1891,7 +1891,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// no comment thread.
 				"comments_enabled": post.GetBool("comments_enabled"),
 			}
-			gatePaidContent(post, response, newContentAccess(app, purchaseService, e))
 			if mediaRefs, ok := post.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
@@ -1968,6 +1967,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
+			gatePaidContent(post, response, newContentAccess(app, purchaseService, e))
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -2049,7 +2049,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"is_authenticated": isAuthenticated,
 				"comments_enabled": project.GetBool("comments_enabled"),
 			}
-			gatePaidContent(project, response, newContentAccess(app, purchaseService, e))
 			if mediaRefs, ok := project.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
@@ -2130,6 +2129,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				response["profile"] = profileData
 			}
 
+			gatePaidContent(project, response, newContentAccess(app, purchaseService, e))
 			return e.JSON(http.StatusOK, response)
 		}))
 
@@ -2189,7 +2189,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"is_authenticated":        isAuthenticated,
 				"comments_enabled":        talk.GetBool("comments_enabled"),
 			}
-			gatePaidContent(talk, response, newContentAccess(app, purchaseService, e))
 			if mediaRefs, ok := talk.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
@@ -2261,6 +2260,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				}
 			}
 
+			gatePaidContent(talk, response, newContentAccess(app, purchaseService, e))
 			return e.JSON(http.StatusOK, response)
 		}))
 

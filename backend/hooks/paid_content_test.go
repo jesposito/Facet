@@ -3,6 +3,7 @@ package hooks
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -159,6 +160,138 @@ func TestPaidContentIsGatedOnListsFeedsAndViews(t *testing.T) {
 	assertContains(t, rec, "Project teaser")
 	assertNotContains(t, rec, "PAID PROJECT WRITEUP")
 	assertNotContains(t, rec, "OVERRIDE LEAK")
+}
+
+// libraryMedia uploads a file to the media library and attaches it the way
+// the media picker does, through an external_media entry pointing at it.
+func (f *securityFixture) libraryMedia(t *testing.T, name string) (*core.Record, string) {
+	t.Helper()
+	file, err := filesystem.NewFileFromBytes([]byte("LIBRARY BYTES"), name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	upload := f.create(t, "uploads", map[string]any{"title": name, "file": []*filesystem.File{file}})
+	url := "/api/files/" + upload.Collection().Id + "/" + upload.Id + "/" + upload.GetString("file")
+	ref := f.create(t, "external_media", map[string]any{"title": name, "url": url, "provider": "upload"})
+	return ref, url
+}
+
+func TestPaidMediaIsGatedWithTheContent(t *testing.T) {
+	f, r := newPaidContentFixture(t)
+	const cover = "https://cdn.example/public-cover.png"
+
+	type item struct {
+		path, collection string
+		record           *core.Record
+		refURL, fileName string
+	}
+	items := map[string]*item{
+		"posts":    {path: "/api/post/paid-post", record: r["post"]},
+		"projects": {path: "/api/project/paid-project", record: r["project"]},
+		"talks":    {path: "/api/talk/paid-talk", record: r["talk"]},
+	}
+	for collection, it := range items {
+		ref, url := f.libraryMedia(t, collection+"-gallery.png")
+		it.collection, it.refURL = collection, url
+		it.record.Set("media_refs", []string{ref.Id})
+		it.record.Set("cover_image_library_url", cover)
+		if collection == "projects" {
+			shot, err := filesystem.NewFileFromBytes(append([]byte("\x89PNG\r\n\x1a\n"), make([]byte, 32)...), "project-shot.png")
+			if err != nil {
+				t.Fatal(err)
+			}
+			it.record.Set("media", []*filesystem.File{shot})
+		}
+		if err := f.app.Save(it.record); err != nil {
+			t.Fatal(err)
+		}
+		if collection == "projects" {
+			it.fileName = it.record.GetStringSlice("media")[0]
+		}
+	}
+	freeRef, freeURL := f.libraryMedia(t, "free-gallery.png")
+	r["freePost"].Set("media_refs", []string{freeRef.Id})
+	if err := f.app.Save(r["freePost"]); err != nil {
+		t.Fatal(err)
+	}
+
+	cookies := map[string]map[string]string{}
+	for collection, it := range items {
+		buyer := f.completedPurchase(t, "buyer-"+collection+"@example.com", collection, it.record.Id)
+		refunded := f.completedPurchase(t, "refunded-"+collection+"@example.com", collection, it.record.Id)
+		refunded.Set("status", "refunded")
+		if err := f.app.Save(refunded); err != nil {
+			t.Fatal(err)
+		}
+		other := f.completedPurchase(t, "other-"+collection+"@example.com", "posts", r["freePost"].Id)
+		cookies[collection] = map[string]string{
+			"buyer":    f.buyerCookie(t, "buyer-"+collection+"@example.com", buyer),
+			"refunded": f.buyerCookie(t, "refunded-"+collection+"@example.com", refunded),
+			"other":    f.buyerCookie(t, "other-"+collection+"@example.com", other),
+		}
+	}
+	_, adminToken := f.createAdmin(t, "owner@example.com", "a-strong-password", nil)
+	h := f.serve(t)
+
+	assertMediaWithheld := func(t *testing.T, rec *httptest.ResponseRecorder, it *item) {
+		t.Helper()
+		assertStatus(t, rec, http.StatusOK)
+		assertContains(t, rec, cover)
+		assertContains(t, rec, `"is_gated":true`)
+		for _, leak := range []string{it.refURL, `"media_refs"`, `"media_refs_expand"`, `"media_urls"`, `"media"`} {
+			assertNotContains(t, rec, leak)
+		}
+		if it.fileName != "" {
+			assertNotContains(t, rec, it.fileName)
+		}
+	}
+	assertMediaShown := func(t *testing.T, rec *httptest.ResponseRecorder, it *item) {
+		t.Helper()
+		assertStatus(t, rec, http.StatusOK)
+		assertContains(t, rec, cover)
+		assertContains(t, rec, it.refURL)
+		if it.fileName != "" {
+			assertContains(t, rec, `"media_urls"`)
+			assertContains(t, rec, it.fileName)
+		}
+	}
+
+	for collection, it := range items {
+		t.Run(collection+" detail", func(t *testing.T) {
+			assertMediaWithheld(t, do(t, h, testRequest{url: it.path}), it)
+			for _, who := range []string{"refunded", "other"} {
+				rec := do(t, h, testRequest{url: it.path, headers: map[string]string{"Cookie": cookies[collection][who]}})
+				assertMediaWithheld(t, rec, it)
+			}
+			rec := do(t, h, testRequest{url: it.path, headers: map[string]string{"Cookie": cookies[collection]["buyer"]}})
+			assertMediaShown(t, rec, it)
+			assertMediaShown(t, do(t, h, testRequest{url: it.path, headers: map[string]string{"Authorization": adminToken}}), it)
+		})
+	}
+
+	t.Run("free post keeps its media", func(t *testing.T) {
+		rec := do(t, h, testRequest{url: "/api/post/free-post"})
+		assertStatus(t, rec, http.StatusOK)
+		assertContains(t, rec, freeURL)
+		assertContains(t, rec, `"media_refs_expand"`)
+	})
+
+	t.Run("view data", func(t *testing.T) {
+		var sections []string
+		for _, collection := range []string{"posts", "projects", "talks"} {
+			sections = append(sections, `{"section":"`+collection+`","enabled":true,"items":["`+items[collection].record.Id+`"]}`)
+		}
+		f.create(t, "views", map[string]any{"name": "Paid", "slug": "paid-media", "visibility": "public", "is_active": true, "sections": "[" + strings.Join(sections, ",") + "]"})
+		rec := do(t, h, testRequest{url: "/api/view/paid-media/data"})
+		assertStatus(t, rec, http.StatusOK)
+		assertContains(t, rec, "Paid talk")
+		for _, leak := range []string{`"media_refs"`, `"media_urls"`, `"media"`, items["projects"].fileName} {
+			assertNotContains(t, rec, leak)
+		}
+		for _, it := range items {
+			assertNotContains(t, rec, it.record.GetStringSlice("media_refs")[0])
+		}
+	})
 }
 
 func TestPaidDownloadsNeedAPurchase(t *testing.T) {

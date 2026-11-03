@@ -675,12 +675,17 @@ func findCompletedPurchase(app core.App, purchaseService *services.PurchaseServi
 // paidContentFields lists the response fields that hold the part of an item a
 // buyer pays for. Titles, summaries, excerpts and cover images stay visible so
 // the item can still be listed and sold. Posts keep a short preview of their
-// content instead of losing it entirely.
+// content instead of losing it entirely. Inline and gallery media are paid
+// too, both the stored references and the URLs projections expand them into.
 var paidContentFields = map[string][]string{
-	"posts":          {"content"},
-	"projects":       {"description", "experience"},
-	"talks":          {"description", "slides_url", "video_url"},
-	"custom_content": {"content"},
+	"posts":          withPaidMedia("content"),
+	"projects":       withPaidMedia("description", "experience"),
+	"talks":          withPaidMedia("description", "slides_url", "video_url"),
+	"custom_content": withPaidMedia("content"),
+}
+
+func withPaidMedia(fields ...string) []string {
+	return append(fields, "media", "media_refs", "media_refs_expand", "media_urls")
 }
 
 const defaultPaywallPreviewParagraphs = 3
@@ -719,8 +724,8 @@ func newContentAccess(app core.App, purchaseService *services.PurchaseService, e
 }
 
 // gatePaidContent removes the paid fields from a public projection of record
-// unless access allows them. It runs after any per-view overrides, so an
-// override can't put a paid description back.
+// unless access allows them. It runs last, after any per-view overrides and
+// media expansion, so neither can put a paid field back.
 func gatePaidContent(record *core.Record, item map[string]interface{}, access contentAccess) {
 	if !requiresPurchase(record) {
 		return
