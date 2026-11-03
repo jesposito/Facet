@@ -2,14 +2,23 @@ package hooks
 
 import (
 	"fmt"
+	"strings"
 
 	"facet/services"
 
+	validation "github.com/pocketbase/ozzo-validation/v4"
 	"github.com/pocketbase/pocketbase"
+	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.CryptoService) {
+	// Request hooks run ahead of the save, so a rejected Facet hashes nothing
+	// and clears no default.
+	app.OnRecordCreateRequest("views").BindFunc(validateViewPasswordRequest)
+	app.OnRecordUpdateRequest("views").BindFunc(validateViewPasswordRequest)
+
 	app.OnRecordCreate("views").BindFunc(func(e *core.RecordEvent) error {
 		slug := e.Record.GetString("slug")
 
@@ -64,6 +73,39 @@ func registerViewsValidation(app *pocketbase.PocketBase, crypto *services.Crypto
 		}
 
 		return e.Next()
+	})
+}
+
+func validateViewPasswordRequest(e *core.RecordRequestEvent) error {
+	if err := validateViewPassword(e.Record); err != nil {
+		return err
+	}
+	return e.Next()
+}
+
+// validateViewPassword requires a password Facet to have one visitors can
+// enter: a new nonblank password, or the hash it already stores.
+func validateViewPassword(record *core.Record) error {
+	if record.GetString("visibility") != "password" {
+		return nil
+	}
+	password := record.GetString("password")
+	if strings.TrimSpace(password) != "" {
+		if len([]byte(password)) > 72 {
+			return apis.NewBadRequestError("Failed to save facet.", validation.Errors{
+				"password": validation.NewError("validation_length", "Passwords must be no longer than 72 bytes."),
+			})
+		}
+		return nil
+	}
+	storedHash := record.Original().GetString("password_hash")
+	if password == "" && storedHash != "" && record.GetString("password_hash") == storedHash {
+		if _, err := bcrypt.Cost([]byte(storedHash)); err == nil {
+			return nil
+		}
+	}
+	return apis.NewBadRequestError("Failed to save facet.", validation.Errors{
+		"password": validation.NewError("validation_required", "A password is required for password-protected facets."),
 	})
 }
 

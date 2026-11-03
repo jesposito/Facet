@@ -96,7 +96,7 @@ func TestShareVisitProofKeepsFinalUseVisitOpen(t *testing.T) {
 	if s.project200(t, raw) {
 		t.Fatal("exhausted raw token opened a project")
 	}
-	assertStatus(t, do(t, s.h, testRequest{url: "/api/view/pitch/data", headers: raw}), http.StatusUnauthorized)
+	assertStatus(t, do(t, s.h, testRequest{url: "/api/view/pitch/data", headers: raw}), http.StatusNotFound)
 	// Nor does the proof without the token it was issued for.
 	if s.project200(t, map[string]string{shareVisitHeader: proof}) {
 		t.Fatal("proof without share token opened a project")
@@ -180,7 +180,7 @@ func TestShareVisitProofEndsWithTheToken(t *testing.T) {
 			if s.project200(t, visit) {
 				t.Fatal("visit proof outlived its token")
 			}
-			assertStatus(t, do(t, s.h, testRequest{url: "/api/view/pitch/data", headers: visit}), http.StatusUnauthorized)
+			assertStatus(t, do(t, s.h, testRequest{url: "/api/view/pitch/data", headers: visit}), http.StatusNotFound)
 		})
 	}
 }

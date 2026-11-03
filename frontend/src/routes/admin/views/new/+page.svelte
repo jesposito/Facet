@@ -270,8 +270,12 @@
 				sectionItems[key] = records.items.map((item) => ({
 					id: item.id,
 					label: getItemLabel(key, item),
-					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: ((item as Record<string, unknown>).visibility as string) || 'private',
+					// Contact methods have no visibility field; view_visibility is their scope.
+					// Otherwise default to 'private' if not set - safer than assuming public
+					visibility:
+						key === 'contacts'
+							? 'public'
+							: ((item as Record<string, unknown>).visibility as string) || 'private',
 					is_draft: ((item as Record<string, unknown>).is_draft as boolean) || false,
 					data: item as Record<string, unknown>
 				}));
@@ -330,8 +334,14 @@
 		updateSections();
 	}
 
+	// Bulk selection adds public, published items after the current picks, so
+	// private items stay a per-item choice and existing order is kept.
 	function selectAllItems(sectionKey: string) {
-		sections[sectionKey].items = sectionItems[sectionKey]?.map((i) => i.id) || [];
+		const selected = new Set(sections[sectionKey].items);
+		const additions = (sectionItems[sectionKey] || [])
+			.filter((i) => i.visibility === 'public' && !i.is_draft && !selected.has(i.id))
+			.map((i) => i.id);
+		sections[sectionKey].items = [...sections[sectionKey].items, ...additions];
 		updateSections();
 	}
 

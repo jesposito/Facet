@@ -360,9 +360,18 @@
 		updateSections();
 	}
 
-	function selectAllItems(sectionKey: string, filteredOnly?: { id: string }[]) {
+	// Bulk selection adds public, published items after the current picks, so
+	// private items stay a per-item choice and existing order is kept.
+	function selectAllItems(
+		sectionKey: string,
+		filteredOnly?: { id: string; visibility: string; is_draft?: boolean }[]
+	) {
 		const source = filteredOnly ?? sectionItems[sectionKey] ?? [];
-		sections[sectionKey].items = source.map((i) => i.id);
+		const selected = new Set(sections[sectionKey].items);
+		const additions = source
+			.filter((i) => i.visibility === 'public' && !i.is_draft && !selected.has(i.id))
+			.map((i) => i.id);
+		sections[sectionKey].items = [...sections[sectionKey].items, ...additions];
 		updateSections();
 	}
 

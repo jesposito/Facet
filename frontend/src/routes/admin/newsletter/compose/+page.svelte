@@ -47,9 +47,18 @@
 	let sendsLoading = $state(true);
 	let templates: Template[] = $state([]);
 	let selectedTemplate = $state('');
-	// Optimistic until the status call answers, so the page doesn't flash a warning.
-	let smtpStatus: SmtpReadiness = $state('ready');
-	let smtpReady = $derived(smtpStatus === 'ready');
+	let smtpStatus: SmtpReadiness = $state('checking');
+	let smtpChecking = $state(false);
+	let smtpReady = $derived.by(() => smtpStatus === 'ready');
+	let smtpBlockedReason = $derived.by(() =>
+		smtpStatus === 'not_ready'
+			? $t('admin.newsletter.smtp_not_ready')
+			: smtpStatus === 'not_configured'
+				? $t('admin.newsletter.smtp_not_configured')
+				: smtpStatus === 'unavailable'
+					? $t('admin.newsletter.smtp_unavailable')
+					: $t('admin.newsletter.smtp_checking')
+	);
 	let anyUncertain = $derived(sends.some((s) => (s.uncertain_count ?? 0) > 0));
 
 	let lists: NewsletterList[] = $state([]);
@@ -136,13 +145,18 @@
 	});
 
 	async function checkSmtpStatus() {
+		if (smtpChecking) return;
+		smtpChecking = true;
+		smtpStatus = 'checking';
 		try {
 			const resp = await fetch('/api/admin/newsletter/smtp-status', { headers: authHeaders() });
-			if (resp.ok) {
-				smtpStatus = smtpReadiness(await resp.json());
-			}
+			if (!resp.ok) throw new Error(`SMTP status request failed with ${resp.status}`);
+			smtpStatus = smtpReadiness(await resp.json());
 		} catch (err) {
+			smtpStatus = 'unavailable';
 			console.debug('Failed to check SMTP status:', err);
+		} finally {
+			smtpChecking = false;
 		}
 	}
 
@@ -231,6 +245,10 @@
 	}
 
 	async function sendTest() {
+		if (!smtpReady) {
+			toasts.add('error', smtpBlockedReason);
+			return;
+		}
 		if (!subject.trim() || !bodyMarkdown.trim()) {
 			toasts.add('error', $t('admin.newsletter.subject_body_required'));
 			return;
@@ -276,6 +294,10 @@
 	}
 
 	async function sendToAll() {
+		if (!smtpReady) {
+			toasts.add('error', smtpBlockedReason);
+			return;
+		}
 		if (!subject.trim() || !bodyMarkdown.trim()) {
 			toasts.add('error', $t('admin.newsletter.subject_body_required'));
 			return;
@@ -430,6 +452,10 @@
 	// Resume retries only pending and known rejected recipients. The server
 	// never re-sends to accepted or uncertain ones.
 	async function resumeSend(send: Send) {
+		if (!smtpReady) {
+			toasts.add('error', smtpBlockedReason);
+			return;
+		}
 		const confirmed = await confirm({
 			title: $t('admin.newsletter.resume_send_title'),
 			message: $t('admin.newsletter.resume_send_message'),
@@ -540,13 +566,30 @@
 				<p class="text-sm font-medium text-amber-800 dark:text-amber-300">
 					{smtpStatus === 'not_ready'
 						? $t('admin.newsletter.smtp_not_ready')
-						: $t('admin.newsletter.smtp_not_configured')}
+						: smtpStatus === 'not_configured'
+							? $t('admin.newsletter.smtp_not_configured')
+							: smtpStatus === 'unavailable'
+								? $t('admin.newsletter.smtp_unavailable')
+								: $t('admin.newsletter.smtp_checking')}
 				</p>
 				<p class="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
 					{smtpStatus === 'not_ready'
 						? $t('admin.newsletter.smtp_not_ready_hint')
-						: $t('admin.newsletter.smtp_not_configured_hint')}
+						: smtpStatus === 'not_configured'
+							? $t('admin.newsletter.smtp_not_configured_hint')
+							: smtpStatus === 'unavailable'
+								? $t('admin.newsletter.smtp_unavailable_hint')
+								: $t('admin.newsletter.smtp_checking_hint')}
 				</p>
+				<button
+					type="button"
+					class="btn btn-secondary text-xs mt-3"
+					onclick={checkSmtpStatus}
+					disabled={smtpChecking}
+					aria-busy={smtpChecking ? 'true' : undefined}
+				>
+					{$t('admin.newsletter.smtp_retry')}
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -796,7 +839,7 @@
 				onclick={sendTest}
 				disabled={sendingTest || !subject.trim() || !bodyMarkdown.trim() || !smtpReady}
 				aria-busy={sendingTest ? 'true' : undefined}
-				title={!smtpReady ? $t('admin.newsletter.smtp_not_configured') : undefined}
+				title={!smtpReady ? smtpBlockedReason : undefined}
 			>
 				{sendingTest ? $t('admin.newsletter.sending_test') : $t('admin.newsletter.send_test')}
 			</button>
@@ -806,7 +849,7 @@
 				onclick={sendToAll}
 				disabled={sending || !subject.trim() || !bodyMarkdown.trim() || !smtpReady}
 				aria-busy={sending ? 'true' : undefined}
-				title={!smtpReady ? $t('admin.newsletter.smtp_not_configured') : undefined}
+				title={!smtpReady ? smtpBlockedReason : undefined}
 			>
 				{sending ? $t('admin.newsletter.sending') : $t('admin.newsletter.send_to_all')}
 			</button>
@@ -946,7 +989,11 @@
 											class="btn btn-secondary text-xs me-2"
 											onclick={() => resumeSend(send)}
 											disabled={blocked || !smtpReady}
-											title={blocked ? $t('admin.newsletter.send_in_progress') : undefined}
+											title={blocked
+												? $t('admin.newsletter.send_in_progress')
+												: !smtpReady
+													? smtpBlockedReason
+													: undefined}
 											aria-label={$t('admin.newsletter.resume_send_aria', {
 												values: { subject: send.subject }
 											})}

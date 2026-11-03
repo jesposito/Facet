@@ -523,6 +523,16 @@ func checkViewAccess(app *pocketbase.PocketBase, crypto *services.CryptoService,
 	return nil, nil
 }
 
+// publicViewDenial is what /access and /data answer a denied request with. An
+// unlisted view doesn't exist for anyone without share access, so like a
+// private view it reads as missing there.
+func publicViewDenial(view *core.Record, denial *viewAccessDenial) *viewAccessDenial {
+	if denial != nil && view.GetString("visibility") == "unlisted" {
+		return &viewAccessDenial{http.StatusNotFound, "view not found"}
+	}
+	return denial
+}
+
 func resolveBaseURL(e *core.RequestEvent) string {
 	if appURL := strings.TrimSpace(os.Getenv("APP_URL")); appURL != "" {
 		return strings.TrimSuffix(appURL, "/")

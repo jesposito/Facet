@@ -809,8 +809,12 @@
 				sectionItems[key] = records.items.map((item) => ({
 					id: item.id,
 					label: getItemLabel(key, item),
-					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: ((item as Record<string, unknown>).visibility as string) || 'private',
+					// Contact methods have no visibility field; view_visibility is their scope.
+					// Otherwise default to 'private' if not set - safer than assuming public
+					visibility:
+						key === 'contacts'
+							? 'public'
+							: ((item as Record<string, unknown>).visibility as string) || 'private',
 					is_draft: ((item as Record<string, unknown>).is_draft as boolean) || false,
 					data: item as Record<string, unknown>,
 					expand: (item as any).expand || {}
@@ -871,6 +875,8 @@
 	async function enableItemsForView(sectionsData: ViewSection[]) {
 		for (const section of sectionsData) {
 			if (!section.enabled || !section.items?.length) continue;
+			// A contact's view_visibility is its page scope, set on the contact.
+			if (section.section === 'contacts') continue;
 
 			const collectionName = SECTION_DEFS[section.section]?.collection;
 			if (!collectionName) continue;
@@ -879,10 +885,8 @@
 				const item = sectionItems[section.section]?.find((i) => i.id === itemId);
 				if (!item) continue;
 
-				const isPrivate = item.visibility === 'private';
-				const isDraft = item.is_draft === true;
-
-				if (isPrivate || isDraft) {
+				// An override shows a private item here. It never publishes a draft.
+				if (item.visibility === 'private' && !item.is_draft) {
 					const currentViewVis = (item.data.view_visibility as Record<string, boolean>) || {};
 					if (!currentViewVis[viewId]) {
 						await collection(collectionName).update(itemId, {
@@ -901,6 +905,11 @@
 		}
 		if (!slug.trim()) {
 			toasts.add('error', 'Slug is required');
+			return;
+		}
+		// A view that already uses a password keeps it unless a new one is typed.
+		if (visibility === 'password' && view?.visibility !== 'password' && !password.trim()) {
+			toasts.add('error', 'Password is required for password-protected views');
 			return;
 		}
 
@@ -990,13 +999,18 @@
 
 			await collection('views').update(viewId, formData);
 			heroImageFile = null;
+			// The next save compares against what this one stored.
+			if (view) view = { ...view, visibility };
+			password = '';
 
 			await enableItemsForView(sectionsData);
 
 			toasts.add('success', 'Facet updated successfully');
 		} catch (err) {
 			console.error('Failed to save view:', err);
-			toasts.add('error', 'Failed to save facet');
+			const passwordError = (err as { response?: { data?: { password?: { message?: string } } } })
+				.response?.data?.password?.message;
+			toasts.add('error', passwordError || 'Failed to save facet');
 		} finally {
 			saving = false;
 		}

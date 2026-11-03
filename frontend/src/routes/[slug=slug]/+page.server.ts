@@ -78,6 +78,11 @@ export const load: PageServerLoad = async ({
 		if (pbAuthToken) {
 			accessHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
 		}
+		if (effectiveShareToken) {
+			accessHeaders['X-Share-Token'] = effectiveShareToken;
+			const shareVisit = getShareVisit(cookies);
+			if (shareVisit) accessHeaders[SHARE_VISIT_HEADER] = shareVisit;
+		}
 
 		const response = await fetch(`${pbUrl}/api/view/${slug}/access`, {
 			headers: accessHeaders

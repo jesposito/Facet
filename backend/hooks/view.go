@@ -379,6 +379,14 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			if visibility == "private" && !isAuthenticated {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 			}
+			// Metadata follows the same share access rules as the page, without
+			// spending a token use. The frontend forwards its visit credentials.
+			if visibility == "unlisted" {
+				_, denial := checkViewAccess(app, crypto, share, e, view)
+				if denial = publicViewDenial(view, denial); denial != nil {
+					return e.JSON(denial.status, map[string]string{"error": denial.message})
+				}
+			}
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"view_id":           view.Id,
 				"view_name":         view.GetString("name"),
@@ -425,12 +433,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			shouldCountView := e.Auth == nil
 
 			tokenRecord, denial := checkViewAccess(app, crypto, share, e, view)
-			if denial != nil {
+			if denial = publicViewDenial(view, denial); denial != nil {
 				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
 			if tokenRecord != nil {
 				if !consumeShareTokenUse(app, tokenRecord.Id) {
-					return e.JSON(http.StatusUnauthorized, map[string]string{"error": "invalid or expired share token"})
+					return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 				}
 				issueShareVisitProof(e, crypto, tokenRecord)
 			}
