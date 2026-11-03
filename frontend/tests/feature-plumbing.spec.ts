@@ -4,8 +4,6 @@ import {
 	checkUnsubscribeToken,
 	confirmUnsubscribe,
 	isValidUnsubscribeToken,
-	normaliseEmail,
-	requestUnsubscribeByEmail,
 	unsubscribeHeaders
 } from '../src/lib/server/unsubscribe';
 import { escapeXml, publicRecords, renderSitemap } from '../src/lib/server/sitemap';
@@ -212,20 +210,6 @@ test.describe('unsubscribe server helpers', () => {
 		}
 	});
 
-	test('by-email posts a normalised address', async () => {
-		expect(normaliseEmail('  Reader@Example.COM ')).toBe('reader@example.com');
-		expect(normaliseEmail('not an email')).toBeNull();
-		expect(normaliseEmail(null)).toBeNull();
-
-		const { calls, fetcher } = recordingFetch(() => json(200, { status: 'received' }));
-		await expect(requestUnsubscribeByEmail(fetcher, 'reader@example.com')).resolves.toBe(true);
-		expect(calls[0]).toMatchObject({
-			method: 'POST',
-			body: JSON.stringify({ email: 'reader@example.com' })
-		});
-		expect(calls[0].url).toMatch(/\/api\/public\/unsubscribe\/by-email$/);
-	});
-
 	test('responses are private, uncached, unindexed and send no referrer', () => {
 		expect(unsubscribeHeaders(false)).toEqual({
 			'Cache-Control': 'private, no-store',
@@ -264,7 +248,10 @@ test.describe('live responses', () => {
 		expect(headers['referrer-policy']).toBe('no-referrer');
 		const html = await response.text();
 		expect(html).toContain('data-state="invalid"');
-		expect(html).toContain('name="email"');
+		// A bad link points back to the signed link in the email; an address
+		// alone can never unsubscribe anyone.
+		expect(html).toContain('data-testid="unsubscribe-signed-link-help"');
+		expect(html).not.toContain('name="email"');
 		expect(html).toMatch(/<meta name="robots" content="noindex, nofollow"/);
 	});
 
@@ -278,13 +265,27 @@ test.describe('live responses', () => {
 		}
 	});
 
-	test('GET /unsubscribe without a token offers the by-email form', async ({ request }) => {
+	test('GET /unsubscribe without a token explains the signed link and has no email form', async ({
+		request
+	}) => {
 		const response = await request.get('/unsubscribe');
 		expect(response.status()).toBe(200);
 		expect(response.headers()['x-robots-tag']).toContain('noindex');
 		const html = await response.text();
 		expect(html).toContain('data-state="no-token"');
-		expect(html).toContain('action="?/email"');
+		expect(html).toContain('data-testid="unsubscribe-signed-link-help"');
+		expect(html).not.toContain('action="?/email"');
+		expect(html).not.toContain('name="email"');
+		expect(html).not.toContain('action="?/confirm"');
+	});
+
+	test('POST /unsubscribe?/email cannot unsubscribe by address', async ({ request, baseURL }) => {
+		const response = await request.post('/unsubscribe?/email', {
+			form: { email: 'reader@example.com' },
+			headers: { Origin: new URL(baseURL ?? 'http://localhost').origin }
+		});
+		expect(response.status()).toBeGreaterThanOrEqual(400);
+		expect(response.status()).toBeLessThan(500);
 	});
 
 	// An auth cookie makes the root layout set Cache-Control first. Setting it

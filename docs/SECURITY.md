@@ -135,9 +135,9 @@ This logging is on by default, records stay until you delete them, and there's n
 |---------|---------------|
 | Comments | Name, email, comment text, IP hash, user agent |
 | Testimonials | What the person submits (name, title, company, relationship, text), plus their email if they choose to verify it |
-| Newsletter | Email, optional name, list memberships. Sent emails include an open-tracking image and rewritten links that record opens and clicks. |
+| Newsletter | Email, optional name, list memberships, and each send's per-recipient SMTP outcome. Sent emails include an open-tracking image and rewritten links that record opens and clicks. Unsubscribing needs the signed link from an email; an address alone can't unsubscribe anyone. |
 | Downloads | A hashed IP address per download |
-| Courses (off by default) | Enrolment email and progress |
+| Courses | Free enrolment email and progress; course selling is Facet Cloud-only |
 
 ### Google Analytics
 
@@ -170,7 +170,7 @@ These are all the outside connections the code makes. Most only happen when you 
 | `api.github.com` | GitHub project imports and refreshes |
 | Your AI provider (Anthropic, OpenAI, Ollama or a custom endpoint) | When you, or a visitor using AI résumé generation, trigger an AI feature. The relevant content goes with the request. See [AI features](AI_FEATURES.md#what-gets-sent-to-the-provider). |
 | oEmbed endpoints (YouTube, Vimeo, Loom, SoundCloud, CodePen, Figma) | When you add external media and Facet looks up its title and thumbnail |
-| Your SMTP server | Sending email |
+| Your SMTP server | Sending all email. Self-hosted Facet has no other mail transport. |
 | Stripe | Payment set-up and checkout, if configured |
 | Webhook URLs you register | When subscribed events happen |
 | Google / GitHub | OAuth sign-in, if configured |

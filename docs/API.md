@@ -223,6 +223,14 @@ Test payloads are marked with `"is_test": true` and use sample field names (such
 
 **Settings → System Alerts** (`/admin/alerts`) lists background problems with severity, filters, acknowledgement and deletion ([source](../backend/hooks/system_alerts.go)). Failed startup content repair raises `content_recovery_failed`; backup, restore and retention failures raise `backup_failed`, `backup_restore_failed` and `backup_retention_failed`. Repeated events are combined while an alert remains unacknowledged, including concurrent failures. Content repair retries on the next start. SMTP and webhook errors still use their operation status and server logs rather than this inbox.
 
+## Newsletter unsubscribe
+
+Newsletter emails carry a signed, per-subscriber token in the footer link (`/unsubscribe/<token>`) and in the `List-Unsubscribe` headers with RFC 8058 one-click support. `GET /api/public/unsubscribe/<token>` only reads the token's status; `POST /api/public/unsubscribe` with `{ "token": "..." }` unsubscribes. `POST /api/public/unsubscribe/by-email` no longer changes anything: an email address alone can't unsubscribe anyone. These routes stay open when the newsletter feature is switched off ([source](../backend/hooks/newsletter.go)).
+
+Deleting a finished send log also removes its recipient results and disables tracked links in those emails. Active sends cannot be deleted.
+
+The admin's send history and its resume action (`POST /api/admin/newsletter/sends/<id>/resume`) are dashboard endpoints, not a stable interface ([behaviour](AUDIENCE.md#delivery-pacing-and-resume)). Each send in the history and in `GET /api/admin/newsletter/sends/<id>/stats` carries `resumable_count`: the pending and failed recipients Resume would retry. Send logs from before per-recipient tracking report 0 whatever their historical `failed_count`.
+
 ## Feeds
 
 | Address | Contents |

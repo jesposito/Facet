@@ -26,6 +26,8 @@ type audienceFixture struct {
 // unsubscribed and bounced members. List B has one active reader of its own.
 func newAudienceFixture(t *testing.T) *audienceFixture {
 	t.Helper()
+	// No pause between submissions; pacing has its own test.
+	t.Setenv("NEWSLETTER_SEND_INTERVAL_MS", "0")
 	n := newNewsletterFixture(t, true)
 	_, adminToken := n.createAdmin(t, "owner@example.com", "a-strong-password", nil)
 	n.create(t, "profile", map[string]any{"name": "Jo's Site"})

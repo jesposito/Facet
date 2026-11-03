@@ -71,7 +71,11 @@ curl -s http://localhost:8080/api/health  # backend only
 
 ## Email
 
-**Nothing is sent.** Set up SMTP and use the test button in **Site Settings**. If you configure SMTP with `SMTP_*` variables, they overwrite the dashboard settings each time Facet starts.
+**Nothing is sent.** Set up SMTP and use the test button in **Site Settings**. If you configure SMTP with `SMTP_*` variables, they overwrite the dashboard settings each time Facet starts. Self-hosted Facet has no other way to send email.
+
+**The test says sent, but nothing arrives.** "Sent" means your SMTP server accepted the message. Check the spam folder, your provider's logs, and the SPF, DKIM and DMARC records for the sender's domain ([Newsletter](AUDIENCE.md#before-you-start)).
+
+**The newsletter says SMTP isn't ready.** SMTP is configured but the sender address or `APP_URL` is missing. Fill both in and reload the page.
 
 **Gmail rejects the password.** Gmail needs an [app password](https://myaccount.google.com/apppasswords), which requires two-step verification on the account.
 

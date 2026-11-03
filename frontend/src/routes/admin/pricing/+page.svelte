@@ -18,7 +18,6 @@
 	const CONTENT_TYPES = [
 		{ collection: 'posts', labelKey: 'admin.pricing.type_posts', titleField: 'title' },
 		{ collection: 'talks', labelKey: 'admin.pricing.type_talks', titleField: 'title' },
-		{ collection: 'courses', labelKey: 'admin.pricing.type_courses', titleField: 'title' },
 		{ collection: 'projects', labelKey: 'admin.pricing.type_projects', titleField: 'title' },
 		{ collection: 'custom_content', labelKey: 'admin.pricing.type_custom', titleField: 'title' }
 	];

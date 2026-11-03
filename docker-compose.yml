@@ -18,7 +18,6 @@
 #
 # ============================================================================
 
-version: '3.8'
 
 services:
   facet:
@@ -214,9 +213,11 @@ services:
       - PGID=${PGID:-1000}
 
       # Tuning and recovery (empty keeps the built-in defaults)
-      # NEWSLETTER_MAX_CONCURRENT_SENDS: newsletter sends allowed at once
+      # NEWSLETTER_SEND_INTERVAL_MS: pause between messages; one campaign runs at a time
+      # NEWSLETTER_MAX_CONCURRENT_SENDS: legacy setting, parallel campaigns remain disabled
       # VIEW_DEDUP_WINDOW: Go duration before a repeat view counts again, e.g. 30m
       # CONTENT_RECOVERY_DISABLED=1 skips the startup content recovery pass
+      - NEWSLETTER_SEND_INTERVAL_MS=${NEWSLETTER_SEND_INTERVAL_MS:-1000}
       - NEWSLETTER_MAX_CONCURRENT_SENDS=${NEWSLETTER_MAX_CONCURRENT_SENDS:-}
       - VIEW_DEDUP_WINDOW=${VIEW_DEDUP_WINDOW:-}
       - CONTENT_RECOVERY_DISABLED=${CONTENT_RECOVERY_DISABLED:-}

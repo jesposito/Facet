@@ -13,6 +13,12 @@ import {
 	loadPublicNewsletterLists,
 	readSignupOutcome
 } from '../src/lib/newsletter/signup';
+import {
+	outcomeCounts,
+	resumeState,
+	smtpReadiness,
+	type NewsletterSend
+} from '../src/lib/newsletter/sends';
 
 function jsonResponse(status: number, body: unknown): Response {
 	return new Response(JSON.stringify(body), {
@@ -133,5 +139,123 @@ test.describe('newsletter signup', () => {
 			throw new Error('offline');
 		}) as unknown as typeof fetch;
 		expect(await loadPublicNewsletterLists(offline)).toEqual([]);
+	});
+});
+
+function send(overrides: Partial<NewsletterSend>): NewsletterSend {
+	return {
+		id: 'send1',
+		subject: 'Hello',
+		status: 'sent',
+		recipient_count: 10,
+		sent_count: 10,
+		failed_count: 0,
+		pending_count: 0,
+		uncertain_count: 0,
+		skipped_count: 0,
+		resumable_count: 0,
+		open_count: 0,
+		click_count: 0,
+		sent_at: '',
+		created: '',
+		...overrides
+	};
+}
+
+test.describe('newsletter send outcomes', () => {
+	test('sending needs SMTP to be ready, not just configured', () => {
+		expect(smtpReadiness({ configured: true, ready: true, host: 'smtp.example' })).toBe('ready');
+		expect(smtpReadiness({ configured: true, ready: false })).toBe('not_ready');
+		expect(smtpReadiness({ configured: false, ready: false })).toBe('not_configured');
+		// The pre-readiness response shape is not enough to send.
+		expect(smtpReadiness({ configured: true })).toBe('not_ready');
+		expect(smtpReadiness(null)).toBe('not_configured');
+	});
+
+	test('a fully accepted send offers nothing to resume', () => {
+		const done = send({});
+		expect(resumeState(done, [done])).toBe('hidden');
+		expect(outcomeCounts(done)).toEqual([]);
+	});
+
+	test('a partial send with pending or rejected recipients can be resumed', () => {
+		const partial = send({
+			status: 'partial',
+			sent_count: 6,
+			failed_count: 1,
+			pending_count: 3,
+			resumable_count: 4
+		});
+		expect(resumeState(partial, [partial])).toBe('available');
+		expect(outcomeCounts(partial)).toEqual([
+			{ key: 'failed_count', count: 1 },
+			{ key: 'pending_count', count: 3 }
+		]);
+
+		const interrupted = send({
+			status: 'interrupted',
+			sent_count: 4,
+			pending_count: 6,
+			resumable_count: 6
+		});
+		expect(resumeState(interrupted, [interrupted])).toBe('available');
+	});
+
+	test('uncertain recipients are reported but never make a send resumable', () => {
+		const uncertainOnly = send({ status: 'partial', sent_count: 8, uncertain_count: 2 });
+		expect(resumeState(uncertainOnly, [uncertainOnly])).toBe('hidden');
+		expect(outcomeCounts(uncertainOnly)).toEqual([{ key: 'uncertain_count', count: 2 }]);
+	});
+
+	test('skipped recipients alone are not resumable', () => {
+		const skipped = send({ status: 'partial', sent_count: 9, skipped_count: 1 });
+		expect(resumeState(skipped, [skipped])).toBe('hidden');
+	});
+
+	test('only one campaign runs at a time, so resume waits for an active send', () => {
+		const failed = send({
+			id: 'a',
+			status: 'failed',
+			sent_count: 0,
+			failed_count: 10,
+			resumable_count: 10
+		});
+		const active = send({
+			id: 'b',
+			status: 'sending',
+			sent_count: 2,
+			pending_count: 8,
+			resumable_count: 8
+		});
+		expect(resumeState(failed, [failed, active])).toBe('blocked');
+		expect(resumeState(active, [failed, active]), 'a running send is not resumed').toBe('hidden');
+	});
+
+	test('resume follows the ledger count, not historical counters', () => {
+		// Logged before per-recipient tracking: failures are history only.
+		const legacy = send({ status: 'failed', sent_count: 3, failed_count: 2, resumable_count: 0 });
+		expect(resumeState(legacy, [legacy])).toBe('hidden');
+		expect(outcomeCounts(legacy)).toEqual([{ key: 'failed_count', count: 2 }]);
+
+		const interrupted = send({
+			status: 'interrupted',
+			sent_count: 3,
+			failed_count: 2,
+			pending_count: 0
+		});
+		delete interrupted.resumable_count;
+		expect(resumeState(interrupted, [interrupted]), 'no count means not known to be safe').toBe(
+			'hidden'
+		);
+	});
+
+	test('older send records without the new counts still render', () => {
+		const legacy = send({ status: 'failed', failed_count: 2 });
+		delete legacy.pending_count;
+		delete legacy.uncertain_count;
+		delete legacy.skipped_count;
+		delete legacy.resumable_count;
+		expect(outcomeCounts(legacy)).toEqual([{ key: 'failed_count', count: 2 }]);
+		expect(resumeState(legacy, [legacy])).toBe('hidden');
 	});
 });

@@ -120,7 +120,9 @@ You can configure the same settings in **Settings → Site Settings** instead. W
 
 `APP_URL` and `APP_NAME` are applied the same way even without SMTP. PocketBase won't store a blank app URL and falls back to `http://localhost:8090`, so set `APP_URL` on any instance that sends email or takes payments.
 
-Email is used for testimonial notifications and verification, newsletter sends, and tests sent from the admin.
+Email is used for testimonial notifications and verification, newsletter sign-up confirmations and sends, and tests sent from the admin. Self-hosted Facet sends all of it through this SMTP server only; there's no API-based, Facet-managed or `sendmail` fallback. A test email that succeeds means your server accepted it, not that it was delivered.
+
+Newsletters also need a sender address and `APP_URL` before they can go out. Publishing SPF, DKIM and DMARC records for the sender's domain is up to you and your SMTP provider ([Newsletter](AUDIENCE.md#before-you-start)).
 
 SMTP delivery has a 30-second deadline covering connection, TLS negotiation and the SMTP exchange. A stalled server returns a send error when that deadline expires. Facet keeps a small [local transport patch](../backend/third_party/mailyak-v3/FACET_PATCH.md) until the upstream library provides this behavior.
 
@@ -161,7 +163,8 @@ See [Upgrades, backups and recovery](UPGRADE.md#built-in-backups) for what these
 |----------|---------|---------|
 | `FACET_FEATURE_COURSES` | `true` | Courses are on for self-hosted sites. `false` or `0` turns off the catalogue and new enrolments; people who already bought or enrolled keep access. A value that isn't a boolean keeps the default ([source](../backend/services/plan.go)). Not passed through by the repository's `docker-compose.yml`. |
 | `FACET_MANAGED` | `false` | Compatibility switch for managed hosting. Unknown features default to off in this mode. It isn't a supported way to run self-hosted Facet, and it doesn't make this repository a cloud product. |
-| `NEWSLETTER_MAX_CONCURRENT_SENDS` | `4` | Limits how many newsletter sends run at once ([source](../backend/hooks/newsletter_concurrency.go)) |
+| `NEWSLETTER_SEND_INTERVAL_MS` | `1000` | Pause between newsletter messages, in milliseconds. Newsletters go out one campaign at a time, one message after another; raise this to stay within your SMTP provider's rate limits ([details](AUDIENCE.md#delivery-pacing-and-resume)). Passed through by the repository's `docker-compose.yml`. Values from `0` (no pause) through `3600000` (one hour) are accepted. |
+| `NEWSLETTER_MAX_CONCURRENT_SENDS` | (legacy) | No longer allows parallel campaigns. Only one newsletter campaign runs at a time whatever this is set to. |
 | `VIEW_DEDUP_WINDOW` | `30m` | Go duration (for example `30m`) during which repeat hits from the same visitor don't increase view counts |
 | `CONTENT_RECOVERY_DISABLED` | (unset) | Set to `1` to skip a one-time repair of rich-text content at startup ([source](../backend/hooks/content_recovery.go)) |
 

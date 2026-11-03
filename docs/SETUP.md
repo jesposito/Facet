@@ -189,6 +189,7 @@ The automatic key lives inside `/data`, so a complete backup of `/data` includes
 - **Views:** create a view for each audience under **Views**. [Features](FEATURES.md#views) explains how views work.
 - **Try the demo:** the demo toggle in the admin header loads a sample profile so you can see a full site. Your own content is kept separately and comes back when you switch the demo off. While the demo is on, your public pages show the demo profile too ([Features](FEATURES.md#demo-mode)).
 - **Two-factor sign-in:** turn it on in **Account & Security**.
+- **Email:** if you want newsletters or email notifications, set up your own SMTP server with a sender address, and set `APP_URL` to your public address. Self-hosted Facet sends all email through that server only. A successful test means the server accepted it; check that it actually arrives ([Newsletter](AUDIENCE.md#before-you-start)).
 - **Backups:** read [Upgrades, backups and recovery](UPGRADE.md) before you put real work into Facet.
 
 ## Where to go next

@@ -86,7 +86,7 @@ All in-process goroutines, so nothing extra to run:
 | Database backup | Daily at `BACKUP_HOUR` UTC ([backup.go](../backend/hooks/backup.go)) |
 | Cleanup of expired tokens, failed exports and unreferenced uploads | 30 seconds after start, then every 24 hours ([cleanup.go](../backend/hooks/cleanup.go)) |
 | Webhook delivery | 4 workers with an in-memory queue and retries ([webhooks.go](../backend/services/webhooks.go)) |
-| Newsletter sending | Background sends, up to 4 at once ([newsletter_concurrency.go](../backend/hooks/newsletter_concurrency.go)) |
+| Newsletter sending | One background campaign at a time, paced by `NEWSLETTER_SEND_INTERVAL_MS`, with per-recipient outcomes recorded for resume ([newsletter.go](../backend/hooks/newsletter.go), [details](AUDIENCE.md#delivery-pacing-and-resume)) |
 | View counts and access logs | Written asynchronously per request |
 | Rich-text content repair | Once, at startup ([content_recovery.go](../backend/hooks/content_recovery.go)) |
 

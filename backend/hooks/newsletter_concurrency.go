@@ -1,25 +1,12 @@
 package hooks
 
 import (
-	"os"
-	"strconv"
-
 	"facet/services"
 
 	"github.com/pocketbase/pocketbase"
 )
 
-const defaultMaxConcurrentSends = 4
-
-var sendSemaphore = func() chan struct{} {
-	max := defaultMaxConcurrentSends
-	if raw := os.Getenv("NEWSLETTER_MAX_CONCURRENT_SENDS"); raw != "" {
-		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 {
-			max = parsed
-		}
-	}
-	return make(chan struct{}, max)
-}()
+var sendSemaphore = make(chan struct{}, 1)
 
 func goSendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, bodyHTML, templateSlug string, subscriberIDs []string, personalization *newsletterPersonalization) {
 	services.SafeGo(app, "send-newsletter", func() {

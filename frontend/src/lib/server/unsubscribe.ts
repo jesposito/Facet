@@ -1,13 +1,13 @@
 // Server side of the /unsubscribe page. Backend contract (backend/hooks/newsletter.go):
 //   GET  /api/public/unsubscribe/{token}  200 { email: masked, status } | 404 { error }
 //   POST /api/public/unsubscribe          { token } -> 200 { status: 'unsubscribed' | 'already_unsubscribed' } | 400/404 { error }
-//   POST /api/public/unsubscribe/by-email { email } -> 200 { status: 'received' } whether or not the address exists
+// An email address alone never unsubscribes anyone: only the signed token in
+// the newsletter link (or the RFC 8058 one-click header) can.
 
 // Newsletter tokens are 32 random bytes in unpadded base64url (43 characters).
 // The range leaves room for a longer token later without accepting slashes,
 // dots or percent signs that could change the backend path.
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type TokenCheck =
 	| { state: 'ready'; maskedEmail: string }
@@ -19,12 +19,6 @@ export type UnsubscribeResult = 'unsubscribed' | 'already_unsubscribed' | 'inval
 
 export function isValidUnsubscribeToken(token: string | undefined): token is string {
 	return typeof token === 'string' && TOKEN_PATTERN.test(token);
-}
-
-export function normaliseEmail(value: unknown): string | null {
-	if (typeof value !== 'string') return null;
-	const email = value.trim().toLowerCase();
-	return email.length <= 254 && EMAIL_PATTERN.test(email) ? email : null;
 }
 
 function backendUrl(path: string): string {
@@ -86,24 +80,6 @@ export async function confirmUnsubscribe(
 	if (data.status === 'already_unsubscribed') return 'already_unsubscribed';
 	if (data.status === 'unsubscribed') return 'unsubscribed';
 	return 'unavailable';
-}
-
-// The backend answers "received" for every address so nobody can use this
-// form to learn who subscribes. The page has to say the same thing.
-export async function requestUnsubscribeByEmail(
-	fetcher: typeof fetch,
-	email: string
-): Promise<boolean> {
-	try {
-		const response = await fetcher(backendUrl('/api/public/unsubscribe/by-email'), {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ email })
-		});
-		return response.ok;
-	} catch {
-		return false;
-	}
 }
 
 /**

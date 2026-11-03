@@ -25,15 +25,6 @@
 		return check.state === 'ready' ? 'confirm' : check.state;
 	});
 
-	const emailReceived = $derived(form?.action === 'email' && form.result === 'received');
-	const emailError = $derived(
-		form?.action === 'email' && form.result === 'bad_email'
-			? $t('public.commerce.unsubscribe.email_required')
-			: form?.action === 'email' && form.result === 'unavailable'
-				? $t('public.commerce.unsubscribe.email_error')
-				: ''
-	);
-
 	const titles = $derived({
 		confirm: $t('public.commerce.unsubscribe.title'),
 		done: $t('public.commerce.unsubscribe.done_title'),
@@ -108,37 +99,9 @@
 	{/if}
 
 	{#if view === 'invalid' || view === 'no-token' || view === 'unavailable'}
-		<section aria-labelledby="by-email-heading" class="by-email">
-			<h2 id="by-email-heading">{$t('public.commerce.unsubscribe.by_email')}</h2>
-			{#if emailReceived}
-				<p role="status" data-testid="unsubscribe-email-received">
-					{$t('public.commerce.unsubscribe.received')}
-				</p>
-			{:else}
-				<form method="POST" action="?/email" use:enhance={enhanceSubmit}>
-					<label for="unsubscribe-email" class="label"
-						>{$t('public.commerce.unsubscribe.email')}</label
-					>
-					<input
-						id="unsubscribe-email"
-						name="email"
-						type="email"
-						autocomplete="email"
-						required
-						class="input"
-						aria-invalid={emailError ? 'true' : undefined}
-						aria-describedby={emailError ? 'unsubscribe-email-error' : undefined}
-					/>
-					{#if emailError}
-						<p id="unsubscribe-email-error" class="error">{emailError}</p>
-					{/if}
-					<button type="submit" class="btn btn-secondary" disabled={submitting}>
-						{submitting
-							? $t('public.commerce.common.sending')
-							: $t('public.commerce.unsubscribe.email_action')}
-					</button>
-				</form>
-			{/if}
+		<section aria-labelledby="signed-link-heading" data-testid="unsubscribe-signed-link-help">
+			<h2 id="signed-link-heading">{$t('public.commerce.unsubscribe.signed_link_heading')}</h2>
+			<p>{$t('public.commerce.unsubscribe.signed_link_required')}</p>
 		</section>
 	{/if}
 
@@ -167,24 +130,6 @@
 		font-size: 1.125rem;
 		font-weight: 600;
 		margin-bottom: 0.5rem;
-	}
-
-	.by-email form {
-		display: grid;
-		gap: 0.5rem;
-		justify-items: start;
-	}
-
-	.by-email input {
-		width: 100%;
-	}
-
-	.error {
-		color: #b91c1c;
-	}
-
-	:global(.dark) .error {
-		color: #fca5a5;
 	}
 
 	.home a {

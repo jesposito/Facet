@@ -153,16 +153,31 @@ func TestNewsletterSwitchClosesSignupButNotUnsubscribe(t *testing.T) {
 	})
 	assertStatus(t, rec, http.StatusForbidden)
 
-	// Readers can always leave, by link, one-click or by email.
+	// Readers can always leave by signed link or RFC 8058 one-click. An
+	// address alone proves nothing, so it never unsubscribes anyone.
 	rec = do(t, h, testRequest{method: http.MethodPost, url: "/api/public/unsubscribe", body: `{"token":"` + token + `"}`})
 	assertStatus(t, rec, http.StatusOK)
 	if got := n.status(t, "reader@example.com"); got != "unsubscribed" {
 		t.Fatalf("status after unsubscribe = %q", got)
 	}
+	oneClick := "other-one-click-token"
+	other, err := n.app.FindFirstRecordByFilter("subscribers", "email = 'other@example.com'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other.Set("unsubscribe_token_hash", n.crypto.HMACToken(oneClick))
+	if err := n.app.Save(other); err != nil {
+		t.Fatal(err)
+	}
 	rec = do(t, h, testRequest{method: http.MethodPost, url: "/api/public/unsubscribe/by-email", body: `{"email":"other@example.com"}`})
 	assertStatus(t, rec, http.StatusOK)
+	if got := n.status(t, "other@example.com"); got != "active" {
+		t.Fatalf("email-only request changed status to %q", got)
+	}
+	rec = do(t, h, testRequest{method: http.MethodPost, url: "/api/public/unsubscribe/one-click/" + oneClick, body: "List-Unsubscribe=One-Click", headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"}})
+	assertStatus(t, rec, http.StatusOK)
 	if got := n.status(t, "other@example.com"); got != "unsubscribed" {
-		t.Fatalf("status after unsubscribe by email = %q", got)
+		t.Fatalf("status after one-click unsubscribe = %q", got)
 	}
 
 	// Owner data stays reachable.

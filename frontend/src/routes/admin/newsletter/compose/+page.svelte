@@ -14,19 +14,13 @@
 		newRequestKey,
 		sendErrorMessage
 	} from '$lib/newsletter/compose';
-
-	type Send = {
-		id: string;
-		subject: string;
-		status: string;
-		recipient_count: number;
-		sent_count: number;
-		failed_count: number;
-		open_count: number;
-		click_count: number;
-		sent_at: string;
-		created: string;
-	};
+	import {
+		outcomeCounts,
+		resumeState,
+		smtpReadiness,
+		type NewsletterSend as Send,
+		type SmtpReadiness
+	} from '$lib/newsletter/sends';
 
 	type Template = {
 		slug: string;
@@ -44,11 +38,6 @@
 		is_active: boolean;
 	};
 
-	type SiteSettings = {
-		site_title?: string;
-		site_url?: string;
-	};
-
 	let subject = $state('');
 	let bodyMarkdown = $state('');
 	let previewHTML = $state('');
@@ -58,7 +47,10 @@
 	let sendsLoading = $state(true);
 	let templates: Template[] = $state([]);
 	let selectedTemplate = $state('');
-	let smtpConfigured = $state(true);
+	// Optimistic until the status call answers, so the page doesn't flash a warning.
+	let smtpStatus: SmtpReadiness = $state('ready');
+	let smtpReady = $derived(smtpStatus === 'ready');
+	let anyUncertain = $derived(sends.some((s) => (s.uncertain_count ?? 0) > 0));
 
 	let lists: NewsletterList[] = $state([]);
 	// '' is the explicit "All active subscribers" choice. Whatever is picked
@@ -147,8 +139,7 @@
 		try {
 			const resp = await fetch('/api/admin/newsletter/smtp-status', { headers: authHeaders() });
 			if (resp.ok) {
-				const data = await resp.json();
-				smtpConfigured = data.configured === true;
+				smtpStatus = smtpReadiness(await resp.json());
 			}
 		} catch (err) {
 			console.debug('Failed to check SMTP status:', err);
@@ -436,6 +427,35 @@
 		}, 400);
 	});
 
+	// Resume retries only pending and known rejected recipients. The server
+	// never re-sends to accepted or uncertain ones.
+	async function resumeSend(send: Send) {
+		const confirmed = await confirm({
+			title: $t('admin.newsletter.resume_send_title'),
+			message: $t('admin.newsletter.resume_send_message'),
+			confirmText: $t('admin.newsletter.resume_send'),
+			danger: false
+		});
+		if (!confirmed) return;
+		try {
+			const response = await fetch(`/api/admin/newsletter/sends/${send.id}/resume`, {
+				method: 'POST',
+				headers: authHeaders()
+			});
+			if (!response.ok) {
+				const data = await response.json().catch(() => ({}));
+				throw new Error(sendErrorMessage(data, $t('admin.newsletter.error_resume')));
+			}
+			toasts.add('success', $t('admin.newsletter.resume_started'));
+			await loadSends();
+			pollInterval = POLL_MIN;
+			schedulePoll();
+		} catch (err) {
+			console.error('Failed to resume send:', err);
+			toasts.add('error', err instanceof Error ? err.message : $t('admin.newsletter.error_resume'));
+		}
+	}
+
 	async function deleteSend(send: Send) {
 		const confirmed = await confirm({
 			title: $t('admin.newsletter.delete_send_title'),
@@ -467,6 +487,9 @@
 				return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
 			case 'failed':
 				return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+			case 'partial':
+			case 'interrupted':
+				return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
 			default:
 				return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400';
 		}
@@ -494,7 +517,7 @@
 	</div>
 
 	<!-- SMTP warning -->
-	{#if !smtpConfigured}
+	{#if !smtpReady}
 		<div
 			class="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg"
 			role="alert"
@@ -515,10 +538,14 @@
 			</svg>
 			<div>
 				<p class="text-sm font-medium text-amber-800 dark:text-amber-300">
-					{$t('admin.newsletter.smtp_not_configured')}
+					{smtpStatus === 'not_ready'
+						? $t('admin.newsletter.smtp_not_ready')
+						: $t('admin.newsletter.smtp_not_configured')}
 				</p>
 				<p class="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
-					{$t('admin.newsletter.smtp_not_configured_hint')}
+					{smtpStatus === 'not_ready'
+						? $t('admin.newsletter.smtp_not_ready_hint')
+						: $t('admin.newsletter.smtp_not_configured_hint')}
 				</p>
 			</div>
 		</div>
@@ -767,9 +794,9 @@
 				type="button"
 				class="btn btn-secondary text-sm"
 				onclick={sendTest}
-				disabled={sendingTest || !subject.trim() || !bodyMarkdown.trim() || !smtpConfigured}
+				disabled={sendingTest || !subject.trim() || !bodyMarkdown.trim() || !smtpReady}
 				aria-busy={sendingTest ? 'true' : undefined}
-				title={!smtpConfigured ? $t('admin.newsletter.smtp_not_configured') : undefined}
+				title={!smtpReady ? $t('admin.newsletter.smtp_not_configured') : undefined}
 			>
 				{sendingTest ? $t('admin.newsletter.sending_test') : $t('admin.newsletter.send_test')}
 			</button>
@@ -777,9 +804,9 @@
 				type="button"
 				class="btn btn-primary text-sm"
 				onclick={sendToAll}
-				disabled={sending || !subject.trim() || !bodyMarkdown.trim() || !smtpConfigured}
+				disabled={sending || !subject.trim() || !bodyMarkdown.trim() || !smtpReady}
 				aria-busy={sending ? 'true' : undefined}
-				title={!smtpConfigured ? $t('admin.newsletter.smtp_not_configured') : undefined}
+				title={!smtpReady ? $t('admin.newsletter.smtp_not_configured') : undefined}
 			>
 				{sending ? $t('admin.newsletter.sending') : $t('admin.newsletter.send_to_all')}
 			</button>
@@ -870,13 +897,19 @@
 								</td>
 								<td class="py-3 px-4 text-gray-600 dark:text-gray-400">
 									{send.sent_count}/{send.recipient_count}
-									{#if send.failed_count > 0}
-										<span class="text-red-500">
-											({$t('admin.newsletter.failed_count', {
-												values: { count: send.failed_count }
-											})})
-										</span>
-									{/if}
+									<ul class="flex flex-col text-xs mt-1" data-testid="send-outcomes">
+										{#each outcomeCounts(send) as { key, count } (key)}
+											<li
+												class={key === 'failed_count'
+													? 'text-red-600 dark:text-red-400'
+													: key === 'uncertain_count'
+														? 'text-amber-700 dark:text-amber-400'
+														: ''}
+											>
+												{$t(`admin.newsletter.${key}`, { values: { count } })}
+											</li>
+										{/each}
+									</ul>
 								</td>
 								<td class="py-3 px-4 text-gray-600 dark:text-gray-400">
 									{#if send.status === 'sent' && send.recipient_count > 0}
@@ -905,10 +938,26 @@
 								<td class="py-3 px-4 text-gray-600 dark:text-gray-400">
 									{send.sent_at ? new Date(send.sent_at).toLocaleString() : '—'}
 								</td>
-								<td class="py-3 px-4 text-right">
+								<td class="py-3 px-4 text-right whitespace-nowrap">
+									{#if resumeState(send, sends) !== 'hidden'}
+										{@const blocked = resumeState(send, sends) === 'blocked'}
+										<button
+											type="button"
+											class="btn btn-secondary text-xs me-2"
+											onclick={() => resumeSend(send)}
+											disabled={blocked || !smtpReady}
+											title={blocked ? $t('admin.newsletter.send_in_progress') : undefined}
+											aria-label={$t('admin.newsletter.resume_send_aria', {
+												values: { subject: send.subject }
+											})}
+										>
+											{$t('admin.newsletter.resume_send')}
+										</button>
+									{/if}
 									<button
 										type="button"
 										class="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+										disabled={send.status === 'sending'}
 										onclick={() => deleteSend(send)}
 										aria-label={$t('admin.newsletter.delete_send_aria', {
 											values: { subject: send.subject }
@@ -935,6 +984,14 @@
 					</tbody>
 				</table>
 			</div>
+			{#if anyUncertain}
+				<p
+					class="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700"
+					data-testid="uncertain-explainer"
+				>
+					{$t('admin.newsletter.uncertain_hint')}
+				</p>
+			{/if}
 		{/if}
 	</div>
 </div>

@@ -7,6 +7,8 @@ import (
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/hook"
+	"github.com/pocketbase/pocketbase/tools/mailer"
 )
 
 // RegisterSMTPEnvConfig applies SMTP settings from environment variables
@@ -28,6 +30,31 @@ import (
 // The hook must be registered before app.Bootstrap() runs. The normal
 // app.Start() path does that.
 func RegisterSMTPEnvConfig(app *pocketbase.PocketBase) {
+	// Every email goes through the owner's own SMTP server. PocketBase falls
+	// back to the local sendmail binary when SMTP is off; this guard refuses
+	// that, and any send without a sender address, before a connection opens.
+	// The client is checked as well as the settings: a client made while SMTP
+	// was off is a Sendmail client even if SMTP is switched on before it sends.
+	// It runs ahead of every other handler so it sees the client PocketBase
+	// built, before anything (such as a test mailer) swaps it.
+	app.OnMailerSend().Bind(&hook.Handler[*core.MailerEvent]{
+		Id:       "facetOwnerSMTPGuard",
+		Priority: -1 << 30,
+		Func: func(e *core.MailerEvent) error {
+			if !ownerSMTPReady(e.App) {
+				return errOwnerSMTPUnavailable
+			}
+			switch client := e.Mailer.(type) {
+			case *mailer.Sendmail:
+				return errOwnerSMTPUnavailable
+			case *mailer.SMTPClient:
+				if strings.TrimSpace(client.Host) == "" {
+					return errOwnerSMTPUnavailable
+				}
+			}
+			return e.Next()
+		},
+	})
 	app.OnBootstrap().BindFunc(func(be *core.BootstrapEvent) error {
 		if err := be.Next(); err != nil {
 			return err

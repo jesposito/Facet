@@ -125,7 +125,7 @@ Set a view's visibility to **Password** and choose a password. Visitors see a pa
 - **Call-to-action buttons** in the header and footer.
 - **Hide the login button** on public pages. `/admin` still works.
 - **Default language** for visitors.
-- **Email (SMTP)** settings and a test-send button.
+- **Email (SMTP)** settings and a test-send button. A successful test means your SMTP server accepted the message, not that it was delivered. All email goes through this server ([Newsletter](AUDIENCE.md#newsletter)).
 
 ## Testimonials
 

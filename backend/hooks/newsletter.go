@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/base64"
 	"encoding/csv"
 	"errors"
@@ -94,29 +95,9 @@ func rewriteLinksForTracking(app core.App, htmlContent, sendID, token, unsubscri
 // RegisterNewsletterHooks registers all newsletter-related routes and hooks.
 // rl limits the public signup and confirmation routes.
 func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService, planConfig *services.PlanConfig) {
-	// Clean up stale "sending" records on startup.
-	// Any send still in "sending" status after 10 minutes is assumed to have crashed.
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
-		staleThreshold := time.Now().UTC().Add(-10 * time.Minute).Format(time.RFC3339)
-		staleSends, err := app.FindRecordsByFilter(
-			"newsletter_sends",
-			"status = 'sending' && created < {:threshold}",
-			"",
-			0,
-			0,
-			map[string]interface{}{"threshold": staleThreshold},
-		)
-		if err == nil {
-			for _, sr := range staleSends {
-				sr.Set("status", "failed")
-				sr.Set("active_lock", "")
-				sr.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
-				if saveErr := app.Save(sr); saveErr != nil {
-					log.Printf("[newsletter] Failed to mark stale send %s as failed: %v", sr.Id, saveErr)
-				} else {
-					log.Printf("[newsletter] Marked stale send %s as failed (startup cleanup)", sr.Id)
-				}
-			}
+		if err := recoverInterruptedNewsletters(app); err != nil {
+			log.Printf("[newsletter] Failed to recover interrupted sends: %v", err)
 		}
 		return se.Next()
 	})
@@ -230,35 +211,79 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				sub.Set("status", "pending")
 			}
 
-			// One confirmation email per address per cooldown, however
-			// often the form is submitted.
+			now := time.Now().UTC()
+			if attemptedAt, err := time.Parse(time.RFC3339, sub.GetString("confirmation_attempted_at")); err == nil &&
+				now.Sub(attemptedAt) < subscribeConfirmationAttemptCooldown {
+				return e.JSON(http.StatusOK, confirmationRequired)
+			}
 			if sentAt, err := time.Parse(time.RFC3339, sub.GetString("confirmation_sent_at")); err == nil &&
-				time.Since(sentAt) < subscribeConfirmationCooldown {
+				now.Sub(sentAt) < subscribeConfirmationCooldown {
 				return e.JSON(http.StatusOK, confirmationRequired)
 			}
 
-			canSend := smtpConfigured(app) && publicAppURL(app) != ""
-			var rawToken string
+			canSend := newsletterReady(app)
+			// Without mail no new link can be issued, and the list an
+			// existing link confirms must not change under it.
+			if len(existing) > 0 && !canSend {
+				return e.JSON(http.StatusOK, confirmationRequired)
+			}
+			var rawToken, tokenHash string
 			if canSend {
 				rawToken, err = crypto.GenerateToken(32)
 				if err != nil {
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
 				}
-				sub.Set("confirm_token_hash", crypto.HMACToken(rawToken))
-				sub.Set("confirmation_sent_at", time.Now().UTC().Format(time.RFC3339))
+				tokenHash = crypto.HMACToken(rawToken)
 			}
-			// The list travels with the confirmation link: following it
-			// joins this list. Inside the cooldown above nothing changes,
-			// so a later form can't swap the list behind an earlier link.
-			sub.Set("pending_list_id", list.Id)
 
-			if err := app.Save(sub); err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
+			if len(existing) > 0 {
+				// Only the signup's own fields are written, never the whole
+				// record read above, so a confirmation or unsubscribe that
+				// lands meanwhile is not undone. A new token is issued in the
+				// same statement that claims the attempt, and only while both
+				// cooldowns allow it.
+				result, err := app.DB().NewQuery(`UPDATE subscribers SET confirmation_attempted_at = {:now},
+					confirm_token_hash = {:hash}, pending_list_id = {:list}
+					WHERE id = {:id}
+					AND (confirmation_attempted_at = '' OR confirmation_attempted_at <= {:attempt_before})
+					AND (confirmation_sent_at = '' OR confirmation_sent_at <= {:accepted_before})`).
+					Bind(dbx.Params{
+						"now": now.Format(time.RFC3339), "hash": tokenHash, "list": list.Id, "id": sub.Id,
+						"attempt_before":  now.Add(-subscribeConfirmationAttemptCooldown).Format(time.RFC3339),
+						"accepted_before": now.Add(-subscribeConfirmationCooldown).Format(time.RFC3339),
+					}).Execute()
+				if err != nil {
+					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
+				}
+				claimed, err := result.RowsAffected()
+				if err != nil || claimed != 1 {
+					return e.JSON(http.StatusOK, confirmationRequired)
+				}
+			} else {
+				if canSend {
+					sub.Set("confirm_token_hash", tokenHash)
+					sub.Set("confirmation_attempted_at", now.Format(time.RFC3339))
+				}
+				sub.Set("pending_list_id", list.Id)
+				if err := app.Save(sub); err != nil {
+					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
+				}
 			}
 
 			if canSend {
 				if err := sendSubscribeConfirmation(app, sub, rawToken); err != nil {
+					// The link may still have arrived; it stays valid from
+					// confirmation_attempted_at.
 					app.Logger().Warn("newsletter: confirmation email failed", "error", err, "subscriber_id", sub.Id)
+				} else {
+					// Scoped to the token just issued. If the link was already
+					// used or replaced, no row matches and nothing changes.
+					if _, err := app.DB().NewQuery(`UPDATE subscribers SET confirmation_sent_at = {:now}
+						WHERE id = {:id} AND confirm_token_hash = {:hash}`).
+						Bind(dbx.Params{"now": time.Now().UTC().Format(time.RFC3339), "id": sub.Id, "hash": tokenHash}).
+						Execute(); err != nil {
+						app.Logger().Warn("newsletter: failed to record accepted confirmation", "error", err, "subscriber_id", sub.Id)
+					}
 				}
 			} else {
 				app.Logger().Info("newsletter: email not configured, signup left pending", "subscriber_id", sub.Id)
@@ -283,8 +308,16 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			if err != nil {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "invalid or expired link"})
 			}
-			sentAt, err := time.Parse(time.RFC3339, sub.GetString("confirmation_sent_at"))
-			if err != nil || time.Since(sentAt) > subscribeConfirmationLifetime {
+			// A link lives from when it was issued, recorded before the
+			// SMTP attempt, so one that arrived despite a dropped reply still
+			// works. Links issued before that was recorded fall back to the
+			// accepted time.
+			issued := sub.GetString("confirmation_attempted_at")
+			if issued == "" {
+				issued = sub.GetString("confirmation_sent_at")
+			}
+			issuedAt, err := time.Parse(time.RFC3339, issued)
+			if err != nil || time.Since(issuedAt) > subscribeConfirmationLifetime {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "invalid or expired link"})
 			}
 
@@ -300,19 +333,32 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "this newsletter list is no longer open"})
 			}
 
-			sub.Set("status", "active")
-			sub.Set("confirm_token_hash", "")
-			sub.Set("pending_list_id", "")
-			sub.Set("bounce_count", 0)
+			// The update is conditional on the token and list read above, so
+			// a link replaced or used meanwhile confirms nothing, and no other
+			// field of the stale record is written back.
 			err = app.RunInTransaction(func(txApp core.App) error {
-				if err := txApp.Save(sub); err != nil {
+				result, err := txApp.DB().NewQuery(`UPDATE subscribers SET status = 'active',
+					confirm_token_hash = '', pending_list_id = '', bounce_count = 0
+					WHERE id = {:id} AND confirm_token_hash = {:hash} AND pending_list_id = {:list}`).
+					Bind(dbx.Params{
+						"id": sub.Id, "hash": sub.GetString("confirm_token_hash"), "list": sub.GetString("pending_list_id"),
+					}).Execute()
+				if err != nil {
 					return err
+				}
+				if n, err := result.RowsAffected(); err != nil {
+					return err
+				} else if n != 1 {
+					return errNewsletterConfirmStale
 				}
 				if listID == "" {
 					return nil
 				}
 				return ensureListMembership(txApp, sub.Id, listID)
 			})
+			if errors.Is(err, errNewsletterConfirmStale) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "invalid or expired link"})
+			}
 			if err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to subscribe"})
 			}
@@ -619,9 +665,11 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			if err := requireSuperuser(e); err != nil {
 				return err
 			}
-			configured := smtpConfigured(app)
 			return respondJSON(e, http.StatusOK, map[string]any{
-				"configured": configured,
+				"configured": smtpConfigured(app),
+				"ready":      newsletterReady(app),
+				"tested":     false,
+				"delivery":   "unknown",
 				"host":       app.Settings().SMTP.Host,
 			})
 		})
@@ -757,8 +805,8 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid test email"})
 				}
 
-				if !smtpConfigured(app) {
-					return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP not configured"})
+				if !newsletterReady(app) {
+					return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP sender and absolute APP_URL must be configured"})
 				}
 
 				testSenderName := app.Settings().Meta.SenderName
@@ -791,8 +839,11 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			}
 
 			// Full send mode
-			if !smtpConfigured(app) {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP not configured"})
+			if !newsletterReady(app) {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": "SMTP sender and absolute APP_URL must be configured"})
+			}
+			if _, err := newsletterSendInterval(); err != nil {
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 			}
 
 			subscriberIDs := audience.SubscriberIDs
@@ -823,6 +874,9 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			sendRecord.Set("list_name", audience.listName())
 			sendRecord.Set("content_hash", contentHash)
 			sendRecord.Set("active_lock", newsletterActiveLock)
+			sendRecord.Set("pending_count", len(subscriberIDs))
+			sendRecord.Set("template_slug", req.Template)
+			sendRecord.Set("personalize", req.Personalize)
 
 			// The checks and the new record share a transaction, and the
 			// unique indexes on request_key and active_lock back them up in
@@ -854,7 +908,10 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 						return errNewsletterAlreadySent
 					}
 				}
-				return txApp.Save(sendRecord)
+				if err := txApp.Save(sendRecord); err != nil {
+					return err
+				}
+				return createNewsletterRecipients(txApp, sendRecord.Id, subscriberIDs)
 			})
 			if err != nil && previous == nil && !errors.Is(err, errNewsletterSendInProgress) {
 				// A unique index refused the insert: another request with
@@ -916,6 +973,27 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			})
 		})
 
+		se.Router.POST("/api/admin/newsletter/sends/{id}/resume", func(e *core.RequestEvent) error {
+			if err := requireSuperuser(e); err != nil {
+				return err
+			}
+			if planConfig.IsManaged() && !planConfig.HasFeature("newsletter") {
+				return respondForbidden(e, "newsletter not available on current plan")
+			}
+			if err := resumeNewsletter(app, crypto, e.Request.PathValue("id")); err != nil {
+				switch {
+				case errors.Is(err, errNewsletterFeatureOff):
+					return respondForbidden(e, err.Error())
+				case errors.Is(err, errNewsletterSendInProgress):
+					return e.JSON(http.StatusConflict, map[string]string{"error": err.Error()})
+				case errors.Is(err, sql.ErrNoRows):
+					return e.JSON(http.StatusNotFound, map[string]string{"error": "send not found"})
+				}
+				return e.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+			}
+			return e.JSON(http.StatusOK, map[string]string{"status": "sending", "send_id": e.Request.PathValue("id")})
+		})
+
 		// POST /api/admin/newsletter/preview — the audience a send would
 		// reach and what its first recipient would see. The compose page
 		// uses this for both the confirmation count and the personalized
@@ -973,9 +1051,17 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return respondForbidden(e, "newsletter not available on current plan")
 			}
 
-			records, err := app.FindRecordsByFilter("newsletter_sends", "id != ''", "-created", 50, 0)
+			records, err := app.FindRecordsByFilter("newsletter_sends", "id != ''", "-created,-id", 50, 0)
 			if err != nil {
-				records = []*core.Record{}
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load send history"})
+			}
+			ids := make([]string, len(records))
+			for i, r := range records {
+				ids[i] = r.Id
+			}
+			resumable, err := newsletterResumableCounts(app, ids)
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load send history"})
 			}
 
 			sends := make([]map[string]interface{}, 0, len(records))
@@ -989,6 +1075,10 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 					"list_name":       r.GetString("list_name"),
 					"sent_count":      r.GetInt("sent_count"),
 					"failed_count":    r.GetInt("failed_count"),
+					"pending_count":   r.GetInt("pending_count"),
+					"uncertain_count": r.GetInt("uncertain_count"),
+					"skipped_count":   r.GetInt("skipped_count"),
+					"resumable_count": resumable[r.Id],
 					"open_count":      r.GetInt("open_count"),
 					"click_count":     r.GetInt("click_count"),
 					"sent_at":         r.GetString("sent_at"),
@@ -1008,13 +1098,13 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return respondForbidden(e, "newsletter not available on current plan")
 			}
 
-			id := e.Request.PathValue("id")
-			record, err := app.FindRecordById("newsletter_sends", id)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "send record not found"})
-			}
-
-			if err := app.Delete(record); err != nil {
+			if err := deleteNewsletterSend(app, e.Request.PathValue("id")); err != nil {
+				switch {
+				case errors.Is(err, sql.ErrNoRows):
+					return e.JSON(http.StatusNotFound, map[string]string{"error": "send record not found"})
+				case errors.Is(err, errNewsletterSendInProgress):
+					return e.JSON(http.StatusConflict, map[string]string{"error": err.Error()})
+				}
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete send record"})
 			}
 
@@ -1065,8 +1155,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusOK, map[string]string{"status": "already_unsubscribed"})
 			}
 
-			sub.Set("status", "unsubscribed")
-			if err := app.Save(sub); err != nil {
+			if err := unsubscribeSubscriber(app, sub.Id); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to unsubscribe"})
 			}
 
@@ -1074,44 +1163,14 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			return e.JSON(http.StatusOK, map[string]string{"status": "unsubscribed"})
 		})
 
-		// POST /api/public/unsubscribe/by-email — Fallback unsubscribe by email (CAN-SPAM compliance).
-		// Always returns success to prevent email enumeration.
-		se.Router.POST("/api/public/unsubscribe/by-email", func(e *core.RequestEvent) error {
-			var req struct {
-				Email string `json:"email"`
-			}
-			if err := e.BindBody(&req); err != nil {
-				// Always return success — anti-enumeration
-				return e.JSON(http.StatusOK, map[string]string{"status": "received"})
-			}
-
-			req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-			if req.Email == "" || !emailRegex.MatchString(req.Email) {
-				return e.JSON(http.StatusOK, map[string]string{"status": "received"})
-			}
-
-			// Look up subscriber silently
-			existing, _ := app.FindRecordsByFilter(
-				"subscribers",
-				"email = {:email}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"email": req.Email},
-			)
-
-			if len(existing) > 0 && existing[0].GetString("status") == "active" {
-				existing[0].Set("status", "unsubscribed")
-				if err := app.Save(existing[0]); err != nil {
-					log.Printf("[newsletter] Failed to unsubscribe by email %s: %v", req.Email, err)
-				} else {
-					log.Printf("[newsletter] Subscriber %s unsubscribed via email fallback", req.Email)
-				}
-			}
-
-			// Always return success — anti-enumeration
-			return e.JSON(http.StatusOK, map[string]string{"status": "received"})
-		})
+		// Address-only requests cannot prove inbox ownership. Signed links in
+		// newsletter footers and the RFC 8058 route remain the mutation paths.
+		se.Router.POST("/api/public/unsubscribe/by-email", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
+			return e.JSON(http.StatusOK, map[string]string{
+				"status":  "confirmation_required",
+				"message": "Use the signed unsubscribe link from a newsletter email.",
+			})
+		}))
 
 		// POST /api/public/unsubscribe/one-click/{token} — RFC 8058 one-click unsubscribe
 		se.Router.POST("/api/public/unsubscribe/one-click/{token}", func(e *core.RequestEvent) error {
@@ -1129,8 +1188,7 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 				return e.JSON(http.StatusOK, map[string]string{"status": "already_unsubscribed"})
 			}
 
-			sub.Set("status", "unsubscribed")
-			if err := app.Save(sub); err != nil {
+			if err := unsubscribeSubscriber(app, sub.Id); err != nil {
 				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to unsubscribe"})
 			}
 
@@ -1191,11 +1249,21 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 			if err != nil {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "send not found"})
 			}
+			resumable, err := newsletterResumableCounts(app, []string{send.Id})
+			if err != nil {
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to load send statistics"})
+			}
 			return e.JSON(http.StatusOK, map[string]interface{}{
-				"send_id":     send.Id,
-				"open_count":  send.GetInt("open_count"),
-				"click_count": send.GetInt("click_count"),
-				"total_sent":  send.GetInt("recipient_count"),
+				"send_id":         send.Id,
+				"open_count":      send.GetInt("open_count"),
+				"click_count":     send.GetInt("click_count"),
+				"total_sent":      send.GetInt("sent_count"),
+				"accepted_count":  send.GetInt("sent_count"),
+				"failed_count":    send.GetInt("failed_count"),
+				"pending_count":   send.GetInt("pending_count"),
+				"uncertain_count": send.GetInt("uncertain_count"),
+				"skipped_count":   send.GetInt("skipped_count"),
+				"resumable_count": resumable[send.Id],
 			})
 		})
 
@@ -1203,19 +1271,32 @@ func RegisterNewsletterHooks(app *pocketbase.PocketBase, crypto *services.Crypto
 	})
 }
 
+// unsubscribeSubscriber writes only the status of a subscriber whose signed
+// link was already verified, so a confirmation token or consent recorded
+// since the record was read is kept.
+func unsubscribeSubscriber(app core.App, id string) error {
+	_, err := app.DB().NewQuery(`UPDATE subscribers SET status = 'unsubscribed' WHERE id = {:id}`).
+		Bind(dbx.Params{"id": id}).Execute()
+	return err
+}
+
 var (
 	errNewsletterSendInProgress   = errors.New("a newsletter send is already in progress")
 	errNewsletterAlreadySent      = errors.New("this newsletter has already been sent")
 	errNewsletterRequestReplayed  = errors.New("this send request was already accepted")
 	errNewsletterRequestKeyReused = errors.New("request key used for a different newsletter")
+	errNewsletterFeatureOff       = errors.New("the newsletter feature is turned off")
+	errNewsletterConfirmStale     = errors.New("confirmation link was used or replaced")
 )
 
 // newsletterActiveLock is the active_lock value while a send runs. A partial
 // unique index allows only one row to hold it.
 const newsletterActiveLock = "sending"
 
-// findPreviousNewsletterSend returns a send that already delivered the same
-// newsletter to the same audience, or nil.
+// findPreviousNewsletterSend returns a send that already delivered, or may
+// have delivered, the same newsletter to the same audience, or nil. A send
+// whose only outcomes are uncertain counts: its server may have accepted
+// those messages.
 //
 // Sends recorded before audiences were stored have a blank audience_key and
 // content_hash. Nobody knows who those went to, so they're matched by
@@ -1224,7 +1305,7 @@ const newsletterActiveLock = "sending"
 func findPreviousNewsletterSend(app core.App, subject, bodyHTML, contentHash, audienceKey string) *core.Record {
 	prior, err := app.FindFirstRecordByFilter(
 		"newsletter_sends",
-		"(status = 'sent' || sent_count > 0) && ("+
+		"(status = 'sent' || sent_count > 0 || uncertain_count > 0) && ("+
 			"(content_hash = {:hash} && audience_key = {:audience}) || "+
 			"(audience_key = '' && subject = {:subject} && body_html = {:body}))",
 		dbx.Params{"hash": contentHash, "audience": audienceKey, "subject": subject, "body": bodyHTML},
@@ -1283,8 +1364,8 @@ func smtpConfigured(app core.App) bool {
 }
 
 const (
-	// subscribeConfirmationCooldown is the gap between confirmation emails
-	// to one address.
+	subscribeConfirmationAttemptCooldown = time.Minute
+	// subscribeConfirmationCooldown starts only after SMTP accepts the message.
 	subscribeConfirmationCooldown = 24 * time.Hour
 	// subscribeConfirmationLifetime is how long a confirmation link works.
 	subscribeConfirmationLifetime = 7 * 24 * time.Hour
@@ -1594,40 +1675,24 @@ func sendWelcomeEmail(app *pocketbase.PocketBase, crypto *services.CryptoService
 // Updates the send record with progress as it sends.
 // Gracefully skips if SMTP is not configured.
 func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, bodyHTML, templateSlug string, subscriberIDs []string, personalization *newsletterPersonalization) {
-	sentCount := 0
-	failedCount := 0
-
-	// Panic recovery - update send record on panic
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[newsletter] Send panic for %s: %v", sendID, r)
-			if sendRecord, err := app.FindRecordById("newsletter_sends", sendID); err == nil {
-				sendRecord.Set("sent_count", sentCount)
-				sendRecord.Set("failed_count", failedCount)
-				sendRecord.Set("status", "failed")
-				sendRecord.Set("active_lock", "")
-				sendRecord.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
-				_ = app.Save(sendRecord)
+			if err := markInflightUncertain(app, sendID, "sender stopped after the SMTP attempt began"); err == nil {
+				_ = syncNewsletterProgress(app, sendID, true)
 			}
 		}
 	}()
-
-	// SMTP graceful degradation — self-hosted may not have SMTP configured
-	if !smtpConfigured(app) {
-		app.Logger().Info("newsletter: SMTP not configured, skipping newsletter send")
-		if sendRecord, err := app.FindRecordById("newsletter_sends", sendID); err == nil {
-			sendRecord.Set("status", "failed")
-			sendRecord.Set("active_lock", "")
-			sendRecord.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
-			_ = app.Save(sendRecord)
-		}
+	if !newsletterReady(app) {
+		_ = syncNewsletterProgress(app, sendID, true)
 		return
 	}
-
-	// Strip dangerous protocols from user-provided HTML content
+	interval, err := newsletterSendInterval()
+	if err != nil {
+		_ = syncNewsletterProgress(app, sendID, true)
+		return
+	}
 	safeBodyHTML := stripDangerousProtocols(bodyHTML)
-
-	// Look up profile for custom sender name and reply-to
 	fromName := app.Settings().Meta.SenderName
 	replyTo := ""
 	if profile, err := app.FindFirstRecordByFilter("profile", "1=1", nil); err == nil && profile != nil {
@@ -1639,40 +1704,79 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 		}
 	}
 
-	for _, subID := range subscriberIDs {
-		// Re-fetch subscriber by ID to get fresh data
-		sub, err := app.FindRecordById("subscribers", subID)
+	if err := deliverNewsletterRecipients(app, crypto, sendID, subject, safeBodyHTML, templateSlug, fromName, replyTo, interval, personalization); err != nil {
+		log.Printf("[newsletter] Send %s stopped: %v", sendID, err)
+		// Whatever was in flight when progress stopped saving may have been
+		// submitted. If this write fails too, the active lock stays so no
+		// second send can start, and startup recovery repeats this step.
+		if markErr := markInflightUncertain(app, sendID, "progress could not be saved after the SMTP attempt"); markErr != nil {
+			log.Printf("[newsletter] Failed to mark in-flight recipients uncertain for %s: %v", sendID, markErr)
+			return
+		}
+	}
+	if err := syncNewsletterProgress(app, sendID, true); err != nil {
+		log.Printf("[newsletter] Failed to finish send record %s: %v", sendID, err)
+	}
+}
+
+// deliverNewsletterRecipients submits each unsent recipient of a send once.
+// It returns at the first outcome it can't record, leaving that recipient in
+// flight for the caller to mark uncertain.
+func deliverNewsletterRecipients(app *pocketbase.PocketBase, crypto *services.CryptoService, sendID, subject, safeBodyHTML, templateSlug, fromName, replyTo string, interval time.Duration, personalization *newsletterPersonalization) error {
+	recipients, err := resumableNewsletterRecipients(app, sendID)
+	if err != nil {
+		return fmt.Errorf("load recipients: %w", err)
+	}
+	finish := func(recipientID, state, message string) error {
+		if err := completeNewsletterRecipient(app, recipientID, state, message); err != nil {
+			return fmt.Errorf("%w: record %s for %s: %v", errNewsletterPersistence, state, recipientID, err)
+		}
+		if err := syncNewsletterProgress(app, sendID, false); err != nil {
+			return fmt.Errorf("%w: progress: %v", errNewsletterPersistence, err)
+		}
+		return nil
+	}
+	submitted := false
+	for _, recipient := range recipients {
+		claimed, err := claimNewsletterRecipient(app, recipient.Id)
 		if err != nil {
-			log.Printf("[newsletter] Failed to find subscriber %s: %v", subID, err)
-			failedCount++
+			return fmt.Errorf("%w: claim %s: %v", errNewsletterPersistence, recipient.Id, err)
+		}
+		if !claimed {
 			continue
 		}
-
+		sub, err := app.FindRecordById("subscribers", recipient.GetString("subscriber_id"))
+		if errors.Is(err, sql.ErrNoRows) {
+			if err := finish(recipient.Id, "skipped", "subscriber no longer exists"); err != nil {
+				return err
+			}
+			continue
+		}
+		if err != nil {
+			// Nothing was submitted, so the recipient goes back to pending.
+			_, _ = app.DB().NewQuery(`UPDATE newsletter_recipients SET state = 'pending'
+				WHERE id = {:id} AND state = 'in-flight'`).Bind(dbx.Params{"id": recipient.Id}).Execute()
+			return fmt.Errorf("load subscriber: %w", err)
+		}
 		if sub.GetString("status") != "active" {
+			if err := finish(recipient.Id, "skipped", "subscriber is no longer active"); err != nil {
+				return err
+			}
 			continue
 		}
-
-		// Generate unsubscribe token for this subscriber
 		rawToken, err := ensureUnsubscribeToken(app, crypto, sub)
 		if err != nil {
-			log.Printf("[newsletter] Failed to generate unsubscribe token for %s: %v", sub.GetString("email"), err)
-			failedCount++
+			if err := finish(recipient.Id, "failed", "unsubscribe token: "+err.Error()); err != nil {
+				return err
+			}
 			continue
 		}
 		unsubscribeURL := generateUnsubscribeURL(app, rawToken)
 		oneClickURL := generateOneClickUnsubscribeURL(app, rawToken)
-
-		// Rewrite links for click tracking (skip unsubscribe links)
 		trackedBody := rewriteLinksForTracking(app, safeBodyHTML, sendID, rawToken, unsubscribeURL)
-
-		// Placeholders are filled after link tracking so tracked links
-		// still match the stored body the click route checks against.
 		recipientName, recipientEmail := sub.GetString("name"), sub.GetString("email")
 		trackedBody = personalization.HTML(trackedBody, recipientName, recipientEmail)
-
 		emailHTML := RenderNewsletterTemplate(templateSlug, trackedBody, unsubscribeURL, fromName)
-
-		// Inject tracking pixel before closing </body> or at end
 		pixelURL := fmt.Sprintf("%s/api/public/newsletter/open/%s/%s", strings.TrimRight(app.Settings().Meta.AppURL, "/"), sendID, rawToken)
 		trackingPixel := fmt.Sprintf(`<img src="%s" width="1" height="1" alt="" style="display:none;" />`, pixelURL)
 		if idx := strings.LastIndex(emailHTML, "</body>"); idx != -1 {
@@ -1680,7 +1784,6 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 		} else {
 			emailHTML += trackingPixel
 		}
-
 		headers := map[string]string{
 			"List-Unsubscribe":      "<" + oneClickURL + ">, <" + unsubscribeURL + ">",
 			"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -1688,68 +1791,37 @@ func sendNewsletter(app *pocketbase.PocketBase, crypto *services.CryptoService, 
 		if replyTo != "" {
 			headers["Reply-To"] = replyTo
 		}
-
 		message := &mailer.Message{
-			From: mail.Address{
-				Address: app.Settings().Meta.SenderAddress,
-				Name:    fromName,
-			},
+			From:    mail.Address{Address: app.Settings().Meta.SenderAddress, Name: fromName},
 			To:      []mail.Address{{Address: recipientEmail}},
 			Subject: personalization.Subject(subject, recipientName, recipientEmail),
 			HTML:    emailHTML,
 			Headers: headers,
 		}
-
-		if sendErr := app.NewMailClient().Send(message); sendErr != nil {
-			log.Printf("[newsletter] Failed to send to %s: %v", sub.GetString("email"), sendErr)
-			failedCount++
-
-			// Track consecutive bounces
-			bounceCount := sub.GetInt("bounce_count") + 1
-			sub.Set("bounce_count", bounceCount)
-			if bounceCount >= 3 {
-				sub.Set("status", "bounced")
-				log.Printf("[newsletter] Auto-quarantined %s after %d consecutive failures", sub.GetString("email"), bounceCount)
-			}
-			if err := app.Save(sub); err != nil {
-				log.Printf("[newsletter] Failed to update bounce count for %s: %v", sub.GetString("email"), err)
-			}
-		} else {
-			sentCount++
-			// Reset bounce count on successful delivery
-			if sub.GetInt("bounce_count") > 0 {
-				sub.Set("bounce_count", 0)
-				if err := app.Save(sub); err != nil {
-					log.Printf("[newsletter] Failed to reset bounce count for %s: %v", sub.GetString("email"), err)
-				}
-			}
+		if submitted && interval > 0 {
+			newsletterPace(interval)
 		}
-
-		// Rate limit: 100ms between sends
-		time.Sleep(100 * time.Millisecond)
+		submitted = true
+		// SMTP failures describe the transport, not the reader, so they
+		// never change subscriber status or bounce counts.
+		state, errorMessage := "accepted", ""
+		sendErr := app.NewMailClient().Send(message)
+		if sendErr != nil {
+			state = smtpFailureState(sendErr)
+			errorMessage = sendErr.Error()
+			log.Printf("[newsletter] SMTP submission to %s ended %s: %v", recipientEmail, state, sendErr)
+		}
+		if err := finish(recipient.Id, state, errorMessage); err != nil {
+			return err
+		}
+		// A relay that is down or refuses our login would fail everyone the
+		// same way. Stop here and leave the rest pending for Resume.
+		if sendErr != nil && smtpRelayUnavailable(sendErr) {
+			log.Printf("[newsletter] Send %s paused: owner SMTP relay unavailable", sendID)
+			return nil
+		}
 	}
-
-	// Update send record with final counts
-	sendRecord, err := app.FindRecordById("newsletter_sends", sendID)
-	if err != nil {
-		log.Printf("[newsletter] Failed to find send record %s: %v", sendID, err)
-		return
-	}
-
-	sendRecord.Set("sent_count", sentCount)
-	sendRecord.Set("failed_count", failedCount)
-	sendRecord.Set("active_lock", "")
-	sendRecord.Set("sent_at", time.Now().UTC().Format(time.RFC3339))
-	if failedCount > 0 && sentCount == 0 {
-		sendRecord.Set("status", "failed")
-	} else {
-		sendRecord.Set("status", "sent")
-	}
-	if err := app.Save(sendRecord); err != nil {
-		log.Printf("[newsletter] Failed to update send record %s: %v", sendID, err)
-	}
-
-	log.Printf("[newsletter] Send %s complete: %d sent, %d failed", sendID, sentCount, failedCount)
+	return nil
 }
 
 // markdownToHTML converts markdown text to HTML using goldmark.

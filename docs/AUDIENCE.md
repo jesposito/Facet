@@ -4,7 +4,7 @@ These features help you build an audience and sell to it. They're the youngest p
 
 | Feature                               | State in this version                                                                                                    |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| [Newsletter](#newsletter)             | Double opt-in sign-ups, list targeting, idempotent sends, one-click and page unsubscribe. Link placeholders have limits. |
+| [Newsletter](#newsletter)             | Double opt-in sign-ups, list targeting, idempotent sends, one campaign at a time with resume, signed one-click and page unsubscribe. Sent through your own SMTP server only. Link placeholders have limits. |
 | [Payments (Stripe)](#payments-stripe) | Stripe Checkout, access links delivered by email, partial and full refunds                                               |
 | [Courses](#courses)                   | On by default. Public course pages, lessons, drip and sequential release, enrolment, quizzes and certificates.           |
 
@@ -12,16 +12,20 @@ The automated tests for these features use a captured mailer and signed fake Str
 
 ## Newsletter
 
-The newsletter sends email from your own SMTP server to people who sign up on your site. You'll find it in the sidebar under **Newsletter**.
+The newsletter sends email to people who sign up on your site, through an SMTP server you run or rent. You'll find it in the sidebar under **Newsletter**.
+
+Self-hosted Facet sends every email, newsletters included, through that SMTP server and nothing else. There's no API-based provider, Facet-managed sender or local `sendmail` fallback. If SMTP isn't set up, nothing is sent.
 
 ### Before you start
 
-1. **Set up email.** Configure SMTP in **Site Settings** or with `SMTP_*` variables ([Configuration](CONFIGURATION.md#email-smtp)), and send yourself a test.
+1. **Set up SMTP.** Configure it in **Site Settings** or with `SMTP_*` variables ([Configuration](CONFIGURATION.md#email-smtp)), including a sender (From) address on a domain you control.
 2. **Set `APP_URL`.** Confirmation, unsubscribe and tracking links are built from PocketBase's application URL, which Facet sets from `APP_URL` at every start ([source](../backend/hooks/smtp.go)). Without it, PocketBase falls back to `http://localhost:8090` and your emails contain links nobody else can open.
+3. **Check readiness.** Newsletter pages ask the server whether sending is ready, not just whether a host is filled in. If SMTP is configured but the sender address or public site URL is missing, the page says so and the send buttons stay off.
+4. **Set up your domain's mail records.** SPF, DKIM and DMARC for the sender's domain are yours to publish, usually following your SMTP provider's instructions. Facet doesn't create or check them. Without them, many inboxes will file your newsletter as spam or refuse it.
 
 ### Sign-ups and consent
 
-Sign-up is double opt-in. Someone who fills in the form gets a confirmation email, and only becomes an active subscriber after following its link (`/api/public/newsletter/confirm/<token>`). Repeat requests are held to a 24-hour confirmation cooldown.
+Sign-up is double opt-in. Someone who fills in the form gets a confirmation email, and only becomes an active subscriber after following its link (`/api/public/newsletter/confirm/<token>`). Once a confirmation email has been accepted by your SMTP server, repeat requests for the same address wait 24 hours. If sending the confirmation fails, or the SMTP server's reply is lost, only a short cooldown applies, so the person can submit the form again soon; a new request replaces the earlier link. Facet never retries a confirmation on its own. A link works for seven days from when it was issued, so one that arrived despite a lost reply still confirms.
 
 - The form can name a list by id or slug. Without one, the default list is used.
 - Only lists you've marked public can be joined from the site. Private, paused and unknown lists all get the same refusal, and nothing is stored.
@@ -41,16 +45,42 @@ Under **Newsletter → Compose**:
 
 1. Write a subject and a body in Markdown, and pick a template.
 2. Choose the audience: one list, or **All active subscribers**. Counts show active readers only.
-3. Send a test to yourself and check it in a real inbox.
-4. Send. Delivery runs in the background, up to 4 sends at a time (`NEWSLETTER_MAX_CONCURRENT_SENDS`).
+3. Send a test to yourself and check it in a real inbox. "Test sent" means your SMTP server accepted the message, not that it arrived: look in the inbox and the spam folder.
+4. Send. Delivery runs in the background, one campaign at a time ([below](#delivery-pacing-and-resume)).
 
 Each send carries a request key, and the database refuses a reused key or a second send running at once ([source](../backend/hooks/newsletter.go)). In practice:
 
 - A network retry with the same key gets the original send back and sends nothing new.
 - The same key with different content is refused.
 - The same newsletter to a different list counts as a new send.
-- Sending the same newsletter again on purpose needs an explicit resend with a new key.
+- Sending the same newsletter again on purpose needs an explicit resend with a new key. This also applies when an earlier send has only uncertain outcomes, because those messages may have been accepted.
 - Sends from before this version have no recorded audience, so they're matched on subject and body alone and still block an accidental repeat.
+
+### Delivery, pacing and resume
+
+Facet sends one campaign at a time, one message after another, with a pause between messages set by `NEWSLETTER_SEND_INTERVAL_MS` (default 1000 ms, so at most about 3,600 messages an hour). While a campaign is sending, a new send or a resume is refused. The older `NEWSLETTER_MAX_CONCURRENT_SENDS` setting no longer allows parallel campaigns ([Configuration](CONFIGURATION.md#features-and-tuning)).
+
+Connection, authentication and service-unavailable failures pause the campaign rather than attempting the whole list against a broken relay. Remaining recipients stay pending until the operator fixes SMTP and resumes.
+
+Most SMTP providers limit messages per minute, hour or day. Set the interval so a full campaign stays under your provider's limits; Facet doesn't know them. A large list on a strict plan may need a long interval and hours to finish.
+
+Each recipient's outcome is recorded as the campaign runs, and the send history shows them:
+
+| Shown as | Meaning |
+|----------|---------|
+| **Accepted by SMTP** | Your SMTP server accepted the message. This is the `sent_count` figure. It doesn't mean the message reached an inbox. |
+| **Failed** | Submission failed before acceptance, or the SMTP server explicitly refused it. |
+| **Pending** | Not attempted yet, for example because the campaign stopped. |
+| **Uncertain** | An attempt ended without a trustworthy recorded outcome, for example after a disconnect or crash. The message may or may not have been accepted. |
+| **Skipped** | Deliberately not sent by the server, such as an address that was no longer an active subscriber when its turn came. |
+
+A campaign ends as **Completed** (submitted messages were accepted, with skipped recipients counted separately), **Partially completed**, **Failed** or **Interrupted** (for example after a restart, an unavailable relay or an uncertain attempt). For a partial, failed or interrupted campaign, **Resume** in the send history retries only the pending and failed recipients. Accepted and uncertain recipients are never sent the campaign again, so a resume can't double-send to anyone whose outcome is unknown. The price is that some uncertain recipients may never get it.
+
+Send logs from before per-recipient tracking keep their recorded counts as history, but there's no record of who is left, so they can't be resumed. If one was still marked as sending when Facet restarted, it's shown as interrupted with its counts unchanged.
+
+Facet can't promise exactly-once delivery: if the server stops between the SMTP server accepting a message and Facet recording that, the campaign recipient is marked uncertain rather than retried. A failed SMTP connection or refused message never marks a valid subscriber as bounced or removes them from a list.
+
+Facet doesn't receive bounce or complaint reports. It doesn't process delivery status notifications, feedback loops or spam complaints, and it doesn't suppress addresses because of them. Watch your SMTP provider's dashboard for bounces and complaints, and remove problem addresses under **Subscribers** yourself.
 
 ### Placeholders
 
@@ -66,6 +96,8 @@ Each newsletter offers two ways out:
 
 - **The mail app's own unsubscribe button**, from the standard `List-Unsubscribe` headers with one-click support.
 - **A link in the footer** to the `/unsubscribe/<token>` page on your site.
+
+Both carry a signed token for that subscriber. An email address on its own can't unsubscribe anyone, so nobody can remove someone else by typing their address. Opening `/unsubscribe` without a valid token explains that the reader needs the link from one of their newsletter emails. Unsubscribing keeps working when the newsletter feature is switched off.
 
 ## Payments (Stripe)
 

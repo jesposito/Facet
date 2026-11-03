@@ -3,9 +3,11 @@ package hooks
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -114,6 +116,51 @@ func TestNewsletterLegacySendStillBlocksAnAccidentalRepeat(t *testing.T) {
 		t.Fatalf("explicit resend of a legacy send = %v", res)
 	}
 	f.waitForSends(t)
+}
+
+func TestNewsletterUncertainSendStillBlocksAnAccidentalRepeat(t *testing.T) {
+	f := newAudienceFixture(t)
+	var dropped atomic.Bool
+	f.app.OnMailerSend().BindFunc(func(e *core.MailerEvent) error {
+		if dropped.CompareAndSwap(false, true) {
+			// No typed reply: the server may have accepted the message.
+			return errors.New("connection reset after DATA")
+		}
+		return e.Next()
+	})
+	first := f.post(t, "/api/admin/newsletter/send", `{"subject":"Maybe","body_markdown":"Sent?","list_id":"puppeteers","request_key":"uncertain-key-01"}`)
+	if first["_status"] != float64(http.StatusOK) {
+		t.Fatalf("first send = %v", first)
+	}
+	f.waitForSends(t)
+	f.drain()
+	sent, err := f.app.FindRecordById("newsletter_sends", first["send_id"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sent.GetInt("sent_count") != 0 || sent.GetInt("uncertain_count") != 1 || sent.GetString("status") == "sent" {
+		t.Fatalf("setup: status=%q sent=%d uncertain=%d", sent.GetString("status"), sent.GetInt("sent_count"), sent.GetInt("uncertain_count"))
+	}
+
+	dup := f.post(t, "/api/admin/newsletter/send", `{"subject":"Maybe","body_markdown":"Sent?","list_id":"puppeteers","request_key":"uncertain-key-02"}`)
+	if dup["_status"] != float64(http.StatusConflict) || dup["code"] != "already_sent" || dup["send_id"] != sent.Id {
+		t.Fatalf("repeat of an uncertain send = %v", dup)
+	}
+	if n, _ := f.app.CountRecords("newsletter_sends"); n != 1 {
+		t.Fatalf("refused repeat created a send: %d records", n)
+	}
+	if got := len(f.drain()); got != 0 {
+		t.Fatalf("refused repeat sent %d emails", got)
+	}
+
+	again := f.post(t, "/api/admin/newsletter/send", `{"subject":"Maybe","body_markdown":"Sent?","list_id":"puppeteers","request_key":"uncertain-key-03","resend":true}`)
+	if again["_status"] != float64(http.StatusOK) {
+		t.Fatalf("explicit resend of an uncertain send = %v", again)
+	}
+	f.waitForSends(t)
+	if got := keys(f.drain()); strings.Join(got, ",") != "puppets@example.com" {
+		t.Fatalf("explicit resend reached %v", got)
+	}
 }
 
 func TestNewsletterSameRequestKeyUnderLoadStartsOneSend(t *testing.T) {
@@ -258,6 +305,7 @@ func TestNewsletterSignupJoinsTheNamedPublicList(t *testing.T) {
 	before := n.app.TestMailer.TotalSend()
 	sub, _ := n.app.FindFirstRecordByFilter("subscribers", "email = 'both@example.com'")
 	sub.Set("confirmation_sent_at", "") // past the cooldown
+	sub.Set("confirmation_attempted_at", "")
 	if err := n.app.Save(sub); err != nil {
 		t.Fatal(err)
 	}
