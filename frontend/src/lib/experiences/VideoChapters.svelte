@@ -1,23 +1,34 @@
 <script lang="ts">
 	import type { ExperienceLesson } from './types';
 	import { safeExperienceUrl } from './types';
-	let { title, lessons }: { title: string; lessons: ExperienceLesson[] } = $props();
+	let {
+		title,
+		lessons,
+		presentation = 'stack'
+	}: {
+		title: string;
+		lessons: ExperienceLesson[];
+		presentation?: 'stack' | 'sidebar' | 'spotlight';
+	} = $props();
 	let selected = $state('');
 	let active = $derived(lessons.find((l) => l.id === selected) || lessons[0]);
 	let player: HTMLMediaElement | undefined = $state();
 	let failed = $state(false);
 	function choose(id: string) {
+		const changingChapter = active?.id !== id;
 		player?.pause();
 		selected = id;
-		failed = false;
+		if (changingChapter) failed = false;
 	}
 	$effect(() => {
 		const current = player;
+		// Server-rendered media can fail before hydration attaches onerror.
+		if (current?.error) failed = true;
 		return () => current?.pause();
 	});
 </script>
 
-<div class="experience-video">
+<div class="experience-video" data-presentation={presentation}>
 	{#if title}<h3>{title}</h3>{/if}
 	{#if active}
 		<div class="experience-player">
@@ -55,7 +66,7 @@
 				{:else}<p class="experience-empty">A video will appear here once it has been added.</p>{/if}
 			{/key}
 		</div>
-		{#if failed}<p role="status">
+		{#if failed}<p class="experience-media-status" role="status">
 				This recording couldn't load.{#if active.transcript}
 					You can read the transcript below.{/if}
 			</p>{/if}
@@ -77,7 +88,7 @@
 			</div>
 		{/if}
 		<h4>{active.title}</h4>
-		{#if active.description}<p>{active.description}</p>{/if}
+		{#if active.description}<p class="experience-description">{active.description}</p>{/if}
 		{#if active.credit}<p class="experience-credit">{active.credit}</p>{/if}
 		{#if active.transcript}<details>
 				<summary>Read the transcript</summary>

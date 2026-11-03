@@ -6,6 +6,7 @@
 	import CodeWalkthrough from './CodeWalkthrough.svelte';
 	import StoryActivity from './StoryActivity.svelte';
 	import './experience.css';
+	import './designs.css';
 	let {
 		experience,
 		title,
@@ -41,6 +42,8 @@
 	bind:this={article}
 	class="project-experience"
 	class:experience-preview={preview}
+	data-design-preset={experience.design?.preset}
+	data-design-width={experience.design?.width || 'standard'}
 >
 	<header class="experience-hero experience-tone-{experience.hero.tone}">
 		<div class="experience-width">
@@ -68,9 +71,12 @@
 				{#if experience.hero.image && safeExperienceUrl(experience.hero.image.src)}<figure>
 						<img
 							src={safeExperienceUrl(experience.hero.image.src)}
-							alt={experience.hero.image.alt}
+							alt={experience.hero.image.decorative ? '' : experience.hero.image.alt}
 							fetchpriority="high"
 						/>
+						{#if experience.hero.imageNote}<figcaption class="experience-image-note">
+								{experience.hero.imageNote}
+							</figcaption>{/if}
 					</figure>{/if}
 			</div>
 		</div>
@@ -88,7 +94,10 @@
 			class="experience-section experience-tone-{section.tone}"
 		>
 			<div class="experience-width">
-				<div class="experience-section-heading">
+				<div
+					class="experience-section-heading"
+					class:experience-heading-split={section.headingLayout === 'split'}
+				>
 					<h2>{section.title || 'Explore the project'}</h2>
 					{#if section.intro}<div class="experience-prose">{@html prose(section.intro)}</div>{/if}
 				</div>
@@ -101,13 +110,14 @@
 							{:else if block.type === 'image'}<figure>
 									{#if safeExperienceUrl(block.image.src)}<img
 											src={safeExperienceUrl(block.image.src)}
-											alt={block.image.alt}
+											alt={block.image.decorative ? '' : block.image.alt}
 											loading="lazy"
 										/>{/if}{#if block.caption}<figcaption>{block.caption}</figcaption>{/if}
 								</figure>
 							{:else if block.type === 'video'}<VideoChapters
 									title={block.title}
 									lessons={block.lessons}
+									presentation={block.presentation}
 								/>
 							{:else if block.type === 'code'}<CodeWalkthrough
 									title={block.title}
