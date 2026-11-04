@@ -9,9 +9,9 @@ import (
 
 // ClientIP returns the address of the client that sent r.
 //
-// In the Docker image, Caddy is the only thing that reaches the backend, and
-// it connects over loopback. Caddy replaces X-Forwarded-For with the single
-// client address it worked out (see docker/Caddyfile), so the backend believes
+// In the Docker image, Caddy and the frontend reach the backend over loopback.
+// Caddy sets X-Forwarded-For to its resolved client address; frontend share
+// checks forward the address Caddy supplied (see docker/Caddyfile). We trust
 // that header only from a loopback peer, and only its rightmost entry: that's
 // the one the nearest proxy wrote. A native install behind nginx on the same
 // host works the same way, because nginx appends the real peer on the right.

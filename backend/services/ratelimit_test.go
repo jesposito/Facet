@@ -165,6 +165,44 @@ func TestClientIP(t *testing.T) {
 	}
 }
 
+// The frontend's share check reaches the backend over loopback, carrying the
+// visitor's address in X-Forwarded-For and no X-Internal. Each visitor has to
+// get their own quota, and TRUST_PROXY=false has to keep opting out of that.
+func TestRateLimitService_ForwardedClientsHaveSeparateQuotas(t *testing.T) {
+	check := func(svc *RateLimitService, client string) bool {
+		req := httptest.NewRequest("POST", "/api/share/validate", nil)
+		req.RemoteAddr = "127.0.0.1:51234"
+		req.Header.Set("X-Forwarded-For", client)
+		allowed, _ := svc.Allow(req, "moderate")
+		return allowed
+	}
+	spend := func(svc *RateLimitService, client string) {
+		t.Helper()
+		for i := 0; i < TierModerate.Burst; i++ {
+			if !check(svc, client) {
+				t.Fatalf("request %d refused before the burst was used", i)
+			}
+		}
+		if check(svc, client) {
+			t.Fatal("request past the burst was allowed")
+		}
+	}
+
+	t.Setenv("TRUST_PROXY", "true")
+	svc := NewRateLimitService()
+	spend(svc, "203.0.113.10")
+	if !check(svc, "203.0.113.11") {
+		t.Fatal("a second visitor was limited by the first")
+	}
+
+	t.Setenv("TRUST_PROXY", "false")
+	svc = NewRateLimitService()
+	spend(svc, "203.0.113.10")
+	if check(svc, "203.0.113.11") {
+		t.Fatal("TRUST_PROXY=false still separated forwarded visitors")
+	}
+}
+
 func TestIsInternalRequest(t *testing.T) {
 	cases := []struct {
 		name       string
