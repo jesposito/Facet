@@ -77,6 +77,11 @@ test.describe('settled-theme accessibility', () => {
 	let token: string;
 	let viewId: string;
 
+	test.beforeEach(async ({ page }) => {
+		// Accessibility readiness does not depend on the external release lookup.
+		await page.route('**/api/version-check', (route) => route.fulfill({ json: { latest: '' } }));
+	});
+
 	// A public Facet with a CTA and enough technologies to render the overflow
 	// badge, so these checks do not depend on what the site happens to contain.
 	test.beforeAll(async ({ request }) => {

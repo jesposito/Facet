@@ -344,9 +344,10 @@ test.describe('share entry recovery', () => {
 		}, legacyUrl('legacy-hover'));
 		const link = page.getByRole('link', { name: 'Legacy link' });
 
-		const preload = page.waitForResponse((r) => /__data\.json.*legacy-hover/.test(r.url()));
 		await link.hover();
-		await preload;
+		// Data preloading is disabled, so no hover response should arrive.
+		// Allow SvelteKit's hover delay and any erroneous token check to finish.
+		await page.waitForTimeout(700);
 		expect(tokens).toEqual([]);
 
 		answers.push(admitted);

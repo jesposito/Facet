@@ -30,6 +30,15 @@ var migratedTemplate struct {
 	err  error
 }
 
+// Most HTTP tests exercise an already started install. Keep a separate snapshot
+// after the real startup ACL sweep; schema saves are expensive under -race.
+// Upgrade tests still use the untouched migratedTemplate above.
+var hardenedTemplate struct {
+	once sync.Once
+	dir  string
+	err  error
+}
+
 // Importing facet/migrations registers them for every test app in this
 // package. Other tests build their own collections on an empty database, so
 // the migrations are set aside and only used to build the template.
@@ -42,6 +51,9 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	if migratedTemplate.dir != "" {
 		os.RemoveAll(migratedTemplate.dir)
+	}
+	if hardenedTemplate.dir != "" {
+		os.RemoveAll(hardenedTemplate.dir)
 	}
 	os.Exit(code)
 }
@@ -81,6 +93,39 @@ func newMigratedTestApp(t *testing.T) *tests.TestApp {
 	return app
 }
 
+// newHardenedTestApp copies a post-startup database, never a live application.
+// Each test gets its own files, connections, caches, hooks and service instances.
+func newHardenedTestApp(t *testing.T) *tests.TestApp {
+	t.Helper()
+	hardenedTemplate.once.Do(func() {
+		// This throwaway raw clone keeps the migration snapshot unchanged.
+		raw := newMigratedTestApp(t)
+		app, err := tests.NewTestApp(raw.DataDir())
+		if err != nil {
+			hardenedTemplate.err = err
+			return
+		}
+		if err := enforceCollectionRules(&pocketbase.PocketBase{App: app}); err != nil {
+			hardenedTemplate.err = err
+			app.Cleanup()
+			return
+		}
+		hardenedTemplate.dir = app.DataDir()
+		if err := app.ResetBootstrapState(); err != nil {
+			hardenedTemplate.err = err
+		}
+	})
+	if hardenedTemplate.err != nil {
+		t.Fatalf("build hardened template: %v", hardenedTemplate.err)
+	}
+	app, err := tests.NewTestApp(hardenedTemplate.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(app.Cleanup)
+	return app
+}
+
 type securityFixture struct {
 	app      *tests.TestApp
 	pb       *pocketbase.PocketBase
@@ -92,7 +137,16 @@ type securityFixture struct {
 
 func newSecurityFixture(t *testing.T) *securityFixture {
 	t.Helper()
-	app := newMigratedTestApp(t)
+	return securityFixtureForApp(newHardenedTestApp(t))
+}
+
+// Startup migration regressions need the old rules, not the warmed snapshot.
+func newMigratedSecurityFixture(t *testing.T) *securityFixture {
+	t.Helper()
+	return securityFixtureForApp(newMigratedTestApp(t))
+}
+
+func securityFixtureForApp(app *tests.TestApp) *securityFixture {
 	crypto := services.NewCryptoService(strings.Repeat("k", 32))
 	return &securityFixture{
 		app:      app,

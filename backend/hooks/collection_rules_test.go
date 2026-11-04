@@ -8,7 +8,7 @@ import (
 // The migrated test database is the state an existing install starts from.
 // After the startup sweep, no collection rule may be public.
 func TestStartupClosesEveryPublicCollectionRule(t *testing.T) {
-	f := newSecurityFixture(t)
+	f := newMigratedSecurityFixture(t)
 	RegisterCollectionRules(f.pb)
 	f.serve(t)
 
@@ -50,7 +50,7 @@ func TestStartupClosesEveryPublicCollectionRule(t *testing.T) {
 }
 
 func TestPreviouslyPublicCollectionsNeedSignIn(t *testing.T) {
-	f := newSecurityFixture(t)
+	f := newMigratedSecurityFixture(t)
 	RegisterCollectionRules(f.pb)
 
 	course := f.create(t, "courses", map[string]any{"title": "Paid course", "slug": "paid-course", "access_tier": "paid", "price": 900, "visibility": "private"})

@@ -45,7 +45,7 @@ func nativeForeignToken(t *testing.T, h http.Handler) string {
 }
 
 func TestNativeOwnerRulesRejectForeignAuthCollections(t *testing.T) {
-	f := newSecurityFixture(t)
+	f := newMigratedSecurityFixture(t)
 	RegisterCollectionRules(f.pb)
 	RegisterAdminSessionGuard(f.pb)
 	nativeForeignAccount(t, f)
