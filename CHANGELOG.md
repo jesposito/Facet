@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.2 - November 04, 2026
+
+**Bugs Fixed:**
+- Fix homepage sections reveal after Facet help navigation
+
+**Pull Requests:** [#525](https://github.com/jesposito/Facet/pull/525),
+
+---
+
+
 ## v3.8.1 - November 04, 2026
 
 **Bugs Fixed:**
