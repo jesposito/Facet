@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.3 - November 04, 2026
+
+**Bugs Fixed:**
+- Fix homepage shortcuts after editor readiness
+
+**New Features:**
+- Add browser regressions that hold the actual lazy editor module
+
+**Pull Requests:** [#526](https://github.com/jesposito/Facet/pull/526),
+
+---
+
+
 ## v3.8.2 - November 04, 2026
 
 **Bugs Fixed:**
