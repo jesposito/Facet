@@ -410,11 +410,12 @@
 		@apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium;
 		@apply transition-all duration-200 ease-out;
 		@apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
-		@apply disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none;
 		/* Subtle hover lift effect */
 		@apply hover:shadow-md hover:scale-[1.02];
 		/* Press effect - scale down on active */
 		@apply active:scale-[0.98] active:shadow-sm;
+		/* Disabled controls remain still after hover and press rules. */
+		@apply disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none;
 	}
 
 	.btn-primary {

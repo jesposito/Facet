@@ -167,4 +167,9 @@
 	button {
 		overflow-wrap: anywhere;
 	}
+
+	button:hover,
+	button:active {
+		transform: none;
+	}
 </style>
