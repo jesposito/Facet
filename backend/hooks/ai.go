@@ -63,7 +63,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"models": models,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Providers set through environment variables are created once at
 		// startup, when none exist yet. This used to happen on the first
@@ -77,7 +77,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 		se.Router.GET("/api/ai/status", func(e *core.RequestEvent) error {
 			providers, err := app.FindRecordsByFilter("ai_providers", "is_active = true", "", 1, 0)
 			available := err == nil && len(providers) > 0
-			if e.Auth == nil {
+			if !isSuperuser(e) {
 				return e.JSON(http.StatusOK, map[string]interface{}{"available": available})
 			}
 
@@ -151,7 +151,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"success": true,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// AI content rewrite with tone options
 		se.Router.POST("/api/ai/rewrite", func(e *core.RequestEvent) error {
@@ -196,7 +196,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 				"tone":     req.Tone,
 				"provider": provider.Name,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// AI content critique with inline feedback
 		se.Router.POST("/api/ai/critique", func(e *core.RequestEvent) error {
@@ -239,7 +239,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 				"content":  result,
 				"provider": provider.Name,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// General-purpose AI content improvement endpoint
 		se.Router.POST("/api/ai/improve", func(e *core.RequestEvent) error {
@@ -280,7 +280,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 				"improved_content": result,
 				"provider":         provider.Name,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Enrich project content with AI (existing endpoint)
 		se.Router.POST("/api/ai/enrich", func(e *core.RequestEvent) error {
@@ -326,7 +326,7 @@ func RegisterAIHooks(app *pocketbase.PocketBase, ai *services.AIService, crypto 
 			}
 
 			return e.JSON(http.StatusOK, result)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

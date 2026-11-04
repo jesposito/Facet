@@ -37,7 +37,7 @@ curl -s http://localhost:8080/api/health  # backend only
 
 **Forgotten password, or lost two-factor device.** See [Locked out](UPGRADE.md#locked-out) for the `reset-admin-password` and `reset-2fa` commands.
 
-**Changing `.env` had no effect.** The repository's `docker-compose.yml` only passes a few variables to the container. Check what the container sees with `docker exec facet printenv | sort` ([details](CONFIGURATION.md#does-the-variable-reach-the-container)). And use `docker compose up -d`, not `docker compose restart`, after editing `.env`.
+**Changing `.env` had no effect.** The repository’s `docker-compose.yml` passes through most operator settings, while the minimal install example includes only common settings. Confirm that the name appears under `environment:` in the Compose file you use. Check selected non-secret values with `docker exec facet printenv APP_URL PUBLIC_APP_URL TRUST_PROXY TRUSTED_PROXIES` ([configuration checks](CONFIGURATION.md#does-the-variable-reach-the-container)). Use `docker compose up -d`, rather than `docker compose restart`, after changing environment settings.
 
 ## Google or GitHub sign-in fails
 

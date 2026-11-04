@@ -336,7 +336,18 @@
         "feature_disabled": "Moniez featurez iz not enablez. Enable dem in Featurez settingz."
       },
       "settings_saved": "Settingz savd!",
-      "settings_error": "Faild 2 saev settingz"
+      "settings_error": "Faild 2 saev settingz",
+      "recoverycopy": {
+        "load_error": "Cud not load {resource}. Ur settingz iz unavailable. Try agin befor changin dem.",
+        "retry": "Try agin",
+        "retrying": "Tryin agin…",
+        "loading": "Loadin settingz…",
+        "appearance": "appearance settingz",
+        "email": "email settingz",
+        "features": "feature settingz",
+        "payments": "payment settingz",
+        "providers": "AI providerz"
+      }
     },
     "about_page": {
       "title": "Abowt Facet",
@@ -389,7 +400,8 @@
       "backup_busy": "Anuther bakup or restor iz alredy runnin. Ur bakupz iz unchanjed. Wait a bit, den try agen.",
       "backup_failed": "Bakup no finishd. Ur bakupz iz unchanjed. Plz try agen.",
       "backup_status_failed": "Cant lode bakup status. Ur bakupz iz unchanjed.",
-      "backup_status_retry": "Try agen"
+      "backup_status_retry": "Try agen",
+      "upgrade_notes": "Upgrade Notez"
     },
     "ai_assistant": {
       "title": "AI Writin Halper",
@@ -916,7 +928,22 @@
       "quiz_explanation": "Explanashun (shown aftr answerin)",
       "quiz_points": "Pointz",
       "quiz_add_option": "Add Opshun",
-      "quiz_correct_answer": "Rite"
+      "quiz_correct_answer": "Rite",
+      "curriculum_failed": "Cant load teh latest curriculum 4 dis course. Module an lesson changez iz paused til it loadz.",
+      "quiz_read_failed": "Cant load dis lesson quiz. Quiz changez iz paused til it loadz. Ur other lesson editz stay here.",
+      "quiz_needs_question": "Add at least 1 question, an giv evry question sum wordz, b4 savin dis quiz.",
+      "quiz_save_partial": "Teh lesson iz saved, but teh quiz iz not confirmd. Ur questionz iz still here. Press Save Lesson 2 try agin. It wont make a 2nd lesson or quiz.",
+      "quiz_save_conflict": "Teh lesson iz saved, but it already haz a diffrent quiz. Press Save Lesson 2 replace dat quiz wif teh questionz shown here.",
+      "curriculum_order_partial": "Saved {saved} of {total} spotz. Teh list now showz wut iz stored, so move teh item agin 2 finish.",
+      "curriculum_order_unconfirmed": "Saved {saved} of {total} spotz, but teh curriculum cud not be checkd. Retry loadin it, den move teh item agin if it iz out of place.",
+      "lesson_create_unknown": "Facet cud not confirm if dis lesson got saevd. Evryting u enterd iz still here. Press Try agen 2 check. It wont make a 2nd lesson.",
+      "lesson_create_differs": "Dis lesson got saevd from an erlier version, so teh changez shown here iznt saevd yet. Press Saev Lesson 2 update it.",
+      "course_create_unknown": "Facet cud not confirm if dis course got saevd. Evryting u enterd iz still here. Press Try agen 2 check. It wont make a 2nd course.",
+      "course_create_differs": "Dis course got saevd from an erlier version, so teh changez shown here iznt saevd yet. Press Saev 2 update it.",
+      "module_create_unknown": "Facet cud not confirm if dis module got saevd. Evryting u enterd iz still here. Press Try agen 2 check. It wont make a 2nd module.",
+      "module_create_differs": "Dis module got saevd from an erlier version, so teh changez shown here iznt saevd yet. Press Saev Module 2 update it.",
+      "error_delete_module_attempts": "This module can't be deleted because learners have attempted a quiz in one of its lessons.",
+      "error_delete_lesson_attempts": "This lesson can't be deleted because learners have attempted its quiz."
     },
     "pricing": {
       "page_title": "Moniez Setup",
@@ -955,7 +982,10 @@
       "type_talks": "Tawkz",
       "type_courses": "Lernin Stuffz",
       "type_projects": "Projektz",
-      "type_custom": "Custom"
+      "type_custom": "Custom",
+      "filter_type_name": "Filter by content tiep",
+      "filter_tier_name": "Filter by pricin tier",
+      "bulk_tier_name": "Pricin tier 4 selected itemz"
     },
     "coupons": {
       "page_title": "Dizcount Codez",
@@ -1051,7 +1081,13 @@
       },
       "stats": {
         "sr_only_icon": "{label} ikon"
-      }
+      },
+      "manage_facets": "Manij Faycets",
+      "load_error_title": "Cant lod all ur dashbord",
+      "load_error_message": "Stuff missin below iz unknown, not zero.",
+      "retry": "Try agen",
+      "retrying": "Tryin agen...",
+      "metric_unavailable": "Not availabul"
     },
     "login": {
       "title": "Sign in 2 Facet",
@@ -1142,7 +1178,7 @@
     },
     "wizard": {
       "title": "Qwik Setup",
-      "skip": "Skip setup",
+      "skip": "Finish latr",
       "back": "Bak",
       "continue": "Continyu",
       "saving": "Saevin...",
@@ -1168,7 +1204,7 @@
       "facet_name_placeholder": "Mah Facet",
       "url_label": "URL:",
       "visibility_public": "Dis facet will be public - anywun wif teh link can view it",
-      "visibility_unlisted": "Dis facet iz unlistd - only ppl wif teh link can find it",
+      "visibility_unlisted": "Dis Facet iz unlistd. It opens frum a share link u creat, n anywun wif dat link can pass it on.",
       "visibility_private": "Dis facet iz privat - only u can see it",
       "step3_title": "Ur reddy 2 go!",
       "step3_subtitle": "Heerz wut uv creatd",
@@ -1176,12 +1212,24 @@
       "your_title_placeholder": "Ur Tietl",
       "next_steps_title": "Suggestd nekst steps:",
       "next_step_projects": "Add ur furst projekt or werk eksperienz",
-      "next_step_share": "Share ur new facet wif teh wurld",
+      "next_step_share": "Share dis page with peeps who need it, or add it to ur site.",
       "next_step_import": "Try importin frum GitHub or uploadin ur rezume",
       "ai_features_title": "Want AI-powerd featurez?",
       "ai_features_description": "Rezume parsin, writin assistanz, n GitHub enrichment requir an API kee frum {openai}, {anthropic}, or a local {ollama} instans.",
       "ai_features_settings": "Add ur kee in {settings} wen ur reddy.",
-      "required_field": "*"
+      "required_field": "*",
+      "resume_message": "Setup iznt dun yet. Wut u typd iz saevd in dis browzr.",
+      "resume_button": "Rezoom setup",
+      "check_failed": "Facet cud not chek if setup iz dun. Nuthin iz lost.",
+      "check_retry": "Try agen",
+      "error_network": "Facet cud not reach teh servr. Ur draft iz still heer, so try agen wen ur bak online.",
+      "error_slug": "Dat URL cant be used. Go bak 2 step 2 n choose anothr URL slug.",
+      "error_profile_saved": "Ur profile iz saevd, but ur Facet iznt creatd yet.",
+      "step2_uses": "Teh saem Facet can stand alone, liek a rezume 4 a recruitr, a client proposal or a resource paej. It can liv in ur site 2, n u can add it 2 ur site navigashun anytiem.",
+      "step2_templates": "Templatez r startin pointz. Pick teh closest wun n chang itz naem, secshunz n access wenevr u liek.",
+      "step2_access": "Hoo can open a Facet iz a separat settin. Site navigashun only listz public Facetz, Privat staiz visibl only 2 u, n an unlistd Facet opens frum a share link dat anywun hoo haz it can pass on.",
+      "error_view_unknown": "Ur profile iz saevd, but Facet cud not check if ur Facet got creatd. Ur draft iz still here. Press Try agen 2 check agen. It wont make a 2nd Facet.",
+      "error_view_differs": "Ur Facet got creatd already wif diffrent detailz, an nothin haz changd yet. Press Launch Profile 2 replace it wif wut iz shown here, includin who can see it."
     },
     "content": {
       "common": {
@@ -1623,7 +1671,15 @@
         "facet_created": "Facet creatd! Yay!",
         "save_failed": "Faild 2 saev facet",
         "name_required": "Naem iz requird",
-        "slug_required": "Slug iz requird"
+        "slug_required": "Slug iz requird",
+        "unsaved_warning": "Dis Facet haz changez not saevd. Leev anyway?",
+        "view_load_failed": "Cud not load dis Facet, so nothin 2 edit yet. Nothin haz changd. Try agen, or go bak 2 ur Facets.",
+        "content_load_failed": "Cud not load ur content, so sectionz an teh preview iz hidden an saevin iz paused. Wut u typd iz still here, an ur saevd sectionz iz not changd.",
+        "content_refresh_failed": "Cud not refresh ur content, so saevin iz paused til it reloadz. U iz seein teh last loaded sectionz, an wut u typd iz still here.",
+        "save_paused": "Saevin iz paused til ur content loadz. Wut u typd iz still here.",
+        "supporting_failed": "Sum extra detailz cud not load, liek teh preview profile, share linkz, exports or resume toolz. If dey iz missin here, dey iz not gone. Ur Facet an wut u typd iz fine.",
+        "create_unknown": "Facet cud not confirm if dis Facet got creatd. Evryting u enterd iz still here. Press Create 2 check. It wont make a 2nd Facet.",
+        "create_differs": "Dis Facet got creatd from an erlier version, so teh changez shown here iznt saevd yet. Press Create 2 update it wif wut iz shown here, includin who can see it."
       },
       "share_link": {
         "title": "Maek Share Link",
@@ -1648,7 +1704,11 @@
         "uses": "uzez",
         "regenerate_title": "Remaek link (revokz old, maeks new)",
         "revoke_title": "Revok link",
-        "more_links": "+{count} moar — view all"
+        "more_links": "+{count} moar — view all",
+        "private_notice": "Privat meanz only u can open dis Facet, so no share links 4 visitorz. 2 share it, pick Unlisted n save.",
+        "unsaved_notice": "Save dis Facet 2 apply teh new visibility. Sharing stuffs shows up here aftr u save.",
+        "public_notice": "Dis Facet iz public. Anyone wif dis URL can open it, n teh URL haz no expiry or use limit.",
+        "public_url_label": "Public URL"
       },
       "danger_zone": {
         "title": "Dainjur Zoen",
@@ -1795,7 +1855,20 @@
         "courses": "Corsez",
         "featured_testimonial_label": "Featurd Testimonial",
         "primary_testimonial_label": "Primary Testimonial (shown first in carusel)",
-        "use_global_featured": "Use global featurd (or first)"
+        "use_global_featured": "Use global featurd (or first)",
+        "section_width_name": "{section} secshun width",
+        "section_layout_name": "{section} secshun layout",
+        "content_mode_legend": "Stuffz 4 {section}",
+        "content_mode_all_public": "All public stuffz (updatez by itself)",
+        "content_mode_selected": "Choose itemz",
+        "all_public_hint": "Published public itemz show up here by themselvz, even wunz u add latr. Private, unlisted n draft itemz stay out.",
+        "all_public_hint_contacts": "Contact wayz available 2 dis Facet show up here by themselvz. A page limit on a contact still counts.",
+        "all_public_hint_testimonials": "Approved public testimonialz show up here by themselvz. Unapproved wunz stay out.",
+        "selected_empty_hint": "Nuthin shows in dis section til u choose itemz.",
+        "choose_items_hint": "Select itemz 2 show, den drag 2 set ordr.",
+        "none_selected": "nun selected",
+        "all_public_skills_hint": "Public skillz join automaticly. Change category ordr, enabled categoriez n layout here.",
+        "private_grants_unconfirmed": "Ur Facet iz saved, but we cud not confirm its private itemz joined. Press Save here 2 try again."
       },
       "category_reorder": {
         "title": "Reordr Skill Categoriez",
@@ -1981,7 +2054,31 @@
       "keyboard_shortcut_delete_row": "Eat teh row",
       "keyboard_shortcut_help": "Show dis halp",
       "create_page_title": "Makez a Faycet",
-      "edit_page_title": "Edit Faycet"
+      "edit_page_title": "Edit Faycet",
+      "share_links_note": "Share linkz open unlisted Faycets. Anywun wif a link can open dat Faycet n pass teh link on, so set an expiry or revoke linkz u no longer need.",
+      "use_cases": {
+        "title": "Wun Faycet, lotz of usez",
+        "lead": "Any Faycet can be shared on itz own n added 2 ur site nav wen u need it. Add or remove it anytime, nothin 2 convert or recreate.",
+        "access_note": "Who can open a Faycet iz a separate settin. Site nav lists public, active Faycets only. Anywun wif an unlisted share link can open dat Faycet, n Private staiz visibul only 2 u.",
+        "nav_link": "Manij site nav",
+        "standalone_title": "Share it on itz own",
+        "site_title": "Use it in ur site",
+        "resume_title": "Digital resume 4 a recruiter",
+        "resume_text": "Teh eksperienz n skillz dat fit wun job.",
+        "proposal_title": "Client proposal",
+        "proposal_text": "Good projekts n testimonialz 4 wun client.",
+        "event_title": "Event or resource paeg",
+        "event_text": "Talkz, postz n linkz 4 wun occasion.",
+        "project_title": "Projekt paeg",
+        "project_text": "A focused home 4 wun body of werk.",
+        "about_title": "About paeg",
+        "about_text": "Ur bakground n how 2 reach u.",
+        "writing_title": "Writin paeg",
+        "writing_text": "Ur postz, all in wun place.",
+        "compact_lead": "A digital résumé, a proposal fur a client, or pages fur ur site. Share a Facet on its own, add it to ur site, or do both.",
+        "explore": "Explore ways to use ur Facets"
+      },
+      "action_owner_url": "Copy owner URL"
     },
     "media": {
       "page_title": "Pikchur Box | Facet Admin",
@@ -2144,7 +2241,7 @@
       "usage_warning_message": "\"{filename}\" iz uzed by {count, plural, one {# stuff} other {# stuffz}}. Deletin it will removez it from:",
       "usage_warning_more": "n {count} moar",
       "toast_references_removed": "Deletd media n removd {count, plural, one {# refrence} other {# refrencez}}",
-      "dropzone_label": "Drop filez 2 upload",
+      "dropzone_label": "Drag filez here kthx or clik 2 browz",
       "dropzone_drag": "Drag filez here kthx",
       "dropzone_drop": "Drop 2 upload",
       "dropzone_or_click": "or clik 2 browz",
@@ -2239,6 +2336,11 @@
       "token_created_message": "Copy dis token nao. 4 security, it wont b shown agen.",
       "copy_url": "Copy URL",
       "loading_tokens": "Loadin tokenz...",
+      "load_failed": "Could not load shaer linkz. Ur existing linkz haz not been changd.",
+      "retry": "Try agen",
+      "views_load_failed": "Could not load eligible Facets. Try agen before makin a shaer link.",
+      "status_unusable": "Not availabl",
+      "status_unusable_reason": "Dis link no longer workz cuz its Facet iz missing, inactiv, or not unlistd.",
       "no_tokens": "No shaer tokenz yet.",
       "no_tokens_description": "Maek a token 2 shaer a hidden view wif speshul pplz.",
       "create_unlisted_first": "First, {link} 2 maek tokenz 4.",
@@ -2301,13 +2403,16 @@
       "today": "2day",
       "yesterday": "Yestrday",
       "days_ago": "{count} dayz ago",
-      "weeks_ago": "{count} weekz ago"
+      "weeks_ago": "{count} weekz ago",
+      "toast_invalid_expiry": "Plz enter a real expiry date n time.",
+      "toast_invalid_max_uses": "Max uses haz 2 be a whole number from 0 2 1,000,000.",
+      "toast_copy_failed": "Could not copy da link. Select da URL an copy it by hand."
     },
     "password_modal": {
       "title": "Chang Passwurd",
       "description": "Chooze a stronk passwurd 2 keep ur accownt safe.",
       "current_password_label": "Curren Passwurd",
-      "current_password_hint": "Needz 2 proov iz u",
+      "current_password_hint": "Teh passwurd u just logd in wif",
       "new_password_label": "Noo Passwurd",
       "new_password_placeholder": "Type noo passwurd",
       "strength_weak": "Smol",
@@ -2328,7 +2433,16 @@
       "selected_count": "{selected} of {total} selectd",
       "select_all": "Select all teh thingz",
       "clear": "Cleer",
-      "change_visibility": "Chang Vizibility"
+      "change_visibility": "Chang Vizibility",
+      "region_label": "Bulk selekshun akshunz",
+      "select_item": "Select {item}",
+      "result_updated": "Updatd {succeeded} of {total} itemz 2 {visibility}.",
+      "result_deleted": "Deletd {succeeded} of {total} itemz.",
+      "result_failed": "{count, plural, one {# item faild an stayz selectd so u can retry.} other {# itemz faild an stay selectd so u can retry.}}",
+      "result_unconfirmed": "{count, plural, one {Cud not confirm # item.} other {Cud not confirm # itemz.}} Reload teh list b4 retryin.",
+      "confirm_public_title": "Make itemz public?",
+      "confirm_public_message": "{count, plural, one {# private or unlisted item wil become public.} other {# private or unlisted itemz wil become public.}} Draftz stay hiddn til u publish dem.",
+      "confirm_public_button": "Make public"
     },
     "homepage": {
       "collapse_section": "Collaps {section} sekshun",
@@ -2371,7 +2485,20 @@
       "page_title": "Homepaej",
       "testimonial_list_label": "Testimonyal lizt",
       "testimonial_list_placeholder": "liek, Klientz",
-      "testimonial_list_help": "Showz approovd testimonyals frm dis lizt. Leevz empty 2 show all kthx."
+      "testimonial_list_help": "Showz approovd testimonyals frm dis lizt. Leevz empty 2 show all kthx.",
+      "contact_link_type_name": "Contact link {number} tiep",
+      "contact_link_url_name": "Contact link {number} URL",
+      "contact_link_label_name": "Contact link {number} label",
+      "settings_load_failed": "Cud not load ur homepage settingz, so saevin iz paused. Ur saevd settingz iz not changd, an wut u typd iz still here.",
+      "nav_catalog_failed": "Cud not load ur public Facets. Ur saevd nav iz not changd.",
+      "nav_save_failed": "Cud not saev ur last nav or call-to-akshun change, so it got undun here. Button labelz u typd iz still here.",
+      "retry": "Try agen",
+      "nav_item_show": "Show {name} in nav",
+      "nav_item_label": "Button label 4 {name}",
+      "nav_item_move_up": "Moov {name} up",
+      "nav_item_move_down": "Moov {name} down",
+      "profile_load_failed": "Cud not load ur profile, so its fieldz iz hidden an saevin iz paused. Ur saevd profile iz not changd.",
+      "catalog_load_failed": "Cud not load ur homepage sekshunz, so dey iz hidden an saevin iz paused. Ur saevd sekshunz iz not changd, an wut u typd iz still here."
     },
     "import": {
       "resume_dropzone_label": "Rezume file drop zone",
@@ -2881,6 +3008,16 @@
       "readonly_note": "Dis preview iz lookz-only, no keyboardz. Toggle off 2 hide it.",
       "ready_announce": "Liv preview redy!",
       "error_announce": "Liv preview no can has. Sad kitteh."
+    },
+    "list_status": {
+      "load_failed": "Cant load {type}. Changez iz paused til teh list loadz.",
+      "refresh_failed": "Cant refresh {type}. U iz seein teh last loaded list, an changez iz paused til it reloadz.",
+      "changes_paused": "Changez iz paused til teh list iz up 2 date.",
+      "saving": "Savin changez...",
+      "ancillary_failed": "Sum extra deetz didnt load, liek view membership or tag optionz. Retryin wont touch ur open form.",
+      "retry_supporting": "Retry extra deetz",
+      "order_partial": "Saved {saved} of {total} spotz. Ur new order iz still here, so save agin 2 send only teh rest.",
+      "order_unconfirmed": "Saved {saved} of {total} spotz, but teh list cud not be checkd. Ur new order iz still here. Reload teh list, den save agin."
     }
   },
   "public": {
@@ -3367,6 +3504,24 @@
         "quiz_no_answers": "Ansr teh questshunz befor submittin.",
         "quiz_failed": "Teh quiz didnt respond rite. Plz try agen."
       }
+    },
+    "share_entry": {
+      "page_title": "Shared Link | Facet",
+      "home": "Go 2 Main Profile",
+      "retry": "Try Agen",
+      "retry_in": "Try agen in {seconds}s",
+      "invalid": {
+        "title": "Link No Werk",
+        "message": "Dis share link iz invalid or expired"
+      },
+      "rate_limited": {
+        "title": "2 Many Requestz Rite Nao",
+        "message": "We cant check dis link yet cuz 2 many requestz came at wunce. Dis try did not use it."
+      },
+      "unavailable": {
+        "title": "We Cant Check Dis Link",
+        "message": "Dis site had a tempurary problem, so we dunno if teh link werks. Dis try mite haz counted as a use, n tryin agen mite count as anuther."
+      }
     }
   },
   "shared": {
@@ -3527,5 +3682,13 @@
     "chars_remaining": "{count} characterz left omg",
     "replies": "Repliez",
     "just_now": "rite nao"
-  }
+  },
+  "downloads": {
+    "title": "Downloadz",
+    "load_failed": "Cant loed teh downloadz. Check ur interwebz an try agin.",
+    "link_failed": "Dat download no startd. Plz try agin.",
+    "unavailable": "Dat file iz gone nao.",
+    "retry": "Try agin"
+  },
+  "admin.courses.delete_course_confirm": "Delet dis course n all its chapterz, lessonz, kitteh progres, quiz triez n certificatz? Cant undo dis!"
 }

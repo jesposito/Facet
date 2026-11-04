@@ -142,3 +142,6 @@ AGENTS.md
 
 # Python validation scripts
 __pycache__/
+
+# Created from installed font licences by the frontend build.
+frontend/static/fonts/THIRD-PARTY-NOTICES.txt

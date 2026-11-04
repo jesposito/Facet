@@ -131,7 +131,6 @@
 	onkeydown={handleKeyDown}
 	role="button"
 	tabindex={disabled ? -1 : 0}
-	aria-label={$t('admin.media.dropzone_label')}
 	aria-disabled={disabled}
 >
 	<div class="drop-zone-content">

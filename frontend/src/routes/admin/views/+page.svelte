@@ -3,18 +3,25 @@
 	import { goto } from '$app/navigation';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { pb, type View, type ShareToken } from '$lib/pocketbase';
-	import { collection } from '$lib/stores/demo';
+	import { type View, type ShareToken } from '$lib/pocketbase';
+	import { collection, demoMode, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { siteNavStore } from '$lib/stores/siteNav';
 	import { icon } from '$lib/icons';
 	import { formatDate } from '$lib/utils';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import EmptyState from '$components/admin/EmptyState.svelte';
+	import FacetUseCases from '$components/admin/FacetUseCases.svelte';
+	import { copyToClipboard } from '$lib/share';
 
 	type VisibilityFilter = 'all' | 'public' | 'unlisted' | 'password' | 'private';
 
 	let loading = $state(true);
+	let loadFailed = $state(false);
+	let loadSequence = 0;
+	let viewsController: AbortController | undefined;
+	let tokenCountsController: AbortController | undefined;
 	let views: View[] = $state([]);
 	let tokenCounts: Record<string, number> = $state({});
 	let mounted = false;
@@ -84,6 +91,9 @@
 
 	onDestroy(() => {
 		mounted = false;
+		loadSequence += 1;
+		viewsController?.abort();
+		tokenCountsController?.abort();
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('keydown', handleGlobalKey);
 		}
@@ -125,39 +135,49 @@
 	}
 
 	async function loadViews() {
+		const sequence = ++loadSequence;
+		viewsController?.abort();
+		const controller = new AbortController();
+		viewsController = controller;
+		const timeout = setTimeout(() => controller.abort(), 20_000);
 		loading = true;
 		try {
-			const result = await collection('views').getList(1, 100, {
-				sort: '-updated'
-			});
-			views = result.items as unknown as View[];
+			const result = await readAllRecords<View>(
+				getCollectionName('views'),
+				$demoMode ? {} : { sort: '-updated' },
+				controller.signal
+			);
+			if (!mounted || sequence !== loadSequence) return;
+			views = result;
+			loadFailed = false;
 		} catch (err) {
-			if (
-				err instanceof Error &&
-				(err.message.includes('autocancelled') || err.name === 'AbortError')
-			) {
-				return;
-			}
+			if (!mounted || sequence !== loadSequence) return;
 			console.error('Failed to load facets:', err);
-			if (mounted) {
-				toasts.add('error', $t('admin.views.toast_load_failed'));
-			}
+			loadFailed = true;
 		} finally {
-			loading = false;
+			clearTimeout(timeout);
+			if (viewsController === controller) viewsController = undefined;
+			if (mounted && sequence === loadSequence) loading = false;
 		}
 	}
 
 	async function loadTokenCounts() {
+		tokenCountsController?.abort();
+		const controller = new AbortController();
+		tokenCountsController = controller;
+		const timeout = setTimeout(() => controller.abort(), 20_000);
 		try {
-			const tokens = await collection('share_tokens').getFullList({
-				fields: 'view_id'
-			});
+			const tokens = await readAllRecords<ShareToken>(
+				getCollectionName('share_tokens'),
+				{ fields: 'id,view_id' },
+				controller.signal
+			);
 			const counts: Record<string, number> = {};
-			for (const tok of tokens as unknown as ShareToken[]) {
+			for (const tok of tokens) {
 				const vid = tok.view_id;
 				if (vid) counts[vid] = (counts[vid] ?? 0) + 1;
 			}
-			tokenCounts = counts;
+			if (mounted && tokenCountsController === controller) tokenCounts = counts;
 		} catch (err) {
 			if (
 				err instanceof Error &&
@@ -166,6 +186,9 @@
 				return;
 			}
 			console.debug('[views list] share_tokens count fetch skipped:', err);
+		} finally {
+			clearTimeout(timeout);
+			if (tokenCountsController === controller) tokenCountsController = undefined;
 		}
 	}
 
@@ -201,9 +224,16 @@
 		return `${window.location.origin}/${slug}`;
 	}
 
-	function copyViewUrl(slug: string) {
-		navigator.clipboard.writeText(getViewUrl(slug));
-		toasts.add('success', $t('admin.views.toast_url_copied'));
+	async function copyViewUrl(view: View) {
+		if (view.visibility === 'unlisted') {
+			await goto(`/admin/views/${view.id}#share-links`);
+			return;
+		}
+		const copied = await copyToClipboard(getViewUrl(String(view.slug)));
+		toasts.add(
+			copied ? 'success' : 'error',
+			$t(copied ? 'admin.views.toast_url_copied' : 'admin.tokens.toast_copy_failed')
+		);
 	}
 
 	function clearFilters() {
@@ -344,19 +374,6 @@
 </svelte:head>
 
 <div class="max-w-5xl mx-auto">
-	<PageHelp pageKey="views">
-		<p><strong>Facets</strong> are curated versions of your profile for different audiences.</p>
-		<p>
-			Create a "Recruiter" facet with your full work history, a "Conference" facet highlighting
-			talks, or a "Consulting" facet for client work. Each facet shows exactly what you want that
-			audience to see.
-		</p>
-		<p>
-			<strong>Tip:</strong> Your homepage (<code>/</code>) shows all public content. Facets let you
-			create focused views at URLs like <code>/recruiter</code> with only the sections and items you choose.
-		</p>
-	</PageHelp>
-
 	<div class="flex items-center justify-between mb-4">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">{$t('admin.views.title')}</h1>
 		<div class="flex items-center gap-2">
@@ -375,9 +392,20 @@
 		</div>
 	</div>
 
-	<p class="text-gray-600 dark:text-gray-400 mb-6">
+	<p class="text-gray-600 dark:text-gray-400 mb-4">
 		{$t('admin.views.intro')}
 	</p>
+
+	<FacetUseCases variant={!loading && !loadFailed && views.length === 0 ? 'full' : 'compact'} />
+
+	{#if loadFailed}
+		<div role="alert" class="card p-4 mb-4 border-red-300 dark:border-red-700">
+			<p class="text-red-700 dark:text-red-300">{$t('admin.views.toast_load_failed')}</p>
+			<button type="button" class="btn btn-secondary mt-3" onclick={loadViews} disabled={loading}>
+				{$t('admin.dashboard.retry')}
+			</button>
+		</div>
+	{/if}
 
 	{#if !loading && views.length > 0}
 		<div class="card p-3 mb-4 space-y-3">
@@ -485,10 +513,12 @@
 		</p>
 	{/if}
 
-	{#if loading}
+	{#if loading && views.length === 0}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">{$t('admin.views.loading')}</div>
 		</div>
+	{:else if views.length === 0 && loadFailed}
+		<!-- The retryable load error above takes the place of an empty state. -->
 	{:else if views.length === 0}
 		<EmptyState
 			title={$t('admin.views.empty_title')}
@@ -579,9 +609,21 @@
 						<div class="flex items-center gap-1">
 							<button
 								class="btn btn-sm btn-ghost p-2"
-								onclick={() => copyViewUrl(String(view.slug))}
-								title={$t('admin.views.action_copy_url')}
-								aria-label={$t('admin.views.action_copy_url')}
+								onclick={() => copyViewUrl(view)}
+								title={$t(
+									view.visibility === 'unlisted'
+										? 'admin.views.manage_tokens'
+										: view.visibility === 'private'
+											? 'admin.views.action_owner_url'
+											: 'admin.views.action_copy_url'
+								)}
+								aria-label={$t(
+									view.visibility === 'unlisted'
+										? 'admin.views.manage_tokens'
+										: view.visibility === 'private'
+											? 'admin.views.action_owner_url'
+											: 'admin.views.action_copy_url'
+								)}
 							>
 								{@html icon('copy')}
 							</button>
@@ -737,7 +779,7 @@
 										year: 'numeric'
 									})}
 								{:else}
-									<span class="text-gray-300 dark:text-gray-600"
+									<span class="text-gray-600 dark:text-gray-400"
 										>{$t('admin.views.never_viewed')}</span
 									>
 								{/if}
@@ -746,9 +788,21 @@
 								<div class="flex items-center justify-end gap-1">
 									<button
 										class="btn btn-sm btn-ghost p-2"
-										onclick={() => copyViewUrl(String(view.slug))}
-										title={$t('admin.views.action_copy_url')}
-										aria-label={$t('admin.views.action_copy_url')}
+										onclick={() => copyViewUrl(view)}
+										title={$t(
+											view.visibility === 'unlisted'
+												? 'admin.views.manage_tokens'
+												: view.visibility === 'private'
+													? 'admin.views.action_owner_url'
+													: 'admin.views.action_copy_url'
+										)}
+										aria-label={$t(
+											view.visibility === 'unlisted'
+												? 'admin.views.manage_tokens'
+												: view.visibility === 'private'
+													? 'admin.views.action_owner_url'
+													: 'admin.views.action_copy_url'
+										)}
 									>
 										{@html icon('copy')}
 									</button>
@@ -793,13 +847,29 @@
 		</div>
 	{/if}
 
+	<div class="mt-8">
+		<PageHelp pageKey="views" defaultExpanded={false}>
+			<p><strong>Facets</strong> are curated versions of your profile for different audiences.</p>
+			<p>
+				Create a "Recruiter" facet with your full work history, a "Conference" facet highlighting
+				talks, or a "Consulting" facet for client work. Each facet shows exactly what you want that
+				audience to see.
+			</p>
+			<p>
+				<strong>Tip:</strong> Your homepage (<code>/</code>) shows all public content. Facets let
+				you create focused views at URLs like <code>/recruiter</code> with only the sections and items
+				you choose.
+			</p>
+		</PageHelp>
+	</div>
+
 	<!-- Share Tokens Section -->
 	<div class="mt-12">
 		<h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
 			{$t('admin.views.share_tokens_title')}
 		</h2>
 		<p class="text-gray-600 dark:text-gray-400 mb-4">
-			{$t('admin.views.share_tokens_description')}
+			{$t('admin.views.share_links_note')}
 		</p>
 		<a href="/admin/tokens" class="btn btn-secondary">{$t('admin.views.manage_tokens')}</a>
 	</div>

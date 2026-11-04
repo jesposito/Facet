@@ -112,7 +112,7 @@ func RegisterExportHooks(app *pocketbase.PocketBase) {
 				return serveYAML(e, exportData, filename)
 			}
 			return serveJSON(e, exportData, filename)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

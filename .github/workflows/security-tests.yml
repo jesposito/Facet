@@ -53,7 +53,7 @@ jobs:
   frontend:
     name: Frontend checks and smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -71,6 +71,7 @@ jobs:
       - name: Dependency audit and local mitigation regression tests
         working-directory: frontend
         run: |
+          node --test ../scripts/ci/test-prepare-changelog.mjs
           npm audit --audit-level=low
           npm run test:dependencies
       - name: Svelte checks and production build

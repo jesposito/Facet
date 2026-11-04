@@ -336,7 +336,18 @@
         "feature_disabled": "Payment features are not enabled. Enable them in Features settings."
       },
       "settings_saved": "Settings saved",
-      "settings_error": "Failed to save settings"
+      "settings_error": "Failed to save settings",
+      "recoverycopy": {
+        "load_error": "Couldn't load {resource}. Your settings are unavailable. Retry before making changes.",
+        "retry": "Retry",
+        "retrying": "Retrying…",
+        "loading": "Loading settings…",
+        "appearance": "appearance settings",
+        "email": "email settings",
+        "features": "feature settings",
+        "payments": "payment settings",
+        "providers": "AI providers"
+      }
     },
     "about_page": {
       "title": "About Facet",
@@ -389,7 +400,8 @@
       "backup_busy": "Another backup or restore is already running. Your existing backups are unchanged. Wait a moment, then try again.",
       "backup_failed": "The backup didn't finish. Your existing backups are unchanged. Please try again.",
       "backup_status_failed": "Couldn't load backup status. Your backups haven't been changed.",
-      "backup_status_retry": "Retry"
+      "backup_status_retry": "Retry",
+      "upgrade_notes": "Upgrade Notes"
     },
     "ai_assistant": {
       "title": "AI Writing Assistant",
@@ -1076,7 +1088,22 @@
       "quiz_explanation": "Explanation (shown after answering)",
       "quiz_points": "Points",
       "quiz_add_option": "Add Option",
-      "quiz_correct_answer": "Correct"
+      "quiz_correct_answer": "Correct",
+      "curriculum_failed": "Couldn't load the latest curriculum for this course. Module and lesson changes are paused until it loads.",
+      "quiz_read_failed": "Couldn't load this lesson's quiz. Quiz changes are paused until it loads. Your other lesson edits stay here.",
+      "quiz_needs_question": "Add at least one question, and give every question some text, before saving this quiz.",
+      "quiz_save_partial": "The lesson is saved, but the quiz isn't confirmed. Your questions are still here. Press Save Lesson to try again. It won't create a second lesson or quiz.",
+      "quiz_save_conflict": "The lesson is saved, but it already has a different quiz. Press Save Lesson to replace that quiz with the questions shown here.",
+      "curriculum_order_partial": "Saved {saved} of {total} positions. The list now shows what's stored, so move the item again to finish.",
+      "curriculum_order_unconfirmed": "Saved {saved} of {total} positions, but the curriculum couldn't be checked. Retry loading it, then move the item again if it's out of place.",
+      "lesson_create_unknown": "Facet couldn't confirm whether this lesson was saved. Everything you entered is still here. Press Retry to check. It won't create a second lesson.",
+      "lesson_create_differs": "This lesson was saved from an earlier version, so the changes shown here aren't saved yet. Press Save Lesson to update it.",
+      "course_create_unknown": "Facet couldn't confirm whether this course was saved. Everything you entered is still here. Press Retry to check. It won't create a second course.",
+      "course_create_differs": "This course was saved from an earlier version, so the changes shown here aren't saved yet. Press Save to update it.",
+      "module_create_unknown": "Facet couldn't confirm whether this module was saved. Everything you entered is still here. Press Retry to check. It won't create a second module.",
+      "module_create_differs": "This module was saved from an earlier version, so the changes shown here aren't saved yet. Press Save Module to update it.",
+      "error_delete_module_attempts": "This module can't be deleted because learners have attempted a quiz in one of its lessons.",
+      "error_delete_lesson_attempts": "This lesson can't be deleted because learners have attempted its quiz."
     },
     "pricing": {
       "page_title": "Bulk Pricing",
@@ -1115,7 +1142,10 @@
       "type_talks": "Talks",
       "type_courses": "Courses",
       "type_projects": "Projects",
-      "type_custom": "Custom"
+      "type_custom": "Custom",
+      "filter_type_name": "Filter by content type",
+      "filter_tier_name": "Filter by pricing tier",
+      "bulk_tier_name": "Pricing tier for selected items"
     },
     "coupons": {
       "page_title": "Coupon Codes",
@@ -1211,7 +1241,13 @@
       },
       "stats": {
         "sr_only_icon": "{label} icon"
-      }
+      },
+      "manage_facets": "Manage Facets",
+      "load_error_title": "Couldn't load all of your dashboard",
+      "load_error_message": "Anything missing below is unknown, not zero.",
+      "retry": "Retry",
+      "retrying": "Retrying...",
+      "metric_unavailable": "Not available"
     },
     "login": {
       "title": "Sign in to Facet",
@@ -1254,7 +1290,7 @@
       "title": "Change Password",
       "description": "Choose a strong, unique password to keep your account secure.",
       "current_password_label": "Current Password",
-      "current_password_hint": "Required to verify your identity",
+      "current_password_hint": "The password you just logged in with",
       "new_password_label": "New Password",
       "new_password_placeholder": "Enter new password",
       "strength_weak": "Weak",
@@ -1275,7 +1311,16 @@
       "selected_count": "{selected} of {total} selected",
       "select_all": "Select all",
       "clear": "Clear",
-      "change_visibility": "Change Visibility"
+      "change_visibility": "Change Visibility",
+      "region_label": "Bulk selection actions",
+      "select_item": "Select {item}",
+      "result_updated": "Updated {succeeded} of {total} items to {visibility}.",
+      "result_deleted": "Deleted {succeeded} of {total} items.",
+      "result_failed": "{count, plural, one {# item failed and stays selected so you can retry.} other {# items failed and stay selected so you can retry.}}",
+      "result_unconfirmed": "{count, plural, one {Could not confirm # item.} other {Could not confirm # items.}} Reload the list before retrying.",
+      "confirm_public_title": "Make items public?",
+      "confirm_public_message": "{count, plural, one {# private or unlisted item will become public.} other {# private or unlisted items will become public.}} Drafts stay hidden until you publish them.",
+      "confirm_public_button": "Make public"
     },
     "settings": {
       "favicon": {
@@ -1329,7 +1374,7 @@
     },
     "wizard": {
       "title": "Quick Setup",
-      "skip": "Skip setup",
+      "skip": "Finish later",
       "back": "Back",
       "continue": "Continue",
       "saving": "Saving...",
@@ -1355,7 +1400,7 @@
       "facet_name_placeholder": "My Facet",
       "url_label": "URL:",
       "visibility_public": "This facet will be public - anyone with the link can view it",
-      "visibility_unlisted": "This facet is unlisted - only people with the link can find it",
+      "visibility_unlisted": "This Facet is unlisted. It opens from a share link you create, and anyone with that link can pass it on.",
       "visibility_private": "This facet is private - only you can see it",
       "step3_title": "You're ready to go!",
       "step3_subtitle": "Here's what you've created",
@@ -1363,12 +1408,24 @@
       "your_title_placeholder": "Your Title",
       "next_steps_title": "Suggested next steps:",
       "next_step_projects": "Add your first project or work experience",
-      "next_step_share": "Share your new facet with the world",
+      "next_step_share": "Share this page with the people who need it, or add it to your site.",
       "next_step_import": "Try importing from GitHub or uploading your resume",
       "ai_features_title": "Want AI-powered features?",
       "ai_features_description": "Resume parsing, writing assistance, and GitHub enrichment require an API key from {openai}, {anthropic}, or a local {ollama} instance.",
       "ai_features_settings": "Add your key in {settings} when you're ready.",
-      "required_field": "*"
+      "required_field": "*",
+      "resume_message": "Setup isn't finished yet. Anything you've typed is saved in this browser.",
+      "resume_button": "Resume setup",
+      "check_failed": "Facet couldn't check whether setup is finished. Nothing has been lost.",
+      "check_retry": "Try again",
+      "error_network": "Facet couldn't reach the server. Your draft is still here, so try again once you're back online.",
+      "error_slug": "That URL can't be used. Go back to step 2 and choose a different URL slug.",
+      "error_profile_saved": "Your profile is saved, but your Facet hasn't been created yet.",
+      "step2_uses": "The same Facet can stand alone, like a resume for a recruiter, a client proposal or a resource page. It can sit in your site as well, and you can add it to your site navigation at any time.",
+      "step2_templates": "Templates are starting points. Pick the closest one and change its name, sections and access whenever you like.",
+      "step2_access": "Who can open a Facet is a separate setting. Site navigation only lists public Facets, Private stays visible only to you, and an unlisted Facet opens from a share link that anyone who has it can pass on.",
+      "error_view_unknown": "Your profile is saved, but Facet couldn't check whether your Facet was created. Your draft is still here. Press Retry to check again. It won't create a second Facet.",
+      "error_view_differs": "Your Facet was already created with different details, and nothing has changed yet. Press Launch Profile to replace it with what's shown here, including who can see it."
     },
     "content": {
       "common": {
@@ -1810,7 +1867,15 @@
         "facet_created": "Facet created successfully",
         "save_failed": "Failed to save facet",
         "name_required": "Name is required",
-        "slug_required": "Slug is required"
+        "slug_required": "Slug is required",
+        "unsaved_warning": "You have unsaved changes to this Facet. Leave anyway?",
+        "view_load_failed": "Couldn't load this Facet, so there's nothing to edit yet. Nothing has changed. Retry, or go back to your Facets.",
+        "content_load_failed": "Couldn't load your content, so sections and the preview are hidden and saving is paused. What you've typed is still here, and your saved sections haven't changed.",
+        "content_refresh_failed": "Couldn't refresh your content, so saving is paused until it reloads. You're seeing the last loaded sections, and what you've typed is still here.",
+        "save_paused": "Saving is paused until your content loads. What you've typed is still here.",
+        "supporting_failed": "Some supporting details couldn't load, such as the preview profile, share links, exports or resume tools. If they're missing here, that doesn't mean they're gone. Your Facet and what you've typed aren't affected.",
+        "create_unknown": "Facet couldn't confirm whether this Facet was created. Everything you entered is still here. Press Create to check. It won't make a second one.",
+        "create_differs": "This Facet was created from an earlier version, so the changes shown here aren't saved yet. Press Create to update it with what's shown here, including who can see it."
       },
       "share_link": {
         "title": "Generate Share Link",
@@ -1835,7 +1900,11 @@
         "uses": "uses",
         "regenerate_title": "Regenerate link (revokes old, creates new)",
         "revoke_title": "Revoke link",
-        "more_links": "+{count} more — view all"
+        "more_links": "+{count} more — view all",
+        "private_notice": "Private means only you can open this Facet, so it can't have visitor share links. To share it with someone, choose Unlisted and save.",
+        "unsaved_notice": "Save this Facet to apply the new visibility. Its sharing options will appear here after you save.",
+        "public_notice": "This Facet is public. Anyone with this URL can open it, and the URL has no expiry or use limit.",
+        "public_url_label": "Public URL"
       },
       "danger_zone": {
         "title": "Danger Zone",
@@ -1982,7 +2051,20 @@
         "courses": "Courses",
         "featured_testimonial_label": "Featured Testimonial",
         "primary_testimonial_label": "Primary Testimonial (shown first in carousel)",
-        "use_global_featured": "Use global featured (or first)"
+        "use_global_featured": "Use global featured (or first)",
+        "section_width_name": "{section} section width",
+        "section_layout_name": "{section} section layout",
+        "content_mode_legend": "Content for {section}",
+        "content_mode_all_public": "All public content (updates automatically)",
+        "content_mode_selected": "Choose items",
+        "all_public_hint": "Published public items appear here automatically, including ones you add later. Private, unlisted and draft items stay out.",
+        "all_public_hint_contacts": "Contact methods available to this Facet appear here automatically. A page limit set on a contact still applies.",
+        "all_public_hint_testimonials": "Approved public testimonials appear here automatically. Unapproved ones stay out.",
+        "selected_empty_hint": "Nothing appears in this section until you choose items.",
+        "choose_items_hint": "Select the items to show, then drag to set their order.",
+        "none_selected": "none selected",
+        "all_public_skills_hint": "Public skills are included automatically. You can change category order, enabled categories and layout here.",
+        "private_grants_unconfirmed": "Your Facet is saved, but we couldn't confirm its private items were added. Press Save here to try again."
       },
       "category_reorder": {
         "title": "Reorder Skill Categories",
@@ -2168,7 +2250,31 @@
       "keyboard_shortcut_delete_row": "Delete focused row",
       "keyboard_shortcut_help": "Show this help",
       "create_page_title": "Create Facet",
-      "edit_page_title": "Edit Facet"
+      "edit_page_title": "Edit Facet",
+      "share_links_note": "Share links open unlisted Facets. Anyone who has a link can open that Facet and pass the link on, so set an expiry or revoke links you no longer need.",
+      "use_cases": {
+        "title": "One Facet, many uses",
+        "lead": "Any Facet can be shared on its own and added to your site navigation whenever you need it. Add or remove it at any time, with nothing to convert or recreate.",
+        "access_note": "Who can open a Facet is a separate setting. Site navigation lists public, active Facets only. Anyone with an unlisted share link can open that Facet, and Private stays visible only to you.",
+        "nav_link": "Manage site navigation",
+        "standalone_title": "Share it on its own",
+        "site_title": "Use it in your site",
+        "resume_title": "Digital resume for a recruiter",
+        "resume_text": "The experience and skills that fit one role.",
+        "proposal_title": "Client proposal",
+        "proposal_text": "Relevant projects and testimonials for one client.",
+        "event_title": "Event or resource page",
+        "event_text": "Talks, posts and links for one occasion.",
+        "project_title": "Project page",
+        "project_text": "A focused home for one body of work.",
+        "about_title": "About page",
+        "about_text": "Your background and how to reach you.",
+        "writing_title": "Writing page",
+        "writing_text": "Your posts, gathered in one place.",
+        "compact_lead": "A digital résumé, a client proposal, or pages for your site. Share a Facet on its own, connect it to your site, or use it both ways.",
+        "explore": "Explore ways to use Facets"
+      },
+      "action_owner_url": "Copy owner URL"
     },
     "media": {
       "page_title": "Media Library | Facet Admin",
@@ -2331,7 +2437,7 @@
       "usage_warning_message": "\"{filename}\" is used by {count, plural, one {# content item} other {# content items}}. Deleting it will remove it from:",
       "usage_warning_more": "and {count} more",
       "toast_references_removed": "Deleted media and removed {count, plural, one {# reference} other {# references}}",
-      "dropzone_label": "Drop files to upload",
+      "dropzone_label": "Drag files here or click to browse",
       "dropzone_drag": "Drag files here",
       "dropzone_drop": "Drop to upload",
       "dropzone_or_click": "or click to browse",
@@ -2426,6 +2532,11 @@
       "token_created_message": "Copy this token now. For security, it will not be shown again.",
       "copy_url": "Copy URL",
       "loading_tokens": "Loading tokens...",
+      "load_failed": "Couldn't load share links. Your existing links have not been changed.",
+      "retry": "Retry",
+      "views_load_failed": "Couldn't load eligible Facets. Retry before creating a share link.",
+      "status_unusable": "Unavailable",
+      "status_unusable_reason": "This link no longer works because its Facet is missing, inactive, or not unlisted.",
       "no_tokens": "No share tokens yet.",
       "no_tokens_description": "Generate a token to share an unlisted view with specific people.",
       "create_unlisted_first": "First, {link} to generate tokens for.",
@@ -2488,7 +2599,10 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "days_ago": "{count} days ago",
-      "weeks_ago": "{count} weeks ago"
+      "weeks_ago": "{count} weeks ago",
+      "toast_invalid_expiry": "Enter a valid expiration date and time.",
+      "toast_invalid_max_uses": "Max uses must be a whole number from 0 to 1,000,000.",
+      "toast_copy_failed": "Couldn’t copy the link. Select the URL and copy it manually."
     },
     "homepage": {
       "collapse_section": "Collapse {section} section",
@@ -2531,7 +2645,20 @@
       "page_title": "Homepage",
       "testimonial_list_label": "Testimonial list",
       "testimonial_list_placeholder": "e.g., Clients",
-      "testimonial_list_help": "Show approved testimonials collected under this list. Leave empty to show all."
+      "testimonial_list_help": "Show approved testimonials collected under this list. Leave empty to show all.",
+      "contact_link_type_name": "Contact link {number} type",
+      "contact_link_url_name": "Contact link {number} URL",
+      "contact_link_label_name": "Contact link {number} label",
+      "settings_load_failed": "Couldn't load your homepage settings, so saving is paused. Your saved settings haven't changed, and what you've typed is still here.",
+      "nav_catalog_failed": "Couldn't load your public Facets. Your saved navigation hasn't changed.",
+      "nav_save_failed": "Couldn't save your last navigation or call-to-action change, so it's been undone here. Any button labels you've typed are still here.",
+      "retry": "Retry",
+      "nav_item_show": "Show {name} in navigation",
+      "nav_item_label": "Button label for {name}",
+      "nav_item_move_up": "Move {name} up",
+      "nav_item_move_down": "Move {name} down",
+      "profile_load_failed": "Couldn't load your profile, so its fields are hidden and saving is paused. Your saved profile hasn't changed.",
+      "catalog_load_failed": "Couldn't load your homepage sections, so they're hidden and saving is paused. Your saved sections haven't changed, and what you've typed is still here."
     },
     "import": {
       "resume_dropzone_label": "Resume file drop zone",
@@ -2881,6 +3008,16 @@
       "readonly_note": "This preview is read-only and not keyboard accessible. Toggle off to hide it.",
       "ready_announce": "Live preview ready",
       "error_announce": "Live preview unavailable"
+    },
+    "list_status": {
+      "load_failed": "Couldn't load {type}. Changes are paused until the list loads.",
+      "refresh_failed": "Couldn't refresh {type}. You're seeing the last loaded list, and changes are paused until it reloads.",
+      "changes_paused": "Changes are paused until the list is up to date.",
+      "saving": "Saving changes...",
+      "ancillary_failed": "Some supporting details couldn't load, such as view membership or tag options. Retrying won't touch an open form.",
+      "retry_supporting": "Retry supporting details",
+      "order_partial": "Saved {saved} of {total} positions. Your new order is still on screen, so save again to send only what's left.",
+      "order_unconfirmed": "Saved {saved} of {total} positions, but the list couldn't be checked. Your new order is still on screen. Reload the list, then save again."
     }
   },
   "public": {
@@ -3367,6 +3504,24 @@
         "quiz_no_answers": "Answer the questions before submitting.",
         "quiz_failed": "The quiz didn't respond properly. Please try again."
       }
+    },
+    "share_entry": {
+      "page_title": "Shared Link | Facet",
+      "home": "Go to Main Profile",
+      "retry": "Try again",
+      "retry_in": "Try again in {seconds}s",
+      "invalid": {
+        "title": "Link Not Valid",
+        "message": "Invalid or expired share link"
+      },
+      "rate_limited": {
+        "title": "Too Many Requests Right Now",
+        "message": "We couldn't check this link yet because too many requests arrived at once. This attempt didn't use it."
+      },
+      "unavailable": {
+        "title": "We Couldn't Check This Link",
+        "message": "This site had a temporary problem, so we don't know whether the link works. This attempt may have counted as a use, and trying again may count as another."
+      }
     }
   },
   "shared": {
@@ -3527,5 +3682,13 @@
     "chars_remaining": "{count} characters remaining",
     "replies": "Replies",
     "just_now": "just now"
-  }
+  },
+  "downloads": {
+    "title": "Downloads",
+    "load_failed": "We couldn't load the downloads. Check your connection and try again.",
+    "link_failed": "That download couldn't start. Please try again.",
+    "unavailable": "That file is no longer available.",
+    "retry": "Try again"
+  },
+  "admin.courses.delete_course_confirm": "Delete this course and all its modules, lessons, student progress, quiz attempts and certificates? This cannot be undone."
 }

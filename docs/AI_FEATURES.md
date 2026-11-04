@@ -36,7 +36,7 @@ Keys are encrypted before they're saved and are never sent back to the browser (
 
 As a shortcut, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `OLLAMA_BASE_URL` (with optional `OLLAMA_MODEL`) create a provider automatically the first time the admin checks AI status, as long as no provider exists yet ([source](../backend/hooks/ai.go)). They're named "Claude (Auto)", "OpenAI (Auto)" and "Ollama (Auto)". Anthropic gets `claude-sonnet-4-20250514` and OpenAI gets `gpt-4o`, which you can change in the dashboard.
 
-After that first time the variables aren't read again, so edit the provider in the dashboard rather than the variable. If you use the repository's `docker-compose.yml`, add these variables to its `environment:` list first ([why](CONFIGURATION.md#does-the-variable-reach-the-container)).
+After that first time the variables aren't read again, so edit the provider in the dashboard rather than the variable. The repository's `docker-compose.yml` already passes these AI variables through. Other Compose files, including the minimal installation example, need any missing names under `environment:` ([details](CONFIGURATION.md#does-the-variable-reach-the-container)).
 
 ## Writing assistant
 

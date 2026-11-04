@@ -591,7 +591,9 @@
 				{#if resumeFile}
 					<div class="space-y-3">
 						<p class="font-medium text-gray-900 dark:text-white">{resumeFile.name}</p>
-						<p class="text-sm text-gray-500">{(resumeFile.size / 1024).toFixed(1)} KB</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{(resumeFile.size / 1024).toFixed(1)} KB
+						</p>
 						<div class="flex gap-3 justify-center">
 							<button
 								type="button"
@@ -636,13 +638,15 @@
 						<p class="text-gray-700 dark:text-gray-300">
 							<label
 								for="resumeFile"
-								class="text-primary-600 dark:text-primary-400 hover:underline cursor-pointer"
+								class="text-primary-700 dark:text-primary-400 hover:underline cursor-pointer"
 							>
 								{$t('admin.import.resume_choose_file')}
 							</label>
 							{$t('admin.import.resume_or_drag')}
 						</p>
-						<p class="text-sm text-gray-500">{$t('admin.import.resume_dropzone_hint')}</p>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{$t('admin.import.resume_dropzone_hint')}
+						</p>
 						<input
 							type="file"
 							id="resumeFile"
@@ -681,7 +685,9 @@
 						<span class="text-sm text-gray-700 dark:text-gray-300"
 							>{$t('admin.import.visibility_private')}</span
 						>
-						<span class="text-xs text-gray-500">{$t('admin.import.visibility_private_hint')}</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400"
+							>{$t('admin.import.visibility_private_hint')}</span
+						>
 					</label>
 					<label class="flex items-center gap-2 cursor-pointer">
 						<input
@@ -693,7 +699,9 @@
 						<span class="text-sm text-gray-700 dark:text-gray-300"
 							>{$t('admin.import.visibility_unlisted')}</span
 						>
-						<span class="text-xs text-gray-500">{$t('admin.import.visibility_unlisted_hint')}</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400"
+							>{$t('admin.import.visibility_unlisted_hint')}</span
+						>
 					</label>
 					<label class="flex items-center gap-2 cursor-pointer">
 						<input
@@ -705,10 +713,14 @@
 						<span class="text-sm text-gray-700 dark:text-gray-300"
 							>{$t('admin.import.visibility_public')}</span
 						>
-						<span class="text-xs text-gray-500">{$t('admin.import.visibility_public_hint')}</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400"
+							>{$t('admin.import.visibility_public_hint')}</span
+						>
 					</label>
 				</div>
-				<p class="text-xs text-gray-500 mt-2">{$t('admin.import.visibility_note')}</p>
+				<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+					{$t('admin.import.visibility_note')}
+				</p>
 			</fieldset>
 		{:else if resumeUploading}
 			<!-- Loader between upload and parsed preview (handled by button label too) -->
@@ -724,7 +736,7 @@
 				<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 					{$t('admin.import.preview_intro')}
 				</p>
-				<div class="mt-2 text-xs text-gray-500">
+				<div class="mt-2 text-xs text-gray-500 dark:text-gray-400">
 					<span>{$t('admin.import.preview_filename')} <strong>{parsedFilename}</strong></span>
 					{#if parsedResume?.metadata?.confidence}
 						<span class="ml-3"
@@ -759,7 +771,7 @@
 									>
 										<span class="font-medium text-gray-900 dark:text-white">
 											{$t(`admin.import.section_${section}`)}
-											<span class="ml-2 text-xs text-gray-500">
+											<span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
 												({sectionSelectedCount(section)}/{items.length})
 											</span>
 										</span>
@@ -825,7 +837,7 @@
 															>{label}</span
 														>
 														{#if itemDetail(section, item)}
-															<span class="block text-xs text-gray-500"
+															<span class="block text-xs text-gray-500 dark:text-gray-400"
 																>{itemDetail(section, item)}</span
 															>
 														{/if}
@@ -860,7 +872,9 @@
 						{$t('admin.import.start_over')}
 					</button>
 					{#if totalSelected() === 0}
-						<span class="text-xs text-gray-500">{$t('admin.import.import_nothing_selected')}</span>
+						<span class="text-xs text-gray-500 dark:text-gray-400"
+							>{$t('admin.import.import_nothing_selected')}</span
+						>
 					{/if}
 				</div>
 			</div>
@@ -946,7 +960,9 @@
 					<div>
 						<label for="token" class="label">
 							GitHub Token
-							<span class="text-gray-500 font-normal">(optional, for private repos)</span>
+							<span class="text-gray-500 dark:text-gray-400 font-normal"
+								>(optional, for private repos)</span
+							>
 						</label>
 						<input
 							type="password"
@@ -955,7 +971,7 @@
 							class="input"
 							placeholder="ghp_..."
 						/>
-						<p class="text-xs text-gray-500 mt-1">
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 							Used only for this import and never saved. Leave it blank to use the token saved in
 							Settings, if there is one.
 						</p>
@@ -994,7 +1010,7 @@
 					{#if preview.description}
 						<p class="text-gray-600 dark:text-gray-400 mt-1">{preview.description}</p>
 					{/if}
-					<div class="flex flex-wrap gap-4 mt-3 text-sm text-gray-500">
+					<div class="flex flex-wrap gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
 						{#if preview.stargazers_count}
 							<span class="inline-flex items-center gap-1">
 								{@html icon('star')}
@@ -1066,7 +1082,7 @@
 									<option value="summary">Send only first 500 characters</option>
 									<option value="none">Don't send README content</option>
 								</select>
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 									Controls how much of your README is shared with the AI provider
 								</p>
 							</div>

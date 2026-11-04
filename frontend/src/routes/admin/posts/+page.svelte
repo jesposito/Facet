@@ -3,13 +3,18 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import { pb, type Post, getFileUrl } from '$lib/pocketbase';
+	import { type Post, getFileUrl } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
 	import { formatDate, toDateInputValue } from '$lib/utils';
 	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
@@ -23,7 +28,18 @@
 	import MarkdownEditor from '$components/admin/MarkdownEditor.svelte';
 
 	let posts: Post[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('posts');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('posts'),
+		items: () => posts,
+		reload: loadPosts,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingPost: Post | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -95,14 +111,7 @@
 		}
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingPost = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (
 			draft?.data &&
@@ -116,6 +125,19 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingPost = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	// Form fields
@@ -138,26 +160,13 @@
 	// Simple pattern - admin layout handles auth
 	onMount(loadPosts);
 
-	async function loadPosts() {
-		loading = true;
-		try {
-			const [records, membershipResp] = await Promise.all([
-				await collection('posts').getList(1, 100, {
-					sort: '-published_at'
-				}),
-				fetch('/api/admin/view-memberships?collection=posts', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-
-			posts = records.items as unknown as Post[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load posts:', err);
-			toasts.add('error', 'Failed to load posts');
-		} finally {
-			loading = false;
-		}
+	function loadPosts() {
+		listLoad.loadMemberships('posts', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<Post>(getCollectionName('posts'), { sort: '-published_at' }, signal),
+			(records) => (posts = records)
+		);
 	}
 
 	function resetForm() {
@@ -186,6 +195,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -271,7 +281,7 @@
 		return !!((post as any).cover_image || (post as any).cover_image_library_url);
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!title.trim()) {
 			toasts.add('error', 'Title is required');
 			return;
@@ -337,9 +347,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function deletePost(post: Post) {
+	const deletePost = listLoad.exclusive(async (post: Post) => {
 		const confirmed = await confirm({
 			title: 'Delete Post',
 			message: `Are you sure you want to delete "${post.title}"? This action cannot be undone.`,
@@ -364,9 +374,9 @@
 			console.error('Failed to delete post:', err);
 			toasts.add('error', 'Failed to delete post');
 		}
-	}
+	});
 
-	async function togglePublish(post: Post) {
+	const togglePublish = listLoad.exclusive(async (post: Post) => {
 		try {
 			const newDraftState = !post.is_draft;
 			await await collection('posts').update(post.id, {
@@ -379,7 +389,15 @@
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update post');
 		}
-	}
+	});
+
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredPosts.map((post) => post.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
 
 	function toggleSelectMode() {
 		selectMode = !selectMode;
@@ -387,50 +405,31 @@
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) selectedIds.delete(id);
-		else selectedIds.add(id);
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(posts.map((e) => e.id));
+		selectedIds = new Set(filteredPosts.map((post) => post.id));
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) await collection('posts').update(id, { visibility });
-			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadPosts();
-		} catch (err) {
-			toasts.add('error', 'Failed to update visibility');
-		}
+	function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), visibility);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: 'Delete Posts',
-			message: `Are you sure you want to delete ${ids.length} post(s)? This action cannot be undone.`,
-			confirmText: 'Delete All',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			for (const id of ids) await collection('posts').delete(id);
-			toasts.add('success', `Deleted ${ids.length} items`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadPosts();
-		} catch (err) {
-			toasts.add('error', 'Failed to delete items');
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: 'Delete Posts',
+				message: `Are you sure you want to delete ${ids.length} post(s)? This action cannot be undone.`,
+				confirmText: 'Delete All',
+				danger: true
+			})
+		);
 	}
 </script>
 
@@ -445,7 +444,7 @@
 		{@html $t('admin.content.posts.help_tip_2')}
 	</PageHelp>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -455,16 +454,18 @@
 		/>
 	{/if}
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={posts.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredPosts.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -473,11 +474,15 @@
 		</h1>
 		<div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 			{#if posts.length > 0}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
-			<button class="btn btn-primary" onclick={openNewForm}>
+			<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 				{$t('admin.content.common.new_button', {
 					values: { type: $t('admin.content.posts.title').slice(0, -1) }
 				})}
@@ -486,6 +491,17 @@
 	</div>
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.posts.title').toLowerCase()}
+		onretry={loadPosts}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
+	{/if}
 
 	{#if loading}
 		<div class="card p-8 text-center">
@@ -729,7 +745,7 @@
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -806,6 +822,8 @@
 				</div>
 			</div>
 		{/if}
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if posts.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -853,207 +871,217 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Posts List -->
-		<div class="space-y-4">
-			{#each filteredPosts as post (post.id)}
-				<div
-					class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(post.id)
-						? 'ring-2 ring-primary-500'
-						: ''}"
-					data-row-id={post.id}
-					tabindex="-1"
-				>
-					<div class="flex items-start gap-4">
-						{#if selectMode}
-							<input
-								type="checkbox"
-								checked={selectedIds.has(post.id)}
-								onchange={() => toggleSelect(post.id)}
-								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
-							/>
-						{/if}
-						{#if hasCoverImage(post)}
-							<div
-								class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800"
-							>
-								<img
-									src={getCoverImageUrl(post)}
-									alt={post.title}
-									class="w-full h-full object-cover"
+		<fieldset class="contents" disabled={listLocked}>
+			<!-- Posts List -->
+			<div class="space-y-4">
+				{#each filteredPosts as post (post.id)}
+					<div
+						class="card p-4 hover:shadow-md transition-shadow {selectMode &&
+						selectedIds.has(post.id)
+							? 'ring-2 ring-primary-500'
+							: ''}"
+						data-row-id={post.id}
+						tabindex="-1"
+					>
+						<div class="flex items-start gap-4">
+							{#if selectMode}
+								<input
+									type="checkbox"
+									aria-label={$t('admin.bulk_actions.select_item', {
+										values: { item: post.title }
+									})}
+									checked={selectedIds.has(post.id)}
+									onchange={() => toggleSelect(post.id)}
+									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
 								/>
-							</div>
-						{/if}
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 mb-1">
-								<h3 class="text-lg font-medium text-gray-900 dark:text-white truncate">
-									{post.title}
-								</h3>
-								{#if post.is_draft}
-									<span
-										class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
-									>
-										Draft
-									</span>
-								{:else}
-									<span
-										class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded"
-									>
-										Published
-									</span>
-								{/if}
-								{#if post.featured}
-									<span
-										class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded"
-									>
-										Featured
-									</span>
-								{/if}
-								<span
-									class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize"
-								>
-									{post.visibility}
-								</span>
-							</div>
-
-							{#if post.excerpt}
-								<p class="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-									{post.excerpt}
-								</p>
 							{/if}
-
-							{#if memberships[post.id]?.length}
-								<div class="flex flex-wrap gap-1 mb-2">
-									{#each memberships[post.id].slice(0, 3) as viewRef}
-										<a
-											href={`/admin/views/${viewRef.id}`}
-											target="_blank"
-											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-											title={`Open view: ${viewRef.name}`}
+							{#if hasCoverImage(post)}
+								<div
+									class="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800"
+								>
+									<img
+										src={getCoverImageUrl(post)}
+										alt={post.title}
+										class="w-full h-full object-cover"
+									/>
+								</div>
+							{/if}
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 mb-1">
+									<h3 class="text-lg font-medium text-gray-900 dark:text-white truncate">
+										{post.title}
+									</h3>
+									{#if post.is_draft}
+										<span
+											class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
 										>
-											{viewRef.slug || viewRef.name}
-										</a>
-									{/each}
-									{#if memberships[post.id].length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-											+{memberships[post.id].length - 3}
+											Draft
+										</span>
+									{:else}
+										<span
+											class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded"
+										>
+											Published
+										</span>
+									{/if}
+									{#if post.featured}
+										<span
+											class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 rounded"
+										>
+											Featured
+										</span>
+									{/if}
+									<span
+										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize"
+									>
+										{post.visibility}
+									</span>
+								</div>
+
+								{#if post.excerpt}
+									<p class="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+										{post.excerpt}
+									</p>
+								{/if}
+
+								{#if memberships[post.id]?.length}
+									<div class="flex flex-wrap gap-1 mb-2">
+										{#each memberships[post.id].slice(0, 3) as viewRef}
+											<a
+												href={`/admin/views/${viewRef.id}`}
+												target="_blank"
+												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+												title={`Open view: ${viewRef.name}`}
+											>
+												{viewRef.slug || viewRef.name}
+											</a>
+										{/each}
+										{#if memberships[post.id].length > 3}
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+												+{memberships[post.id].length - 3}
+											</span>
+										{/if}
+									</div>
+								{:else if $listLoad.membershipsKnown}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Not in any view</p>
+								{/if}
+
+								<div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+									{#if post.slug}
+										<span>/posts/{post.slug}</span>
+									{/if}
+									{#if post.published_at}
+										<span
+											>Published: {formatDate(post.published_at, {
+												month: 'short',
+												day: 'numeric',
+												year: 'numeric'
+											})}</span
+										>
+									{/if}
+									{#if post.tags && post.tags.length > 0}
+										<span class="flex items-center gap-1">
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+												></path>
+											</svg>
+											{post.tags.length}
+											{post.tags.length === 1 ? 'tag' : 'tags'}
 										</span>
 									{/if}
 								</div>
-							{:else}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Not in any view</p>
-							{/if}
+							</div>
 
-							<div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+							<div class="flex items-center gap-2 shrink-0">
 								{#if post.slug}
-									<span>/posts/{post.slug}</span>
-								{/if}
-								{#if post.published_at}
-									<span
-										>Published: {formatDate(post.published_at, {
-											month: 'short',
-											day: 'numeric',
-											year: 'numeric'
-										})}</span
+									<a
+										href="/posts/{post.slug}"
+										target="_blank"
+										class="btn btn-ghost btn-sm"
+										title="View post"
 									>
-								{/if}
-								{#if post.tags && post.tags.length > 0}
-									<span class="flex items-center gap-1">
-										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path
 												stroke-linecap="round"
 												stroke-linejoin="round"
 												stroke-width="2"
-												d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
 											></path>
 										</svg>
-										{post.tags.length}
-										{post.tags.length === 1 ? 'tag' : 'tags'}
-									</span>
+									</a>
 								{/if}
-							</div>
-						</div>
-
-						<div class="flex items-center gap-2 shrink-0">
-							{#if post.slug}
-								<a
-									href="/posts/{post.slug}"
-									target="_blank"
+								<button
 									class="btn btn-ghost btn-sm"
-									title="View post"
+									title={post.is_draft ? 'Publish' : 'Unpublish'}
+									onclick={() => togglePublish(post)}
+								>
+									{#if post.is_draft}
+										<svg
+											class="w-4 h-4 text-green-600"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M5 13l4 4L19 7"
+											></path>
+										</svg>
+									{:else}
+										<svg
+											class="w-4 h-4 text-yellow-600"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+											></path>
+										</svg>
+									{/if}
+								</button>
+								<button
+									class="btn btn-ghost btn-sm"
+									title="Edit"
+									onclick={() => openEditForm(post)}
 								>
 									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
-											d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
 										></path>
 									</svg>
-								</a>
-							{/if}
-							<button
-								class="btn btn-ghost btn-sm"
-								title={post.is_draft ? 'Publish' : 'Unpublish'}
-								onclick={() => togglePublish(post)}
-							>
-								{#if post.is_draft}
-									<svg
-										class="w-4 h-4 text-green-600"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
+								</button>
+								<button
+									class="btn btn-danger-ghost btn-sm"
+									title="Delete"
+									onclick={() => deletePost(post)}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
-											d="M5 13l4 4L19 7"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
 										></path>
 									</svg>
-								{:else}
-									<svg
-										class="w-4 h-4 text-yellow-600"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-										></path>
-									</svg>
-								{/if}
-							</button>
-							<button class="btn btn-ghost btn-sm" title="Edit" onclick={() => openEditForm(post)}>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-									></path>
-								</svg>
-							</button>
-							<button
-								class="btn btn-danger-ghost btn-sm"
-								title="Delete"
-								onclick={() => deletePost(post)}
-							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									></path>
-								</svg>
-							</button>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		</fieldset>
 	{/if}
 </div>

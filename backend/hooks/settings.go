@@ -48,7 +48,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				// file = loaded from /data/.encryption_key (previously generated)
 				// env  = explicitly set via ENCRYPTION_KEY environment variable
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Public: fetch site settings (sanitized)
 		se.Router.GET("/api/site-settings", func(e *core.RequestEvent) error {
@@ -249,7 +249,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 
 		// Authenticated: upload favicon
 		se.Router.POST("/api/site-settings/favicon", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
+			if !isSuperuser(e) {
 				return apis.NewUnauthorizedError("authentication required", nil)
 			}
 
@@ -301,7 +301,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 
 		// Authenticated: remove favicon
 		se.Router.DELETE("/api/site-settings/favicon", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
+			if !isSuperuser(e) {
 				return apis.NewUnauthorizedError("authentication required", nil)
 			}
 
@@ -404,7 +404,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"sender_name":    meta.SenderName,
 				"sender_address": meta.SenderAddress,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// PUT /api/smtp-settings — save SMTP config
 		se.Router.PUT("/api/smtp-settings", func(e *core.RequestEvent) error {
@@ -471,7 +471,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"sender_name":    settings.Meta.SenderName,
 				"sender_address": settings.Meta.SenderAddress,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// ── Stripe Settings API ─────────────────────────────────────
 
@@ -506,7 +506,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"webhook_secret_set": false,
 				"source":             "none",
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// PUT /api/stripe-settings — encrypt and store Stripe keys
 		se.Router.PUT("/api/stripe-settings", func(e *core.RequestEvent) error {
@@ -543,7 +543,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"webhook_secret_set": webhookSecret != "",
 				"source":             "database",
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// DELETE /api/stripe-settings — clear stored keys (reverts to env var fallback)
 		se.Router.DELETE("/api/stripe-settings", func(e *core.RequestEvent) error {
@@ -567,7 +567,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"webhook_secret_set": envWebhook != "",
 				"source":             source,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/stripe-settings/test — test the configured Stripe key
 		se.Router.POST("/api/stripe-settings/test", func(e *core.RequestEvent) error {
@@ -600,7 +600,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			return e.JSON(http.StatusOK, map[string]any{
 				"success": true,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/smtp-settings/test — send a test email
 		se.Router.POST("/api/smtp-settings/test", func(e *core.RequestEvent) error {
@@ -653,7 +653,7 @@ func RegisterSiteSettingsHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 			return e.JSON(http.StatusOK, map[string]any{
 				"success": true,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

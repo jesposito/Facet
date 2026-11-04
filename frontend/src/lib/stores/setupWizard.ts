@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store';
 import { browser } from '$app/env';
 import type { Profile, View } from '$lib/pocketbase';
+import { isRecordId, newRecordId } from '$lib/admin/create-record';
 
 const STORAGE_KEY = 'facet_setup_wizard';
 
@@ -15,7 +16,10 @@ export interface WizardState {
 		description: string;
 	};
 	selectedTemplate: string | null;
-	dismissedPermanently: boolean;
+	// The record ID this draft's Facet will get, so a lost response can be checked, not repeated
+	viewId: string;
+	// The owner closed the wizard: no auto-open, but Resume stays available
+	dismissed: boolean;
 	completedWizard: boolean;
 }
 
@@ -30,16 +34,73 @@ const defaultState: WizardState = {
 		description: ''
 	},
 	selectedTemplate: null,
-	dismissedPermanently: false,
+	viewId: '',
+	dismissed: false,
 	completedWizard: false
 };
+
+type WizardDraft = Pick<
+	WizardState,
+	'currentStep' | 'profile' | 'newView' | 'selectedTemplate' | 'viewId'
+>;
+
+function readRecord(value: unknown): Record<string, unknown> {
+	return value && typeof value === 'object' && !Array.isArray(value)
+		? (value as Record<string, unknown>)
+		: {};
+}
+
+// Stored drafts can be stale or hand-edited, so only known fields survive. The
+// address is validated separately; visibility and description come from the chosen template.
+function readDraft(stored: unknown): WizardDraft {
+	const draft = readRecord(stored);
+	const storedProfile = readRecord(draft.profile);
+	const profile: WizardDraft['profile'] = {};
+	for (const field of ['name', 'headline', 'summary'] as const) {
+		const value = storedProfile[field];
+		if (typeof value === 'string' && value) profile[field] = value;
+	}
+
+	const template = viewTemplates.find((t) => t.id === draft.selectedTemplate);
+	const viewName = template && typeof draft.viewName === 'string' ? draft.viewName : '';
+	const storedSlug = typeof draft.viewSlug === 'string' ? draft.viewSlug : generateSlug(viewName);
+	const newView: WizardState['newView'] = template
+		? {
+				name: viewName,
+				slug: isValidWizardSlug(storedSlug) ? storedSlug : generateSlug(viewName),
+				visibility: template.visibility,
+				description: template.description
+			}
+		: defaultState.newView;
+
+	const step1Done = !!profile.name?.trim() && !!profile.headline?.trim();
+	const step2Done = !!template && !!viewName.trim() && isValidWizardSlug(newView.slug);
+	const furthestStep = !step1Done ? 1 : !step2Done ? 2 : 3;
+	const step = typeof draft.currentStep === 'number' ? Math.trunc(draft.currentStep) : 1;
+
+	return {
+		currentStep: Math.min(Math.max(step, 1), furthestStep),
+		profile,
+		newView,
+		selectedTemplate: template?.id ?? null,
+		viewId: isRecordId(draft.viewId) ? draft.viewId : newRecordId()
+	};
+}
 
 function loadPersistedState(): Partial<WizardState> {
 	if (!browser) return {};
 	try {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (stored) {
-			return JSON.parse(stored);
+			const parsed = readRecord(JSON.parse(stored));
+			const completedWizard = parsed.completedWizard === true;
+			return {
+				// Older builds wrote dismissedPermanently on every close. Those owners
+				// stay out of auto-open and can now use Resume.
+				dismissed: parsed.dismissed === true || parsed.dismissedPermanently === true,
+				completedWizard,
+				...(completedWizard ? {} : readDraft(parsed.draft))
+			};
 		}
 	} catch {
 		/* localStorage may be unavailable */
@@ -48,23 +109,34 @@ function loadPersistedState(): Partial<WizardState> {
 }
 
 function createSetupWizardStore() {
-	const persisted = loadPersistedState();
-	const initial: WizardState = {
-		...defaultState,
-		dismissedPermanently: persisted.dismissedPermanently || false,
-		completedWizard: persisted.completedWizard || false
-	};
+	const initial: WizardState = { ...defaultState, viewId: newRecordId(), ...loadPersistedState() };
 
 	const { subscribe, set, update } = writable<WizardState>(initial);
 
-	function persistFlags(state: WizardState) {
+	// Only these fields reach localStorage. isOpen belongs to one page load, and
+	// passwords and tokens never pass through this store.
+	function persistState(state: WizardState) {
 		if (!browser) return;
 		try {
 			localStorage.setItem(
 				STORAGE_KEY,
 				JSON.stringify({
-					dismissedPermanently: state.dismissedPermanently,
-					completedWizard: state.completedWizard
+					dismissed: state.dismissed,
+					completedWizard: state.completedWizard,
+					draft: state.completedWizard
+						? undefined
+						: {
+								currentStep: state.currentStep,
+								profile: {
+									name: state.profile.name,
+									headline: state.profile.headline,
+									summary: state.profile.summary
+								},
+								selectedTemplate: state.selectedTemplate,
+								viewName: state.newView.name,
+								viewSlug: state.newView.slug,
+								viewId: state.viewId
+							}
 				})
 			);
 		} catch {
@@ -72,23 +144,35 @@ function createSetupWizardStore() {
 		}
 	}
 
+	subscribe(persistState);
+
 	return {
 		subscribe,
 
 		open: () =>
 			update((s) => {
 				// Never reopen if already dismissed or completed
-				if (s.dismissedPermanently || s.completedWizard) return s;
+				if (s.dismissed || s.completedWizard) return s;
 				return { ...s, isOpen: true };
 			}),
 
-		close: () =>
-			update((s) => {
-				// Any close is a permanent dismiss — prevent the wizard from nagging
-				const newState = { ...s, isOpen: false, dismissedPermanently: true };
-				persistFlags(newState);
-				return newState;
-			}),
+		// The owner asked for it, so an earlier dismissal doesn't stand in the way
+		resume: () => update((s) => (s.completedWizard ? s : { ...s, isOpen: true, dismissed: false })),
+
+		// Closing stops auto-open and keeps the draft for Resume
+		close: () => update((s) => ({ ...s, isOpen: false, dismissed: true })),
+
+		// Saved values fill gaps only, so a resumed draft keeps what the owner typed
+		prefillProfile: (saved: Profile | null) =>
+			update((s) => ({
+				...s,
+				profile: {
+					...s.profile,
+					name: s.profile.name || saved?.name,
+					headline: s.profile.headline || saved?.headline,
+					summary: s.profile.summary || saved?.summary
+				}
+			})),
 
 		nextStep: () =>
 			update((s) => ({
@@ -126,30 +210,19 @@ function createSetupWizardStore() {
 				selectedTemplate: templateId
 			})),
 
-		dismissPermanently: () =>
-			update((s) => {
-				const newState = { ...s, isOpen: false, dismissedPermanently: true };
-				persistFlags(newState);
-				return newState;
-			}),
-
 		complete: () =>
-			update((s) => {
-				const newState = {
-					...s,
-					isOpen: false,
-					completedWizard: true,
-					currentStep: 1,
-					profile: {},
-					newView: defaultState.newView,
-					selectedTemplate: null
-				};
-				persistFlags(newState);
-				return newState;
-			}),
+			update((s) => ({
+				...s,
+				isOpen: false,
+				completedWizard: true,
+				currentStep: 1,
+				profile: {},
+				newView: defaultState.newView,
+				selectedTemplate: null
+			})),
 
 		reset: () => {
-			set(defaultState);
+			set({ ...defaultState, viewId: newRecordId() });
 			if (browser) {
 				try {
 					localStorage.removeItem(STORAGE_KEY);
@@ -160,14 +233,6 @@ function createSetupWizardStore() {
 		}
 	};
 }
-
-export const setupWizard = createSetupWizardStore();
-
-export const canProceed = derived(setupWizard, ($wizard) => ({
-	step1: !!$wizard.profile.name?.trim() && !!$wizard.profile.headline?.trim(),
-	step2: !!$wizard.selectedTemplate && !!$wizard.newView.name?.trim(),
-	step3: true
-}));
 
 export const viewTemplates = [
 	{
@@ -208,6 +273,31 @@ export const viewTemplates = [
 	}
 ];
 
+// viewTemplates has to exist first: the store reads it while restoring a draft
+export const setupWizard = createSetupWizardStore();
+
+export const canProceed = derived(setupWizard, ($wizard) => ({
+	step1: !!$wizard.profile.name?.trim() && !!$wizard.profile.headline?.trim(),
+	step2:
+		!!$wizard.selectedTemplate &&
+		!!$wizard.newView.name?.trim() &&
+		isValidWizardSlug($wizard.newView.slug),
+	step3: true
+}));
+
+export function isSetupIncomplete(
+	profile: Profile | null,
+	views: View[],
+	isDemoMode: boolean
+): boolean {
+	if (isDemoMode) return false;
+
+	const hasBasicProfile = !!profile?.name && !!profile?.headline;
+	const hasViews = views.length > 0;
+
+	return !hasBasicProfile || !hasViews;
+}
+
 export function shouldShowWizard(
 	profile: Profile | null,
 	views: View[],
@@ -215,13 +305,13 @@ export function shouldShowWizard(
 ): boolean {
 	const state = get(setupWizard);
 
-	if (isDemoMode) return false;
-	if (state.dismissedPermanently || state.completedWizard) return false;
+	if (state.dismissed || state.completedWizard) return false;
 
-	const hasBasicProfile = !!profile?.name && !!profile?.headline;
-	const hasViews = views.length > 0;
+	return isSetupIncomplete(profile, views, isDemoMode);
+}
 
-	return !hasBasicProfile || !hasViews;
+function isValidWizardSlug(slug: string): boolean {
+	return /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$/.test(slug);
 }
 
 export function generateSlug(name: string): string {

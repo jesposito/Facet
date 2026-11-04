@@ -68,8 +68,6 @@ ENCRYPTION_KEY='dev-only-key-do-not-use-in-production!!' \
   go run . superuser upsert admin@localhost.dev 'a-local-password' --dir=../pb_data
 ```
 
-Some browser tests expect this superuser ([browser tests](../frontend/tests/README.md#superuser-tests)).
-
 Air deletes the `tmp/` folder, including `tmp/backend.log`, when the session stops. Copy the log first if you need it afterwards.
 
 ## Make targets
@@ -118,7 +116,7 @@ Inside the containers, both services set `FACET_DEV_HOST=0.0.0.0` so their ports
 
 | Command | Covers |
 |---------|--------|
-| `make test-scripts` | [`scripts/ci/test-dev-server.py`](../scripts/ci/test-dev-server.py) (supervisor safety) and [`scripts/ci/test-push-validated-release.py`](../scripts/ci/test-push-validated-release.py) (release script) |
+| `make test-scripts` | Supervisor safety, validated release pushes, and preservation of operator upgrade notes in generated changelogs |
 | `make test-backend` | `go test -v ./...` in `backend/` |
 | `make test-frontend` | `npm run check`: SvelteKit sync and `svelte-check` type checking |
 | `make lint` | `go vet ./...`, `prettier --check .` and `eslint .` in `frontend/` |

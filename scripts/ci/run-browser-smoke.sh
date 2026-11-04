@@ -3,7 +3,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 repo="$PWD"
 scratch=$(mktemp -d /tmp/facet-smoke-XXXXXX)
-mkdir -p "$scratch/logs" "$scratch/uploads"
+mkdir -p "$scratch/logs" "$scratch/uploads" "$scratch/data"
+ln -s "$scratch/uploads" "$scratch/data/storage"
 pids=()
 cleanup() {
   status=$?
@@ -47,13 +48,17 @@ export POCKETBASE_URL="http://$SMOKE_HOST:$SMOKE_BACKEND_PORT"
 export API_BASE_URL="$POCKETBASE_URL" PLAYWRIGHT_BASE_URL="http://$SMOKE_HOST:$SMOKE_PROXY_PORT"
 export ORIGIN="$PLAYWRIGHT_BASE_URL" HOST="$SMOKE_HOST" PORT="$SMOKE_FRONTEND_PORT"
 export APP_URL="$PLAYWRIGHT_BASE_URL"
-export PROTOCOL_HEADER=x-forwarded-proto HOST_HEADER=x-forwarded-host
+export PROTOCOL_HEADER=x-forwarded-proto HOST_HEADER=x-forwarded-host ADDRESS_HEADER=x-facet-client-ip
 export SMOKE_HOST SMOKE_PROXY_PORT SMOKE_BACKEND_PORT SMOKE_FRONTEND_PORT
 
 (cd backend && go build -buildvcs=false -o "$scratch/facet" .)
-STRIPE_SECRET_KEY=sk_test_facet_disposable_placeholder \
-  "$scratch/facet" serve --http="$SMOKE_HOST:$SMOKE_BACKEND_PORT" --dir="$scratch/data" > "$scratch/logs/backend.log" 2>&1 &
-pids+=("$!")
+start_backend() {
+  STRIPE_SECRET_KEY=sk_test_facet_disposable_placeholder \
+    "$scratch/facet" serve --http="$SMOKE_HOST:$SMOKE_BACKEND_PORT" --dir="$scratch/data" >> "$scratch/logs/backend.log" 2>&1 &
+  backend_pid=$!
+}
+start_backend
+pids+=("$backend_pid")
 node "$repo/frontend/build/index.js" > "$scratch/logs/frontend.log" 2>&1 &
 pids+=("$!")
 node "$repo/scripts/ci/smoke-proxy.mjs" > "$scratch/logs/proxy.log" 2>&1 &
@@ -99,16 +104,60 @@ await writeFile(process.env.FACET_OWNER_AUTH_FILE, JSON.stringify({
 JS
 export FACET_OWNER_AUTH_FILE="$scratch/owner-auth.json"
 
+# Each browser file starts with fresh in-memory rate buckets. The database,
+# owner session and production limits remain unchanged across the run.
+restart_backend() {
+  kill "$backend_pid"
+  wait "$backend_pid" 2>/dev/null || true
+  start_backend
+  pids[0]="$backend_pid"
+  for attempt in {1..60}; do
+    if curl -fsS "$POCKETBASE_URL/api/health" >/dev/null 2>&1; then return 0; fi
+    if ! kill -0 "$backend_pid" 2>/dev/null; then
+      echo "Smoke-test backend exited during restart" >&2
+      return 1
+    fi
+    sleep 1
+  done
+  echo "Smoke-test backend did not become ready after restart" >&2
+  return 1
+}
+
 cd frontend
 run_tests() {
-  local status=0 browser_status=0
+  local status=0 result=0 index=0 spec
   if (($# > 0)); then
     COMMERCE_FIXTURE=1 npx playwright test --output=test-results/focused "$@" || status=$?
   else
-    # Keep anonymous API traffic in its own layer, with production rate limits enabled.
     COMMERCE_FIXTURE=1 npx playwright test --project=public-api --output=test-results/public-api || status=$?
-    COMMERCE_FIXTURE=1 npx playwright test --project=source-unit --project=chromium --output=test-results/browser || browser_status=$?
-    if ((status == 0)); then status=$browser_status; fi
+    COMMERCE_FIXTURE=1 npx playwright test --project=source-unit --output=test-results/source-unit || result=$?
+    if ((status == 0)); then status=$result; fi
+
+    npx playwright test --list --project=chromium --reporter=json > "$scratch/browser-list.json"
+    node --input-type=module - "$scratch/browser-list.json" > "$scratch/browser-files" <<'JS'
+import { readFile } from 'node:fs/promises';
+import { relative, isAbsolute } from 'node:path';
+const report = JSON.parse(await readFile(process.argv[2], 'utf8'));
+const files = [...new Set(report.suites.map((suite) => suite.file))];
+if (files.length === 0) throw new Error('No browser test files discovered');
+for (const file of files) {
+  const local = relative(process.cwd(), file);
+  if (isAbsolute(local) || local.startsWith('..') || !local.endsWith('.spec.ts')) {
+    throw new Error('Unexpected browser test file');
+  }
+  console.log(local);
+}
+JS
+    local -a browser_files
+    mapfile -t browser_files < "$scratch/browser-files"
+    for spec in "${browser_files[@]}"; do
+      restart_backend || return 1
+      index=$((index + 1))
+      result=0
+      COMMERCE_FIXTURE=1 npx playwright test "$spec" --project=chromium \
+        --output="test-results/browser-$index" || result=$?
+      if ((status == 0)); then status=$result; fi
+    done
   fi
   return "$status"
 }

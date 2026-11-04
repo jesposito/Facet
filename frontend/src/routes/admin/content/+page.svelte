@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import SectionLanding from '$components/admin/section/SectionLanding.svelte';
 	import type { SectionCard } from '$components/admin/section/SectionLanding.svelte';
 
@@ -11,6 +13,10 @@
 		{ href: '/admin/settings/tags', icon: 'tag', labelKey: 'admin.sidebar.admin_tags' }
 	];
 </script>
+
+<svelte:head>
+	<title>{$t('admin.section.content.title')} | {$brandName}</title>
+</svelte:head>
 
 <SectionLanding
 	titleKey="admin.section.content.title"

@@ -3,18 +3,36 @@
 
 	import { onMount } from 'svelte';
 	import { pb, type ShareToken, type View } from '$lib/pocketbase';
-	import { collection } from '$lib/stores/demo';
+	import { getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import { adminModal } from '$lib/actions/adminModal';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
+	import { copyToClipboard as copyText } from '$lib/share';
+	import {
+		MAX_SHARE_LINK_USES,
+		isValidMaxUses,
+		localExpiryToISO,
+		regenerateShareLink
+	} from '$lib/share-links';
 
 	let loading = $state(true);
 	let tokens: ShareToken[] = $state([]);
+	let tokensError = $state(false);
 	let views: View[] = $state([]);
+	let viewsError = $state(false);
+	let viewsLoading = $state(true);
 	let showCreateModal = $state(false);
 	let creating = $state(false);
+	let regeneratingTokenId: string | null = $state(null);
+	let mounted = true;
+	let tokensRequest = 0;
+	let viewsRequest = 0;
+	let tokensController: AbortController | null = null;
+	let viewsController: AbortController | null = null;
 
 	// Form state for creating tokens
 	let newToken = $state({
@@ -27,40 +45,89 @@
 	// Store newly created token (shown once)
 	let createdToken: { raw: string; url: string } | null = $state(null);
 
-	onMount(async () => {
-		await Promise.all([loadTokens(), loadViews()]);
+	onMount(() => {
+		void Promise.all([loadTokens(), loadViews()]);
+		return () => {
+			mounted = false;
+			tokensRequest += 1;
+			viewsRequest += 1;
+			tokensController?.abort();
+			viewsController?.abort();
+		};
 	});
 
 	async function loadTokens() {
+		const request = ++tokensRequest;
+		tokensController?.abort();
+		const controller = new AbortController();
+		tokensController = controller;
+		const deadline = setTimeout(() => controller.abort(), 15_000);
+		loading = true;
+		tokensError = false;
 		try {
-			const result = await pb.collection('share_tokens').getList<ShareToken>(1, 100, {
-				sort: '-id',
-				expand: 'view_id'
-			});
-			tokens = result.items;
+			const items = await readAllRecords<ShareToken>(
+				'share_tokens',
+				{ sort: '-id', expand: 'view_id' },
+				controller.signal
+			);
+			if (!mounted || request !== tokensRequest) return;
+			tokens = items;
 		} catch (err) {
+			if (!mounted || request !== tokensRequest) return;
+			tokensError = true;
 			console.error('Failed to load tokens:', err);
 			toasts.add('error', $t('admin.tokens.toast_load_failed'));
 		} finally {
-			loading = false;
+			clearTimeout(deadline);
+			if (mounted && request === tokensRequest) {
+				loading = false;
+				tokensController = null;
+			}
 		}
 	}
 
 	async function loadViews() {
+		const request = ++viewsRequest;
+		viewsController?.abort();
+		const controller = new AbortController();
+		viewsController = controller;
+		const deadline = setTimeout(() => controller.abort(), 15_000);
+		viewsError = false;
+		viewsLoading = true;
 		try {
-			const result = await collection('views').getList<View>(1, 100, {
-				filter: "visibility = 'unlisted'",
-				sort: 'name'
-			});
-			views = result.items;
+			const items = await readAllRecords<View>(
+				getCollectionName('views'),
+				{ filter: "visibility = 'unlisted' && is_active = true", sort: 'name' },
+				controller.signal
+			);
+			if (!mounted || request !== viewsRequest) return;
+			views = items;
 		} catch (err) {
+			if (!mounted || request !== viewsRequest) return;
+			viewsError = true;
 			console.error('Failed to load views:', err);
+		} finally {
+			clearTimeout(deadline);
+			if (mounted && request === viewsRequest) {
+				viewsController = null;
+				viewsLoading = false;
+			}
 		}
 	}
 
 	async function createToken() {
+		if (creating || viewsError || viewsLoading) return;
 		if (!newToken.view_id) {
 			toasts.add('error', $t('admin.tokens.toast_select_view'));
+			return;
+		}
+		const expiresAt = localExpiryToISO(newToken.expires_at);
+		if (expiresAt === null) {
+			toasts.add('error', $t('admin.tokens.toast_invalid_expiry'));
+			return;
+		}
+		if (!isValidMaxUses(newToken.max_uses)) {
+			toasts.add('error', $t('admin.tokens.toast_invalid_max_uses'));
 			return;
 		}
 
@@ -75,7 +142,7 @@
 				body: JSON.stringify({
 					view_id: newToken.view_id,
 					name: newToken.name || undefined,
-					expires_at: newToken.expires_at || undefined,
+					expires_at: expiresAt || undefined,
 					max_uses: newToken.max_uses || 0
 				})
 			});
@@ -157,6 +224,7 @@
 	}
 
 	async function regenerateToken(token: ShareToken) {
+		if (regeneratingTokenId) return;
 		const viewName = getViewName(token);
 		const confirmed = await confirm({
 			title: $t('admin.tokens.confirm_regenerate_title'),
@@ -168,40 +236,13 @@
 		});
 		if (!confirmed) return;
 
+		regeneratingTokenId = token.id;
 		try {
-			// First revoke the old token
-			const revokeResponse = await fetch(`/api/share/revoke/${token.id}`, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${pb.authStore.token}`
-				}
-			});
-
-			if (!revokeResponse.ok) {
-				throw new Error('Failed to revoke old token');
-			}
-
-			// Then create a new token with the same settings
-			const response = await fetch('/api/share/generate', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${pb.authStore.token}`
-				},
-				body: JSON.stringify({
-					view_id: token.view_id,
-					name: token.name || undefined,
-					expires_at: token.expires_at || undefined,
-					max_uses: token.max_uses || 0
-				})
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to create new token');
-			}
-
-			const data = await response.json();
+			const data = await regenerateShareLink(
+				token.id,
+				pb.authStore.token,
+				$t('admin.tokens.toast_regenerate_failed')
+			);
 			createdToken = {
 				raw: data.token,
 				url: `${window.location.origin}/s/${data.token}`
@@ -214,12 +255,18 @@
 				'error',
 				err instanceof Error ? err.message : $t('admin.tokens.toast_regenerate_failed')
 			);
+			await loadTokens();
+		} finally {
+			regeneratingTokenId = null;
 		}
 	}
 
-	function copyToClipboard(text: string) {
-		navigator.clipboard.writeText(text);
-		toasts.add('success', $t('admin.tokens.toast_copied'));
+	async function copyToClipboard(text: string) {
+		const copied = await copyText(text);
+		toasts.add(
+			copied ? 'success' : 'error',
+			$t(copied ? 'admin.tokens.toast_copied' : 'admin.tokens.toast_copy_failed')
+		);
 	}
 
 	function resetForm() {
@@ -254,6 +301,11 @@
 		return token.use_count >= token.max_uses;
 	}
 
+	function hasUnusableFacet(token: ShareToken): boolean {
+		const view = token.expand?.view_id;
+		return !view || !view.is_active || view.visibility !== 'unlisted';
+	}
+
 	function getTokenStatus(token: ShareToken): { label: string; class: string } {
 		if (!token.is_active) {
 			return {
@@ -271,6 +323,12 @@
 			return {
 				label: $t('admin.tokens.status_max_uses'),
 				class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+			};
+		}
+		if (hasUnusableFacet(token)) {
+			return {
+				label: $t('admin.tokens.status_unusable'),
+				class: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
 			};
 		}
 		return {
@@ -386,17 +444,35 @@
 		</div>
 	{/if}
 
+	{#if tokensError}
+		<div class="card p-4 mb-6" role="alert">
+			<p class="text-sm text-red-700 dark:text-red-300 mb-3">{$t('admin.tokens.load_failed')}</p>
+			<button class="btn btn-secondary" onclick={loadTokens}>{$t('admin.tokens.retry')}</button>
+		</div>
+	{/if}
+
 	{#if loading}
 		<div class="card p-8 text-center">
 			<div class="animate-pulse">{$t('admin.tokens.loading_tokens')}</div>
 		</div>
+	{:else if tokensError && tokens.length === 0}
+		<!-- The failed read above must not be presented as an empty list. -->
 	{:else if tokens.length === 0}
 		<div class="card p-8 text-center">
 			<p class="text-gray-600 dark:text-gray-400 mb-2">{$t('admin.tokens.no_tokens')}</p>
 			<p class="text-gray-500 dark:text-gray-300 text-sm mb-4">
 				{$t('admin.tokens.no_tokens_description')}
 			</p>
-			{#if views.length === 0}
+			{#if viewsError}
+				<p class="text-sm text-gray-500 dark:text-gray-300">
+					{$t('admin.tokens.views_load_failed')}
+				</p>
+				<button class="btn btn-secondary mt-3" onclick={loadViews}
+					>{$t('admin.tokens.retry')}</button
+				>
+			{:else if viewsLoading}
+				<p role="status">{$t('shared.status.loading')}</p>
+			{:else if views.length === 0}
 				<p class="text-gray-500 dark:text-gray-300 text-sm mb-4">
 					{@html $t('admin.tokens.create_unlisted_first', {
 						values: {
@@ -443,6 +519,11 @@
 												{status.label}
 											</span>
 										</div>
+										{#if token.is_active && !isExpired(token) && !isMaxUsesReached(token) && hasUnusableFacet(token)}
+											<p class="text-sm text-gray-500 dark:text-gray-400 mb-1">
+												{$t('admin.tokens.status_unusable_reason')}
+											</p>
+										{/if}
 
 										<div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
 											<div class="flex items-center gap-4 flex-wrap">
@@ -486,8 +567,11 @@
 
 											{#if token.token_prefix}
 												<div>
-													<span class="text-gray-400">{$t('admin.tokens.prefix_label')}</span>
-													<code class="bg-gray-100 dark:bg-gray-700 px-1 rounded"
+													<span class="text-gray-600 dark:text-gray-300"
+														>{$t('admin.tokens.prefix_label')}</span
+													>
+													<code
+														class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1 rounded"
 														>{token.token_prefix}...</code
 													>
 												</div>
@@ -500,6 +584,7 @@
 											<button
 												class="btn btn-sm btn-ghost text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
 												onclick={() => regenerateToken(token)}
+												disabled={regeneratingTokenId !== null}
 												title={$t('admin.tokens.regenerate_title')}
 											>
 												<svg
@@ -545,10 +630,18 @@
 
 <!-- Create Token Modal -->
 {#if showCreateModal}
-	<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-		<div class="card w-full max-w-md">
+	<div
+		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+		use:adminModal={{ onClose: resetForm, busy: creating }}
+	>
+		<div
+			class="card w-full max-w-md max-h-[90dvh] overflow-y-auto focus:outline-none"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="token-create-title"
+		>
 			<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-				<h2 class="text-lg font-bold text-gray-900 dark:text-white">
+				<h2 id="token-create-title" class="text-lg font-bold text-gray-900 dark:text-white">
 					{$t('admin.tokens.modal_title')}
 				</h2>
 			</div>
@@ -561,7 +654,18 @@
 					>
 						{$t('admin.tokens.view_required')}
 					</label>
-					{#if views.length === 0}
+					{#if viewsError}
+						<div role="alert">
+							<p class="text-sm text-red-700 dark:text-red-300 mb-3">
+								{$t('admin.tokens.views_load_failed')}
+							</p>
+							<button type="button" class="btn btn-secondary" onclick={loadViews}>
+								{$t('admin.tokens.retry')}
+							</button>
+						</div>
+					{:else if viewsLoading}
+						<p role="status">{$t('shared.status.loading')}</p>
+					{:else if views.length === 0}
 						<p class="text-sm text-gray-500 dark:text-gray-400">
 							{@html $t('admin.tokens.no_unlisted_views', {
 								values: {
@@ -626,6 +730,8 @@
 						id="max_uses"
 						bind:value={newToken.max_uses}
 						min="0"
+						max={MAX_SHARE_LINK_USES}
+						step="1"
 						placeholder="0"
 						class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600"
 					/>
@@ -633,10 +739,14 @@
 				</div>
 
 				<div class="flex justify-end gap-2 pt-4">
-					<button type="button" class="btn btn-ghost" onclick={resetForm}>
+					<button type="button" class="btn btn-ghost" onclick={resetForm} disabled={creating}>
 						{$t('admin.tokens.cancel')}
 					</button>
-					<button type="submit" class="btn btn-primary" disabled={creating || views.length === 0}>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						disabled={creating || viewsError || viewsLoading || views.length === 0}
+					>
 						{#if creating}
 							{$t('admin.tokens.generating')}
 						{:else}

@@ -53,6 +53,10 @@ jobs:
           fetch-depth: 0  # Need full history for tags
           fetch-tags: true
 
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
       - name: Get latest tag
         id: get_tag
         run: |
@@ -393,24 +397,9 @@ jobs:
 
           # Create or update CHANGELOG.md
           if [ -f CHANGELOG.md ]; then
-            # Remove any [Unreleased] section before inserting new version
-            # This handles cases where unreleased content was manually added
-            awk '
-              BEGIN { skip = 0 }
-              /^## \[Unreleased\]/ { skip = 1; next }
-              /^## v[0-9]/ { skip = 0 }
-              /^---$/ && skip { next }
-              !skip { print }
-            ' CHANGELOG.md > CHANGELOG.clean
-            mv CHANGELOG.clean CHANGELOG.md
-
-            {
-              head -n 4 CHANGELOG.md
-              echo ""
-              cat "$ENTRY_FILE"
-              tail -n +5 CHANGELOG.md
-            } > CHANGELOG.tmp
-            mv CHANGELOG.tmp CHANGELOG.md
+            # Replace any Unreleased section with the new entry, moving its
+            # manual "### Upgrade notes" under the new version.
+            node scripts/ci/prepare-changelog.mjs CHANGELOG.md "$ENTRY_FILE"
           else
             {
               echo "# Changelog"

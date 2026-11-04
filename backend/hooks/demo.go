@@ -21,8 +21,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 
 		// GET /api/demo/status - Check if demo mode is enabled
 		se.Router.GET("/api/demo/status", func(e *core.RequestEvent) error {
-			authRecord := e.Auth
-			if authRecord == nil {
+			if !isSuperuser(e) {
 				return e.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Authentication required",
 				})
@@ -39,8 +38,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 		// POST /api/demo/enable - Enable demo mode
 		se.Router.POST("/api/demo/enable", func(e *core.RequestEvent) error {
 			app.Logger().Info("========== DEMO ENABLE REQUEST ==========")
-			authRecord := e.Auth
-			if authRecord == nil {
+			if !isSuperuser(e) {
 				return e.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Authentication required",
 				})
@@ -77,8 +75,7 @@ func RegisterDemoHandlers(app *pocketbase.PocketBase) {
 		// POST /api/demo/restore - Disable demo mode
 		se.Router.POST("/api/demo/restore", func(e *core.RequestEvent) error {
 			app.Logger().Info("========== DEMO RESTORE REQUEST ==========")
-			authRecord := e.Auth
-			if authRecord == nil {
+			if !isSuperuser(e) {
 				return e.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Authentication required",
 				})

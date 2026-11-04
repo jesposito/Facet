@@ -11,7 +11,7 @@
 //
 // Lifecycle:
 //   - comments.go: dispatched on OnRecordAfterCreateSuccess for the comments collection.
-//   - posts/talks/custom_content: dispatched when is_draft transitions from true to false.
+//   - posts/talks/custom_content: dispatched on every update that leaves the item public and not a draft.
 //   - newsletter: dispatched on confirmed subscribe (create with status="active").
 package hooks
 
@@ -58,11 +58,11 @@ func RegisterWebhookHooks(app *pocketbase.PocketBase, rl *services.RateLimitServ
 	for _, coll := range publishables {
 		name := coll
 		app.OnRecordAfterUpdateSuccess(name).BindFunc(func(e *core.RecordEvent) error {
-			// Fire on transition draft -> published. We don't have the prior
-			// record handy from PocketBase's after-update event, so we use the
-			// conservative rule: "fire whenever is_draft=false on save".
-			// Receivers are documented to deduplicate by id+published_at.
-			if !e.Record.GetBool("is_draft") {
+			// Every save of a public, non-draft item fires, not only the change
+			// from draft to published, so receivers ignore repeats by id. Private
+			// and unlisted items never fire, even when a Facet shows them, because
+			// a receiver may announce whatever it hears about.
+			if e.Record.GetString("visibility") == "public" && !e.Record.GetBool("is_draft") {
 				svc.Dispatch(services.EventPostPublished, map[string]any{
 					"id":         e.Record.Id,
 					"collection": name,

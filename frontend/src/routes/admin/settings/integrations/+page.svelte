@@ -1,16 +1,28 @@
 <script lang="ts">
 	import { run } from 'svelte/legacy';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { toasts, confirm } from '$lib/stores';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import SettingsLoadError from '$components/admin/SettingsLoadError.svelte';
 	import { icon } from '$lib/icons';
 	import { preventDefault } from 'svelte/legacy';
+	import {
+		fetchSettingsJson,
+		isSettingsObject,
+		settingsRequestTimeout
+	} from '$lib/admin/settings-load';
 
+	let providersRequest: AbortController | null = null;
 	let loading = $state(true);
-	let providers: Array<Record<string, unknown>> = $state([]);
+	let loaded = $state(false);
+	let loadFailed = $state(false);
+	let providers: Array<Record<string, unknown>> | null = $state(null);
+	let providersHeading: HTMLHeadingElement | null = $state(null);
+	let loadSequence = 0;
+	let mounted = false;
 	let showAddForm = $state(false);
 	let testing: string | null = $state(null);
 
@@ -59,8 +71,13 @@
 		return fallbackModelOptions[newProvider.type] || [];
 	});
 
+	function providersUnavailable(): boolean {
+		return !loaded || loadFailed || loading || providers === null;
+	}
+
 	// Fetch models when API key changes or provider type changes
 	async function fetchModels() {
+		if (providersUnavailable() || fetchingModels) return;
 		// Don't fetch for custom without base_url, or if no API key for non-ollama
 		if (newProvider.type === 'custom' && !newProvider.base_url) {
 			fetchedModels = [];
@@ -122,22 +139,81 @@
 		modelFetchError = '';
 	});
 
-	onMount(async () => {
-		await loadProviders();
+	onMount(() => {
+		mounted = true;
+		void loadProviders();
+	});
+
+	onDestroy(() => {
+		mounted = false;
+		loadSequence += 1;
+		providersRequest?.abort();
 	});
 
 	async function loadProviders() {
+		const sequence = ++loadSequence;
+		providersRequest?.abort();
+		providersRequest = new AbortController();
+		const controller = providersRequest;
+		loading = true;
+		const clearTimer = settingsRequestTimeout(() => controller.abort());
 		try {
-			const result = await pb.collection('ai_providers').getList(1, 50);
-			providers = result.items;
+			const records: Array<Record<string, unknown>> = [];
+			for (let pageNumber = 1; ; pageNumber += 1) {
+				const query = new URLSearchParams({ page: String(pageNumber), perPage: '500', sort: 'id' });
+				// The SDK normalizes malformed list responses to an empty list.
+				// Validate the original response before calling an empty result known.
+				const result = await fetchSettingsJson('/api/collections/ai_providers/records?' + query, {
+					headers: { Authorization: pb.authStore.token },
+					signal: controller.signal
+				});
+				if (
+					!Array.isArray(result.items) ||
+					!result.items.every(
+						(item) => isSettingsObject(item) && typeof item.id === 'string' && item.id.length > 0
+					) ||
+					typeof result.totalPages !== 'number' ||
+					!Number.isInteger(result.totalPages) ||
+					result.totalPages < 0
+				) {
+					throw new Error('Invalid provider list response');
+				}
+				records.push(...result.items);
+				if (pageNumber >= result.totalPages) break;
+			}
+			if (!mounted || sequence !== loadSequence) return;
+			providers = records;
+			loaded = true;
+			loadFailed = false;
 		} catch (err) {
+			if (!mounted || sequence !== loadSequence) return;
 			console.error('Failed to load providers:', err);
+			loadFailed = true;
 		} finally {
-			loading = false;
+			clearTimer();
+			if (mounted && sequence === loadSequence) {
+				loading = false;
+				providersRequest = null;
+			}
 		}
 	}
 
+	async function retryProviders() {
+		if (loading) return;
+		await loadProviders();
+		if (!loadFailed) {
+			await tick();
+			providersHeading?.focus();
+		}
+	}
+
+	function toggleAddForm() {
+		if (providersUnavailable()) return;
+		showAddForm = !showAddForm;
+	}
+
 	async function handleAddProvider() {
+		if (providersUnavailable()) return;
 		try {
 			// Build payload, excluding empty optional fields that might fail validation
 			// Note: Don't send api_key_encrypted - it's a hidden field set by backend hook
@@ -195,6 +271,7 @@
 	}
 
 	async function testConnection(id: string) {
+		if (providersUnavailable() || testing) return;
 		testing = id;
 		try {
 			const response = await fetch(`/api/ai/test/${id}`, {
@@ -222,6 +299,7 @@
 	}
 
 	async function deleteProvider(id: string) {
+		if (providersUnavailable()) return;
 		const confirmed = await confirm({
 			title: $t('admin.settings_page.integrations.ai_delete_title'),
 			message: $t('admin.settings_page.integrations.ai_delete_message'),
@@ -240,9 +318,10 @@
 	}
 
 	async function setDefault(id: string) {
+		if (providersUnavailable()) return;
 		try {
 			// Unset current defaults
-			for (const p of providers) {
+			for (const p of providers ?? []) {
 				if (p.is_default) {
 					await pb.collection('ai_providers').update(p.id as string, { is_default: false });
 				}
@@ -271,20 +350,38 @@
 	<!-- Integrations section -->
 	<div class="space-y-4">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+			<h1 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
 				{$t('admin.settings_page.integrations.section_title')}
-			</p>
+			</h1>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
 				{$t('admin.settings_page.integrations.section_description')}
 			</p>
 		</div>
 
+		{#if loadFailed}
+			<SettingsLoadError
+				message={$t('admin.settings_page.recoverycopy.load_error', {
+					values: { resource: $t('admin.settings_page.recoverycopy.providers') }
+				})}
+				pending={loading}
+				onretry={retryProviders}
+			/>
+		{/if}
+
 		<div class="card p-6">
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+				<h2
+					bind:this={providersHeading}
+					tabindex="-1"
+					class="text-lg font-semibold text-gray-900 dark:text-white outline-none"
+				>
 					{$t('admin.settings_page.integrations.ai_providers_title')}
 				</h2>
-				<button class="btn btn-primary btn-sm" onclick={() => (showAddForm = !showAddForm)}>
+				<button
+					class="btn btn-primary btn-sm"
+					onclick={toggleAddForm}
+					disabled={providersUnavailable()}
+				>
 					{showAddForm
 						? $t('admin.settings_page.integrations.ai_cancel')
 						: $t('admin.settings_page.integrations.ai_add_provider')}
@@ -298,182 +395,184 @@
 			{#if showAddForm}
 				<form
 					onsubmit={preventDefault(handleAddProvider)}
-					class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4 space-y-4"
+					class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4"
 				>
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div>
-							<label for="name" class="label"
-								>{$t('admin.settings_page.integrations.ai_form_name_label')}</label
-							>
-							<input
-								type="text"
-								id="name"
-								bind:value={newProvider.name}
-								class="input"
-								placeholder={$t('admin.settings_page.integrations.ai_form_name_placeholder')}
-								required
-							/>
+					<fieldset class="space-y-4" disabled={providersUnavailable()}>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="name" class="label"
+									>{$t('admin.settings_page.integrations.ai_form_name_label')}</label
+								>
+								<input
+									type="text"
+									id="name"
+									bind:value={newProvider.name}
+									class="input"
+									placeholder={$t('admin.settings_page.integrations.ai_form_name_placeholder')}
+									required
+								/>
+							</div>
+							<div>
+								<label for="type" class="label"
+									>{$t('admin.settings_page.integrations.ai_form_type_label')}</label
+								>
+								<select id="type" bind:value={newProvider.type} class="input">
+									<option value="openai"
+										>{$t('admin.settings_page.integrations.ai_form_type_openai')}</option
+									>
+									<option value="anthropic"
+										>{$t('admin.settings_page.integrations.ai_form_type_anthropic')}</option
+									>
+									<option value="ollama"
+										>{$t('admin.settings_page.integrations.ai_form_type_ollama')}</option
+									>
+									<option value="custom"
+										>{$t('admin.settings_page.integrations.ai_form_type_custom')}</option
+									>
+								</select>
+							</div>
 						</div>
-						<div>
-							<label for="type" class="label"
-								>{$t('admin.settings_page.integrations.ai_form_type_label')}</label
-							>
-							<select id="type" bind:value={newProvider.type} class="input">
-								<option value="openai"
-									>{$t('admin.settings_page.integrations.ai_form_type_openai')}</option
-								>
-								<option value="anthropic"
-									>{$t('admin.settings_page.integrations.ai_form_type_anthropic')}</option
-								>
-								<option value="ollama"
-									>{$t('admin.settings_page.integrations.ai_form_type_ollama')}</option
-								>
-								<option value="custom"
-									>{$t('admin.settings_page.integrations.ai_form_type_custom')}</option
-								>
-							</select>
-						</div>
-					</div>
 
-					<div>
-						<label for="api_key" class="label">
-							{$t('admin.settings_page.integrations.ai_form_api_key_label')}
-							{#if newProvider.type === 'ollama'}
-								<span class="text-gray-500 font-normal"
-									>{$t('admin.settings_page.integrations.ai_form_api_key_not_required')}</span
-								>
-							{/if}
-						</label>
-						<input
-							type="password"
-							id="api_key"
-							bind:value={newProvider.api_key}
-							class="input"
-							placeholder={newProvider.type === 'ollama'
-								? $t('admin.settings_page.integrations.ai_form_api_key_placeholder_optional')
-								: $t('admin.settings_page.integrations.ai_form_api_key_placeholder')}
-							required={newProvider.type !== 'ollama'}
-						/>
-					</div>
-
-					{#if newProvider.type === 'ollama' || newProvider.type === 'custom'}
 						<div>
-							<label for="base_url" class="label"
-								>{$t('admin.settings_page.integrations.ai_form_base_url_label')}</label
-							>
+							<label for="api_key" class="label">
+								{$t('admin.settings_page.integrations.ai_form_api_key_label')}
+								{#if newProvider.type === 'ollama'}
+									<span class="text-gray-500 font-normal"
+										>{$t('admin.settings_page.integrations.ai_form_api_key_not_required')}</span
+									>
+								{/if}
+							</label>
 							<input
-								type="url"
-								id="base_url"
-								bind:value={newProvider.base_url}
+								type="password"
+								id="api_key"
+								bind:value={newProvider.api_key}
 								class="input"
 								placeholder={newProvider.type === 'ollama'
-									? 'http://localhost:11434'
-									: 'https://api.example.com/v1'}
+									? $t('admin.settings_page.integrations.ai_form_api_key_placeholder_optional')
+									: $t('admin.settings_page.integrations.ai_form_api_key_placeholder')}
+								required={newProvider.type !== 'ollama'}
 							/>
 						</div>
-					{/if}
 
-					<div>
-						<div class="flex items-center justify-between mb-1">
-							<label for="model" class="label mb-0"
-								>{$t('admin.settings_page.integrations.ai_form_model_label')}</label
-							>
-							{#if newProvider.type !== 'custom' || newProvider.base_url}
-								<button
-									type="button"
-									class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center gap-1"
-									onclick={fetchModels}
-									disabled={fetchingModels ||
-										(newProvider.type !== 'ollama' && !newProvider.api_key)}
+						{#if newProvider.type === 'ollama' || newProvider.type === 'custom'}
+							<div>
+								<label for="base_url" class="label"
+									>{$t('admin.settings_page.integrations.ai_form_base_url_label')}</label
 								>
-									{#if fetchingModels}
-										<svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-											<circle
-												class="opacity-25"
-												cx="12"
-												cy="12"
-												r="10"
-												stroke="currentColor"
-												stroke-width="4"
-											></circle>
-											<path
-												class="opacity-75"
-												fill="currentColor"
-												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-											></path>
-										</svg>
-										{$t('admin.settings_page.integrations.ai_form_fetching')}
-									{:else}
-										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-											/>
-										</svg>
-										{$t('admin.settings_page.integrations.ai_form_fetch_models')}
-									{/if}
-								</button>
+								<input
+									type="url"
+									id="base_url"
+									bind:value={newProvider.base_url}
+									class="input"
+									placeholder={newProvider.type === 'ollama'
+										? 'http://localhost:11434'
+										: 'https://api.example.com/v1'}
+								/>
+							</div>
+						{/if}
+
+						<div>
+							<div class="flex items-center justify-between mb-1">
+								<label for="model" class="label mb-0"
+									>{$t('admin.settings_page.integrations.ai_form_model_label')}</label
+								>
+								{#if newProvider.type !== 'custom' || newProvider.base_url}
+									<button
+										type="button"
+										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 flex items-center gap-1"
+										onclick={fetchModels}
+										disabled={fetchingModels ||
+											(newProvider.type !== 'ollama' && !newProvider.api_key)}
+									>
+										{#if fetchingModels}
+											<svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+												<circle
+													class="opacity-25"
+													cx="12"
+													cy="12"
+													r="10"
+													stroke="currentColor"
+													stroke-width="4"
+												></circle>
+												<path
+													class="opacity-75"
+													fill="currentColor"
+													d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+												></path>
+											</svg>
+											{$t('admin.settings_page.integrations.ai_form_fetching')}
+										{:else}
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+												/>
+											</svg>
+											{$t('admin.settings_page.integrations.ai_form_fetch_models')}
+										{/if}
+									</button>
+								{/if}
+							</div>
+							{#if modelOptions.length > 0}
+								<select id="model" bind:value={newProvider.model} class="input">
+									{#each modelOptions as model}
+										<option value={model}>{model}</option>
+									{/each}
+								</select>
+								{#if fetchedModels.length > 0}
+									<p class="text-xs text-green-700 dark:text-green-400 mt-1">
+										{$t('admin.settings_page.integrations.ai_form_models_available', {
+											values: { count: fetchedModels.length }
+										})}
+									</p>
+								{/if}
+							{:else}
+								<input
+									type="text"
+									id="model"
+									bind:value={newProvider.model}
+									class="input"
+									placeholder={$t('admin.settings_page.integrations.ai_form_model_placeholder')}
+								/>
 							{/if}
-						</div>
-						{#if modelOptions.length > 0}
-							<select id="model" bind:value={newProvider.model} class="input">
-								{#each modelOptions as model}
-									<option value={model}>{model}</option>
-								{/each}
-							</select>
-							{#if fetchedModels.length > 0}
-								<p class="text-xs text-green-600 dark:text-green-400 mt-1">
-									{$t('admin.settings_page.integrations.ai_form_models_available', {
-										values: { count: fetchedModels.length }
+							{#if modelFetchError}
+								<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
+									{$t('admin.settings_page.integrations.ai_form_model_fetch_error', {
+										values: { error: modelFetchError }
 									})}
 								</p>
 							{/if}
-						{:else}
-							<input
-								type="text"
-								id="model"
-								bind:value={newProvider.model}
-								class="input"
-								placeholder={$t('admin.settings_page.integrations.ai_form_model_placeholder')}
-							/>
-						{/if}
-						{#if modelFetchError}
-							<p class="text-xs text-amber-600 dark:text-amber-400 mt-1">
-								{$t('admin.settings_page.integrations.ai_form_model_fetch_error', {
-									values: { error: modelFetchError }
-								})}
-							</p>
-						{/if}
-					</div>
+						</div>
 
-					<div class="flex items-center gap-4">
-						<label class="flex items-center gap-2">
-							<input type="checkbox" bind:checked={newProvider.is_active} class="w-4 h-4" />
-							<span>{$t('admin.settings_page.integrations.ai_form_active_label')}</span>
-						</label>
-						<label class="flex items-center gap-2">
-							<input type="checkbox" bind:checked={newProvider.is_default} class="w-4 h-4" />
-							<span>{$t('admin.settings_page.integrations.ai_form_default_label')}</span>
-						</label>
-					</div>
+						<div class="flex items-center gap-4">
+							<label class="flex items-center gap-2">
+								<input type="checkbox" bind:checked={newProvider.is_active} class="w-4 h-4" />
+								<span>{$t('admin.settings_page.integrations.ai_form_active_label')}</span>
+							</label>
+							<label class="flex items-center gap-2">
+								<input type="checkbox" bind:checked={newProvider.is_default} class="w-4 h-4" />
+								<span>{$t('admin.settings_page.integrations.ai_form_default_label')}</span>
+							</label>
+						</div>
 
-					<button type="submit" class="btn btn-primary"
-						>{$t('admin.settings_page.integrations.ai_form_submit')}</button
-					>
+						<button type="submit" class="btn btn-primary"
+							>{$t('admin.settings_page.integrations.ai_form_submit')}</button
+						>
+					</fieldset>
 				</form>
 			{/if}
 
-			{#if loading}
+			{#if loading && providers === null}
 				<div class="animate-pulse text-center py-4">
 					{$t('admin.settings_page.integrations.ai_loading')}
 				</div>
-			{:else if providers.length === 0}
+			{:else if providers?.length === 0}
 				<p class="text-gray-500 dark:text-gray-400 text-center py-8">
 					{$t('admin.settings_page.integrations.ai_empty_message')}
 				</p>
-			{:else}
+			{:else if providers}
 				<div class="space-y-3">
 					{#each providers as provider}
 						<div
@@ -529,7 +628,7 @@
 								<button
 									class="btn btn-sm btn-secondary"
 									onclick={() => testConnection(String(provider.id))}
-									disabled={testing === provider.id}
+									disabled={providersUnavailable() || testing === provider.id}
 								>
 									{#if testing === provider.id}
 										<svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -555,6 +654,7 @@
 									<button
 										class="btn btn-sm btn-secondary"
 										onclick={() => setDefault(String(provider.id))}
+										disabled={providersUnavailable()}
 									>
 										{$t('admin.settings_page.integrations.ai_set_default_button')}
 									</button>
@@ -562,6 +662,7 @@
 								<button
 									class="btn btn-danger-ghost btn-sm"
 									onclick={() => deleteProvider(String(provider.id))}
+									disabled={providersUnavailable()}
 								>
 									{$t('admin.settings_page.integrations.ai_delete_button')}
 								</button>

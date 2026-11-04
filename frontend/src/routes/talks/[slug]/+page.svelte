@@ -6,7 +6,7 @@
 	import { t } from 'svelte-i18n';
 
 	import type { PageData } from './$types';
-	import { parseMarkdown, formatDate, isFilename } from '$lib/utils';
+	import { parseMarkdown, formatCalendarDate, isFilename } from '$lib/utils';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import ShareButton from '$components/shared/ShareButton.svelte';
 	import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
@@ -52,7 +52,7 @@
 	let videoEmbed = $derived(data.talk.video_url ? getVideoEmbed(data.talk.video_url) : null);
 	let formattedDate = $derived(
 		data.talk.date
-			? formatDate(data.talk.date, { month: 'long', day: 'numeric', year: 'numeric' })
+			? formatCalendarDate(data.talk.date, { month: 'long', day: 'numeric', year: 'numeric' })
 			: null
 	);
 	const isYouTube = (url?: string) => !!url && getYouTubeId(url) !== null;

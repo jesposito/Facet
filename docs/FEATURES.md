@@ -54,7 +54,9 @@ Projects can also carry a richer page: a case study, a video course or a code wa
 
 A view is a version of your site for one audience. You might keep a recruiter view that leads with experience, a conference view that leads with talks, and a consulting view built around case studies, all from the same content. Edit one project and every view that includes it updates.
 
-Each view has its own address, `/<slug>`, for example `/recruiter`. Under **Views** you can set, per view:
+The admin calls these pages **Facets**. [Explore uses and complete examples](FACETS.md): a page can be shared on its own, included in your site, or used both ways, without conversion.
+
+Each view has its own address, `/<slug>`, for example `/recruiter`. Under **Facets** you can set, per view:
 
 - which sections appear, in what order, and with which layout
 - which individual items appear in each section
@@ -64,9 +66,11 @@ Each view has its own address, `/<slug>`, for example `/recruiter`. Under **View
 - an accent colour
 - its own visibility: public, unlisted, password or private
 
-The live preview pane shows the view as visitors will see it while you edit.
+Sections can use **All public content**, which follows eligible published content automatically, or **Choose items**, which keeps your picks and order. An empty manual selection shows nothing. Older Facets retain their published selections; new Facets explicitly opt enabled sections into All public content. Contacts follow page availability, and testimonials must be approved and match any configured list.
 
-**The default view** is what visitors see at `/`. Facet uses the view marked as default, provided it's active and public. If there isn't one, it uses the first active public view. If there are no public views at all, it builds a homepage from all your public content.
+The live preview helps you review the page while editing. Save your changes and open the actual visitor address to verify access and sharing.
+
+**The homepage** at `/` uses its own **Homepage** configuration. Facets stay at their own addresses, whether or not they appear in navigation. The legacy default-view flag does not replace the homepage.
 
 **Slugs** may contain letters, numbers, hyphens and underscores, must start with a letter or number, and can be up to 100 characters. Some words are reserved because they're already used for other pages, including `admin`, `api`, `s`, `v`, `posts`, `projects`, `talks`, `courses`, `health`, `login`, `profile`, `testimonial`, `unsubscribe` and `facet` ([full list](../frontend/src/params.ts)).
 
@@ -80,7 +84,7 @@ Visibility works at two levels, and the word "unlisted" means something differen
 
 | View visibility | Who can open it |
 |-----------------|-----------------|
-| Public | Anyone. Listed in your site navigation and sitemap. |
+| Public | Anyone. Eligible for site navigation when active; you choose its navigation entry separately. Public active pages can appear in the sitemap. |
 | Unlisted | Only people with a [share link](#share-links). Without one, the address returns "not found". |
 | Password | Anyone who knows the password you set ([below](#password-protected-views)) |
 | Private | Only you, while signed in |
@@ -91,15 +95,15 @@ Visibility works at two levels, and the word "unlisted" means something differen
 |-----------------|--------------|
 | Public | Appears in any view that includes it, on index pages, in RSS, the sitemap and the API |
 | Unlisted | Appears in views that include it, and anyone with its direct URL can open it. Left out of the `/posts` and `/talks` index pages, RSS, `talks.ics`, the sitemap, the all-content homepage fallback and the API ([source](../backend/hooks/view.go)). |
-| Private | Never shown to visitors |
+| Private | Hidden from general public pages. An explicit Facet grant can expose a selected item to people who can open that Facet. Drafts stay hidden. |
 
-So an unlisted *view* is gated, but an unlisted *item* is only kept out of listings, feeds and search engines. Anyone who has its address, or who can see a view that includes it, can still read it. If something must stay hidden, make it private, or put it in an unlisted or password view and make sure it isn't public elsewhere.
+So an unlisted *view* is gated, but an unlisted *item* is only kept out of listings, feeds and search engines. Anyone who has its address, or who can see a view that includes it, can still read it. If something must stay hidden, make it private and don't select it in a Facet, or put it in an unlisted or password view and make sure it isn't public elsewhere.
 
 Contact methods also have per-view switches, so recruiters can see your phone number while conference visitors see only your social links.
 
 ## Share links
 
-Share links let you send an unlisted view to specific people. Create them in a view's editor under **Views**, or on the **Share Tokens** page (`/admin/tokens`).
+Share links grant access to an unlisted Facet to anyone who holds the link, including someone it is forwarded to. They aren't tied to a recipient's identity. Create them in a view's editor under **Facets**, or on the **Share Tokens** page (`/admin/tokens`).
 
 - Give each link a name, so you know who you sent it to.
 - Optionally set an expiry date and a maximum number of uses.

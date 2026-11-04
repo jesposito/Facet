@@ -219,7 +219,7 @@
 					Testimonials
 				</a>
 				<span class="text-gray-400">/</span>
-				<span class="text-gray-900 dark:text-white">Request Links</span>
+				<h1 class="text-gray-900 dark:text-white">Request Links</h1>
 			</div>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
 				Generate and manage links for collecting testimonials
@@ -228,7 +228,7 @@
 		<button
 			type="button"
 			onclick={() => (showForm = !showForm)}
-			class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+			class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 transition-colors"
 		>
 			<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"
@@ -441,7 +441,7 @@
 			<button
 				type="button"
 				onclick={() => (showForm = true)}
-				class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+				class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800"
 			>
 				Create First Link
 			</button>

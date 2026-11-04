@@ -105,7 +105,7 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 				resp["retention_warning"] = "Backup created, but old backups could not be pruned. See System Alerts."
 			}
 			return e.JSON(http.StatusOK, resp)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/admin/backup/restore - Restore from a backup
 		//
@@ -115,8 +115,8 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 		// asynchronously after a 1-second delay.
 		//
 		// After the response, the frontend polls /api/health until the
-		// new process is ready, then redirects to login (all sessions are
-		// invalidated by the restore).
+		// new process is ready, then signs this browser out and redirects to
+		// login. Other tokens follow account state in the restored database.
 		se.Router.POST("/api/admin/backup/restore", func(e *core.RequestEvent) error {
 			if app.Store().Has(core.StoreKeyActiveBackup) {
 				return e.JSON(http.StatusConflict, map[string]string{
@@ -169,7 +169,7 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 			return e.JSON(http.StatusOK, map[string]string{
 				"message": "Restore initiated. The server will restart momentarily.",
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// GET /api/admin/backup/status - Get backup status and list
 		se.Router.GET("/api/admin/backup/status", func(e *core.RequestEvent) error {
@@ -193,7 +193,7 @@ func RegisterBackupHooks(app *pocketbase.PocketBase) {
 				"backups":     backups,
 				"total_count": len(backups),
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

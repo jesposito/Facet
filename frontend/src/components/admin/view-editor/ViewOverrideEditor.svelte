@@ -7,6 +7,7 @@
 	 */
 	import { OVERRIDABLE_FIELDS } from '$lib/pocketbase';
 	import { icon } from '$lib/icons';
+	import { adminModal } from '$lib/actions/adminModal';
 	import type { OverrideEditorState } from '$lib/view-editor/types';
 	import { t } from 'svelte-i18n';
 
@@ -94,19 +95,36 @@
 	}
 </script>
 
-<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-	<div class="card w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+<div
+	class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+	use:adminModal={{ onClose }}
+>
+	<div
+		class="card w-full max-w-2xl max-h-[90dvh] overflow-hidden flex flex-col focus:outline-none"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="view-override-title"
+		aria-describedby="view-override-item"
+	>
 		<!-- Header -->
 		<div
 			class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between"
 		>
 			<div>
-				<h2 class="text-lg font-bold text-gray-900 dark:text-white">
+				<h2
+					id="view-override-title"
+					class="text-lg font-bold text-gray-900 dark:text-white focus:outline-none"
+				>
 					{$t('admin.view_editor.override_editor.title')}
 				</h2>
-				<p class="text-sm text-gray-500">{editingOverride.itemLabel}</p>
+				<p id="view-override-item" class="text-sm text-gray-500">{editingOverride.itemLabel}</p>
 			</div>
-			<button type="button" class="btn btn-ghost" onclick={onClose}>
+			<button
+				type="button"
+				class="btn btn-ghost"
+				aria-label={$t('shared.actions.close')}
+				onclick={onClose}
+			>
 				{@html icon('x')}
 			</button>
 		</div>

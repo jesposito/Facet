@@ -135,13 +135,16 @@ type HomepageCustomContentItem struct {
 // HomepageSectionConfig represents per-section settings for the homepage
 // Mirrors the structure used in views for consistency
 type HomepageSectionConfig struct {
-	Enabled       bool           `json:"enabled"`
-	Items         []string       `json:"items,omitempty"`         // Selected item IDs (empty = all)
-	Layout        string         `json:"layout,omitempty"`        // Section layout
-	Width         string         `json:"width,omitempty"`         // Section width
-	CategoryOrder []string       `json:"categoryOrder,omitempty"` // For skills: custom category order
-	ItemConfig    map[string]any `json:"itemConfig,omitempty"`    // Per-item overrides
-	List          string         `json:"list,omitempty"`          // For testimonials: auto-include approved testimonials in this list
+	Enabled              bool              `json:"enabled"`
+	Items                []string          `json:"items,omitempty"`         // Selected item IDs (empty = all)
+	Layout               string            `json:"layout,omitempty"`        // Section layout
+	Width                string            `json:"width,omitempty"`         // Section width
+	CategoryOrder        []string          `json:"categoryOrder,omitempty"` // For skills: custom category order
+	ItemConfig           map[string]any    `json:"itemConfig,omitempty"`    // Per-item overrides
+	List                 string            `json:"list,omitempty"`          // For testimonials: auto-include approved testimonials in this list
+	FeaturedID           string            `json:"featuredId,omitempty"`    // Chooses among the section's returned testimonials
+	DisabledCategories   []string          `json:"disabledCategories,omitempty"`
+	CategoryDisplayModes map[string]string `json:"categoryDisplayModes,omitempty"`
 }
 
 // SiteNavItem represents a navigation button configuration

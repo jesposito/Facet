@@ -11,7 +11,7 @@
 
 	let { onPasswordChanged }: Props = $props();
 
-	let currentPassword = $state('changeme123'); // Default password pre-filled
+	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
 	let loading = $state(false);
@@ -121,9 +121,9 @@
 		previousActiveElement = document.activeElement as HTMLElement;
 		document.body.style.overflow = 'hidden';
 
-		// Focus the new password field
+		// Focus the first field
 		setTimeout(() => {
-			document.getElementById('new-password')?.focus();
+			document.getElementById('current-password')?.focus();
 		}, 100);
 
 		return () => {
@@ -183,7 +183,7 @@
 					bind:value={currentPassword}
 					class="input"
 					disabled={loading}
-					placeholder="changeme123"
+					autocomplete="current-password"
 				/>
 				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
 					{$t('admin.password_modal.current_password_hint')}
@@ -201,6 +201,7 @@
 					bind:value={newPassword}
 					class="input"
 					disabled={loading}
+					autocomplete="new-password"
 					placeholder={$t('admin.password_modal.new_password_placeholder')}
 					minlength="8"
 				/>
@@ -246,6 +247,7 @@
 					bind:value={confirmPassword}
 					class="input"
 					disabled={loading}
+					autocomplete="new-password"
 					placeholder={$t('admin.password_modal.confirm_password_placeholder')}
 				/>
 			</div>

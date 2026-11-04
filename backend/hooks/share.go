@@ -208,8 +208,8 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 
 		// Generate a new share token
 		se.Router.POST("/api/share/generate", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			var req struct {
@@ -259,12 +259,12 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				"token": rawToken, // Only returned once!
 				"name":  req.Name,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Revoke a share token
 		se.Router.POST("/api/share/revoke/{id}", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			tokenID := e.Request.PathValue("id")
@@ -279,12 +279,12 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "revoked"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Replace a share token, keeping its name, view, expiry and use limit
 		se.Router.POST("/api/share/regenerate/{id}", func(e *core.RequestEvent) error {
-			if e.Auth == nil {
-				return e.JSON(http.StatusUnauthorized, map[string]string{"error": "authentication required"})
+			if err := requireSuperuser(e); err != nil {
+				return err
 			}
 
 			tokenID := e.Request.PathValue("id")
@@ -303,7 +303,7 @@ func RegisterShareHooks(app *pocketbase.PocketBase, share *services.ShareService
 				"token": rawToken, // Only returned once!
 				"name":  record.GetString("name"),
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

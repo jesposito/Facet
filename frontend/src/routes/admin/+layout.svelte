@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { run } from 'svelte/legacy';
 
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/state';
@@ -16,7 +16,7 @@
 	import PasswordChangeModal from '$components/admin/PasswordChangeModal.svelte';
 	import TwoFactorModal from '$components/admin/TwoFactorModal.svelte';
 	import SetupWizard from '$components/admin/SetupWizard.svelte';
-	import { setupWizard, shouldShowWizard } from '$lib/stores/setupWizard';
+	import { setupWizard, shouldShowWizard, isSetupIncomplete } from '$lib/stores/setupWizard';
 	import { get } from 'svelte/store';
 	import type { Profile, View } from '$lib/pocketbase';
 
@@ -38,12 +38,20 @@
 	// Desktop: sidebar is persistent (current behavior)
 	let isMobile = $state(false);
 	const MOBILE_BREAKPOINT = 1024;
+	// Below the breakpoint the open sidebar is a modal drawer. The layout owns it because
+	// only the layout can reach the header, the sidebar and the main content together.
+	const drawerOpen = $derived(isMobile && $adminSidebarOpen);
+	const DRAWER_FOCUSABLE = 'a[href], button:not(:disabled)';
+	let drawerEl: HTMLDivElement | undefined = $state();
+	let menuButton: HTMLButtonElement | undefined = $state();
 
 	let profileData: Profile | null = $state(null);
 	let viewsData: View[] = $state([]);
 	let showEncryptionWarning = $state(false);
 	let encryptionKeySource = $state('');
 	let checkingSetupWizard = $state(false);
+	let setupCheckFailed = $state(false);
+	let setupIncomplete = $state(false);
 	let wizardCheckedThisSession = false;
 
 	async function check2FAStatus(): Promise<boolean> {
@@ -137,13 +145,22 @@
 		return false;
 	}
 
+	// Auto-open must not steal focus from someone already filling in a form
+	function isEditingForm(): boolean {
+		const active = document.activeElement;
+		return (
+			active instanceof HTMLElement &&
+			active.matches('input, textarea, select, [contenteditable="true"]')
+		);
+	}
+
 	async function checkSetupWizard() {
 		// Only check wizard once per page load — prevents nagging on every auth state change
 		if (wizardCheckedThisSession) return;
 
-		// Early exit: check persisted flags before making any API calls
-		const state = get(setupWizard);
-		if (state.dismissedPermanently || state.completedWizard) {
+		// Early exit: a finished wizard needs no API calls. A dismissed one still
+		// does, because the Resume action depends on whether setup is incomplete.
+		if (get(setupWizard).completedWizard) {
 			wizardCheckedThisSession = true;
 			return;
 		}
@@ -151,23 +168,35 @@
 		if (checkingSetupWizard) return;
 		checkingSetupWizard = true;
 		try {
+			// The sidebar and dashboard load these collections at the same moment. Each
+			// request here needs its own key or the SDK cancels one in favour of the other.
 			const [profileRes, viewsRes] = await Promise.all([
-				collection('profile').getList(1, 1),
-				collection('views').getList(1, 100)
+				collection('profile').getList(1, 1, { requestKey: 'setup-wizard-profile' }),
+				collection('views').getList(1, 100, { requestKey: 'setup-wizard-views' })
 			]);
 
 			profileData = (profileRes.items[0] as unknown as Profile) || null;
 			viewsData = viewsRes.items as unknown as View[];
+			setupIncomplete = isSetupIncomplete(profileData, viewsData, $demoMode);
+			setupCheckFailed = false;
+			wizardCheckedThisSession = true;
 
-			if (shouldShowWizard(profileData, viewsData, $demoMode)) {
+			if (setupIncomplete) {
+				setupWizard.prefillProfile(profileData);
+			}
+			// An open drawer also holds the keyboard, and the Resume banner covers a skipped open
+			if (shouldShowWizard(profileData, viewsData, $demoMode) && !isEditingForm() && !drawerOpen) {
 				setupWizard.open();
 			}
 		} catch (err) {
-			console.error('Failed to check setup wizard:', err);
-			// On API failure, do NOT show wizard (fail safe)
+			// A failed or cancelled check says nothing about setup, so keep the wizard
+			// closed, leave this page load unchecked and offer a retry.
+			if (!(err as { isAbort?: boolean }).isAbort) {
+				console.error('Failed to check setup wizard:', err);
+			}
+			setupCheckFailed = true;
 		} finally {
 			checkingSetupWizard = false;
-			wizardCheckedThisSession = true;
 		}
 	}
 
@@ -181,11 +210,16 @@
 		const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 		isMobile = mediaQuery.matches;
 
-		const handleMediaChange = (e: MediaQueryListEvent) => {
+		const handleMediaChange = async (e: MediaQueryListEvent) => {
+			const drawerWasOpen = drawerOpen;
 			isMobile = e.matches;
 			// When switching to mobile, close sidebar by default
 			if (e.matches) {
 				adminSidebarOpen.set(false);
+			} else if (drawerWasOpen) {
+				// The close control does not exist on desktop, so focus may need a new home
+				await tick();
+				if (document.activeElement === document.body) menuButton?.focus();
 			}
 		};
 
@@ -290,6 +324,45 @@
 		if (isMobile && $adminSidebarOpen) {
 			adminSidebarOpen.set(false);
 		}
+	});
+
+	// Explicit closes return focus to the trigger. A navigation does not call this, so
+	// SvelteKit's focus handling for the destination page stays in charge.
+	async function closeDrawer() {
+		adminSidebarOpen.set(false);
+		// The trigger stays inert until the layout has re-rendered
+		await tick();
+		menuButton?.focus();
+	}
+
+	function handleDrawerKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			// An open quick-create menu takes this Escape through its own listener
+			if (!document.querySelector('[data-quick-create-menu]')) closeDrawer();
+		} else if (e.key === 'Tab' && drawerEl) {
+			const focusable = drawerEl.querySelectorAll<HTMLElement>(DRAWER_FOCUSABLE);
+			const first = focusable[0];
+			const last = focusable[focusable.length - 1];
+			const current = document.activeElement;
+			if (!drawerEl.contains(current) || current === (e.shiftKey ? first : last)) {
+				e.preventDefault();
+				(e.shiftKey ? last : first)?.focus();
+			}
+		}
+	}
+
+	// While the drawer is open, hold the page still and keep the keyboard inside it
+	$effect(() => {
+		if (!drawerOpen || !drawerEl) return;
+		const bodyOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		document.addEventListener('keydown', handleDrawerKeydown);
+		drawerEl.querySelector<HTMLElement>(DRAWER_FOCUSABLE)?.focus();
+
+		return () => {
+			document.removeEventListener('keydown', handleDrawerKeydown);
+			document.body.style.overflow = bodyOverflow;
+		};
 	});
 
 	async function handlePasswordChanged() {
@@ -406,15 +479,16 @@
 	{@render children?.()}
 {:else if authorized}
 	<div class="admin-shell min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-clip">
-		<AdminHeader />
+		<AdminHeader bind:menuButton inert={drawerOpen} />
 
 		<div class="flex min-w-0 overflow-x-clip">
 			<!-- Mobile backdrop overlay - closes sidebar when clicked -->
 			{#if isMobile && $adminSidebarOpen}
 				<button
 					type="button"
+					tabindex="-1"
 					class="fixed inset-0 bg-black/50 z-20 lg:hidden animate-fade-in"
-					onclick={() => adminSidebarOpen.set(false)}
+					onclick={closeDrawer}
 					aria-label={$t('admin.layout.close_navigation')}
 				>
 					<!-- Visible tap-to-close affordance -->
@@ -435,7 +509,17 @@
 				</button>
 			{/if}
 
-			<AdminSidebar {isMobile} />
+			<!-- Dialog semantics sit on this wrapper because <aside> cannot take role="dialog" -->
+			<div
+				bind:this={drawerEl}
+				class={drawerOpen ? 'fixed inset-y-0 left-0 z-30 w-64' : undefined}
+				role={drawerOpen ? 'dialog' : undefined}
+				aria-modal={drawerOpen ? 'true' : undefined}
+				aria-label={drawerOpen ? $t('shared.aria.admin_navigation') : undefined}
+				inert={isMobile && !$adminSidebarOpen}
+			>
+				<AdminSidebar {isMobile} onClose={closeDrawer} />
+			</div>
 
 			<!-- Main content:
 				- Mobile: full width (no margin)
@@ -446,6 +530,7 @@
 			-->
 			<main
 				id="main-content"
+				inert={drawerOpen}
 				class="flex-1 min-w-0 p-4 lg:p-6 mt-16 transition-all duration-200 overflow-x-clip w-full max-w-full
 					{isMobile ? '' : $adminSidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}
 					{!isMobile && $userPreferences.livePreviewEnabled
@@ -498,6 +583,41 @@
 						</div>
 					</div>
 				{/if}
+				{#if setupCheckFailed}
+					<div
+						class="mb-4 flex flex-wrap items-center justify-between gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4"
+						role="alert"
+					>
+						<p class="text-sm text-amber-800 dark:text-amber-200">
+							{$t('admin.wizard.check_failed')}
+						</p>
+						<button
+							type="button"
+							class="btn btn-secondary"
+							disabled={checkingSetupWizard}
+							onclick={checkSetupWizard}
+						>
+							{$t('admin.wizard.check_retry')}
+						</button>
+					</div>
+				{:else if setupIncomplete}
+					<div
+						class="mb-4 flex flex-wrap items-center justify-between gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4"
+						role="status"
+					>
+						<p class="text-sm text-blue-800 dark:text-blue-200">
+							{$t('admin.wizard.resume_message')}
+						</p>
+						<button
+							id="resume-setup-button"
+							type="button"
+							class="btn btn-primary"
+							onclick={() => setupWizard.resume()}
+						>
+							{$t('admin.wizard.resume_button')}
+						</button>
+					</div>
+				{/if}
 				{@render children?.()}
 			</main>
 
@@ -514,7 +634,10 @@
 			{/if}
 		</div>
 
-		<SetupWizard />
+		<SetupWizard
+			blocked={showPasswordChangeModal || showTwoFactorModal}
+			onComplete={() => (setupIncomplete = false)}
+		/>
 	</div>
 {:else if authCheckError}
 	<div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">

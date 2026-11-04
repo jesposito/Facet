@@ -145,14 +145,15 @@ Webhooks let Facet tell another system when something happens, for example to po
 
 | Event | Sent when | `data` fields |
 |-------|-----------|---------------|
-| `post.published` | A post, talk or custom content item is **saved while not a draft** | `id`, `collection`, `title`, `slug` |
+| `post.published` | A **public** post, talk or custom content item is **saved while not a draft** | `id`, `collection`, `title`, `slug` |
 | `comment.created` | A visitor posts a comment | `id`, `content_type`, `content_id`, `author_name`, `author_email`, `body`, `status` |
 | `newsletter.subscribed` | Someone subscribes | `id`, `email`, `name`, `source` |
 
-Two details about `post.published` ([source](../backend/hooks/webhooks.go)):
+Three details about `post.published` ([source](../backend/hooks/webhooks.go)):
 
-- It fires on **every save** of a published item, not only when it changes from draft to published. Fixing a typo sends it again. Use the `id` to ignore repeats.
+- It fires on **every save** of a public, published item, not only when it changes from draft to published. Fixing a typo sends it again. Use the `id` to ignore repeats.
 - It fires on updates only. An item created as already published sends nothing until it's next saved.
+- It never fires for private or unlisted items, even when a Facet shows them. Selecting a private item on a Facet sends nothing. Changing an item to public is a save, so that sends it.
 
 `comment.created` includes the commenter's email address and comment text. Only send it to systems you trust with that.
 

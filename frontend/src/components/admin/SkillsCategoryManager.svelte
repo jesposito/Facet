@@ -54,6 +54,7 @@
 		categoryDisplayModes = $bindable(),
 		sectionLayout = 'grouped',
 		showAllVisibilities = false,
+		selectionReadOnly = false,
 		onUpdate
 	}: {
 		items: SkillItem[];
@@ -63,6 +64,7 @@
 		categoryDisplayModes?: Record<string, string>;
 		sectionLayout?: string;
 		showAllVisibilities?: boolean;
+		selectionReadOnly?: boolean;
 		onUpdate: () => void;
 	} = $props();
 
@@ -228,6 +230,15 @@
 		onUpdate();
 	}
 
+	// Filtered category editors keep the positions of categories not shown here.
+	function mergeCategoryOrder(visibleOrder: string[]): string[] {
+		if (!selectionReadOnly) return visibleOrder;
+		const visible = new Set(visibleOrder);
+		let index = 0;
+		const merged = _categoryOrder.map((name) => (visible.has(name) ? visibleOrder[index++] : name));
+		return [...merged, ...visibleOrder.slice(index)];
+	}
+
 	// Handle category drag-and-drop
 	function handleCategoryDndConsider(
 		e: CustomEvent<{ items: Array<{ id: string; name: string }> }>
@@ -245,7 +256,7 @@
 		// Filter out placeholder and update both categoryItems and categoryOrder
 		const filteredItems = e.detail.items.filter((item) => item.id !== SHADOW_PLACEHOLDER_ITEM_ID);
 		categoryItems = filteredItems;
-		categoryOrder = filteredItems.map((c) => c.name);
+		categoryOrder = mergeCategoryOrder(filteredItems.map((c) => c.name));
 		// Clear dragging state after updating order
 		isCategoryDragging = false;
 		onUpdate();
@@ -261,7 +272,7 @@
 		const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
 		[newItems[idx], newItems[targetIdx]] = [newItems[targetIdx], newItems[idx]];
 		categoryItems = newItems;
-		categoryOrder = newItems.map((c) => c.name);
+		categoryOrder = mergeCategoryOrder(newItems.map((c) => c.name));
 		onUpdate();
 	}
 
@@ -374,7 +385,7 @@
 	<ReorderAnnouncer bind:this={reorderAnnouncer} />
 	<div class="flex items-center justify-between mb-3">
 		<p class="text-sm text-gray-600 dark:text-gray-400">
-			{$t('admin.view_editor.skills_categories.description')}
+			{#if !selectionReadOnly}{$t('admin.view_editor.skills_categories.description')}{/if}
 		</p>
 	</div>
 
@@ -394,6 +405,8 @@
 				{@const categorySkills = getSelectableCategorySkills(category)}
 
 				<div
+					role="listitem"
+					aria-label={category}
 					class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 {isDisabled
 						? 'opacity-60'
 						: ''}"
@@ -520,6 +533,7 @@
 								type="button"
 								class="p-1.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-700 flex-shrink-0"
 								onclick={() => toggleCategoryExpand(category)}
+								aria-expanded={isExpanded}
 								aria-label={isExpanded
 									? $t('admin.view_editor.skills_categories.collapse', { values: { category } })
 									: $t('admin.view_editor.skills_categories.expand', { values: { category } })}
@@ -546,132 +560,154 @@
 						<div
 							class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/30"
 						>
-							<div class="flex items-center justify-between mb-2">
-								<p class="text-xs text-gray-500">
-									{selectedCount === 0
-										? $t('admin.view_editor.skills_categories.none_selected_hint')
-										: $t('admin.view_editor.skills_categories.drag_hint')}
-								</p>
-								<div class="flex gap-2">
-									<button
-										type="button"
-										class="text-xs text-primary-600 hover:underline"
-										onclick={() => selectAllInCategory(category)}
-									>
-										{$t('admin.view_editor.sections.select_all')}
-									</button>
-									<button
-										type="button"
-										class="text-xs text-gray-500 hover:underline"
-										onclick={() => clearAllInCategory(category)}
-									>
-										{$t('admin.view_editor.sections.clear')}
-									</button>
-								</div>
-							</div>
-
-							<div
-								class="space-y-1 max-h-48 overflow-y-auto"
-								use:dndzone={{
-									items: categorySkills,
-									flipDurationMs,
-									type: `skills-${category}`,
-									dragDisabled: false,
-									dropFromOthersDisabled: true
-								}}
-								onconsider={(e: any) => handleSkillDndConsider(category, e)}
-								onfinalize={(e: any) => handleSkillDndFinalize(category, e)}
-							>
-								{#each categorySkills as skill, skillIdx (skill.id)}
-									{@const isSelected = _selectedItems.includes(skill.id)}
-									<div
-										class="flex items-center gap-2 p-2 rounded bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
-										animate:flip={{ duration: flipDurationMs }}
-									>
-										<!-- Drag Handle -->
-										<div
-											class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-											title={$t('admin.view_editor.sections.drag_to_reorder')}
+							{#if selectionReadOnly}
+								<ul class="space-y-2">
+									{#each categorySkills as skill (skill.id)}
+										<li class="text-sm text-gray-700 dark:text-gray-300 break-words">
+											{skill.label}
+										</li>
+									{/each}
+								</ul>
+							{:else}
+								<div class="flex items-center justify-between mb-2">
+									<p class="text-xs text-gray-500">
+										{selectedCount === 0
+											? $t('admin.view_editor.skills_categories.none_selected_hint')
+											: $t('admin.view_editor.skills_categories.drag_hint')}
+									</p>
+									<div class="flex gap-2">
+										<button
+											type="button"
+											class="text-xs text-primary-600 hover:underline"
+											onclick={() => selectAllInCategory(category)}
 										>
-											<svg
-												class="w-4 h-4 text-gray-400"
-												fill="none"
-												viewBox="0 0 24 24"
-												stroke="currentColor"
-												stroke-width="2"
-											>
-												<path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16" />
-											</svg>
-										</div>
-
-										<!-- Keyboard-accessible reorder controls (complement drag) -->
-										<div class="flex flex-col flex-shrink-0">
-											<button
-												type="button"
-												data-move="up"
-												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-												disabled={skillIdx === 0}
-												onclick={(e) => moveSkill(category, skillIdx, 'up', e.currentTarget)}
-												aria-label={$t('admin.view_editor.skills_categories.skill_move_up', {
-													values: { skill: skill.label }
-												})}
-											>
-												<svg
-													class="w-3 h-3"
-													fill="none"
-													viewBox="0 0 24 24"
-													stroke="currentColor"
-													stroke-width="2.5"
-													aria-hidden="true"
-												>
-													<path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
-												</svg>
-											</button>
-											<button
-												type="button"
-												data-move="down"
-												class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-												disabled={skillIdx === categorySkills.length - 1}
-												onclick={(e) => moveSkill(category, skillIdx, 'down', e.currentTarget)}
-												aria-label={$t('admin.view_editor.skills_categories.skill_move_down', {
-													values: { skill: skill.label }
-												})}
-											>
-												<svg
-													class="w-3 h-3"
-													fill="none"
-													viewBox="0 0 24 24"
-													stroke="currentColor"
-													stroke-width="2.5"
-													aria-hidden="true"
-												>
-													<path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-												</svg>
-											</button>
-										</div>
-
-										<!-- Checkbox + Label -->
-										<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-										<label
-											class="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
-											onpointerdown={(e) => e.stopPropagation()}
-											onmousedown={(e) => e.stopPropagation()}
-											ontouchstart={(e) => e.stopPropagation()}
+											{$t('admin.view_editor.sections.select_all')}
+										</button>
+										<button
+											type="button"
+											class="text-xs text-gray-500 hover:underline"
+											onclick={() => clearAllInCategory(category)}
 										>
-											<input
-												type="checkbox"
-												checked={isSelected}
-												onchange={() => toggleSkill(skill.id)}
-												onclick={(e) => e.stopPropagation()}
-												class="w-4 h-4 text-primary-600 rounded border-gray-300"
-											/>
-											<span class="text-sm text-gray-700 dark:text-gray-300 truncate">
-												{skill.label}
-											</span>
-										</label>
+											{$t('admin.view_editor.sections.clear')}
+										</button>
 									</div>
-								{/each}
-							</div>
+								</div>
+
+								<div
+									class="space-y-1 max-h-48 overflow-y-auto"
+									use:dndzone={{
+										items: categorySkills,
+										flipDurationMs,
+										type: `skills-${category}`,
+										dragDisabled: false,
+										dropFromOthersDisabled: true
+									}}
+									onconsider={(e: any) => handleSkillDndConsider(category, e)}
+									onfinalize={(e: any) => handleSkillDndFinalize(category, e)}
+								>
+									{#each categorySkills as skill, skillIdx (skill.id)}
+										{@const isSelected = _selectedItems.includes(skill.id)}
+										<div
+											class="flex items-center gap-2 p-2 rounded bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
+											animate:flip={{ duration: flipDurationMs }}
+										>
+											<!-- Drag Handle -->
+											<div
+												class="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+												title={$t('admin.view_editor.sections.drag_to_reorder')}
+											>
+												<svg
+													class="w-4 h-4 text-gray-400"
+													fill="none"
+													viewBox="0 0 24 24"
+													stroke="currentColor"
+													stroke-width="2"
+												>
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														d="M4 8h16M4 16h16"
+													/>
+												</svg>
+											</div>
+
+											<!-- Keyboard-accessible reorder controls (complement drag) -->
+											<div class="flex flex-col flex-shrink-0">
+												<button
+													type="button"
+													data-move="up"
+													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+													disabled={skillIdx === 0}
+													onclick={(e) => moveSkill(category, skillIdx, 'up', e.currentTarget)}
+													aria-label={$t('admin.view_editor.skills_categories.skill_move_up', {
+														values: { skill: skill.label }
+													})}
+												>
+													<svg
+														class="w-3 h-3"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="2.5"
+														aria-hidden="true"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M5 15l7-7 7 7"
+														/>
+													</svg>
+												</button>
+												<button
+													type="button"
+													data-move="down"
+													class="p-0.5 rounded hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
+													disabled={skillIdx === categorySkills.length - 1}
+													onclick={(e) => moveSkill(category, skillIdx, 'down', e.currentTarget)}
+													aria-label={$t('admin.view_editor.skills_categories.skill_move_down', {
+														values: { skill: skill.label }
+													})}
+												>
+													<svg
+														class="w-3 h-3"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+														stroke-width="2.5"
+														aria-hidden="true"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															d="M19 9l-7 7-7-7"
+														/>
+													</svg>
+												</button>
+											</div>
+
+											<!-- Checkbox + Label -->
+											<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+											<label
+												class="flex items-center gap-2 flex-1 cursor-pointer min-w-0"
+												onpointerdown={(e) => e.stopPropagation()}
+												onmousedown={(e) => e.stopPropagation()}
+												ontouchstart={(e) => e.stopPropagation()}
+											>
+												<input
+													type="checkbox"
+													checked={isSelected}
+													onchange={() => toggleSkill(skill.id)}
+													onclick={(e) => e.stopPropagation()}
+													class="w-4 h-4 text-primary-600 rounded border-gray-300"
+												/>
+												<span class="text-sm text-gray-700 dark:text-gray-300 truncate">
+													{skill.label}
+												</span>
+											</label>
+										</div>
+									{/each}
+								</div>
+							{/if}
 						</div>
 					{/if}
 				</div>

@@ -3,6 +3,7 @@
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
+	import { parseMarkdown } from '$lib/utils';
 	import {
 		latestVersion,
 		newVersionAvailable,
@@ -48,6 +49,7 @@
 		bugs: string[];
 		features: string[];
 		other: string[];
+		upgradeNotes: string[];
 		prLinks: string;
 	}
 	let allChangelogEntries: ChangelogEntry[] = $state([]);
@@ -238,15 +240,29 @@
 				bugs: [],
 				features: [],
 				other: [],
+				upgradeNotes: [],
 				prLinks: ''
 			};
 
 			let currentSection = '';
+			// ### Upgrade notes keeps bold sub-labels such as **API keys:**. In the legacy
+			// bold form those labels are peers, so they end the notes.
+			let legacyNotes = false;
 			for (let i = 1; i < lines.length; i++) {
 				const line = lines[i].trim();
 				if (!line || line === '---') continue;
 
-				if (line.startsWith('**Bugs Fixed:**')) {
+				const legacyHeading = line.match(/^\*\*Upgrade notes:?\*\*:?\s*(.*)$/i);
+				if (/^###\s+Upgrade notes:?$/i.test(line)) {
+					currentSection = 'upgradeNotes';
+					legacyNotes = false;
+				} else if (legacyHeading) {
+					currentSection = 'upgradeNotes';
+					legacyNotes = true;
+					if (legacyHeading[1]) entry.upgradeNotes.push(legacyHeading[1]);
+				} else if (/^#{1,3}\s/.test(line)) {
+					currentSection = '';
+				} else if (line.startsWith('**Bugs Fixed:**')) {
 					currentSection = 'bugs';
 				} else if (line.startsWith('**New Features:**')) {
 					currentSection = 'features';
@@ -255,6 +271,17 @@
 				} else if (line.startsWith('**Pull Requests:**')) {
 					entry.prLinks = line.replace('**Pull Requests:**', '').trim();
 					currentSection = '';
+				} else if (currentSection === 'upgradeNotes') {
+					const isLabel = /^\*\*[^*]+:\*\*/.test(line);
+					if (line.startsWith('- ')) {
+						entry.upgradeNotes.push(line.substring(2).trim());
+					} else if (isLabel && legacyNotes) {
+						currentSection = '';
+					} else if (!isLabel && lines[i - 1].trim() && entry.upgradeNotes.length > 0) {
+						entry.upgradeNotes[entry.upgradeNotes.length - 1] += ` ${line}`;
+					} else {
+						entry.upgradeNotes.push(line);
+					}
 				} else if (line.startsWith('- ') && currentSection) {
 					const item = line.substring(2).trim();
 					if (currentSection === 'bugs') entry.bugs.push(item);
@@ -263,7 +290,12 @@
 				}
 			}
 
-			if (entry.bugs.length > 0 || entry.features.length > 0 || entry.other.length > 0) {
+			if (
+				entry.bugs.length > 0 ||
+				entry.features.length > 0 ||
+				entry.other.length > 0 ||
+				entry.upgradeNotes.length > 0
+			) {
 				entries.push(entry);
 			}
 		}
@@ -401,7 +433,7 @@
 						href="https://buymeacoffee.com/jesposito"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-colors"
+						class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-gray-900 font-medium rounded-lg transition-colors"
 					>
 						<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
 							<path
@@ -641,6 +673,24 @@
 								<span class="text-xs text-gray-500 dark:text-gray-400">{entry.date}</span>
 							</div>
 
+							{#if entry.upgradeNotes.length > 0}
+								<div class="mb-2" data-testid="upgrade-notes">
+									<h3 class="text-xs font-semibold text-amber-800 dark:text-amber-300 uppercase">
+										{$t('admin.about_page.upgrade_notes')}
+									</h3>
+									<ul class="mt-1 text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
+										{#each entry.upgradeNotes as note}
+											<li class="flex items-start gap-2">
+												<span class="text-amber-600 mt-0.5" aria-hidden="true">•</span>
+												<div class="min-w-0 break-words [&_a]:underline">
+													{@html parseMarkdown(note)}
+												</div>
+											</li>
+										{/each}
+									</ul>
+								</div>
+							{/if}
+
 							{#if entry.bugs.length > 0}
 								<div class="mb-2">
 									<span class="text-xs font-semibold text-red-600 dark:text-red-400 uppercase"
@@ -659,7 +709,7 @@
 
 							{#if entry.features.length > 0}
 								<div class="mb-2">
-									<span class="text-xs font-semibold text-green-600 dark:text-green-400 uppercase"
+									<span class="text-xs font-semibold text-green-700 dark:text-green-400 uppercase"
 										>{$t('admin.about_page.new_features')}</span
 									>
 									<ul class="mt-1 text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
@@ -704,7 +754,7 @@
 						href="https://github.com/jesposito/Facet/blob/main/CHANGELOG.md"
 						target="_blank"
 						rel="noopener noreferrer"
-						class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+						class="text-sm text-primary-700 dark:text-primary-400 hover:underline"
 					>
 						{$t('admin.about_page.view_full_changelog')}
 					</a>

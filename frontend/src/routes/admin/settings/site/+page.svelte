@@ -1,21 +1,30 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
-	import { pb, type Profile } from '$lib/pocketbase';
+	import { onDestroy, onMount, tick } from 'svelte';
+	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
+	import { adminModal } from '$lib/actions/adminModal';
 	import { analyzeCustomCSSContrast } from '$lib/a11y/custom-css-contrast';
 	import PageHelp from '$components/admin/PageHelp.svelte';
 	import LanguageSwitcher from '$components/admin/LanguageSwitcher.svelte';
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
+	import SettingsLoadError from '$components/admin/SettingsLoadError.svelte';
+	import { fetchSettingsJson } from '$lib/admin/settings-load';
+
+	let mounted = false;
 
 	// Site settings (custom CSS, analytics, default theme mode)
 	let siteSettingsLoading = $state(true);
+	let siteSettingsLoaded = $state(false);
+	let siteSettingsLoadError = $state(false);
 	let siteSettingsSaving = $state(false);
+	let appearanceHeading: HTMLParagraphElement | null = $state(null);
+	let siteSettingsSequence = 0;
+	let siteSettingsRequest: AbortController | null = null;
 	let customCSS = $state('');
-	let customCSSEditor: HTMLTextAreaElement;
+	let customCSSEditor: HTMLTextAreaElement | undefined = $state();
 	const customCSSCount = $derived(Array.from(customCSS.trim()).length);
 	const customCSSOverLimit = $derived(customCSSCount > 20000);
 	let gaMeasurementId = $state('');
@@ -68,14 +77,20 @@
 
 	// Favicon state
 	let faviconUrl: string | null = $state(null);
+	let loadedFaviconUrl: string | null = $state(null);
 	let faviconFile: File | null = $state(null);
 	let faviconBlobUrl: string | null = $state(null);
 	let faviconSaving = $state(false);
 
 	// SMTP/Email state
 	let smtpLoading = $state(true);
+	let smtpLoaded = $state(false);
+	let smtpLoadError = $state(false);
 	let smtpSaving = $state(false);
 	let smtpTesting = $state(false);
+	let smtpHeading: HTMLParagraphElement | null = $state(null);
+	let smtpSequence = 0;
+	let smtpRequest: AbortController | null = null;
 	let smtpSettings = $state({
 		enabled: false,
 		host: '',
@@ -93,52 +108,80 @@
 	// Export state
 	let exporting: string | null = $state(null);
 
-	// Profile is only needed to know whether the user has set one up — the
-	// accent/typography/hero controls themselves now live on /admin/homepage.
-	let profile: Profile | null = $state(null);
-
-	onMount(async () => {
-		await Promise.all([loadProfile(), loadSiteSettings(), loadSMTPSettings()]);
+	onMount(() => {
+		mounted = true;
+		void Promise.all([loadSiteSettings(), loadSMTPSettings()]);
 	});
 
-	async function loadProfile() {
-		try {
-			const records = await collection('profile').getList(1, 1);
-			if (records.items.length > 0) {
-				profile = records.items[0] as unknown as Profile;
-			}
-		} catch (err) {
-			console.error('Failed to load profile:', err);
-		}
+	onDestroy(() => {
+		mounted = false;
+		siteSettingsSequence += 1;
+		smtpSequence += 1;
+		siteSettingsRequest?.abort();
+		smtpRequest?.abort();
+		if (faviconBlobUrl) URL.revokeObjectURL(faviconBlobUrl);
+	});
+
+	function siteSettingsUnavailable(): boolean {
+		return !siteSettingsLoaded || siteSettingsLoadError || siteSettingsLoading;
 	}
 
 	async function loadSiteSettings() {
+		const sequence = ++siteSettingsSequence;
+		siteSettingsRequest?.abort();
+		siteSettingsRequest = new AbortController();
+		siteSettingsLoading = true;
 		try {
-			// Add cache buster to prevent browser from caching stale settings
-			// Signed in, so the saved Google Analytics ID comes back even
-			// while the Analytics switch hides it from visitors.
-			const response = await fetch(`/api/site-settings?_=${Date.now()}`, {
-				headers: { Authorization: pb.authStore.token || '' }
+			const data = await fetchSettingsJson(`/api/site-settings?_=${Date.now()}`, {
+				headers: { Authorization: pb.authStore.token || '' },
+				signal: siteSettingsRequest.signal
 			});
-			if (response.ok) {
-				const data = await response.json();
-				customCSS = data.custom_css || '';
-				gaMeasurementId = data.ga_measurement_id || '';
-				faviconUrl = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
-				const mode = data.default_theme_mode;
-				if (mode === 'system' || mode === 'light' || mode === 'dark') {
-					defaultThemeMode = mode;
-				}
-				design = data.design === 'soft-premium' ? 'soft-premium' : 'classic';
+			const mode = data.default_theme_mode;
+			const nextDesign = data.design;
+			if (
+				typeof data.custom_css !== 'string' ||
+				typeof data.ga_measurement_id !== 'string' ||
+				(data.favicon !== undefined && data.favicon !== null && typeof data.favicon !== 'string') ||
+				(mode !== 'system' && mode !== 'light' && mode !== 'dark') ||
+				(nextDesign !== 'classic' && nextDesign !== 'soft-premium')
+			) {
+				throw new Error('Invalid site settings response');
 			}
+			if (!mounted || sequence !== siteSettingsSequence) return;
+			if (!siteSettingsLoaded) {
+				customCSS = data.custom_css;
+				gaMeasurementId = data.ga_measurement_id;
+				const nextFavicon = data.favicon ? `${data.favicon}?v=${Date.now()}` : null;
+				faviconUrl = nextFavicon;
+				loadedFaviconUrl = nextFavicon;
+				defaultThemeMode = mode;
+				design = nextDesign;
+			}
+			siteSettingsLoaded = true;
+			siteSettingsLoadError = false;
 		} catch (err) {
+			if (!mounted || sequence !== siteSettingsSequence) return;
 			console.error('Failed to load site settings:', err);
+			siteSettingsLoadError = true;
 		} finally {
-			siteSettingsLoading = false;
+			if (mounted && sequence === siteSettingsSequence) {
+				siteSettingsLoading = false;
+				siteSettingsRequest = null;
+			}
+		}
+	}
+
+	async function retrySiteSettings() {
+		if (siteSettingsLoading) return;
+		await loadSiteSettings();
+		if (!siteSettingsLoadError) {
+			await tick();
+			appearanceHeading?.focus();
 		}
 	}
 
 	async function saveDesign(nextDesign: 'classic' | 'soft-premium') {
+		if (siteSettingsUnavailable() || savingDesign) return;
 		if (nextDesign === design) return;
 		savingDesign = true;
 		try {
@@ -194,6 +237,7 @@
 	}
 
 	async function saveDefaultThemeMode(mode: 'system' | 'light' | 'dark') {
+		if (siteSettingsUnavailable() || savingThemeMode) return;
 		if (mode === defaultThemeMode) return;
 		savingThemeMode = true;
 		try {
@@ -229,6 +273,7 @@
 	}
 
 	async function saveSiteSettings() {
+		if (siteSettingsUnavailable() || siteSettingsSaving) return;
 		if (customCSSOverLimit) {
 			customCSSEditor?.focus();
 			return;
@@ -270,6 +315,7 @@
 	const MAX_FAVICON_SIZE = 524288; // 512KB
 
 	function handleFaviconSelect(event: Event) {
+		if (siteSettingsUnavailable() || faviconSaving) return;
 		const input = event.target as HTMLInputElement;
 		if (!input.files?.length) return;
 
@@ -299,11 +345,12 @@
 			faviconBlobUrl = null;
 		}
 		faviconFile = null;
-		// Restore original favicon URL from server
-		loadSiteSettings();
+		// Restore the saved preview without replacing other unsaved settings.
+		faviconUrl = loadedFaviconUrl;
 	}
 
 	async function saveFavicon() {
+		if (siteSettingsUnavailable() || faviconSaving) return;
 		if (!faviconFile) return;
 
 		faviconSaving = true;
@@ -336,6 +383,7 @@
 			if (result.favicon) {
 				const newUrl = `${result.favicon}?${Date.now()}`;
 				faviconUrl = newUrl;
+				loadedFaviconUrl = newUrl;
 				// Notify layout to update favicon in browser tab
 				window.dispatchEvent(new CustomEvent('favicon-changed', { detail: newUrl }));
 				toasts.add('success', $t('admin.settings_page.appearance.favicon_updated'));
@@ -353,6 +401,7 @@
 	}
 
 	async function removeFavicon() {
+		if (siteSettingsUnavailable() || faviconSaving) return;
 		const confirmed = await confirm({
 			title: $t('admin.settings_page.appearance.favicon_remove_title'),
 			message: $t('admin.settings_page.appearance.favicon_remove_message'),
@@ -385,6 +434,7 @@
 			}
 			faviconFile = null;
 			faviconUrl = null;
+			loadedFaviconUrl = null;
 
 			// Notify layout to revert to default favicon
 			window.dispatchEvent(new CustomEvent('favicon-changed', { detail: null }));
@@ -398,34 +448,71 @@
 		}
 	}
 
+	function smtpUnavailable(): boolean {
+		return !smtpLoaded || smtpLoadError || smtpLoading;
+	}
+
 	async function loadSMTPSettings() {
+		const sequence = ++smtpSequence;
+		smtpRequest?.abort();
+		smtpRequest = new AbortController();
+		smtpLoading = true;
 		try {
-			const response = await fetch('/api/smtp-settings', {
-				headers: { Authorization: pb.authStore.token }
+			const data = await fetchSettingsJson('/api/smtp-settings', {
+				headers: { Authorization: pb.authStore.token },
+				signal: smtpRequest.signal
 			});
-			if (response.ok) {
-				const data = await response.json();
+			if (
+				!['enabled', 'tls', 'password_set'].every((key) => typeof data[key] === 'boolean') ||
+				!['host', 'username', 'auth_method', 'sender_name', 'sender_address'].every(
+					(key) => typeof data[key] === 'string'
+				) ||
+				typeof data.port !== 'number' ||
+				!Number.isInteger(data.port) ||
+				data.port < 1 ||
+				data.port > 65535
+			)
+				throw new Error('Invalid SMTP settings response');
+			if (!mounted || sequence !== smtpSequence) return;
+			if (!smtpLoaded) {
 				smtpSettings = {
-					enabled: data.enabled || false,
-					host: data.host || '',
-					port: data.port || 587,
-					username: data.username || '',
+					enabled: data.enabled as boolean,
+					host: data.host as string,
+					port: data.port,
+					username: data.username as string,
 					password: '',
-					password_set: data.password_set || false,
-					auth_method: data.auth_method || 'PLAIN',
-					tls: data.tls !== undefined ? data.tls : true,
-					sender_name: data.sender_name || '',
-					sender_address: data.sender_address || ''
+					password_set: data.password_set as boolean,
+					auth_method: data.auth_method as string,
+					tls: data.tls as boolean,
+					sender_name: data.sender_name as string,
+					sender_address: data.sender_address as string
 				};
-			}
+			} else smtpSettings.password_set = data.password_set as boolean;
+			smtpLoaded = true;
+			smtpLoadError = false;
 		} catch (err) {
+			if (!mounted || sequence !== smtpSequence) return;
 			console.error('Failed to load SMTP settings:', err);
+			smtpLoadError = true;
 		} finally {
-			smtpLoading = false;
+			if (mounted && sequence === smtpSequence) {
+				smtpLoading = false;
+				smtpRequest = null;
+			}
+		}
+	}
+
+	async function retrySMTPSettings() {
+		if (smtpLoading) return;
+		await loadSMTPSettings();
+		if (!smtpLoadError) {
+			await tick();
+			smtpHeading?.focus();
 		}
 	}
 
 	async function saveSMTPSettings() {
+		if (smtpUnavailable() || smtpSaving || smtpTesting) return;
 		smtpSaving = true;
 		try {
 			const payload: Record<string, unknown> = {
@@ -470,6 +557,7 @@
 	}
 
 	async function sendTestEmail() {
+		if (smtpUnavailable() || smtpTesting || smtpSaving || !smtpSettings.enabled) return;
 		smtpTesting = true;
 		try {
 			const response = await fetch('/api/smtp-settings/test', {
@@ -559,10 +647,17 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto">
+	<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+		{$t('admin.settings_page.title')}
+	</h1>
 	<!-- Appearance section -->
 	<div id="appearance" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+			<p
+				bind:this={appearanceHeading}
+				tabindex="-1"
+				class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+			>
 				{$t('admin.settings_page.appearance.section_title')}
 			</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
@@ -570,369 +665,399 @@
 			</p>
 		</div>
 
-		<!-- Brand deep link — accent color, typography, and hero layout now live
+		{#if siteSettingsLoadError}
+			<SettingsLoadError
+				message={$t('admin.settings_page.recoverycopy.load_error', {
+					values: { resource: $t('admin.settings_page.recoverycopy.appearance') }
+				})}
+				pending={siteSettingsLoading}
+				onretry={retrySiteSettings}
+			/>
+		{/if}
+		{#if siteSettingsLoaded}
+			<fieldset class="space-y-4" disabled={siteSettingsUnavailable()}>
+				<!-- Brand deep link — accent color, typography, and hero layout now live
 		     on the Homepage editor so brand stays consistent across every facet.
 		     A short pointer is kept here for users who land on Settings first. -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-				{$t('admin.settings_page.appearance.brand_card_title')}
-			</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				{$t('admin.settings_page.appearance.brand_card_description')}
-			</p>
-			<a
-				href="/admin/homepage#brand-section"
-				class="btn btn-secondary inline-flex items-center gap-2"
-			>
-				{$t('admin.settings_page.appearance.brand_card_cta')}
-				<span aria-hidden="true">→</span>
-			</a>
-		</div>
-
-		<!-- Design Style -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-				{$t('admin.settings_page.appearance.design_title')}
-			</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				{$t('admin.settings_page.appearance.design_description')}
-			</p>
-
-			<div
-				role="radiogroup"
-				aria-label={$t('admin.settings_page.appearance.design_title')}
-				class="grid grid-cols-1 sm:grid-cols-2 gap-3"
-			>
-				{#each DESIGN_OPTIONS as option, i}
-					{@const isSelected = design === option.id}
-					<button
-						type="button"
-						role="radio"
-						aria-checked={isSelected}
-						tabindex={isSelected ? 0 : -1}
-						bind:this={designOptionRefs[i]}
-						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900
-							{isSelected
-							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
-							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
-							disabled:opacity-50 disabled:cursor-not-allowed"
-						onclick={() => saveDesign(option.id)}
-						onkeydown={(event) => handleDesignKeydown(event, i)}
-						disabled={savingDesign || siteSettingsLoading}
+				<div class="card p-6">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+						{$t('admin.settings_page.appearance.brand_card_title')}
+					</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+						{$t('admin.settings_page.appearance.brand_card_description')}
+					</p>
+					<a
+						href="/admin/homepage#brand-section"
+						class="btn btn-secondary inline-flex items-center gap-2"
 					>
-						{#if isSelected}
-							<div class="absolute top-3 right-3">
-								<svg
-									class="w-5 h-5 text-primary-500"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="3"
-									aria-hidden="true"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							</div>
-						{/if}
-						{#if option.id === 'classic'}
-							<div
-								class="mb-3 h-16 rounded-lg border border-gray-200 bg-white p-3"
-								aria-hidden="true"
-							>
-								<div class="h-2 w-16 rounded-full bg-sky-600"></div>
-								<div class="mt-3 h-2 w-full rounded-full bg-gray-200"></div>
-								<div class="mt-2 h-2 w-2/3 rounded-full bg-gray-100"></div>
-							</div>
-						{:else}
-							<div
-								class="mb-3 h-16 rounded-lg border border-[#ddd1ca] bg-[#fbf8f4] p-3"
-								aria-hidden="true"
-							>
-								<div class="h-2 w-16 rounded-full bg-[#c2410c]"></div>
-								<div class="mt-3 h-2 w-full rounded-full bg-[#ece4de]"></div>
-								<div class="mt-2 h-2 w-2/3 rounded-full bg-[#ddd1ca]"></div>
-							</div>
-						{/if}
-						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
-							{$t(option.labelKey)}
-						</span>
-						<span class="block text-xs text-gray-500 dark:text-gray-400">
-							{$t(option.descKey)}
-						</span>
-					</button>
-				{/each}
-			</div>
+						{$t('admin.settings_page.appearance.brand_card_cta')}
+						<span aria-hidden="true">→</span>
+					</a>
+				</div>
 
-			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				{$t('admin.settings_page.appearance.design_help')}
-			</p>
-		</div>
+				<!-- Design Style -->
+				<div class="card p-6">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+						{$t('admin.settings_page.appearance.design_title')}
+					</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+						{$t('admin.settings_page.appearance.design_description')}
+					</p>
 
-		<!-- Default Theme Mode -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-				{$t('admin.settings_page.appearance.default_theme_title')}
-			</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				{$t('admin.settings_page.appearance.default_theme_description')}
-			</p>
-
-			<div
-				role="radiogroup"
-				aria-label={$t('admin.settings_page.appearance.default_theme_title')}
-				class="grid grid-cols-1 sm:grid-cols-3 gap-3"
-			>
-				{#each THEME_MODE_OPTIONS as option}
-					{@const isSelected = defaultThemeMode === option.id}
-					<button
-						type="button"
-						role="radio"
-						aria-checked={isSelected}
-						class="relative text-left p-4 rounded-xl border-2 transition-all duration-200 min-h-[44px]
-							{isSelected
-							? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
-							: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
-							disabled:opacity-50 disabled:cursor-not-allowed"
-						onclick={() => saveDefaultThemeMode(option.id)}
-						disabled={savingThemeMode || siteSettingsLoading}
+					<div
+						role="radiogroup"
+						aria-label={$t('admin.settings_page.appearance.design_title')}
+						class="grid grid-cols-1 sm:grid-cols-2 gap-3"
 					>
-						{#if isSelected}
-							<div class="absolute top-3 right-3">
-								<svg
-									class="w-5 h-5 text-primary-500"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									stroke-width="3"
-									aria-hidden="true"
-								>
-									<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-								</svg>
-							</div>
-						{/if}
-						<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
-							{$t(option.labelKey)}
-						</span>
-						<span class="block text-xs text-gray-500 dark:text-gray-400">
-							{$t(option.descKey)}
-						</span>
-					</button>
-				{/each}
-			</div>
-
-			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				{$t('admin.settings_page.appearance.default_theme_help')}
-			</p>
-		</div>
-
-		<!-- Favicon -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-				{$t('admin.settings_page.appearance.favicon_title')}
-			</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				{$t('admin.settings_page.appearance.favicon_description')}
-			</p>
-
-			<div class="flex items-center gap-4">
-				{#if faviconUrl}
-					<div class="relative">
-						<img
-							src={faviconUrl}
-							alt={$t('admin.settings_page.appearance.favicon_preview_alt')}
-							class="w-16 h-16 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2"
-						/>
-						{#if !faviconFile}
-							<!-- Only show remove button when not in pending upload state -->
+						{#each DESIGN_OPTIONS as option, i}
+							{@const isSelected = design === option.id}
 							<button
 								type="button"
-								onclick={removeFavicon}
-								disabled={faviconSaving || siteSettingsLoading}
-								class="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full shadow"
-								aria-label={$t('admin.settings_page.appearance.favicon_remove_label')}
+								role="radio"
+								aria-checked={isSelected}
+								tabindex={isSelected ? 0 : -1}
+								bind:this={designOptionRefs[i]}
+								class="relative text-left p-4 rounded-xl border-2 transition-all duration-200 min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900
+							{isSelected
+									? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
+									: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
+							disabled:opacity-50 disabled:cursor-not-allowed"
+								onclick={() => saveDesign(option.id)}
+								onkeydown={(event) => handleDesignKeydown(event, i)}
+								disabled={savingDesign || siteSettingsLoading}
 							>
-								<svg
-									class="w-4 h-4"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									aria-hidden="true"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M6 18L18 6M6 6l12 12"
-									/>
-								</svg>
-							</button>
-						{/if}
-					</div>
-				{/if}
-
-				<div class="flex flex-col gap-2">
-					<input
-						type="file"
-						accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,image/gif"
-						id="favicon"
-						class="hidden"
-						onchange={handleFaviconSelect}
-						disabled={siteSettingsLoading || faviconSaving}
-					/>
-					<label
-						for="favicon"
-						class="btn btn-secondary btn-sm cursor-pointer {siteSettingsLoading || faviconSaving
-							? 'opacity-50 pointer-events-none'
-							: ''}"
-					>
-						{faviconUrl
-							? $t('admin.settings_page.appearance.favicon_change_button')
-							: $t('admin.settings_page.appearance.favicon_upload_button')}
-					</label>
-					{#if faviconFile}
-						<div class="flex gap-2">
-							<button
-								type="button"
-								class="btn btn-primary btn-sm"
-								onclick={saveFavicon}
-								disabled={faviconSaving}
-							>
-								{#if faviconSaving}
-									<svg
-										class="animate-spin -ml-1 mr-2 h-4 w-4"
-										fill="none"
-										viewBox="0 0 24 24"
+								{#if isSelected}
+									<div class="absolute top-3 right-3">
+										<svg
+											class="w-5 h-5 text-primary-500"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+											aria-hidden="true"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+										</svg>
+									</div>
+								{/if}
+								{#if option.id === 'classic'}
+									<div
+										class="mb-3 h-16 rounded-lg border border-gray-200 bg-white p-3"
 										aria-hidden="true"
 									>
-										<circle
-											class="opacity-25"
-											cx="12"
-											cy="12"
-											r="10"
-											stroke="currentColor"
-											stroke-width="4"
-										></circle>
-										<path
-											class="opacity-75"
-											fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-										></path>
-									</svg>
-									{$t('admin.settings_page.appearance.favicon_saving')}
+										<div class="h-2 w-16 rounded-full bg-sky-600"></div>
+										<div class="mt-3 h-2 w-full rounded-full bg-gray-200"></div>
+										<div class="mt-2 h-2 w-2/3 rounded-full bg-gray-100"></div>
+									</div>
 								{:else}
-									{$t('admin.settings_page.appearance.favicon_save')}
+									<div
+										class="mb-3 h-16 rounded-lg border border-[#ddd1ca] bg-[#fbf8f4] p-3"
+										aria-hidden="true"
+									>
+										<div class="h-2 w-16 rounded-full bg-[#c2410c]"></div>
+										<div class="mt-3 h-2 w-full rounded-full bg-[#ece4de]"></div>
+										<div class="mt-2 h-2 w-2/3 rounded-full bg-[#ddd1ca]"></div>
+									</div>
 								{/if}
+								<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+									{$t(option.labelKey)}
+								</span>
+								<span class="block text-xs text-gray-500 dark:text-gray-400">
+									{$t(option.descKey)}
+								</span>
 							</button>
+						{/each}
+					</div>
+
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+						{$t('admin.settings_page.appearance.design_help')}
+					</p>
+				</div>
+
+				<!-- Default Theme Mode -->
+				<div class="card p-6">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+						{$t('admin.settings_page.appearance.default_theme_title')}
+					</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+						{$t('admin.settings_page.appearance.default_theme_description')}
+					</p>
+
+					<div
+						role="radiogroup"
+						aria-label={$t('admin.settings_page.appearance.default_theme_title')}
+						class="grid grid-cols-1 sm:grid-cols-3 gap-3"
+					>
+						{#each THEME_MODE_OPTIONS as option}
+							{@const isSelected = defaultThemeMode === option.id}
 							<button
 								type="button"
-								class="btn btn-secondary btn-sm"
-								onclick={cancelFaviconUpload}
-								disabled={faviconSaving}
+								role="radio"
+								aria-checked={isSelected}
+								class="relative text-left p-4 rounded-xl border-2 transition-all duration-200 min-h-[44px]
+							{isSelected
+									? 'border-primary-500 bg-primary-50 dark:bg-primary-950/20'
+									: 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}
+							disabled:opacity-50 disabled:cursor-not-allowed"
+								onclick={() => saveDefaultThemeMode(option.id)}
+								disabled={savingThemeMode || siteSettingsLoading}
 							>
-								{$t('admin.settings_page.appearance.favicon_cancel')}
+								{#if isSelected}
+									<div class="absolute top-3 right-3">
+										<svg
+											class="w-5 h-5 text-primary-500"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="3"
+											aria-hidden="true"
+										>
+											<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+										</svg>
+									</div>
+								{/if}
+								<span class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+									{$t(option.labelKey)}
+								</span>
+								<span class="block text-xs text-gray-500 dark:text-gray-400">
+									{$t(option.descKey)}
+								</span>
+							</button>
+						{/each}
+					</div>
+
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+						{$t('admin.settings_page.appearance.default_theme_help')}
+					</p>
+				</div>
+
+				<!-- Favicon -->
+				<div class="card p-6">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+						{$t('admin.settings_page.appearance.favicon_title')}
+					</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+						{$t('admin.settings_page.appearance.favicon_description')}
+					</p>
+
+					<div class="flex items-center gap-4">
+						{#if faviconUrl}
+							<div class="relative">
+								<img
+									src={faviconUrl}
+									alt={$t('admin.settings_page.appearance.favicon_preview_alt')}
+									class="w-16 h-16 object-contain rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2"
+								/>
+								{#if !faviconFile}
+									<!-- Only show remove button when not in pending upload state -->
+									<button
+										type="button"
+										onclick={removeFavicon}
+										disabled={faviconSaving || siteSettingsLoading}
+										class="absolute -top-2 -right-2 p-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full shadow"
+										aria-label={$t('admin.settings_page.appearance.favicon_remove_label')}
+									>
+										<svg
+											class="w-4 h-4"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											aria-hidden="true"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M6 18L18 6M6 6l12 12"
+											/>
+										</svg>
+									</button>
+								{/if}
+							</div>
+						{/if}
+
+						<div class="flex flex-col gap-2">
+							<input
+								type="file"
+								accept="image/png,image/x-icon,image/vnd.microsoft.icon,image/svg+xml,image/gif"
+								id="favicon"
+								class="hidden"
+								onchange={handleFaviconSelect}
+								disabled={siteSettingsLoading || faviconSaving}
+							/>
+							<label
+								for="favicon"
+								class="btn btn-secondary btn-sm cursor-pointer {siteSettingsLoading || faviconSaving
+									? 'opacity-50 pointer-events-none'
+									: ''}"
+							>
+								{faviconUrl
+									? $t('admin.settings_page.appearance.favicon_change_button')
+									: $t('admin.settings_page.appearance.favicon_upload_button')}
+							</label>
+							{#if faviconFile}
+								<div class="flex gap-2">
+									<button
+										type="button"
+										class="btn btn-primary btn-sm"
+										onclick={saveFavicon}
+										disabled={faviconSaving}
+									>
+										{#if faviconSaving}
+											<svg
+												class="animate-spin -ml-1 mr-2 h-4 w-4"
+												fill="none"
+												viewBox="0 0 24 24"
+												aria-hidden="true"
+											>
+												<circle
+													class="opacity-25"
+													cx="12"
+													cy="12"
+													r="10"
+													stroke="currentColor"
+													stroke-width="4"
+												></circle>
+												<path
+													class="opacity-75"
+													fill="currentColor"
+													d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+												></path>
+											</svg>
+											{$t('admin.settings_page.appearance.favicon_saving')}
+										{:else}
+											{$t('admin.settings_page.appearance.favicon_save')}
+										{/if}
+									</button>
+									<button
+										type="button"
+										class="btn btn-secondary btn-sm"
+										onclick={cancelFaviconUpload}
+										disabled={faviconSaving}
+									>
+										{$t('admin.settings_page.appearance.favicon_cancel')}
+									</button>
+								</div>
+							{/if}
+						</div>
+					</div>
+
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+						{$t('admin.settings_page.appearance.favicon_supported_formats')}
+					</p>
+				</div>
+
+				<!-- Custom CSS -->
+				<div class="card p-6">
+					<div class="flex flex-wrap items-start justify-between gap-3">
+						<div>
+							<h2
+								id="custom-css-title"
+								class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
+							>
+								{$t('admin.settings_page.appearance.custom_css_title')}
+							</h2>
+							<p class="text-gray-600 dark:text-gray-400 text-sm">
+								{$t('admin.settings_page.appearance.custom_css_description')}
+							</p>
+						</div>
+						<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
+							<span
+								>{$t('admin.settings_page.appearance.custom_css_char_count', {
+									values: { count: customCSSCount }
+								})}</span
+							>
+							<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
+								{@html icon('info', 'w-4 h-4 mr-1')}
+								<span class="align-middle"
+									>{$t('admin.settings_page.appearance.custom_css_selectors')}</span
+								>
 							</button>
 						</div>
-					{/if}
-				</div>
-			</div>
+					</div>
 
-			<p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
-				{$t('admin.settings_page.appearance.favicon_supported_formats')}
-			</p>
-		</div>
-
-		<!-- Custom CSS -->
-		<div class="card p-6">
-			<div class="flex flex-wrap items-start justify-between gap-3">
-				<div>
-					<h2
-						id="custom-css-title"
-						class="text-lg font-semibold text-gray-900 dark:text-white mb-2"
-					>
-						{$t('admin.settings_page.appearance.custom_css_title')}
-					</h2>
-					<p class="text-gray-600 dark:text-gray-400 text-sm">
-						{$t('admin.settings_page.appearance.custom_css_description')}
-					</p>
+					<div class="mt-4 space-y-3">
+						<textarea
+							class="input font-mono text-sm h-48"
+							placeholder={$t('admin.settings_page.appearance.custom_css_placeholder')}
+							bind:this={customCSSEditor}
+							bind:value={customCSS}
+							disabled={siteSettingsLoading || siteSettingsSaving}
+							aria-labelledby="custom-css-title"
+							aria-invalid={customCSSOverLimit}
+							aria-describedby={[
+								customCSSOverLimit && 'custom-css-limit-error',
+								customCSSContrastWarning && 'custom-css-contrast-warning'
+							]
+								.filter(Boolean)
+								.join(' ') || undefined}></textarea>
+						{#if customCSSOverLimit}
+							<p
+								id="custom-css-limit-error"
+								role="alert"
+								class="text-sm text-red-700 dark:text-red-300"
+							>
+								{$t('admin.settings_page.appearance.custom_css_limit_error')}
+							</p>
+						{/if}
+						{#if customCSSContrastWarning}
+							<p
+								id="custom-css-contrast-warning"
+								class="flex items-start gap-2 p-3 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-sm"
+							>
+								<span class="shrink-0 mt-0.5" aria-hidden="true">{@html icon('warning')}</span>
+								<span>{$t('admin.settings_page.appearance.custom_css_contrast_warning')}</span>
+							</p>
+						{/if}
+						<div class="flex justify-end">
+							<button
+								class="btn btn-primary"
+								onclick={saveSiteSettings}
+								disabled={siteSettingsSaving || siteSettingsLoading}
+							>
+								{siteSettingsSaving
+									? $t('admin.settings_page.appearance.custom_css_saving')
+									: $t('admin.settings_page.appearance.custom_css_save')}
+							</button>
+						</div>
+					</div>
 				</div>
-				<div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-					<span
-						>{$t('admin.settings_page.appearance.custom_css_char_count', {
-							values: { count: customCSSCount }
-						})}</span
-					>
-					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = true)}>
-						{@html icon('info', 'w-4 h-4 mr-1')}
-						<span class="align-middle"
-							>{$t('admin.settings_page.appearance.custom_css_selectors')}</span
-						>
-					</button>
-				</div>
-			</div>
-
-			<div class="mt-4 space-y-3">
-				<textarea
-					class="input font-mono text-sm h-48"
-					placeholder={$t('admin.settings_page.appearance.custom_css_placeholder')}
-					bind:this={customCSSEditor}
-					bind:value={customCSS}
-					disabled={siteSettingsLoading || siteSettingsSaving}
-					aria-labelledby="custom-css-title"
-					aria-invalid={customCSSOverLimit}
-					aria-describedby={[
-						customCSSOverLimit && 'custom-css-limit-error',
-						customCSSContrastWarning && 'custom-css-contrast-warning'
-					]
-						.filter(Boolean)
-						.join(' ') || undefined}></textarea>
-				{#if customCSSOverLimit}
-					<p
-						id="custom-css-limit-error"
-						role="alert"
-						class="text-sm text-red-700 dark:text-red-300"
-					>
-						{$t('admin.settings_page.appearance.custom_css_limit_error')}
-					</p>
-				{/if}
-				{#if customCSSContrastWarning}
-					<p
-						id="custom-css-contrast-warning"
-						class="flex items-start gap-2 p-3 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 text-sm"
-					>
-						<span class="shrink-0 mt-0.5" aria-hidden="true">{@html icon('warning')}</span>
-						<span>{$t('admin.settings_page.appearance.custom_css_contrast_warning')}</span>
-					</p>
-				{/if}
-				<div class="flex justify-end">
-					<button
-						class="btn btn-primary"
-						onclick={saveSiteSettings}
-						disabled={siteSettingsSaving || siteSettingsLoading}
-					>
-						{siteSettingsSaving
-							? $t('admin.settings_page.appearance.custom_css_saving')
-							: $t('admin.settings_page.appearance.custom_css_save')}
-					</button>
-				</div>
-			</div>
-		</div>
+			</fieldset>
+		{:else if siteSettingsLoading}
+			<p role="status">{$t('admin.settings_page.recoverycopy.loading')}</p>
+		{/if}
 	</div>
 
 	{#if showCSSHelp}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+		<div
+			class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+			use:adminModal={{ onClose: () => (showCSSHelp = false) }}
+		>
 			<div
-				class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl p-6 border border-gray-200 dark:border-gray-700"
+				class="bg-white dark:bg-gray-900 rounded-xl shadow-lg w-full max-w-2xl max-h-[90dvh] overflow-y-auto p-6 border border-gray-200 dark:border-gray-700 focus:outline-none"
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby="css-help-title"
+				aria-describedby="css-help-description"
 			>
 				<div class="flex items-start justify-between gap-3 mb-4">
 					<div>
-						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+						<h3
+							id="css-help-title"
+							class="text-lg font-semibold text-gray-900 dark:text-white focus:outline-none"
+						>
 							{$t('admin.settings_page.appearance.css_help_title')}
 						</h3>
-						<p class="text-sm text-gray-600 dark:text-gray-400">
+						<p id="css-help-description" class="text-sm text-gray-600 dark:text-gray-400">
 							{$t('admin.settings_page.appearance.css_help_description')}
 						</p>
 					</div>
-					<button class="btn btn-ghost btn-sm px-2" onclick={() => (showCSSHelp = false)}>
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm px-2"
+						aria-label={$t('shared.actions.close')}
+						onclick={() => (showCSSHelp = false)}
+					>
 						{@html icon('x', 'w-4 h-4')}
 					</button>
 				</div>
@@ -1088,57 +1213,65 @@ body { font-family: 'Inter', sans-serif; }
 		</div>
 	</div>
 
-	<!-- Analytics section -->
-	<div id="analytics" class="space-y-4 mb-8">
-		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-				{$t('admin.settings_page.analytics.section_title')}
-			</p>
-			<p class="text-sm text-gray-600 dark:text-gray-400">
-				{$t('admin.settings_page.analytics.section_description')}
-			</p>
-		</div>
+	{#if siteSettingsLoaded}
+		<fieldset disabled={siteSettingsUnavailable()}>
+			<!-- Analytics section -->
+			<div id="analytics" class="space-y-4 mb-8">
+				<div>
+					<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+						{$t('admin.settings_page.analytics.section_title')}
+					</p>
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						{$t('admin.settings_page.analytics.section_description')}
+					</p>
+				</div>
 
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-				{$t('admin.settings_page.analytics.ga_title')}
-			</h2>
-			<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
-				{$t('admin.settings_page.analytics.ga_description')}
-			</p>
+				<div class="card p-6">
+					<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+						{$t('admin.settings_page.analytics.ga_title')}
+					</h2>
+					<p class="text-gray-600 dark:text-gray-400 text-sm mb-4">
+						{$t('admin.settings_page.analytics.ga_description')}
+					</p>
 
-			<div class="space-y-3">
-				<label class="label" for="ga-id">{$t('admin.settings_page.analytics.ga_label')}</label>
-				<input
-					id="ga-id"
-					class="input"
-					placeholder={$t('admin.settings_page.analytics.ga_placeholder')}
-					bind:value={gaMeasurementId}
-					disabled={siteSettingsLoading || siteSettingsSaving}
-					maxlength="100"
-				/>
-				<p class="text-xs text-gray-500 dark:text-gray-400">
-					{$t('admin.settings_page.analytics.ga_help')}
-				</p>
-				<div class="flex justify-end">
-					<button
-						class="btn btn-primary"
-						onclick={saveSiteSettings}
-						disabled={siteSettingsSaving || siteSettingsLoading}
-					>
-						{siteSettingsSaving
-							? $t('admin.settings_page.analytics.ga_saving')
-							: $t('admin.settings_page.analytics.ga_save')}
-					</button>
+					<div class="space-y-3">
+						<label class="label" for="ga-id">{$t('admin.settings_page.analytics.ga_label')}</label>
+						<input
+							id="ga-id"
+							class="input"
+							placeholder={$t('admin.settings_page.analytics.ga_placeholder')}
+							bind:value={gaMeasurementId}
+							disabled={siteSettingsLoading || siteSettingsSaving}
+							maxlength="100"
+						/>
+						<p class="text-xs text-gray-500 dark:text-gray-400">
+							{$t('admin.settings_page.analytics.ga_help')}
+						</p>
+						<div class="flex justify-end">
+							<button
+								class="btn btn-primary"
+								onclick={saveSiteSettings}
+								disabled={siteSettingsSaving || siteSettingsLoading}
+							>
+								{siteSettingsSaving
+									? $t('admin.settings_page.analytics.ga_saving')
+									: $t('admin.settings_page.analytics.ga_save')}
+							</button>
+						</div>
+					</div>
 				</div>
 			</div>
-		</div>
-	</div>
+		</fieldset>
+	{/if}
 
 	<!-- Email / SMTP section -->
 	<div id="email" class="space-y-4 mb-8">
 		<div>
-			<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+			<p
+				bind:this={smtpHeading}
+				tabindex="-1"
+				class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+			>
 				{$t('admin.settings_page.email.section_title')}
 			</p>
 			<p class="text-sm text-gray-600 dark:text-gray-400">
@@ -1146,13 +1279,22 @@ body { font-family: 'Inter', sans-serif; }
 			</p>
 		</div>
 
+		{#if smtpLoadError}
+			<SettingsLoadError
+				message={$t('admin.settings_page.recoverycopy.load_error', {
+					values: { resource: $t('admin.settings_page.recoverycopy.email') }
+				})}
+				pending={smtpLoading}
+				onretry={retrySMTPSettings}
+			/>
+		{/if}
 		<div class="card p-6">
-			{#if smtpLoading}
+			{#if smtpLoading && !smtpLoaded}
 				<div class="animate-pulse text-center py-4 text-gray-500 dark:text-gray-400">
 					{$t('admin.settings_page.email.loading')}
 				</div>
-			{:else}
-				<div class="space-y-4">
+			{:else if smtpLoaded}
+				<fieldset class="space-y-4" disabled={smtpUnavailable() || smtpSaving || smtpTesting}>
 					<!-- Enable toggle -->
 					<label class="flex items-center gap-3">
 						<input
@@ -1348,7 +1490,7 @@ body { font-family: 'Inter', sans-serif; }
 								: $t('admin.settings_page.email.save_button')}
 						</button>
 					{/if}
-				</div>
+				</fieldset>
 			{/if}
 		</div>
 	</div>

@@ -237,7 +237,7 @@
 		</div>
 		<a
 			href="/admin/testimonials/requests"
-			class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+			class="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800 transition-colors"
 		>
 			<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path
@@ -303,7 +303,7 @@
 			</p>
 			<a
 				href="/admin/testimonials/requests"
-				class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+				class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-700 text-white hover:bg-primary-800"
 			>
 				Get Request Link
 			</a>

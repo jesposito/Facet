@@ -3,14 +3,19 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import { pb, type Certification } from '$lib/pocketbase';
+	import type { Certification } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
-	import { formatDate, toDateInputValue } from '$lib/utils';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
+	import { formatCalendarDate, toDateInputValue } from '$lib/utils';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -19,7 +24,18 @@
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let certifications: Certification[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('certifications');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('certifications'),
+		items: () => certifications,
+		reload: loadCertifications,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingCert: Certification | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -94,6 +110,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -112,14 +129,7 @@
 		recoveryData = null;
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingCert = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (draft?.data && Object.values(draft.data).some((v) => v !== '' && v !== false && v !== 0)) {
 			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
@@ -128,29 +138,34 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingCert = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	onMount(loadCertifications);
 
-	async function loadCertifications() {
-		loading = true;
-		try {
-			const [records, membershipResp] = await Promise.all([
-				await collection('certifications').getList(1, 100, {
-					sort: 'issuer,sort_order,-issue_date'
-				}),
-				fetch('/api/admin/view-memberships?collection=certifications', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-			certifications = records.items as unknown as Certification[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load certifications:', err);
-			toasts.add('error', 'Failed to load certifications');
-		} finally {
-			loading = false;
-		}
+	function loadCertifications() {
+		listLoad.loadMemberships('certifications', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<Certification>(
+					getCollectionName('certifications'),
+					{ sort: 'issuer,sort_order,-issue_date' },
+					signal
+				),
+			(records) => (certifications = records)
+		);
 	}
 
 	function resetForm() {
@@ -192,7 +207,7 @@
 		autosave.clearDraft();
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!name.trim()) {
 			toasts.add('error', 'Certification name is required');
 			return;
@@ -228,9 +243,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function deleteCertification(cert: Certification) {
+	const deleteCertification = listLoad.exclusive(async (cert: Certification) => {
 		const confirmed = await confirm({
 			title: 'Delete Certification',
 			message: `Are you sure you want to delete "${cert.name}"? This action cannot be undone.`,
@@ -249,9 +264,9 @@
 			console.error('Failed to delete certification:', err);
 			toasts.add('error', 'Failed to delete certification');
 		}
-	}
+	});
 
-	async function togglePublish(cert: Certification) {
+	const togglePublish = listLoad.exclusive(async (cert: Certification) => {
 		try {
 			await await collection('certifications').update(cert.id, {
 				is_draft: !cert.is_draft
@@ -265,7 +280,7 @@
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update certification');
 		}
-	}
+	});
 
 	// Group certifications by issuer
 	function groupByIssuer(certs: Certification[]): Map<string, Certification[]> {
@@ -297,56 +312,45 @@
 
 	let groupedCertifications = $derived(groupByIssuer(filteredCertifications));
 
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredCertifications.map((cert) => cert.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
+
 	function toggleSelectMode() {
 		selectMode = !selectMode;
 		if (!selectMode) selectedIds = new Set();
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) selectedIds.delete(id);
-		else selectedIds.add(id);
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(certifications.map((e) => e.id));
+		selectedIds = new Set(filteredCertifications.map((cert) => cert.id));
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) await collection('certifications').update(id, { visibility });
-			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadCertifications();
-		} catch (err) {
-			toasts.add('error', 'Failed to update visibility');
-		}
+	function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), visibility);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: 'Delete Certifications',
-			message: `Are you sure you want to delete ${ids.length} certification(s)? This action cannot be undone.`,
-			confirmText: 'Delete All',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			for (const id of ids) await collection('certifications').delete(id);
-			toasts.add('success', `Deleted ${ids.length} items`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadCertifications();
-		} catch (err) {
-			toasts.add('error', 'Failed to delete items');
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: 'Delete Certifications',
+				message: `Are you sure you want to delete ${ids.length} certification(s)? This action cannot be undone.`,
+				confirmText: 'Delete All',
+				danger: true
+			})
+		);
 	}
 </script>
 
@@ -363,7 +367,7 @@
 		</p>
 	</PageHelp>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -373,16 +377,18 @@
 		/>
 	{/if}
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={certifications.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredCertifications.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
@@ -391,11 +397,15 @@
 		</h1>
 		<div class="flex items-center gap-2">
 			{#if certifications.length > 0}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
-			<button class="btn btn-primary" onclick={openNewForm}>
+			<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 				{$t('admin.content.common.new_button', {
 					values: { type: $t('admin.content.certifications.title').slice(0, -1) }
 				})}
@@ -405,7 +415,7 @@
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -413,6 +423,17 @@
 			on:restore={handleRestoreDraft}
 			on:dismiss={handleDismissDraft}
 		/>
+	{/if}
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.certifications.title').toLowerCase()}
+		onretry={loadCertifications}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
 	{/if}
 
 	{#if loading}
@@ -563,7 +584,7 @@
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -585,6 +606,8 @@
 				</button>
 			</div>
 		</form>
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if certifications.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -634,157 +657,187 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Certifications List - Grouped by Issuer -->
-		<div class="space-y-6">
-			{#each [...groupedCertifications] as [issuerName, certs] (issuerName)}
-				<div>
-					<h2
-						class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3"
-					>
-						{issuerName}
-					</h2>
-					<div class="space-y-3">
-						{#each certs as cert (cert.id)}
-							<div
-								class="card p-4 {selectMode && selectedIds.has(cert.id)
-									? 'ring-2 ring-primary-500'
-									: ''}"
-							>
-								<div class="flex items-start justify-between gap-4">
-									{#if selectMode}
-										<input
-											type="checkbox"
-											checked={selectedIds.has(cert.id)}
-											onchange={() => toggleSelect(cert.id)}
-											class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
-										/>
-									{/if}
-									<div class="flex-1 min-w-0">
-										<div class="flex items-center gap-2 flex-wrap">
-											<h3 class="font-medium text-gray-900 dark:text-white">
-												{cert.name}
-											</h3>
-											{#if cert.is_draft}
-												<span
-													class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
-												>
-													Draft
-												</span>
-											{/if}
-											{#if cert.visibility !== 'public'}
-												<span
-													class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
-												>
-													{cert.visibility}
-												</span>
-											{/if}
-											{#if isExpired(cert)}
-												<span
-													class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded"
-												>
-													Expired
-												</span>
-											{:else if expiresSoon(cert)}
-												<span
-													class="px-2 py-0.5 text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded"
-												>
-													Expires Soon
-												</span>
-											{/if}
-										</div>
-
-										{#if memberships[cert.id]?.length}
-											<div class="flex flex-wrap gap-1 mt-2">
-												{#each memberships[cert.id].slice(0, 3) as viewRef}
-													<a
-														href={`/admin/views/${viewRef.id}`}
-														target="_blank"
-														class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-														title={`Open view: ${viewRef.name}`}
+		<fieldset class="contents" disabled={listLocked}>
+			<!-- Certifications List - Grouped by Issuer -->
+			<div class="space-y-6">
+				{#each [...groupedCertifications] as [issuerName, certs] (issuerName)}
+					<div>
+						<h2
+							class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3"
+						>
+							{issuerName}
+						</h2>
+						<div class="space-y-3">
+							{#each certs as cert (cert.id)}
+								<div
+									class="card p-4 {selectMode && selectedIds.has(cert.id)
+										? 'ring-2 ring-primary-500'
+										: ''}"
+								>
+									<div class="flex items-start justify-between gap-4">
+										{#if selectMode}
+											<input
+												type="checkbox"
+												aria-label={$t('admin.bulk_actions.select_item', {
+													values: { item: cert.name }
+												})}
+												checked={selectedIds.has(cert.id)}
+												onchange={() => toggleSelect(cert.id)}
+												class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+											/>
+										{/if}
+										<div class="flex-1 min-w-0">
+											<div class="flex items-center gap-2 flex-wrap">
+												<h3 class="font-medium text-gray-900 dark:text-white">
+													{cert.name}
+												</h3>
+												{#if cert.is_draft}
+													<span
+														class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
 													>
-														{viewRef.slug || viewRef.name}
-													</a>
-												{/each}
-												{#if memberships[cert.id].length > 3}
-													<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-														+{memberships[cert.id].length - 3}
+														Draft
+													</span>
+												{/if}
+												{#if cert.visibility !== 'public'}
+													<span
+														class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+													>
+														{cert.visibility}
+													</span>
+												{/if}
+												{#if isExpired(cert)}
+													<span
+														class="px-2 py-0.5 text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded"
+													>
+														Expired
+													</span>
+												{:else if expiresSoon(cert)}
+													<span
+														class="px-2 py-0.5 text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded"
+													>
+														Expires Soon
 													</span>
 												{/if}
 											</div>
-										{:else}
-											<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
-										{/if}
 
-										<div
-											class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
-										>
-											{#if cert.issue_date}
-												<span class="flex items-center gap-1">
-													<svg
-														class="w-4 h-4"
-														fill="none"
-														viewBox="0 0 24 24"
-														stroke="currentColor"
-													>
-														<path
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															stroke-width="2"
-															d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-														></path>
-													</svg>
-													Issued {formatDate(cert.issue_date)}
-												</span>
+											{#if memberships[cert.id]?.length}
+												<div class="flex flex-wrap gap-1 mt-2">
+													{#each memberships[cert.id].slice(0, 3) as viewRef}
+														<a
+															href={`/admin/views/${viewRef.id}`}
+															target="_blank"
+															class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+															title={`Open view: ${viewRef.name}`}
+														>
+															{viewRef.slug || viewRef.name}
+														</a>
+													{/each}
+													{#if memberships[cert.id].length > 3}
+														<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+															+{memberships[cert.id].length - 3}
+														</span>
+													{/if}
+												</div>
+											{:else if $listLoad.membershipsKnown}
+												<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
 											{/if}
-											{#if cert.expiry_date}
-												<span class="flex items-center gap-1">
-													<svg
-														class="w-4 h-4"
-														fill="none"
-														viewBox="0 0 24 24"
-														stroke="currentColor"
+
+											<div
+												class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+											>
+												{#if cert.issue_date}
+													<span class="flex items-center gap-1">
+														<svg
+															class="w-4 h-4"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																stroke-width="2"
+																d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+															></path>
+														</svg>
+														Issued {formatCalendarDate(cert.issue_date)}
+													</span>
+												{/if}
+												{#if cert.expiry_date}
+													<span class="flex items-center gap-1">
+														<svg
+															class="w-4 h-4"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																stroke-width="2"
+																d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+															></path>
+														</svg>
+														{isExpired(cert) ? 'Expired' : 'Expires'}
+														{formatCalendarDate(cert.expiry_date)}
+													</span>
+												{/if}
+												{#if cert.credential_id}
+													<span class="flex items-center gap-1">
+														<svg
+															class="w-4 h-4"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																stroke-width="2"
+																d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+															></path>
+														</svg>
+														{cert.credential_id}
+													</span>
+												{/if}
+											</div>
+
+											{#if cert.credential_url}
+												<div class="mt-2">
+													<a
+														href={cert.credential_url}
+														target="_blank"
+														rel="noopener noreferrer"
+														class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
 													>
-														<path
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															stroke-width="2"
-															d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-														></path>
-													</svg>
-													{isExpired(cert) ? 'Expired' : 'Expires'}
-													{formatDate(cert.expiry_date)}
-												</span>
-											{/if}
-											{#if cert.credential_id}
-												<span class="flex items-center gap-1">
-													<svg
-														class="w-4 h-4"
-														fill="none"
-														viewBox="0 0 24 24"
-														stroke="currentColor"
-													>
-														<path
-															stroke-linecap="round"
-															stroke-linejoin="round"
-															stroke-width="2"
-															d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
-														></path>
-													</svg>
-													{cert.credential_id}
-												</span>
+														<svg
+															class="w-3 h-3"
+															fill="none"
+															viewBox="0 0 24 24"
+															stroke="currentColor"
+														>
+															<path
+																stroke-linecap="round"
+																stroke-linejoin="round"
+																stroke-width="2"
+																d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+															></path>
+														</svg>
+														Verify Credential
+													</a>
+												</div>
 											{/if}
 										</div>
 
-										{#if cert.credential_url}
-											<div class="mt-2">
-												<a
-													href={cert.credential_url}
-													target="_blank"
-													rel="noopener noreferrer"
-													class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
-												>
+										<div class="flex items-center gap-2">
+											<button
+												class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+												onclick={() => togglePublish(cert)}
+												title={cert.is_draft ? 'Publish' : 'Unpublish'}
+											>
+												{#if cert.is_draft}
 													<svg
-														class="w-3 h-3"
+														class="w-5 h-5"
 														fill="none"
 														viewBox="0 0 24 24"
 														stroke="currentColor"
@@ -793,83 +846,68 @@
 															stroke-linecap="round"
 															stroke-linejoin="round"
 															stroke-width="2"
-															d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+															d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+														></path>
+
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
 														></path>
 													</svg>
-													Verify Credential
-												</a>
-											</div>
-										{/if}
-									</div>
-
-									<div class="flex items-center gap-2">
-										<button
-											class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-											onclick={() => togglePublish(cert)}
-											title={cert.is_draft ? 'Publish' : 'Unpublish'}
-										>
-											{#if cert.is_draft}
+												{:else}
+													<svg
+														class="w-5 h-5"
+														fill="none"
+														viewBox="0 0 24 24"
+														stroke="currentColor"
+													>
+														<path
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															stroke-width="2"
+															d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+														></path>
+													</svg>
+												{/if}
+											</button>
+											<button
+												class="p-3 text-gray-500 hover:text-blue-600"
+												onclick={() => openEditForm(cert)}
+												title="Edit"
+											>
 												<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 													<path
 														stroke-linecap="round"
 														stroke-linejoin="round"
 														stroke-width="2"
-														d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-													></path>
-
-													<path
-														stroke-linecap="round"
-														stroke-linejoin="round"
-														stroke-width="2"
-														d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+														d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
 													></path>
 												</svg>
-											{:else}
+											</button>
+											<button
+												class="p-3 text-gray-500 hover:text-red-600"
+												onclick={() => deleteCertification(cert)}
+												title="Delete"
+											>
 												<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 													<path
 														stroke-linecap="round"
 														stroke-linejoin="round"
 														stroke-width="2"
-														d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+														d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
 													></path>
 												</svg>
-											{/if}
-										</button>
-										<button
-											class="p-3 text-gray-500 hover:text-blue-600"
-											onclick={() => openEditForm(cert)}
-											title="Edit"
-										>
-											<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-												></path>
-											</svg>
-										</button>
-										<button
-											class="p-3 text-gray-500 hover:text-red-600"
-											onclick={() => deleteCertification(cert)}
-											title="Delete"
-										>
-											<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-												></path>
-											</svg>
-										</button>
+											</button>
+										</div>
 									</div>
 								</div>
-							</div>
-						{/each}
+							{/each}
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		</fieldset>
 	{/if}
 </div>

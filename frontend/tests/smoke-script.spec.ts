@@ -42,7 +42,10 @@ chmod +x "$out"
 		join(bin, 'node'),
 		`#!/usr/bin/env bash
 set -euo pipefail
-if [ "$1" = --input-type=module ]; then exit 0; fi
+if [ "$1" = --input-type=module ]; then
+  if [ "$#" -gt 1 ] && [ "$2" = - ]; then printf 'tests/example.spec.ts\\n'; fi
+  exit 0
+fi
 case "$1" in
   *frontend/build/index.js) name=frontend ;;
   *smoke-proxy.mjs) name=proxy ;;
@@ -137,7 +140,7 @@ test('smoke script forwards focused arguments and cleans up every process after 
 	}
 });
 
-test('smoke script runs public APIs first, then source-unit and browser projects', async () => {
+test('smoke script isolates browser files after public APIs and source checks', async () => {
 	const fixture = await stubFixture();
 	let logsRoot: string | undefined;
 	try {
@@ -146,10 +149,11 @@ test('smoke script runs public APIs first, then source-unit and browser projects
 		const calls = (await readFile(join(fixture.capture, 'calls'), 'utf8'))
 			.split('CALL\n')
 			.filter(Boolean);
-		expect(calls).toHaveLength(2);
+		expect(calls).toHaveLength(4);
 		expect(calls[0]).toContain('--project=public-api\n');
 		expect(calls[1]).toContain('--project=source-unit\n');
-		expect(calls[1]).toContain('--project=chromium\n');
+		expect(calls[2]).toContain('--list\n--project=chromium\n');
+		expect(calls[3]).toContain('tests/example.spec.ts\n--project=chromium\n');
 		const logs = result.stdout.match(/Smoke-test logs: (.+)/)?.[1];
 		expect(logs).toBeTruthy();
 		logsRoot = dirname(logs!);

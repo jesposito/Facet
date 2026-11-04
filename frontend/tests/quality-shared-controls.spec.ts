@@ -143,6 +143,7 @@ test('rich and markdown editables share a name and heading controls include visi
 test('default primary buttons meet text contrast', async ({ page, request }) => {
 	await setSiteDesign(request, token, 'classic');
 	await page.goto('/admin/awards');
+	await expect(page.locator('.btn-primary').first()).toBeVisible();
 
 	const results = await new AxeBuilder({ page })
 		.include('.btn-primary')

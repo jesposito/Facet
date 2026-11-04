@@ -53,6 +53,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, request, locals
 				media_urls: project.is_gated === true ? [] : project.media_urls || [],
 				visibility: project.visibility || 'public',
 				is_draft: project.is_draft || false,
+				has_downloads: project.has_downloads === true,
 				related_experience: project.related_experience_expand || [],
 				related_education: project.related_education_expand || [],
 				is_gated: project.is_gated === true,

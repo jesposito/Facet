@@ -24,6 +24,8 @@
 		Talk,
 		ItemConfig
 	} from '$lib/pocketbase';
+	import type { ItemSelection } from '$lib/pocketbase';
+	import { resolveSectionItems } from '$lib/facet-content';
 	import ProfileHero from '$components/public/ProfileHero.svelte';
 	import ExperienceSection from '$components/public/ExperienceSection.svelte';
 	import ProjectsSection from '$components/public/ProjectsSection.svelte';
@@ -33,6 +35,8 @@
 	import SkillsSection from '$components/public/SkillsSection.svelte';
 	import PostsSection from '$components/public/PostsSection.svelte';
 	import TalksSection from '$components/public/TalksSection.svelte';
+	import TestimonialsSection from '$components/public/TestimonialsSection.svelte';
+	import ContactMethodsList from '$components/public/ContactMethodsList.svelte';
 	import CustomContentSection from '$components/public/CustomContentSection.svelte';
 	import { ACCENT_COLORS, type AccentColor, hexToRgbChannels } from '$lib/colors';
 	import { t } from 'svelte-i18n';
@@ -47,6 +51,15 @@
 		return sectionKey.replace('custom:', '');
 	}
 
+	// A layout these sections don't know falls back to the public page's default.
+	function testimonialLayout(layout: string): 'wall' | 'carousel' | 'featured' {
+		return layout === 'carousel' || layout === 'featured' ? layout : 'wall';
+	}
+
+	function contactLayout(layout: string): 'vertical' | 'horizontal' | 'grid' {
+		return layout === 'horizontal' || layout === 'grid' ? layout : 'vertical';
+	}
+
 	interface Props {
 		// Props from parent editor
 		profile?: Profile | null;
@@ -57,11 +70,17 @@
 		ctaText?: string;
 		ctaUrl?: string;
 		previewMode?: 'desktop' | 'mobile'; // Phase 6.2.2: Desktop or mobile preview
+		viewId?: string; // Empty while the Facet is still being created
+		// Both editors opt selected private items into this view when they save.
+		privateSelectionPublishes?: boolean;
 		sections?: Record<
 			string,
 			{
 				enabled: boolean;
 				items: string[];
+				itemSelection?: ItemSelection;
+				list?: string;
+				featuredId?: string;
 				layout: string;
 				width?: 'full' | 'half' | 'third';
 				itemConfig: Record<string, ItemConfig>;
@@ -89,6 +108,7 @@
 			title: string;
 			is_draft: boolean;
 			visibility: 'public' | 'unlisted' | 'private';
+			view_visibility?: Record<string, boolean>;
 			sort_order?: number;
 			content?: string;
 			cover_image_url?: string;
@@ -105,6 +125,8 @@
 		ctaText = '',
 		ctaUrl = '',
 		previewMode = 'desktop',
+		viewId = '',
+		privateSelectionPublishes = false,
 		sections = {},
 		sectionOrder = [],
 		sectionItems = {},
@@ -153,19 +175,13 @@
 
 			let data: unknown[] = [];
 			if (config?.enabled && sectionItems.length > 0) {
-				// Filter to selected items (or all public/non-draft if no selection)
-				const filteredItems =
-					config.items.length > 0
-						? sectionItems.filter((item) => config.items.includes(item.id))
-						: sectionItems.filter((item) => item.visibility !== 'private' && !item.is_draft);
-
-				// Preserve order from config.items if specified
-				const orderedItems =
-					config.items.length > 0
-						? (config.items
-								.map((id) => filteredItems.find((item) => item.id === id))
-								.filter(Boolean) as typeof filteredItems)
-						: filteredItems;
+				const orderedItems = resolveSectionItems(
+					key,
+					config,
+					sectionItems,
+					viewId,
+					privateSelectionPublishes
+				);
 
 				// Apply overrides to items
 				data = orderedItems.map((item) => {
@@ -178,6 +194,10 @@
 						if (value !== undefined && value !== null && value !== '') {
 							transformedData[field] = value;
 						}
+					}
+					// The API sends a URL here; the raw record only holds the filename.
+					if (key === 'testimonials' && item.data.author_photo) {
+						transformedData.author_photo = `/api/files/testimonials/${item.id}/${item.data.author_photo}`;
 					}
 
 					return transformedData;
@@ -197,6 +217,12 @@
 		}
 
 		return result;
+	}
+
+	// Same rule the backend applies to a custom section's single item.
+	function isCustomItemVisible(item?: (typeof customContentItems)[number]) {
+		if (!item || item.is_draft) return false;
+		return item.visibility !== 'private' || item.view_visibility?.[viewId] === true;
 	}
 
 	// Build a map for quick custom content lookup by ID
@@ -232,7 +258,7 @@
 			// For custom sections, check if enabled and item exists and not draft
 			const customId = getCustomContentId(s.key);
 			const customItem = customContentMap.get(customId);
-			return sections[s.key]?.enabled && customItem && !customItem.is_draft;
+			return sections[s.key]?.enabled && isCustomItemVisible(customItem);
 		}).length
 	);
 	// Compute effective accent color (view override or profile default)
@@ -310,10 +336,10 @@
 		<div class={useRailLayout ? 'min-w-0' : 'contents'}>
 			<!-- CTA Banner Preview -->
 			{#if ctaText && ctaUrl}
-				<div class="bg-primary-600 text-white py-2 px-4">
+				<div class="bg-primary-700 text-white py-2 px-4">
 					<div class="flex items-center justify-between text-sm">
 						<span class="font-medium truncate">{ctaText}</span>
-						<span class="px-2 py-0.5 bg-white/20 rounded text-xs">CTA</span>
+						<span class="px-2 py-0.5 bg-black/20 rounded text-xs">CTA</span>
 					</div>
 				</div>
 			{/if}
@@ -361,10 +387,26 @@
 							<div class={computed.widthClass}>
 								<TalksSection items={computed.data} layout={computed.layout} />
 							</div>
+						{:else if sectionKey === 'testimonials' && computed?.visible}
+							<div class={computed.widthClass}>
+								<TestimonialsSection
+									items={computed.data}
+									layout={testimonialLayout(computed.layout)}
+									featuredId={sections.testimonials?.featuredId}
+								/>
+							</div>
+						{:else if sectionKey === 'contacts' && computed?.visible}
+							<div class={computed.widthClass}>
+								<ContactMethodsList
+									contacts={computed.data}
+									{viewId}
+									layout={contactLayout(computed.layout)}
+								/>
+							</div>
 						{:else if isCustomSection(sectionKey) && sections[sectionKey]?.enabled}
 							{@const customId = getCustomContentId(sectionKey)}
 							{@const customItem = customContentMap.get(customId)}
-							{#if customItem && !customItem.is_draft}
+							{#if customItem && isCustomItemVisible(customItem)}
 								<div
 									class="preview-section {sections[sectionKey]?.width === 'half'
 										? 'section-half'

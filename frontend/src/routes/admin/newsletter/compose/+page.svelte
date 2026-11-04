@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { beforeNavigate } from '$app/navigation';
+	import { guardUnsaved } from '$lib/admin/unsaved';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
@@ -114,21 +114,10 @@
 		}
 	});
 
-	beforeNavigate((navigation) => {
-		if (navigation.shallow && navigation.type === 'goto') return;
-
-		if (hasUnsavedContent && !sending) {
-			if (!window.confirm($t('admin.newsletter.unsaved_warning'))) {
-				navigation.cancel();
-			}
-		}
-	});
-
-	function handleBeforeUnload(e: BeforeUnloadEvent) {
-		if (hasUnsavedContent && !sending) {
-			e.preventDefault();
-		}
-	}
+	guardUnsaved(
+		() => hasUnsavedContent && !sending,
+		() => $t('admin.newsletter.unsaved_warning')
+	);
 
 	function authHeaders(): Record<string, string> {
 		return pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
@@ -139,7 +128,6 @@
 	}
 
 	onMount(async () => {
-		window.addEventListener('beforeunload', handleBeforeUnload);
 		await Promise.all([loadSends(), loadTemplates(), loadLists(), checkSmtpStatus()]);
 		startPollingIfNeeded();
 	});
@@ -188,9 +176,6 @@
 	}
 
 	onDestroy(() => {
-		if (typeof window !== 'undefined') {
-			window.removeEventListener('beforeunload', handleBeforeUnload);
-		}
 		stopPolling();
 	});
 
@@ -683,7 +668,7 @@
 					{:else if previewHTML}
 						{@html previewHTML}
 					{:else}
-						<p class="text-gray-400 dark:text-gray-500 italic">
+						<p class="text-gray-500 dark:text-gray-400 italic">
 							{$t('admin.newsletter.preview_empty')}
 						</p>
 					{/if}

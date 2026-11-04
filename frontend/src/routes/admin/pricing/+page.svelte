@@ -178,18 +178,26 @@
 	{:else}
 		<!-- Filters -->
 		<div class="flex flex-wrap items-center gap-3">
-			<select bind:value={filterType} class="input w-auto text-sm">
+			<select
+				bind:value={filterType}
+				class="input w-auto text-sm"
+				aria-label={$t('admin.pricing.filter_type_name')}
+			>
 				<option value="all">{$t('admin.pricing.filter_all_types')}</option>
 				{#each CONTENT_TYPES as ct}
 					<option value={ct.collection}>{$t(ct.labelKey)}</option>
 				{/each}
 			</select>
-			<select bind:value={filterTier} class="input w-auto text-sm">
+			<select
+				bind:value={filterTier}
+				class="input w-auto text-sm"
+				aria-label={$t('admin.pricing.filter_tier_name')}
+			>
 				<option value="all">{$t('admin.pricing.filter_all_tiers')}</option>
 				<option value="free">{$t('admin.pricing.filter_free')}</option>
 				<option value="paid">{$t('admin.pricing.filter_paid')}</option>
 			</select>
-			<span class="text-sm text-gray-500"
+			<span class="text-sm text-gray-500 dark:text-gray-400"
 				>{$t('admin.pricing.item_count', { values: { count: filteredItems.length } })}</span
 			>
 		</div>
@@ -202,13 +210,20 @@
 				<span class="text-sm font-medium text-gray-900 dark:text-white">
 					{$t('admin.pricing.selected_count', { values: { count: selectedIds.size } })}
 				</span>
-				<select bind:value={bulkTier} class="input w-auto text-sm">
+				<select
+					bind:value={bulkTier}
+					class="input w-auto text-sm"
+					aria-label={$t('admin.pricing.bulk_tier_name')}
+				>
 					<option value="paid">{$t('admin.pricing.set_paid')}</option>
 					<option value="free">{$t('admin.pricing.set_free')}</option>
 				</select>
 				{#if bulkTier === 'paid'}
 					<div class="relative">
-						<span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+						<span
+							class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm"
+							>$</span
+						>
 						<input
 							type="number"
 							bind:value={bulkPrice}
@@ -331,7 +346,7 @@
 						</tr>
 					{:else}
 						<tr>
-							<td colspan="5" class="px-4 py-8 text-center text-gray-500">
+							<td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
 								{$t('admin.pricing.no_items')}
 							</td>
 						</tr>

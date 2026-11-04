@@ -1267,6 +1267,7 @@
 			<div class="flex items-center gap-2">
 				<input
 					class="input"
+					aria-label={$t('admin.media.search')}
 					placeholder={$t('admin.media.search_placeholder')}
 					bind:value={search}
 					onkeydown={(e) => e.key === 'Enter' && resetAndLoad()}
@@ -1566,7 +1567,7 @@
 						{$t('admin.media.external_url_invalid')}
 					</p>
 				{:else if externalProvider}
-					<p id="ext-url-help" class="text-xs text-green-600 dark:text-green-400 mt-1">
+					<p id="ext-url-help" class="text-xs text-green-700 dark:text-green-400 mt-1">
 						{$t('admin.media.external_url_detected', {
 							values: { provider: getExternalMediaProviderLabel(externalProvider) }
 						})}
@@ -1665,31 +1666,35 @@
 				<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 					<thead class="bg-gray-50 dark:bg-gray-800">
 						<tr>
-							<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-8"
+							<th
+								class="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-8"
 							></th>
-							<th class="px-2 py-2 text-left text-xs font-semibold text-gray-500 uppercase w-14"
+							<th
+								class="px-2 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-14"
 								>{$t('admin.media.table_preview')}</th
 							>
-							<th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase"
+							<th
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase"
 								>{$t('admin.media.table_file')}</th
 							>
 							<th
-								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-20"
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase hidden md:table-cell w-20"
 								>{$t('admin.media.table_type')}</th
 							>
 							<th
-								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-20"
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase hidden lg:table-cell w-20"
 								>{$t('admin.media.table_size')}</th
 							>
 							<th
-								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell w-24"
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase hidden lg:table-cell w-24"
 								>{$t('admin.media.table_uploaded')}</th
 							>
 							<th
-								class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell w-24"
+								class="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase hidden md:table-cell w-24"
 								>{$t('admin.media.table_used_by')}</th
 							>
-							<th class="px-2 py-2 text-right text-xs font-semibold text-gray-500 uppercase w-28"
+							<th
+								class="px-2 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase w-28"
 								>{$t('admin.media.table_actions')}</th
 							>
 						</tr>
@@ -1706,6 +1711,9 @@
 										<input
 											type="checkbox"
 											class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											aria-label={$t('admin.bulk_actions.select_item', {
+												values: { item: item.display_name || item.filename }
+											})}
 											checked={selectedOrphans.has(item.relative_path)}
 											onchange={() => toggleSelection(item)}
 										/>
@@ -1713,6 +1721,9 @@
 										<input
 											type="checkbox"
 											class="w-4 h-4 text-primary-600 rounded border-gray-300"
+											aria-label={$t('admin.bulk_actions.select_item', {
+												values: { item: item.display_name || item.filename }
+											})}
 											checked={isSelectedForBulk(item)}
 											onchange={() => toggleBulkSelection(item)}
 										/>
@@ -1750,7 +1761,7 @@
 									<div class="flex items-center gap-2 min-w-0">
 										<div class="min-w-0 flex-1 max-w-[200px] lg:max-w-[300px]">
 											<a
-												class="text-primary-600 dark:text-primary-300 hover:underline break-words line-clamp-2 text-sm"
+												class="text-primary-700 dark:text-primary-300 underline underline-offset-2 break-words line-clamp-2 text-sm"
 												href={item.url}
 												target="_blank"
 												rel="noopener noreferrer"

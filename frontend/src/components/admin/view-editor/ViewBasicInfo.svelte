@@ -62,13 +62,15 @@
 		placeholder={$t('admin.view_editor.basic_info.name_placeholder')}
 		required
 	/>
-	<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.name_help')}</p>
+	<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+		{$t('admin.view_editor.basic_info.name_help')}
+	</p>
 </div>
 
 <div>
 	<label for="slug" class="label">{$t('admin.view_editor.basic_info.slug_label')} *</label>
 	<div class="flex items-center gap-2">
-		<span class="text-gray-500 text-sm">/</span>
+		<span class="text-gray-500 dark:text-gray-400 text-sm">/</span>
 		<input
 			type="text"
 			id="slug"
@@ -78,7 +80,7 @@
 			required
 		/>
 	</div>
-	<p class="text-xs text-gray-500 mt-1">
+	<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 		{$t('admin.view_editor.basic_info.slug_help', { values: { slug } })}
 	</p>
 </div>
@@ -92,7 +94,9 @@
 		bind:value={description}
 		class="input min-h-[80px]"
 		placeholder={$t('admin.view_editor.basic_info.description_placeholder')}></textarea>
-	<p class="text-xs text-gray-500 mt-1">{$t('admin.view_editor.basic_info.description_help')}</p>
+	<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+		{$t('admin.view_editor.basic_info.description_help')}
+	</p>
 </div>
 
 <VisibilitySelector bind:value={visibility} includePassword />
@@ -114,7 +118,7 @@
 				: $t('admin.view_editor.basic_info.password_placeholder_set')}
 			autocomplete="new-password"
 		/>
-		<p class="text-xs text-gray-500 mt-1">
+		<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 			{password
 				? $t('admin.view_editor.basic_info.password_help_keep')
 				: $t('admin.view_editor.basic_info.password_help_visitors')}

@@ -6,7 +6,7 @@ import {
 	generateTextInkCSSVars,
 	SOFT_PREMIUM_DEFAULT_ACCENT
 } from '$lib/colors';
-import { generateFontCSSVars, getGoogleFontsUrl, DEFAULT_FONT_PACK } from '$lib/fonts';
+import { generateFontCSSVars, DEFAULT_FONT_PACK } from '$lib/fonts';
 import { fetchWith503Retry } from '$lib/server/internal-api-retry';
 import { applyPublicCacheHeaders } from '$lib/server/public-api';
 
@@ -32,7 +32,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Fetch accent color and font pack for SSR injection (eliminates flash on first paint)
 	let accentCSSVars = '';
 	let fontCSSVars = '';
-	let fontPack = '';
 	let operatorFontPack = '';
 	let operatorAccent = '';
 	let operatorCustomHex = '';
@@ -86,7 +85,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		operatorFontPack || (design === 'soft-premium' ? DEFAULT_FONT_PACK : '');
 	if (effectiveFontPack) {
 		fontCSSVars = generateFontCSSVars(effectiveFontPack);
-		fontPack = effectiveFontPack;
 	}
 
 	// Accent: Soft Premium defaults to warm terracotta only when the operator has
@@ -150,15 +148,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 				htmlAttrs.push(`style="${varParts.join(' ')}"`);
 			}
 			result = result.replace('<html lang="en">', `<html lang="en" ${htmlAttrs.join(' ')}>`);
-
-			// Inject the Google Fonts link for the resolved pack. app.html statically
-			// loads only the editorial pack, so the chosen pack's fonts (including the
-			// Soft Premium default — Hanken/Newsreader) must always be loaded here or
-			// they'd be missing.
-			if (fontPack) {
-				const fontsUrl = getGoogleFontsUrl(fontPack);
-				result = result.replace('</head>', `<link rel="stylesheet" href="${fontsUrl}">\n</head>`);
-			}
 
 			return result;
 		}

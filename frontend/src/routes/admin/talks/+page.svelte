@@ -3,14 +3,19 @@
 
 	import { onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
-	import { pb, type Talk } from '$lib/pocketbase';
+	import type { Talk } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
-	import { formatDate, toDateInputValue } from '$lib/utils';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
+	import { formatCalendarDate, toDateInputValue } from '$lib/utils';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -23,7 +28,18 @@
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let talks: Talk[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('talks');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('talks'),
+		items: () => talks,
+		reload: loadTalks,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingTalk: Talk | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -115,14 +131,7 @@
 		}
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingTalk = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (
 			draft?.data &&
@@ -136,6 +145,19 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingTalk = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	// Generate slug from title
@@ -157,25 +179,13 @@
 
 	onMount(loadTalks);
 
-	async function loadTalks() {
-		loading = true;
-		try {
-			const [records, membershipResp] = await Promise.all([
-				await collection('talks').getList(1, 100, {
-					sort: '-date,-sort_order'
-				}),
-				fetch('/api/admin/view-memberships?collection=talks', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-			talks = records.items as unknown as Talk[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load talks:', err);
-			toasts.add('error', 'Failed to load talks');
-		} finally {
-			loading = false;
-		}
+	function loadTalks() {
+		listLoad.loadMemberships('talks', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<Talk>(getCollectionName('talks'), { sort: '-date,-sort_order' }, signal),
+			(records) => (talks = records)
+		);
 	}
 
 	function resetForm() {
@@ -203,6 +213,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -250,7 +261,7 @@
 		autosave.clearDraft();
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!title.trim()) {
 			toasts.add('error', 'Title is required');
 			return;
@@ -294,9 +305,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function deleteTalk(talk: Talk) {
+	const deleteTalk = listLoad.exclusive(async (talk: Talk) => {
 		const confirmed = await confirm({
 			title: 'Delete Talk',
 			message: `Are you sure you want to delete "${talk.title}"? This action cannot be undone.`,
@@ -315,9 +326,9 @@
 			console.error('Failed to delete talk:', err);
 			toasts.add('error', 'Failed to delete talk');
 		}
-	}
+	});
 
-	async function togglePublish(talk: Talk) {
+	const togglePublish = listLoad.exclusive(async (talk: Talk) => {
 		try {
 			await await collection('talks').update(talk.id, {
 				is_draft: !talk.is_draft
@@ -328,7 +339,15 @@
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update talk');
 		}
-	}
+	});
+
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredTalks.map((talk) => talk.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
 
 	function toggleSelectMode() {
 		selectMode = !selectMode;
@@ -336,50 +355,31 @@
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) selectedIds.delete(id);
-		else selectedIds.add(id);
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(talks.map((e) => e.id));
+		selectedIds = new Set(filteredTalks.map((talk) => talk.id));
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) await collection('talks').update(id, { visibility });
-			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadTalks();
-		} catch (err) {
-			toasts.add('error', 'Failed to update visibility');
-		}
+	function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), visibility);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: 'Delete Talks',
-			message: `Are you sure you want to delete ${ids.length} talk(s)? This action cannot be undone.`,
-			confirmText: 'Delete All',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			for (const id of ids) await collection('talks').delete(id);
-			toasts.add('success', `Deleted ${ids.length} items`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadTalks();
-		} catch (err) {
-			toasts.add('error', 'Failed to delete items');
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: 'Delete Talks',
+				message: `Are you sure you want to delete ${ids.length} talk(s)? This action cannot be undone.`,
+				confirmText: 'Delete All',
+				danger: true
+			})
+		);
 	}
 </script>
 
@@ -394,7 +394,7 @@
 		<p>{@html $t('admin.content.talks.help_tip_2')}</p>
 	</PageHelp>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -404,16 +404,18 @@
 		/>
 	{/if}
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={talks.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredTalks.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
@@ -422,11 +424,15 @@
 		</h1>
 		<div class="flex items-center gap-2">
 			{#if talks.length > 0}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
-			<button class="btn btn-primary" onclick={openNewForm}>
+			<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 				{$t('admin.content.common.new_button', {
 					values: { type: $t('admin.content.talks.title').slice(0, -1) }
 				})}
@@ -435,6 +441,17 @@
 	</div>
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.talks.title').toLowerCase()}
+		onretry={loadTalks}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
+	{/if}
 
 	{#if loading}
 		<div class="card p-8 text-center">
@@ -661,7 +678,7 @@
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -747,6 +764,8 @@
 				</div>
 			</div>
 		{/if}
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if talks.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -794,245 +813,252 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Talks List -->
-		<div class="space-y-4">
-			{#each filteredTalks as talk (talk.id)}
-				<div
-					class="card p-4 {selectMode && selectedIds.has(talk.id) ? 'ring-2 ring-primary-500' : ''}"
-				>
-					<div class="flex items-start justify-between gap-4">
-						{#if selectMode}
-							<input
-								type="checkbox"
-								checked={selectedIds.has(talk.id)}
-								onchange={() => toggleSelect(talk.id)}
-								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
-							/>
-						{/if}
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2">
-								<h3 class="font-medium text-gray-900 dark:text-white truncate">
-									{talk.title}
-								</h3>
-								{#if talk.is_draft}
-									<span
-										class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
-									>
-										Draft
-									</span>
-								{/if}
-								{#if talk.visibility !== 'public'}
-									<span
-										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
-									>
-										{talk.visibility}
-									</span>
-								{/if}
-							</div>
-
-							{#if memberships[talk.id]?.length}
-								<div class="flex flex-wrap gap-1 mt-2">
-									{#each memberships[talk.id].slice(0, 3) as viewRef}
-										<a
-											href={`/admin/views/${viewRef.id}`}
-											target="_blank"
-											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-											title={`Open view: ${viewRef.name}`}
+		<fieldset class="contents" disabled={listLocked}>
+			<!-- Talks List -->
+			<div class="space-y-4">
+				{#each filteredTalks as talk (talk.id)}
+					<div
+						class="card p-4 {selectMode && selectedIds.has(talk.id)
+							? 'ring-2 ring-primary-500'
+							: ''}"
+					>
+						<div class="flex items-start justify-between gap-4">
+							{#if selectMode}
+								<input
+									type="checkbox"
+									aria-label={$t('admin.bulk_actions.select_item', {
+										values: { item: talk.title }
+									})}
+									checked={selectedIds.has(talk.id)}
+									onchange={() => toggleSelect(talk.id)}
+									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+								/>
+							{/if}
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2">
+									<h3 class="font-medium text-gray-900 dark:text-white truncate">
+										{talk.title}
+									</h3>
+									{#if talk.is_draft}
+										<span
+											class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
 										>
-											{viewRef.slug || viewRef.name}
-										</a>
-									{/each}
-									{#if memberships[talk.id].length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-											+{memberships[talk.id].length - 3}
+											Draft
+										</span>
+									{/if}
+									{#if talk.visibility !== 'public'}
+										<span
+											class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+										>
+											{talk.visibility}
 										</span>
 									{/if}
 								</div>
-							{:else}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
-							{/if}
 
-							<div
-								class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
-							>
-								{#if talk.event}
-									<span class="flex items-center gap-1">
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-											></path>
-										</svg>
-										{talk.event}
-									</span>
+								{#if memberships[talk.id]?.length}
+									<div class="flex flex-wrap gap-1 mt-2">
+										{#each memberships[talk.id].slice(0, 3) as viewRef}
+											<a
+												href={`/admin/views/${viewRef.id}`}
+												target="_blank"
+												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+												title={`Open view: ${viewRef.name}`}
+											>
+												{viewRef.slug || viewRef.name}
+											</a>
+										{/each}
+										{#if memberships[talk.id].length > 3}
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+												+{memberships[talk.id].length - 3}
+											</span>
+										{/if}
+									</div>
+								{:else if $listLoad.membershipsKnown}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
 								{/if}
-								{#if talk.date}
-									<span class="flex items-center gap-1">
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-											></path>
-										</svg>
-										{formatDate(talk.date)}
-									</span>
-								{/if}
-								{#if talk.location}
-									<span class="flex items-center gap-1">
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-											></path>
 
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-											></path>
-										</svg>
-										{talk.location}
-									</span>
-								{/if}
+								<div
+									class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+								>
+									{#if talk.event}
+										<span class="flex items-center gap-1">
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+												></path>
+											</svg>
+											{talk.event}
+										</span>
+									{/if}
+									{#if talk.date}
+										<span class="flex items-center gap-1">
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+												></path>
+											</svg>
+											{formatCalendarDate(talk.date)}
+										</span>
+									{/if}
+									{#if talk.location}
+										<span class="flex items-center gap-1">
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+												></path>
+
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+												></path>
+											</svg>
+											{talk.location}
+										</span>
+									{/if}
+								</div>
+
+								<div class="flex gap-3 mt-2">
+									{#if talk.slug}
+										<a
+											href="/talks/{talk.slug}"
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-xs text-gray-600 dark:text-gray-400 hover:underline flex items-center gap-1"
+										>
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+												></path>
+											</svg>
+											/talks/{talk.slug}
+										</a>
+									{/if}
+									{#if talk.video_url}
+										<a
+											href={talk.video_url}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+										>
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+												></path>
+
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+												></path>
+											</svg>
+											Video
+										</a>
+									{/if}
+									{#if talk.slides_url}
+										<a
+											href={talk.slides_url}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+										>
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+												></path>
+											</svg>
+											Slides
+										</a>
+									{/if}
+								</div>
 							</div>
 
-							<div class="flex gap-3 mt-2">
-								{#if talk.slug}
-									<a
-										href="/talks/{talk.slug}"
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-xs text-gray-600 dark:text-gray-400 hover:underline flex items-center gap-1"
-									>
-										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<div class="flex items-center gap-2">
+								<button
+									class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+									onclick={() => togglePublish(talk)}
+									title={talk.is_draft ? 'Publish' : 'Unpublish'}
+								>
+									{#if talk.is_draft}
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path
 												stroke-linecap="round"
 												stroke-linejoin="round"
 												stroke-width="2"
-												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-											></path>
-										</svg>
-										/talks/{talk.slug}
-									</a>
-								{/if}
-								{#if talk.video_url}
-									<a
-										href={talk.video_url}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
-									>
-										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+												d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
 											></path>
 
 											<path
 												stroke-linecap="round"
 												stroke-linejoin="round"
 												stroke-width="2"
-												d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+												d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
 											></path>
 										</svg>
-										Video
-									</a>
-								{/if}
-								{#if talk.slides_url}
-									<a
-										href={talk.slides_url}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
-									>
-										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									{:else}
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 											<path
 												stroke-linecap="round"
 												stroke-linejoin="round"
 												stroke-width="2"
-												d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+												d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
 											></path>
 										</svg>
-										Slides
-									</a>
-								{/if}
-							</div>
-						</div>
-
-						<div class="flex items-center gap-2">
-							<button
-								class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-								onclick={() => togglePublish(talk)}
-								title={talk.is_draft ? 'Publish' : 'Unpublish'}
-							>
-								{#if talk.is_draft}
+									{/if}
+								</button>
+								<button
+									class="p-3 text-gray-500 hover:text-blue-600"
+									onclick={() => openEditForm(talk)}
+									title="Edit"
+								>
 									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
-											d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-										></path>
-
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
 										></path>
 									</svg>
-								{:else}
+								</button>
+								<button
+									class="p-3 text-gray-500 hover:text-red-600"
+									onclick={() => deleteTalk(talk)}
+									title="Delete"
+								>
 									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
-											d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
 										></path>
 									</svg>
-								{/if}
-							</button>
-							<button
-								class="p-3 text-gray-500 hover:text-blue-600"
-								onclick={() => openEditForm(talk)}
-								title="Edit"
-							>
-								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-									></path>
-								</svg>
-							</button>
-							<button
-								class="p-3 text-gray-500 hover:text-red-600"
-								onclick={() => deleteTalk(talk)}
-								title="Delete"
-							>
-								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									></path>
-								</svg>
-							</button>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		</fieldset>
 	{/if}
 </div>

@@ -2,14 +2,16 @@
 	import { t } from 'svelte-i18n';
 	import { tick } from 'svelte';
 	import { toasts } from '$lib/stores';
+	import { withFacet } from '$lib/discovery';
 
 	interface Props {
 		commentId: string;
+		fromView?: string | null;
 		open: boolean;
 		onClose: () => void;
 	}
 
-	let { commentId, open, onClose }: Props = $props();
+	let { commentId, fromView = null, open, onClose }: Props = $props();
 
 	type ReportReason = 'spam' | 'harassment' | 'off_topic' | 'other';
 
@@ -87,7 +89,7 @@
 		submitError = '';
 		submitting = true;
 		try {
-			const resp = await fetch(`/api/comments/${commentId}/report`, {
+			const resp = await fetch(withFacet(`/api/comments/${commentId}/report`, fromView), {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

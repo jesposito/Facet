@@ -2,6 +2,7 @@ import { marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 import { get } from 'svelte/store';
 import { locale } from 'svelte-i18n';
+import { formatCalendarDate as formatCalendarDateForLocale } from './calendar-date';
 
 type EmbedMatch = {
 	provider: string;
@@ -127,6 +128,20 @@ export function formatDate(
 	return date.toLocaleDateString(currentLocale(), formatOptions);
 }
 
+export function formatCalendarDate(
+	dateString: string | undefined,
+	options?: Intl.DateTimeFormatOptions
+): string {
+	if (!dateString) return '';
+	try {
+		return formatCalendarDateForLocale(dateString, currentLocale(), options);
+	} catch (error) {
+		if (!(error instanceof RangeError)) throw error;
+		// Keep malformed imported dates visible without breaking the rest of the page.
+		return dateString;
+	}
+}
+
 export function formatDateRange(
 	startDate?: string,
 	endDate?: string,
@@ -134,6 +149,16 @@ export function formatDateRange(
 ): string {
 	const start = formatDate(startDate);
 	const end = endDate ? formatDate(endDate) : presentText;
+	return `${start} - ${end}`;
+}
+
+export function formatCalendarDateRange(
+	startDate?: string,
+	endDate?: string,
+	presentText: string = 'Present'
+): string {
+	const start = formatCalendarDate(startDate);
+	const end = endDate ? formatCalendarDate(endDate) : presentText;
 	return `${start} - ${end}`;
 }
 

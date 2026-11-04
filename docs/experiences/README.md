@@ -25,6 +25,8 @@ Switching the experience off keeps everything you've written and shows the class
 
 Use files from your [Media Library](../MEDIA.md) for videos and WebVTT caption files. The usual upload size limits and the site's Content-Security-Policy still apply. You can save an external HTTPS video URL, but the browser may refuse to play it if the site's policy doesn't allow that source. This feature doesn't loosen the policy.
 
+A YouTube, Vimeo or Bunny Stream page isn't a video file, so Facet shows a **Watch Video** link that opens the page in a new tab, with the chapter's poster behind the link and its transcript below. The provider's player isn't embedded and caption files aren't used. A video file hosted by one of those providers still gets the normal player. If a video only plays on approved domains, its page may refuse visitors who arrive from this link, so upload those videos to your Media Library instead.
+
 Nothing plays automatically. Switching chapters pauses the previous video, and transcripts stay readable even if a video won't play.
 
 ## Story activities

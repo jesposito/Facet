@@ -133,14 +133,17 @@ ARG FACET_VERSION=dev
 ARG BUILD_DATE=unknown
 ARG GIT_COMMIT=unknown
 
+# The frontend believes ADDRESS_HEADER because only Caddy can reach it: it
+# listens on loopback, like the backend, so other containers can't connect.
 # Environment - PUID/PGID follow linuxserver.io convention for Unraid compatibility
 ENV DATA_DIR=/data \
     NODE_ENV=production \
     POCKETBASE_URL=http://localhost:8090 \
     PORT=3000 \
-    HOST=0.0.0.0 \
+    HOST=127.0.0.1 \
     PROTOCOL_HEADER=x-forwarded-proto \
     HOST_HEADER=x-forwarded-host \
+    ADDRESS_HEADER=x-facet-client-ip \
     ADMIN_ENABLED=false \
     PUID=1000 \
     PGID=1000 \

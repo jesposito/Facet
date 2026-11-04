@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '$lib/fonts.css';
 	import '../app.css';
 	import { onMount } from 'svelte';
 	import { browser } from '$app/env';
@@ -153,7 +154,6 @@
 	let gaInitialized = $state(false);
 	let accentStyleEl: HTMLStyleElement | null = $state(null);
 	let fontStyleEl: HTMLStyleElement | null = $state(null);
-	let fontLinkEl: HTMLLinkElement | null = $state(null);
 	let customPaletteLocked = false;
 	// svelte-ignore state_referenced_locally
 	let currentAccentExplicit = $state(data.accentExplicit === true);
@@ -291,22 +291,6 @@
   --font-body: '${pack.body}', ${pack.bodyFallback};
   --font-code: '${pack.code}', ${pack.codeFallback};
 }`;
-
-		// Ensure the resolved pack's Google Fonts are loaded, including the DEFAULT
-		// pack (soft-premium = Hanken Grotesk + Newsreader). app.html only statically
-		// loads the editorial fonts, and SSR (hooks.server.ts) injects the resolved
-		// pack's link on first paint; but this client applier re-runs on every SPA
-		// navigation. If the default pack special-cased *removing* the link, the
-		// default pack's fonts would drop on client nav and the page would fall back
-		// to Plus Jakarta. So we always (re)create/point the link at the resolved
-		// pack's URL, for the default pack too.
-		if (!fontLinkEl) {
-			fontLinkEl = document.createElement('link');
-			fontLinkEl.id = 'dynamic-google-fonts';
-			fontLinkEl.rel = 'stylesheet';
-			document.head.appendChild(fontLinkEl);
-		}
-		fontLinkEl.href = pack.googleFontsUrl;
 	}
 
 	function applyDesign(design: string) {
@@ -334,8 +318,6 @@
 		if (!browser) return;
 		fontStyleEl?.remove();
 		fontStyleEl = null;
-		fontLinkEl?.remove();
-		fontLinkEl = null;
 		document.documentElement.style.removeProperty('--font-heading');
 		document.documentElement.style.removeProperty('--font-accent');
 		document.documentElement.style.removeProperty('--font-body');

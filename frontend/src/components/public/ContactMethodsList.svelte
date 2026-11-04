@@ -313,7 +313,7 @@
 
 	.value {
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		color: var(--accent-color, #3b82f6);
+		color: var(--accent-color, var(--color-primary-700, #0369a1));
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
@@ -387,6 +387,10 @@
 
 	:global(.dark) .label {
 		color: #9ca3af;
+	}
+
+	:global(.dark) .value {
+		color: var(--accent-color, var(--color-primary-400, #38bdf8));
 	}
 
 	:global(.dark) .captcha-unavailable {

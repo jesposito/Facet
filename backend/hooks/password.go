@@ -93,7 +93,7 @@ func RegisterPasswordHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "password set"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

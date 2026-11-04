@@ -76,7 +76,7 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 			}
 
 			return e.JSON(http.StatusOK, metadata)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Import a GitHub repo as a project
 		se.Router.POST("/api/github/import", func(e *core.RequestEvent) error {
@@ -249,7 +249,7 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 				response["ai_error"] = aiError
 			}
 			return e.JSON(http.StatusOK, response)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Refresh an existing source
 		se.Router.POST("/api/github/refresh/{id}", func(e *core.RequestEvent) error {
@@ -346,7 +346,7 @@ func registerGitHubRoutes(app core.App, github githubRepoClient, ai projectEnric
 				"diff":        diff,
 				"proposed":    proposedData,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

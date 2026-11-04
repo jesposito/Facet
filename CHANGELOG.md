@@ -2,6 +2,28 @@
 
 All notable changes to Facet will be documented in this file.
 
+## [Unreleased]
+
+### Upgrade notes
+
+- Facet sections now distinguish **Choose items** from **All public content**. Existing sections without an explicit choice use Choose items, so an empty selection shows nothing. Review older Facets and choose All public content for sections that should include eligible published items automatically. Existing selected IDs stay selected.
+- Fonts are served by your own installation, including all eight font packs. Published pages no longer request Google Fonts.
+- The container frontend listens on loopback behind Caddy. Caddy supplies the client address used for share-link rate limits; native proxy installations should follow the configuration guide.
+- Default record permissions now require a Facet owner account in `users` or a PocketBase superuser. Other authentication collections do not grant owner access. Custom filtered rules are preserved. Startup stops if the required permission update cannot be saved; see the security guide before retrying.
+- `post.published` webhooks now send only updates to public, non-draft content. Private and unlisted content no longer sends publication events.
+
+### Changes
+
+- Show practical standalone-page and website uses of the same Facet, with guidance on sharing and navigation.
+- Keep private item selection, preview, visitor detail pages, comments and downloads consistent with the Facet's saved access.
+- Replace share links atomically and distinguish invalid links from temporary failures and rate limits.
+- Preserve drafts through failed reads and uncertain creates; report partial operations and provide Retry where recovery is possible.
+- Improve keyboard access, mobile navigation, dialog focus, bulk selection, contrast and populated Media Library controls.
+- Save quizzes and delete courses, modules and lessons transactionally, preserving records and files if an operation fails.
+- Repair missing subscriber timestamps while retaining unknown dates on historical records, and keep résumé calendar dates stable across visitor time zones.
+- Show a Watch Video link for YouTube, Vimeo and Bunny Stream pages in project video chapters, in place of a native player that can't play them.
+- Refresh the installation, configuration, owner, feature, security, recovery and development documentation.
+
 
 ## v3.7.0 - November 03, 2026
 
@@ -46,15 +68,7 @@ All notable changes to Facet will be documented in this file.
 **Other Changes:**
 - Rewrite the owner, installation, configuration, security, API, feature, recovery and contributor documentation
 
-**Pull Requests:** [#521](https://github.com/jesposito/Facet/pull/521),
-
----
-
-## Unreleased
-
-Not yet released. Entries describe the code on this branch and may change before a version is tagged.
-
-**Upgrade notes:**
+### Upgrade notes
 
 - Preserve media URLs during legacy URL-to-text field conversion. Repair missing lesson comment flags and log timestamps; old log rows keep unknown creation times.
 - Bound SMTP connection, TLS negotiation and delivery to 30 seconds, and update newsletter list counts without background writes.
@@ -100,6 +114,11 @@ Not yet released. Entries describe the code on this branch and may change before
 - Node 24, Air v1.67.4, and a musl build tag for the Alpine development image.
 
 **Testing note:** payment and email behaviour is covered by tests with signed fake Stripe events and a captured mailer. It hasn't been verified against a live Stripe account or external SMTP server.
+
+**Pull Requests:** [#521](https://github.com/jesposito/Facet/pull/521),
+
+---
+
 
 ## v3.6.0 - October 30, 2026
 

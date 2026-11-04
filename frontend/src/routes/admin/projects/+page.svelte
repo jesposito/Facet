@@ -6,13 +6,18 @@
 	import { browser } from '$app/env';
 	import { flip } from 'svelte/animate';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
-	import { pb, type Project, type Experience, type Education, getFileUrl } from '$lib/pocketbase';
+	import { type Project, type Experience, type Education, getFileUrl } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions, saveSortOrders } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
 	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
 	import { focusTrap } from '$lib/actions/focusTrap';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
@@ -32,7 +37,18 @@
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let projects: Project[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('projects');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('projects'),
+		items: () => projects,
+		reload: loadProjects,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingProject: Project | null = $state(null);
 
@@ -142,14 +158,7 @@
 		}
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingProject = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (
 			draft?.data &&
@@ -163,6 +172,19 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingProject = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	onMount(loadProjects);
@@ -176,34 +198,49 @@
 		}
 	});
 
-	async function loadAvailableTags() {
-		try {
-			const records = await collection('admin_tags').getList(1, 100, { sort: 'sort_order,name' });
-
-			availableTags = records.items.map((tag) => ({
-				id: tag.id,
-				name: tag.name,
-				color: tag.color
-			}));
-		} catch (err) {
-			console.error('Failed to load available tags:', err);
-		}
+	function loadAvailableTags() {
+		return listLoad.loadAncillary(
+			'tags',
+			(_requestKey, signal) =>
+				readAllRecords<{ id: string; name: string; color: string }>(
+					getCollectionName('admin_tags'),
+					{ sort: 'sort_order,name' },
+					signal
+				),
+			(records) => {
+				availableTags = records.map((tag) => ({
+					id: tag.id,
+					name: tag.name,
+					color: tag.color
+				}));
+			}
+		);
 	}
 
-	async function loadRelatedOptions() {
+	function loadRelatedOptions() {
 		relatedLoading = true;
-		try {
-			const [expResp, eduResp] = await Promise.all([
-				collection('experience').getList(1, 200, { sort: '-sort_order,-start_date' }),
-				collection('education').getList(1, 200, { sort: '-sort_order,-end_date' })
-			]);
-			availableExperience = expResp.items as unknown as Experience[];
-			availableEducation = eduResp.items as unknown as Education[];
-		} catch (err) {
-			console.error('Failed to load related experience/education:', err);
-		} finally {
-			relatedLoading = false;
-		}
+		return listLoad
+			.loadAncillary(
+				'related',
+				(_requestKey, signal) =>
+					Promise.all([
+						readAllRecords<Experience>(
+							getCollectionName('experience'),
+							{ sort: '-sort_order,-start_date' },
+							signal
+						),
+						readAllRecords<Education>(
+							getCollectionName('education'),
+							{ sort: '-sort_order,-end_date' },
+							signal
+						)
+					]),
+				([experience, education]) => {
+					availableExperience = experience;
+					availableEducation = education;
+				}
+			)
+			.finally(() => (relatedLoading = false));
 	}
 
 	function formatDateRange(start?: string, end?: string): string {
@@ -233,31 +270,17 @@
 		)
 	);
 
-	async function loadProjects() {
-		loading = true;
-		try {
-			const [projectResp, membershipResp] = await Promise.all([
-				await collection('projects').getList(1, 100, {
-					sort: '-is_featured,-sort_order',
-					expand: 'admin_tags'
-				}),
-				fetch('/api/admin/view-memberships?collection=projects', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-			projects = projectResp.items as unknown as Project[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load projects:', err);
-			toasts.add(
-				'error',
-				$t('admin.content.common.toast_load_error', {
-					values: { type: $t('admin.content.projects.title').toLowerCase() }
-				})
-			);
-		} finally {
-			loading = false;
-		}
+	function loadProjects() {
+		listLoad.loadMemberships('projects', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<Project>(
+					getCollectionName('projects'),
+					{ sort: '-is_featured,-sort_order', expand: 'admin_tags' },
+					signal
+				),
+			(records) => (projects = records)
+		);
 	}
 
 	function resetForm() {
@@ -291,6 +314,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -358,7 +382,7 @@
 			.replace(/^-|-$/g, '');
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!title.trim()) {
 			toasts.add('error', $t('admin.content.projects.required_error'));
 			return;
@@ -449,9 +473,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function deleteProject(project: Project) {
+	const deleteProject = listLoad.exclusive(async (project: Project) => {
 		const confirmed = await confirm({
 			title: $t('admin.content.common.confirm_delete_title', {
 				values: { type: $t('admin.content.projects.title').slice(0, -1) }
@@ -490,9 +514,9 @@
 				})
 			);
 		}
-	}
+	});
 
-	async function togglePublish(project: Project) {
+	const togglePublish = listLoad.exclusive(async (project: Project) => {
 		try {
 			await await collection('projects').update(project.id, {
 				is_draft: !project.is_draft
@@ -517,9 +541,9 @@
 				})
 			);
 		}
-	}
+	});
 
-	async function toggleFeatured(project: Project) {
+	const toggleFeatured = listLoad.exclusive(async (project: Project) => {
 		try {
 			await await collection('projects').update(project.id, {
 				is_featured: !project.is_featured
@@ -540,7 +564,7 @@
 				})
 			);
 		}
-	}
+	});
 
 	function getCoverImageUrl(project: Project): string {
 		// Prefer library URL over direct upload
@@ -563,69 +587,53 @@
 		{ value: 'other', label: $t('admin.content.projects.link_type_other') }
 	]);
 
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredProjects.map((project) => project.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
+
 	function toggleSelectMode() {
 		selectMode = !selectMode;
 		if (!selectMode) selectedIds = new Set();
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) selectedIds.delete(id);
-		else selectedIds.add(id);
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(projects.map((e) => e.id));
+		selectedIds = new Set(filteredProjects.map((project) => project.id));
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) await collection('projects').update(id, { visibility });
-			toasts.add(
-				'success',
-				$t('admin.content.common.bulk_updated', { values: { count: ids.length, visibility } })
-			);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadProjects();
-		} catch (err) {
-			toasts.add('error', $t('admin.content.common.bulk_error'));
-		}
+	function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), visibility);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: $t('admin.content.common.confirm_bulk_delete_title', {
-				values: { type: $t('admin.content.projects.title') }
-			}),
-			message: $t('admin.content.common.confirm_bulk_delete_message', {
-				values: { count: ids.length, type: $t('admin.content.projects.title').toLowerCase() }
-			}),
-			confirmText: $t('admin.content.common.confirm_bulk_delete_button'),
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			for (const id of ids) await collection('projects').delete(id);
-			toasts.add(
-				'success',
-				$t('admin.content.common.bulk_deleted', { values: { count: ids.length } })
-			);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadProjects();
-		} catch (err) {
-			toasts.add('error', $t('admin.content.common.bulk_error'));
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: $t('admin.content.common.confirm_bulk_delete_title', {
+					values: { type: $t('admin.content.projects.title') }
+				}),
+				message: $t('admin.content.common.confirm_bulk_delete_message', {
+					values: { count: ids.length, type: $t('admin.content.projects.title').toLowerCase() }
+				}),
+				confirmText: $t('admin.content.common.confirm_bulk_delete_button'),
+				danger: true
+			})
+		);
 	}
 
 	function enterReorderMode() {
+		if (!listLoad.canMutate()) return;
 		reorderItems = projects.map((p) => ({
 			id: p.id,
 			title: p.title,
@@ -685,24 +693,23 @@
 		}
 	}
 
-	async function saveReorder() {
+	const saveReorder = listLoad.exclusive(async () => {
 		savingOrder = true;
 		try {
-			const updates = reorderItems.map((item, index) =>
-				collection('projects').update(item.id, { sort_order: index })
+			const saved = await saveSortOrders(
+				() => collection('projects'),
+				() => projects,
+				reorderItems.map((item, index) => ({ id: item.id, sort_order: index })),
+				loadProjects
 			);
-			await Promise.all(updates);
+			if (!saved) return;
 			toasts.add('success', $t('admin.content.projects.toast_order_saved'));
 			reorderMode = false;
 			reorderItems = [];
-			await loadProjects();
-		} catch (err) {
-			console.error('Failed to save order:', err);
-			toasts.add('error', $t('admin.content.projects.toast_order_error'));
 		} finally {
 			savingOrder = false;
 		}
-	}
+	});
 </script>
 
 <svelte:head>
@@ -716,7 +723,7 @@
 		<p>{@html $t('admin.content.projects.help_tip_2')}</p>
 	</PageHelp>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -726,16 +733,18 @@
 		/>
 	{/if}
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={projects.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredProjects.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
@@ -744,7 +753,11 @@
 		</h1>
 		<div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
 			{#if projects.length > 0 && !reorderMode}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 				<button class="btn btn-ghost" onclick={enterReorderMode}>
@@ -755,7 +768,7 @@
 				<a href="/admin/import" class="btn btn-secondary">
 					{$t('admin.content.common.import_from_github')}
 				</a>
-				<button class="btn btn-primary" onclick={openNewForm}>
+				<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 					{$t('admin.content.common.new_button', {
 						values: { type: $t('admin.content.projects.title').slice(0, -1) }
 					})}
@@ -765,6 +778,17 @@
 	</div>
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.projects.title').toLowerCase()}
+		onretry={loadProjects}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
+	{/if}
 
 	{#if loading}
 		<div class="card p-8 text-center">
@@ -1249,7 +1273,7 @@
 				<button type="button" class="btn btn-secondary" onclick={closeForm}
 					>{$t('shared.actions.cancel')}</button
 				>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -1354,6 +1378,8 @@
 				</div>
 			</div>
 		{/if}
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if projects.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -1414,231 +1440,236 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Projects Grid -->
-		<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-			{#each filteredProjects as project (project.id)}
-				<div
-					class="card overflow-hidden {selectMode && selectedIds.has(project.id)
-						? 'ring-2 ring-primary-500'
-						: ''}"
-					data-row-id={project.id}
-					tabindex="-1"
-				>
-					{#if hasCoverImage(project)}
-						<div class="h-32 bg-gray-100 dark:bg-gray-800">
-							<img
-								src={getCoverImageUrl(project)}
-								alt={project.title}
-								class="w-full h-full object-cover"
-							/>
-						</div>
-					{/if}
-					<div class="p-4">
-						<div class="flex items-start justify-between gap-2">
-							{#if selectMode}
-								<input
-									type="checkbox"
-									checked={selectedIds.has(project.id)}
-									onchange={() => toggleSelect(project.id)}
-									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+		<fieldset class="contents" disabled={listLocked}>
+			<!-- Projects Grid -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				{#each filteredProjects as project (project.id)}
+					<div
+						class="card overflow-hidden {selectMode && selectedIds.has(project.id)
+							? 'ring-2 ring-primary-500'
+							: ''}"
+						data-row-id={project.id}
+						tabindex="-1"
+					>
+						{#if hasCoverImage(project)}
+							<div class="h-32 bg-gray-100 dark:bg-gray-800">
+								<img
+									src={getCoverImageUrl(project)}
+									alt={project.title}
+									class="w-full h-full object-cover"
 								/>
-							{/if}
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2 flex-wrap">
-									<h3 class="font-medium text-gray-900 dark:text-white truncate">
-										{project.title}
-									</h3>
-									{#if project.is_featured}
-										<span
-											class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
-										>
-											{$t('admin.content.common.badge_featured')}
-										</span>
-									{/if}
-									{#if project.is_draft}
-										<span
-											class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
-										>
-											{$t('admin.content.common.badge_draft')}
-										</span>
-									{/if}
-									{#if project.visibility !== 'public'}
-										<span
-											class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
-										>
-											{project.visibility}
-										</span>
-									{/if}
-									{#if project.expand?.admin_tags && project.expand.admin_tags.length > 0}
-										{#each project.expand.admin_tags as tag (tag.id)}
-											<AdminTagBadge name={tag.name} color={tag.color} />
-										{/each}
-									{/if}
-								</div>
-
-								{#if memberships[project.id]?.length}
-									<div class="flex flex-wrap gap-1 mt-2">
-										{#each memberships[project.id].slice(0, 3) as viewRef}
-											<a
-												href={`/admin/views/${viewRef.id}`}
-												target="_blank"
-												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-												title={`Open view: ${viewRef.name}`}
+							</div>
+						{/if}
+						<div class="p-4">
+							<div class="flex items-start justify-between gap-2">
+								{#if selectMode}
+									<input
+										type="checkbox"
+										aria-label={$t('admin.bulk_actions.select_item', {
+											values: { item: project.title }
+										})}
+										checked={selectedIds.has(project.id)}
+										onchange={() => toggleSelect(project.id)}
+										class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+									/>
+								{/if}
+								<div class="flex-1 min-w-0">
+									<div class="flex items-center gap-2 flex-wrap">
+										<h3 class="font-medium text-gray-900 dark:text-white truncate">
+											{project.title}
+										</h3>
+										{#if project.is_featured}
+											<span
+												class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
 											>
-												{viewRef.slug || viewRef.name}
-											</a>
-										{/each}
-										{#if memberships[project.id].length > 3}
-											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-												+{memberships[project.id].length - 3}
+												{$t('admin.content.common.badge_featured')}
 											</span>
 										{/if}
-									</div>
-								{:else}
-									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-										{$t('admin.content.common.not_in_view')}
-									</p>
-								{/if}
-
-								{#if project.summary}
-									<p class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-										{project.summary}
-									</p>
-								{/if}
-
-								{#if project.tech_stack && project.tech_stack.length > 0}
-									<div class="flex flex-wrap gap-1 mt-2">
-										{#each project.tech_stack.slice(0, 4) as tech}
-											<span
-												class="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
-											>
-												{tech}
-											</span>
-										{/each}
-										{#if project.tech_stack.length > 4}
+										{#if project.is_draft}
 											<span
 												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
 											>
-												+{project.tech_stack.length - 4}
+												{$t('admin.content.common.badge_draft')}
 											</span>
 										{/if}
+										{#if project.visibility !== 'public'}
+											<span
+												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+											>
+												{project.visibility}
+											</span>
+										{/if}
+										{#if project.expand?.admin_tags && project.expand.admin_tags.length > 0}
+											{#each project.expand.admin_tags as tag (tag.id)}
+												<AdminTagBadge name={tag.name} color={tag.color} />
+											{/each}
+										{/if}
 									</div>
-								{/if}
-							</div>
-						</div>
 
-						<div
-							class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-700"
-						>
-							<div class="flex gap-1">
-								{#if project.slug}
-									<a
-										href="/projects/{project.slug}"
-										target="_blank"
-										class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-										title={$t('shared.actions.view')}
-									>
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-											></path>
-										</svg>
-									</a>
-								{/if}
-							</div>
-
-							<div class="flex items-center gap-1">
-								<button
-									class="p-3 text-gray-500 hover:text-yellow-600"
-									onclick={() => toggleFeatured(project)}
-									title={project.is_featured
-										? $t('admin.content.projects.action_unfeature')
-										: $t('admin.content.projects.action_feature')}
-								>
-									<svg
-										class="w-4 h-4"
-										fill={project.is_featured ? 'currentColor' : 'none'}
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-										></path>
-									</svg>
-								</button>
-								<button
-									class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-									onclick={() => togglePublish(project)}
-									title={project.is_draft
-										? $t('shared.actions.publish')
-										: $t('shared.actions.unpublish')}
-								>
-									{#if project.is_draft}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-											></path>
-
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-											></path>
-										</svg>
-									{:else}
-										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-											></path>
-										</svg>
+									{#if memberships[project.id]?.length}
+										<div class="flex flex-wrap gap-1 mt-2">
+											{#each memberships[project.id].slice(0, 3) as viewRef}
+												<a
+													href={`/admin/views/${viewRef.id}`}
+													target="_blank"
+													class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+													title={`Open view: ${viewRef.name}`}
+												>
+													{viewRef.slug || viewRef.name}
+												</a>
+											{/each}
+											{#if memberships[project.id].length > 3}
+												<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+													+{memberships[project.id].length - 3}
+												</span>
+											{/if}
+										</div>
+									{:else if $listLoad.membershipsKnown}
+										<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+											{$t('admin.content.common.not_in_view')}
+										</p>
 									{/if}
-								</button>
-								<button
-									class="p-3 text-gray-500 hover:text-blue-600"
-									onclick={() => openEditForm(project)}
-									title={$t('shared.actions.edit')}
-								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-										></path>
-									</svg>
-								</button>
-								<button
-									class="p-3 text-gray-500 hover:text-red-600"
-									onclick={() => deleteProject(project)}
-									title={$t('shared.actions.delete')}
-								>
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-										></path>
-									</svg>
-								</button>
+
+									{#if project.summary}
+										<p class="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+											{project.summary}
+										</p>
+									{/if}
+
+									{#if project.tech_stack && project.tech_stack.length > 0}
+										<div class="flex flex-wrap gap-1 mt-2">
+											{#each project.tech_stack.slice(0, 4) as tech}
+												<span
+													class="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
+												>
+													{tech}
+												</span>
+											{/each}
+											{#if project.tech_stack.length > 4}
+												<span
+													class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+												>
+													+{project.tech_stack.length - 4}
+												</span>
+											{/if}
+										</div>
+									{/if}
+								</div>
+							</div>
+
+							<div
+								class="flex items-center justify-between mt-4 pt-3 border-t border-gray-100 dark:border-gray-700"
+							>
+								<div class="flex gap-1">
+									{#if project.slug}
+										<a
+											href="/projects/{project.slug}"
+											target="_blank"
+											class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+											title={$t('shared.actions.view')}
+										>
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+												></path>
+											</svg>
+										</a>
+									{/if}
+								</div>
+
+								<div class="flex items-center gap-1">
+									<button
+										class="p-3 text-gray-500 hover:text-yellow-600"
+										onclick={() => toggleFeatured(project)}
+										title={project.is_featured
+											? $t('admin.content.projects.action_unfeature')
+											: $t('admin.content.projects.action_feature')}
+									>
+										<svg
+											class="w-4 h-4"
+											fill={project.is_featured ? 'currentColor' : 'none'}
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+											></path>
+										</svg>
+									</button>
+									<button
+										class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+										onclick={() => togglePublish(project)}
+										title={project.is_draft
+											? $t('shared.actions.publish')
+											: $t('shared.actions.unpublish')}
+									>
+										{#if project.is_draft}
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+												></path>
+
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+												></path>
+											</svg>
+										{:else}
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+												></path>
+											</svg>
+										{/if}
+									</button>
+									<button
+										class="p-3 text-gray-500 hover:text-blue-600"
+										onclick={() => openEditForm(project)}
+										title={$t('shared.actions.edit')}
+									>
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+											></path>
+										</svg>
+									</button>
+									<button
+										class="p-3 text-gray-500 hover:text-red-600"
+										onclick={() => deleteProject(project)}
+										title={$t('shared.actions.delete')}
+									>
+										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+											></path>
+										</svg>
+									</button>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		</fieldset>
 	{/if}
 </div>

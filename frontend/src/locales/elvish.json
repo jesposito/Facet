@@ -336,7 +336,18 @@
         "feature_disabled": "The tribute gifts are not awakened. Awaken them in the Gifts inscriptions."
       },
       "settings_saved": "Inscriptions preserved",
-      "settings_error": "Inscriptions could not be preserved"
+      "settings_error": "Inscriptions could not be preserved",
+      "recoverycopy": {
+        "load_error": "Could not read {resource}. Your settings are unavailable. Try once more before changing them.",
+        "retry": "Try again",
+        "retrying": "Trying again…",
+        "loading": "Reading settings…",
+        "appearance": "appearance settings",
+        "email": "email settings",
+        "features": "feature settings",
+        "payments": "payment settings",
+        "providers": "AI providers"
+      }
     },
     "about_page": {
       "title": "Of Facet",
@@ -389,7 +400,8 @@
       "backup_busy": "Another tirith or restoring already walks. Your tirithar are untouched. Wait a moment, then try once more.",
       "backup_failed": "The tirith was not completed. Your tirithar are untouched. Please try once more.",
       "backup_status_failed": "The state of the tirithar could not be read. Your tirithar are untouched.",
-      "backup_status_retry": "Try once more"
+      "backup_status_retry": "Try once more",
+      "upgrade_notes": "Counsel for the Upgrade"
     },
     "ai_assistant": {
       "title": "Wisdom Weaver",
@@ -916,7 +928,22 @@
       "quiz_explanation": "Nyarna (cenaina apa hanyie)",
       "quiz_points": "Notar",
       "quiz_add_option": "Anta Cilme",
-      "quiz_correct_answer": "Tanca"
+      "quiz_correct_answer": "Tanca",
+      "curriculum_failed": "The latest curriculum for this course could not be gathered. Changes to modules and lessons rest until it is found.",
+      "quiz_read_failed": "This lesson's quiz could not be gathered. Changes to the quiz rest until it is found. Your other lesson edits remain here.",
+      "quiz_needs_question": "Add at least one question, and give every question words, before keeping this quiz.",
+      "quiz_save_partial": "The lesson is kept, but the quiz is not confirmed. Your questions still stand here. Press Save Lesson to try again. No second lesson or quiz will be made.",
+      "quiz_save_conflict": "The lesson is kept, but it already holds a different quiz. Press Save Lesson to replace that quiz with the questions shown here.",
+      "curriculum_order_partial": "Kept {saved} of {total} places. The list now shows what is stored, so move the item again to finish.",
+      "curriculum_order_unconfirmed": "Kept {saved} of {total} places, but the curriculum could not be checked. Gather it again, then move the item once more if it stands out of place.",
+      "lesson_create_unknown": "Facet could not confirm whether this lesson was kept. All you entered still stands here. Press Try once more to check. No second lesson will be made.",
+      "lesson_create_differs": "This lesson was kept from an earlier version, so the changes shown here are not yet kept. Press Harya Lektiona to update it.",
+      "course_create_unknown": "Facet could not confirm whether this course was kept. All you entered still stands here. Press Try once more to check. No second course will be made.",
+      "course_create_differs": "This course was kept from an earlier version, so the changes shown here are not yet kept. Press Save to update it.",
+      "module_create_unknown": "Facet could not confirm whether this module was kept. All you entered still stands here. Press Try once more to check. No second module will be made.",
+      "module_create_differs": "This module was kept from an earlier version, so the changes shown here are not yet kept. Press Save Module to update it.",
+      "error_delete_module_attempts": "This module can't be deleted because learners have attempted a quiz in one of its lessons.",
+      "error_delete_lesson_attempts": "This lesson can't be deleted because learners have attempted its quiz."
     },
     "pricing": {
       "page_title": "Masto Tyalie",
@@ -955,7 +982,10 @@
       "type_talks": "Orationar",
       "type_courses": "Tirelyar",
       "type_projects": "Cardar",
-      "type_custom": "Sanyar"
+      "type_custom": "Sanyar",
+      "filter_type_name": "Filter by content type",
+      "filter_tier_name": "Filter by pricing tier",
+      "bulk_tier_name": "Pricing tier for selected items"
     },
     "coupons": {
       "page_title": "Ranyar Quettar",
@@ -1051,7 +1081,13 @@
       },
       "stats": {
         "sr_only_icon": "{label} sigil"
-      }
+      },
+      "manage_facets": "Tend Thy Facets",
+      "load_error_title": "Not all of thy hall could be revealed",
+      "load_error_message": "What is missing below is unknown, not naught.",
+      "retry": "Try once more",
+      "retrying": "Trying once more...",
+      "metric_unavailable": "Not known"
     },
     "login": {
       "title": "Enter the Realm of Facet",
@@ -1142,7 +1178,7 @@
     },
     "wizard": {
       "title": "Swift Founding",
-      "skip": "Skip founding",
+      "skip": "Finish at a later hour",
       "back": "Return",
       "continue": "Continue",
       "saving": "Preserving...",
@@ -1168,7 +1204,7 @@
       "facet_name_placeholder": "My Facet",
       "url_label": "Path:",
       "visibility_public": "This facet shall be open — any with the path may behold it",
-      "visibility_unlisted": "This facet is hidden — only those with the path may find it",
+      "visibility_unlisted": "This Facet is unlisted. It opens from a share link thou dost create, and any who hold that link may pass it on.",
       "visibility_private": "This facet is secret — only thou may behold it",
       "step3_title": "Thou art prepared!",
       "step3_subtitle": "Here is what thou hast wrought",
@@ -1176,12 +1212,24 @@
       "your_title_placeholder": "Thy Title",
       "next_steps_title": "Suggested paths forward:",
       "next_step_projects": "Add thy first work or journey of experience",
-      "next_step_share": "Share thy new facet with the world",
+      "next_step_share": "Share this page with those who need it, or add it to your realm.",
       "next_step_import": "Try importing from GitHub or presenting thy scroll of deeds",
       "ai_features_title": "Desirest thou artificer-powered enchantments?",
       "ai_features_description": "Scroll parsing, writing aid, and GitHub enrichment require a secret key from {openai}, {anthropic}, or a local {ollama} instance.",
       "ai_features_settings": "Add thy key in {settings} when ready.",
-      "required_field": "*"
+      "required_field": "*",
+      "resume_message": "The founding is not yet complete. All thou hast written rests safe in this browser.",
+      "resume_button": "Resume the founding",
+      "check_failed": "Facet could not discern whether the founding is complete. Nothing is lost.",
+      "check_retry": "Try once more",
+      "error_network": "Facet could not reach the server. Thy draft remains, so try once more when thy connection returns.",
+      "error_slug": "That address cannot be used. Return to step 2 and choose another URL slug.",
+      "error_profile_saved": "Thy presence is preserved, but thy Facet is not yet made.",
+      "step2_uses": "The same Facet may stand alone, as a scroll of deeds for a seeker, an offer to a client or a page of resources. It may dwell in thy site as well, and thou may add it to thy site navigation at any hour.",
+      "step2_templates": "Templates are but starting points. Choose the nearest, and change its name, sections and access whenever thou wilt.",
+      "step2_access": "Who may open a Facet is a separate setting. Site navigation lists only public Facets, a private Facet is seen by thee alone, and an unlisted Facet opens from a share link that any who hold it may pass on.",
+      "error_view_unknown": "Thy presence is preserved, but Facet could not check whether thy Facet was made. Thy draft still stands here. Press Try once more to check again. No second Facet will be made.",
+      "error_view_differs": "Thy Facet was already made with different details, and nothing has changed yet. Press Unveil Presence to replace it with what is shown here, including who may see it."
     },
     "content": {
       "common": {
@@ -1623,7 +1671,15 @@
         "facet_created": "Facet forged successfully",
         "save_failed": "Failed to preserve facet",
         "name_required": "Name is required",
-        "slug_required": "Path is required"
+        "slug_required": "Path is required",
+        "unsaved_warning": "This Facet holds changes not yet kept. Depart even so?",
+        "view_load_failed": "This Facet could not be summoned, so there is nothing to shape yet. Nothing has changed. Try once more, or return to thy Facets.",
+        "content_load_failed": "Thy content could not be summoned, so sections and the preview are hidden and keeping is paused. All thou hast written still stands here, and thy kept sections are unchanged.",
+        "content_refresh_failed": "Thy content could not be renewed, so keeping is paused until it returns. Thou seest the sections last summoned, and all thou hast written still stands here.",
+        "save_paused": "Keeping is paused until thy content is summoned. All thou hast written still stands here.",
+        "supporting_failed": "Some lesser details could not be summoned, such as the preview profile, share links, exports or resume tools. If they are missing here, they are not lost. Thy Facet and all thou hast written are untouched.",
+        "create_unknown": "Facet could not confirm whether this Facet was made. All thou entered still stands here. Press Create to check. No second Facet will be made.",
+        "create_differs": "This Facet was made from an earlier version, so the changes shown here are not yet kept. Press Create to update it with what is shown here, including who may see it."
       },
       "share_link": {
         "title": "Create Share Passage",
@@ -1648,7 +1704,11 @@
         "uses": "uses",
         "regenerate_title": "Reforge passage (revokes old, creates new)",
         "revoke_title": "Revoke passage",
-        "more_links": "+{count} more — view all"
+        "more_links": "+{count} more — view all",
+        "private_notice": "This vision is sealed: only you may open it, so it can bear no passage for visitors. To share it, choose Unlisted and save.",
+        "unsaved_notice": "Save this vision to bind its new veil. Its sharing paths will appear here once you save.",
+        "public_notice": "This vision stands open. Anyone with this URL may enter, and the URL never fades or wears out.",
+        "public_url_label": "Open URL"
       },
       "danger_zone": {
         "title": "Perilous Domain",
@@ -1795,7 +1855,20 @@
         "courses": "Teachings",
         "featured_testimonial_label": "Honored Testimony",
         "primary_testimonial_label": "First Voice (appears first in the carousel)",
-        "use_global_featured": "Use the honored voice (or the first)"
+        "use_global_featured": "Use the honored voice (or the first)",
+        "section_width_name": "{section} section width",
+        "section_layout_name": "{section} section arrangement",
+        "content_mode_legend": "Content for {section}",
+        "content_mode_all_public": "All open content (updates of its own accord)",
+        "content_mode_selected": "Choose items",
+        "all_public_hint": "Published open items appear here of their own accord, even those added later. Private, unlisted and draft items stay hidden.",
+        "all_public_hint_contacts": "Contact methods available to this Facet appear here of their own accord. A page limit set on a contact still holds.",
+        "all_public_hint_testimonials": "Approved open testimonials appear here of their own accord. Unapproved ones stay hidden.",
+        "selected_empty_hint": "Nothing appears in this realm until you choose items.",
+        "choose_items_hint": "Choose the items to show, then draw them into order.",
+        "none_selected": "none chosen",
+        "all_public_skills_hint": "Open skills join automatically. Change category order, enabled categories and layout here.",
+        "private_grants_unconfirmed": "Your Facet is kept safe, but we could not confirm its private items joined it. Press Save here to try once more."
       },
       "category_reorder": {
         "title": "Reorder Craft Categories",
@@ -1981,7 +2054,31 @@
       "keyboard_shortcut_delete_row": "Unmake the row",
       "keyboard_shortcut_help": "Reveal this counsel",
       "create_page_title": "Forge a Facet",
-      "edit_page_title": "Reshape a Facet"
+      "edit_page_title": "Reshape a Facet",
+      "share_links_note": "Share links open unlisted Facets. Whoever holds a link may open that Facet and pass the link on, so set an expiry or revoke links thou needest no longer.",
+      "use_cases": {
+        "title": "One Facet, many paths",
+        "lead": "Any Facet may be shared on its own and added to thy site navigation whenever thou needest. Add or remove it at any time, with naught to convert or craft anew.",
+        "access_note": "Who may open a Facet is a separate setting. Site navigation lists public, active Facets only. Whoever holds an unlisted share link may open that Facet, and Private stays visible to thee alone.",
+        "nav_link": "Tend thy site navigation",
+        "standalone_title": "Share it on its own",
+        "site_title": "Use it within thy site",
+        "resume_title": "Digital chronicle for a recruiter",
+        "resume_text": "The journeys and skills that suit one role.",
+        "proposal_title": "Proposal for a patron",
+        "proposal_text": "Fitting works and testimonials for one patron.",
+        "event_title": "Gathering or resource page",
+        "event_text": "Orations, writings and links for one occasion.",
+        "project_title": "Work page",
+        "project_text": "A focused home for one body of work.",
+        "about_title": "About page",
+        "about_text": "Thy story and how to reach thee.",
+        "writing_title": "Writings page",
+        "writing_text": "Thy writings, gathered in one place.",
+        "compact_lead": "A digital résumé, a proposal for a client, or pages for your realm. Share a Facet on its own, add it to your site, or use it both ways.",
+        "explore": "Explore the ways of Facets"
+      },
+      "action_owner_url": "Copy owner URL"
     },
     "media": {
       "page_title": "Archives of Memory | Facet Admin",
@@ -2144,7 +2241,7 @@
       "usage_warning_message": "\"{filename}\" is bound to {count, plural, one {# tale} other {# tales}}. Releasing it shall remove it from:",
       "usage_warning_more": "and {count} more",
       "toast_references_removed": "Released memory and severed {count, plural, one {# bond} other {# bonds}}",
-      "dropzone_label": "Release scrolls to preserve",
+      "dropzone_label": "Lay scrolls upon this sanctuary or invoke to seek within the archives",
       "dropzone_drag": "Lay scrolls upon this sanctuary",
       "dropzone_drop": "Release to preserve",
       "dropzone_or_click": "or invoke to seek within the archives",
@@ -2239,6 +2336,11 @@
       "token_created_message": "Preserve this token now. For safety, it shall not be revealed again.",
       "copy_url": "Remember Path",
       "loading_tokens": "Gathering tokens...",
+      "load_failed": "The paths of passage could not be gathered. Your existing paths remain unchanged.",
+      "retry": "Try again",
+      "views_load_failed": "The eligible hidden realms could not be gathered. Try again before forging a path of passage.",
+      "status_unusable": "Unavailable",
+      "status_unusable_reason": "This path no longer grants passage because its realm is missing, dormant, or no longer hidden.",
       "no_tokens": "No tokens of passage yet.",
       "no_tokens_description": "Forge a token to share a hidden realm with chosen ones.",
       "create_unlisted_first": "First, {link} to forge tokens for.",
@@ -2301,13 +2403,16 @@
       "today": "This day",
       "yesterday": "Yestereve",
       "days_ago": "{count} days hence",
-      "weeks_ago": "{count} weeks hence"
+      "weeks_ago": "{count} weeks hence",
+      "toast_invalid_expiry": "Name a true day and hour for this passage to fade.",
+      "toast_invalid_max_uses": "Max uses must be a whole number from 0 to 1,000,000.",
+      "toast_copy_failed": "The link could not be copied. Select the URL and copy it by hand."
     },
     "password_modal": {
       "title": "Change the Word of Passage",
       "description": "Choose a word of power, strong and hidden, to guard thy domain.",
       "current_password_label": "Current Word of Passage",
-      "current_password_hint": "Speak thy name to prove thy identity",
+      "current_password_hint": "The word thou didst speak to enter but now",
       "new_password_label": "New Word of Passage",
       "new_password_placeholder": "Speak a new word",
       "strength_weak": "Feeble",
@@ -2328,7 +2433,16 @@
       "selected_count": "{selected} of {total} chosen",
       "select_all": "Choose all",
       "clear": "Release all",
-      "change_visibility": "Change Visibility"
+      "change_visibility": "Change Visibility",
+      "region_label": "Actions for chosen items",
+      "select_item": "Choose {item}",
+      "result_updated": "Renewed {succeeded} of {total} items to {visibility}.",
+      "result_deleted": "Removed {succeeded} of {total} items.",
+      "result_failed": "{count, plural, one {# item faltered and stays chosen so you may try again.} other {# items faltered and stay chosen so you may try again.}}",
+      "result_unconfirmed": "{count, plural, one {Could not confirm # item.} other {Could not confirm # items.}} Reload the list before trying again.",
+      "confirm_public_title": "Open these items to all?",
+      "confirm_public_message": "{count, plural, one {# private or unlisted item will become open to all.} other {# private or unlisted items will become open to all.}} Drafts stay hidden until you publish them.",
+      "confirm_public_button": "Make open"
     },
     "homepage": {
       "collapse_section": "Fold {section} realm",
@@ -2371,7 +2485,20 @@
       "page_title": "Homepage",
       "testimonial_list_label": "Pedthû o thelsignel",
       "testimonial_list_placeholder": "ned, Mýl",
-      "testimonial_list_help": "Tiro i thelsignel o i thaud hin. Awartho an tirad pân."
+      "testimonial_list_help": "Tiro i thelsignel o i thaud hin. Awartho an tirad pân.",
+      "contact_link_type_name": "Contact link {number} type",
+      "contact_link_url_name": "Contact link {number} URL",
+      "contact_link_label_name": "Contact link {number} label",
+      "settings_load_failed": "Thy homepage settings could not be summoned, so keeping is paused. Thy kept settings are unchanged, and all thou hast written still stands here.",
+      "nav_catalog_failed": "Thy public Facets could not be summoned. Thy kept wayfaring is unchanged.",
+      "nav_save_failed": "Thy last wayfaring or summons change could not be kept, so it has been undone here. Any button names thou hast written still stand here.",
+      "retry": "Try once more",
+      "nav_item_show": "Show {name} in the wayfaring",
+      "nav_item_label": "Button name for {name}",
+      "nav_item_move_up": "Move {name} up",
+      "nav_item_move_down": "Move {name} down",
+      "profile_load_failed": "Thy profile could not be summoned, so its fields are veiled and keeping is paused. Thy kept profile is unchanged.",
+      "catalog_load_failed": "Thy homepage sections could not be summoned, so they are veiled and keeping is paused. Thy kept sections are unchanged, and all thou hast written still stands here."
     },
     "import": {
       "resume_dropzone_label": "Chronicle scroll waypoint",
@@ -2881,6 +3008,16 @@
       "readonly_note": "This glimpse is for the eyes only, not the hand. Dim it to hide it away.",
       "ready_announce": "Living glimpse made ready",
       "error_announce": "The living glimpse is veiled"
+    },
+    "list_status": {
+      "load_failed": "The {type} could not be gathered. Changes rest until the list is found.",
+      "refresh_failed": "The {type} could not be renewed. You behold the last list gathered, and changes rest until it returns.",
+      "changes_paused": "Changes rest until the list is true once more.",
+      "saving": "Keeping your changes...",
+      "ancillary_failed": "Some lesser details could not be gathered, such as view membership or tag choices. Trying again leaves an open form untouched.",
+      "retry_supporting": "Gather lesser details again",
+      "order_partial": "Kept {saved} of {total} places. Your new order still stands here, so keep it again to send only what remains.",
+      "order_unconfirmed": "Kept {saved} of {total} places, but the list could not be checked. Your new order still stands here. Reload the list, then keep it again."
     }
   },
   "public": {
@@ -3367,6 +3504,24 @@
         "quiz_no_answers": "Answer the questions ere thou submittest.",
         "quiz_failed": "The riddles did not answer rightly. Pray try once more."
       }
+    },
+    "share_entry": {
+      "page_title": "A Shared Passage | Facet",
+      "home": "Return to the Main Hall",
+      "retry": "Attempt Anew",
+      "retry_in": "Attempt anew in {seconds}s",
+      "invalid": {
+        "title": "This Passage Is Closed",
+        "message": "This shared passage is invalid or its time has passed"
+      },
+      "rate_limited": {
+        "title": "Too Many Travellers at the Gate",
+        "message": "This passage could not yet be examined, for too many requests came at once. This attempt did not spend it."
+      },
+      "unavailable": {
+        "title": "The Passage Could Not Be Examined",
+        "message": "A passing shadow fell upon this realm, so none can say whether the passage holds. This attempt may have counted as a use, and another attempt may count again."
+      }
     }
   },
   "shared": {
@@ -3527,5 +3682,13 @@
     "chars_remaining": "{count} letters remain",
     "replies": "Answers",
     "just_now": "this very moment"
-  }
+  },
+  "downloads": {
+    "title": "Downloads",
+    "load_failed": "The scrolls could not be summoned. Mind thy path and try again.",
+    "link_failed": "That scroll could not be carried forth. Pray, try again.",
+    "unavailable": "That scroll has passed beyond reach.",
+    "retry": "Try again"
+  },
+  "admin.courses.delete_course_confirm": "Ma sane? Ilye rannar, lektionar, nolwin renda, cestar yaltar ar tecwi nacenar yasse. This deed cannot be unwoven."
 }

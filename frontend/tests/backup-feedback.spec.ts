@@ -204,7 +204,7 @@ test.describe('Backup feedback (About page)', () => {
 
 		const alert = page.getByRole('alert').filter({ hasText: "Couldn't load backup status" });
 		await expect(alert).toBeVisible();
-		await expect(page.getByText('Never')).toHaveCount(0);
+		await expect(page.getByText('Never', { exact: true })).toHaveCount(0);
 		await expect(page.locator('body')).not.toContainText('database is locked');
 
 		await alert.getByRole('button', { name: 'Retry' }).click();

@@ -138,7 +138,7 @@
 				{#if section.adminPath && section.adminLabelKey}
 					<a
 						href={section.adminPath}
-						class="inline-flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 rounded"
+						class="inline-flex items-center gap-1 text-sm text-primary-700 dark:text-primary-400 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 rounded"
 					>
 						<span>{$t(section.adminLabelKey)}</span>
 						<svg
@@ -209,7 +209,7 @@
 			<li>
 				<a
 					href="/admin/settings/about"
-					class="text-primary-600 dark:text-primary-400 hover:underline"
+					class="text-primary-700 dark:text-primary-400 hover:underline"
 				>
 					{$t('admin.help.more.open_about')}
 				</a>
@@ -219,7 +219,7 @@
 					href="https://github.com/jesposito/Facet"
 					target="_blank"
 					rel="noopener noreferrer"
-					class="text-primary-600 dark:text-primary-400 hover:underline"
+					class="text-primary-700 dark:text-primary-400 hover:underline"
 				>
 					{$t('admin.help.more.open_repo')}
 					<span class="sr-only">{$t('shared.aria.opens_in_new_tab')}</span>

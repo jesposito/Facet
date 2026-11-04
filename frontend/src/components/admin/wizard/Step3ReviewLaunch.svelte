@@ -50,7 +50,11 @@
 							{$setupWizard.newView.name}
 						</p>
 						<p class="text-sm text-gray-500 dark:text-gray-400">
-							/{$setupWizard.newView.slug} &middot; {$setupWizard.newView.visibility}
+							{#if $setupWizard.newView.visibility === 'public'}
+								/{$setupWizard.newView.slug}
+							{:else}
+								{$t('admin.wizard.visibility_unlisted')}
+							{/if}
 						</p>
 					</div>
 				</div>
@@ -115,7 +119,7 @@
 					{@html $t('admin.wizard.ai_features_settings', {
 						values: {
 							settings:
-								'<a href="/admin/settings#integrations" class="underline hover:text-blue-900 dark:hover:text-blue-100"><strong>Settings</strong></a>'
+								'<a href="/admin/settings/integrations" class="underline hover:text-blue-900 dark:hover:text-blue-100"><strong>Settings</strong></a>'
 						}
 					})}
 				</p>

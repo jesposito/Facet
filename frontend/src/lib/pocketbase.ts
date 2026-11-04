@@ -486,6 +486,7 @@ export interface ViewSection {
 	section: string;
 	enabled: boolean;
 	items?: string[];
+	itemSelection?: ItemSelection;
 	order?: number;
 	layout?: SectionLayout;
 	width?: SectionWidth;
@@ -496,6 +497,10 @@ export interface ViewSection {
 	featuredId?: string; // For testimonials section: per-view featured testimonial
 	list?: string; // For testimonials section: auto-include approved testimonials from this list (#283)
 }
+
+// How a section chooses its content. Missing or unknown values mean 'selected',
+// so a section saved before this field existed never shows more than its picks.
+export type ItemSelection = 'selected' | 'all_public';
 
 // Valid width options with labels
 export const VALID_WIDTHS: { value: SectionWidth; label: string }[] = [

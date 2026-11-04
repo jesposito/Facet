@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
 	import type { Award } from '$lib/pocketbase';
-	import { formatDate, truncate, parseMarkdown } from '$lib/utils';
+	import { formatCalendarDate, truncate, parseMarkdown } from '$lib/utils';
 
 	interface Props {
 		items: Award[];
@@ -34,12 +34,12 @@
 					<div
 						class="flex-shrink-0 w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100 flex items-center justify-center font-semibold"
 					>
-						{award.awarded_at ? formatDate(award.awarded_at, { year: 'numeric' }) : ''}
+						{award.awarded_at ? formatCalendarDate(award.awarded_at, { year: 'numeric' }) : ''}
 					</div>
 					<div class="flex-1 space-y-1">
 						<p class="text-sm text-gray-600 dark:text-gray-300">
 							{award.awarded_at
-								? formatDate(award.awarded_at, { month: 'short', year: 'numeric' })
+								? formatCalendarDate(award.awarded_at, { month: 'short', year: 'numeric' })
 								: $t('public.awards.no_date')}
 						</p>
 						<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{award.title}</h3>
@@ -83,7 +83,7 @@
 							<span
 								class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100"
 							>
-								{formatDate(award.awarded_at, { month: 'short', year: 'numeric' })}
+								{formatCalendarDate(award.awarded_at, { month: 'short', year: 'numeric' })}
 							</span>
 						{/if}
 					</div>
@@ -135,7 +135,7 @@
 										<span
 											class="text-xs px-2 py-1 rounded bg-primary-100 dark:bg-primary-500/15 text-primary-800 dark:text-primary-100"
 										>
-											{formatDate(award.awarded_at, { month: 'short', year: 'numeric' })}
+											{formatCalendarDate(award.awarded_at, { month: 'short', year: 'numeric' })}
 										</span>
 									{/if}
 								</div>

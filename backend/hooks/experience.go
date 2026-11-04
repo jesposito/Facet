@@ -62,20 +62,32 @@ func RegisterExperienceHooks(app *pocketbase.PocketBase) {
 
 	// After experience is created/updated, set the company logo display name to company name
 	app.OnRecordAfterCreateSuccess("experience").BindFunc(func(e *core.RecordEvent) error {
-		return setCompanyLogoDisplayName(app, e.Record)
+		if err := setCompanyLogoDisplayName(app, e.Record); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
 	app.OnRecordAfterUpdateSuccess("experience").BindFunc(func(e *core.RecordEvent) error {
-		return setCompanyLogoDisplayName(app, e.Record)
+		if err := setCompanyLogoDisplayName(app, e.Record); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
 	// After education is created/updated, set the institution logo display name to institution name
 	app.OnRecordAfterCreateSuccess("education").BindFunc(func(e *core.RecordEvent) error {
-		return setInstitutionLogoDisplayName(app, e.Record)
+		if err := setInstitutionLogoDisplayName(app, e.Record); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 
 	app.OnRecordAfterUpdateSuccess("education").BindFunc(func(e *core.RecordEvent) error {
-		return setInstitutionLogoDisplayName(app, e.Record)
+		if err := setInstitutionLogoDisplayName(app, e.Record); err != nil {
+			return err
+		}
+		return e.Next()
 	})
 }
 

@@ -6,6 +6,15 @@
 	import { userPreferences } from '$lib/stores/userPreferences';
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 
+	interface Props {
+		/** Set while the mobile drawer is open, so the header leaves the tab order */
+		inert?: boolean;
+		/** The layout returns focus here when the drawer is explicitly closed */
+		menuButton?: HTMLButtonElement;
+	}
+
+	let { inert = false, menuButton = $bindable() }: Props = $props();
+
 	function toggleLivePreview() {
 		userPreferences.setPref('livePreviewEnabled', !$userPreferences.livePreviewEnabled);
 	}
@@ -29,11 +38,13 @@
 </script>
 
 <header
+	{inert}
 	class="admin-header fixed top-0 left-0 right-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-40"
 >
 	<div class="flex items-center justify-between h-full px-4">
 		<div class="flex items-center gap-4">
 			<button
+				bind:this={menuButton}
 				class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
 				onclick={toggleSidebar}
 				aria-label={$adminSidebarOpen

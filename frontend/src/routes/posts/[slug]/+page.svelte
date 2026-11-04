@@ -12,6 +12,7 @@
 	import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import Comments from '$components/public/Comments.svelte';
+	import Downloads from '$components/public/Downloads.svelte';
 	import { browser } from '$app/env';
 	import type { RecordModel } from 'pocketbase';
 	import {
@@ -433,9 +434,15 @@
 			</nav>
 		{/if}
 
+		{#if data.post.has_downloads}
+			<div class="max-w-4xl mx-auto px-4 sm:px-6">
+				<Downloads contentType="posts" contentId={data.post.id} fromView={data.fromView} />
+			</div>
+		{/if}
+
 		{#if data.post.comments_enabled}
 			<div class="max-w-4xl mx-auto px-4 sm:px-6 mt-12 mb-8">
-				<Comments contentType="posts" contentId={data.post.id} />
+				<Comments contentType="posts" contentId={data.post.id} fromView={data.fromView} />
 			</div>
 		{/if}
 	</main>

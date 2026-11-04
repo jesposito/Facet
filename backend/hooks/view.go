@@ -446,7 +446,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			view := records[0]
 			visibility := view.GetString("visibility")
-			shouldCountView := e.Auth == nil
+			shouldCountView := !isSuperuser(e)
 
 			tokenRecord, denial := checkViewAccess(app, crypto, share, e, view)
 			if denial = publicViewDenial(view, denial); denial != nil {
@@ -911,7 +911,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"memberships": memberships,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Owner only. Grants the private items this Facet selects right now, all
 		// or none. The request body is ignored: the saved Facet decides.
@@ -942,8 +942,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			response := make(map[string]interface{})
 			access := newContentAccess(app, purchaseService, e)
 
-			// Track analytics for unauthenticated users (skip SSR internal requests)
-			if e.Auth == nil && e.Request.Header.Get("X-Internal") != "true" {
+			// Track analytics for everyone but the owner (skip SSR internal requests)
+			if !isSuperuser(e) && e.Request.Header.Get("X-Internal") != "true" {
 				LogViewAccess(app, e, "homepage", "homepage", "")
 			}
 
@@ -1832,7 +1832,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"project_id": project.Id,
 				"status":     "applied",
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Reject import proposal
 		se.Router.POST("/api/proposals/{id}/reject", func(e *core.RequestEvent) error {
@@ -1850,7 +1850,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			app.Save(proposal)
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "rejected"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Get public post by slug
 		// Rate limited: normal tier (60/min)

@@ -602,6 +602,81 @@ test.describe('project design presentation in the browser', () => {
 		}).toPass();
 	}
 
+	test('custom site ink preserves native chapter palettes and primary actions', async ({
+		page,
+		request
+	}) => {
+		test.setTimeout(90_000);
+		await page.setViewportSize({ width: 768, height: 1000 });
+		const headers = { Authorization: token };
+		const response = await request.get(`${apiBaseURL}/api/collections/profile/records?perPage=1`, {
+			headers
+		});
+		expect(response.ok(), await response.text()).toBe(true);
+		let profile = (await response.json()).items[0];
+		const createdProfile = !profile;
+		if (!profile) {
+			const created = await request.post(`${apiBaseURL}/api/collections/profile/records`, {
+				headers,
+				data: { name: 'Native palette fixture', visibility: 'public' }
+			});
+			expect(created.ok(), await created.text()).toBe(true);
+			profile = await created.json();
+		}
+		const originalInk = profile.text_color || '';
+		const profileURL = `${apiBaseURL}/api/collections/profile/records/${profile.id}`;
+		try {
+			for (const pick of ['#ffe066', '#808080']) {
+				const update = await request.patch(profileURL, { headers, data: { text_color: pick } });
+				expect(update.ok(), await update.text()).toBe(true);
+				for (const slug of [originalSlug, ...presets.map((preset) => slugs.get(preset)!)]) {
+					await page.goto(`/projects/${slug}`);
+					await expect(page.locator('html')).toHaveAttribute('data-text-ink', '');
+					const root = page.locator('.project-experience');
+					await expect(root.locator('#listen .experience-media-status')).toBeVisible();
+					for (const dark of [false, true]) {
+						await page.evaluate(
+							(value) => document.documentElement.classList.toggle('dark', value),
+							dark
+						);
+						for (const target of [
+							root.locator('h1'),
+							root.locator('#listen h2'),
+							root.locator('#listen h3').first(),
+							root.locator('#listen h4').first(),
+							root.locator('a.experience-primary'),
+							root.locator('#listen .experience-chapter-label').first(),
+							root.locator('#listen .experience-chapter-label').nth(1),
+							root.locator('#listen .experience-media-status')
+						]) {
+							await expect
+								.poll(
+									() => textContrast(target),
+									`${slug}: ${pick}, 768px, ${dark ? 'dark' : 'light'}`
+								)
+								.toBeGreaterThanOrEqual(4.5);
+						}
+						const overflow = await page.evaluate(
+							() => document.documentElement.scrollWidth > innerWidth + 1
+						);
+						expect(overflow).toBe(false);
+					}
+					await page.emulateMedia({ media: 'print' });
+					await expect
+						.poll(() => textContrast(root.locator('#listen h2')))
+						.toBeGreaterThanOrEqual(4.5);
+					await page.emulateMedia({ media: 'screen' });
+				}
+			}
+		} finally {
+			await page.emulateMedia({ media: 'screen' });
+			const restored = createdProfile
+				? await request.delete(profileURL, { headers })
+				: await request.patch(profileURL, { headers, data: { text_color: originalInk } });
+			expect(restored.ok(), await restored.text()).toBe(true);
+		}
+	});
+
 	test('technical ink chapters keep selected and unselected text readable', async ({ page }) => {
 		await page.setViewportSize({ width: 1440, height: 900 });
 		await page.goto(`/projects/${slugs.get('technical')}`);
