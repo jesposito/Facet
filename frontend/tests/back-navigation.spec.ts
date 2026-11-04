@@ -260,6 +260,23 @@ test.describe('built-app Back journeys', () => {
 		request
 	}) => {
 		const { token, record: model } = await loginAsAdmin(request);
+		const confirmedEmptyViews: string[] = [];
+		const createdViewIds: string[] = [];
+		// This journey tests browser history. Real private grants and save recovery
+		// are covered in facet-content-selection-quality.spec.ts.
+		await page.route(/\/api\/view\/[a-z0-9]{15}\/private-items$/, async (route) => {
+			if (route.request().method() !== 'POST') return route.continue();
+			const viewId = new URL(route.request().url()).pathname.split('/')[3];
+			const stored = await request.get(`${apiBaseURL}/api/collections/views/records/${viewId}`, {
+				headers: { Authorization: token }
+			});
+			expect(stored.ok()).toBe(true);
+			const view = await stored.json();
+			expect(Array.isArray(view.sections)).toBe(true);
+			for (const section of view.sections) expect(section.items).toEqual([]);
+			confirmedEmptyViews.push(viewId);
+			await route.fulfill({ json: { granted: 0 } });
+		});
 		await page.context().addCookies([
 			{
 				name: 'pb_auth',
@@ -295,6 +312,7 @@ test.describe('built-app Back journeys', () => {
 			expect(response.ok()).toBe(true);
 			const view = await response.json();
 			created.push({ collection: 'views', id: view.id });
+			createdViewIds.push(view.id);
 			await expect(page).toHaveURL(
 				new RegExp(withShare ? `/admin/views/${view.id}$` : '/admin/views$')
 			);
@@ -316,6 +334,7 @@ test.describe('built-app Back journeys', () => {
 			await expect(page).toHaveURL(/\/admin\/views$/);
 			await expect(page.locator(`a[href="/admin/views/${view.id}"]`)).toHaveCount(0);
 		}
+		expect(confirmedEmptyViews).toEqual(createdViewIds);
 	});
 
 	test('applying or rejecting an import proposal replaces the review entry', async ({
