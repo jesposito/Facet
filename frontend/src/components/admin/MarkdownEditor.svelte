@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
+	import type { Extensions } from '@tiptap/core';
 
 	interface Props {
 		value: string;
@@ -9,6 +10,7 @@
 		label?: string;
 		toolbar?: 'full' | 'compact';
 		onchange?: (value: string) => void;
+		onreadinesschange?: (ready: boolean) => void;
 	}
 
 	let {
@@ -18,7 +20,8 @@
 		placeholder = 'Start writing...',
 		label = 'Rich text editor',
 		toolbar = 'full',
-		onchange
+		onchange,
+		onreadinesschange
 	}: Props = $props();
 
 	let currentMode = $state<'wysiwyg' | 'markdown'>('wysiwyg');
@@ -30,29 +33,57 @@
 	let isUpdatingFromEditor = false;
 	let isUpdatingFromProp = false;
 	let destroyed = false;
-	let editorExtensions: any[] | null = null;
+	let editorExtensions: Extensions | null = null;
 	let EditorClass: any = null;
 
-	// Restore preferred mode from localStorage or use prop
+	let initializationExpired = false;
+	let initializationDeadline: ReturnType<typeof setTimeout> | undefined;
+
+	function clearInitializationDeadline() {
+		clearTimeout(initializationDeadline);
+		initializationDeadline = undefined;
+	}
+
+	async function finishInitialization() {
+		clearInitializationDeadline();
+		if (destroyed) return;
+		isMounted = true;
+		// Include the initialized toolbar/content, or the existing fallback, in layout.
+		await tick();
+		if (!destroyed) onreadinesschange?.(true);
+	}
+
+	// Restore preferred mode from localStorage or use prop.
 	onMount(async () => {
+		if (!destroyed) onreadinesschange?.(false);
+		initializationDeadline = setTimeout(() => {
+			initializationExpired = true;
+			void finishInitialization();
+		}, 15_000);
 		try {
 			const stored = localStorage.getItem('editor-preferred-mode');
 			currentMode = stored === 'wysiwyg' || stored === 'markdown' ? stored : initialMode;
 			markdownText = value || '';
 
-			const { Editor } = await import('@tiptap/core');
-			const { default: StarterKit } = await import('@tiptap/starter-kit');
-			const { Markdown } = await import('@tiptap/markdown');
-			const { default: Link } = await import('@tiptap/extension-link');
-			const { default: Image } = await import('@tiptap/extension-image');
-			const { default: Placeholder } = await import('@tiptap/extension-placeholder');
+			const [
+				{ Editor },
+				{ default: StarterKit },
+				{ Markdown },
+				{ default: Link },
+				{ default: Image },
+				{ default: Placeholder }
+			] = await Promise.all([
+				import('@tiptap/core'),
+				import('@tiptap/starter-kit'),
+				import('@tiptap/markdown'),
+				import('@tiptap/extension-link'),
+				import('@tiptap/extension-image'),
+				import('@tiptap/extension-placeholder')
+			]);
+			if (destroyed || initializationExpired) return;
 
-			// Guard against unmount during async imports (CRIT #7: memory leak)
-			if (destroyed) return;
-
-			EditorClass = Editor;
-			editorExtensions = [
-				// Disable Link in StarterKit to avoid duplicate extension (v3 includes it by default)
+			const extensions: Extensions = [
+				// Disable Link in StarterKit to avoid duplicate extension (v3 includes it by default).
 				StarterKit.configure({ link: false }),
 				Markdown,
 				Link.configure({
@@ -64,39 +95,34 @@
 			];
 
 			if (toolbar === 'full') {
-				const { Table } = await import('@tiptap/extension-table');
-				const { default: TableRow } = await import('@tiptap/extension-table-row');
-				const { default: TableHeader } = await import('@tiptap/extension-table-header');
-				const { default: TableCell } = await import('@tiptap/extension-table-cell');
-				if (destroyed) return;
-				editorExtensions.push(
-					Table.configure({ resizable: true }),
-					TableRow,
-					TableHeader,
-					TableCell
-				);
+				const [{ Table }, { default: TableRow }, { default: TableHeader }, { default: TableCell }] =
+					await Promise.all([
+						import('@tiptap/extension-table'),
+						import('@tiptap/extension-table-row'),
+						import('@tiptap/extension-table-header'),
+						import('@tiptap/extension-table-cell')
+					]);
+				if (destroyed || initializationExpired) return;
+				extensions.push(Table.configure({ resizable: true }), TableRow, TableHeader, TableCell);
 			}
 
-			// Yield to let Svelte flush any pending $state changes to the DOM,
-			// ensuring editorElement is bound after any {#if} re-renders.
-			await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
-			if (destroyed) return;
-
-			// Only create editor if in WYSIWYG mode and element exists (CRIT #1 fix)
-			if (currentMode === 'wysiwyg' && editorElement) {
-				createEditor();
-			}
-
-			isMounted = true;
+			// Flush pending mode changes before using the bound editor element.
+			await tick();
+			if (destroyed || initializationExpired) return;
+			// Install only the complete initialization; expired imports never replace fallback layout.
+			EditorClass = Editor;
+			editorExtensions = extensions;
+			if (currentMode === 'wysiwyg' && editorElement) createEditor();
 		} catch (err) {
+			if (destroyed || initializationExpired) return;
 			console.error('[MarkdownEditor] Failed to initialize TipTap editor:', err);
-			// Still mark as mounted so the toolbar/fallback renders
-			isMounted = true;
 		}
+		await finishInitialization();
 	});
 
 	function createEditor() {
-		if (!EditorClass || !editorExtensions || !editorElement || destroyed) return;
+		if (!EditorClass || !editorExtensions || !editorElement || destroyed || initializationExpired)
+			return;
 		editor?.destroy();
 		// Pass empty content on init — we set markdown content after creation
 		// because TipTap's `content` option expects HTML, not markdown.
@@ -139,7 +165,9 @@
 	}
 
 	onDestroy(() => {
+		if (!destroyed) onreadinesschange?.(false);
 		destroyed = true;
+		clearInitializationDeadline();
 		editor?.destroy();
 	});
 

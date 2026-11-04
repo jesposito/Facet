@@ -70,6 +70,47 @@ function guidance(page: Page) {
 	return page.getByRole('region', { name: GUIDANCE_HEADING });
 }
 
+// Match the actual lazy TipTap core module by its package error marker, not a build hash.
+async function holdRichTextImport(page: Page, fail: boolean) {
+	let release!: () => void;
+	const released = new Promise<void>((resolve) => (release = resolve));
+	let held = false;
+	let completed = false;
+	let moduleURL = '';
+	await page.route(/\.js(?:\?|$)/, async (route) => {
+		const response = await route.fetch();
+		const body = await response.text();
+		if (!body.includes('[tiptap error]: Invalid JSON content')) return route.fulfill({ response });
+		held = true;
+		moduleURL = route.request().url();
+		await released;
+		if (fail) {
+			await route.fulfill({ status: 503, contentType: 'application/javascript', body: '' });
+		} else {
+			await route.fulfill({ response });
+		}
+		completed = true;
+	});
+	return { release, held: () => held, completed: () => completed, moduleURL: () => moduleURL };
+}
+
+async function expectAnchorRevealed(page: Page, id: string, title: RegExp) {
+	const section = page.locator(`#${id}`);
+	const trigger = section.getByRole('button', { name: title });
+	await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+	await expect(trigger).toBeFocused();
+	await expect(trigger).toBeInViewport({ ratio: 1 });
+	await expect(section).toBeInViewport();
+	const [target, controls] = await Promise.all([
+		trigger.boundingBox(),
+		page.locator('main .sticky').first().boundingBox()
+	]);
+	expect(target).not.toBeNull();
+	expect(controls).not.toBeNull();
+	expect(target!.y).toBeGreaterThanOrEqual(controls!.y + controls!.height);
+	return trigger;
+}
+
 function metric(page: Page, label: string) {
 	return page.locator('dl.stat-band > div').filter({ has: page.getByText(label, { exact: true }) });
 }
@@ -170,6 +211,44 @@ test.describe('Facet versatility guidance and dashboard resilience', () => {
 			await expectGuidanceFits(page, viewport.width);
 		});
 	}
+
+	test('profile loading preserves Page Help focus after the actual profile read', async ({
+		page
+	}) => {
+		let release!: () => void;
+		const released = new Promise<void>((resolve) => (release = resolve));
+		let held = false;
+		await page.route(records('profile'), async (route) => {
+			if (
+				route.request().method() !== 'GET' ||
+				new URL(route.request().url()).searchParams.get('perPage') !== '100'
+			)
+				return route.continue();
+			const response = await route.fetch();
+			expect(response.ok()).toBe(true);
+			held = true;
+			await released;
+			await route.fulfill({ response });
+		});
+		try {
+			await page.goto('/admin/homepage#nav-section');
+			await expect.poll(() => held).toBe(true);
+			await expect(page.getByText('Loading profile...', { exact: true })).toBeVisible();
+			const help = page.getByRole('button', { name: 'Page Help', exact: true });
+			await help.focus();
+			release();
+			await expect(
+				page.getByRole('textbox', { name: 'Rich text editor', exact: true })
+			).toBeVisible();
+			await expect(page.getByRole('button', { name: 'Save Homepage', exact: true })).toBeEnabled();
+			await expect(help).toBeFocused();
+			await expect(
+				page.locator('#nav-section').getByRole('button', { name: /^Site Navigation\b/ })
+			).not.toBeFocused();
+		} finally {
+			release();
+		}
+	});
 
 	for (const entry of ['fresh hash', 'guide click', 'profile retry'] as const) {
 		test(`${entry} reveals and focuses navigation after the actual profile read`, async ({
@@ -286,6 +365,171 @@ test.describe('Facet versatility guidance and dashboard resilience', () => {
 			} finally {
 				releaseProfile();
 				releaseSupporting();
+			}
+		});
+	}
+
+	for (const outcome of [
+		'initialized',
+		'failed import and hints',
+		'hint timeout',
+		'import timeout',
+		'editing',
+		'header focus',
+		'closed profile'
+	] as const) {
+		test(`late rich-text ${outcome} respects the requested anchor and user focus`, async ({
+			page
+		}) => {
+			await page.setViewportSize({ width: 1440, height: 900 });
+			if (outcome === 'hint timeout' || outcome === 'import timeout') await page.clock.install();
+			await page.goto('/admin/views');
+			await guidance(page).locator('summary').click();
+			const editor = await holdRichTextImport(
+				page,
+				outcome === 'failed import and hints' || outcome === 'closed profile'
+			);
+			let releaseLayout!: () => void;
+			const layoutReleased = new Promise<void>((resolve) => (releaseLayout = resolve));
+			let layoutHeld = false;
+			if (outcome === 'initialized') {
+				await page.route('**/api/site-settings', async (route) => {
+					if (route.request().method() !== 'GET') return route.continue();
+					const response = await route.fetch();
+					expect(response.ok()).toBe(true);
+					layoutHeld = true;
+					await layoutReleased;
+					await route.fulfill({ response });
+				});
+			} else if (outcome === 'failed import and hints' || outcome === 'hint timeout') {
+				await page.route(records('views'), async (route) => {
+					const url = new URL(route.request().url());
+					if (
+						route.request().method() !== 'GET' ||
+						url.searchParams.get('perPage') !== '100' ||
+						url.searchParams.has('filter') ||
+						url.searchParams.has('sort')
+					)
+						return route.continue();
+					layoutHeld = true;
+					await layoutReleased;
+					if (outcome === 'hint timeout') {
+						await route.continue().catch(() => undefined);
+						return;
+					}
+					await fulfillJson(route, { error: 'Optional hints unavailable' }, 503);
+				});
+			}
+			try {
+				await guidance(page).locator('a[href="/admin/homepage#nav-section"]').click();
+				await expect.poll(editor.held).toBe(true);
+				const nav = page
+					.locator('#nav-section')
+					.getByRole('button', { name: /^Site Navigation\b/ });
+				await expect(nav).toHaveAttribute('aria-expanded', 'true');
+				await expect(nav).not.toBeFocused();
+				const name = page.locator('#name');
+				const draft = `Late editor draft ${fixture.name}`;
+				if (outcome === 'import timeout') {
+					await page.clock.fastForward(15_001);
+					const markdown = page.getByRole('button', { name: /Switch to Markdown/ });
+					await expect(markdown).toBeVisible();
+					await expectAnchorRevealed(page, 'nav-section', /^Site Navigation\b/);
+					editor.release();
+					await expect.poll(editor.completed).toBe(true);
+					await page.evaluate(async (url) => {
+						await import(url);
+					}, editor.moduleURL());
+					await expect(
+						page.getByRole('textbox', { name: 'Rich text editor', exact: true })
+					).toHaveCount(0);
+					await expectAnchorRevealed(page, 'nav-section', /^Site Navigation\b/);
+					await markdown.click();
+					const input = page.getByRole('textbox', { name: 'Rich text editor', exact: true });
+					await input.fill(draft);
+					await expect(input).toHaveValue(draft);
+					await expect(input).toBeFocused();
+					return;
+				}
+				if (outcome === 'editing' || outcome === 'closed profile') await name.fill(draft);
+				const save = page.getByRole('button', { name: 'Save Homepage', exact: true });
+				if (outcome === 'header focus') {
+					await expect(save).toBeEnabled();
+					await save.focus();
+				}
+				if (outcome === 'closed profile') {
+					await page
+						.locator('#profile-section')
+						.getByRole('button', { name: /^Profile & Contact\b/ })
+						.click();
+					await page.evaluate(() => {
+						const a = document.createElement('a');
+						a.href = '#brand-section';
+						a.textContent = 'Jump to Brand while editor is closed';
+						a.style.cssText = 'position:fixed;bottom:0;right:0;z-index:1000;background:white';
+						document.body.append(a);
+					});
+					await page
+						.getByRole('link', { name: 'Jump to Brand while editor is closed', exact: true })
+						.click();
+					await expectAnchorRevealed(page, 'brand-section', /^Brand\b/);
+				}
+				editor.release();
+				await expect.poll(editor.completed).toBe(true);
+				if (outcome !== 'closed profile') {
+					if (outcome === 'failed import and hints') {
+						await expect(page.getByRole('button', { name: /Switch to Markdown/ })).toBeVisible();
+					} else {
+						await expect(
+							page.getByRole('textbox', { name: 'Rich text editor', exact: true })
+						).toBeVisible();
+					}
+				}
+				if (outcome === 'hint timeout') {
+					await expect.poll(() => layoutHeld).toBe(true);
+					await expect(nav).not.toBeFocused();
+					const aborted = page.waitForEvent('requestfailed', (request) => {
+						const url = new URL(request.url());
+						return (
+							url.pathname.endsWith('/collections/views/records') &&
+							url.searchParams.get('perPage') === '100' &&
+							!url.searchParams.has('filter') &&
+							!url.searchParams.has('sort') &&
+							request.failure()?.errorText === 'net::ERR_ABORTED'
+						);
+					});
+					await page.clock.fastForward(15_001);
+					await aborted;
+					await expectAnchorRevealed(page, 'nav-section', /^Site Navigation\b/);
+				} else if (outcome === 'initialized' || outcome === 'failed import and hints') {
+					await expect.poll(() => layoutHeld).toBe(true);
+					await expect(nav).not.toBeFocused();
+					releaseLayout();
+					await page.evaluate(() => document.fonts.ready);
+					await expectAnchorRevealed(page, 'nav-section', /^Site Navigation\b/);
+				} else if (outcome === 'header focus') {
+					await expect(save).toBeFocused();
+					await expect(nav).not.toBeFocused();
+				} else if (outcome === 'editing') {
+					await expect(
+						page.getByRole('button', { name: 'Save Homepage', exact: true })
+					).toBeEnabled();
+					await expect(name).toHaveValue(draft);
+					await expect(name).toBeFocused();
+					await expect(nav).not.toBeFocused();
+				} else {
+					await expectAnchorRevealed(page, 'brand-section', /^Brand\b/);
+					const profile = page
+						.locator('#profile-section')
+						.getByRole('button', { name: /^Profile & Contact\b/ });
+					await profile.click();
+					await expect(page.getByRole('button', { name: /Switch to Markdown/ })).toBeVisible();
+					await expect(name).toHaveValue(draft);
+					await expect(profile).toBeFocused();
+				}
+			} finally {
+				editor.release();
+				releaseLayout();
 			}
 		});
 	}

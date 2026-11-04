@@ -32,6 +32,8 @@
 	let sectionOpen = $state(false);
 	let visibilityOpen = $state(false);
 	let pendingHash = $state('');
+	let summaryEditorReady = $state(false);
+	let viewOverridesLoading = $state(true);
 	const hashTargets: Partial<Record<string, () => void>> = {
 		'#profile-section': () => {
 			profileOpen = true;
@@ -66,7 +68,15 @@
 
 	$effect(() => {
 		const hash = pendingHash;
-		if (!browser || profileLoading || !profileReady || !hash) return;
+		if (
+			!browser ||
+			profileLoading ||
+			!profileReady ||
+			settingsLoading ||
+			(profileOpen && (!summaryEditorReady || viewOverridesLoading)) ||
+			!hash
+		)
+			return;
 		let active = true;
 		// The form does not exist while the profile is loading. Wait for its
 		// render and for navigation's own scroll/focus restoration to finish.
@@ -93,6 +103,18 @@
 			active = false;
 		};
 	});
+
+	function cancelPendingHashOnFocus(event: FocusEvent) {
+		const target = event.target;
+		// Only the failed profile's Retry still belongs to the requested navigation.
+		if (target instanceof HTMLElement && target.closest('[data-profile-load-retry]')) return;
+		if (
+			target instanceof HTMLElement &&
+			target.matches('input, textarea, select, button, a[href], summary, [contenteditable="true"]')
+		) {
+			pendingHash = '';
+		}
+	}
 
 	// Import DnD safely - only in browser (for site navigation reordering)
 	let navDndzone: any = $state((node: HTMLElement, params?: any) => ({ destroy: () => {} }));
@@ -165,6 +187,7 @@
 	let settingsWrites: Promise<unknown> = Promise.resolve();
 	let destroyed = false;
 	const settingsReadAbort = new AbortController();
+	const viewOverridesAbort = new AbortController();
 	const requiredReads = createListLoader('homepage');
 
 	// Section ordering - array of {id, key} objects for dnd compatibility
@@ -637,16 +660,22 @@
 		}
 	}
 
-	// Override notes are hints, so a failed read never holds up the profile.
+	// Profile editing stays available; pending anchor jumps wait for bounded hint layout.
 	async function loadViewOverrides() {
+		const finish = settingsRequestTimeout(() => viewOverridesAbort.abort());
 		try {
 			const views = await collection('views').getList(1, 100, {
-				$cancelKey: 'homepage-views-overrides'
+				requestKey: null,
+				signal: viewOverridesAbort.signal
 			});
+			if (destroyed) return;
 			viewsOverridingHeadline = (views.items as unknown as View[]).filter((v) => v.hero_headline);
 			viewsOverridingSummary = (views.items as unknown as View[]).filter((v) => v.hero_summary);
 		} catch (err) {
-			console.error('Failed to load view overrides:', err);
+			if (!destroyed) console.error('Failed to load view overrides:', err);
+		} finally {
+			finish();
+			if (!destroyed) viewOverridesLoading = false;
 		}
 	}
 
@@ -916,6 +945,7 @@
 	onDestroy(() => {
 		destroyed = true;
 		settingsReadAbort.abort();
+		viewOverridesAbort.abort();
 		publicViewsController?.abort();
 		if (avatarBlobUrl) URL.revokeObjectURL(avatarBlobUrl);
 		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
@@ -1159,7 +1189,10 @@
 	}
 </script>
 
-<svelte:window onhashchange={() => queueHashTarget(window.location.hash)} />
+<svelte:window
+	onhashchange={() => queueHashTarget(window.location.hash)}
+	onfocusin={cancelPendingHashOnFocus}
+/>
 
 <svelte:head>
 	<title>{$t('admin.homepage.page_title')} | {$brandName}</title>
@@ -1259,6 +1292,7 @@
 				type="button"
 				class="btn btn-secondary"
 				disabled={profileLoading}
+				data-profile-load-retry
 				onclick={() => retryRead(loadProfile)}
 			>
 				{$t('admin.homepage.retry')}
@@ -1371,6 +1405,7 @@
 								/>
 							</div>
 							<MarkdownEditor
+								onreadinesschange={(ready) => (summaryEditorReady = ready)}
 								bind:value={summary}
 								toolbar="compact"
 								minHeight="150px"
